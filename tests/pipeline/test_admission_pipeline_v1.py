@@ -83,6 +83,7 @@ def test_pipeline_handles_profit_claim_variations(pipeline: AdmissionPipelineV1,
     assert len(artifact.hypotheses) == 3
     assert artifact.primary_hypothesis_id is not None
     assert artifact.primary_hypothesis_id == artifact.hypotheses[0].node_id
+    assert artifact.hypotheses[0].description == "Tensión de caja"
 
 
 @pytest.mark.parametrize("claim", [

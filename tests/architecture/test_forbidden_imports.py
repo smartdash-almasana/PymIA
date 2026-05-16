@@ -12,7 +12,17 @@ FORBIDDEN_IMPORT_PREFIXES = [
     "mcp",
     "orchestration",
     "jobs",
-    "workflows"
+    "workflows",
+    "telegram",
+    "telebot",
+    "aiogram",
+    "openai",
+    "anthropic",
+    "google.generativeai",
+    "groq",
+    "langchain",
+    "bem",
+    "ocr"
 ]
 
 def test_no_forbidden_imports():

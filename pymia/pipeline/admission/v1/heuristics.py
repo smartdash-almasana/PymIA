@@ -36,6 +36,8 @@ INVENTORY_SYMPTOM_CLUSTERS = {
     "PAIN_INDICATORS": {"stock parado", "no rota", "falta de stock", "falta", "productos clavados", "clavado", "no sale", "venta cortada"}
 }
 
+# Orden clínico determinístico para empates de score en admisión inicial.
+# La primera hipótesis no diagnostica: ordena la conversación y la evidencia mínima.
 PROFIT_HYPOTHESES = [
     {"description": "Tensión de caja", "evidence_required": ["ventas", "costos", "movimientos de caja", "extractos"]},
     {"description": "Fuga operativa", "evidence_required": ["ventas", "costos", "movimientos de caja", "extractos"]},

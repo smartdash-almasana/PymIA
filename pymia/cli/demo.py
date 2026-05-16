@@ -11,6 +11,13 @@ from __future__ import annotations
 import sys
 import uuid
 
+
+def _configure_stdout() -> None:
+    """Best-effort UTF-8 stdout for local demos on Windows consoles."""
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if reconfigure is not None:
+        reconfigure(encoding="utf-8", errors="replace")
+
 from pymia.pipeline.admission.v1.pipeline import AdmissionPipelineV1
 from pymia.pipeline.admission.v1.response_formatter import AdmissionResponseFormatterV1
 
@@ -92,6 +99,8 @@ def run_demo(claim: str) -> None:
 
 
 def main() -> None:
+    _configure_stdout()
+
     if len(sys.argv) < 2:
         print(
             "\nUso: python -m pymia.cli.demo \"<relato del dueño>\"\n"

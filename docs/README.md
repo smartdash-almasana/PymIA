@@ -1,10 +1,10 @@
-Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige `../ARCHITECTURE_GUARDRAILS.md`.
 
 # PymIA — Biblioteca Documental Canónica
 
 ## Estado
 
-Documento rector — Índice canónico v1.1
+Documento rector — Índice canónico v1.2
 Fecha: Mayo 2026
 
 ---
@@ -20,67 +20,79 @@ El dueño confirma.
 
 ---
 
-## Estructura vigente (solo archivos presentes)
+## Estructura vigente — archivos presentes
 
-```
-PymIA/docs/
-│
-├── README.md
-├── INVENTARIO_CANONICO.md
-│
-├── vision/
-│   ├── SMARTPYME_LABORATORIO_PYME_Y_ESTABILIZACION_OPERACIONAL.md  (placeholder)
-│   └── SMARTPYME_MVP_REALISTA_Y_FILOSOFIA_OPERACIONAL.md           (placeholder)
-│
-├── fundamentos/
-│   ├── cosmovision-clinico-operacional.md
-│   ├── organismo-pyme.md
-│   ├── metodo-hipotetico-deductivo.md
-│   └── primer-tiempo-logico.md
-│
-├── epistemologia/
-│   ├── contrato-epistemologico-smartgraph.md
-│   ├── protocolo-conversacional-hermes.md
-│   └── modelo-verdad-soberania.md
-│
-├── arquitectura/
-│   ├── arquitectura-maestra.md
-│   ├── domain-classification.md
-│   ├── entropy-routing.md
-│   ├── capability-runtime.md
-│   ├── harness-engineering.md
-│   ├── palantir-principles.md
-│   └── orchestration-boundary.md
-│
-├── producto/
-│   ├── capa-00-canal-entrada.md
-│   ├── protocolo-anamnesis-mvp.md
-│   └── asertividades-operativas.md
-│
-├── contratos/
-│   ├── contratos-clinicos-operacionales.md
-│   ├── evidence-chain-v1.md
-│   └── owner-decision-v1.md
-│
-├── catalogo/
-│   ├── atlas-sintomas-patologias.md
-│   ├── diseno-catalogo-clinico.md
-│   └── anamnesis-y-catalogos.md
-│
-└── hermes/
-    └── soul.md
-```
+Las referencias de esta sección usan rutas relativas reales desde `PymIA/docs/`.
+
+### Raíz documental
+
+- `README.md`
+- `INVENTARIO_CANONICO.md`
+
+### `vision/`
+
+- `vision/SMARTPYME_LABORATORIO_PYME_Y_ESTABILIZACION_OPERACIONAL.md` — placeholder con provenance explícito
+- `vision/SMARTPYME_MVP_REALISTA_Y_FILOSOFIA_OPERACIONAL.md` — placeholder con provenance explícito
+
+### `fundamentos/`
+
+- `fundamentos/cosmovision-clinico-operacional.md`
+- `fundamentos/organismo-pyme.md`
+- `fundamentos/metodo-hipotetico-deductivo.md`
+- `fundamentos/primer-tiempo-logico.md`
+
+### `epistemologia/`
+
+- `epistemologia/contrato-epistemologico-smartgraph.md`
+- `epistemologia/protocolo-conversacional-hermes.md`
+- `epistemologia/modelo-verdad-soberania.md`
+
+### `arquitectura/`
+
+- `arquitectura/arquitectura-maestra.md`
+- `arquitectura/domain-classification.md`
+- `arquitectura/entropy-routing.md`
+- `arquitectura/capability-runtime.md`
+- `arquitectura/harness-engineering.md`
+- `arquitectura/palantir-principles.md`
+- `arquitectura/orchestration-boundary.md`
+
+### `producto/`
+
+- `producto/capa-00-canal-entrada.md`
+- `producto/protocolo-anamnesis-mvp.md`
+- `producto/asertividades-operativas.md`
+
+### `contratos/`
+
+- `contratos/contratos-clinicos-operacionales.md`
+- `contratos/evidence-chain-v1.md`
+- `contratos/owner-decision-v1.md`
+
+### `catalogo/`
+
+- `catalogo/atlas-sintomas-patologias.md`
+- `catalogo/diseno-catalogo-clinico.md`
+- `catalogo/anamnesis-y-catalogos.md`
+
+### `hermes/`
+
+- `hermes/soul.md`
 
 ---
 
-## Pendientes explícitos (no presentes)
+## Pendientes explícitos — no presentes
 
-- `producto/capa-01-admision-epistemologica.md`
-- `hermes/arquitectura-conversacional.md`
-- `hermes/boundary-orquestacion.md`
-- `gobernanza/agents.md`
-- `gobernanza/agent-harness-governance.md`
-- `gobernanza/determinismo.md`
+Estos archivos están definidos como pendientes. No son fuente disponible y no autorizan reconstrucción desde memoria.
+
+```text
+producto / capa-01-admision-epistemologica
+hermes / arquitectura-conversacional
+hermes / boundary-orquestacion
+gobernanza / agents
+gobernanza / agent-harness-governance
+gobernanza / determinismo
+```
 
 ---
 
@@ -88,15 +100,14 @@ PymIA/docs/
 
 Esta biblioteca no contiene:
 
-- documentación de factoría
-- runtime legacy
-- workflows de jobs
-- prompts operativos de factoría
-- YAMLs híbridos de Hermes
-- evidencia de ciclos de construcción
-- reportes de ejecución de factoría
-- configuración de infraestructura VM
-- scripts de deploy
+- documentación de factoría;
+- runtime legacy;
+- workflows de jobs;
+- prompts operativos de factoría;
+- YAMLs híbridos de Hermes;
+- evidencia de ciclos de construcción;
+- reportes de ejecución de factoría;
+- configuración de infraestructura VM;
+- scripts de deploy.
 
 Esos documentos pertenecen al repo SmartPyme y no deben migrar a PymIA.
-
