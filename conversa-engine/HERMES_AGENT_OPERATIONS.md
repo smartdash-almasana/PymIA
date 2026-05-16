@@ -122,5 +122,55 @@ platforms.telegram.state: connected
 ## Provider policy
 
 - Preferred: Nous Portal OAuth (`provider: nous`).
+- Preferred model: `deepseek/deepseek-v4-flash`.
 - Fallback allowed only if Nous fails: OpenRouter owl alfa.
 - Keep provider consistency per active profile before starting gateway.
+
+## Nous Portal setup
+
+Windows:
+
+```powershell
+cd E:\BuenosPasos\smartbridge\PymIA\conversa-engine
+.\.venv\Scripts\hermes.exe setup
+```
+
+During setup:
+
+```text
+Provider: Nous Portal
+Model: deepseek/deepseek-v4-flash
+```
+
+If OAuth is required:
+
+```powershell
+.\.venv\Scripts\hermes.exe auth add nous --type oauth
+```
+
+Verify:
+
+```powershell
+.\.venv\Scripts\hermes.exe status
+```
+
+Expected:
+
+```text
+Provider: Nous Portal
+Model: deepseek/deepseek-v4-flash
+Nous Portal: logged in
+```
+
+Manual config check, only if needed:
+
+```powershell
+.\.venv\Scripts\hermes.exe config edit
+```
+
+Expected config keys:
+
+```yaml
+model.provider: nous
+model.default: deepseek/deepseek-v4-flash
+```
