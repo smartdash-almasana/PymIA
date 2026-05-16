@@ -1,8 +1,10 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # PymIA — Biblioteca Documental Canónica
 
 ## Estado
 
-Documento rector — Índice canónico v1.0
+Documento rector — Índice canónico v1.1
 Fecha: Mayo 2026
 
 ---
@@ -18,16 +20,17 @@ El dueño confirma.
 
 ---
 
-## Estructura
+## Estructura vigente (solo archivos presentes)
 
 ```
 PymIA/docs/
 │
-├── README.md                          ← este archivo
+├── README.md
+├── INVENTARIO_CANONICO.md
 │
 ├── vision/
-│   ├── SMARTPYME_LABORATORIO_PYME_Y_ESTABILIZACION_OPERACIONAL.md
-│   └── SMARTPYME_MVP_REALISTA_Y_FILOSOFIA_OPERACIONAL.md
+│   ├── SMARTPYME_LABORATORIO_PYME_Y_ESTABILIZACION_OPERACIONAL.md  (placeholder)
+│   └── SMARTPYME_MVP_REALISTA_Y_FILOSOFIA_OPERACIONAL.md           (placeholder)
 │
 ├── fundamentos/
 │   ├── cosmovision-clinico-operacional.md
@@ -51,7 +54,6 @@ PymIA/docs/
 │
 ├── producto/
 │   ├── capa-00-canal-entrada.md
-│   ├── capa-01-admision-epistemologica.md
 │   ├── protocolo-anamnesis-mvp.md
 │   └── asertividades-operativas.md
 │
@@ -65,16 +67,20 @@ PymIA/docs/
 │   ├── diseno-catalogo-clinico.md
 │   └── anamnesis-y-catalogos.md
 │
-├── hermes/
-│   ├── soul.md
-│   ├── arquitectura-conversacional.md
-│   └── boundary-orquestacion.md
-│
-└── gobernanza/
-    ├── agents.md
-    ├── agent-harness-governance.md
-    └── determinismo.md
+└── hermes/
+    └── soul.md
 ```
+
+---
+
+## Pendientes explícitos (no presentes)
+
+- `producto/capa-01-admision-epistemologica.md`
+- `hermes/arquitectura-conversacional.md`
+- `hermes/boundary-orquestacion.md`
+- `gobernanza/agents.md`
+- `gobernanza/agent-harness-governance.md`
+- `gobernanza/determinismo.md`
 
 ---
 
@@ -94,18 +100,3 @@ Esta biblioteca no contiene:
 
 Esos documentos pertenecen al repo SmartPyme y no deben migrar a PymIA.
 
----
-
-## Próxima pasada recomendada
-
-Consolidar:
-
-- contratos epistemológicos completos
-- SmartGraph: FactNode / HypothesisNode / SignalNode
-- catálogo de síntomas y patologías
-- capability runtime
-- evidence chain
-- owner decision boundary
-- operational conditions catalog
-
-La prioridad es consolidar el canon documental soberano antes de continuar con extracción de código o integración runtime.

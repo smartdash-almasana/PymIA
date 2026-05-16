@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # ADR-CAP-001: Capability Runtime Contract
 
 **Status:** Accepted
@@ -125,3 +127,4 @@ rules/
 catalogs/
 tests/
 ```
+

@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # ADR-005 — Cosmovisión Clínico-Operacional de SmartPyme
 
 ## Estado
@@ -524,3 +526,4 @@ SmartPyme sostiene la duda hasta convertirla en acción acertiva certificada por
 La capa imperativa protege la supervivencia.
 La capa clínica protege la evolución.
 ```
+

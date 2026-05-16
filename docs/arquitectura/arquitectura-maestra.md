@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # SmartPyme: Arquitectura Maestra del Sistema Operativo Organizacional
 
 **Versión:** 2.0
@@ -102,3 +104,4 @@ Es el agente orquestador que consume las herramientas del MCP Bridge. Orquesta l
 - **Diagnóstico Prematuro:** Que el sistema afirme una patología sin haber completado el ciclo de investigación y validación de evidencia.
 - **Catálogo Académico Inútil:** Crear catálogos que no reflejen la realidad operativa, el lenguaje y los dolores de la PyME real.
 - **Exceso de Abstracción:** Crear una arquitectura tan genérica que se vuelva imposible de implementar de forma concreta y útil.
+

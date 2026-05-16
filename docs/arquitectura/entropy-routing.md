@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # ADR-ENT-001: Entropy Routing and Sovereign Ingestion
 
 **Status:** Accepted
@@ -135,3 +137,4 @@ Hermes debe solicitar resolución humana.
 SmartPyme no monetiza OCR.
 SmartPyme monetiza inteligencia operacional.
 ```
+

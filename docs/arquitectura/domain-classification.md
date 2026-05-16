@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # Taxonomía Arquitectónica del Repositorio
 
 **Fecha:** 2026-05-12
@@ -86,3 +88,4 @@ docs/                   # ADRs, documentación operativa
 2. **Deuda explícita:** Toda excepción debe estar documentada.
 3. **Boundaries auditables:** El script `guard_product_boundaries.py` debe ejecutarse en cada PR y push.
 4. **Runtime protegido:** PRODUCT_RUNTIME mantiene integridad mediante bloqueo automático en CI.
+

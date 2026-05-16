@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 <!--
 FUENTE_ORIGINAL: docs/adr/ADR-CAT-001-pyme-anamnesis-and-knowledge-catalogs.md
 ESTADO: copiado_sin_modificaciones
@@ -587,3 +589,4 @@ Este ADR no define todavía:
 - estrategia final Obsidian/RAG/vector store/memoria estructurada
 
 Estas decisiones deberán definirse en contratos técnicos posteriores.
+

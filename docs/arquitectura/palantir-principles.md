@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # SmartPyme — Principios aprovechables de Palantir para ajuste de ingeniería
 
 ## Estado
@@ -156,3 +158,4 @@ Con eso alcanza para incorporar lo mejor sin sobrediseñar.
 No construir un bot que responde.
 Construir una ontología operativa liviana donde cada conversación, evidencia, decisión y acción enriquece el mapa vivo de la organización.
 ```
+

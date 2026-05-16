@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 <!--
 FUENTE_ORIGINAL: docs/contracts/SMARTPYME_CLINICAL_OPERATIONAL_CONTRACTS.md
 ESTADO: copiado_sin_modificaciones
@@ -697,3 +699,4 @@ Si cualquier contrato no cumple completitud + evidencia + trazabilidad:
 - Sin excepciones por conveniencia operativa.
 
 Sin evidencia trazable no hay hallazgo.
+

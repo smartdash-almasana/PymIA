@@ -1,3 +1,5 @@
+Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación dentro de PymIA. Rige ARCHITECTURE_GUARDRAILS.md.
+
 # Hermes Producto — Boundary de Orquestación
 
 ## Estado
@@ -86,3 +88,4 @@ Telegram update
 → InitialLaboratoryAnamnesisService.process()
 → anamnesis_inicial / hipótesis / evidencia requerida
 ```
+
