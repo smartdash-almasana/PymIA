@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+from uuid import uuid4
+
+from evidence_router import IngestionRoute
+from inbound_event import RawInboundEvent
+from intake_repository import DocumentIntakeRepository
+
+
+def _mime_from_extension(file_name: str) -> str:
+    ext = Path(file_name).suffix.lower()
+    if ext == ".pdf":
+        return "application/pdf"
+    if ext == ".xlsx":
+        return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    if ext == ".xls":
+        return "application/vnd.ms-excel"
+    if ext == ".csv":
+        return "text/csv"
+    if ext in {".jpg", ".jpeg"}:
+        return "image/jpeg"
+    if ext == ".png":
+        return "image/png"
+    return "application/octet-stream"
+
+
+def _session_id(tenant_id: str, user_id: str) -> str:
+    return f"{tenant_id}/{user_id}"
+
+
+def intake_document(
+    *,
+    tenant_id: str,
+    user_id: str,
+    file_path: str,
+    file_name: str,
+    mime_type: str | None,
+    expected_schema: str,
+    entropy_level: float,
+) -> str:
+    actual_mime_type = mime_type or _mime_from_extension(file_name)
+    event = RawInboundEvent.file(
+        event_id=f"evt-{uuid4()}",
+        tenant_id=tenant_id,
+        user_id=user_id,
+        file_name=file_name,
+        mime_type=actual_mime_type,
+        expected_schema=expected_schema,
+        entropy_level=entropy_level,
+    )
+    route = event.get_ingestion_route()
+
+    base_path = Path(__file__).resolve().parent / ".intake_state"
+    fallback_path = Path.home() / ".cache" / "pymia" / "conversa-intake-state"
+    session_id = _session_id(tenant_id, user_id)
+
+    for state_path in (base_path, fallback_path):
+        try:
+            repo = DocumentIntakeRepository(base_path=state_path, stale_lock_seconds=60.0)
+            state = repo.load(session_id=session_id)
+            state.register(event)
+            repo.save(session_id=session_id, state=state)
+            break
+        except PermissionError:
+            continue
+
+    route_label = {
+        IngestionRoute.BEM_AI: "BEM_AI",
+        IngestionRoute.INTERNAL_FACT: "INTERNAL_FACT",
+        IngestionRoute.NARRATIVE: "NARRATIVE",
+    }[route]
+
+    if route == IngestionRoute.BEM_AI:
+        reason = "archivo no normalizado o con estructura que requiere extracción/curaduría antes de contrastar evidencia"
+    elif route == IngestionRoute.INTERNAL_FACT:
+        reason = "archivo estructurado con esquema esperado para ingesta interna"
+    else:
+        reason = "relato humano o evidencia narrativa"
+
+    return "\n".join(
+        [
+            f"Recibí el archivo: {file_name}",
+            "",
+            f"Ruta asignada: {route_label}",
+            f"Motivo: {reason}.",
+            "",
+            "Estado: evidencia registrada para el laboratorio operacional.",
+            "",
+            "Regla: este archivo no confirma ninguna patología ni hallazgo por sí solo. Primero debe contrastarse contra variables y evidencia suficiente.",
+        ]
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Register document evidence for conversa-engine")
+    parser.add_argument("--tenant-id", required=True)
+    parser.add_argument("--user-id", required=True)
+    parser.add_argument("--file-path", required=True)
+    parser.add_argument("--file-name", required=True)
+    parser.add_argument("--mime-type", default=None)
+    parser.add_argument("--expected-schema", default="unknown")
+    parser.add_argument("--entropy-level", type=float, default=0.5)
+    args = parser.parse_args()
+
+    print(
+        intake_document(
+            tenant_id=args.tenant_id,
+            user_id=args.user_id,
+            file_path=args.file_path,
+            file_name=args.file_name,
+            mime_type=args.mime_type,
+            expected_schema=args.expected_schema,
+            entropy_level=args.entropy_level,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

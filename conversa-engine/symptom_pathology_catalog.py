@@ -21,8 +21,7 @@ class SymptomCatalogEntry:
 
 
 def _fold(text: str) -> str:
-    text = normalize("NFKD", text.lower())
-    return "".join(ch for ch in text if not ch.encode("ascii", "ignore") == b"")
+    return normalize("NFKD", text.lower()).encode("ascii", "ignore").decode("ascii")
 
 
 CATALOG: tuple[SymptomCatalogEntry, ...] = (
@@ -31,9 +30,20 @@ CATALOG: tuple[SymptomCatalogEntry, ...] = (
         name="Sospecha de pérdida de margen",
         owner_pains=(
             "pierdo plata",
+            "pierdo dinero",
             "vendo pero no gano",
             "vendo mucho pero no gano",
             "vendo mucho pero no se si gano plata",
+            "no se si gano o pierdo dinero",
+            "no se si gano o pierdo plata",
+            "no se si gano plata",
+            "no se si gano dinero",
+            "no se si gano",
+            "no sé si gano o pierdo dinero",
+            "no sé si gano o pierdo plata",
+            "no sé si gano plata",
+            "no sé si gano dinero",
+            "no sé si gano",
             "no me queda plata",
             "no me deja margen",
             "me aumentaron los costos",
