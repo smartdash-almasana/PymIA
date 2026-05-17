@@ -227,28 +227,24 @@ class InitialLaboratoryAnamnesisService:
     def _build_margin_message(self, documentos: list[str]) -> str:
         docs = "\n".join(f"- {documento}" for documento in documentos)
         return (
-            "Entiendo el dolor: estás vendiendo o trabajando, pero no tenés "
-            "claridad sobre si la empresa realmente gana plata.\n\n"
-            "Todavía no voy a diagnosticar. Primero necesito reducir "
-            "incertidumbre con evidencia.\n\n"
-            "Para abrir el primer laboratorio de rentabilidad/margen, enviame "
-            "si podés:\n"
+            "Señal económico-operacional registrada: incertidumbre de rentabilidad.\n\n"
+            "Estado: hipótesis abierta, sin diagnóstico confirmado.\n\n"
+            "Laboratorio inicial de rentabilidad/margen — evidencia requerida:\n"
             f"{docs}\n\n"
-            "Con eso puedo contrastar ventas contra costos/precios y separar "
-            "si el problema parece ser margen, costos desactualizados o caja."
+            "Objetivo del contraste: separar margen erosionado, costos desactualizados, precios no alineados o tensión de caja."
         )
 
     def _build_operational_message(self, signals: list[str], documentos: list[str]) -> str:
         detected = "\n".join(f"- {signal}" for signal in signals)
         docs = "\n".join(f"- {documento}" for documento in documentos)
         return (
-            "Detecto una señal operacional, todavía no un diagnóstico.\n\n"
+            "Señal operacional registrada, todavía sin diagnóstico confirmado.\n\n"
             "Señales registradas:\n"
             f"{detected}\n\n"
-            "Hipótesis inicial: puede haber un cuello de botella operativo con impacto en producción, ventas o cumplimiento.\n\n"
-            "Para abrir el primer laboratorio operacional, enviame si podés:\n"
+            "Hipótesis inicial: posible cuello de botella operativo con impacto en producción, ventas o cumplimiento.\n\n"
+            "Laboratorio inicial operacional — evidencia requerida:\n"
             f"{docs}\n\n"
-            "Con eso puedo contrastar si el problema viene de capacidad, dotación, demanda, pedidos demorados o impacto económico."
+            "Objetivo del contraste: distinguir capacidad, dotación, demanda, pedidos demorados e impacto económico."
         )
 
     def _normalize(self, text: str) -> str:
