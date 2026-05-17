@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 
 def _ensure_repo_on_path() -> None:
@@ -10,7 +11,7 @@ def _ensure_repo_on_path() -> None:
         sys.path.insert(0, str(repo_root))
 
 
-def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") -> str:
+def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
     _ensure_repo_on_path()
     from pymia.hermes.adapter import HermesAdapter, HermesInput
 
@@ -24,6 +25,70 @@ def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") 
         )
     )
     return result.reply_text
+
+
+def _catalog_contrast(text: str) -> str:
+    from symptom_pathology_catalog import match_symptoms_from_owner_message
+
+    matches = match_symptoms_from_owner_message(text)
+    if not matches:
+        return ""
+
+    entry = matches[0]
+    return "\n".join(
+        [
+            "",
+            "---",
+            "CONTRASTE CON CATÁLOGO PYME",
+            "",
+            f"Síntoma operativo: {entry.name}.",
+            "",
+            "Patologías candidatas, no confirmadas:",
+            *[f"- {item}" for item in entry.candidate_pathologies],
+            "",
+            "Variables necesarias:",
+            *[f"- {item}" for item in entry.required_variables],
+            "",
+            "Evidencia requerida:",
+            *[f"- {item}" for item in entry.required_evidence],
+            "",
+            "Pregunta mayéutica mínima:",
+            f"- {entry.mayeutic_questions[0]}",
+            "",
+            "Regla: estas patologías son hipótesis candidatas. No son hallazgos confirmados hasta contrastar evidencia.",
+        ]
+    )
+
+
+def _session_id(tenant_id: str, user_id: str) -> str:
+    return f"{tenant_id}/{user_id}"
+
+
+def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
+    from inbound_event import RawInboundEvent
+    from intake_repository import DocumentIntakeRepository
+
+    base_path = Path(__file__).resolve().parent / ".intake_state"
+    repo = DocumentIntakeRepository(base_path=base_path, stale_lock_seconds=60.0)
+    session_id = _session_id(tenant_id, user_id)
+    state = repo.load(session_id=session_id)
+    event = RawInboundEvent.text(
+        event_id=f"evt-{uuid4()}",
+        tenant_id=tenant_id,
+        user_id=user_id,
+        text=text,
+    )
+    state.register(event)
+    repo.save(session_id=session_id, state=state)
+
+
+def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") -> str:
+    _register_text_intake(text, tenant_id, user_id)
+    pymia = _pymia_reply(text, tenant_id, user_id)
+    contrast = _catalog_contrast(text)
+    if contrast:
+        return f"{pymia}\n{contrast}"
+    return pymia
 
 
 if __name__ == "__main__":

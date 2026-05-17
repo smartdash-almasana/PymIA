@@ -1,0 +1,43 @@
+from __future__ import annotations
+
+from evidence_router import IngestionRoute
+from inbound_event import RawInboundEvent
+from intake_state import DocumentIntakeState
+
+
+def main() -> None:
+    state = DocumentIntakeState()
+    state.require_evidence("facturas_proveedor")
+
+    text_event = RawInboundEvent.text(
+        event_id="evt-text-001",
+        tenant_id="telegram:42",
+        user_id="42",
+        text="vendo mucho pero no sé si gano plata",
+    )
+    assert text_event.get_ingestion_route() == IngestionRoute.NARRATIVE
+    state.register(text_event)
+
+    file_event = RawInboundEvent.file(
+        event_id="evt-file-001",
+        tenant_id="telegram:42",
+        user_id="42",
+        file_name="facturas.pdf",
+        mime_type="application/pdf",
+        expected_schema="invoice_v1",
+        entropy_level=0.1,
+    )
+    assert file_event.get_ingestion_route() == IngestionRoute.BEM_AI
+    state.register(file_event)
+
+    state.resolve_evidence("facturas_proveedor")
+    assert not state.missing_evidence
+    assert state.received_events == ["evt-text-001", "evt-file-001"]
+    assert state.received_files == ["facturas.pdf"]
+
+    print("INTAKE_SMOKE_OK:", True)
+
+
+if __name__ == "__main__":
+    main()
+
