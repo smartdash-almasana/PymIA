@@ -4,7 +4,7 @@ from pymia.contracts.admission_v1 import DDIArtifact, HypothesisNode
 
 
 class AdmissionResponseFormatterV1:
-    """Convierte un DDIArtifact en mensaje sobrio para el dueño."""
+    """Convierte un DDIArtifact en mensaje clínico-operacional sobrio."""
 
     def format_response(self, artifact: DDIArtifact) -> str | None:
         if not artifact.symptoms or not artifact.hypotheses:
@@ -29,7 +29,7 @@ class AdmissionResponseFormatterV1:
         )
 
         parts = [
-            "Registré este síntoma operacional: "
+            "Síntoma operacional registrado:\n"
             + artifact.symptoms[0].claim
             + ".",
             "Hipótesis inicial prioritaria:\n"
@@ -39,21 +39,20 @@ class AdmissionResponseFormatterV1:
 
         if other_hypotheses:
             parts.append(
-                "También quedan abiertas:\n"
+                "Hipótesis adicionales abiertas:\n"
                 + ", ".join(h.lower() for h in other_hypotheses)
                 + "."
             )
 
         if all_evidence:
             parts.append(
-                "Para confirmar o refutar estas hipótesis necesito:\n"
+                "Evidencia requerida para confirmar o refutar:\n"
                 + ", ".join(all_evidence)
                 + "."
             )
 
         parts.append(
-            "Cuando reciba esa evidencia, voy a construir la primera línea "
-            "de base del Laboratorio Inicial PyME."
+            "Estado: laboratorio inicial pendiente de línea de base documental."
         )
 
         return "\n\n".join(parts)
@@ -62,13 +61,11 @@ class AdmissionResponseFormatterV1:
         self,
         artifact: DDIArtifact,
     ) -> HypothesisNode | None:
-        # Fuente contractual primaria: primary_hypothesis_id marcado por el kernel
         if artifact.primary_hypothesis_id is not None:
             for hypothesis in artifact.hypotheses:
                 if hypothesis.node_id == artifact.primary_hypothesis_id:
                     return hypothesis
 
-        # Fallback determinístico: mayor confidence_score
         return max(
             artifact.hypotheses,
             key=lambda hypothesis: hypothesis.confidence_score,
