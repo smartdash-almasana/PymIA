@@ -64,22 +64,33 @@ def _session_id(tenant_id: str, user_id: str) -> str:
     return f"{tenant_id}/{user_id}"
 
 
-def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
+def _new_text_event(text: str, tenant_id: str, user_id: str):
     from inbound_event import RawInboundEvent
-    from intake_repository import DocumentIntakeRepository
 
-    base_path = Path(__file__).resolve().parent / ".intake_state"
-    repo = DocumentIntakeRepository(base_path=base_path, stale_lock_seconds=60.0)
-    session_id = _session_id(tenant_id, user_id)
-    state = repo.load(session_id=session_id)
-    event = RawInboundEvent.text(
+    return RawInboundEvent.text(
         event_id=f"evt-{uuid4()}",
         tenant_id=tenant_id,
         user_id=user_id,
         text=text,
     )
-    state.register(event)
-    repo.save(session_id=session_id, state=state)
+
+
+def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
+    from intake_repository import DocumentIntakeRepository
+
+    session_id = _session_id(tenant_id, user_id)
+    preferred_path = Path(__file__).resolve().parent / ".intake_state"
+    fallback_path = Path.home() / ".cache" / "pymia" / "conversa-intake-state"
+
+    for base_path in (preferred_path, fallback_path):
+        try:
+            repo = DocumentIntakeRepository(base_path=base_path, stale_lock_seconds=60.0)
+            state = repo.load(session_id=session_id)
+            state.register(_new_text_event(text, tenant_id, user_id))
+            repo.save(session_id=session_id, state=state)
+            return
+        except PermissionError:
+            continue
 
 
 def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") -> str:
