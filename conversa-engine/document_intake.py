@@ -73,22 +73,22 @@ def intake_document(
     }[route]
 
     if route == IngestionRoute.BEM_AI:
-        reason = "archivo no normalizado o con estructura que requiere extracción/curaduría antes de contrastar evidencia"
+        reason = "archivo no normalizado o con estructura que requiere extracción o curaduría previa"
     elif route == IngestionRoute.INTERNAL_FACT:
-        reason = "archivo estructurado con esquema esperado para ingesta interna"
+        reason = "archivo estructurado compatible con ingesta interna"
     else:
-        reason = "relato humano o evidencia narrativa"
+        reason = "evidencia narrativa o relato operacional"
 
     return "\n".join(
         [
-            f"Recibí el archivo: {file_name}",
+            f"Archivo registrado: {file_name}",
             "",
-            f"Ruta asignada: {route_label}",
-            f"Motivo: {reason}.",
+            f"Clasificación de ingesta: {route_label}",
+            f"Criterio: {reason}.",
             "",
-            "Estado: evidencia registrada para el laboratorio operacional.",
+            "Estado clínico-operacional: evidencia incorporada al laboratorio inicial.",
             "",
-            "Regla: este archivo no confirma ninguna patología ni hallazgo por sí solo. Primero debe contrastarse contra variables y evidencia suficiente.",
+            "Regla epistemológica: un archivo aislado no confirma patologías ni hallazgos sin contraste contra evidencia suficiente.",
         ]
     )
 
