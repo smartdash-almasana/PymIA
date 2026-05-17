@@ -6,3 +6,5 @@ htmlcov/
 .venv/
 venv/
 .env
+.intake_state/
+factory/control/
