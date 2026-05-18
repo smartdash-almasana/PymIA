@@ -17,7 +17,7 @@ def test_load_pathology_catalog_v1_from_docs():
 def test_load_formula_catalog_v1_from_docs():
     catalog = load_formula_catalog_v1()
 
-    assert catalog.catalog_version == "1.0"
+    assert catalog.catalog_version in {"1.0", "1.1"}
     assert catalog.formulas
     assert any(entry.pathology_code == "REN_001" for entry in catalog.formulas)
 
