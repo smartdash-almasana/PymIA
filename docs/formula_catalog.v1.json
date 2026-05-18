@@ -1,0 +1,16 @@
+{
+  "catalog_version": "1.0",
+  "description": "Catálogo inicial de fórmulas PyME correlacionado con pathology_catalog.v1.json.",
+  "source_document": "docs/pathology_catalog.v1.json",
+  "status": "initial_canonical_draft",
+  "formulas": [
+    {"formula_id":"formula_LIQ_001","pathology_code":"LIQ_001","name":"Diferencia vendido cobrado","expression":"sold_amount - collected_amount","display_expression":"Vendido - Cobrado","category":"liquidez","required_variables":["sold_amount","collected_amount"],"output_unit":"currency","calculation_state":"CALCULABLE"},
+    {"formula_id":"formula_REN_002","pathology_code":"REN_002","name":"Coeficiente de reposición","expression":"closing_index / origin_index","display_expression":"Índice Cierre / Índice Origen","category":"rentabilidad","required_variables":["closing_index","origin_index"],"output_unit":"ratio","calculation_state":"CALCULABLE"},
+    {"formula_id":"formula_INV_001","pathology_code":"INV_001","name":"Punto de reposición","expression":"(average_sales * lead_time) + safety_stock","display_expression":"(Venta Promedio × Lead Time) + Stock Seguridad","category":"inventario","required_variables":["average_sales","lead_time","safety_stock"],"output_unit":"units","calculation_state":"CALCULABLE"},
+    {"formula_id":"formula_REN_001","pathology_code":"REN_001","name":"Margen neto real","expression":"((sale_price - costs - taxes) / sale_price) * 100","display_expression":"((PV - Costos - Impuestos) / PV) × 100","category":"rentabilidad","required_variables":["sale_price","costs","taxes"],"output_unit":"percentage","calculation_state":"CALCULABLE"},
+    {"formula_id":"formula_LIQ_002","pathology_code":"LIQ_002","name":"Saldo final proyectado","expression":"initial_balance + expected_collections - expected_payments","display_expression":"Saldo Inicial + Cobros - Pagos","category":"liquidez","required_variables":["initial_balance","expected_collections","expected_payments"],"output_unit":"currency","calculation_state":"CALCULABLE"},
+    {"formula_id":"formula_INV_002","pathology_code":"INV_002","name":"Rotación de stock","expression":"cost_of_goods_sold / average_stock","display_expression":"CMV / Stock Promedio","category":"inventario","required_variables":["cost_of_goods_sold","average_stock"],"output_unit":"ratio","calculation_state":"CALCULABLE"},
+    {"formula_id":"formula_OPE_001","pathology_code":"OPE_001","name":"Porcentaje de decisiones centralizadas","expression":"owner_decisions / total_decisions * 100","display_expression":"% Decisiones Dueño > 80%","category":"operaciones","required_variables":["owner_decisions","total_decisions"],"output_unit":"percentage","calculation_state":"CALCULABLE"}
+  ],
+  "pending_expansion": "Expandir a las 50 patologías completas en la siguiente pasada. Este primer corte fija estructura, naming y vínculo pathology_code ↔ formula_id."
+}

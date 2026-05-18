@@ -73,6 +73,7 @@ class InitialLaboratoryAnamnesisService:
         tenant_id: str,
         channel: str,
         text: str,
+        evidence: object | None = None,
     ) -> InitialLaboratoryAnamnesisResult | None:
         import uuid
         from pymia.pipeline.admission.v1.pipeline import AdmissionPipelineV1
@@ -92,6 +93,7 @@ class InitialLaboratoryAnamnesisService:
             formatter = AdmissionResponseFormatterV1()
             formatted_message = formatter.format_response(artifact)
             documentos = sorted(list(set(e for h in artifact.hypotheses for e in h.evidence_required)))
+            documentos = self._filter_requested_documents_by_evidence(documentos, evidence)
             hipotesis = [h.description for h in artifact.hypotheses]
             message = formatted_message or self._build_margin_message(documentos)
             dolores = ["incertidumbre de rentabilidad"]
@@ -118,6 +120,7 @@ class InitialLaboratoryAnamnesisService:
                     "lista de precios vigente",
                     "extracto/caja si querés revisar si el problema es liquidez",
                 ]
+                documentos = self._filter_requested_documents_by_evidence(documentos, evidence)
                 hipotesis = [
                     "margen erosionado",
                     "costos desactualizados",
@@ -204,6 +207,24 @@ class InitialLaboratoryAnamnesisService:
             laboratorio=laboratorio,
         )
 
+    def _filter_requested_documents_by_evidence(self, documentos: list[str], evidence: object | None) -> list[str]:
+        if evidence is None:
+            return documentos
+
+        computed = getattr(evidence, "computed_variables", None) or {}
+        has_sales = any(key in computed for key in ("ventas_total", "sales", "sold_amount"))
+        has_costs = any(key in computed for key in ("costos_total", "costs", "cost_of_goods_sold"))
+
+        filtered: list[str] = []
+        for documento in documentos:
+            normalized = self._normalize(documento)
+            if has_sales and "venta" in normalized:
+                continue
+            if has_costs and ("costo" in normalized or "factura" in normalized):
+                continue
+            filtered.append(documento)
+        return filtered
+
     def _extract_operational_signals(self, normalized: str) -> list[str]:
         signals: list[str] = []
         for patterns, signal in self._OPERATIONAL_SIGNAL_GROUPS:
@@ -229,6 +250,7 @@ class InitialLaboratoryAnamnesisService:
         return (
             "Señal económico-operacional registrada: incertidumbre de rentabilidad.\n\n"
             "Estado: hipótesis abierta, sin diagnóstico confirmado.\n\n"
+            "Ya recibí evidencia estructurada operacional y puedo empezar el contraste inicial.\n\n"
             "Laboratorio inicial de rentabilidad/margen — evidencia requerida:\n"
             f"{docs}\n\n"
             "Objetivo del contraste: separar margen erosionado, costos desactualizados, precios no alineados o tensión de caja."
