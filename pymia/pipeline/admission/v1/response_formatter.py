@@ -1,10 +1,10 @@
-"""Formatter determinístico para respuestas del Laboratorio Inicial PyME."""
+﻿"""Formatter determinístico para respuestas del Laboratorio Inicial PyME."""
 
 from pymia.contracts.admission_v1 import DDIArtifact, HypothesisNode
 
 
 class AdmissionResponseFormatterV1:
-    """Convierte un DDIArtifact en mensaje clínico-operacional sobrio."""
+    """Convierte un DDIArtifact en mensaje natural para primer contacto."""
 
     def format_response(self, artifact: DDIArtifact) -> str | None:
         if not artifact.symptoms or not artifact.hypotheses:
@@ -15,7 +15,7 @@ class AdmissionResponseFormatterV1:
             return None
 
         other_hypotheses = [
-            hypothesis.description
+            hypothesis.description.lower()
             for hypothesis in artifact.hypotheses
             if hypothesis.node_id != primary_hypothesis.node_id
         ]
@@ -29,30 +29,34 @@ class AdmissionResponseFormatterV1:
         )
 
         parts = [
-            "Síntoma operacional registrado:\n"
-            + artifact.symptoms[0].claim
-            + ".",
-            "Hipótesis inicial prioritaria:\n"
-            + primary_hypothesis.description.lower()
-            + ".",
+            "Entiendo la señal: " + artifact.symptoms[0].claim + ".",
+            (
+                "Todavía no lo tomo como una conclusión cerrada. "
+                "Con lo que contás, primero haría una lectura preliminar."
+            ),
+            (
+                "Lo primero que revisaría es "
+                + primary_hypothesis.description.lower()
+                + "."
+            ),
         ]
 
         if other_hypotheses:
             parts.append(
-                "Hipótesis adicionales abiertas:\n"
-                + ", ".join(h.lower() for h in other_hypotheses)
+                "También puede estar mezclado con "
+                + ", ".join(other_hypotheses)
                 + "."
             )
 
         if all_evidence:
             parts.append(
-                "Evidencia requerida para confirmar o refutar:\n"
-                + ", ".join(all_evidence)
-                + "."
+                "Para mirarlo con números necesito:\n"
+                + "\n".join(f"- {evidence}" for evidence in all_evidence)
             )
 
         parts.append(
-            "Estado: laboratorio inicial pendiente de línea de base documental."
+            "Con eso puedo separar si el problema viene por margen, caja, "
+            "costos o movimiento operativo."
         )
 
         return "\n\n".join(parts)

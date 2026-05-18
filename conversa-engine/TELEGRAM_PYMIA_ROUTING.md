@@ -1,34 +1,53 @@
 # Telegram -> PymIA routing validation
 
-## Current observed result
+## Current target
 
-Telegram can trigger Hermes Agent to execute the local PymIA entrypoint:
+Telegram is a user-facing channel for PymIA / SmartPyme first-contact operational conversation.
 
-```bash
-cd /opt/PymIA/conversa-engine && ./.venv/bin/python main.py "vendo mucho pero no sé si gano plata"
-```
+The user-visible answer must not expose internal routing, execution commands, adapters or architecture names.
 
-Observed reply contains the PymIA operational signal:
+## Contract
+
+When a PyME owner sends an operational symptom, the final Telegram reply must:
+
+- preserve PymIA's visible answer;
+- avoid adding technical framing;
+- avoid exposing internal terms;
+- keep the answer short enough for Telegram;
+- separate preliminary reading from confirmed diagnosis;
+- ask for concrete missing evidence only.
+
+## Forbidden user-visible terms
+
+These terms are allowed in technical documentation but forbidden in the final Telegram response:
+
+- kernel
+- keywords
+- pipeline
+- Hermes
+- runtime
+- workflow
+- job
+- adapter
+- gateway
+- MCP
+
+## Required replacements
+
+If a generated response contains report-style headings, the final visible layer must normalize them:
 
 ```text
-Síntoma registrado: "vendo mucho pero no sé si gano plata"
-Hipótesis inicial prioritaria: Tensión de caja
-Hipótesis secundarias: Fuga operativa, Margen erosionado
-Evidencia requerida: costos, extractos bancarios, lista de precios, movimientos de caja, ventas
+DIAGNÓSTICO OPERACIONAL -> LECTURA OPERATIVA PRELIMINAR
+VEREDICTO -> SEÑAL PRINCIPAL
 ```
 
-## Diagnosis
+## Telegram mode
 
-The bridge is functionally reachable, but Hermes still adds conversational framing after the tool result.
+The default user-visible message should contain:
 
-## Target
+1. one synthesis;
+2. up to four priorities;
+3. one missing-evidence block if needed;
+4. optional offer to expand detail.
 
-Hermes should call PymIA and return `result.reply_text` without rewriting the operational diagnosis.
-
-## Rule
-
-```text
-Hermes conversa.
-PymIA computa.
-Hermes must not overwrite PymIA's operational result.
-```
+Long report-style output belongs to an exportable report, not to the first Telegram response.

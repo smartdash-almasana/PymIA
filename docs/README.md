@@ -4,7 +4,7 @@ Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación de
 
 ## Estado
 
-Documento rector — Índice canónico v1.2
+Documento rector — Índice canónico v1.3
 Fecha: Mayo 2026
 
 ---
@@ -56,12 +56,21 @@ Las referencias de esta sección usan rutas relativas reales desde `PymIA/docs/`
 - `arquitectura/harness-engineering.md`
 - `arquitectura/palantir-principles.md`
 - `arquitectura/orchestration-boundary.md`
+- `arquitectura/kernel-clinico-matematico-y-loop-humano.md`
+- `arquitectura/roadmap-kernel-pericial-y-riesgos.md`
 
 ### `producto/`
 
 - `producto/capa-00-canal-entrada.md`
+- `producto/capa-01-admision-epistemologica.md`
 - `producto/protocolo-anamnesis-mvp.md`
 - `producto/asertividades-operativas.md`
+- `producto/caso-operativo-diagnostico-y-decision.md`
+- `producto/capas-00-a-03-admision-evidencia-caso-operativo.md`
+- `producto/regla-estimacion-vs-diagnostico-confirmado.md`
+- `producto/regla-identidad-conversacional-pymia.md`
+- `producto/regla-no-loop-evidencia-ya-recibida.md`
+- `producto/registro-ciclos-operativos.md`
 
 ### `contratos/`
 
@@ -86,7 +95,6 @@ Las referencias de esta sección usan rutas relativas reales desde `PymIA/docs/`
 Estos archivos están definidos como pendientes. No son fuente disponible y no autorizan reconstrucción desde memoria.
 
 ```text
-producto / capa-01-admision-epistemologica
 hermes / arquitectura-conversacional
 hermes / boundary-orquestacion
 gobernanza / agents
