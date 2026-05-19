@@ -4,6 +4,32 @@ import sys
 from pathlib import Path
 from uuid import uuid4
 
+RESERVED_COMMANDS = {
+    "--register-evidence",
+    "--create-case",
+    "--execute",
+    "--status",
+}
+
+
+def _cli_message_from_args(args: list[str]) -> tuple[int, str, str | None]:
+    """
+    Translate CLI args into a message or a fail-closed command response.
+
+    Returns:
+        (exit_code, stdout, stderr)
+    """
+    if not args:
+        return 0, "vendo mucho pero no se si gano plata", None
+
+    first_arg = args[0]
+    if first_arg.startswith("-"):
+        if first_arg in RESERVED_COMMANDS:
+            return 1, "", f"COMANDO_NO_IMPLEMENTADO: {first_arg}"
+        return 1, "", f"COMANDO_NO_PERMITIDO: {first_arg}"
+
+    return 0, " ".join(args).strip(), None
+
 
 def _ensure_repo_on_path() -> None:
     repo_root = Path(__file__).resolve().parents[1]
@@ -103,5 +129,8 @@ def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") 
 
 
 if __name__ == "__main__":
-    message = " ".join(sys.argv[1:]).strip() or "vendo mucho pero no se si gano plata"
+    exit_code, message, error = _cli_message_from_args(sys.argv[1:])
+    if error is not None:
+        print(error, file=sys.stderr)
+        raise SystemExit(exit_code)
     print(run_message(message))
