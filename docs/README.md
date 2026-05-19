@@ -4,7 +4,7 @@ Contexto heredado. No autoriza runtime, MCP, jobs, workflows ni orquestación de
 
 ## Estado
 
-Documento rector — Índice canónico v1.3
+Documento rector — Índice canónico v1.4
 Fecha: Mayo 2026
 
 ---
@@ -28,6 +28,16 @@ Las referencias de esta sección usan rutas relativas reales desde `PymIA/docs/`
 
 - `README.md`
 - `INVENTARIO_CANONICO.md`
+- `ingenieria_conversacional.README.md` — índice lógico de corpus conversacional migrado
+- `ingenieria_conversacional.corpus_migrado.md` — corpus bruto SmartPyme → PymIA, sin depuración fina
+- `ingenieria_conversacional.NORMATIVA_v1.md` — reglas canónicas iniciales para conversación
+- `ingenieria_conversacional.PROTOCOLO_PRIMER_CONTACTO_v1.md` — protocolo de recepción/anamnesis inicial
+- `ingenieria_conversacional.CATALOGO_HIPOTESIS_Y_EVIDENCIA_v1.md` — hipótesis investigativas, evidencia y preguntas
+- `ingenieria_conversacional.CATALOGO_FORMULAS_MATEMATICAS_PYME_v1.md` — catálogo inicial de fórmulas para capa matematizadora
+- `ingenieria_conversacional.ENSAMBLE_DOCUMENTAL_FASE1_v1.md` — ensamble del staging migrado con normativa viva
+- `formula_catalog.v1.json` — catálogo inicial de fórmulas correlacionado con patologías
+- `pathology_catalog.v1.json` — catálogo JSON inicial de patologías PyME
+- `ingenieria_conversacional.MAPA_INTEGRACION_v1.md` — jerarquía provisional y mapa de solapamientos
 
 ### `vision/`
 
@@ -118,4 +128,4 @@ Esta biblioteca no contiene:
 - configuración de infraestructura VM;
 - scripts de deploy.
 
-Esos documentos pertenecen al repo SmartPyme y no deben migrar a PymIA.
+Esos documentos pertenecen al repo SmartPyme y no deben migrar a PymIA, salvo corpus conversacional explícitamente migrado con provenance.
