@@ -30,6 +30,7 @@ def test_classifier_tabular_sales_match() -> None:
     assert result.document_context == "ventas"
     assert result.ingestion_route == "INTERNAL_FACT"
     assert result.confidence == "high"
+    assert result.decision_code == "SUCCESS"
     assert any("ventas" in r for r in result.reasons)
     assert result.required_followup is None
     assert result.evidence_candidate_type == "ventas_evidence_candidate"
@@ -51,6 +52,7 @@ def test_classifier_pdf_forces_bem_ai() -> None:
     
     assert result.ingestion_route == "BEM_AI"
     assert result.document_context == "ventas" or result.document_context == "desconocido"
+    assert result.decision_code == "SUCCESS"
     assert any("PDF" in r or "visual" in r for r in result.reasons)
 
 
@@ -68,6 +70,7 @@ def test_classifier_image_forces_bem_ai() -> None:
     result = DocumentContextClassifier.classify(payload)
     
     assert result.ingestion_route == "BEM_AI"
+    assert result.decision_code == "DESCONOCIDO_LOW"
     assert any("visual" in r or "PDF" in r for r in result.reasons)
 
 
@@ -86,6 +89,7 @@ def test_classifier_low_confidence_triggers_followup() -> None:
     
     assert result.document_context == "desconocido"
     assert result.confidence == "low"
+    assert result.decision_code == "NO_KEYWORDS_DETECTED"
     assert result.ingestion_route == "BEM_AI"
     assert result.required_followup is not None
     assert "datos_mezclados.xlsx" in result.required_followup
@@ -104,6 +108,7 @@ def test_test_classifier_colision_triggers_followup_warning() -> None:
     result = DocumentContextClassifier.classify(payload)
     
     assert result.confidence == "low"
+    assert result.decision_code == "CONTEXT_COLLISION"
     assert result.required_followup is not None
     assert "mezcla" in result.required_followup or "priorizar" in result.required_followup
 
@@ -123,6 +128,7 @@ def test_classifier_stock_does_not_become_sales() -> None:
     assert result.document_context == "stock"
     assert result.ingestion_route == "INTERNAL_FACT"
     assert result.confidence == "high"
+    assert result.decision_code == "SUCCESS"
 
 
 def test_classifier_fiscal_is_not_internal_audit_fact() -> None:
@@ -139,7 +145,7 @@ def test_classifier_fiscal_is_not_internal_audit_fact() -> None:
     
     assert result.document_context == "fiscal/impositivo"
     assert result.ingestion_route == "BEM_AI"
-    assert result.confidence == "high" or result.confidence == "medium"
+    assert result.decision_code == "ADMINISTRATIVE_BYPASS"
     assert any("administrativa" in r or "desviado" in r for r in result.reasons)
 
 
@@ -157,6 +163,7 @@ def test_test_classifier_laboral_is_not_internal_audit_fact() -> None:
     
     assert result.document_context == "laboral"
     assert result.ingestion_route == "BEM_AI"
+    assert result.decision_code == "ADMINISTRATIVE_BYPASS"
 
 
 def test_classifier_text_routes_narrative() -> None:
@@ -171,6 +178,7 @@ def test_classifier_text_routes_narrative() -> None:
     
     assert result.ingestion_route == "NARRATIVE"
     assert result.document_context == "desconocido"
+    assert result.decision_code == "SUCCESS"
     assert result.evidence_candidate_type == "narrative_claim_candidate"
 
 
@@ -187,3 +195,4 @@ def test_classifier_never_validates_evidence() -> None:
     result = DocumentContextClassifier.classify(payload)
     
     assert result.is_validated_evidence is False
+    assert result.decision_code == "SUCCESS"

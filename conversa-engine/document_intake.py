@@ -69,10 +69,10 @@ def intake_document(
     is_blocked = False
     if route == IngestionRoute.INTERNAL_FACT:
         # Classifier can degrade to BEM_AI, but NEVER promote BEM_AI to INTERNAL_FACT
-        if classification.document_context in {"fiscal/impositivo", "laboral", "producción"}:
+        if classification.decision_code == "ADMINISTRATIVE_BYPASS":
             route = IngestionRoute.BEM_AI
             is_blocked = True
-        elif classification.confidence == "low" and not any("No se detectaron" in r for r in classification.reasons):
+        elif classification.confidence == "low" and classification.decision_code != "NO_KEYWORDS_DETECTED":
             route = IngestionRoute.BEM_AI
             is_blocked = True
 
@@ -81,6 +81,7 @@ def intake_document(
     object.__setattr__(event, "classification_confidence", classification.confidence)
     object.__setattr__(event, "evidence_candidate_type", classification.evidence_candidate_type)
     object.__setattr__(event, "classification_reasons", classification.reasons)
+    object.__setattr__(event, "classification_decision_code", classification.decision_code)
 
     if base_path is None:
         base_path = Path(__file__).resolve().parent / ".intake_state"

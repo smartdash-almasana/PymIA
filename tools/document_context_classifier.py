@@ -16,6 +16,14 @@ IngestionRoute = Literal["BEM_AI", "INTERNAL_FACT", "NARRATIVE"]
 
 ClassificationConfidence = Literal["high", "medium", "low"]
 
+ClassifierDecisionCode = Literal[
+    "SUCCESS",
+    "NO_KEYWORDS_DETECTED",
+    "CONTEXT_COLLISION",
+    "ADMINISTRATIVE_BYPASS",
+    "DESCONOCIDO_LOW"
+]
+
 
 class DocumentContextInput(BaseModel):
     file_name: str
@@ -36,6 +44,7 @@ class DocumentContextClassification(BaseModel):
     required_followup: Optional[str] = None
     evidence_candidate_type: str
     is_validated_evidence: bool = False
+    decision_code: ClassifierDecisionCode = "SUCCESS"
 
 
 def _normalize_string(text: str) -> str:
@@ -224,6 +233,18 @@ class DocumentContextClassifier:
                 ingestion_route = "BEM_AI"
                 reasons.append("Extensión o estructura inadecuada para el procesamiento local directo.")
                 
+        # Determine decision_code
+        if document_context in {"fiscal/impositivo", "laboral", "producción"}:
+            decision_code = "ADMINISTRATIVE_BYPASS"
+        elif document_context == "desconocido" and best_score == 0:
+            decision_code = "NO_KEYWORDS_DETECTED"
+        elif second_score > 0 and (best_score - second_score) < 1.5:
+            decision_code = "CONTEXT_COLLISION"
+        elif document_context == "desconocido" or confidence == "low":
+            decision_code = "DESCONOCIDO_LOW"
+        else:
+            decision_code = "SUCCESS"
+
         # Handle required followup
         if confidence == "low" or document_context == "desconocido":
             if second_score > 0 and (best_score - second_score) < 1.5:
@@ -246,5 +267,6 @@ class DocumentContextClassifier:
             reasons=reasons,
             required_followup=required_followup,
             evidence_candidate_type=evidence_candidate_type,
-            is_validated_evidence=False
+            is_validated_evidence=False,
+            decision_code=decision_code
         )
