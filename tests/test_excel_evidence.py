@@ -64,3 +64,53 @@ def test_signal_sheet_is_exported_to_metadata_without_blocking_workbook() -> Non
     assert evidence.metadata["sheet_reports"]["señales_operativas"] == "OK"
     assert isinstance(evidence.metadata["signals"], list)
     assert evidence.metadata["signals"]
+
+
+def test_excel_evidence_cli_can_emit_operational_audit_result(tmp_path: Path) -> None:
+    from tools.excel_evidence import main
+    from pymia.audit_result.models import OperationalAuditResult
+
+    evidence_out = tmp_path / "evidence.json"
+    kernel_out = tmp_path / "kernel.json"
+    audit_out = tmp_path / "audit.json"
+
+    argv = [
+        "--excel", str(TEXTIL_XLSX),
+        "--tenant-id", "test_textil_cli",
+        "--evidence-output", str(evidence_out),
+        "--kernel-output", str(kernel_out),
+        "--audit-output", str(audit_out),
+    ]
+
+    ret = main(argv)
+    assert ret == 0
+
+    assert evidence_out.exists()
+    assert kernel_out.exists()
+    assert audit_out.exists()
+
+    with open(audit_out, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Reconcile date fields for model validation
+    pa = data["business_context"]["period_analyzed"]
+    if "from_date" in pa:
+        pa["from"] = pa.pop("from_date")
+    if "to_date" in pa:
+        pa["to"] = pa.pop("to_date")
+
+    audit = OperationalAuditResult.model_validate(data)
+
+    assert audit.audit_id == "audit_test_textil_cli_la_textil_cosida_srl_mar_abr_may_2026"
+    assert audit.pathology_routing_summary
+    assert audit.open_audit_threads
+    assert audit.narrative_payload.allowed_messages
+    assert audit.narrative_payload.forbidden_inferences
+
+    # Ensure no raw tables or kernel dump are included at the top-level of the OperationalAuditResult
+    payload = audit.model_dump(mode="json")
+    assert "tables" not in payload
+    assert "raw_tables" not in payload
+    assert "normalized_tables" not in payload
+    assert "kernel_output" not in payload
+
