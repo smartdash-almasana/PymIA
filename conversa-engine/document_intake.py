@@ -39,6 +39,8 @@ def intake_document(
     mime_type: str | None,
     expected_schema: str,
     entropy_level: float,
+    base_path: Path | None = None,
+    fallback_path: Path | None = None,
 ) -> str:
     actual_mime_type = mime_type or _mime_from_extension(file_name)
     event = RawInboundEvent.file(
@@ -52,16 +54,20 @@ def intake_document(
     )
     route = event.get_ingestion_route()
 
-    base_path = Path(__file__).resolve().parent / ".intake_state"
-    fallback_path = Path.home() / ".cache" / "pymia" / "conversa-intake-state"
+    if base_path is None:
+        base_path = Path(__file__).resolve().parent / ".intake_state"
+    if fallback_path is None:
+        fallback_path = Path.home() / ".cache" / "pymia" / "conversa-intake-state"
     session_id = _session_id(tenant_id, user_id)
 
+    chosen_state_path = None
     for state_path in (base_path, fallback_path):
         try:
             repo = DocumentIntakeRepository(base_path=state_path, stale_lock_seconds=60.0)
             state = repo.load(session_id=session_id)
             state.register(event)
             repo.save(session_id=session_id, state=state)
+            chosen_state_path = state_path
             break
         except PermissionError:
             continue
@@ -79,18 +85,44 @@ def intake_document(
     else:
         reason = "evidencia narrativa o relato operacional"
 
-    return "\n".join(
-        [
-            f"Archivo registrado: {file_name}",
+    audit_active = False
+    if route == IngestionRoute.INTERNAL_FACT and chosen_state_path is not None:
+        from operational_audit_runner import run_excel_operational_audit
+        audits_dir = chosen_state_path / "audits"
+        try:
+            audit_res = run_excel_operational_audit(
+                excel_path=file_path,
+                tenant_id=tenant_id,
+                session_id=session_id,
+                output_dir=audits_dir,
+            )
+            audit_active = audit_res.ok
+        except Exception:
+            audit_active = False
+
+    lines = [
+        f"Archivo registrado: {file_name}",
+        "",
+        f"Clasificación de ingesta: {route_label}",
+        f"Criterio: {reason}.",
+        "",
+        "Estado clínico-operacional: evidencia incorporada al laboratorio inicial.",
+        "",
+        "Regla epistemológica: un archivo aislado no confirma patologías ni hallazgos sin contraste contra evidencia suficiente.",
+    ]
+
+    if audit_active:
+        lines.extend([
             "",
-            f"Clasificación de ingesta: {route_label}",
-            f"Criterio: {reason}.",
-            "",
-            "Estado clínico-operacional: evidencia incorporada al laboratorio inicial.",
-            "",
-            "Regla epistemológica: un archivo aislado no confirma patologías ni hallazgos sin contraste contra evidencia suficiente.",
-        ]
-    )
+            "[Auditoría Operacional Activa]",
+            "Se ha analizado la planilla de forma segura y se generaron los hilos de diagnóstico.",
+            "Podés preguntarme sobre:",
+            "- Concentración de SKU (PYME_033)",
+            "- Caja y Liquidez (LIQ_001)",
+            "- Análisis de Margen (REN_001)",
+        ])
+
+    return "\n".join(lines)
 
 
 def main() -> None:

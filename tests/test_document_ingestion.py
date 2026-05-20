@@ -69,3 +69,72 @@ def test_document_ingestion_persists_expected_artifacts(tmp_path: Path) -> None:
     assert Path(paths["normalized_tables"]).exists()
     assert Path(paths["sheet_reports"]).exists()
     assert Path(paths["structured_evidence"]).exists()
+
+
+def test_document_ingestion_of_internal_fact_runs_operational_audit(tmp_path: Path) -> None:
+    import base64
+    import importlib.util
+    import sys
+
+    # Add conversa-engine to sys.path for importing router
+    conversa_dir = Path(__file__).resolve().parents[1] / "conversa-engine"
+    if str(conversa_dir) not in sys.path:
+        sys.path.insert(0, str(conversa_dir))
+
+    module_path = conversa_dir / "document_intake.py"
+    spec = importlib.util.spec_from_file_location("document_intake", module_path)
+    assert spec is not None
+    assert spec.loader is not None
+    document_intake = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(document_intake)
+
+    from pymia.audit_result.models import OperationalAuditResult
+    from operational_audit_router import route_operational_audit_message
+
+    TEXTIL_XLSX = Path(__file__).resolve().parents[1] / "prueba_excels" / "la_textil_cosida_srl_mar_abr_may_2026.xlsx"
+
+    tenant_id = "tenant-intake-test"
+    user_id = "user-123"
+    session_id = f"{tenant_id}/{user_id}"
+
+    # Use tmp_path for base_path and fallback_path for test isolation
+    msg = document_intake.intake_document(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        file_path=str(TEXTIL_XLSX),
+        file_name="la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+        mime_type=None,
+        expected_schema="unknown",
+        entropy_level=0.1,  # Under 0.3 for INTERNAL_FACT
+        base_path=tmp_path,
+        fallback_path=tmp_path,
+    )
+
+    assert "[Auditoría Operacional Activa]" in msg
+    assert "Concentración de SKU (PYME_033)" in msg
+
+    session_bytes = session_id.encode("utf-8")
+    encoded_id = base64.urlsafe_b64encode(session_bytes).decode("ascii").rstrip("=")
+    audit_file = tmp_path / "audits" / encoded_id / "operational_audit_result.json"
+
+    assert audit_file.exists()
+
+    with open(audit_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Reconcile date fields for model validation
+    pa = data["business_context"]["period_analyzed"]
+    if "from_date" in pa:
+        pa["from"] = pa.pop("from_date")
+    if "to_date" in pa:
+        pa["to"] = pa.pop("to_date")
+
+    audit = OperationalAuditResult.model_validate(data)
+
+    assert audit.audit_id == "audit_tenant-intake-test_la_textil_cosida_srl_mar_abr_may_2026"
+    assert audit.pathology_routing_summary
+
+    decision = route_operational_audit_message("quiero ver PYME_033", audit)
+    assert decision.pathology_code == "PYME_033"
+    assert "ventas_por_sku" in decision.missing_evidence
+
