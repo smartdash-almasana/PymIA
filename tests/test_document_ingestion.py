@@ -138,3 +138,49 @@ def test_document_ingestion_of_internal_fact_runs_operational_audit(tmp_path: Pa
     assert decision.pathology_code == "PYME_033"
     assert "ventas_por_sku" in decision.missing_evidence
 
+
+def test_datetime_parsing_does_not_emit_pandas_warnings() -> None:
+    import warnings
+    from tools.document_ingestion import _to_date
+    import pandas as pd
+    from tools.bem_schema_builder.excel_profile_builder import ExcelProfileBuilder
+
+    # Verify _to_date cases
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", category=UserWarning)
+        
+        # ISO formats
+        assert _to_date("2026-05-20") == "2026-05-20"
+        assert _to_date("2026/05/20") == "2026-05-20"
+        
+        # Local localized format
+        assert _to_date("20/05/2026") == "2026-05-20"
+        assert _to_date("20-05-2026") == "2026-05-20"
+        
+        # Non-date strings
+        assert _to_date("remeras") is None
+        assert _to_date("123456") is None
+        assert _to_date("-") is None
+
+    # Verify _infer_series_type cases
+    builder = ExcelProfileBuilder()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", category=UserWarning)
+        
+        # Text columns
+        s_text = pd.Series(["remeras", "pantalones", "buzos", "camisas"])
+        assert builder._infer_series_type(s_text) == "text"
+        
+        # Date columns ISO
+        s_iso = pd.Series(["2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04"])
+        assert builder._infer_series_type(s_iso) == "date"
+        
+        # Date columns Localized
+        s_local = pd.Series(["01/05/2026", "02/05/2026", "03/05/2026", "04/05/2026"])
+        assert builder._infer_series_type(s_local) == "date"
+        
+        # Number columns
+        s_num = pd.Series([100, 200, 300, 450])
+        assert builder._infer_series_type(s_num) == "number"
+
+

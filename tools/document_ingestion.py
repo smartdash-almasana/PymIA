@@ -674,7 +674,13 @@ def _to_date(value: Any) -> str | None:
     text = str(value).strip()
     if not text or text.lower() in {"nan", "none", "null", "-"}:
         return None
-    parsed = pd.to_datetime(text, errors="coerce", dayfirst=True)
+
+    if not (("-" in text or "/" in text) and any(c.isdigit() for c in text)):
+        return None
+
+    import re
+    is_iso = bool(re.match(r"^\d{4}[-/]\d{2}[-/]\d{2}", text))
+    parsed = pd.to_datetime(text, errors="coerce", dayfirst=not is_iso)
     if pd.isna(parsed):
         return None
     return parsed.date().isoformat()

@@ -199,10 +199,22 @@ class ExcelProfileBuilder:
         if bool_like >= 0.9:
             return "boolean"
 
-        dt = pd.to_datetime(cleaned, errors="coerce", dayfirst=True)
-        date_ratio = dt.notna().mean()
-        if date_ratio >= 0.8:
-            return "date"
+        import re
+        from datetime import datetime, date
+
+        def is_date_like(v: Any) -> bool:
+            if isinstance(v, (datetime, date, pd.Timestamp)):
+                return True
+            s = str(v).strip()
+            return (8 <= len(s) <= 25) and ("-" in s or "/" in s) and any(c.isdigit() for c in s)
+
+        if cleaned.map(is_date_like).mean() >= 0.5:
+            first_val = str(cleaned.iloc[0]).strip() if not cleaned.empty else ""
+            is_iso = bool(re.match(r"^\d{4}[-/]\d{2}[-/]\d{2}", first_val))
+            dt = pd.to_datetime(cleaned, errors="coerce", dayfirst=not is_iso, format="mixed")
+            date_ratio = dt.notna().mean()
+            if date_ratio >= 0.8:
+                return "date"
 
         numeric = pd.to_numeric(cleaned, errors="coerce")
         num_ratio = numeric.notna().mean()
