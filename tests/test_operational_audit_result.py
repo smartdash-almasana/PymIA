@@ -151,3 +151,15 @@ def test_pathology_routing_summary_sorted_by_status_then_severity() -> None:
     order = {"blocked": 0, "pending_data": 1, "candidate": 2, "calculable": 3, "not_applicable": 4}
     values = [order[item.status] for item in result.pathology_routing_summary]
     assert values == sorted(values)
+
+
+def test_pending_data_guardrails() -> None:
+    result = _build_result()
+    thread_by_id = {t.thread_id: t for t in result.open_audit_threads}
+    for route in result.pathology_routing_summary:
+        if route.status == "pending_data":
+            assert route.next_question.strip() != "", f"Route {route.pathology_code} has status pending_data but next_question is empty"
+            thread = thread_by_id.get(route.thread_id)
+            if thread and thread.required_data:
+                assert route.missing_evidence, f"Route {route.pathology_code} has status pending_data but missing_evidence is empty, while thread {thread.thread_id} has required_data"
+

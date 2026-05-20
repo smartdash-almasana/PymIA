@@ -81,7 +81,6 @@ def _compute_key_aliases(evidence: StructuredEvidence) -> tuple[set[str], dict[s
         add("ventas_del_periodo", "sheet:ventas")
         add("sales", "sheet:ventas")
         add("ventas_totales", "sheet:ventas")
-        add("ventas_por_sku", "sheet:ventas")
 
     if "costos_total" in computed or "compras" in sheets:
         add("costos_directos", "sheet:compras")

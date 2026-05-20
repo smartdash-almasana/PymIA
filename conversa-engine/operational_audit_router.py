@@ -66,6 +66,28 @@ def route_operational_audit_message(message_text: str, audit_result: Operational
             options=[],
         )
 
+    # Explicit lookup by pathology code in message
+    normalized_text = message_text.lower()
+    for route in routes:
+        if route.pathology_code.lower() in normalized_text:
+            missing = route.missing_evidence
+            reply = (
+                f"Puedo abrir {route.pathology_code} ({route.status}). "
+                f"Thread: {route.thread_id}."
+            )
+            if missing:
+                reply += f" Me falta evidencia: {', '.join(missing)}."
+            
+            other_routes = [f"{r.pathology_code} ({r.status})" for r in routes if r.pathology_code != route.pathology_code]
+            return RoutingDecision(
+                pathology_code=route.pathology_code,
+                thread_id=route.thread_id,
+                missing_evidence=missing,
+                next_question=route.next_question,
+                reply_text=reply,
+                options=other_routes[:3],
+            )
+
     family = _family_match(message_text)
     if family is None:
         options = [f"{route.pathology_code} ({route.status})" for route in routes[:5]]

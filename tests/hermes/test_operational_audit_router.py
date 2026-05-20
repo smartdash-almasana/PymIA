@@ -92,3 +92,21 @@ def test_no_raw_payload_fields_for_router() -> None:
     payload = audit.model_dump(mode="json", by_alias=True)
     forbidden = {"tables", "raw_tables", "normalized_tables", "kernel_output"}
     assert forbidden.isdisjoint(payload.keys())
+
+
+def test_route_explicit_pathology_code_matches_pyme033() -> None:
+    audit = _audit_result_with_routes()
+    decision = route_operational_audit_message("qué evidencia falta para PYME_033", audit)
+    assert decision.pathology_code == "PYME_033"
+    assert decision.thread_id == "audit_thread:PYME_033"
+    assert "ventas_por_sku" in decision.missing_evidence
+    assert decision.next_question
+    assert "PYME_033" in decision.reply_text
+
+
+def test_route_explicit_pathology_code_matches_ren001() -> None:
+    audit = _audit_result_with_routes()
+    decision = route_operational_audit_message("quiero ver REN_001", audit)
+    assert decision.pathology_code == "REN_001"
+    assert decision.thread_id == "audit_thread:REN_001"
+

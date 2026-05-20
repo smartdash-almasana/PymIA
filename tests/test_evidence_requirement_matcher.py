@@ -76,3 +76,20 @@ def test_open_threads_created_from_catalog_without_explicit_signals() -> None:
     assert result.open_audit_threads
     assert all(t.thread_id.startswith("audit_thread:") for t in result.open_audit_threads)
     assert all(t.opened_by for t in result.open_audit_threads)
+
+
+def test_pyme033_pending_without_sku_sales() -> None:
+    evidence = _mk_evidence(
+        computed={"ventas_total": 1000.0},
+        sheets={"ventas": "OK"},
+    )
+    matches = match_evidence_requirements(evidence)
+    pyme033_match = None
+    for m in matches:
+        if m.pathology_code == "PYME_033":
+            pyme033_match = m
+            break
+    assert pyme033_match is not None
+    assert pyme033_match.status == "pending_data"
+    assert "ventas_por_sku" in pyme033_match.missing_evidence
+
