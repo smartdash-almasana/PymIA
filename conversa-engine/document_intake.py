@@ -82,6 +82,7 @@ def intake_document(
     object.__setattr__(event, "evidence_candidate_type", classification.evidence_candidate_type)
     object.__setattr__(event, "classification_reasons", classification.reasons)
     object.__setattr__(event, "classification_decision_code", classification.decision_code)
+    object.__setattr__(event, "classification_clarification_type", classification.clarification_type)
 
     if base_path is None:
         base_path = Path(__file__).resolve().parent / ".intake_state"

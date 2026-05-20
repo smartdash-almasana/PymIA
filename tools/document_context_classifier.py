@@ -24,6 +24,13 @@ ClassifierDecisionCode = Literal[
     "DESCONOCIDO_LOW"
 ]
 
+ClarificationType = Literal[
+    "NONE",
+    "OWNER_INTENT",
+    "MATHEMATICAL_STRUCTURE",
+    "OWNER_AND_MATHEMATICAL"
+]
+
 
 class DocumentContextInput(BaseModel):
     file_name: str
@@ -45,6 +52,7 @@ class DocumentContextClassification(BaseModel):
     evidence_candidate_type: str
     is_validated_evidence: bool = False
     decision_code: ClassifierDecisionCode = "SUCCESS"
+    clarification_type: ClarificationType = "NONE"
 
 
 def _normalize_string(text: str) -> str:
@@ -117,7 +125,9 @@ class DocumentContextClassifier:
                 reasons=reasons,
                 required_followup=None,
                 evidence_candidate_type="narrative_claim_candidate",
-                is_validated_evidence=False
+                is_validated_evidence=False,
+                decision_code="SUCCESS",
+                clarification_type="NONE"
             )
             
         # 2. Extract and check extension / mime-type
@@ -245,6 +255,18 @@ class DocumentContextClassifier:
         else:
             decision_code = "SUCCESS"
 
+        # Determine clarification_type
+        if decision_code == "SUCCESS":
+            clarification_type = "NONE"
+        elif decision_code == "NO_KEYWORDS_DETECTED":
+            clarification_type = "NONE"
+        elif decision_code in {"CONTEXT_COLLISION", "ADMINISTRATIVE_BYPASS"}:
+            clarification_type = "OWNER_INTENT"
+        elif decision_code == "DESCONOCIDO_LOW":
+            clarification_type = "MATHEMATICAL_STRUCTURE"
+        else:
+            clarification_type = "NONE"
+
         # Handle required followup
         if confidence == "low" or document_context == "desconocido":
             if second_score > 0 and (best_score - second_score) < 1.5:
@@ -268,5 +290,6 @@ class DocumentContextClassifier:
             required_followup=required_followup,
             evidence_candidate_type=evidence_candidate_type,
             is_validated_evidence=False,
-            decision_code=decision_code
+            decision_code=decision_code,
+            clarification_type=clarification_type
         )
