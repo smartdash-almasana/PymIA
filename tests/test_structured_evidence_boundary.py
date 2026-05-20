@@ -6,6 +6,8 @@ from pymia.interfaces.conversational_port import ClinicalConversationalPort, Con
 
 def test_conversational_input_accepts_structured_evidence() -> None:
     evidence = StructuredEvidence(
+        tenant_id="tenant-test",
+        document_type="xlsx_operational_evidence",
         source="xlsx_upload",
         file_name="textil_cosida_demo_pymia.xlsx",
         tables=[
@@ -36,6 +38,8 @@ def test_conversational_input_accepts_structured_evidence() -> None:
 
 def test_kernel_does_not_request_sales_or_costs_when_structured_evidence_has_them() -> None:
     evidence = StructuredEvidence(
+        tenant_id="tenant-test",
+        document_type="xlsx_operational_evidence",
         source="xlsx_upload",
         file_name="textil_cosida_demo_pymia.xlsx",
         computed_variables={

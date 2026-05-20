@@ -216,7 +216,7 @@ Fecha: 2026-05-16
 
 ### Scope
 
-Endurecimiento de frontera MVP conversacional/documental.
+Endurecimiento de frontera interfaz experimental/documental.
 
 ### Archivo tocado
 

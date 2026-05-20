@@ -33,7 +33,7 @@ Pero debe evitar:
 - permisos sobrediseñados
 - plataforma corporativa difícil de operar
 - despliegues caros
-- abstracción excesiva antes del MVP
+- abstracción excesiva antes del núcleo robusto inicial
 ```
 
 SmartPyme debe ser:

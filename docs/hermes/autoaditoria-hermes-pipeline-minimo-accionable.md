@@ -8,7 +8,7 @@ Este documento consolida lo emergente de la autoauditoría de Hermes sobre su in
 
 No es una autorización para implementar arquitectura completa.
 No es una habilitación para contaminar el core clínico de PymIA.
-Es una poda técnica: qué hallazgos son accionables, qué debe quedar afuera y cuál es el mínimo viable para dejar de operar informalmente.
+Es una poda técnica: qué hallazgos son accionables, qué debe quedar afuera y cuál es el mínimo confiable para dejar de operar informalmente.
 
 ---
 
@@ -143,7 +143,7 @@ Si se mezclan, se contamina el modelo mental del sistema.
 
 ## Qué es accionable ahora
 
-MVP técnico mínimo recomendado:
+prueba de frontera mínimo recomendado:
 
 ```text
 1. CLI router en conversa-engine/main.py con whitelist.
@@ -529,7 +529,7 @@ Consecuencias:
 - si resumen y verbatim contradicen, gana verbatim.
 ```
 
-### MVP anti-bypass aceptado
+### núcleo robusto inicial anti-bypass aceptado
 
 ```text
 1. CLI fail-closed.
@@ -889,11 +889,11 @@ Por lo tanto, el backlog no debe priorizar autonomía de Hermes, sino ensamble d
 
 ---
 
-## Corrección sobre el MVP: prematuro y pobre
+## Corrección sobre el núcleo robusto inicial: prematuro y pobre
 
-La lectura posterior de los ciclos con Hermes obliga a corregir el diagnóstico del MVP.
+La lectura posterior de los ciclos con Hermes obliga a corregir el diagnóstico del núcleo robusto inicial.
 
-El MVP no fue solamente incompleto.
+El núcleo robusto inicial no fue solamente incompleto.
 
 Fue:
 
@@ -923,7 +923,7 @@ Al faltar ese circuito, Hermes ocupó el vacío.
 
 ### Pobre
 
-Fue pobre porque el MVP redujo demasiado la frontera operativa.
+Fue pobre porque el núcleo robusto inicial redujo demasiado la frontera operativa.
 
 El sistema quedó con:
 
@@ -947,13 +947,13 @@ Hermes opera como analista de facto.
 
 ### Consecuencia
 
-El MVP permitió demostrar conversación, pero no permitió demostrar autoridad determinística.
+El núcleo robusto inicial permitió demostrar conversación, pero no permitió demostrar autoridad determinística.
 
 Eso cambia la prioridad.
 
 No alcanza con mejorar prompts, skills o configuración de Hermes.
 
-Hay que reconstruir el MVP alrededor del kernel:
+Hay que reconstruir el núcleo robusto inicial alrededor del kernel:
 
 ```text
 kernel primero;
@@ -967,7 +967,7 @@ verbatim antes que resumen.
 ### Decisión
 
 ```text
-El MVP conversacional debe considerarse una prueba prematura de interfaz, no un MVP suficiente de sistema.
+El interfaz experimental debe considerarse una prueba prematura de interfaz, no un núcleo robusto inicial suficiente de sistema.
 ```
 
 La siguiente iteración no debe agregar más inteligencia a Hermes.
@@ -976,25 +976,25 @@ Debe completar el ensamble mínimo del kernel determinístico y reducir la super
 
 ---
 
-## Pregunta rectora siguiente: kernel mínimo viable
+## Pregunta rectora siguiente: kernel mínimo confiable
 
 La pregunta correcta posterior a esta autoauditoría ya no es cómo mejorar Hermes.
 
 La pregunta correcta es:
 
 ```text
-¿Cuál es el kernel mínimo viable?
+¿Cuál es el kernel mínimo confiable?
 ¿Cuál es el corpus mínimo del kernel?
 ```
 
-El MVP conversacional fue prematuro porque expuso una interfaz antes de tener un kernel operativo cerrado.
+El interfaz experimental fue prematuro porque expuso una interfaz antes de tener un kernel operativo cerrado.
 
 Por lo tanto, la próxima iteración debe definir el mínimo núcleo determinístico que puede recibir una demanda PyME, exigir evidencia, ejecutar una investigación y emitir un resultado trazable sin transferir control analítico a Hermes.
 
 ### Definición provisional
 
 ```text
-Kernel mínimo viable = circuito determinístico mínimo capaz de transformar una demanda operativa en un estado trazable: BLOCKED, PARTIAL o PASS.
+Kernel mínimo confiable = circuito determinístico mínimo capaz de transformar una demanda operativa en un estado trazable: BLOCKED, PARTIAL o PASS.
 ```
 
 No necesita cubrir todas las patologías.
@@ -1031,9 +1031,9 @@ Componentes mínimos:
 12. Tests de regresión anti-bypass.
 ```
 
-### Criterio de mínimo viable
+### Criterio de mínimo confiable
 
-Un kernel mínimo viable existe solo si puede hacer esto:
+Un kernel mínimo confiable existe solo si puede hacer esto:
 
 ```text
 Dado un mensaje del dueño,

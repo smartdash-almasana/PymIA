@@ -1,49 +1,516 @@
 {
   "catalog_version": "1.1",
-  "description": "Catálogo matematizador empresarial MVP correlacionado con pathology_catalog.v1.json. Primer núcleo ampliado a partir de investigación de fórmulas empresariales y catálogo de patologías PyME.",
+  "description": "Catálogo matematizador empresarial núcleo robusto inicial correlacionado con pathology_catalog.v1.json. Primer núcleo ampliado a partir de investigación de fórmulas empresariales y catálogo de patologías PyME.",
   "source_documents": [
     "Fórmulas Matemáticas Empresariales.md",
     "Investigación Fórmulas Matemáticas Empresariales.txt",
     "catalogo_patologias_pyme_v1.md"
   ],
-  "status": "mvp_operational_catalog",
+  "status": "robust_operational_catalog",
   "knowledge_tank": "matematizador_empresarial_core_pyme",
   "families": [
-    {"family_id":"A","name":"Rentabilidad y Margen","scope":"margen, contribución, rentabilidad por producto/cliente/canal"},
-    {"family_id":"B","name":"Costos","scope":"costos fijos, variables, unitarios, punto de equilibrio, reposición"},
-    {"family_id":"C","name":"Precios / Pricing","scope":"markup, margen objetivo, elasticidad, drift de precios"},
-    {"family_id":"D","name":"Ventas y Comercial","scope":"ticket, conversión, crecimiento, concentración, churn"},
-    {"family_id":"E","name":"Caja y Liquidez","scope":"flujo de caja, capital de trabajo, DSO, DPO, DIO, CCC"},
-    {"family_id":"F","name":"Finanzas Corporativas","scope":"ROI, ROA, ROE, EBITDA, deuda, cobertura"},
-    {"family_id":"G","name":"Inventario / Stock","scope":"rotación, stock seguridad, reposición, merma, capital inmovilizado"},
-    {"family_id":"H","name":"Producción / Operaciones","scope":"productividad, capacidad, OEE, defectos, throughput"},
-    {"family_id":"K","name":"Impuestos / Fiscal Operativo","scope":"IVA, saldo técnico, presión fiscal, recategorización"},
-    {"family_id":"M","name":"Automatización / ROI Tecnológico","scope":"horas manuales, payback, ROI, costo de error"},
-    {"family_id":"N","name":"Riesgo y Control","scope":"concentración, aging, sensibilidad, estrés de caja"}
+    {
+      "family_id": "A",
+      "name": "Rentabilidad y Margen",
+      "scope": "margen, contribución, rentabilidad por producto/cliente/canal"
+    },
+    {
+      "family_id": "B",
+      "name": "Costos",
+      "scope": "costos fijos, variables, unitarios, punto de equilibrio, reposición"
+    },
+    {
+      "family_id": "C",
+      "name": "Precios / Pricing",
+      "scope": "markup, margen objetivo, elasticidad, drift de precios"
+    },
+    {
+      "family_id": "D",
+      "name": "Ventas y Comercial",
+      "scope": "ticket, conversión, crecimiento, concentración, churn"
+    },
+    {
+      "family_id": "E",
+      "name": "Caja y Liquidez",
+      "scope": "flujo de caja, capital de trabajo, DSO, DPO, DIO, CCC"
+    },
+    {
+      "family_id": "F",
+      "name": "Finanzas Corporativas",
+      "scope": "ROI, ROA, ROE, EBITDA, deuda, cobertura"
+    },
+    {
+      "family_id": "G",
+      "name": "Inventario / Stock",
+      "scope": "rotación, stock seguridad, reposición, merma, capital inmovilizado"
+    },
+    {
+      "family_id": "H",
+      "name": "Producción / Operaciones",
+      "scope": "productividad, capacidad, OEE, defectos, throughput"
+    },
+    {
+      "family_id": "K",
+      "name": "Impuestos / Fiscal Operativo",
+      "scope": "IVA, saldo técnico, presión fiscal, recategorización"
+    },
+    {
+      "family_id": "M",
+      "name": "Automatización / ROI Tecnológico",
+      "scope": "horas manuales, payback, ROI, costo de error"
+    },
+    {
+      "family_id": "N",
+      "name": "Riesgo y Control",
+      "scope": "concentración, aging, sensibilidad, estrés de caja"
+    }
   ],
   "formulas": [
-    {"formula_id":"LIQ_001_vendido_cobrado","canonical_formula_id":"E13","pathology_code":"LIQ_001","name":"Descalce vendido cobrado","family_id":"E","category":"liquidez","expression":"sold_amount - collected_amount","display_expression":"Vendido - Cobrado","required_variables":["sold_amount","collected_amount"],"required_evidence":["ventas_del_periodo","cobranzas_del_periodo","cuentas_corrientes_clientes"],"output_unit":"currency","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Diferencia monetaria entre lo vendido y lo efectivamente cobrado; cuantifica tensión de caja por cobranza pendiente."},
-    {"formula_id":"REN_001_margen_neto_real","canonical_formula_id":"A02","pathology_code":"REN_001","name":"Margen neto real","family_id":"A","category":"rentabilidad","expression":"((sale_price - costs - taxes) / sale_price) * 100","display_expression":"((PV - Costos - Impuestos) / PV) × 100","required_variables":["sale_price","costs","taxes"],"required_evidence":["ventas_del_periodo","costos_directos","impuestos_y_comisiones"],"output_unit":"percentage","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Mide si la venta conserva rentabilidad después de costos e impuestos; útil para detectar margen invisible o falsa rentabilidad."},
-    {"formula_id":"REN_002_coeficiente_reposicion","canonical_formula_id":"A11","pathology_code":"REN_002","name":"Coeficiente de reposición","family_id":"A","category":"rentabilidad","expression":"closing_index / origin_index","display_expression":"Índice Cierre / Índice Origen","required_variables":["closing_index","origin_index"],"required_evidence":["indice_origen","indice_cierre","fecha_origen","fecha_cierre"],"output_unit":"ratio","calculation_state":"CALCULABLE","priority_mvp":"media","interpretation":"Actualiza valores históricos para contrastar rentabilidad nominal contra costo de reposición."},
-    {"formula_id":"INV_001_punto_reposicion","canonical_formula_id":"G05","pathology_code":"INV_001","name":"Punto de reposición","family_id":"G","category":"inventario","expression":"(average_sales * lead_time) + safety_stock","display_expression":"(Venta Promedio × Lead Time) + Stock Seguridad","required_variables":["average_sales","lead_time","safety_stock"],"required_evidence":["historial_ventas_sku","lead_time_proveedor","politica_stock_seguridad"],"output_unit":"units","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Indica nivel mínimo de stock para disparar compra antes de quiebre operativo."},
-    {"formula_id":"LIQ_002_saldo_final_proyectado","canonical_formula_id":"E03","pathology_code":"LIQ_002","name":"Saldo final proyectado","family_id":"E","category":"liquidez","expression":"initial_balance + expected_collections - expected_payments","display_expression":"Saldo Inicial + Cobros - Pagos","required_variables":["initial_balance","expected_collections","expected_payments"],"required_evidence":["saldo_inicial_caja_banco","cobranzas_esperadas","pagos_esperados"],"output_unit":"currency","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Proyecta caja disponible; detecta riesgo de flujo de caja sin anticipación."},
-    {"formula_id":"INV_002_rotacion_stock","canonical_formula_id":"G01","pathology_code":"INV_002","name":"Rotación de inventario","family_id":"G","category":"inventario","expression":"cost_of_goods_sold / average_stock","display_expression":"CMV / Stock Promedio","required_variables":["cost_of_goods_sold","average_stock"],"required_evidence":["cmv_periodo","inventario_inicial","inventario_final"],"output_unit":"ratio","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Mide cuántas veces se renueva el inventario; rotación baja sugiere capital inmovilizado."},
-    {"formula_id":"OPE_001_decisiones_centralizadas","canonical_formula_id":"L07","pathology_code":"OPE_001","name":"Porcentaje de decisiones centralizadas","family_id":"L","category":"operaciones","expression":"owner_decisions / total_decisions * 100","display_expression":"% Decisiones Dueño > 80%","required_variables":["owner_decisions","total_decisions"],"required_evidence":["registro_decisiones","workflow_aprobaciones","entrevista_dueño"],"output_unit":"percentage","calculation_state":"CALCULABLE_CON_SUPUESTOS","priority_mvp":"media","interpretation":"Estima dependencia del dueño y riesgo de cuello de botella organizacional."},
-    {"formula_id":"PYME_004_recpam_basico","canonical_formula_id":"J10","pathology_code":"PYME_004","name":"RECPAM básico por coeficiente","family_id":"J","category":"fiscal_contable","expression":"origin_value * (closing_index / origin_index - 1)","display_expression":"Valor Origen × (Coeficiente - 1)","required_variables":["origin_value","closing_index","origin_index"],"required_evidence":["valor_origen","indice_origen","indice_cierre","fecha_origen"],"output_unit":"currency","calculation_state":"CALCULABLE_CON_SUPUESTOS","priority_mvp":"media","interpretation":"Cuantifica efecto inflacionario sobre partidas no monetarias; requiere validación contable."},
-    {"formula_id":"PYME_011_dso","canonical_formula_id":"E09","pathology_code":"PYME_011","name":"Días de ventas por cobrar","family_id":"E","category":"cobranzas","expression":"accounts_receivable / sales * days","display_expression":"(Cuentas por Cobrar / Ventas) × Días","required_variables":["accounts_receivable","sales","days"],"required_evidence":["cuentas_por_cobrar","ventas_periodo","periodo_dias"],"output_unit":"days","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Mide plazo promedio de cobro; aumento silencioso tensiona caja."},
-    {"formula_id":"PYME_013_dso_dpo_gap","canonical_formula_id":"E08","pathology_code":"PYME_013","name":"Descalce DSO vs DPO","family_id":"E","category":"liquidez","expression":"dso - dpo","display_expression":"DSO - DPO","required_variables":["dso","dpo"],"required_evidence":["dso_calculado","dpo_calculado"],"output_unit":"days","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Si la empresa cobra más tarde de lo que paga, requiere financiar el descalce."},
-    {"formula_id":"PYME_017_pricing_drift","canonical_formula_id":"C08","pathology_code":"PYME_017","name":"Desviación contra precio de mercado","family_id":"C","category":"pricing","expression":"(own_price - market_price) / market_price * 100","display_expression":"(Precio Propio - Mercado) / Mercado","required_variables":["own_price","market_price"],"required_evidence":["lista_precios_propia","benchmark_precios_mercado"],"output_unit":"percentage","calculation_state":"CALCULABLE_CON_SUPUESTOS","priority_mvp":"media","interpretation":"Detecta atraso o sobreprecio relativo contra mercado comparable."},
-    {"formula_id":"PYME_024_liquidez_corriente","canonical_formula_id":"E05","pathology_code":"PYME_024","name":"Liquidez corriente","family_id":"E","category":"liquidez","expression":"current_assets / current_liabilities","display_expression":"Activo Corriente / Pasivo Corriente","required_variables":["current_assets","current_liabilities"],"required_evidence":["balance_general","saldos_activo_corriente","saldos_pasivo_corriente"],"output_unit":"ratio","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Ratio menor a 1 sugiere agotamiento de capital de trabajo."},
-    {"formula_id":"PYME_026_flujo_operativo","canonical_formula_id":"E01","pathology_code":"PYME_026","name":"Flujo de caja operativo","family_id":"E","category":"liquidez","expression":"net_income + depreciation + amortization - working_capital_change","display_expression":"Utilidad Neta + Depreciaciones + Amortizaciones - Δ Capital de Trabajo","required_variables":["net_income","depreciation","amortization","working_capital_change"],"required_evidence":["estado_resultados","balance_dos_periodos"],"output_unit":"currency","calculation_state":"CALCULABLE_CON_SUPUESTOS","priority_mvp":"alta","interpretation":"FCO negativo indica que la operación consume caja."},
-    {"formula_id":"PYME_027_intereses_ebitda","canonical_formula_id":"F13","pathology_code":"PYME_027","name":"Intereses sobre EBITDA","family_id":"F","category":"finanzas","expression":"interest_expense / ebitda","display_expression":"Intereses / EBITDA","required_variables":["interest_expense","ebitda"],"required_evidence":["estado_resultados","detalle_intereses","calculo_ebitda"],"output_unit":"ratio","calculation_state":"CALCULABLE","priority_mvp":"media","interpretation":"Mide presión financiera sobre generación operativa."},
-    {"formula_id":"PYME_033_concentracion_sku","canonical_formula_id":"N03","pathology_code":"PYME_033","name":"Concentración de riesgo en SKU","family_id":"N","category":"ventas","expression":"main_sku_sales / total_sales * 100","display_expression":"SKU Principal / Ventas × 100","required_variables":["main_sku_sales","total_sales"],"required_evidence":["ventas_por_sku","ventas_totales"],"output_unit":"percentage","calculation_state":"CALCULABLE","priority_mvp":"alta","interpretation":"Alta concentración en un SKU eleva riesgo operativo y comercial."},
-    {"formula_id":"PYME_044_margen_cliente","canonical_formula_id":"A07","pathology_code":"PYME_044","name":"Margen por cliente","family_id":"A","category":"rentabilidad","expression":"client_revenue - client_direct_costs - client_service_costs","display_expression":"Ingresos Cliente - Costos Directos - Costos de Atención","required_variables":["client_revenue","client_direct_costs","client_service_costs"],"required_evidence":["ventas_por_cliente","costos_por_cliente","horas_atencion_cliente"],"output_unit":"currency","calculation_state":"CALCULABLE_CON_SUPUESTOS","priority_mvp":"media","interpretation":"Detecta subsidio oculto a clientes con margen negativo."},
-    {"formula_id":"PYME_047_tiempo_manual_automatizado","canonical_formula_id":"M01","pathology_code":"PYME_047","name":"Relación tiempo manual vs automatizado","family_id":"M","category":"operaciones","expression":"manual_time / automated_time","display_expression":"Tiempo Manual / Automatizado","required_variables":["manual_time","automated_time"],"required_evidence":["medicion_tiempos_proceso","flujo_actual","flujo_automatizado_estimado"],"output_unit":"ratio","calculation_state":"CALCULABLE_CON_SUPUESTOS","priority_mvp":"alta","interpretation":"Relación elevada indica rigidez artesanal y oportunidad de automatización."},
-    {"formula_id":"M05_roi_automatizacion","canonical_formula_id":"M05","pathology_code":"PYME_047","name":"ROI de automatización","family_id":"M","category":"automatizacion","expression":"((monthly_savings * 12) - annual_operating_cost) / initial_investment * 100","display_expression":"((Ahorro Mensual × 12) - Costo Anual Operación) / Inversión Inicial × 100","required_variables":["monthly_savings","annual_operating_cost","initial_investment"],"required_evidence":["horas_manual_actuales","costo_hora","cotizacion_automatizacion","costo_operacion_anual"],"output_unit":"percentage","calculation_state":"CALCULABLE_CON_SUPUESTOS","priority_mvp":"alta","interpretation":"Evalúa retorno económico de automatizar tareas manuales recurrentes."}
+    {
+      "formula_id": "LIQ_001_vendido_cobrado",
+      "canonical_formula_id": "E13",
+      "pathology_code": "LIQ_001",
+      "name": "Descalce vendido cobrado",
+      "family_id": "E",
+      "category": "liquidez",
+      "expression": "sold_amount - collected_amount",
+      "display_expression": "Vendido - Cobrado",
+      "required_variables": [
+        "sold_amount",
+        "collected_amount"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "cobranzas_del_periodo",
+        "cuentas_corrientes_clientes"
+      ],
+      "output_unit": "currency",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Diferencia monetaria entre lo vendido y lo efectivamente cobrado; cuantifica tensión de caja por cobranza pendiente.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "REN_001_margen_neto_real",
+      "canonical_formula_id": "A02",
+      "pathology_code": "REN_001",
+      "name": "Margen neto real",
+      "family_id": "A",
+      "category": "rentabilidad",
+      "expression": "((sale_price - costs - taxes) / sale_price) * 100",
+      "display_expression": "((PV - Costos - Impuestos) / PV) × 100",
+      "required_variables": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "costos_directos",
+        "impuestos_y_comisiones"
+      ],
+      "output_unit": "percentage",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Mide si la venta conserva rentabilidad después de costos e impuestos; útil para detectar margen invisible o falsa rentabilidad.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "REN_002_coeficiente_reposicion",
+      "canonical_formula_id": "A11",
+      "pathology_code": "REN_002",
+      "name": "Coeficiente de reposición",
+      "family_id": "A",
+      "category": "rentabilidad",
+      "expression": "closing_index / origin_index",
+      "display_expression": "Índice Cierre / Índice Origen",
+      "required_variables": [
+        "closing_index",
+        "origin_index"
+      ],
+      "required_evidence": [
+        "indice_origen",
+        "indice_cierre",
+        "fecha_origen",
+        "fecha_cierre"
+      ],
+      "output_unit": "ratio",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "media",
+      "interpretation": "Actualiza valores históricos para contrastar rentabilidad nominal contra costo de reposición.",
+      "priority_robustez": "media"
+    },
+    {
+      "formula_id": "INV_001_punto_reposicion",
+      "canonical_formula_id": "G05",
+      "pathology_code": "INV_001",
+      "name": "Punto de reposición",
+      "family_id": "G",
+      "category": "inventario",
+      "expression": "(average_sales * lead_time) + safety_stock",
+      "display_expression": "(Venta Promedio × Lead Time) + Stock Seguridad",
+      "required_variables": [
+        "average_sales",
+        "lead_time",
+        "safety_stock"
+      ],
+      "required_evidence": [
+        "historial_ventas_sku",
+        "lead_time_proveedor",
+        "politica_stock_seguridad"
+      ],
+      "output_unit": "units",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Indica nivel mínimo de stock para disparar compra antes de quiebre operativo.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "LIQ_002_saldo_final_proyectado",
+      "canonical_formula_id": "E03",
+      "pathology_code": "LIQ_002",
+      "name": "Saldo final proyectado",
+      "family_id": "E",
+      "category": "liquidez",
+      "expression": "initial_balance + expected_collections - expected_payments",
+      "display_expression": "Saldo Inicial + Cobros - Pagos",
+      "required_variables": [
+        "initial_balance",
+        "expected_collections",
+        "expected_payments"
+      ],
+      "required_evidence": [
+        "saldo_inicial_caja_banco",
+        "cobranzas_esperadas",
+        "pagos_esperados"
+      ],
+      "output_unit": "currency",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Proyecta caja disponible; detecta riesgo de flujo de caja sin anticipación.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "INV_002_rotacion_stock",
+      "canonical_formula_id": "G01",
+      "pathology_code": "INV_002",
+      "name": "Rotación de inventario",
+      "family_id": "G",
+      "category": "inventario",
+      "expression": "cost_of_goods_sold / average_stock",
+      "display_expression": "CMV / Stock Promedio",
+      "required_variables": [
+        "cost_of_goods_sold",
+        "average_stock"
+      ],
+      "required_evidence": [
+        "cmv_periodo",
+        "inventario_inicial",
+        "inventario_final"
+      ],
+      "output_unit": "ratio",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Mide cuántas veces se renueva el inventario; rotación baja sugiere capital inmovilizado.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "OPE_001_decisiones_centralizadas",
+      "canonical_formula_id": "L07",
+      "pathology_code": "OPE_001",
+      "name": "Porcentaje de decisiones centralizadas",
+      "family_id": "L",
+      "category": "operaciones",
+      "expression": "owner_decisions / total_decisions * 100",
+      "display_expression": "% Decisiones Dueño > 80%",
+      "required_variables": [
+        "owner_decisions",
+        "total_decisions"
+      ],
+      "required_evidence": [
+        "registro_decisiones",
+        "workflow_aprobaciones",
+        "entrevista_dueño"
+      ],
+      "output_unit": "percentage",
+      "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+      "priority_mvp": "media",
+      "interpretation": "Estima dependencia del dueño y riesgo de cuello de botella organizacional.",
+      "priority_robustez": "media"
+    },
+    {
+      "formula_id": "PYME_004_recpam_basico",
+      "canonical_formula_id": "J10",
+      "pathology_code": "PYME_004",
+      "name": "RECPAM básico por coeficiente",
+      "family_id": "J",
+      "category": "fiscal_contable",
+      "expression": "origin_value * (closing_index / origin_index - 1)",
+      "display_expression": "Valor Origen × (Coeficiente - 1)",
+      "required_variables": [
+        "origin_value",
+        "closing_index",
+        "origin_index"
+      ],
+      "required_evidence": [
+        "valor_origen",
+        "indice_origen",
+        "indice_cierre",
+        "fecha_origen"
+      ],
+      "output_unit": "currency",
+      "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+      "priority_mvp": "media",
+      "interpretation": "Cuantifica efecto inflacionario sobre partidas no monetarias; requiere validación contable.",
+      "priority_robustez": "media"
+    },
+    {
+      "formula_id": "PYME_011_dso",
+      "canonical_formula_id": "E09",
+      "pathology_code": "PYME_011",
+      "name": "Días de ventas por cobrar",
+      "family_id": "E",
+      "category": "cobranzas",
+      "expression": "accounts_receivable / sales * days",
+      "display_expression": "(Cuentas por Cobrar / Ventas) × Días",
+      "required_variables": [
+        "accounts_receivable",
+        "sales",
+        "days"
+      ],
+      "required_evidence": [
+        "cuentas_por_cobrar",
+        "ventas_periodo",
+        "periodo_dias"
+      ],
+      "output_unit": "days",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Mide plazo promedio de cobro; aumento silencioso tensiona caja.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "PYME_013_dso_dpo_gap",
+      "canonical_formula_id": "E08",
+      "pathology_code": "PYME_013",
+      "name": "Descalce DSO vs DPO",
+      "family_id": "E",
+      "category": "liquidez",
+      "expression": "dso - dpo",
+      "display_expression": "DSO - DPO",
+      "required_variables": [
+        "dso",
+        "dpo"
+      ],
+      "required_evidence": [
+        "dso_calculado",
+        "dpo_calculado"
+      ],
+      "output_unit": "days",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Si la empresa cobra más tarde de lo que paga, requiere financiar el descalce.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "PYME_017_pricing_drift",
+      "canonical_formula_id": "C08",
+      "pathology_code": "PYME_017",
+      "name": "Desviación contra precio de mercado",
+      "family_id": "C",
+      "category": "pricing",
+      "expression": "(own_price - market_price) / market_price * 100",
+      "display_expression": "(Precio Propio - Mercado) / Mercado",
+      "required_variables": [
+        "own_price",
+        "market_price"
+      ],
+      "required_evidence": [
+        "lista_precios_propia",
+        "benchmark_precios_mercado"
+      ],
+      "output_unit": "percentage",
+      "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+      "priority_mvp": "media",
+      "interpretation": "Detecta atraso o sobreprecio relativo contra mercado comparable.",
+      "priority_robustez": "media"
+    },
+    {
+      "formula_id": "PYME_024_liquidez_corriente",
+      "canonical_formula_id": "E05",
+      "pathology_code": "PYME_024",
+      "name": "Liquidez corriente",
+      "family_id": "E",
+      "category": "liquidez",
+      "expression": "current_assets / current_liabilities",
+      "display_expression": "Activo Corriente / Pasivo Corriente",
+      "required_variables": [
+        "current_assets",
+        "current_liabilities"
+      ],
+      "required_evidence": [
+        "balance_general",
+        "saldos_activo_corriente",
+        "saldos_pasivo_corriente"
+      ],
+      "output_unit": "ratio",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Ratio menor a 1 sugiere agotamiento de capital de trabajo.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "PYME_026_flujo_operativo",
+      "canonical_formula_id": "E01",
+      "pathology_code": "PYME_026",
+      "name": "Flujo de caja operativo",
+      "family_id": "E",
+      "category": "liquidez",
+      "expression": "net_income + depreciation + amortization - working_capital_change",
+      "display_expression": "Utilidad Neta + Depreciaciones + Amortizaciones - Δ Capital de Trabajo",
+      "required_variables": [
+        "net_income",
+        "depreciation",
+        "amortization",
+        "working_capital_change"
+      ],
+      "required_evidence": [
+        "estado_resultados",
+        "balance_dos_periodos"
+      ],
+      "output_unit": "currency",
+      "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+      "priority_mvp": "alta",
+      "interpretation": "FCO negativo indica que la operación consume caja.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "PYME_027_intereses_ebitda",
+      "canonical_formula_id": "F13",
+      "pathology_code": "PYME_027",
+      "name": "Intereses sobre EBITDA",
+      "family_id": "F",
+      "category": "finanzas",
+      "expression": "interest_expense / ebitda",
+      "display_expression": "Intereses / EBITDA",
+      "required_variables": [
+        "interest_expense",
+        "ebitda"
+      ],
+      "required_evidence": [
+        "estado_resultados",
+        "detalle_intereses",
+        "calculo_ebitda"
+      ],
+      "output_unit": "ratio",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "media",
+      "interpretation": "Mide presión financiera sobre generación operativa.",
+      "priority_robustez": "media"
+    },
+    {
+      "formula_id": "PYME_033_concentracion_sku",
+      "canonical_formula_id": "N03",
+      "pathology_code": "PYME_033",
+      "name": "Concentración de riesgo en SKU",
+      "family_id": "N",
+      "category": "ventas",
+      "expression": "main_sku_sales / total_sales * 100",
+      "display_expression": "SKU Principal / Ventas × 100",
+      "required_variables": [
+        "main_sku_sales",
+        "total_sales"
+      ],
+      "required_evidence": [
+        "ventas_por_sku",
+        "ventas_totales"
+      ],
+      "output_unit": "percentage",
+      "calculation_state": "CALCULABLE",
+      "priority_mvp": "alta",
+      "interpretation": "Alta concentración en un SKU eleva riesgo operativo y comercial.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "PYME_044_margen_cliente",
+      "canonical_formula_id": "A07",
+      "pathology_code": "PYME_044",
+      "name": "Margen por cliente",
+      "family_id": "A",
+      "category": "rentabilidad",
+      "expression": "client_revenue - client_direct_costs - client_service_costs",
+      "display_expression": "Ingresos Cliente - Costos Directos - Costos de Atención",
+      "required_variables": [
+        "client_revenue",
+        "client_direct_costs",
+        "client_service_costs"
+      ],
+      "required_evidence": [
+        "ventas_por_cliente",
+        "costos_por_cliente",
+        "horas_atencion_cliente"
+      ],
+      "output_unit": "currency",
+      "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+      "priority_mvp": "media",
+      "interpretation": "Detecta subsidio oculto a clientes con margen negativo.",
+      "priority_robustez": "media"
+    },
+    {
+      "formula_id": "PYME_047_tiempo_manual_automatizado",
+      "canonical_formula_id": "M01",
+      "pathology_code": "PYME_047",
+      "name": "Relación tiempo manual vs automatizado",
+      "family_id": "M",
+      "category": "operaciones",
+      "expression": "manual_time / automated_time",
+      "display_expression": "Tiempo Manual / Automatizado",
+      "required_variables": [
+        "manual_time",
+        "automated_time"
+      ],
+      "required_evidence": [
+        "medicion_tiempos_proceso",
+        "flujo_actual",
+        "flujo_automatizado_estimado"
+      ],
+      "output_unit": "ratio",
+      "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+      "priority_mvp": "alta",
+      "interpretation": "Relación elevada indica rigidez artesanal y oportunidad de automatización.",
+      "priority_robustez": "alta"
+    },
+    {
+      "formula_id": "M05_roi_automatizacion",
+      "canonical_formula_id": "M05",
+      "pathology_code": "PYME_047",
+      "name": "ROI de automatización",
+      "family_id": "M",
+      "category": "automatizacion",
+      "expression": "((monthly_savings * 12) - annual_operating_cost) / initial_investment * 100",
+      "display_expression": "((Ahorro Mensual × 12) - Costo Anual Operación) / Inversión Inicial × 100",
+      "required_variables": [
+        "monthly_savings",
+        "annual_operating_cost",
+        "initial_investment"
+      ],
+      "required_evidence": [
+        "horas_manual_actuales",
+        "costo_hora",
+        "cotizacion_automatizacion",
+        "costo_operacion_anual"
+      ],
+      "output_unit": "percentage",
+      "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+      "priority_mvp": "alta",
+      "interpretation": "Evalúa retorno económico de automatizar tareas manuales recurrentes.",
+      "priority_robustez": "alta"
+    }
   ],
   "governance_notes": [
     "Las fórmulas no confirman patologías por sí solas; producen evidencia cuantitativa para contraste.",
     "Los umbrales son orientativos y deben especializarse por rubro, tamaño y país.",
-    "Las fórmulas fiscales y contables dependientes de normativa requieren validación externa vigente."
+    "Las fórmulas fiscales y contables dependientes de normativa requieren validación externa vigente.",
+    "Compatibilidad: priority_mvp se mantiene como campo legado; usar priority_robustez para nuevas integraciones."
   ]
 }

@@ -4,7 +4,7 @@ Contexto heredado. Este documento no autoriza jobs, workflows, orquestación, au
 
 ## Estado
 
-Contrato operativo mínimo — MVP conversacional externo.
+Contrato operativo mínimo — interfaz experimental externo.
 
 ## Objetivo
 
@@ -169,6 +169,31 @@ heuristics
 response_formatter
 services.initial_laboratory_anamnesis_service
 ```
+
+## OperationalAuditResult como frontera auditada
+
+Cuando exista resultado auditado, Hermes externo puede consumir:
+
+```text
+OperationalAuditResult.pathology_routing_summary
+OperationalAuditResult.open_audit_threads
+OperationalAuditResult.narrative_payload.allowed_messages
+OperationalAuditResult.narrative_payload.forbidden_inferences
+```
+
+Para routing conversacional disciplinado.
+
+Hermes externo NO debe consumir:
+
+```text
+Excel
+tables
+raw_tables
+normalized_tables
+kernel_output
+```
+
+Ni recalcular fórmulas ni patologías.
 
 ## Flujo mínimo de demo Telegram
 

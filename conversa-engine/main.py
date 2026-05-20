@@ -128,6 +128,21 @@ def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") 
     return pymia
 
 
+def route_from_operational_audit(text: str, operational_audit_result_payload: dict) -> str:
+    """
+    Routing conversacional disciplinado sobre OperationalAuditResult.
+
+    Esta función vive en conversa-engine (runtime externo).
+    No pasa metadata ni payload al kernel clínico.
+    """
+    from pymia.audit_result.models import OperationalAuditResult
+    from operational_audit_router import route_operational_audit_message
+
+    audit = OperationalAuditResult.model_validate(operational_audit_result_payload)
+    decision = route_operational_audit_message(text, audit)
+    return decision.reply_text
+
+
 if __name__ == "__main__":
     exit_code, message, error = _cli_message_from_args(sys.argv[1:])
     if error is not None:

@@ -9,6 +9,8 @@ description = "PymIA — Núcleo clínico-operacional soberano para PyMEs"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0",
+    "openpyxl>=3.1",
+    "pandas>=2.2",
 ]
 
 [project.optional-dependencies]
@@ -18,7 +20,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["pymia*"]
+include = ["pymia*", "tools*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -35,6 +35,14 @@ PymIA computa.
 from pymia.hermes.adapter import HermesAdapter, HermesInput
 ```
 
+## OperationalAuditResult routing boundary
+
+- conversa-engine may consume `OperationalAuditResult` as audited payload for conversational routing.
+- Allowed fields for routing: `pathology_routing_summary`, `open_audit_threads`, `narrative_payload.allowed_messages`, `narrative_payload.forbidden_inferences`.
+- Forbidden payload for Hermes routing: `tables`, `raw_tables`, `normalized_tables`, `kernel_output`, Excel binary/raw document.
+- Hermes runtime must not recompute formulas or evaluate pathologies.
+- Kernel sovereignty remains in PymIA.
+
 ## Required validation
 
 Windows:

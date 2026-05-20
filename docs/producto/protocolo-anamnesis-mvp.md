@@ -1,9 +1,9 @@
 <!--
-FUENTE_ORIGINAL: docs/hermes-producto/PROTOCOLO_ANAMNESIS_MVP.md
+FUENTE_ORIGINAL: docs/hermes-producto/PROTOCOLO_ANAMNESIS_núcleo robusto inicial.md
 ESTADO: copiado_sin_modificaciones
 -->
 
-# Protocolo de Anamnesis MVP
+# Protocolo de Anamnesis - Interfaz Experimental
 
 ## Estado
 

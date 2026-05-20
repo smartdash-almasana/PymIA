@@ -1,4 +1,4 @@
-# Kernel mínimo viable y corpus mínimo
+# Kernel mínimo confiable y corpus mínimo
 
 ## Estado
 
@@ -30,7 +30,7 @@ BLOCKED antes que workaround.
 ## Definición
 
 ```text
-Kernel mínimo viable = circuito determinístico mínimo capaz de transformar una demanda operativa PyME en un estado trazable: BLOCKED, PARTIAL o PASS.
+Kernel mínimo confiable = circuito determinístico mínimo capaz de transformar una demanda operativa PyME en un estado trazable: BLOCKED, PARTIAL o PASS.
 ```
 
 No es una app completa.
@@ -229,7 +229,7 @@ Orden mínimo:
 
 ## Criterio de éxito
 
-El kernel mínimo viable existe cuando puede responder correctamente a estos tres casos:
+El kernel mínimo confiable existe cuando puede responder correctamente a estos tres casos:
 
 ### Caso 1: evidencia insuficiente
 
@@ -278,7 +278,7 @@ Con margen bruto calculado, fuente, período y trazabilidad.
 ## Decisión
 
 ```text
-No seguir ampliando Hermes hasta definir y probar el kernel mínimo viable.
+No seguir ampliando Hermes hasta definir y probar el kernel mínimo confiable.
 ```
 
 La prioridad deja de ser integración conversacional y pasa a ser ensamble determinístico del corpus mínimo.
@@ -295,7 +295,7 @@ no es salida del sistema.
 Es simulación conversacional.
 ```
 
-El kernel mínimo viable debe operar con contratos, corpus y reglas verificables.
+El kernel mínimo confiable debe operar con contratos, corpus y reglas verificables.
 
 La IA puede ayudar a conversar, reformular o transportar mensajes, pero no puede ser la pieza que:
 

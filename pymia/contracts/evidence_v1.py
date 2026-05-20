@@ -28,6 +28,8 @@ class StructuredEvidence(BaseModel):
     para reconocer evidencia ya recibida.
     """
 
+    tenant_id: str = Field(..., description="Identificador del tenant asociado a la evidencia.")
+    document_type: str = Field(..., description="Tipo documental curado usado para routing clinico-operacional.")
     source: EvidenceSource = Field(default="unknown")
     file_name: str | None = None
     extracted_at: str = Field(

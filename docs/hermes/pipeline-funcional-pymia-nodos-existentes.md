@@ -143,7 +143,7 @@ Hoy existe: texto → admisión → hipótesis → evidencia requerida.
 Falta: evidencia → validación → skill → hallazgo → estado → trazabilidad.
 ```
 
-Ese es el corte exacto entre el kernel existente y el kernel mínimo viable.
+Ese es el corte exacto entre el kernel existente y el kernel mínimo confiable.
 
 ---
 
