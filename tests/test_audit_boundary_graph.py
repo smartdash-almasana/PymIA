@@ -107,8 +107,53 @@ def test_no_langgraph_imports_under_pymia() -> None:
         assert "langgraph" not in content, f"Forbidden import/mention of langgraph in {py_file}"
 
 
-def test_build_audit_boundary_graph_returns_runnable_or_none() -> None:
-    # Since langgraph is not installed, it should return None.
-    # If it is ever installed, it would compile a runnable.
+def test_build_audit_boundary_graph_uses_langgraph_when_available(tmp_path: Path) -> None:
     compiled = build_audit_boundary_graph()
-    assert compiled is None or hasattr(compiled, "invoke")
+    try:
+        import langgraph
+        assert compiled is not None
+        assert hasattr(compiled, "invoke")
+    except ImportError:
+        assert compiled is None
+        return
+
+    # Let's run a test invocation of the real compiled LangGraph StateGraph!
+    initial_state: Dict[str, Any] = {
+        "tenant_id": "graph_real_langgraph",
+        "user_id": "user_real",
+        "session_id": "graph_real_langgraph/user_real",
+        "graph_thread_id": "thread-real-langgraph",
+        "file_path": str(TEXTIL_XLSX),
+        "file_name": "la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+        "mime_type": None,
+        "expected_schema": "unknown",
+        "entropy_level": 0.1,
+        "message_text": "quiero ver PYME_033",
+        "base_path": str(tmp_path),
+        "fallback_path": str(tmp_path),
+        "route_label": None,
+        "intake_message": None,
+        "audit_output_path": None,
+        "audit_found": False,
+        "routing_decision": None,
+        "reply_text": None,
+        "error": None,
+    }
+
+    # Execute using the real CompiledStateGraph .invoke
+    config = {"configurable": {"thread_id": "thread-real-langgraph"}}
+    final_state = compiled.invoke(initial_state, config)
+
+    assert final_state.get("error") is None, f"Workflow failed: {final_state.get('error')}"
+    assert final_state.get("route_label") == "INTERNAL_FACT"
+    assert final_state.get("audit_found") is True
+    assert final_state.get("audit_output_path") is not None
+    assert Path(final_state["audit_output_path"]).exists()
+
+    routing_decision = final_state.get("routing_decision")
+    assert routing_decision is not None
+    assert routing_decision["pathology_code"] == "PYME_033"
+    assert "ventas_por_sku" in routing_decision["missing_evidence"]
+    assert "ventas_por_sku" in final_state.get("reply_text", "")
+
+
