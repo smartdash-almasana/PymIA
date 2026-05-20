@@ -184,3 +184,49 @@ def test_datetime_parsing_does_not_emit_pandas_warnings() -> None:
         assert builder._infer_series_type(s_num) == "number"
 
 
+def test_intake_forces_bem_ai_on_administrative_contexts(tmp_path: Path) -> None:
+    import importlib.util
+    import sys
+    import base64
+
+    conversa_dir = Path(__file__).resolve().parents[1] / "conversa-engine"
+    if str(conversa_dir) not in sys.path:
+        sys.path.insert(0, str(conversa_dir))
+
+    module_path = conversa_dir / "document_intake.py"
+    spec = importlib.util.spec_from_file_location("document_intake_admin", module_path)
+    document_intake = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(document_intake)
+
+    dummy_xlsx = tmp_path / "declaracion_iva_afip.xlsx"
+    dummy_xlsx.write_text("dummy content")
+
+    tenant_id = "tenant-intake-admin-test"
+    user_id = "user-456"
+
+    # Since it is a fiscal/impositivo context, it should degrade to BEM_AI and NOT run audit
+    msg = document_intake.intake_document(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        file_path=str(dummy_xlsx),
+        file_name="declaracion_iva_afip.xlsx",
+        mime_type=None,
+        expected_schema="unknown",
+        entropy_level=0.1,  # Normally qualifies for INTERNAL_FACT
+        base_path=tmp_path,
+        fallback_path=tmp_path,
+    )
+
+    assert "Clasificación de ingesta: BEM_AI" in msg
+    assert "no elegible para auditoría interna síncrona local" in msg
+    assert "Aclaración sugerida:" in msg
+    
+    # Assert that no audits folder is created since it did not execute the socratic audit runner
+    session_id = f"{tenant_id}/{user_id}"
+    session_bytes = session_id.encode("utf-8")
+    encoded_id = base64.urlsafe_b64encode(session_bytes).decode("ascii").rstrip("=")
+    audit_file = tmp_path / "audits" / encoded_id / "operational_audit_result.json"
+    assert not audit_file.exists()
+
+
+

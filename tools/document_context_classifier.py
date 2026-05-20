@@ -75,7 +75,7 @@ CONTEXT_KEYWORDS: Dict[DocumentContext, Dict[str, set[str]]] = {
         "weak": {"neto", "iva", "total", "fecha", "monto"}
     },
     "fiscal/impositivo": {
-        "strong": {"impuesto", "impuestos", "afip", "iva_compras", "iva_ventas", "declaracion_jurada", "retencion", "percepcion", "ingresos_brutos", "iibb", "ganancias"},
+        "strong": {"impuesto", "impuestos", "afip", "iva", "declaracion", "iva_compras", "iva_ventas", "declaracion_jurada", "retencion", "percepcion", "ingresos_brutos", "iibb", "ganancias"},
         "weak": {"total", "periodo", "mes", "monto"}
     },
     "laboral": {

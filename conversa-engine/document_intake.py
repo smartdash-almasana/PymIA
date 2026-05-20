@@ -54,6 +54,34 @@ def intake_document(
     )
     route = event.get_ingestion_route()
 
+    # Triage Semántico de Metadatos mediante DocumentContextClassifier v1
+    from tools.document_context_classifier import DocumentContextClassifier, DocumentContextInput
+    
+    payload = DocumentContextInput(
+        file_name=file_name,
+        mime_type=actual_mime_type,
+        extension=Path(file_name).suffix.lower() if file_name else None,
+        entropy_level=entropy_level,
+        source_type="file_upload"
+    )
+    classification = DocumentContextClassifier.classify(payload)
+    
+    is_blocked = False
+    if route == IngestionRoute.INTERNAL_FACT:
+        # Classifier can degrade to BEM_AI, but NEVER promote BEM_AI to INTERNAL_FACT
+        if classification.document_context in {"fiscal/impositivo", "laboral", "producción"}:
+            route = IngestionRoute.BEM_AI
+            is_blocked = True
+        elif classification.confidence == "low" and not any("No se detectaron" in r for r in classification.reasons):
+            route = IngestionRoute.BEM_AI
+            is_blocked = True
+
+    # Persistir metadata liviana del clasificador en el objeto event
+    object.__setattr__(event, "document_context", classification.document_context)
+    object.__setattr__(event, "classification_confidence", classification.confidence)
+    object.__setattr__(event, "evidence_candidate_type", classification.evidence_candidate_type)
+    object.__setattr__(event, "classification_reasons", classification.reasons)
+
     if base_path is None:
         base_path = Path(__file__).resolve().parent / ".intake_state"
     if fallback_path is None:
@@ -79,7 +107,10 @@ def intake_document(
     }[route]
 
     if route == IngestionRoute.BEM_AI:
-        reason = "archivo no normalizado o con estructura que requiere extracción o curaduría previa"
+        if is_blocked:
+            reason = f"archivo de índole {classification.document_context} no elegible para auditoría interna síncrona local"
+        else:
+            reason = "archivo no normalizado o con estructura que requiere extracción o curaduría previa"
     elif route == IngestionRoute.INTERNAL_FACT:
         reason = "archivo estructurado compatible con ingesta interna"
     else:
@@ -110,6 +141,13 @@ def intake_document(
         "",
         "Regla epistemológica: un archivo aislado no confirma patologías ni hallazgos sin contraste contra evidencia suficiente.",
     ]
+
+    if is_blocked and classification.required_followup:
+        lines.extend([
+            "",
+            "Aclaración sugerida:",
+            classification.required_followup,
+        ])
 
     if audit_active:
         lines.extend([
