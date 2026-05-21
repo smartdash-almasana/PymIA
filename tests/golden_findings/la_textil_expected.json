@@ -1,0 +1,1819 @@
+{
+  "audit_status": "complete",
+  "audit_trail": {
+    "grounding_status": "valid",
+    "sheet_reports": {
+      "caja_banco": "OK",
+      "compras": "OK",
+      "costos_fijos": "OK",
+      "productos": "OK",
+      "resumen_mensual": "OK",
+      "señales_operativas": "OK",
+      "stock": "OK",
+      "ventas": "OK"
+    },
+    "source_evidence_count": 23,
+    "validation_issues_count": 0
+  },
+  "business_context": {
+    "business_type": "pyme_textil",
+    "documents_used": [
+      {
+        "name": "la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+        "sheets": [
+          "productos",
+          "ventas",
+          "compras",
+          "stock",
+          "costos_fijos",
+          "caja_banco",
+          "resumen_mensual",
+          "señales_operativas"
+        ],
+        "type": "xlsx"
+      }
+    ],
+    "period_analyzed": {
+      "from_date": "2026-01-01",
+      "granularity": "monthly",
+      "to_date": "2026-12-31"
+    }
+  },
+  "computed_metrics": [
+    {
+      "confidence": "high",
+      "evidence_ids": [
+        "computed:ventas_total"
+      ],
+      "formula_id": "ventas_total",
+      "metric_id": "metric:ventas_total",
+      "name": "ventas_total",
+      "period": "consolidated",
+      "unit": "ARS",
+      "value": "33554851.0000"
+    },
+    {
+      "confidence": "high",
+      "evidence_ids": [
+        "computed:costos_total"
+      ],
+      "formula_id": "costos_total",
+      "metric_id": "metric:costos_total",
+      "name": "costos_total",
+      "period": "consolidated",
+      "unit": "ARS",
+      "value": "7931545.0000"
+    },
+    {
+      "confidence": "high",
+      "evidence_ids": [
+        "computed:cantidad_total"
+      ],
+      "formula_id": "cantidad_total",
+      "metric_id": "metric:cantidad_total",
+      "name": "cantidad_total",
+      "period": "consolidated",
+      "unit": "ARS",
+      "value": "1366.0000"
+    },
+    {
+      "confidence": "high",
+      "evidence_ids": [
+        "computed:margen_bruto"
+      ],
+      "formula_id": "margen_bruto",
+      "metric_id": "metric:margen_bruto",
+      "name": "margen_bruto",
+      "period": "consolidated",
+      "unit": "ARS",
+      "value": "25623306.0000"
+    },
+    {
+      "confidence": "high",
+      "evidence_ids": [
+        "computed:margen_bruto_pct"
+      ],
+      "formula_id": "margen_bruto_pct",
+      "metric_id": "metric:margen_bruto_pct",
+      "name": "margen_bruto_pct",
+      "period": "consolidated",
+      "unit": "ARS",
+      "value": "0.7636"
+    }
+  ],
+  "confidence": "high",
+  "improvement_opportunities": [
+    {
+      "description": "Cerrar brechas de evidencia para auditoria de descalce de ventas y cobranzas.",
+      "estimated_benefit": "Mayor trazabilidad y menor incertidumbre operacional.",
+      "linked_threads": [
+        "audit_thread:LIQ_001"
+      ],
+      "opportunity_id": "opp:audit_thread:LIQ_001",
+      "priority": "high",
+      "type": "process_improvement"
+    },
+    {
+      "description": "Cerrar brechas de evidencia para auditoria de margen invisible.",
+      "estimated_benefit": "Mayor trazabilidad y menor incertidumbre operacional.",
+      "linked_threads": [
+        "audit_thread:REN_001"
+      ],
+      "opportunity_id": "opp:audit_thread:REN_001",
+      "priority": "high",
+      "type": "process_improvement"
+    },
+    {
+      "description": "Cerrar brechas de evidencia para auditoria de stock crítico.",
+      "estimated_benefit": "Mayor trazabilidad y menor incertidumbre operacional.",
+      "linked_threads": [
+        "audit_thread:INV_001"
+      ],
+      "opportunity_id": "opp:audit_thread:INV_001",
+      "priority": "high",
+      "type": "process_improvement"
+    },
+    {
+      "description": "Cerrar brechas de evidencia para auditoria de capital inmovilizado en stock.",
+      "estimated_benefit": "Mayor trazabilidad y menor incertidumbre operacional.",
+      "linked_threads": [
+        "audit_thread:INV_002"
+      ],
+      "opportunity_id": "opp:audit_thread:INV_002",
+      "priority": "high",
+      "type": "process_improvement"
+    },
+    {
+      "description": "Cerrar brechas de evidencia para auditoria de dso incremental silencioso.",
+      "estimated_benefit": "Mayor trazabilidad y menor incertidumbre operacional.",
+      "linked_threads": [
+        "audit_thread:PYME_011"
+      ],
+      "opportunity_id": "opp:audit_thread:PYME_011",
+      "priority": "high",
+      "type": "process_improvement"
+    },
+    {
+      "description": "Cerrar brechas de evidencia para auditoria de concentración de riesgo en sku.",
+      "estimated_benefit": "Mayor trazabilidad y menor incertidumbre operacional.",
+      "linked_threads": [
+        "audit_thread:PYME_033"
+      ],
+      "opportunity_id": "opp:audit_thread:PYME_033",
+      "priority": "high",
+      "type": "process_improvement"
+    }
+  ],
+  "narrative_payload": {
+    "allowed_messages": [
+      {
+        "evidence_ids": [
+          "computed:ventas_total"
+        ],
+        "message_id": "msg:0:1",
+        "text": "Ventas totales: 33554851.0."
+      },
+      {
+        "evidence_ids": [
+          "computed:costos_total"
+        ],
+        "message_id": "msg:0:2",
+        "text": "Costos totales: 7931545.0."
+      },
+      {
+        "evidence_ids": [
+          "signal:SIG-001"
+        ],
+        "message_id": "msg:1:3",
+        "text": "margen_bajo (severidad CRÍTICA). Margen bruto consolidado cayó al 21.8%, muy por debajo del target general del 55%."
+      },
+      {
+        "evidence_ids": [
+          "signal:SIG-005"
+        ],
+        "message_id": "msg:1:4",
+        "text": "margen_negativo (severidad CRÍTICA). Ventas mayoristas a 'Distribuidora Centro' se realizaron con margen neto casi nulo por acumulación de descuento."
+      },
+      {
+        "evidence_ids": [
+          "signal:SIG-001"
+        ],
+        "message_id": "msg:2:5",
+        "text": "Priorizar margen_bajo: Suspender promociones masivas del 30% en canales mayoristas sin escala mínima.."
+      },
+      {
+        "evidence_ids": [
+          "signal:SIG-005"
+        ],
+        "message_id": "msg:2:6",
+        "text": "Priorizar margen_negativo: Establecer un límite estricto de descuento acumulable por sistema (máximo 15%).."
+      },
+      {
+        "evidence_ids": [
+          "sheet:productos:status"
+        ],
+        "message_id": "msg:3:7",
+        "text": "Sheet productos is OK."
+      },
+      {
+        "evidence_ids": [
+          "sheet:ventas:status"
+        ],
+        "message_id": "msg:3:8",
+        "text": "Sheet ventas is OK."
+      }
+    ],
+    "forbidden_inferences": [
+      "No afirmar quiebra.",
+      "No afirmar fraude.",
+      "No afirmar rentabilidad neta si no fue calculada.",
+      "No recomendar deuda sin evidencia de capacidad de repago."
+    ],
+    "tone": "dueño_pyme_directo"
+  },
+  "open_audit_threads": [
+    {
+      "business_question": "Que evidencia falta para cerrar LIQ_001 y decidir accion?",
+      "expected_benefit": {
+        "description": "Reducir incertidumbre y decidir con evidencia verificable.",
+        "type": "operational_improvement"
+      },
+      "next_steps": [
+        "Completar evidencia faltante del catalogo.",
+        "Reevaluar formula y estado de auditabilidad.",
+        "Confirmar accion de 7 dias con responsable."
+      ],
+      "opened_by": [
+        "finding:LIQ_001:LIQ_001_vendido_cobrado"
+      ],
+      "priority": "critical",
+      "required_data": [
+        "ventas_del_periodo",
+        "cobranzas_del_periodo",
+        "cuentas_corrientes_clientes"
+      ],
+      "status": "open",
+      "thread_id": "audit_thread:LIQ_001",
+      "title": "Auditoria de Descalce de Ventas y Cobranzas"
+    },
+    {
+      "business_question": "Que evidencia falta para cerrar REN_001 y decidir accion?",
+      "expected_benefit": {
+        "description": "Reducir incertidumbre y decidir con evidencia verificable.",
+        "type": "operational_improvement"
+      },
+      "next_steps": [
+        "Completar evidencia faltante del catalogo.",
+        "Reevaluar formula y estado de auditabilidad.",
+        "Confirmar accion de 7 dias con responsable."
+      ],
+      "opened_by": [
+        "finding:REN_001:REN_001_margen_neto_real"
+      ],
+      "priority": "critical",
+      "required_data": [
+        "ventas_del_periodo",
+        "costos_directos",
+        "impuestos_y_comisiones"
+      ],
+      "status": "open",
+      "thread_id": "audit_thread:REN_001",
+      "title": "Auditoria de Margen Invisible"
+    },
+    {
+      "business_question": "Que evidencia falta para cerrar INV_001 y decidir accion?",
+      "expected_benefit": {
+        "description": "Reducir incertidumbre y decidir con evidencia verificable.",
+        "type": "operational_improvement"
+      },
+      "next_steps": [
+        "Completar evidencia faltante del catalogo.",
+        "Reevaluar formula y estado de auditabilidad.",
+        "Confirmar accion de 7 dias con responsable."
+      ],
+      "opened_by": [
+        "finding:INV_001:INV_001_punto_reposicion"
+      ],
+      "priority": "high",
+      "required_data": [
+        "historial_ventas_sku",
+        "lead_time_proveedor",
+        "politica_stock_seguridad"
+      ],
+      "status": "open",
+      "thread_id": "audit_thread:INV_001",
+      "title": "Auditoria de Stock Crítico"
+    },
+    {
+      "business_question": "Que evidencia falta para cerrar INV_002 y decidir accion?",
+      "expected_benefit": {
+        "description": "Reducir incertidumbre y decidir con evidencia verificable.",
+        "type": "operational_improvement"
+      },
+      "next_steps": [
+        "Completar evidencia faltante del catalogo.",
+        "Reevaluar formula y estado de auditabilidad.",
+        "Confirmar accion de 7 dias con responsable."
+      ],
+      "opened_by": [
+        "finding:INV_002:INV_002_rotacion_stock"
+      ],
+      "priority": "high",
+      "required_data": [
+        "cmv_periodo",
+        "inventario_inicial",
+        "inventario_final"
+      ],
+      "status": "open",
+      "thread_id": "audit_thread:INV_002",
+      "title": "Auditoria de Capital Inmovilizado en Stock"
+    },
+    {
+      "business_question": "Que evidencia falta para cerrar PYME_011 y decidir accion?",
+      "expected_benefit": {
+        "description": "Reducir incertidumbre y decidir con evidencia verificable.",
+        "type": "operational_improvement"
+      },
+      "next_steps": [
+        "Completar evidencia faltante del catalogo.",
+        "Reevaluar formula y estado de auditabilidad.",
+        "Confirmar accion de 7 dias con responsable."
+      ],
+      "opened_by": [
+        "finding:PYME_011:PYME_011_dso"
+      ],
+      "priority": "high",
+      "required_data": [
+        "cuentas_por_cobrar",
+        "ventas_periodo",
+        "periodo_dias"
+      ],
+      "status": "open",
+      "thread_id": "audit_thread:PYME_011",
+      "title": "Auditoria de DSO Incremental Silencioso"
+    },
+    {
+      "business_question": "Que evidencia falta para cerrar PYME_033 y decidir accion?",
+      "expected_benefit": {
+        "description": "Reducir incertidumbre y decidir con evidencia verificable.",
+        "type": "operational_improvement"
+      },
+      "next_steps": [
+        "Completar evidencia faltante del catalogo.",
+        "Reevaluar formula y estado de auditabilidad.",
+        "Confirmar accion de 7 dias con responsable."
+      ],
+      "opened_by": [
+        "finding:PYME_033:PYME_033_concentracion_sku"
+      ],
+      "priority": "high",
+      "required_data": [
+        "ventas_por_sku"
+      ],
+      "status": "open",
+      "thread_id": "audit_thread:PYME_033",
+      "title": "Auditoria de Concentración de Riesgo en SKU"
+    }
+  ],
+  "operational_signals": [
+    {
+      "description": "Margen bruto consolidado cayó al 21.8%, muy por debajo del target general del 55%.",
+      "evidence_ids": [
+        "signal:SIG-001"
+      ],
+      "linked_pathologies": [
+        "REN_001"
+      ],
+      "opens_audit_threads": [
+        "audit_thread:REN_001"
+      ],
+      "severity": "critical",
+      "signal_id": "SIG-001",
+      "signal_type": "margen_bajo",
+      "suggested_action": "Suspender promociones masivas del 30% en canales mayoristas sin escala mínima."
+    },
+    {
+      "description": "Capital inmovilizado de $3.4M en Campera de Abrigo (CAM-002) con bajísima rotación.",
+      "evidence_ids": [
+        "signal:SIG-002"
+      ],
+      "linked_pathologies": [
+        "INV_002"
+      ],
+      "opens_audit_threads": [
+        "audit_thread:INV_002"
+      ],
+      "severity": "high",
+      "signal_id": "SIG-002",
+      "signal_type": "sobrestock",
+      "suggested_action": "Lanzar liquidación dirigida o canalizar stock mediante showrooms zonales."
+    },
+    {
+      "description": "Quiebre de stock inminente en Remeras Básicas (REM-001/REM-002). Stock por debajo del mínimo.",
+      "evidence_ids": [
+        "signal:SIG-003"
+      ],
+      "linked_pathologies": [
+        "INV_001"
+      ],
+      "opens_audit_threads": [
+        "audit_thread:INV_001"
+      ],
+      "severity": "high",
+      "signal_id": "SIG-003",
+      "signal_type": "stock_bajo",
+      "suggested_action": "Priorizar saldos de caja para reponer este artículo; alta rotación asegurada."
+    },
+    {
+      "description": "Aumento del 50% en tarifas de servicios y 25% en alquileres tensionan el punto de equilibrio.",
+      "evidence_ids": [
+        "signal:SIG-004"
+      ],
+      "linked_pathologies": [],
+      "opens_audit_threads": [
+        "audit_thread:signal:SIG-004"
+      ],
+      "severity": "medium",
+      "signal_id": "SIG-004",
+      "signal_type": "costo_fijo_alto",
+      "suggested_action": "Negociar plazos de pago de alquiler o revisar eficiencia energética del depósito."
+    },
+    {
+      "description": "Ventas mayoristas a 'Distribuidora Centro' se realizaron con margen neto casi nulo por acumulación de descuento.",
+      "evidence_ids": [
+        "signal:SIG-005"
+      ],
+      "linked_pathologies": [
+        "REN_001"
+      ],
+      "opens_audit_threads": [
+        "audit_thread:REN_001"
+      ],
+      "severity": "critical",
+      "signal_id": "SIG-005",
+      "signal_type": "margen_negativo",
+      "suggested_action": "Establecer un límite estricto de descuento acumulable por sistema (máximo 15%)."
+    },
+    {
+      "description": "El saldo de caja proyectado cae a niveles mínimos históricos impidiendo compras de materia prima.",
+      "evidence_ids": [
+        "signal:SIG-006"
+      ],
+      "linked_pathologies": [
+        "LIQ_001"
+      ],
+      "opens_audit_threads": [
+        "audit_thread:LIQ_001"
+      ],
+      "severity": "critical",
+      "signal_id": "SIG-006",
+      "signal_type": "caja_tensionada",
+      "suggested_action": "Lanzar preventa online con cobro inmediato (descuento por efectivo/transferencia) para recuperar liquidez."
+    },
+    {
+      "description": "Compra masiva de insumos de invierno realizada tarde, lo que generó acumulación física e inmovilización.",
+      "evidence_ids": [
+        "signal:SIG-007"
+      ],
+      "linked_pathologies": [],
+      "opens_audit_threads": [
+        "audit_thread:signal:SIG-007"
+      ],
+      "severity": "high",
+      "signal_id": "SIG-007",
+      "signal_type": "compra_desalineada",
+      "suggested_action": "Planificar compras estacionales con 60 días de anticipación como mínimo."
+    },
+    {
+      "description": "Los costos de reposición subieron 7% en mayo pero los precios de lista minoristas están congelados desde marzo.",
+      "evidence_ids": [
+        "signal:SIG-008"
+      ],
+      "linked_pathologies": [
+        "REN_001"
+      ],
+      "opens_audit_threads": [
+        "audit_thread:REN_001"
+      ],
+      "severity": "high",
+      "signal_id": "SIG-008",
+      "signal_type": "precio_desactualizado",
+      "suggested_action": "Aplicar actualización de precios de lista de forma inmediata (+12%) para recomponer margen."
+    },
+    {
+      "description": "Desempeño operativo óptimo con rentabilidad neta superior al 15%.",
+      "evidence_ids": [
+        "signal:SIG-009"
+      ],
+      "linked_pathologies": [],
+      "opens_audit_threads": [
+        "audit_thread:signal:SIG-009"
+      ],
+      "severity": "low",
+      "signal_id": "SIG-009",
+      "signal_type": "ok",
+      "suggested_action": "Mantener la estructura de costos controlada y replicar el mix de canales."
+    },
+    {
+      "description": "Fuerte retraso en cobranzas: Cuenta Corriente a 45 días pospone ingresos clave por $2.5M.",
+      "evidence_ids": [
+        "signal:SIG-010"
+      ],
+      "linked_pathologies": [
+        "LIQ_001"
+      ],
+      "opens_audit_threads": [
+        "audit_thread:LIQ_001"
+      ],
+      "severity": "high",
+      "signal_id": "SIG-010",
+      "signal_type": "caja_tensionada",
+      "suggested_action": "Ofrecer descuento por pronto pago (ej. 5% desc por pago a 10 días) a clientes recurrentes."
+    }
+  ],
+  "pathology_findings": [
+    {
+      "available_evidence": [
+        "ventas_del_periodo",
+        "cobranzas_del_periodo",
+        "cuentas_corrientes_clientes"
+      ],
+      "evidence_ids": [
+        "computed:ventas_total",
+        "sheet:caja_banco",
+        "sheet:ventas"
+      ],
+      "finding_id": "finding:LIQ_001:LIQ_001_vendido_cobrado",
+      "formula_id": "LIQ_001_vendido_cobrado",
+      "impact": {
+        "description": "Impacto operativo asociado a Descalce de Ventas y Cobranzas.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [
+        "computed:ventas_total",
+        "sheet:caja_banco",
+        "sheet:ventas"
+      ],
+      "missing_evidence": [],
+      "next_audit_questions": [],
+      "pathology_code": "LIQ_001",
+      "pathology_name": "Descalce de Ventas y Cobranzas",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "cobranzas_del_periodo",
+        "cuentas_corrientes_clientes"
+      ],
+      "required_variables": [
+        "sold_amount",
+        "collected_amount"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Descalce de Ventas y Cobranzas no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "critical",
+      "status": "calculable",
+      "suggested_actions": [
+        {
+          "action_id": "action:LIQ_001:LIQ_001_vendido_cobrado:1",
+          "description": "Separar ingresos inmediatos vs diferidos y priorizar cobranzas de mayor monto.",
+          "evidence_ids": [
+            "computed:ventas_total",
+            "sheet:caja_banco",
+            "sheet:ventas"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Descalce de Ventas y Cobranzas: calculable."
+    },
+    {
+      "available_evidence": [
+        "ventas_del_periodo",
+        "costos_directos",
+        "impuestos_y_comisiones"
+      ],
+      "evidence_ids": [
+        "computed:costos_total",
+        "computed:ventas_total",
+        "sheet:compras",
+        "sheet:costos_fijos",
+        "sheet:ventas"
+      ],
+      "finding_id": "finding:REN_001:REN_001_margen_neto_real",
+      "formula_id": "REN_001_margen_neto_real",
+      "impact": {
+        "description": "Impacto operativo asociado a Margen Invisible.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [
+        "computed:costos_total",
+        "computed:ventas_total",
+        "sheet:compras",
+        "sheet:costos_fijos",
+        "sheet:ventas"
+      ],
+      "missing_evidence": [],
+      "next_audit_questions": [],
+      "pathology_code": "REN_001",
+      "pathology_name": "Margen Invisible",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "costos_directos",
+        "impuestos_y_comisiones"
+      ],
+      "required_variables": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Margen Invisible no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "critical",
+      "status": "calculable",
+      "suggested_actions": [
+        {
+          "action_id": "action:REN_001:REN_001_margen_neto_real:1",
+          "description": "Pausar descuentos acumulados y revisar precio-costo por SKU/canal.",
+          "evidence_ids": [
+            "computed:costos_total",
+            "computed:ventas_total",
+            "sheet:compras",
+            "sheet:costos_fijos",
+            "sheet:ventas"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Margen Invisible: calculable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:REN_002_coeficiente_reposicion"
+      ],
+      "finding_id": "finding:REN_002:REN_002_coeficiente_reposicion",
+      "formula_id": "REN_002_coeficiente_reposicion",
+      "impact": {
+        "description": "Impacto operativo asociado a Costo de Reposición Ignorado.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "indice_origen",
+        "indice_cierre",
+        "fecha_origen",
+        "fecha_cierre"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "REN_002",
+      "pathology_name": "Costo de Reposición Ignorado",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "indice_origen",
+        "indice_cierre",
+        "fecha_origen",
+        "fecha_cierre"
+      ],
+      "required_variables": [
+        "closing_index",
+        "origin_index"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Costo de Reposición Ignorado no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:REN_002:REN_002_coeficiente_reposicion:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:REN_002_coeficiente_reposicion"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Costo de Reposición Ignorado: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:INV_001_punto_reposicion"
+      ],
+      "finding_id": "finding:INV_001:INV_001_punto_reposicion",
+      "formula_id": "INV_001_punto_reposicion",
+      "impact": {
+        "description": "Impacto operativo asociado a Stock Crítico.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "historial_ventas_sku",
+        "lead_time_proveedor",
+        "politica_stock_seguridad"
+      ],
+      "next_audit_questions": [
+        {
+          "priority": "medium",
+          "question": "Falta evidencia para evaluar INV_001. ¿Podés compartir historial_ventas_sku, lead_time_proveedor?",
+          "question_id": "question:INV_001:1",
+          "reason": "Completar evidencia para INV_001.",
+          "requires_data": [
+            "historial_ventas_sku",
+            "lead_time_proveedor",
+            "politica_stock_seguridad"
+          ]
+        }
+      ],
+      "pathology_code": "INV_001",
+      "pathology_name": "Stock Crítico",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "historial_ventas_sku",
+        "lead_time_proveedor",
+        "politica_stock_seguridad"
+      ],
+      "required_variables": [
+        "average_sales",
+        "lead_time",
+        "safety_stock"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Stock Crítico no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "high",
+      "status": "candidate",
+      "suggested_actions": [
+        {
+          "action_id": "action:INV_001:INV_001_punto_reposicion:1",
+          "description": "Priorizar reposicion de SKU de alta rotacion por margen.",
+          "evidence_ids": [
+            "formula:INV_001_punto_reposicion"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Stock Crítico: candidate."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:LIQ_002_saldo_final_proyectado"
+      ],
+      "finding_id": "finding:LIQ_002:LIQ_002_saldo_final_proyectado",
+      "formula_id": "LIQ_002_saldo_final_proyectado",
+      "impact": {
+        "description": "Impacto operativo asociado a Flujo de Caja sin Anticipación.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "saldo_inicial_caja_banco",
+        "cobranzas_esperadas",
+        "pagos_esperados"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "LIQ_002",
+      "pathology_name": "Flujo de Caja sin Anticipación",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "saldo_inicial_caja_banco",
+        "cobranzas_esperadas",
+        "pagos_esperados"
+      ],
+      "required_variables": [
+        "initial_balance",
+        "expected_collections",
+        "expected_payments"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Flujo de Caja sin Anticipación no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:LIQ_002:LIQ_002_saldo_final_proyectado:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:LIQ_002_saldo_final_proyectado"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Flujo de Caja sin Anticipación: not_applicable."
+    },
+    {
+      "available_evidence": [
+        "cmv_periodo",
+        "inventario_inicial",
+        "inventario_final"
+      ],
+      "evidence_ids": [
+        "computed:costos_total",
+        "sheet:compras",
+        "sheet:stock"
+      ],
+      "finding_id": "finding:INV_002:INV_002_rotacion_stock",
+      "formula_id": "INV_002_rotacion_stock",
+      "impact": {
+        "description": "Impacto operativo asociado a Capital Inmovilizado en Stock.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [
+        "computed:costos_total",
+        "sheet:compras",
+        "sheet:stock"
+      ],
+      "missing_evidence": [],
+      "next_audit_questions": [],
+      "pathology_code": "INV_002",
+      "pathology_name": "Capital Inmovilizado en Stock",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "cmv_periodo",
+        "inventario_inicial",
+        "inventario_final"
+      ],
+      "required_variables": [
+        "cost_of_goods_sold",
+        "average_stock"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Capital Inmovilizado en Stock no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "high",
+      "status": "calculable",
+      "suggested_actions": [
+        {
+          "action_id": "action:INV_002:INV_002_rotacion_stock:1",
+          "description": "Liquidar stock lento y frenar compras de baja rotacion.",
+          "evidence_ids": [
+            "computed:costos_total",
+            "sheet:compras",
+            "sheet:stock"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Capital Inmovilizado en Stock: calculable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:OPE_001_decisiones_centralizadas"
+      ],
+      "finding_id": "finding:OPE_001:OPE_001_decisiones_centralizadas",
+      "formula_id": "OPE_001_decisiones_centralizadas",
+      "impact": {
+        "description": "Impacto operativo asociado a Dependencia del Dueño.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "registro_decisiones",
+        "workflow_aprobaciones",
+        "entrevista_dueño"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "OPE_001",
+      "pathology_name": "Dependencia del Dueño",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "registro_decisiones",
+        "workflow_aprobaciones",
+        "entrevista_dueño"
+      ],
+      "required_variables": [
+        "owner_decisions",
+        "total_decisions"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Dependencia del Dueño no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:OPE_001:OPE_001_decisiones_centralizadas:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:OPE_001_decisiones_centralizadas"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Dependencia del Dueño: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_004_recpam_basico"
+      ],
+      "finding_id": "finding:PYME_004:PYME_004_recpam_basico",
+      "formula_id": "PYME_004_recpam_basico",
+      "impact": {
+        "description": "Impacto operativo asociado a Ajuste por Inflación (AxI) Fallido.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "valor_origen",
+        "indice_origen",
+        "indice_cierre",
+        "fecha_origen"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_004",
+      "pathology_name": "Ajuste por Inflación (AxI) Fallido",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "valor_origen",
+        "indice_origen",
+        "indice_cierre",
+        "fecha_origen"
+      ],
+      "required_variables": [
+        "origin_value",
+        "closing_index",
+        "origin_index"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Ajuste por Inflación (AxI) Fallido no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_004:PYME_004_recpam_basico:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_004_recpam_basico"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Ajuste por Inflación (AxI) Fallido: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "sheet:ventas"
+      ],
+      "finding_id": "finding:PYME_011:PYME_011_dso",
+      "formula_id": "PYME_011_dso",
+      "impact": {
+        "description": "Impacto operativo asociado a DSO Incremental Silencioso.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [
+        "sheet:ventas"
+      ],
+      "missing_evidence": [
+        "cuentas_por_cobrar",
+        "ventas_periodo",
+        "periodo_dias"
+      ],
+      "next_audit_questions": [
+        {
+          "priority": "high",
+          "question": "Falta evidencia para evaluar PYME_011. ¿Podés compartir cuentas_por_cobrar, ventas_periodo?",
+          "question_id": "question:PYME_011:1",
+          "reason": "Completar evidencia para PYME_011.",
+          "requires_data": [
+            "cuentas_por_cobrar",
+            "ventas_periodo",
+            "periodo_dias"
+          ]
+        }
+      ],
+      "pathology_code": "PYME_011",
+      "pathology_name": "DSO Incremental Silencioso",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "cuentas_por_cobrar",
+        "ventas_periodo",
+        "periodo_dias"
+      ],
+      "required_variables": [
+        "accounts_receivable",
+        "sales",
+        "days"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si DSO Incremental Silencioso no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "high",
+      "status": "pending_data",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_011:PYME_011_dso:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "sheet:ventas"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para DSO Incremental Silencioso: pending_data."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_013_dso_dpo_gap"
+      ],
+      "finding_id": "finding:PYME_013:PYME_013_dso_dpo_gap",
+      "formula_id": "PYME_013_dso_dpo_gap",
+      "impact": {
+        "description": "Impacto operativo asociado a Descalce DSO vs DPO.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "dso_calculado",
+        "dpo_calculado"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_013",
+      "pathology_name": "Descalce DSO vs DPO",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "dso_calculado",
+        "dpo_calculado"
+      ],
+      "required_variables": [
+        "dso",
+        "dpo"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Descalce DSO vs DPO no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_013:PYME_013_dso_dpo_gap:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_013_dso_dpo_gap"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Descalce DSO vs DPO: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_017_pricing_drift"
+      ],
+      "finding_id": "finding:PYME_017:PYME_017_pricing_drift",
+      "formula_id": "PYME_017_pricing_drift",
+      "impact": {
+        "description": "Impacto operativo asociado a Pricing Drift.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "lista_precios_propia",
+        "benchmark_precios_mercado"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_017",
+      "pathology_name": "Pricing Drift",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "lista_precios_propia",
+        "benchmark_precios_mercado"
+      ],
+      "required_variables": [
+        "own_price",
+        "market_price"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Pricing Drift no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_017:PYME_017_pricing_drift:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_017_pricing_drift"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Pricing Drift: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_024_liquidez_corriente"
+      ],
+      "finding_id": "finding:PYME_024:PYME_024_liquidez_corriente",
+      "formula_id": "PYME_024_liquidez_corriente",
+      "impact": {
+        "description": "Impacto operativo asociado a Agotamiento de Capital de Trabajo.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "balance_general",
+        "saldos_activo_corriente",
+        "saldos_pasivo_corriente"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_024",
+      "pathology_name": "Agotamiento de Capital de Trabajo",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "balance_general",
+        "saldos_activo_corriente",
+        "saldos_pasivo_corriente"
+      ],
+      "required_variables": [
+        "current_assets",
+        "current_liabilities"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Agotamiento de Capital de Trabajo no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_024:PYME_024_liquidez_corriente:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_024_liquidez_corriente"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Agotamiento de Capital de Trabajo: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_026_flujo_operativo"
+      ],
+      "finding_id": "finding:PYME_026:PYME_026_flujo_operativo",
+      "formula_id": "PYME_026_flujo_operativo",
+      "impact": {
+        "description": "Impacto operativo asociado a Cash Flow Operativo Negativo.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "estado_resultados",
+        "balance_dos_periodos"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_026",
+      "pathology_name": "Cash Flow Operativo Negativo",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "estado_resultados",
+        "balance_dos_periodos"
+      ],
+      "required_variables": [
+        "net_income",
+        "depreciation",
+        "amortization",
+        "working_capital_change"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Cash Flow Operativo Negativo no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_026:PYME_026_flujo_operativo:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_026_flujo_operativo"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Cash Flow Operativo Negativo: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_027_intereses_ebitda"
+      ],
+      "finding_id": "finding:PYME_027:PYME_027_intereses_ebitda",
+      "formula_id": "PYME_027_intereses_ebitda",
+      "impact": {
+        "description": "Impacto operativo asociado a Costo Financiero sobre EBITDA Excesivo.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "estado_resultados",
+        "detalle_intereses",
+        "calculo_ebitda"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_027",
+      "pathology_name": "Costo Financiero sobre EBITDA Excesivo",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "estado_resultados",
+        "detalle_intereses",
+        "calculo_ebitda"
+      ],
+      "required_variables": [
+        "interest_expense",
+        "ebitda"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Costo Financiero sobre EBITDA Excesivo no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_027:PYME_027_intereses_ebitda:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_027_intereses_ebitda"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Costo Financiero sobre EBITDA Excesivo: not_applicable."
+    },
+    {
+      "available_evidence": [
+        "ventas_totales"
+      ],
+      "evidence_ids": [
+        "sheet:ventas"
+      ],
+      "finding_id": "finding:PYME_033:PYME_033_concentracion_sku",
+      "formula_id": "PYME_033_concentracion_sku",
+      "impact": {
+        "description": "Impacto operativo asociado a Concentración de Riesgo en SKU.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [
+        "sheet:ventas"
+      ],
+      "missing_evidence": [
+        "ventas_por_sku"
+      ],
+      "next_audit_questions": [
+        {
+          "priority": "high",
+          "question": "Falta evidencia para evaluar PYME_033. ¿Podés compartir ventas_por_sku?",
+          "question_id": "question:PYME_033:1",
+          "reason": "Completar evidencia para PYME_033.",
+          "requires_data": [
+            "ventas_por_sku"
+          ]
+        }
+      ],
+      "pathology_code": "PYME_033",
+      "pathology_name": "Concentración de Riesgo en SKU",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "ventas_por_sku",
+        "ventas_totales"
+      ],
+      "required_variables": [
+        "main_sku_sales",
+        "total_sales"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Concentración de Riesgo en SKU no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "high",
+      "status": "pending_data",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_033:PYME_033_concentracion_sku:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "sheet:ventas"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Concentración de Riesgo en SKU: pending_data."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_044_margen_cliente"
+      ],
+      "finding_id": "finding:PYME_044:PYME_044_margen_cliente",
+      "formula_id": "PYME_044_margen_cliente",
+      "impact": {
+        "description": "Impacto operativo asociado a Subsidio Oculto a Clientes.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "ventas_por_cliente",
+        "costos_por_cliente",
+        "horas_atencion_cliente"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_044",
+      "pathology_name": "Subsidio Oculto a Clientes",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "ventas_por_cliente",
+        "costos_por_cliente",
+        "horas_atencion_cliente"
+      ],
+      "required_variables": [
+        "client_revenue",
+        "client_direct_costs",
+        "client_service_costs"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Subsidio Oculto a Clientes no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_044:PYME_044_margen_cliente:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_044_margen_cliente"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Subsidio Oculto a Clientes: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:PYME_047_tiempo_manual_automatizado"
+      ],
+      "finding_id": "finding:PYME_047:PYME_047_tiempo_manual_automatizado",
+      "formula_id": "PYME_047_tiempo_manual_automatizado",
+      "impact": {
+        "description": "Impacto operativo asociado a Rigidez de Procesos Artesanales.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "medicion_tiempos_proceso",
+        "flujo_actual",
+        "flujo_automatizado_estimado"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_047",
+      "pathology_name": "Rigidez de Procesos Artesanales",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "medicion_tiempos_proceso",
+        "flujo_actual",
+        "flujo_automatizado_estimado"
+      ],
+      "required_variables": [
+        "manual_time",
+        "automated_time"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Rigidez de Procesos Artesanales no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_047:PYME_047_tiempo_manual_automatizado:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:PYME_047_tiempo_manual_automatizado"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Rigidez de Procesos Artesanales: not_applicable."
+    },
+    {
+      "available_evidence": [],
+      "evidence_ids": [
+        "formula:M05_roi_automatizacion"
+      ],
+      "finding_id": "finding:PYME_047:M05_roi_automatizacion",
+      "formula_id": "M05_roi_automatizacion",
+      "impact": {
+        "description": "Impacto operativo asociado a Rigidez de Procesos Artesanales.",
+        "estimated_amount": null,
+        "type": "operational",
+        "unit": "ARS"
+      },
+      "matched_sources": [],
+      "missing_evidence": [
+        "horas_manual_actuales",
+        "costo_hora",
+        "cotizacion_automatizacion",
+        "costo_operacion_anual"
+      ],
+      "next_audit_questions": [],
+      "pathology_code": "PYME_047",
+      "pathology_name": "Rigidez de Procesos Artesanales",
+      "related_metrics": [
+        "metric:ventas_total",
+        "metric:costos_total",
+        "metric:cantidad_total"
+      ],
+      "required_evidence": [
+        "horas_manual_actuales",
+        "costo_hora",
+        "cotizacion_automatizacion",
+        "costo_operacion_anual"
+      ],
+      "required_variables": [
+        "monthly_savings",
+        "annual_operating_cost",
+        "initial_investment"
+      ],
+      "risk": {
+        "description": "Riesgo vigente si Rigidez de Procesos Artesanales no se confirma/refuta con evidencia completa.",
+        "time_horizon": "short_term"
+      },
+      "severity": "low",
+      "status": "not_applicable",
+      "suggested_actions": [
+        {
+          "action_id": "action:PYME_047:M05_roi_automatizacion:1",
+          "description": "Completar evidencia faltante y definir accion operativa en 7 dias.",
+          "evidence_ids": [
+            "formula:M05_roi_automatizacion"
+          ],
+          "source": "catalog_rule",
+          "timeframe": "7_days"
+        }
+      ],
+      "summary": "Cobertura de evidencia para Rigidez de Procesos Artesanales: not_applicable."
+    }
+  ],
+  "pathology_routing_summary": [
+    {
+      "category": "operational",
+      "missing_evidence": [
+        "cuentas_por_cobrar",
+        "ventas_periodo",
+        "periodo_dias"
+      ],
+      "next_question": "Falta evidencia para evaluar PYME_011. ¿Podés compartir cuentas_por_cobrar, ventas_periodo?",
+      "pathology_code": "PYME_011",
+      "status": "pending_data",
+      "thread_id": "audit_thread:PYME_011"
+    },
+    {
+      "category": "operational",
+      "missing_evidence": [
+        "ventas_por_sku"
+      ],
+      "next_question": "Falta evidencia para evaluar PYME_033. ¿Podés compartir ventas_por_sku?",
+      "pathology_code": "PYME_033",
+      "status": "pending_data",
+      "thread_id": "audit_thread:PYME_033"
+    },
+    {
+      "category": "operational",
+      "missing_evidence": [
+        "historial_ventas_sku",
+        "lead_time_proveedor",
+        "politica_stock_seguridad"
+      ],
+      "next_question": "Falta evidencia para evaluar INV_001. ¿Podés compartir historial_ventas_sku, lead_time_proveedor?",
+      "pathology_code": "INV_001",
+      "status": "candidate",
+      "thread_id": "audit_thread:INV_001"
+    },
+    {
+      "category": "operational",
+      "missing_evidence": [],
+      "next_question": "Necesito evidencia faltante para auditar LIQ_001.",
+      "pathology_code": "LIQ_001",
+      "status": "calculable",
+      "thread_id": "audit_thread:LIQ_001"
+    },
+    {
+      "category": "operational",
+      "missing_evidence": [],
+      "next_question": "Necesito evidencia faltante para auditar REN_001.",
+      "pathology_code": "REN_001",
+      "status": "calculable",
+      "thread_id": "audit_thread:REN_001"
+    },
+    {
+      "category": "operational",
+      "missing_evidence": [],
+      "next_question": "Necesito evidencia faltante para auditar INV_002.",
+      "pathology_code": "INV_002",
+      "status": "calculable",
+      "thread_id": "audit_thread:INV_002"
+    }
+  ],
+  "priority_problems": [
+    {
+      "linked_findings": [
+        "finding:LIQ_001:LIQ_001_vendido_cobrado"
+      ],
+      "linked_pathologies": [
+        "LIQ_001"
+      ],
+      "priority": 1,
+      "recommended_focus": "liq_001",
+      "severity": "critical",
+      "title": "Descalce de Ventas y Cobranzas",
+      "why_it_matters": "Cobertura de evidencia para Descalce de Ventas y Cobranzas: calculable."
+    },
+    {
+      "linked_findings": [
+        "finding:REN_001:REN_001_margen_neto_real"
+      ],
+      "linked_pathologies": [
+        "REN_001"
+      ],
+      "priority": 2,
+      "recommended_focus": "ren_001",
+      "severity": "critical",
+      "title": "Margen Invisible",
+      "why_it_matters": "Cobertura de evidencia para Margen Invisible: calculable."
+    },
+    {
+      "linked_findings": [
+        "finding:INV_001:INV_001_punto_reposicion"
+      ],
+      "linked_pathologies": [
+        "INV_001"
+      ],
+      "priority": 3,
+      "recommended_focus": "inv_001",
+      "severity": "high",
+      "title": "Stock Crítico",
+      "why_it_matters": "Cobertura de evidencia para Stock Crítico: candidate."
+    }
+  ],
+  "source_file": "la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+  "taxonomy": {
+    "dimensions": [
+      {
+        "key": "empresa_tipo",
+        "source": "inference",
+        "value": "pyme_textil"
+      },
+      {
+        "key": "modelo_comercial",
+        "source": "inference",
+        "value": "comercio"
+      },
+      {
+        "key": "areas_criticas",
+        "source": "inference",
+        "value": "margen,caja,stock"
+      }
+    ],
+    "symptom_links": [
+      {
+        "candidate_pathology": "REN_001",
+        "evidence_ids": [
+          "signal:SIG-001"
+        ],
+        "evidence_required": [
+          "ventas_del_periodo",
+          "costos_directos",
+          "impuestos_y_comisiones"
+        ],
+        "operational_type": "margen_bajo",
+        "symptom_text": "Margen bruto consolidado cayó al 21.8%, muy por debajo del target general del 55%."
+      },
+      {
+        "candidate_pathology": "INV_002",
+        "evidence_ids": [
+          "signal:SIG-002"
+        ],
+        "evidence_required": [
+          "cmv_periodo",
+          "inventario_inicial",
+          "inventario_final"
+        ],
+        "operational_type": "sobrestock",
+        "symptom_text": "Capital inmovilizado de $3.4M en Campera de Abrigo (CAM-002) con bajísima rotación."
+      },
+      {
+        "candidate_pathology": "INV_001",
+        "evidence_ids": [
+          "signal:SIG-003"
+        ],
+        "evidence_required": [
+          "historial_ventas_sku",
+          "lead_time_proveedor",
+          "politica_stock_seguridad"
+        ],
+        "operational_type": "stock_bajo",
+        "symptom_text": "Quiebre de stock inminente en Remeras Básicas (REM-001/REM-002). Stock por debajo del mínimo."
+      },
+      {
+        "candidate_pathology": "REN_001",
+        "evidence_ids": [
+          "signal:SIG-005"
+        ],
+        "evidence_required": [
+          "ventas_del_periodo",
+          "costos_directos",
+          "impuestos_y_comisiones"
+        ],
+        "operational_type": "margen_negativo",
+        "symptom_text": "Ventas mayoristas a 'Distribuidora Centro' se realizaron con margen neto casi nulo por acumulación de descuento."
+      },
+      {
+        "candidate_pathology": "LIQ_001",
+        "evidence_ids": [
+          "signal:SIG-006"
+        ],
+        "evidence_required": [
+          "ventas_del_periodo",
+          "cobranzas_del_periodo",
+          "cuentas_corrientes_clientes"
+        ],
+        "operational_type": "caja_tensionada",
+        "symptom_text": "El saldo de caja proyectado cae a niveles mínimos históricos impidiendo compras de materia prima."
+      },
+      {
+        "candidate_pathology": "REN_001",
+        "evidence_ids": [
+          "signal:SIG-008"
+        ],
+        "evidence_required": [
+          "ventas_del_periodo",
+          "costos_directos",
+          "impuestos_y_comisiones"
+        ],
+        "operational_type": "precio_desactualizado",
+        "symptom_text": "Los costos de reposición subieron 7% en mayo pero los precios de lista minoristas están congelados desde marzo."
+      },
+      {
+        "candidate_pathology": "LIQ_001",
+        "evidence_ids": [
+          "signal:SIG-010"
+        ],
+        "evidence_required": [
+          "ventas_del_periodo",
+          "cobranzas_del_periodo",
+          "cuentas_corrientes_clientes"
+        ],
+        "operational_type": "caja_tensionada",
+        "symptom_text": "Fuerte retraso en cobranzas: Cuenta Corriente a 45 días pospone ingresos clave por $2.5M."
+      }
+    ],
+    "taxonomy_version": "v1",
+    "triage_level": "sangria"
+  },
+  "tenant_id": "tenant-la-textil-golden-replay"
+}
