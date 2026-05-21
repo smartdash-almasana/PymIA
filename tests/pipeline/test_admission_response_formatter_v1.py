@@ -31,9 +31,11 @@ def sample_artifact() -> DDIArtifact:
     )
 
 
-def test_formatter_includes_symptom(formatter: AdmissionResponseFormatterV1, sample_artifact: DDIArtifact):
+def test_formatter_includes_symptom_without_conversational_framing(formatter: AdmissionResponseFormatterV1, sample_artifact: DDIArtifact):
     response = formatter.format_response(sample_artifact)
-    assert "Entiendo la señal: vendemos mucho pero no queda plata." in response
+    assert "Lectura operativa preliminar: vendemos mucho pero no queda plata." in response
+    assert "Registré este síntoma operacional" not in response
+    assert "Entiendo la señal" not in response
 
 
 def test_formatter_keeps_uncertainty_without_technical_label(formatter: AdmissionResponseFormatterV1, sample_artifact: DDIArtifact):
@@ -53,10 +55,13 @@ def test_formatter_includes_other_hypotheses_naturally(formatter: AdmissionRespo
     assert "También puede estar mezclado con margen erosionado, fuga operativa." in response
 
 
-def test_formatter_includes_evidence_as_bullets(formatter: AdmissionResponseFormatterV1, sample_artifact: DDIArtifact):
+def test_formatter_includes_evidence_as_single_bullet_block(formatter: AdmissionResponseFormatterV1, sample_artifact: DDIArtifact):
     response = formatter.format_response(sample_artifact)
     for evidence in ["costos", "lista de precios", "movimientos de caja", "ventas"]:
         assert f"- {evidence}" in response
+        assert response.count(f"- {evidence}") == 1
+    assert "Evidencia requerida:" not in response
+    assert "Para mirarlo con números necesito:" not in response
 
 
 def test_formatter_adheres_to_style_guide(formatter: AdmissionResponseFormatterV1, sample_artifact: DDIArtifact):
@@ -69,6 +74,8 @@ def test_formatter_adheres_to_style_guide(formatter: AdmissionResponseFormatterV
         "orchestration",
         "lo paso a PymIA",
         "diagnóstico confirmado",
+        "Registré este síntoma operacional",
+        "Entiendo la señal",
     ]
     for term in forbidden_terms:
         assert term not in response

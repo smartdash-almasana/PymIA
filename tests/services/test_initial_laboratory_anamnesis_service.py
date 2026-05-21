@@ -27,10 +27,18 @@ def test_service_with_specific_claim_triggers_pipeline(service: InitialLaborator
     assert result is not None
 
     # Validar que el mensaje formateado sea el correcto
-    assert "Registré este síntoma operacional: vendemos mucho pero no queda plata." in result.message
+    assert "Lectura operativa preliminar: vendemos mucho pero no queda plata." in result.message
+    assert "Registré este síntoma operacional" not in result.message
+    assert "Entiendo la señal" not in result.message
     assert "hipótesis inicial prioritaria:\ntensión de caja." in result.message.lower()
     assert "Para confirmar o refutar estas hipótesis necesito:" in result.message
-    assert "costos, extractos, lista de precios si aplica, movimientos de caja, ventas" in result.message
+    assert "- costos" in result.message
+    assert "- extractos" in result.message
+    assert "- lista de precios si aplica" in result.message
+    assert "- movimientos de caja" in result.message
+    assert "- ventas" in result.message
+    assert "Evidencia requerida:" not in result.message
+    assert "Para mirarlo con números necesito:" not in result.message
 
     # Validar que los datos crudos aún estén en el contrato de anamnesis
     hypotheses = result.anamnesis.hipotesis_iniciales

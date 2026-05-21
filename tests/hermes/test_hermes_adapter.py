@@ -78,7 +78,9 @@ def test_canonical_reply_text_is_present(canonical_output: HermesOutput):
 
 def test_canonical_reply_text_contains_symptom(canonical_output: HermesOutput):
     """reply_text debe registrar el síntoma declarado por el dueño."""
-    assert "Registré este síntoma operacional" in canonical_output.reply_text
+    assert "Lectura operativa preliminar" in canonical_output.reply_text
+    assert "Registré este síntoma operacional" not in canonical_output.reply_text
+    assert "Entiendo la señal" not in canonical_output.reply_text
 
 
 def test_canonical_reply_text_contains_hypothesis(canonical_output: HermesOutput):

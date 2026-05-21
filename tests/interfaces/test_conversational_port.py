@@ -69,7 +69,9 @@ def test_canonical_case_message_is_present(canonical_output: ConversationalOutpu
 
 def test_canonical_case_message_contains_symptom(canonical_output: ConversationalOutput):
     """El mensaje debe registrar el síntoma declarado por el dueño."""
-    assert "Registré este síntoma operacional" in canonical_output.message
+    assert "Lectura operativa preliminar" in canonical_output.message
+    assert "Registré este síntoma operacional" not in canonical_output.message
+    assert "Entiendo la señal" not in canonical_output.message
 
 
 def test_canonical_case_message_contains_primary_hypothesis(canonical_output: ConversationalOutput):

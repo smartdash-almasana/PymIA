@@ -29,8 +29,7 @@ class AdmissionResponseFormatterV1:
         )
 
         parts = [
-            "Registré este síntoma operacional: " + artifact.symptoms[0].claim + ".",
-            "Entiendo la señal: " + artifact.symptoms[0].claim + ".",
+            "Lectura operativa preliminar: " + artifact.symptoms[0].claim + ".",
             (
                 "Todavía no lo tomo como una conclusión cerrada. "
                 "Con lo que contás, primero haría una lectura preliminar."
@@ -58,13 +57,6 @@ class AdmissionResponseFormatterV1:
             evidence_lines = "\n".join(f"- {evidence}" for evidence in all_evidence)
             parts.append(
                 "Para confirmar o refutar estas hipótesis necesito:\n"
-                + evidence_lines
-            )
-            parts.append(
-                "Evidencia requerida: " + ", ".join(all_evidence)
-            )
-            parts.append(
-                "Para mirarlo con números necesito:\n"
                 + evidence_lines
             )
 
