@@ -53,39 +53,6 @@ def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
     return result.reply_text
 
 
-def _catalog_contrast(text: str) -> str:
-    from symptom_pathology_catalog import match_symptoms_from_owner_message
-
-    matches = match_symptoms_from_owner_message(text)
-    if not matches:
-        return ""
-
-    entry = matches[0]
-    return "\n".join(
-        [
-            "",
-            "---",
-            "CONTRASTE CON CATÁLOGO PYME",
-            "",
-            f"Síntoma operativo: {entry.name}.",
-            "",
-            "Patologías candidatas, no confirmadas:",
-            *[f"- {item}" for item in entry.candidate_pathologies],
-            "",
-            "Variables necesarias:",
-            *[f"- {item}" for item in entry.required_variables],
-            "",
-            "Evidencia requerida:",
-            *[f"- {item}" for item in entry.required_evidence],
-            "",
-            "Pregunta mayéutica mínima:",
-            f"- {entry.mayeutic_questions[0]}",
-            "",
-            "Regla: estas patologías son hipótesis candidatas. No son hallazgos confirmados hasta contrastar evidencia.",
-        ]
-    )
-
-
 def _session_id(tenant_id: str, user_id: str) -> str:
     return f"{tenant_id}/{user_id}"
 
@@ -121,11 +88,7 @@ def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
 
 def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") -> str:
     _register_text_intake(text, tenant_id, user_id)
-    pymia = _pymia_reply(text, tenant_id, user_id)
-    contrast = _catalog_contrast(text)
-    if contrast:
-        return f"{pymia}\n{contrast}"
-    return pymia
+    return _pymia_reply(text, tenant_id, user_id)
 
 
 def route_from_operational_audit(text: str, operational_audit_result_payload: dict) -> str:

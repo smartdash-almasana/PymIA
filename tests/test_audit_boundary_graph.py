@@ -14,9 +14,42 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from audit_boundary_graph import run_audit_boundary_graph_v1, build_audit_boundary_graph
+import pytest
+from pydantic import ValidationError
+
+from audit_boundary_graph import (
+    BoundaryGraphResult,
+    run_audit_boundary_graph_v1,
+    build_audit_boundary_graph,
+)
 
 TEXTIL_XLSX = REPO_ROOT / "prueba_excels" / "la_textil_cosida_srl_mar_abr_may_2026.xlsx"
+
+
+def test_boundary_graph_result_is_typed_contract(tmp_path: Path) -> None:
+    result = run_audit_boundary_graph_v1(
+        {
+            "tenant_id": "typed_contract",
+            "user_id": "user_typed",
+            "message_text": "quiero mejorar margen",
+            "base_path": str(tmp_path),
+            "fallback_path": str(tmp_path),
+        }
+    )
+
+    assert isinstance(result, BoundaryGraphResult)
+    assert result.tenant_id == "typed_contract"
+    assert result.user_id == "user_typed"
+    assert result.session_id == "typed_contract/user_typed"
+    assert result.audit_found is False
+    assert result.routing_decision is None
+    assert result.error is None
+    assert "auditoría operacional activa" in result.reply_text
+
+
+def test_boundary_graph_rejects_invalid_input() -> None:
+    with pytest.raises(ValidationError):
+        run_audit_boundary_graph_v1({"user_id": "missing_tenant", "message_text": "hola"})
 
 
 def test_audit_boundary_graph_internal_fact_file_flow(tmp_path: Path) -> None:

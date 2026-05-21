@@ -4,11 +4,53 @@ import base64
 import sys
 from pathlib import Path
 from typing import TypedDict, Optional, Any, Dict
+from pydantic import BaseModel, Field
 
 # Ensure conversa-engine is on path for relative imports when executed from elsewhere
 conversa_dir = Path(__file__).resolve().parent
 if str(conversa_dir) not in sys.path:
     sys.path.insert(0, str(conversa_dir))
+
+
+class BoundaryGraphInput(BaseModel):
+    tenant_id: str
+    user_id: str
+    message_text: str
+    file_path: Optional[str] = None
+    file_name: Optional[str] = None
+    mime_type: Optional[str] = None
+    expected_schema: Optional[str] = "unknown"
+    entropy_level: Optional[float] = 0.5
+    base_path: Optional[str] = None
+    fallback_path: Optional[str] = None
+    session_id: Optional[str] = None
+    graph_thread_id: Optional[str] = None
+
+
+class BoundaryGraphResult(BaseModel):
+    tenant_id: str
+    user_id: str
+    session_id: str
+    reply_text: str
+    route_label: Optional[str] = None
+    intake_message: Optional[str] = None
+    audit_found: bool = False
+    error: Optional[str] = None
+    routing_decision: Optional[Dict[str, Any]] = None
+    audit_output_path: Optional[str] = None
+
+    def __getitem__(self, item: str) -> Any:
+        if item in type(self).model_fields:
+            return getattr(self, item)
+        raise KeyError(item)
+
+    def get(self, item: str, default: Any = None) -> Any:
+        if item in type(self).model_fields:
+            return getattr(self, item)
+        return default
+
+    def __contains__(self, item: str) -> bool:
+        return item in type(self).model_fields
 
 
 class AuditState(TypedDict):
@@ -216,24 +258,32 @@ def build_audit_boundary_graph() -> Any:
         return None
 
 
-def run_audit_boundary_graph_v1(initial_state: Dict[str, Any]) -> Dict[str, Any]:
+def run_audit_boundary_graph_v1(initial_state: BoundaryGraphInput | Dict[str, Any]) -> BoundaryGraphResult:
     """
     Synchronously runs the AuditBoundaryGraph v1 sequential workflow as a fallback
     or standard pure Python execution of the nodes.
+    
+    Accepts either a BoundaryGraphInput Pydantic model or a legacy Dict[str, Any].
+    Always returns a typed BoundaryGraphResult.
     """
+    if isinstance(initial_state, dict):
+        validated_input = BoundaryGraphInput.model_validate(initial_state)
+    else:
+        validated_input = initial_state
+
     state: Dict[str, Any] = {
-        "tenant_id": "",
-        "user_id": "",
-        "session_id": "",
-        "graph_thread_id": "",
-        "message_text": "",
-        "file_path": None,
-        "file_name": None,
-        "mime_type": None,
-        "expected_schema": "unknown",
-        "entropy_level": 0.5,
-        "base_path": None,
-        "fallback_path": None,
+        "tenant_id": validated_input.tenant_id,
+        "user_id": validated_input.user_id,
+        "session_id": validated_input.session_id or _session_id(validated_input.tenant_id, validated_input.user_id),
+        "graph_thread_id": validated_input.graph_thread_id or "",
+        "message_text": validated_input.message_text,
+        "file_path": validated_input.file_path,
+        "file_name": validated_input.file_name,
+        "mime_type": validated_input.mime_type,
+        "expected_schema": validated_input.expected_schema or "unknown",
+        "entropy_level": validated_input.entropy_level if validated_input.entropy_level is not None else 0.5,
+        "base_path": validated_input.base_path,
+        "fallback_path": validated_input.fallback_path,
         "route_label": None,
         "intake_message": None,
         "audit_output_path": None,
@@ -242,27 +292,56 @@ def run_audit_boundary_graph_v1(initial_state: Dict[str, Any]) -> Dict[str, Any]
         "reply_text": None,
         "error": None,
     }
-    state.update(initial_state)
     
-    if not state.get("session_id"):
-        state["session_id"] = _session_id(state["tenant_id"], state["user_id"])
-        
     # Node 1: Ingest document if provided
     intake_updates = intake_node(state)
     state.update(intake_updates)
     
     if state.get("error"):
-        return state
+        return BoundaryGraphResult(
+            tenant_id=state["tenant_id"],
+            user_id=state["user_id"],
+            session_id=state["session_id"],
+            reply_text=state.get("reply_text") or f"Error en ingesta de documentos: {state.get('error')}",
+            route_label=state.get("route_label"),
+            intake_message=state.get("intake_message"),
+            audit_found=state.get("audit_found", False),
+            error=state.get("error"),
+            routing_decision=state.get("routing_decision"),
+            audit_output_path=state.get("audit_output_path"),
+        )
         
     # Node 2: Locate pre-computed audit json
     locate_updates = locate_audit_node(state)
     state.update(locate_updates)
     
     if state.get("error"):
-        return state
+        return BoundaryGraphResult(
+            tenant_id=state["tenant_id"],
+            user_id=state["user_id"],
+            session_id=state["session_id"],
+            reply_text=state.get("reply_text") or f"Error al localizar auditoría: {state.get('error')}",
+            route_label=state.get("route_label"),
+            intake_message=state.get("intake_message"),
+            audit_found=state.get("audit_found", False),
+            error=state.get("error"),
+            routing_decision=state.get("routing_decision"),
+            audit_output_path=state.get("audit_output_path"),
+        )
         
     # Node 3: Route user query against the audit if found
     routing_updates = routing_node(state)
     state.update(routing_updates)
     
-    return state
+    return BoundaryGraphResult(
+        tenant_id=state["tenant_id"],
+        user_id=state["user_id"],
+        session_id=state["session_id"],
+        reply_text=state.get("reply_text") or "",
+        route_label=state.get("route_label"),
+        intake_message=state.get("intake_message"),
+        audit_found=state.get("audit_found", False),
+        error=state.get("error"),
+        routing_decision=state.get("routing_decision"),
+        audit_output_path=state.get("audit_output_path"),
+    )

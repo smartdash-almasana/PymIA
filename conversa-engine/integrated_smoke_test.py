@@ -7,11 +7,10 @@ def main() -> None:
     message = "vendo mucho pero no sé si gano plata"
     result = run_message(message)
 
-    assert "tensión de caja" in result.lower() or "tension de caja" in result.lower()
-    assert "CONTRASTE CON CATÁLOGO PYME" in result
-    assert "Patologías candidatas" in result
-    assert "Evidencia requerida" in result
-    assert "No son hallazgos confirmados" in result
+    assert "CONTRASTE CON CATÁLOGO PYME" not in result
+    assert "Patologías candidatas" not in result
+    assert "No son hallazgos confirmados" not in result
+    assert result.strip()
 
     print("INTEGRATED_INPUT:", message)
     print(result)
