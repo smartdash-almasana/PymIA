@@ -9,3 +9,4 @@ venv/
 .env.local
 .intake_state/
 factory/control/
+Pymia-memoria/

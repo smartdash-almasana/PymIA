@@ -1,0 +1,61 @@
+{
+  "catalog_id": "primary_context_taxonomy_v1",
+  "version": "1.0.0",
+  "language": "es-AR",
+  "description": "Taxonomía de contexto primario para primer contacto narrativo. Uso conservador: clasifica y pide evidencia; no diagnostica.",
+  "contact_taxonomy": [
+    "dolor_financiero",
+    "dolor_operativo",
+    "caos_documental",
+    "intuicion_de_perdida",
+    "bloqueo_administrativo",
+    "necesidad_de_control",
+    "automacion",
+    "conciliacion",
+    "stock",
+    "margen"
+  ],
+  "linguistic_signal_taxonomy": [
+    "lenguaje_no_tecnico",
+    "intuicion_sin_evidencia",
+    "urgencia_emocional",
+    "incertidumbre_financiera",
+    "dependencia_del_dueno",
+    "delegacion_fragil",
+    "caos_normalizado"
+  ],
+  "evidence_readiness_taxonomy": [
+    "evidencia_inexistente",
+    "evidencia_fragmentada",
+    "excel_vivo",
+    "pdf_unico",
+    "sistema_parcial",
+    "multi_fuente",
+    "trazabilidad_baja"
+  ],
+  "operational_maturity_taxonomy": [
+    "reactiva",
+    "parcialmente_medible",
+    "operativamente_dependiente",
+    "semi_estandarizada",
+    "medible"
+  ],
+  "intake_intent_taxonomy": {
+    "user_says_to_system_infers": [
+      {
+        "user_says": "quiero ordenar un excel",
+        "system_infers": [
+          "operational_fragmentation",
+          "evidence_normalization_needed"
+        ]
+      },
+      {
+        "user_says": "vendo mucho pero no se si gano plata",
+        "system_infers": [
+          "margin_uncertainty",
+          "cost_price_alignment_check_needed"
+        ]
+      }
+    ]
+  }
+}

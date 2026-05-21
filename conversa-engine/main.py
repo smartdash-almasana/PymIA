@@ -70,6 +70,10 @@ def _new_text_event(text: str, tenant_id: str, user_id: str):
 
 def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
     from intake_repository import DocumentIntakeRepository
+    from primary_context_intake import (
+        build_primary_context_record,
+        persist_primary_context_record,
+    )
 
     session_id = _session_id(tenant_id, user_id)
     preferred_path = Path(__file__).resolve().parent / ".intake_state"
@@ -81,6 +85,13 @@ def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
             state = repo.load(session_id=session_id)
             state.register(_new_text_event(text, tenant_id, user_id))
             repo.save(session_id=session_id, state=state)
+            record = build_primary_context_record(tenant_id=tenant_id, message_text=text)
+            persist_primary_context_record(
+                record=record,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                base_path=base_path,
+            )
             return
         except PermissionError:
             continue

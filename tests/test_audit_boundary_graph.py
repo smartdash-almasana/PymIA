@@ -70,7 +70,7 @@ def test_audit_boundary_graph_internal_fact_file_flow(tmp_path: Path) -> None:
 
     final_state = run_audit_boundary_graph_v1(initial_state)
 
-    assert final_state["error"] is None, f"Workflow failed with error: {final_state['error']}"
+    assert final_state["error"] is None, f"Run failed with error: {final_state['error']}"
     assert final_state["route_label"] == "INTERNAL_FACT"
     assert final_state["audit_found"] is True
     assert final_state["audit_output_path"] is not None
@@ -177,7 +177,7 @@ def test_build_audit_boundary_graph_uses_langgraph_when_available(tmp_path: Path
     config = {"configurable": {"thread_id": "thread-real-langgraph"}}
     final_state = compiled.invoke(initial_state, config)
 
-    assert final_state.get("error") is None, f"Workflow failed: {final_state.get('error')}"
+    assert final_state.get("error") is None, f"Run failed: {final_state.get('error')}"
     assert final_state.get("route_label") == "INTERNAL_FACT"
     assert final_state.get("audit_found") is True
     assert final_state.get("audit_output_path") is not None
