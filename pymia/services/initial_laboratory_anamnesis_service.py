@@ -2,12 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle
-
 
 ESTADO_ESPERANDO_DOCUMENTACION = "esperando_documentacion"
-ESTADO_ADJUNTO_FALLIDO = "adjunto_parse_failed"
-ESTADO_ADJUNTO_PENDIENTE = "adjunto_parse_pending"
 
 
 class AnamnesisOriginaria(BaseModel):
@@ -291,85 +287,6 @@ class InitialLaboratoryAnamnesisService:
             limite_actual=limite_actual,
         )
 
-        return InitialLaboratoryAnamnesisResult(
-            message=message,
-            anamnesis=anamnesis,
-            laboratorio=laboratorio,
-        )
-
-    def _result_from_attachment_lifecycle(
-        self,
-        *,
-        tenant_id: str,
-        channel: str,
-        text: str,
-        evidence_bundle: EvidenceBundle | None,
-    ) -> InitialLaboratoryAnamnesisResult | None:
-        if evidence_bundle is None or not evidence_bundle.has_attachments:
-            return None
-
-        failed = evidence_bundle.failed_attachments()
-        if failed:
-            message = failed[0].safe_user_message()
-            return self._attachment_lifecycle_result(
-                tenant_id=tenant_id,
-                channel=channel,
-                text=text,
-                message=message,
-                estado=ESTADO_ADJUNTO_FALLIDO,
-                limite_actual="El documento fue recibido, pero no pudo convertirse en evidencia computable segura.",
-            )
-
-        pending = evidence_bundle.pending_attachments()
-        if pending and not evidence_bundle.succeeded_attachments():
-            message = pending[0].safe_user_message()
-            return self._attachment_lifecycle_result(
-                tenant_id=tenant_id,
-                channel=channel,
-                text=text,
-                message=message,
-                estado=ESTADO_ADJUNTO_PENDIENTE,
-                limite_actual="El documento fue recibido, pero aún no existe evidencia computable para contrastar.",
-            )
-
-        return None
-
-    def _attachment_lifecycle_result(
-        self,
-        *,
-        tenant_id: str,
-        channel: str,
-        text: str,
-        message: str,
-        estado: str,
-        limite_actual: str,
-    ) -> InitialLaboratoryAnamnesisResult:
-        anamnesis = AnamnesisOriginaria(
-            tenant_id=tenant_id,
-            canal=channel,
-            frases_textuales=[text],
-            dolores_detectados=["adjunto recibido sin evidencia computable disponible"],
-            hipotesis_iniciales=[],
-            taxonomia_inicial={
-                "rubro": None,
-                "tipo_pyme": None,
-                "produce_o_revende": None,
-                "maneja_stock": None,
-            },
-            documentos_pedidos=[],
-            estado_conversacional=estado,
-        )
-        laboratorio = LaboratorioInicialContrato(
-            tenant_id=tenant_id,
-            estado_conversacional=estado,
-            hipotesis_a_contrastar=[],
-            evidencia_requerida=[],
-            capability="attachment_evidence_lifecycle_ack",
-            tipo_documental_esperado=[],
-            campos_esperados=[],
-            nivel_confianza="sin_evidencia_computable",
-            limite_actual=limite_actual,
-        )
         return InitialLaboratoryAnamnesisResult(
             message=message,
             anamnesis=anamnesis,

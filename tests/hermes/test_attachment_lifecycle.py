@@ -9,7 +9,6 @@ from pymia.contracts.attachment_lifecycle_v1 import (
     AttachmentParseStatus,
     AttachmentProcessingStatus,
     EvidenceBundle,
-    PymIAIngressEnvelope,
 )
 from pymia.interfaces.conversational_port import ConversationalInput, ClinicalConversationalPort
 from pymia.hermes.adapter import HermesInput, HermesAdapter
@@ -62,15 +61,7 @@ def test_attachment_processing_status_model_validation():
     assert len(bundle.attachments) == 1
     assert bundle.attachments[0].attachment_id == "att-123"
 
-    # Ingress envelope
-    envelope = PymIAIngressEnvelope(
-        tenant_id="tenant-xyz",
-        channel="telegram",
-        text="hola",
-        bundle=bundle,
-    )
-    assert envelope.tenant_id == "tenant-xyz"
-    assert envelope.bundle.attachments[0].file_name == "pyme_ventas.xlsx"
+
 
 
 def test_conversational_input_accepts_evidence_bundle():
@@ -83,7 +74,7 @@ def test_conversational_input_accepts_evidence_bundle():
                 mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 source_channel="local",
                 lifecycle_state=AttachmentLifecycleState.RECEIVED,
-                parse_status=AttachmentParseStatus.PENDING,
+                parse_status=AttachmentParseStatus.NOT_ATTEMPTED,
             )
         ]
     )
@@ -107,7 +98,7 @@ def test_hermes_input_wrapper_passes_evidence_bundle():
                 mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 source_channel="telegram",
                 lifecycle_state=AttachmentLifecycleState.RECEIVED,
-                parse_status=AttachmentParseStatus.PENDING,
+                parse_status=AttachmentParseStatus.NOT_ATTEMPTED,
             )
         ]
     )

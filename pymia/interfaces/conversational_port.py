@@ -9,9 +9,8 @@ el kernel clínico de PymIA.
 
 INVARIANTES DEL BOUNDARY
 -------------------------
-1. El port acepta contexto clínico de entrada:
-   tenant_id, channel, text, evidence estructurada opcional y evidence_bundle
-   para lifecycle contractual de adjuntos.
+1. El port acepta SOLO contexto clínico de entrada:
+   tenant_id, channel, text y evidence estructurada opcional.
    No recibe: job_id, workflow_id, authorization_token, decision_type,
    create_job, orchestration_context ni ningún artefacto de factoría.
 
@@ -35,7 +34,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle
 from pymia.contracts.evidence_v1 import StructuredEvidence
 from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle
 from pymia.services.initial_laboratory_anamnesis_service import (
@@ -50,8 +48,7 @@ class ConversationalInput(BaseModel):
     Entrada al puerto conversacional clínico.
 
     `text` transporta relato del dueño.
-    `evidence` transporta hechos documentales estructurados legacy.
-    `evidence_bundle` transporta lifecycle contractual de adjuntos.
+    `evidence` transporta hechos documentales estructurados.
 
     Regla: los documentos no deben convertirse en claims narrativos para
     cruzar este boundary.
@@ -66,11 +63,7 @@ class ConversationalInput(BaseModel):
     )
     evidence: StructuredEvidence | None = Field(
         default=None,
-        description="Evidencia documental estructurada opcional legacy.",
-    )
-    evidence_bundle: EvidenceBundle | None = Field(
-        default=None,
-        description="Lifecycle contractual de adjuntos y evidencia computable.",
+        description="Evidencia documental estructurada opcional.",
     )
     bundle: EvidenceBundle | None = Field(
         default=None,
@@ -95,10 +88,6 @@ class ClinicalConversationalPort:
         self._service = InitialLaboratoryAnamnesisService()
 
     def handle(self, input: ConversationalInput) -> ConversationalOutput:
-        evidence = input.evidence
-        if evidence is None and input.evidence_bundle is not None:
-            evidence = input.evidence_bundle.first_structured_evidence()
-
         result = self._service.process(
             tenant_id=input.tenant_id,
             channel=input.channel,

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from enum import Enum
-from uuid import uuid4
-from pydantic import BaseModel, Field
+from enum import StrEnum
+from typing import Literal
+
+from pydantic import BaseModel, Field, model_validator
+
 from pymia.contracts.evidence_v1 import StructuredEvidence
 
 
-class AttachmentLifecycleState(str, Enum):
+class AttachmentLifecycleState(StrEnum):
     RECEIVED = "RECEIVED"
     DOWNLOADED = "DOWNLOADED"
     PARSE_ATTEMPTED = "PARSE_ATTEMPTED"
@@ -16,71 +18,99 @@ class AttachmentLifecycleState(str, Enum):
     ACKNOWLEDGED_TO_USER = "ACKNOWLEDGED_TO_USER"
 
 
-class AttachmentParseStatus(str, Enum):
-    PENDING = "PENDING"
-    SUCCEEDED = "SUCCEEDED"
-    FAILED = "FAILED"
+class AttachmentParseStatus(StrEnum):
+    NOT_ATTEMPTED = "not_attempted"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
 
 
 class AttachmentProcessingStatus(BaseModel):
-    """Estado y ciclo de vida de un archivo adjunto ingresado como evidencia."""
+    """Lifecycle and parsing status for one inbound attachment.
 
-    attachment_id: str = Field(
-        default_factory=lambda: f"att-{uuid4()}",
-        description="Identificador único global del archivo adjunto.",
-    )
-    file_name: str = Field(..., description="Nombre original del archivo.")
-    mime_type: str = Field(
-        default="application/octet-stream",
-        description="Mime-type detectado del archivo.",
-    )
-    source_channel: str = Field(
-        default="telegram",
-        description="Canal de origen donde se recibió el adjunto.",
-    )
-    lifecycle_state: AttachmentLifecycleState = Field(
-        ...,
-        description="Estado actual del ciclo de vida del adjunto.",
-    )
-    parse_status: AttachmentParseStatus = Field(
-        default=AttachmentParseStatus.PENDING,
-        description="Resultado del parseo estructurado.",
-    )
+    This contract intentionally keeps processing state outside StructuredEvidence.
+    StructuredEvidence carries computable evidence; this contract carries the
+    attachment lifecycle, parse status, and safe communication fields.
+    """
+
+    attachment_id: str = Field(..., min_length=1)
+    file_name: str | None = None
+    mime_type: str | None = None
+    source_channel: str
+    lifecycle_state: AttachmentLifecycleState
+    parse_status: AttachmentParseStatus
     parse_error: str | None = Field(
         default=None,
-        description="Detalles internos del error/traceback (auditable, no apto para usuario final).",
+        description="Internal/auditable technical detail. Not safe for direct user display.",
     )
     root_cause: str | None = Field(
         default=None,
-        description="Causa raíz segura de error para control interno.",
+        description="Safe, concise, actionable cause suitable for user-level reporting.",
     )
     user_message: str | None = Field(
         default=None,
-        description="Mensaje explicativo y amigable para el usuario final.",
+        description="Sanitized message suitable for the business owner.",
     )
-    parser_name: str | None = Field(
-        default=None,
-        description="Nombre del parser utilizado para procesar el adjunto.",
-    )
-    evidence: StructuredEvidence | None = Field(
-        default=None,
-        description="Evidencia estructurada resultante si parse_status == SUCCEEDED.",
-    )
+    parser_name: str | None = None
+    evidence: StructuredEvidence | None = None
+
+    @model_validator(mode="after")
+    def validate_lifecycle_consistency(self) -> "AttachmentProcessingStatus":
+        if self.parse_status == AttachmentParseStatus.FAILED and self.evidence is not None:
+            raise ValueError("PARSE_FAILED attachments cannot carry valid StructuredEvidence")
+        if self.parse_status == AttachmentParseStatus.SUCCEEDED and self.evidence is None:
+            raise ValueError("PARSE_SUCCEEDED attachments must carry StructuredEvidence")
+        if self.lifecycle_state == AttachmentLifecycleState.PARSE_FAILED and self.parse_status != AttachmentParseStatus.FAILED:
+            raise ValueError("PARSE_FAILED lifecycle requires failed parse_status")
+        if self.lifecycle_state == AttachmentLifecycleState.PARSE_SUCCEEDED and self.parse_status != AttachmentParseStatus.SUCCEEDED:
+            raise ValueError("PARSE_SUCCEEDED lifecycle requires succeeded parse_status")
+        return self
+
+    @property
+    def is_failed(self) -> bool:
+        return self.parse_status == AttachmentParseStatus.FAILED
+
+    @property
+    def is_succeeded(self) -> bool:
+        return self.parse_status == AttachmentParseStatus.SUCCEEDED
+
+    @property
+    def is_pending(self) -> bool:
+        return self.parse_status == AttachmentParseStatus.NOT_ATTEMPTED
+
+    def safe_user_message(self) -> str:
+        if self.user_message:
+            return self.user_message
+        if self.is_failed:
+            cause = self.root_cause or "no se pudo procesar el archivo con seguridad"
+            file_label = self.file_name or "el archivo"
+            return f"Recibí {file_label}, pero no pude procesarlo correctamente. Causa: {cause}."
+        if self.is_pending:
+            file_label = self.file_name or "el archivo"
+            return f"Recibí {file_label}, pero todavía no fue procesado."
+        file_label = self.file_name or "el archivo"
+        return f"Recibí y procesé {file_label}."
 
 
 class EvidenceBundle(BaseModel):
-    """Agrupación de adjuntos recibidos en una interacción."""
+    """Sovereign ingress container for attachment evidence lifecycle."""
 
-    attachments: list[AttachmentProcessingStatus] = Field(
-        default_factory=list,
-        description="Colección de estados de procesamiento de los adjuntos.",
-    )
+    attachments: list[AttachmentProcessingStatus] = Field(default_factory=list)
 
+    @property
+    def has_attachments(self) -> bool:
+        return bool(self.attachments)
 
-class PymIAIngressEnvelope(BaseModel):
-    """Sobre o envelope de ingreso soberano para PymIA."""
+    def failed_attachments(self) -> list[AttachmentProcessingStatus]:
+        return [attachment for attachment in self.attachments if attachment.is_failed]
 
-    tenant_id: str
-    channel: str
-    text: str
-    bundle: EvidenceBundle
+    def succeeded_attachments(self) -> list[AttachmentProcessingStatus]:
+        return [attachment for attachment in self.attachments if attachment.is_succeeded]
+
+    def pending_attachments(self) -> list[AttachmentProcessingStatus]:
+        return [attachment for attachment in self.attachments if attachment.is_pending]
+
+    def first_structured_evidence(self) -> StructuredEvidence | None:
+        for attachment in self.succeeded_attachments():
+            if attachment.evidence is not None:
+                return attachment.evidence
+        return None
