@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
+from pymia.document_intelligence import TenantClinicalContext
 
 
 ESTADO_ESPERANDO_DOCUMENTACION = "esperando_documentacion"
@@ -75,8 +76,46 @@ class InitialLaboratoryAnamnesisService:
         text: str,
         evidence: object | None = None,
         bundle: EvidenceBundle | None = None,
+        tenant_context: TenantClinicalContext | None = None,
     ) -> InitialLaboratoryAnamnesisResult | None:
         from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle, AttachmentParseStatus, AttachmentLifecycleState
+
+        if tenant_context is not None and not self._tenant_context_is_minimum_valid(tenant_context):
+            message = (
+                "Contexto clínico insuficiente para habilitar inferencia documental. "
+                "Podemos continuar la conversación inicial y completar identidad operativa."
+            )
+            anamnesis = AnamnesisOriginaria(
+                tenant_id=tenant_id,
+                canal=channel,
+                frases_textuales=[text],
+                dolores_detectados=[],
+                hipotesis_iniciales=[],
+                taxonomia_inicial={
+                    "rubro": None,
+                    "tipo_pyme": None,
+                    "produce_o_revende": None,
+                    "maneja_stock": None,
+                },
+                documentos_pedidos=[],
+                estado_conversacional="contexto_clinico_insuficiente",
+            )
+            laboratorio = LaboratorioInicialContrato(
+                tenant_id=tenant_id,
+                estado_conversacional="contexto_clinico_insuficiente",
+                hipotesis_a_contrastar=[],
+                evidencia_requerida=[],
+                capability="contexto_clinico_insuficiente",
+                tipo_documental_esperado=["xlsx", "csv", "pdf", "captura"],
+                campos_esperados=[],
+                nivel_confianza="contexto_insuficiente",
+                limite_actual="Falta contexto clínico mínimo validado.",
+            )
+            return InitialLaboratoryAnamnesisResult(
+                message=message,
+                anamnesis=anamnesis,
+                laboratorio=laboratorio,
+            )
 
         if bundle is not None and bundle.attachments:
             # First, check for failures or pending status
@@ -368,3 +407,11 @@ class InitialLaboratoryAnamnesisService:
         for source, target in replacements.items():
             normalized = normalized.replace(source, target)
         return normalized
+
+    def _tenant_context_is_minimum_valid(self, tenant_context: TenantClinicalContext) -> bool:
+        validator = getattr(tenant_context, "is_minimum_valid", None)
+        if callable(validator):
+            return bool(validator())
+        if isinstance(validator, bool):
+            return validator
+        return bool(tenant_context.has_minimum_context())

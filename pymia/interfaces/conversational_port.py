@@ -36,6 +36,7 @@ from pydantic import BaseModel, Field
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
 from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle
+from pymia.document_intelligence import TenantClinicalContext
 from pymia.services.initial_laboratory_anamnesis_service import (
     AnamnesisOriginaria,
     InitialLaboratoryAnamnesisService,
@@ -69,6 +70,10 @@ class ConversationalInput(BaseModel):
         default=None,
         description="Agrupación de adjuntos recibidos y su estado de procesamiento.",
     )
+    tenant_context: TenantClinicalContext | None = Field(
+        default=None,
+        description="Contexto clínico tipado del tenant para fases progresivas.",
+    )
 
 
 class ConversationalOutput(BaseModel):
@@ -94,6 +99,7 @@ class ClinicalConversationalPort:
             text=input.text,
             evidence=input.evidence,
             bundle=input.bundle,
+            tenant_context=input.tenant_context,
         )
 
         if result is None:
@@ -103,6 +109,15 @@ class ClinicalConversationalPort:
                 message=None,
                 anamnesis=None,
                 laboratorio=None,
+            )
+
+        if result.anamnesis.estado_conversacional == "contexto_clinico_insuficiente":
+            return ConversationalOutput(
+                status="error",
+                mode="anamnesis_inicial",
+                message=result.message,
+                anamnesis=result.anamnesis,
+                laboratorio=result.laboratorio,
             )
 
         return ConversationalOutput(
