@@ -1,0 +1,208 @@
+<section class="section" id="reporte">
+  <div class="container">
+    <div class="section-header centered">
+      <span class="eyebrow">Salida del laboratorio</span>
+      <h2 class="h2">No otro dashboard.<br />Un informe operacional con evidencia trazable.</h2>
+      <p class="lead">
+        PymIA separa síntomas de hipótesis, evidencia disponible de evidencia faltante,
+        métricas calculadas de suposiciones. El resultado es una lectura clara: qué encontramos,
+        con qué evidencia y qué conviene hacer primero.
+      </p>
+    </div>
+
+    <!-- Report terminal -->
+    <div class="report-panel card">
+      <!-- Top bar -->
+      <div class="report-topbar">
+        <div class="report-dots">
+          <span class="rdot rdot-r"></span>
+          <span class="rdot rdot-y"></span>
+          <span class="rdot rdot-g"></span>
+        </div>
+        <span class="report-filename">informe_pymia_la_textil.json</span>
+        <div class="report-meta-right">
+          <span class="muted report-ts">2026-05-22T21:18:04</span>
+          <span class="badge badge-ok">GENERADO</span>
+        </div>
+      </div>
+
+      <!-- Status general -->
+      <div class="report-section">
+        <span class="mono muted report-comment">// ESTADO GENERAL:</span>
+        <span class="mono report-status-val warn">ALTERADO</span>
+      </div>
+
+      <!-- Findings -->
+      <div class="report-section">
+        <span class="mono muted report-comment">// HALLAZGOS:</span>
+        <div class="findings-grid">
+          <div class="finding-row">
+            <span class="badge badge-danger finding-badge">RIESGO</span>
+            <span class="finding-text">margen erosionado en línea de indumentaria (−12%)</span>
+          </div>
+          <div class="finding-row">
+            <span class="badge badge-warn finding-badge">ATENCIÓN</span>
+            <span class="finding-text">diferencia de caja: $48.200 en febrero sin conciliar</span>
+          </div>
+          <div class="finding-row">
+            <span class="badge badge-info finding-badge">REVISIÓN</span>
+            <span class="finding-text">stock inconsistente en 3 SKUs principales</span>
+          </div>
+          <div class="finding-row">
+            <span class="badge badge-muted finding-badge">FALTA</span>
+            <span class="finding-text muted">costos de proveedores de enero sin actualizar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evidence used -->
+      <div class="report-section">
+        <span class="mono muted report-comment">// EVIDENCIA UTILIZADA:</span>
+        <div class="evidence-tags">
+          <span class="tag">ventas_abril.xlsx</span>
+          <span class="tag">extracto_banco.pdf</span>
+          <span class="tag">costos.csv</span>
+          <span class="tag">stock_actual.xlsx</span>
+        </div>
+      </div>
+
+      <!-- Next step -->
+      <div class="report-section next-step-section">
+        <span class="mono muted report-comment">// PRÓXIMO PASO:</span>
+        <p class="mono next-step-text ok">
+          Actualizar lista de costos de proveedores para cerrar el cálculo de margen real por línea de producto.
+        </p>
+      </div>
+
+      <!-- Footer stats -->
+      <div class="report-footer">
+        <span class="mono muted rstat">Findings: <b class="ok">18</b></span>
+        <span class="mono muted rstat">Métricas: <b class="ok">5</b></span>
+        <span class="mono muted rstat">Evidencia: <b class="ok">trazable</b></span>
+        <span class="mono muted rstat">Confianza: <b class="warn">media</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.report-panel {
+  overflow: hidden;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* Top bar */
+.report-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-2);
+  flex-wrap: wrap;
+}
+.report-dots { display: flex; gap: 7px; align-items: center; }
+.rdot { width: 11px; height: 11px; border-radius: 50%; }
+.rdot-r { background: #ff5f56; }
+.rdot-y { background: #ffbd2e; }
+.rdot-g { background: #27c93f; }
+.report-filename {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  color: var(--soft);
+  flex: 1;
+  letter-spacing: .03em;
+}
+.report-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.report-ts {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  letter-spacing: .04em;
+}
+
+/* Sections */
+.report-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.report-comment {
+  font-size: .72rem;
+  letter-spacing: .06em;
+}
+.report-status-val {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+/* Findings */
+.findings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.finding-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--panel-2);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.finding-badge {
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  flex-shrink: 0;
+}
+.finding-text {
+  font-size: .88rem;
+  color: var(--soft);
+  line-height: 1.45;
+}
+
+/* Evidence tags */
+.evidence-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Next step */
+.next-step-section { background: rgba(0,230,118,.04); }
+.next-step-text {
+  font-size: .85rem;
+  line-height: 1.65;
+  letter-spacing: .01em;
+}
+
+/* Footer */
+.report-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 16px 24px;
+  background: var(--panel-2);
+  border-top: 1px solid var(--line);
+}
+.rstat {
+  font-size: .75rem;
+  letter-spacing: .04em;
+}
+.rstat b { font-weight: 600; }
+
+@media (max-width: 620px) {
+  .report-topbar { gap: 8px; }
+  .finding-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .report-footer { gap: 12px; }
+}
+</style>

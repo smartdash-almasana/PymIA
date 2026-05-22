@@ -1,0 +1,107 @@
+---
+const pains = [
+  {
+    icon: '💸',
+    title: 'Vendo mucho pero no sé si gano plata',
+    desc: 'Los ingresos entran pero los márgenes no son claros. Sin cruzar ventas con costos reales, es difícil saber qué queda en el bolsillo.',
+  },
+  {
+    icon: '📊',
+    title: 'No me cierra la caja',
+    desc: 'La diferencia entre lo que figura vendido y lo que hay en caja aparece todo el tiempo. Seguimiento manual, errores humanos, dinero que se pierde en el camino.',
+  },
+  {
+    icon: '📦',
+    title: 'El stock no coincide',
+    desc: 'El sistema dice que hay existencias pero en el depósito hay menos. O al revés. Mermas, errores de registro, faltantes no reportados.',
+  },
+  {
+    icon: '📁',
+    title: 'Estoy lleno de Excels manuales',
+    desc: 'Archivos duplicados, hojas que nadie actualiza, fórmulas rotas. La información existe pero no está consolidada en ningún lado.',
+  },
+  {
+    icon: '💰',
+    title: 'No sé qué producto me deja margen',
+    desc: 'Sabés cuánto vendiste pero no cuánto ganaste por cada línea. Sin conocer el costo real, vendés sin saber si es rentable.',
+  },
+];
+---
+
+<section class="section" id="problemas">
+  <div class="container">
+    <div class="section-header centered">
+      <span class="eyebrow">El día a día de muchas PyMEs</span>
+      <h2 class="h2">Si alguna de estas frases te suena familiar,<br />estás en el lugar correcto.</h2>
+    </div>
+
+    <div class="problems-grid">
+      {pains.map(p => (
+        <article class="problem-card card">
+          <div class="problem-icon">{p.icon}</div>
+          <h3 class="h3 problem-title">{p.title}</h3>
+          <p class="muted problem-desc">{p.desc}</p>
+          <div class="problem-bottom-line"></div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.problems-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+/* 5th card spans full row or sits centered */
+.problems-grid > article:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  max-width: 580px;
+  margin: 0 auto;
+  width: 100%;
+}
+.problem-card {
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color .2s, transform .2s;
+  position: relative;
+  overflow: hidden;
+}
+.problem-card:hover {
+  border-color: rgba(0,230,118,.2);
+  transform: translateY(-3px);
+}
+.problem-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+.problem-title {
+  color: var(--text);
+  line-height: 1.25;
+}
+.problem-desc {
+  font-size: .92rem;
+  line-height: 1.7;
+  flex: 1;
+}
+.problem-bottom-line {
+  height: 2px;
+  background: linear-gradient(90deg, rgba(0,230,118,.25), transparent);
+  border-radius: 2px;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .problems-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px) {
+  .problems-grid { grid-template-columns: 1fr; }
+  .problems-grid > article:last-child:nth-child(odd) {
+    grid-column: 1;
+    max-width: none;
+  }
+}
+</style>

@@ -1,0 +1,133 @@
+---
+const faqs = [
+  {
+    q: '¿Necesito tener todo ordenado?',
+    a: 'No. El laboratorio empieza donde aparece el desorden. Si falta información, PymIA te indica exactamente qué completar para avanzar.',
+    open: true,
+  },
+  {
+    q: '¿Esto reemplaza al contador?',
+    a: 'No reemplaza al contador. Ordena evidencia operativa para que vos (o tu contador) entienda qué mirar primero. Son dos cosas diferentes.',
+    open: false,
+  },
+  {
+    q: '¿Qué archivos puedo subir?',
+    a: 'Excel, CSV, PDF, extractos bancarios, listas de precios, reportes de ventas, control de stock, facturas de proveedores y cualquier planilla con datos operativos del negocio.',
+    open: false,
+  },
+  {
+    q: '¿PymIA analiza sin evidencia?',
+    a: 'No. Sin evidencia suficiente, PymIA declara exactamente qué falta y por qué no puede cerrar el análisis. No inventa resultados.',
+    open: false,
+  },
+  {
+    q: '¿Puedo usar WhatsApp o Telegram?',
+    a: 'Sí. Son los canales principales del laboratorio conversacional. Mandás síntomas, subís archivos, recibís pedidos de evidencia y hallazgos directamente en el chat.',
+    open: false,
+  },
+  {
+    q: '¿Qué recibo al final?',
+    a: 'Un reporte estructurado con hallazgos operativos priorizados, la evidencia que los sostiene, lo que faltó para confirmar y el próximo paso concreto recomendado.',
+    open: false,
+  },
+];
+---
+
+<section class="section" id="faq">
+  <div class="container">
+    <div class="faq-layout">
+      <div class="faq-header">
+        <span class="eyebrow">Preguntas frecuentes</span>
+        <h2 class="h2">Antes de mandar<br />tus archivos.</h2>
+      </div>
+      <div class="faq-list">
+        {faqs.map(f => (
+          <details class="faq-item" open={f.open}>
+            <summary class="faq-summary">
+              <span class="faq-q">{f.q}</span>
+              <span class="faq-arrow" aria-hidden="true">›</span>
+            </summary>
+            <div class="faq-answer">
+              <p>{f.a}</p>
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.faq-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 64px;
+  align-items: start;
+}
+.faq-header {
+  position: sticky;
+  top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.faq-item {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.faq-item[open] {
+  border-color: rgba(0,230,118,.22);
+}
+.faq-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  list-style: none;
+  user-select: none;
+  transition: background .15s;
+}
+.faq-summary::-webkit-details-marker { display: none; }
+.faq-summary:hover { background: var(--panel-2); }
+.faq-q {
+  font-weight: 700;
+  font-size: .95rem;
+  line-height: 1.4;
+  color: var(--text);
+  flex: 1;
+}
+.faq-arrow {
+  font-size: 1.3rem;
+  color: var(--green);
+  flex-shrink: 0;
+  transition: transform .25s ease;
+  display: block;
+  line-height: 1;
+}
+details[open] .faq-arrow { transform: rotate(90deg); }
+.faq-answer {
+  padding: 0 22px 20px;
+  border-top: 1px solid var(--line);
+}
+.faq-answer p {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: .92rem;
+  line-height: 1.75;
+}
+
+@media (max-width: 900px) {
+  .faq-layout { grid-template-columns: 1fr; gap: 36px; }
+  .faq-header { position: static; }
+}
+</style>

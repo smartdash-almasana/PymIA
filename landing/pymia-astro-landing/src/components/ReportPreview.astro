@@ -1,0 +1,25 @@
+<section class="section">
+  <div class="container grid-2">
+    <div class="card report">
+      <div class="report-top">informe_pymia_la_textil.json</div>
+      <div class="report-line"><span>Findings</span><b>18</b></div>
+      <div class="report-line"><span>Métricas</span><b>5</b></div>
+      <div class="report-line"><span>Estado</span><b class="warn">alterado</b></div>
+      <div class="report-line"><span>Evidencia</span><b class="ok">trazable</b></div>
+      <div class="summary">Sin evidencia suficiente no hay diagnóstico cerrado. Con evidencia, hay hallazgos auditables.</div>
+    </div>
+    <div>
+      <span class="eyebrow">Salida auditable</span>
+      <h2 class="h2">No otro dashboard. Un informe operacional con evidencia.</h2>
+      <p class="lead">PymIA separa síntomas, hipótesis, evidencia faltante, métricas calculadas, hallazgos y próximos pasos. Eso permite conversar sin inventar.</p>
+    </div>
+  </div>
+</section>
+<style>
+.report { overflow: hidden; }
+.report-top { padding: 16px 18px; border-bottom: 1px solid var(--line); color: var(--muted); font-family: var(--font-mono); }
+.report-line { display: flex; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.report-line span { color: var(--muted); }
+.summary { margin: 18px; padding: 16px; border-left: 3px solid var(--green); background: rgba(0,230,118,.06); color: var(--soft); }
+.ok { color: var(--green); } .warn { color: var(--yellow); }
+</style>

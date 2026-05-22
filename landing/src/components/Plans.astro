@@ -1,0 +1,152 @@
+---
+const plans = [
+  {
+    name: 'Diagnóstico Inicial',
+    desc: 'Una primera lectura clara. Subís los archivos principales, el laboratorio los cruza y devuelve hallazgos priorizados con evidencia trazable.',
+    features: [
+      'Análisis de hasta 3 archivos',
+      'Hallazgos con evidencia',
+      'Lista de datos faltantes',
+      'Reporte inicial',
+    ],
+    cta: 'Consultar',
+    featured: false,
+  },
+  {
+    name: 'Laboratorio Completo',
+    desc: 'Análisis profundo de ventas, costos, caja, stock y bancos. Cruce completo de evidencia y hallazgos operativos con priorización.',
+    features: [
+      'Hasta 10 archivos',
+      'Módulos de análisis',
+      'Cruce multidimensional',
+      'Reporte operativo completo',
+      'Canal WhatsApp incluido',
+    ],
+    cta: 'Consultar',
+    featured: true,
+  },
+  {
+    name: 'Acompañamiento',
+    desc: 'Seguimiento mensual del estado operativo. Chatbot activo, notificaciones de cambios y automatizaciones priorizadas por retorno.',
+    features: [
+      'Análisis mensual recurrente',
+      'Canal WhatsApp + Telegram',
+      'Notificaciones de hallazgos',
+      'Automatizaciones incluidas',
+    ],
+    cta: 'Consultar',
+    featured: false,
+  },
+];
+---
+
+<section class="section" id="planes">
+  <div class="container">
+    <div class="section-header centered">
+      <span class="eyebrow">Tres formas de empezar</span>
+      <h2 class="h2">De una primera lectura<br />a seguimiento operacional continuo.</h2>
+    </div>
+
+    <div class="plans-grid">
+      {plans.map(p => (
+        <article class={`plan-card card ${p.featured ? 'featured' : ''}`}>
+          {p.featured && <div class="featured-badge">Más elegido</div>}
+          <div class="plan-top">
+            <h3 class="plan-name">{p.name}</h3>
+            <p class="muted plan-desc">{p.desc}</p>
+          </div>
+          <ul class="plan-features">
+            {p.features.map(f => (
+              <li class="plan-feature">
+                <span class="check ok">✓</span>
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          <a class={`btn ${p.featured ? 'btn-primary' : 'btn-secondary'} plan-cta`} href="#">
+            {p.cta}
+          </a>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.plan-card {
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  transition: transform .2s, border-color .2s;
+}
+.plan-card:hover { transform: translateY(-4px); }
+.plan-card.featured {
+  border-color: rgba(0,230,118,.42);
+  background: linear-gradient(145deg, rgba(0,230,118,.09), var(--panel));
+  box-shadow: 0 0 60px rgba(0,230,118,.1), var(--shadow);
+}
+.featured-badge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--green);
+  color: var(--bg);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .3rem .85rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.plan-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plan-name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: -.03em;
+  color: var(--text);
+}
+.plan-desc {
+  font-size: .88rem;
+  line-height: 1.7;
+}
+.plan-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: .88rem;
+  color: var(--soft);
+  line-height: 1.5;
+}
+.check {
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.plan-cta {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .plans-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
+}
+</style>

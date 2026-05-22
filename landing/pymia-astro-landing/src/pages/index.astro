@@ -1,0 +1,30 @@
+---
+import '../styles/global.css';
+import Hero from '../components/Hero.astro';
+import FileIngestionPanel from '../components/FileIngestionPanel.astro';
+import LabModules from '../components/LabModules.astro';
+import ChatbotChannels from '../components/ChatbotChannels.astro';
+import ReportPreview from '../components/ReportPreview.astro';
+import Plans from '../components/Plans.astro';
+import FAQ from '../components/FAQ.astro';
+---
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="PymIA transforma archivos, mensajes y síntomas de tu PyME en evidencia, hallazgos y próximos pasos operativos." />
+    <title>PymIA — Laboratorio operativo para PyMEs reales</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <Hero />
+    <FileIngestionPanel />
+    <LabModules />
+    <ChatbotChannels />
+    <ReportPreview />
+    <Plans />
+    <FAQ />
+  </body>
+</html>

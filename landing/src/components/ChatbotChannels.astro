@@ -1,0 +1,147 @@
+<section class="section" id="chatbot">
+  <div class="container">
+    <div class="section-header centered">
+      <span class="eyebrow">Canales del laboratorio</span>
+      <h2 class="h2">El laboratorio no vive en una pantalla.<br />Vive donde vos estás.</h2>
+      <p class="lead">
+        WhatsApp y Telegram no son redes sociales acá. Son los canales operativos del laboratorio conversacional.
+        Mandás síntomas, subís archivos, recibís pedidos de evidencia y hallazgos. La conversación persiste.
+      </p>
+    </div>
+
+    <div class="channels-grid">
+      <!-- WhatsApp -->
+      <article class="channel-card card channel-wa">
+        <div class="channel-header">
+          <div class="channel-icon-wrap wa">📱</div>
+          <div>
+            <h3 class="channel-title">WhatsApp</h3>
+            <span class="badge badge-ok">Canal principal · Dueños PyME</span>
+          </div>
+        </div>
+        <p class="channel-desc muted">
+          Canal principal de onboarding. Mandás el síntoma, subís los archivos directamente al chat
+          y recibís los pedidos de evidencia y el resumen de hallazgos. Sin apps nuevas, sin logins adicionales.
+        </p>
+        <ul class="channel-features">
+          <li><span class="feat-dot wa-dot"></span>Enviar síntomas operativos</li>
+          <li><span class="feat-dot wa-dot"></span>Mandar archivos Excel, PDF, fotos de planilla</li>
+          <li><span class="feat-dot wa-dot"></span>Recibir pedidos concretos de evidencia</li>
+          <li><span class="feat-dot wa-dot"></span>Recibir resumen ejecutivo</li>
+          <li><span class="feat-dot wa-dot"></span>Hacer preguntas de seguimiento</li>
+        </ul>
+        <a class="btn btn-primary channel-btn" href="#">Hablar por WhatsApp</a>
+      </article>
+
+      <!-- Telegram -->
+      <article class="channel-card card channel-tg">
+        <div class="channel-header">
+          <div class="channel-icon-wrap tg">✈️</div>
+          <div>
+            <h3 class="channel-title">Telegram</h3>
+            <span class="badge badge-info">Canal operativo · Seguimiento continuo</span>
+          </div>
+        </div>
+        <p class="channel-desc muted">
+          Canal técnico-operativo con conversación persistente. Ideal para seguimiento continuo del análisis,
+          notificaciones automáticas y pruebas operativas del laboratorio.
+        </p>
+        <ul class="channel-features">
+          <li><span class="feat-dot tg-dot"></span>Conversación continua con contexto</li>
+          <li><span class="feat-dot tg-dot"></span>Notificaciones de nuevos hallazgos</li>
+          <li><span class="feat-dot tg-dot"></span>Seguimiento de análisis en curso</li>
+          <li><span class="feat-dot tg-dot"></span>Pruebas del laboratorio</li>
+          <li><span class="feat-dot tg-dot"></span>Exportar historial de evidencia</li>
+        </ul>
+        <a class="btn btn-secondary channel-btn tg-btn" href="#">Probar por Telegram</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+.channels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.channel-card {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.channel-wa {
+  border-color: rgba(0,230,118,.3);
+  background: linear-gradient(145deg, rgba(0,230,118,.06), var(--panel));
+}
+.channel-tg {
+  border-color: rgba(100,181,246,.25);
+  background: linear-gradient(145deg, rgba(100,181,246,.05), var(--panel));
+}
+.channel-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.channel-icon-wrap {
+  font-size: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.channel-icon-wrap.wa { background: rgba(0,230,118,.12); border: 1px solid rgba(0,230,118,.2); }
+.channel-icon-wrap.tg { background: rgba(100,181,246,.1); border: 1px solid rgba(100,181,246,.2); }
+.channel-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  letter-spacing: -.03em;
+  margin-bottom: 6px;
+}
+.channel-desc {
+  font-size: .92rem;
+  line-height: 1.75;
+}
+.channel-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.channel-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .88rem;
+  color: var(--soft);
+}
+.feat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.wa-dot { background: var(--green); box-shadow: 0 0 8px rgba(0,230,118,.4); }
+.tg-dot { background: var(--blue);  box-shadow: 0 0 8px rgba(100,181,246,.35); }
+.channel-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+.tg-btn {
+  border-color: rgba(100,181,246,.4);
+  color: var(--blue);
+}
+.tg-btn:hover {
+  border-color: var(--blue);
+  background: rgba(100,181,246,.08);
+  color: var(--blue);
+}
+
+@media (max-width: 900px) {
+  .channels-grid { grid-template-columns: 1fr; }
+}
+</style>

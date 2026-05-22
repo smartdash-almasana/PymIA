@@ -1,0 +1,115 @@
+<section class="final-cta section">
+  <div class="cta-glow" aria-hidden="true"></div>
+  <div class="container cta-inner">
+    <span class="eyebrow">Empezá hoy</span>
+    <h2 class="h2 cta-title">
+      Mandá el síntoma. Subí la evidencia.<br />
+      <span class="accent">Recibí claridad operacional.</span>
+    </h2>
+    <p class="lead cta-lead">
+      Sin misterios ni promesas vacías. El laboratorio trabaja con lo que tenés
+      y te dice qué más necesita para llegar a hallazgos concretos.
+    </p>
+    <div class="cta-actions">
+      <a class="btn btn-primary" href="#ingesta">⬆ Subir evidencia</a>
+      <a class="btn btn-secondary" href="#">Hablar por WhatsApp</a>
+      <a class="btn btn-secondary" href="#">Probar por Telegram</a>
+    </div>
+    <div class="trust-row">
+      <span class="trust-chip">
+        <span class="trust-dot"></span>
+        Sin inventar datos
+      </span>
+      <span class="trust-chip">
+        <span class="trust-dot"></span>
+        Evidencia trazable
+      </span>
+      <span class="trust-chip">
+        <span class="trust-dot"></span>
+        Hallazgos auditables
+      </span>
+    </div>
+  </div>
+</section>
+
+<style>
+.final-cta {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0,230,118,.15) 0%, transparent 58%),
+    var(--bg-soft);
+  border-top: 1px solid var(--line);
+}
+.cta-glow {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(0,230,118,.14) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+}
+.cta-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 28px;
+  position: relative;
+  z-index: 1;
+}
+.cta-title {
+  max-width: 780px;
+}
+.cta-lead {
+  text-align: center;
+  margin: 0 auto;
+  max-width: 600px;
+}
+.cta-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+.trust-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+.trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: .38rem .9rem;
+  border-radius: 999px;
+}
+.trust-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(0,230,118,.6);
+  flex-shrink: 0;
+}
+
+@media (max-width: 620px) {
+  .cta-actions { flex-direction: column; align-items: stretch; }
+  .cta-actions .btn { width: 100%; }
+  .trust-row { gap: 8px; }
+}
+</style>

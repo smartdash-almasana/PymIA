@@ -1,0 +1,220 @@
+---
+const files = [
+  { file: 'ventas_abril.xlsx',   status: 'ok',   label: 'detectado: ventas',         desc: 'Columnas de fecha, producto e importe identificadas.' },
+  { file: 'extracto_banco.pdf',  status: 'warn',  label: 'requiere conciliación',     desc: 'Movimientos detectados. Falta cruzar con ventas registradas.' },
+  { file: 'costos.csv',          status: 'ok',   label: 'detectado: costos',          desc: 'Lista de costos unitarios lista para cruzar con margen.' },
+  { file: 'stock_actual.xlsx',   status: 'info',  label: 'listo para análisis',       desc: 'Inventario detectado con columnas de SKU y cantidad.' },
+];
+
+const types = ['Excel', 'CSV', 'PDF', 'Extractos', 'Ventas', 'Stock', 'Costos', 'Listas de precios'];
+
+function badgeClass(status: string) {
+  if (status === 'ok')   return 'badge-ok';
+  if (status === 'warn') return 'badge-warn';
+  if (status === 'info') return 'badge-info';
+  return 'badge-muted';
+}
+
+function fileIcon(name: string) {
+  if (name.endsWith('.xlsx')) return '📊';
+  if (name.endsWith('.pdf'))  return '📄';
+  if (name.endsWith('.csv'))  return '📋';
+  return '📁';
+}
+---
+
+<section class="section" id="ingesta">
+  <div class="container">
+    <div class="section-header centered">
+      <span class="eyebrow">↑ Ingesta de evidencia</span>
+      <h2 class="h2">No te pedimos que ordenes todo antes.<br />Empezamos con lo que tenés.</h2>
+      <p class="lead">
+        El laboratorio acepta archivos reales, clasifica la evidencia y te dice
+        qué más necesita para llegar a hallazgos concretos.
+      </p>
+    </div>
+
+    <!-- Upload panel -->
+    <div class="upload-panel card">
+
+      <!-- Dropzone -->
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">⬆</div>
+        <strong class="dropzone-title">Arrastrá tus archivos al laboratorio</strong>
+        <p class="dropzone-sub muted">
+          Excel · CSV · PDF · Extractos bancarios · Listas de precios · Reportes de ventas · Stock
+        </p>
+        <button class="btn btn-secondary dropzone-btn">Seleccionar archivo</button>
+      </div>
+
+      <!-- File list preview -->
+      <div class="file-list">
+        <div class="file-list-header">
+          <span class="mono muted" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;">Evidencia detectada</span>
+        </div>
+        {files.map(f => (
+          <div class="file-row">
+            <span class="file-icon">{fileIcon(f.file)}</span>
+            <div class="file-info">
+              <span class="file-name">{f.file}</span>
+              <span class="file-desc muted">{f.desc}</span>
+            </div>
+            <span class={`badge ${badgeClass(f.status)}`}>{f.label}</span>
+          </div>
+        ))}
+        <div class="file-list-footer">
+          <a class="btn btn-primary" href="#">Analizar evidencia</a>
+          <p class="upload-note muted">
+            Si falta información, PymIA te indica exactamente qué completar.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supported types -->
+    <div class="file-types">
+      {types.map(t => (
+        <span class="tag">{t}</span>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.upload-panel {
+  overflow: hidden;
+  margin-bottom: 24px;
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed rgba(0, 230, 118, .35);
+  border-radius: 14px;
+  margin: 24px;
+  padding: 48px 32px;
+  background: rgba(0, 230, 118, .04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+  cursor: pointer;
+}
+.dropzone:hover,
+.dropzone.drag-over {
+  border-color: var(--green);
+  background: rgba(0, 230, 118, .09);
+  box-shadow: 0 0 40px rgba(0, 230, 118, .12);
+}
+.dropzone-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(0, 230, 118, .4));
+}
+.dropzone-title {
+  font-size: 1.2rem;
+  color: var(--text);
+  font-weight: 700;
+}
+.dropzone-sub {
+  font-size: .88rem;
+  line-height: 1.55;
+  max-width: 480px;
+}
+.dropzone-btn {
+  margin-top: 4px;
+  font-size: .85rem;
+  min-height: 40px;
+  padding: .6rem 1.2rem;
+}
+
+/* File list */
+.file-list {
+  border-top: 1px solid var(--line);
+}
+.file-list-header {
+  padding: 14px 24px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-2);
+  transition: background .15s;
+}
+.file-row:hover {
+  background: var(--panel-3);
+}
+.file-row:last-of-type {
+  border-bottom: none;
+}
+.file-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.file-name {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-desc {
+  font-size: .78rem;
+  line-height: 1.4;
+}
+.file-list-footer {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.upload-note {
+  font-size: .8rem;
+  line-height: 1.45;
+  max-width: 320px;
+}
+
+/* File types */
+.file-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+@media (max-width: 620px) {
+  .dropzone { margin: 16px; padding: 32px 16px; }
+  .file-row { flex-wrap: wrap; }
+  .file-list-footer { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<script>
+  const dz = document.getElementById('dropzone');
+  if (dz) {
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('drag-over'); });
+  }
+</script>

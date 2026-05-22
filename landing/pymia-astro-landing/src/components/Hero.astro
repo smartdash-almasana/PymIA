@@ -1,0 +1,30 @@
+<section class="hero section">
+  <div class="container grid-2">
+    <div>
+      <span class="eyebrow">Laboratorio operacional PyME</span>
+      <h1 class="h1">Tu PyME ya habla. <span class="muted">PymIA la escucha con evidencia.</span></h1>
+      <p class="lead">Convertimos Excels, PDFs, bancos, ventas, stock y mensajes de WhatsApp o Telegram en una lectura clara: qué está pasando, qué falta para confirmarlo y qué conviene revisar primero.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#ingesta">Subir evidencia</a>
+        <a class="btn btn-secondary" href="#chatbot">Ver chatbot PyME</a>
+      </div>
+    </div>
+    <aside class="card hero-card">
+      <div class="terminal-top">diagnostico_operativo.pymia</div>
+      <div class="score">Estado: <strong>pendiente de evidencia</strong></div>
+      <div class="finding warn">Síntoma: vendo mucho pero no sé si gano plata</div>
+      <div class="finding">Hipótesis: margen / caja / costos</div>
+      <div class="finding ok">Próximo paso: ventas + costos + extractos</div>
+    </aside>
+  </div>
+</section>
+<style>
+.hero { min-height: 92vh; display: flex; align-items: center; background: radial-gradient(circle at 15% 10%, rgba(0,230,118,.14), transparent 34%), var(--bg); }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+.hero-card { padding: 0; overflow: hidden; }
+.terminal-top { padding: 14px 18px; border-bottom: 1px solid var(--line); color: var(--muted); font-family: var(--font-mono); font-size: .75rem; }
+.score { padding: 22px 18px; font-family: var(--font-mono); color: var(--yellow); }
+.finding { padding: 16px 18px; border-top: 1px solid var(--line); color: var(--soft); }
+.finding.warn { color: var(--yellow); }
+.finding.ok { color: var(--green); }
+</style>

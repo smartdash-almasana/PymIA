@@ -1,0 +1,24 @@
+<section class="section" id="modulos">
+  <div class="container">
+    <span class="eyebrow">Módulos de diagnóstico</span>
+    <h2 class="h2">Elegí dónde mirar primero.</h2>
+    <div class="grid-4 modules">
+      {[
+        ['Comercial', 'Precios, margen, descuentos y productos sin costo.'],
+        ['Finanzas', 'Caja, banco, Mercado Pago, cobros y retiros.'],
+        ['Stock', 'SKU, diferencias, rotación y faltantes.'],
+        ['Compras', 'Proveedores, aumentos y costos no trasladados.'],
+        ['Producción', 'Insumos, rendimiento, mermas y costo real.'],
+        ['RRHH', 'Horas, nómina, ausentismo y carga laboral.'],
+        ['Automatización', 'Tareas repetitivas y horas recuperables.'],
+        ['ROI', 'Escenarios, recupero y costo de oportunidad.'],
+      ].map(([title, copy]) => <article class="module"><h3>{title}</h3><p>{copy}</p></article>)}
+    </div>
+  </div>
+</section>
+<style>
+.modules { margin-top: 32px; }
+.module { background: var(--panel); padding: 22px; min-height: 160px; }
+.module h3 { margin: 0 0 8px; }
+.module p { margin: 0; color: var(--muted); }
+</style>

@@ -1,0 +1,141 @@
+---
+const modules = [
+  { num:'01', icon:'📈', title:'Comercial / Margen',    desc:'Precios, descuentos y qué productos generan ganancia real.',               evidence:'Ventas · Lista de precios · Costos',    finding:'Margen bruto por producto' },
+  { num:'02', icon:'💵', title:'Caja y banco',          desc:'Diferencias entre ventas facturadas y dinero efectivamente ingresado.',      evidence:'Ventas · Extractos · Caja diaria',     finding:'Diferencias de conciliación' },
+  { num:'03', icon:'📦', title:'Stock',                 desc:'Faltantes, sobrantes, rotación y mercadería parada.',                       evidence:'Stock · Ventas · Compras',             finding:'Capital inmovilizado' },
+  { num:'04', icon:'🤝', title:'Costos y proveedores',  desc:'Aumentos de insumos no trasladados a precios de venta.',                    evidence:'Facturas · Costos · Lista precios',    finding:'Erosión de margen' },
+  { num:'05', icon:'🏭', title:'Producción',            desc:'Insumos, mermas, rendimiento y costo real de lo que fabricás.',             evidence:'Insumos · Producción · Ventas',        finding:'Costo unitario real' },
+  { num:'06', icon:'⚡', title:'Automatización',        desc:'Tareas manuales que se pueden automatizar para recuperar tiempo.',          evidence:'Procesos actuales',                    finding:'Horas recuperables' },
+  { num:'07', icon:'🎯', title:'ROI',                   desc:'Escenarios de recupero y costo de oportunidad de cada decisión.',          evidence:'Datos históricos',                     finding:'Retorno estimado' },
+  { num:'08', icon:'🔍', title:'Evidencia faltante',   desc:'Qué datos son necesarios para cerrar el diagnóstico pendiente.',            evidence:'Cualquier archivo',                    finding:'Lista de gaps' },
+];
+---
+
+<section class="section" id="modulos">
+  <div class="container">
+    <div class="section-header centered">
+      <span class="eyebrow">Módulos del laboratorio</span>
+      <h2 class="h2">Elegí el ángulo que más duele.<br />Empezamos ahí.</h2>
+    </div>
+
+    <div class="modules-grid">
+      {modules.map(m => (
+        <article class="module-card">
+          <div class="module-top">
+            <span class="module-num">{m.num}</span>
+            <span class="module-icon">{m.icon}</span>
+          </div>
+          <h3 class="module-title">{m.title}</h3>
+          <p class="muted module-desc">{m.desc}</p>
+          <div class="module-meta">
+            <div class="module-meta-row">
+              <span class="meta-label">evidencia típica</span>
+              <span class="meta-val">{m.evidence}</span>
+            </div>
+            <div class="module-meta-row highlight">
+              <span class="meta-label">hallazgo posible</span>
+              <span class="meta-val ok">{m.finding}</span>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.module-card {
+  background: var(--panel);
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background .18s;
+  position: relative;
+}
+.module-card:hover {
+  background: var(--panel-2);
+}
+.module-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green), transparent);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.module-card:hover::after { opacity: 1; }
+
+.module-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.module-num {
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  letter-spacing: .12em;
+  color: var(--green);
+  text-transform: uppercase;
+}
+.module-icon { font-size: 1.6rem; line-height: 1; }
+.module-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  color: var(--text);
+}
+.module-desc {
+  font-size: .82rem;
+  line-height: 1.65;
+  flex: 1;
+}
+.module-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.module-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.meta-label {
+  font-family: var(--font-mono);
+  font-size: .58rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.meta-val {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--soft);
+  line-height: 1.4;
+}
+.meta-val.ok { color: var(--green); }
+
+@media (max-width: 1024px) {
+  .modules-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 620px) {
+  .modules-grid { grid-template-columns: 1fr; }
+}
+</style>

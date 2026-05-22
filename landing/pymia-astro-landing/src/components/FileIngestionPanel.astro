@@ -1,0 +1,27 @@
+<section class="section" id="ingesta">
+  <div class="container grid-2">
+    <div>
+      <span class="eyebrow">Ingesta de evidencia</span>
+      <h2 class="h2">No te pedimos que ordenes todo antes. Empezamos con lo que tenés.</h2>
+      <p class="lead">El componente de ingesta debe aceptar archivos reales, clasificar la evidencia y mostrar qué falta para poder calcular sin inventar.</p>
+    </div>
+    <div class="upload card">
+      <div class="dropzone">
+        <strong>Arrastrá tus archivos</strong>
+        <span>Excel, CSV, PDF, extractos, listas de precios, reportes de ventas</span>
+      </div>
+      <div class="upload-row"><span>ventas_abril.xlsx</span><b class="ok">detectado: ventas</b></div>
+      <div class="upload-row"><span>extracto_banco.pdf</span><b class="warn">requiere conciliación</b></div>
+      <div class="upload-row"><span>costos.csv</span><b class="ok">detectado: costos</b></div>
+      <button class="btn btn-primary">Analizar evidencia</button>
+    </div>
+  </div>
+</section>
+<style>
+.upload { padding: 20px; display: grid; gap: 12px; }
+.dropzone { border: 1px dashed rgba(0,230,118,.35); border-radius: 14px; padding: 34px 20px; background: rgba(0,230,118,.05); display: grid; gap: 8px; text-align: center; }
+.dropzone strong { font-size: 1.35rem; }
+.dropzone span { color: var(--muted); }
+.upload-row { display: flex; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; font-family: var(--font-mono); font-size: .78rem; }
+.ok { color: var(--green); } .warn { color: var(--yellow); }
+</style>
