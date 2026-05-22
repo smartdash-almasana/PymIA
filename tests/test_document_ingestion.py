@@ -217,9 +217,7 @@ def test_intake_forces_bem_ai_on_administrative_contexts(tmp_path: Path) -> None
         fallback_path=tmp_path,
     )
 
-    assert "Clasificación de ingesta: BEM_AI" in msg
-    assert "no elegible para auditoría interna síncrona local" in msg
-    assert "Aclaración sugerida:" in msg
+    assert "Recibí el archivo, pero todavía no fue procesado." in msg
     
     # Assert that no audits folder is created since it did not execute the socratic audit runner
     session_id = f"{tenant_id}/{user_id}"

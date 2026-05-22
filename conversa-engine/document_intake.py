@@ -96,11 +96,26 @@ def intake_document(
             repo = DocumentIntakeRepository(base_path=state_path, stale_lock_seconds=60.0)
             state = repo.load(session_id=session_id)
             state.register(event)
+            
+            # Record initial state: RECEIVED
+            state.last_file_name = file_name
+            state.last_lifecycle_state = "RECEIVED"
+            
             repo.save(session_id=session_id, state=state)
             chosen_state_path = state_path
             break
         except PermissionError:
             continue
+
+    # Record DOWNLOADED state
+    if chosen_state_path is not None:
+        try:
+            repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
+            state = repo.load(session_id=session_id)
+            state.last_lifecycle_state = "DOWNLOADED"
+            repo.save(session_id=session_id, state=state)
+        except Exception:
+            pass
 
     route_label = {
         IngestionRoute.BEM_AI: "BEM_AI",
@@ -108,19 +123,26 @@ def intake_document(
         IngestionRoute.NARRATIVE: "NARRATIVE",
     }[route]
 
-    if route == IngestionRoute.BEM_AI:
-        if is_blocked:
-            reason = f"archivo de índole {classification.document_context} no elegible para auditoría interna síncrona local"
-        else:
-            reason = "archivo no normalizado o con estructura que requiere extracción o curaduría previa"
-    elif route == IngestionRoute.INTERNAL_FACT:
-        reason = "archivo estructurado compatible con ingesta interna"
-    else:
-        reason = "evidencia narrativa o relato operacional"
+    if route != IngestionRoute.INTERNAL_FACT:
+        return "Recibí el archivo, pero todavía no fue procesado."
+
+    reason = "archivo estructurado compatible con ingesta interna"
+
+    # Record PARSE_ATTEMPTED if we are running the parser
+    if route == IngestionRoute.INTERNAL_FACT and chosen_state_path is not None:
+        try:
+            repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
+            state = repo.load(session_id=session_id)
+            state.last_lifecycle_state = "PARSE_ATTEMPTED"
+            repo.save(session_id=session_id, state=state)
+        except Exception:
+            pass
 
     audit_active = False
+    kernel_msg = None
     if route == IngestionRoute.INTERNAL_FACT and chosen_state_path is not None:
         from operational_audit_runner import run_excel_operational_audit
+        import json
         audits_dir = chosen_state_path / "audits"
         try:
             audit_res = run_excel_operational_audit(
@@ -130,8 +152,35 @@ def intake_document(
                 output_dir=audits_dir,
             )
             audit_active = audit_res.ok
+
+            # Load status from evidence.json and sync back to intake state
+            if audit_res.evidence_path.exists():
+                with open(audit_res.evidence_path, "r", encoding="utf-8") as f:
+                    status_data = json.load(f)
+                
+                repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
+                state = repo.load(session_id=session_id)
+                state.last_file_name = file_name
+                state.last_lifecycle_state = status_data.get("lifecycle_state")
+                state.last_parse_status = status_data.get("parse_status")
+                state.last_parse_error = status_data.get("parse_error")
+                state.last_root_cause = status_data.get("root_cause")
+                state.last_user_message = status_data.get("user_message")
+                repo.save(session_id=session_id, state=state)
+
+            # If not active (failed), read clinical port message
+            if not audit_active and audit_res.kernel_path.exists():
+                with open(audit_res.kernel_path, "r", encoding="utf-8") as f:
+                    kernel_data = json.load(f)
+                kernel_msg = kernel_data.get("kernel", {}).get("message")
         except Exception:
             audit_active = False
+
+    # Block textual fallback if attachments parsing failed
+    if route == IngestionRoute.INTERNAL_FACT and not audit_active:
+        if kernel_msg:
+            return kernel_msg
+        return f"Error al procesar el archivo '{file_name}'."
 
     lines = [
         f"Archivo registrado: {file_name}",

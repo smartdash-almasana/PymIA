@@ -35,6 +35,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
+from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle
 from pymia.services.initial_laboratory_anamnesis_service import (
     AnamnesisOriginaria,
     InitialLaboratoryAnamnesisService,
@@ -64,6 +65,10 @@ class ConversationalInput(BaseModel):
         default=None,
         description="Evidencia documental estructurada opcional.",
     )
+    bundle: EvidenceBundle | None = Field(
+        default=None,
+        description="Agrupación de adjuntos recibidos y su estado de procesamiento.",
+    )
 
 
 class ConversationalOutput(BaseModel):
@@ -88,6 +93,7 @@ class ClinicalConversationalPort:
             channel=input.channel,
             text=input.text,
             evidence=input.evidence,
+            bundle=input.bundle,
         )
 
         if result is None:
@@ -106,3 +112,4 @@ class ClinicalConversationalPort:
             anamnesis=result.anamnesis,
             laboratorio=result.laboratorio,
         )
+

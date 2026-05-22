@@ -83,6 +83,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle
 from pymia.interfaces.conversational_port import (
     ClinicalConversationalPort,
     ConversationalInput,
@@ -119,6 +120,9 @@ class HermesInput(BaseModel):
         Diccionario opaco de contexto Hermes (message_id, user_id,
         timestamp, etc.). El kernel clínico NUNCA lo lee.
         Se preserva en HermesOutput.payload para trazabilidad.
+
+    evidence_bundle:
+        Agrupación de adjuntos recibidos y su estado de procesamiento.
     """
 
     tenant_id: str = Field(..., description="Identificador del tenant.")
@@ -134,6 +138,10 @@ class HermesInput(BaseModel):
             "Contexto opaco de Hermes. Solo trazabilidad. "
             "El kernel clínico nunca lo lee."
         ),
+    )
+    evidence_bundle: EvidenceBundle | None = Field(
+        default=None,
+        description="Agrupación de adjuntos recibidos y su estado de procesamiento.",
     )
 
 
@@ -252,6 +260,7 @@ class HermesAdapter:
             tenant_id=hermes_input.tenant_id,
             channel=hermes_input.channel,
             text=hermes_input.message_text,
+            bundle=hermes_input.evidence_bundle,
         )
 
         # — Delegación al kernel clínico —

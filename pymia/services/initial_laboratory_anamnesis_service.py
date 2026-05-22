@@ -74,7 +74,93 @@ class InitialLaboratoryAnamnesisService:
         channel: str,
         text: str,
         evidence: object | None = None,
+        bundle: EvidenceBundle | None = None,
     ) -> InitialLaboratoryAnamnesisResult | None:
+        from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle, AttachmentParseStatus, AttachmentLifecycleState
+
+        if bundle is not None and bundle.attachments:
+            # First, check for failures or pending status
+            for att in bundle.attachments:
+                if (att.parse_status == AttachmentParseStatus.FAILED or 
+                    att.lifecycle_state == AttachmentLifecycleState.PARSE_FAILED or
+                    att.parse_status == "FAILED" or
+                    att.lifecycle_state == "PARSE_FAILED"):
+                    
+                    error_msg = f"Recibí el Excel, pero no pude procesarlo correctamente. Causa: {att.user_message or 'Error de análisis.'}"
+                    anamnesis = AnamnesisOriginaria(
+                        tenant_id=tenant_id,
+                        canal=channel,
+                        frases_textuales=[text],
+                        dolores_detectados=[],
+                        hipotesis_iniciales=[],
+                        taxonomia_inicial={
+                            "rubro": None,
+                            "tipo_pyme": None,
+                            "produce_o_revende": None,
+                            "maneja_stock": None,
+                        },
+                        documentos_pedidos=[],
+                        estado_conversacional="error_procesamiento_evidencia",
+                    )
+                    laboratorio = LaboratorioInicialContrato(
+                        tenant_id=tenant_id,
+                        estado_conversacional="error_procesamiento_evidencia",
+                        hipotesis_a_contrastar=[],
+                        evidencia_requerida=[],
+                        capability="error_procesamiento_evidencia",
+                        tipo_documental_esperado=["xlsx", "csv", "pdf", "captura"],
+                        campos_esperados=[],
+                        nivel_confianza="error",
+                        limite_actual="Error al procesar la evidencia cargada.",
+                    )
+                    return InitialLaboratoryAnamnesisResult(
+                        message=error_msg,
+                        anamnesis=anamnesis,
+                        laboratorio=laboratorio,
+                    )
+                
+                elif (att.lifecycle_state in {AttachmentLifecycleState.RECEIVED, AttachmentLifecycleState.DOWNLOADED} or
+                      att.lifecycle_state in {"RECEIVED", "DOWNLOADED"}):
+                    
+                    error_msg = "Recibí el archivo, pero todavía no fue procesado."
+                    anamnesis = AnamnesisOriginaria(
+                        tenant_id=tenant_id,
+                        canal=channel,
+                        frases_textuales=[text],
+                        dolores_detectados=[],
+                        hipotesis_iniciales=[],
+                        taxonomia_inicial={
+                            "rubro": None,
+                            "tipo_pyme": None,
+                            "produce_o_revende": None,
+                            "maneja_stock": None,
+                        },
+                        documentos_pedidos=[],
+                        estado_conversacional="procesamiento_pendiente",
+                    )
+                    laboratorio = LaboratorioInicialContrato(
+                        tenant_id=tenant_id,
+                        estado_conversacional="procesamiento_pendiente",
+                        hipotesis_a_contrastar=[],
+                        evidencia_requerida=[],
+                        capability="procesamiento_pendiente",
+                        tipo_documental_esperado=["xlsx", "csv", "pdf", "captura"],
+                        campos_esperados=[],
+                        nivel_confianza="pendiente",
+                        limite_actual="El archivo todavía no fue procesado.",
+                    )
+                    return InitialLaboratoryAnamnesisResult(
+                        message=error_msg,
+                        anamnesis=anamnesis,
+                        laboratorio=laboratorio,
+                    )
+            
+            # If no failures, extract the first valid evidence to use
+            for att in bundle.attachments:
+                if att.evidence is not None:
+                    evidence = att.evidence
+                    break
+
         import uuid
         from pymia.pipeline.admission.v1.pipeline import AdmissionPipelineV1
         from pymia.pipeline.admission.v1.response_formatter import AdmissionResponseFormatterV1
@@ -113,7 +199,7 @@ class InitialLaboratoryAnamnesisService:
             )
         else:
             normalized = self._normalize(text)
-            if any(signal in normalized for signal in self._MARGIN_SIGNALS):
+            if any(signal in normalized for signal in self._MARGIN_SIGNALS) or (evidence is not None):
                 documentos = [
                     "ventas del período",
                     "costos o facturas de compra",
