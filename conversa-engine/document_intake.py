@@ -54,21 +54,19 @@ def intake_document(
     )
     route = event.get_ingestion_route()
 
-    # Triage Semántico de Metadatos mediante DocumentContextClassifier v1
     from tools.document_context_classifier import DocumentContextClassifier, DocumentContextInput
-    
+
     payload = DocumentContextInput(
         file_name=file_name,
         mime_type=actual_mime_type,
         extension=Path(file_name).suffix.lower() if file_name else None,
         entropy_level=entropy_level,
-        source_type="file_upload"
+        source_type="file_upload",
     )
     classification = DocumentContextClassifier.classify(payload)
-    
+
     is_blocked = False
     if route == IngestionRoute.INTERNAL_FACT:
-        # Classifier can degrade to BEM_AI, but NEVER promote BEM_AI to INTERNAL_FACT
         if classification.decision_code == "ADMINISTRATIVE_BYPASS":
             route = IngestionRoute.BEM_AI
             is_blocked = True
@@ -76,7 +74,6 @@ def intake_document(
             route = IngestionRoute.BEM_AI
             is_blocked = True
 
-    # Persistir metadata liviana del clasificador en el objeto event
     object.__setattr__(event, "document_context", classification.document_context)
     object.__setattr__(event, "classification_confidence", classification.confidence)
     object.__setattr__(event, "evidence_candidate_type", classification.evidence_candidate_type)
@@ -118,20 +115,24 @@ def intake_document(
     else:
         reason = "evidencia narrativa o relato operacional"
 
-    audit_active = False
+    audit_res = None
     if route == IngestionRoute.INTERNAL_FACT and chosen_state_path is not None:
         from operational_audit_runner import run_excel_operational_audit
+
         audits_dir = chosen_state_path / "audits"
-        try:
-            audit_res = run_excel_operational_audit(
-                excel_path=file_path,
-                tenant_id=tenant_id,
-                session_id=session_id,
-                output_dir=audits_dir,
-            )
-            audit_active = audit_res.ok
-        except Exception:
-            audit_active = False
+        audit_res = run_excel_operational_audit(
+            excel_path=file_path,
+            tenant_id=tenant_id,
+            session_id=session_id,
+            output_dir=audits_dir,
+        )
+
+    if audit_res is None:
+        clinical_state = "Estado clínico-operacional: archivo recibido y registrado. Aún no existe evidencia computable incorporada al laboratorio inicial."
+    elif audit_res.ok:
+        clinical_state = "Estado clínico-operacional: evidencia computable incorporada al laboratorio inicial."
+    else:
+        clinical_state = audit_res.attachment_status.safe_user_message()
 
     lines = [
         f"Archivo registrado: {file_name}",
@@ -139,7 +140,7 @@ def intake_document(
         f"Clasificación de ingesta: {route_label}",
         f"Criterio: {reason}.",
         "",
-        "Estado clínico-operacional: evidencia incorporada al laboratorio inicial.",
+        clinical_state,
         "",
         "Regla epistemológica: un archivo aislado no confirma patologías ni hallazgos sin contraste contra evidencia suficiente.",
     ]
@@ -151,7 +152,7 @@ def intake_document(
             classification.required_followup,
         ])
 
-    if audit_active:
+    if audit_res is not None and audit_res.ok:
         lines.extend([
             "",
             "[Auditoría Operacional Activa]",
