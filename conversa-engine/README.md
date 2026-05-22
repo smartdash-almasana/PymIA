@@ -57,6 +57,24 @@ python3 -m venv .venv
 ./.venv/bin/python main.py "vendo mucho pero no se si gano plata"
 ```
 
+## Local execution wrappers
+
+No usar `python conversa-engine/main.py ...` directamente en Windows sin `PYTHONPATH`, porque puede fallar con `ModuleNotFoundError: No module named 'pymia'`.
+
+Los wrappers locales evitan ese error de import y fuerzan UTF-8 para prevenir mojibake en stdout.
+
+Windows PowerShell:
+
+```powershell
+.\scripts\run_conversa_local.ps1 "vendo mucho pero no sé si gano plata"
+```
+
+Bash/Linux:
+
+```bash
+./scripts/run_conversa_local.sh "vendo mucho pero no sé si gano plata"
+```
+
 ## Routing sobre OperationalAuditResult
 
 Uso opcional para seguimiento conversacional:
