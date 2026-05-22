@@ -27,15 +27,25 @@ def _create_valid_memory_dir(base: Path) -> Path:
     return base
 
 
-def test_closed_memory_exists_and_is_valid():
-    memory_root = default_memory_root(Path.cwd())
-    assert memory_root.is_absolute()
-    assert memory_root.name == "Pymia-memoria"
+def test_closed_memory_contract_validates_explicit_fixture(tmp_path: Path):
+    memory_root = _create_valid_memory_dir(tmp_path / "Pymia-memoria")
 
     result = validate_memory(memory_root)
 
     assert result.ok is True
     assert result.errors == []
+
+
+def test_default_memory_root_does_not_create_external_memory(tmp_path: Path):
+    repo_root = tmp_path / "PymIA"
+    repo_root.mkdir()
+
+    memory_root = default_memory_root(repo_root)
+
+    assert memory_root.is_absolute()
+    assert memory_root.name == "Pymia-memoria"
+    assert memory_root == tmp_path / "Pymia-memoria"
+    assert not memory_root.exists()
 
 
 def test_validate_memory_detects_missing_file(tmp_path: Path):
