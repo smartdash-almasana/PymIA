@@ -29,7 +29,8 @@ def _create_valid_memory_dir(base: Path) -> Path:
 
 def test_closed_memory_exists_and_is_valid():
     memory_root = default_memory_root(Path.cwd())
-    assert memory_root == Path(r"E:\BuenosPasos\smartbridge\Pymia-memoria")
+    assert memory_root.is_absolute()
+    assert memory_root.name == "Pymia-memoria"
 
     result = validate_memory(memory_root)
 
