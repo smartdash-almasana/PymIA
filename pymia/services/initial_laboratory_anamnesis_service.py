@@ -36,6 +36,32 @@ class InitialLaboratoryAnamnesisResult(BaseModel):
     laboratorio: LaboratorioInicialContrato
 
 
+class ProgressiveBusinessIdentity(BaseModel):
+    """Progressive identity draft captured during initial anamnesis."""
+
+    display_name: str | None = None
+    country_code: str | None = None
+    industry_hint: str | None = None
+
+
+class ProgressiveTenantClinicalContext(BaseModel):
+    """Internal progressive context scaffold before minimum validation is met."""
+
+    tenant_id: str
+    channel: str
+    business_identity: ProgressiveBusinessIdentity
+    symptom_summary: list[str] = Field(default_factory=list)
+    documents_requested: list[str] = Field(default_factory=list)
+
+    @property
+    def is_minimum_valid(self) -> bool:
+        """Minimum valid context requires both display name and country code."""
+        return bool(
+            self.business_identity.display_name
+            and self.business_identity.country_code
+        )
+
+
 class InitialLaboratoryAnamnesisService:
     """Recepción clínica-operacional mínima para el primer tiempo lógico.
 
@@ -79,6 +105,14 @@ class InitialLaboratoryAnamnesisService:
         tenant_context: TenantClinicalContext | None = None,
     ) -> InitialLaboratoryAnamnesisResult | None:
         from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle, AttachmentParseStatus, AttachmentLifecycleState
+
+        if tenant_context is None:
+            self._build_progressive_tenant_context(
+                tenant_id=tenant_id,
+                channel=channel,
+                text=text,
+                evidence=evidence,
+            )
 
         if tenant_context is not None and not self._tenant_context_is_minimum_valid(tenant_context):
             message = (
@@ -415,3 +449,34 @@ class InitialLaboratoryAnamnesisService:
         if isinstance(validator, bool):
             return validator
         return bool(tenant_context.has_minimum_context())
+
+    def _build_progressive_tenant_context(
+        self,
+        *,
+        tenant_id: str,
+        channel: str,
+        text: str,
+        evidence: object | None,
+    ) -> ProgressiveTenantClinicalContext:
+        normalized = self._normalize(text)
+        symptom_summary = self._extract_operational_signals(normalized)
+        if any(signal in normalized for signal in self._MARGIN_SIGNALS):
+            symptom_summary = list(dict.fromkeys(symptom_summary + ["incertidumbre de rentabilidad"]))
+
+        industry_hint = "distribucion" if "ruta" in normalized else None
+
+        documents_requested: list[str] = []
+        if evidence is None:
+            documents_requested = ["ventas", "costos", "precios", "caja"]
+
+        return ProgressiveTenantClinicalContext(
+            tenant_id=tenant_id,
+            channel=channel,
+            business_identity=ProgressiveBusinessIdentity(
+                display_name=None,
+                country_code=None,
+                industry_hint=industry_hint,
+            ),
+            symptom_summary=symptom_summary,
+            documents_requested=documents_requested,
+        )
