@@ -11,6 +11,8 @@ RESERVED_COMMANDS = {
     "--status",
 }
 
+_PROGRESSIVE_CONTEXT_BY_SESSION = {}
+
 
 def _cli_message_from_args(args: list[str]) -> tuple[int, str, str | None]:
     """
@@ -35,12 +37,16 @@ def _ensure_repo_on_path() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
+    conversa_dir = repo_root / "conversa-engine"
+    if str(conversa_dir) not in sys.path:
+        sys.path.insert(0, str(conversa_dir))
 
 
 def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
     _ensure_repo_on_path()
     from pymia.hermes.adapter import HermesAdapter, HermesInput
 
+    session_id = _session_id(tenant_id, user_id)
     adapter = HermesAdapter()
     result = adapter.handle(
         HermesInput(
@@ -48,9 +54,12 @@ def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
             channel="telegram",
             message_text=text,
             metadata={"telegram_user_id": user_id},
+            previous_progressive_context=_PROGRESSIVE_CONTEXT_BY_SESSION.get(session_id),
         )
     )
-    return result.reply_text
+    if result.payload.progressive_context is not None:
+        _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = result.payload.progressive_context
+    return result.reply_text or ""
 
 
 def _session_id(tenant_id: str, user_id: str) -> str:
@@ -69,6 +78,7 @@ def _new_text_event(text: str, tenant_id: str, user_id: str):
 
 
 def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
+    _ensure_repo_on_path()
     from intake_repository import DocumentIntakeRepository
     from primary_context_intake import (
         build_primary_context_record,
