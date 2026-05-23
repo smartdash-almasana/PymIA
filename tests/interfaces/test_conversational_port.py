@@ -12,6 +12,10 @@ from pymia.interfaces.conversational_port import (
     ConversationalInput,
     ConversationalOutput,
 )
+from pymia.services.initial_laboratory_anamnesis_service import (
+    ProgressiveBusinessIdentity,
+    ProgressiveTenantClinicalContext,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -28,10 +32,23 @@ def port() -> ClinicalConversationalPort:
 @pytest.fixture
 def canonical_input() -> ConversationalInput:
     """Caso canónico: el dueño no sabe si gana plata."""
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_test_001",
+        channel="test",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     return ConversationalInput(
         tenant_id="tenant_test_001",
         channel="test",
         text="vendo mucho pero no se si gano plata",
+        previous_progressive_context=prev_ctx,
     )
 
 
@@ -170,11 +187,24 @@ def test_input_has_no_job_fields():
 
 def test_no_signal_case_returns_no_signal_status(port: ClinicalConversationalPort):
     """Texto sin señal clínica debe retornar status 'no_signal'."""
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_test_002",
+        channel="test",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     output = port.handle(
         ConversationalInput(
             tenant_id="tenant_test_002",
             channel="test",
             text="hola, como estas?",
+            previous_progressive_context=prev_ctx,
         )
     )
     assert output.status == "no_signal"
@@ -200,11 +230,24 @@ def test_no_signal_case_message_not_forbidden_either(port: ClinicalConversationa
 
 def test_inventory_symptom_triggers_anamnesis(port: ClinicalConversationalPort):
     """Síntoma de inventario también debe producir mode 'anamnesis_inicial'."""
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_test_004",
+        channel="test",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     output = port.handle(
         ConversationalInput(
             tenant_id="tenant_test_004",
             channel="test",
             text="tengo mucho stock parado y no sale",
+            previous_progressive_context=prev_ctx,
         )
     )
     assert output.status == "ok"
@@ -218,10 +261,23 @@ def test_port_is_stateless(port: ClinicalConversationalPort):
     El port es stateless: dos llamadas con el mismo input
     deben producir outputs equivalentes (mismo status y mode).
     """
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_test_005",
+        channel="test",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     inp = ConversationalInput(
         tenant_id="tenant_test_005",
         channel="test",
         text="vendo mucho pero no se si gano plata",
+        previous_progressive_context=prev_ctx,
     )
     out1 = port.handle(inp)
     out2 = port.handle(inp)
@@ -236,15 +292,41 @@ def test_port_respects_tenant_isolation(port: ClinicalConversationalPort):
     El port no debe mezclar datos entre tenants.
     Cada output debe reflejar el tenant_id de su input.
     """
+    prev_ctx_a = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_A",
+        channel="test",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
+    prev_ctx_b = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_B",
+        channel="test",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     out_a = port.handle(ConversationalInput(
         tenant_id="tenant_A",
         channel="test",
         text="vendo mucho pero no se si gano plata",
+        previous_progressive_context=prev_ctx_a,
     ))
     out_b = port.handle(ConversationalInput(
         tenant_id="tenant_B",
         channel="test",
         text="vendo mucho pero no se si gano plata",
+        previous_progressive_context=prev_ctx_b,
     ))
 
     assert out_a.anamnesis.tenant_id == "tenant_A"

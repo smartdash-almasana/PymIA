@@ -2,7 +2,11 @@
 Tests para el servicio de anamnesis inicial del laboratorio — PymIA.
 """
 import pytest
-from pymia.services.initial_laboratory_anamnesis_service import InitialLaboratoryAnamnesisService
+from pymia.services.initial_laboratory_anamnesis_service import (
+    InitialLaboratoryAnamnesisService,
+    ProgressiveBusinessIdentity,
+    ProgressiveTenantClinicalContext,
+)
 
 
 @pytest.fixture
@@ -22,7 +26,25 @@ def test_service_with_specific_claim_triggers_pipeline(service: InitialLaborator
     channel = "test_channel"
     claim = "vendemos mucho pero no queda plata"
 
-    result = service.process(tenant_id=tenant_id, channel=channel, text=claim)
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id=tenant_id,
+        channel=channel,
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
+
+    result = service.process(
+        tenant_id=tenant_id,
+        channel=channel,
+        text=claim,
+        previous_progressive_context=prev_ctx
+    )
 
     assert result is not None
 
@@ -56,7 +78,25 @@ def test_service_with_generic_signal_falls_back_to_default(service: InitialLabor
     channel = "test_channel"
     claim = "creo que no estoy ganando plata"
 
-    result = service.process(tenant_id=tenant_id, channel=channel, text=claim)
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id=tenant_id,
+        channel=channel,
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
+
+    result = service.process(
+        tenant_id=tenant_id,
+        channel=channel,
+        text=claim,
+        previous_progressive_context=prev_ctx
+    )
 
     assert result is not None
 
@@ -78,6 +118,24 @@ def test_service_with_no_signal_returns_none(service: InitialLaboratoryAnamnesis
     channel = "test_channel"
     claim = "hola, cómo estás?"
 
-    result = service.process(tenant_id=tenant_id, channel=channel, text=claim)
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id=tenant_id,
+        channel=channel,
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
+
+    result = service.process(
+        tenant_id=tenant_id,
+        channel=channel,
+        text=claim,
+        previous_progressive_context=prev_ctx
+    )
 
     assert result is None
