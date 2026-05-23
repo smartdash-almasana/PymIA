@@ -40,11 +40,25 @@ def adapter() -> HermesAdapter:
 @pytest.fixture
 def canonical_input() -> HermesInput:
     """Caso canónico: el dueño no sabe si gana plata."""
+    from pymia.services.initial_laboratory_anamnesis_service import ProgressiveTenantClinicalContext, ProgressiveBusinessIdentity
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_hermes_001",
+        channel="telegram",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     return HermesInput(
         tenant_id="tenant_hermes_001",
         channel="telegram",
         message_text="vendo mucho pero no se si gano plata",
         metadata={"message_id": "msg_001", "user_id": "usr_42"},
+        previous_progressive_context=prev_ctx,
     )
 
 
@@ -267,11 +281,25 @@ def test_adapter_passes_correct_fields_to_port():
 
 def test_no_signal_returns_no_signal_status(adapter: HermesAdapter):
     """Texto sin señal clínica debe retornar status 'no_signal'."""
+    from pymia.services.initial_laboratory_anamnesis_service import ProgressiveTenantClinicalContext, ProgressiveBusinessIdentity
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_002",
+        channel="telegram",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     output = adapter.handle(HermesInput(
         tenant_id="tenant_002",
         channel="telegram",
         message_text="hola, como estas?",
         metadata={},
+        previous_progressive_context=prev_ctx,
     ))
     assert output.status == "no_signal"
     assert output.mode == "no_signal"
@@ -375,11 +403,25 @@ def test_hermes_payload_contains_progressive_context_on_ok(adapter: HermesAdapte
 
 
 def test_hermes_payload_progressive_context_is_none_on_no_signal(adapter: HermesAdapter):
+    from pymia.services.initial_laboratory_anamnesis_service import ProgressiveTenantClinicalContext, ProgressiveBusinessIdentity
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant_progressive_none",
+        channel="telegram",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
     output = adapter.handle(HermesInput(
         tenant_id="tenant_progressive_none",
         channel="telegram",
         message_text="hola",
         metadata={},
+        previous_progressive_context=prev_ctx,
     ))
     assert output.status == "no_signal"
     assert output.payload.progressive_context is None
