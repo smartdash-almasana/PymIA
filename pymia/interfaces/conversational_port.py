@@ -75,6 +75,10 @@ class ConversationalInput(BaseModel):
         default=None,
         description="Contexto clínico tipado del tenant para fases progresivas.",
     )
+    previous_progressive_context: ProgressiveTenantClinicalContext | None = Field(
+        default=None,
+        description="Snapshot previo de contexto progresivo para roundtrip entre turnos.",
+    )
 
 
 class ConversationalOutput(BaseModel):
@@ -95,14 +99,18 @@ class ClinicalConversationalPort:
         self._service = InitialLaboratoryAnamnesisService()
 
     def handle(self, input: ConversationalInput) -> ConversationalOutput:
-        result = self._service.process(
-            tenant_id=input.tenant_id,
-            channel=input.channel,
-            text=input.text,
-            evidence=input.evidence,
-            bundle=input.bundle,
-            tenant_context=input.tenant_context,
-        )
+        process_kwargs = {
+            "tenant_id": input.tenant_id,
+            "channel": input.channel,
+            "text": input.text,
+            "evidence": input.evidence,
+            "bundle": input.bundle,
+            "tenant_context": input.tenant_context,
+        }
+        if input.previous_progressive_context is not None:
+            process_kwargs["previous_progressive_context"] = input.previous_progressive_context
+
+        result = self._service.process(**process_kwargs)
 
         if result is None:
             return ConversationalOutput(

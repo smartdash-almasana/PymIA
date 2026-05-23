@@ -104,16 +104,22 @@ class InitialLaboratoryAnamnesisService:
         evidence: object | None = None,
         bundle: EvidenceBundle | None = None,
         tenant_context: TenantClinicalContext | None = None,
+        previous_progressive_context: ProgressiveTenantClinicalContext | None = None,
     ) -> InitialLaboratoryAnamnesisResult | None:
         from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle, AttachmentParseStatus, AttachmentLifecycleState
 
         progressive_context: ProgressiveTenantClinicalContext | None = None
         if tenant_context is None:
-            progressive_context = self._build_progressive_tenant_context(
+            current_progressive_context = self._build_progressive_tenant_context(
                 tenant_id=tenant_id,
                 channel=channel,
                 text=text,
                 evidence=evidence,
+            )
+            progressive_context = self._merge_progressive_context(
+                tenant_id=tenant_id,
+                previous=previous_progressive_context,
+                current=current_progressive_context,
             )
 
         if tenant_context is not None and not self._tenant_context_is_minimum_valid(tenant_context):
@@ -485,4 +491,33 @@ class InitialLaboratoryAnamnesisService:
             ),
             symptom_summary=symptom_summary,
             documents_requested=documents_requested,
+        )
+
+    def _merge_progressive_context(
+        self,
+        *,
+        tenant_id: str,
+        previous: ProgressiveTenantClinicalContext | None,
+        current: ProgressiveTenantClinicalContext,
+    ) -> ProgressiveTenantClinicalContext:
+        if previous is None or previous.tenant_id != tenant_id:
+            return current
+
+        merged_symptoms = list(dict.fromkeys(previous.symptom_summary + current.symptom_summary))
+        merged_documents = list(dict.fromkeys(previous.documents_requested + current.documents_requested))
+
+        prev_identity = previous.business_identity
+        curr_identity = current.business_identity
+        merged_identity = ProgressiveBusinessIdentity(
+            display_name=prev_identity.display_name or curr_identity.display_name,
+            country_code=prev_identity.country_code or curr_identity.country_code,
+            industry_hint=prev_identity.industry_hint or curr_identity.industry_hint,
+        )
+
+        return ProgressiveTenantClinicalContext(
+            tenant_id=current.tenant_id,
+            channel=current.channel,
+            business_identity=merged_identity,
+            symptom_summary=merged_symptoms,
+            documents_requested=merged_documents,
         )
