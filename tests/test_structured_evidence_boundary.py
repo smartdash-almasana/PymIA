@@ -51,6 +51,20 @@ def test_kernel_does_not_request_sales_or_costs_when_structured_evidence_has_the
         },
     )
 
+    from pymia.services.initial_laboratory_anamnesis_service import ProgressiveTenantClinicalContext, ProgressiveBusinessIdentity
+    prev_ctx = ProgressiveTenantClinicalContext(
+        tenant_id="tenant-test",
+        channel="telegram",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name="Mi PyME S.A.",
+            country_code="AR",
+            industry_hint="comercio",
+            taxonomy_phase="FASE_0_IDENTIDAD"
+        ),
+        symptom_summary=[],
+        documents_requested=[]
+    )
+
     port = ClinicalConversationalPort()
     output = port.handle(
         ConversationalInput(
@@ -58,6 +72,7 @@ def test_kernel_does_not_request_sales_or_costs_when_structured_evidence_has_the
             channel="telegram",
             text="revisar rentabilidad con el excel recibido",
             evidence=evidence,
+            previous_progressive_context=prev_ctx,
         )
     )
 
