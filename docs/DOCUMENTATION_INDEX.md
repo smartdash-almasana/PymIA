@@ -29,6 +29,8 @@ El catálogo documental completo se clasifica y se mapea con respecto a su estad
 | `docs/arquitectura/GLOSARIO_SEMANTICO_PYMIA.md` | **VIGENTE** | Glosario de términos clínicos-operativos | Kernel PymIA | — | — | — | — | **Preservar.** |
 | `docs/arquitectura/KERNEL_ANALITICA_TABULAR_SOBERANA.md` | **VIGENTE** | Arquitectura conceptual del kernel local | Kernel PymIA | — | — | — | — | **Preservar.** |
 | `docs/arquitectura/arquitectura-maestra.md` | **VIGENTE** | Guía de arquitectura unificada | Arquitectura Maestra | — | — | — | — | **Preservar.** |
+| `docs/arquitectura/ONTOLOGIA_AGENTES_SISTEMA.md` | **VIGENTE** | Ontología de agentes del sistema (Dueño, Hermes, PymIA, PyME) | Arquitectura Maestra / Kernel PymIA / Hermes Orchestrator | — | — | — | `pymia/`, `conversa-engine/`, `hermes/` (transversal) | **Preservar. Rige responsabilidades entre agentes del sistema.** |
+| `docs/arquitectura/HERMES_CAPABILITY_AUDIT.md` | **VIGENTE** | Radiografía de capacidades reales de Hermes Agent (Nous Research) y frontera con PymIA | Hermes Orchestrator / Arquitectura Maestra | — | — | — | `pymia/hermes/adapter.py`, `conversa-engine/` | **Preservar. Rige integración PymIA↔Hermes.** |
 | `docs/contratos/contratos-clinicos-operacionales.md` | **VIGENTE** | Contratos de diagnóstico contable | Kernel PymIA | — | — | — | — | **Preservar.** |
 | `docs/contratos/evidence-chain-v1.md` | **VIGENTE** | Cadena física-lógica de evidencia | Pipeline Traceability | — | — | — | — | **Preservar.** |
 | `docs/contratos/owner-decision-v1.md` | **VIGENTE** | Decisiones y feedback interactivo del dueño | Conversational Boundary | — | — | — | — | **Preservar.** |
