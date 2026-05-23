@@ -34,6 +34,7 @@ class InitialLaboratoryAnamnesisResult(BaseModel):
     message: str
     anamnesis: AnamnesisOriginaria
     laboratorio: LaboratorioInicialContrato
+    progressive_context: ProgressiveTenantClinicalContext | None = None
 
 
 class ProgressiveBusinessIdentity(BaseModel):
@@ -106,8 +107,9 @@ class InitialLaboratoryAnamnesisService:
     ) -> InitialLaboratoryAnamnesisResult | None:
         from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle, AttachmentParseStatus, AttachmentLifecycleState
 
+        progressive_context: ProgressiveTenantClinicalContext | None = None
         if tenant_context is None:
-            self._build_progressive_tenant_context(
+            progressive_context = self._build_progressive_tenant_context(
                 tenant_id=tenant_id,
                 channel=channel,
                 text=text,
@@ -149,6 +151,7 @@ class InitialLaboratoryAnamnesisService:
                 message=message,
                 anamnesis=anamnesis,
                 laboratorio=laboratorio,
+                progressive_context=progressive_context,
             )
 
         if bundle is not None and bundle.attachments:
@@ -190,6 +193,7 @@ class InitialLaboratoryAnamnesisService:
                         message=error_msg,
                         anamnesis=anamnesis,
                         laboratorio=laboratorio,
+                        progressive_context=progressive_context,
                     )
                 
                 elif (att.lifecycle_state in {AttachmentLifecycleState.RECEIVED, AttachmentLifecycleState.DOWNLOADED} or
@@ -226,6 +230,7 @@ class InitialLaboratoryAnamnesisService:
                         message=error_msg,
                         anamnesis=anamnesis,
                         laboratorio=laboratorio,
+                        progressive_context=progressive_context,
                     )
             
             # If no failures, extract the first valid evidence to use
@@ -364,6 +369,7 @@ class InitialLaboratoryAnamnesisService:
             message=message,
             anamnesis=anamnesis,
             laboratorio=laboratorio,
+            progressive_context=progressive_context,
         )
 
     def _filter_requested_documents_by_evidence(self, documentos: list[str], evidence: object | None) -> list[str]:

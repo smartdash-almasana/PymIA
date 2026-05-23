@@ -41,6 +41,7 @@ from pymia.services.initial_laboratory_anamnesis_service import (
     AnamnesisOriginaria,
     InitialLaboratoryAnamnesisService,
     LaboratorioInicialContrato,
+    ProgressiveTenantClinicalContext,
 )
 
 
@@ -84,6 +85,7 @@ class ConversationalOutput(BaseModel):
     message: str | None = Field(None)
     anamnesis: AnamnesisOriginaria | None = Field(None)
     laboratorio: LaboratorioInicialContrato | None = Field(None)
+    progressive_context: ProgressiveTenantClinicalContext | None = Field(None)
 
 
 class ClinicalConversationalPort:
@@ -109,6 +111,7 @@ class ClinicalConversationalPort:
                 message=None,
                 anamnesis=None,
                 laboratorio=None,
+                progressive_context=None,
             )
 
         if result.anamnesis.estado_conversacional == "contexto_clinico_insuficiente":
@@ -118,6 +121,7 @@ class ClinicalConversationalPort:
                 message=result.message,
                 anamnesis=result.anamnesis,
                 laboratorio=result.laboratorio,
+                progressive_context=result.progressive_context,
             )
 
         return ConversationalOutput(
@@ -126,5 +130,6 @@ class ClinicalConversationalPort:
             message=result.message,
             anamnesis=result.anamnesis,
             laboratorio=result.laboratorio,
+            progressive_context=result.progressive_context,
         )
 
