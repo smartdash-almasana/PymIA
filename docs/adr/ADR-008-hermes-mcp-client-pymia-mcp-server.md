@@ -1,7 +1,7 @@
 # ADR-008: Integración Hermes ↔ PymIA vía MCP
 
 ## Estado
-Propuesta
+Aprobado
 
 ## Contexto
 El sistema necesita una frontera estable entre el organismo conversacional y la computabilidad clínica-operacional.
@@ -76,3 +76,27 @@ Diseñar contrato MCP mínimo para `pymia.first_clinical_interview`:
 - output estructurado,
 - errores contractuales,
 - criterios de bloqueo/continuación de fase.
+
+## Evidencia de validación
+- SM1-VM PASS: `docs/arquitectura/HERMES_SM1_VM_GATEWAY_AUDIT_RESULT.md`
+- SM2-VM inicial FAIL: `docs/arquitectura/HERMES_SM2_VM_MCP_ROUNDTRIP_RESULT.md`
+- MCP-0 PASS: `e6c3df8 feat(mcp): add first clinical interview MCP server`
+- SM2-VM retry PASS: `docs/arquitectura/HERMES_SM2_VM_MCP_ROUNDTRIP_RETRY_RESULT.md`
+
+## Alcance aprobado
+Aprobado solo:
+- Hermes MCP client -> PymIA MCP server.
+- Tool inicial `pymia.first_clinical_interview.v1`.
+- Patrón de configuración aislada validado con `HERMES_HOME`.
+- Preservación de frontera: Hermes orquesta, PymIA computa.
+
+## Fuera de alcance
+No aprobado todavía:
+- Otras tools MCP.
+- `operational_audit`.
+- Diagnóstico completo.
+- Telegram productivo.
+- Modificación del gateway vivo.
+- Persistencia clínica en Hermes.
+- Suplantación de PymIA por Hermes.
+- Interpretación documental/Excel vía Hermes.
