@@ -5,6 +5,7 @@ from pymia.document_intelligence import TenantClinicalContext
 
 
 ESTADO_ESPERANDO_DOCUMENTACION = "esperando_documentacion"
+ESTADO_ENCUADRE_TAXONOMICO = "encuadre_taxonomico_inicial"
 
 
 class AnamnesisOriginaria(BaseModel):
@@ -30,19 +31,15 @@ class LaboratorioInicialContrato(BaseModel):
     limite_actual: str
 
 
-class InitialLaboratoryAnamnesisResult(BaseModel):
-    message: str
-    anamnesis: AnamnesisOriginaria
-    laboratorio: LaboratorioInicialContrato
-    progressive_context: ProgressiveTenantClinicalContext | None = None
-
-
 class ProgressiveBusinessIdentity(BaseModel):
     """Progressive identity draft captured during initial anamnesis."""
 
     display_name: str | None = None
     country_code: str | None = None
     industry_hint: str | None = None
+    # taxonomy_phase tracks whether FASE_0_IDENTIDAD was completed.
+    # None = not started; "FASE_0_IDENTIDAD" = completed.
+    taxonomy_phase: str | None = None
 
 
 class ProgressiveTenantClinicalContext(BaseModel):
@@ -62,12 +59,37 @@ class ProgressiveTenantClinicalContext(BaseModel):
             and self.business_identity.country_code
         )
 
+    @property
+    def has_taxonomic_identity(self) -> bool:
+        """Returns True only when basic industry/organism taxonomy has been established.
+
+        taxonomy_phase must be explicitly set to "FASE_0_IDENTIDAD" by an external
+        caller (e.g. a turn where the owner confirms their organism type).
+        Mere heuristic inference from text is NOT sufficient.
+        """
+        return (
+            self.business_identity.industry_hint is not None
+            and self.business_identity.taxonomy_phase == "FASE_0_IDENTIDAD"
+        )
+
+
+class InitialLaboratoryAnamnesisResult(BaseModel):
+    message: str
+    anamnesis: AnamnesisOriginaria
+    laboratorio: LaboratorioInicialContrato
+    progressive_context: ProgressiveTenantClinicalContext | None = None
+
 
 class InitialLaboratoryAnamnesisService:
     """Recepción clínica-operacional mínima para el primer tiempo lógico.
 
     Esta capa no diagnostica. Abre hipótesis, pide evidencia y reduce
     incertidumbre antes de derivar al pipeline documental.
+
+    Orden de ejecución obligatorio (según CONTRATO_PRIMER_ENCUENTRO_TAXONOMICO):
+    1. FASE_0_IDENTIDAD — encuadre taxonómico del organismo.
+    2. Contexto clínico formal (TenantClinicalContext) si ya existe.
+    3. Pipeline de hipótesis y evidencia (AdmissionPipelineV1).
     """
 
     _MARGIN_SIGNALS = (
@@ -102,11 +124,118 @@ class InitialLaboratoryAnamnesisService:
         channel: str,
         text: str,
         evidence: object | None = None,
-        bundle: EvidenceBundle | None = None,
+        bundle: object | None = None,
         tenant_context: TenantClinicalContext | None = None,
         previous_progressive_context: ProgressiveTenantClinicalContext | None = None,
     ) -> InitialLaboratoryAnamnesisResult | None:
         from pymia.contracts.attachment_lifecycle_v1 import EvidenceBundle, AttachmentParseStatus, AttachmentLifecycleState
+
+        if bundle is not None and bundle.attachments:
+            # First, check for failures or pending status
+            for att in bundle.attachments:
+                if (att.parse_status == AttachmentParseStatus.FAILED or
+                    att.lifecycle_state == AttachmentLifecycleState.PARSE_FAILED or
+                    att.parse_status == "FAILED" or
+                    att.lifecycle_state == "PARSE_FAILED"):
+
+                    error_msg = f"Recibí el Excel, pero no pude procesarlo correctamente. Causa: {att.user_message or 'Error de análisis.'}"
+                    anamnesis = AnamnesisOriginaria(
+                        tenant_id=tenant_id,
+                        canal=channel,
+                        frases_textuales=[text],
+                        dolores_detectados=[],
+                        hipotesis_iniciales=[],
+                        taxonomia_inicial={
+                            "rubro": None,
+                            "tipo_pyme": None,
+                            "produce_o_revende": None,
+                            "maneja_stock": None,
+                        },
+                        documentos_pedidos=[],
+                        estado_conversacional="error_procesamiento_evidencia",
+                    )
+                    laboratorio = LaboratorioInicialContrato(
+                        tenant_id=tenant_id,
+                        estado_conversacional="error_procesamiento_evidencia",
+                        hipotesis_a_contrastar=[],
+                        evidencia_requerida=[],
+                        capability="error_procesamiento_evidencia",
+                        tipo_documental_esperado=["xlsx", "csv", "pdf", "captura"],
+                        campos_esperados=[],
+                        nivel_confianza="error",
+                        limite_actual="Error al procesar la evidencia cargada.",
+                    )
+                    # Build progressive context here
+                    progressive_context = self._merge_progressive_context(
+                        tenant_id=tenant_id,
+                        previous=previous_progressive_context,
+                        current=self._build_progressive_tenant_context(
+                            tenant_id=tenant_id,
+                            channel=channel,
+                            text=text,
+                            evidence=None,
+                        )
+                    )
+                    return InitialLaboratoryAnamnesisResult(
+                        message=error_msg,
+                        anamnesis=anamnesis,
+                        laboratorio=laboratorio,
+                        progressive_context=progressive_context,
+                    )
+
+                elif (att.lifecycle_state in {AttachmentLifecycleState.RECEIVED, AttachmentLifecycleState.DOWNLOADED} or
+                      att.lifecycle_state in {"RECEIVED", "DOWNLOADED"}):
+
+                    error_msg = "Recibí el archivo, pero todavía no fue procesado."
+                    anamnesis = AnamnesisOriginaria(
+                        tenant_id=tenant_id,
+                        canal=channel,
+                        frases_textuales=[text],
+                        dolores_detectados=[],
+                        hipotesis_iniciales=[],
+                        taxonomia_inicial={
+                            "rubro": None,
+                            "tipo_pyme": None,
+                            "produce_o_revende": None,
+                            "maneja_stock": None,
+                        },
+                        documentos_pedidos=[],
+                        estado_conversacional="procesamiento_pendiente",
+                    )
+                    laboratorio = LaboratorioInicialContrato(
+                        tenant_id=tenant_id,
+                        estado_conversacional="procesamiento_pendiente",
+                        hipotesis_a_contrastar=[],
+                        evidencia_requerida=[],
+                        capability="procesamiento_pendiente",
+                        tipo_documental_esperado=["xlsx", "csv", "pdf", "captura"],
+                        campos_esperados=[],
+                        nivel_confianza="pendiente",
+                        limite_actual="El archivo todavía no fue procesado.",
+                    )
+                    # Build progressive context here
+                    progressive_context = self._merge_progressive_context(
+                        tenant_id=tenant_id,
+                        previous=previous_progressive_context,
+                        current=self._build_progressive_tenant_context(
+                            tenant_id=tenant_id,
+                            channel=channel,
+                            text=text,
+                            evidence=None,
+                        )
+                    )
+                    return InitialLaboratoryAnamnesisResult(
+                        message=error_msg,
+                        anamnesis=anamnesis,
+                        laboratorio=laboratorio,
+                        progressive_context=progressive_context,
+                    )
+
+            # If no failures, extract the first valid evidence to use
+            for att in bundle.attachments:
+                if att.evidence is not None:
+                    evidence = att.evidence
+                    break
 
         progressive_context: ProgressiveTenantClinicalContext | None = None
         if tenant_context is None:
@@ -121,6 +250,20 @@ class InitialLaboratoryAnamnesisService:
                 previous=previous_progressive_context,
                 current=current_progressive_context,
             )
+
+        # ── FASE_0_IDENTIDAD ──────────────────────────────────────────────────
+        # Antes de correr cualquier pipeline clínico, se establece qué tipo de
+        # organismo es la PyME. Si no hay TenantClinicalContext formal Y no hay
+        # identidad taxonómica previa confirmada, se responde con encuadre
+        # taxonómico. Sin hipótesis, sin pedido de documentos.
+        if tenant_context is None and self._needs_taxonomic_framing(progressive_context):
+            return self._build_taxonomic_framing_result(
+                tenant_id=tenant_id,
+                channel=channel,
+                text=text,
+                progressive_context=progressive_context,
+            )
+        # ── FIN FASE_0_IDENTIDAD ──────────────────────────────────────────────
 
         if tenant_context is not None and not self._tenant_context_is_minimum_valid(tenant_context):
             message = (
@@ -159,91 +302,6 @@ class InitialLaboratoryAnamnesisService:
                 laboratorio=laboratorio,
                 progressive_context=progressive_context,
             )
-
-        if bundle is not None and bundle.attachments:
-            # First, check for failures or pending status
-            for att in bundle.attachments:
-                if (att.parse_status == AttachmentParseStatus.FAILED or 
-                    att.lifecycle_state == AttachmentLifecycleState.PARSE_FAILED or
-                    att.parse_status == "FAILED" or
-                    att.lifecycle_state == "PARSE_FAILED"):
-                    
-                    error_msg = f"Recibí el Excel, pero no pude procesarlo correctamente. Causa: {att.user_message or 'Error de análisis.'}"
-                    anamnesis = AnamnesisOriginaria(
-                        tenant_id=tenant_id,
-                        canal=channel,
-                        frases_textuales=[text],
-                        dolores_detectados=[],
-                        hipotesis_iniciales=[],
-                        taxonomia_inicial={
-                            "rubro": None,
-                            "tipo_pyme": None,
-                            "produce_o_revende": None,
-                            "maneja_stock": None,
-                        },
-                        documentos_pedidos=[],
-                        estado_conversacional="error_procesamiento_evidencia",
-                    )
-                    laboratorio = LaboratorioInicialContrato(
-                        tenant_id=tenant_id,
-                        estado_conversacional="error_procesamiento_evidencia",
-                        hipotesis_a_contrastar=[],
-                        evidencia_requerida=[],
-                        capability="error_procesamiento_evidencia",
-                        tipo_documental_esperado=["xlsx", "csv", "pdf", "captura"],
-                        campos_esperados=[],
-                        nivel_confianza="error",
-                        limite_actual="Error al procesar la evidencia cargada.",
-                    )
-                    return InitialLaboratoryAnamnesisResult(
-                        message=error_msg,
-                        anamnesis=anamnesis,
-                        laboratorio=laboratorio,
-                        progressive_context=progressive_context,
-                    )
-                
-                elif (att.lifecycle_state in {AttachmentLifecycleState.RECEIVED, AttachmentLifecycleState.DOWNLOADED} or
-                      att.lifecycle_state in {"RECEIVED", "DOWNLOADED"}):
-                    
-                    error_msg = "Recibí el archivo, pero todavía no fue procesado."
-                    anamnesis = AnamnesisOriginaria(
-                        tenant_id=tenant_id,
-                        canal=channel,
-                        frases_textuales=[text],
-                        dolores_detectados=[],
-                        hipotesis_iniciales=[],
-                        taxonomia_inicial={
-                            "rubro": None,
-                            "tipo_pyme": None,
-                            "produce_o_revende": None,
-                            "maneja_stock": None,
-                        },
-                        documentos_pedidos=[],
-                        estado_conversacional="procesamiento_pendiente",
-                    )
-                    laboratorio = LaboratorioInicialContrato(
-                        tenant_id=tenant_id,
-                        estado_conversacional="procesamiento_pendiente",
-                        hipotesis_a_contrastar=[],
-                        evidencia_requerida=[],
-                        capability="procesamiento_pendiente",
-                        tipo_documental_esperado=["xlsx", "csv", "pdf", "captura"],
-                        campos_esperados=[],
-                        nivel_confianza="pendiente",
-                        limite_actual="El archivo todavía no fue procesado.",
-                    )
-                    return InitialLaboratoryAnamnesisResult(
-                        message=error_msg,
-                        anamnesis=anamnesis,
-                        laboratorio=laboratorio,
-                        progressive_context=progressive_context,
-                    )
-            
-            # If no failures, extract the first valid evidence to use
-            for att in bundle.attachments:
-                if att.evidence is not None:
-                    evidence = att.evidence
-                    break
 
         import uuid
         from pymia.pipeline.admission.v1.pipeline import AdmissionPipelineV1
@@ -378,6 +436,97 @@ class InitialLaboratoryAnamnesisService:
             progressive_context=progressive_context,
         )
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # FASE_0_IDENTIDAD helpers
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _needs_taxonomic_framing(
+        self,
+        progressive_context: ProgressiveTenantClinicalContext | None,
+    ) -> bool:
+        """Returns True when no basic taxonomic identity has been established.
+
+        Gate for FASE_0_IDENTIDAD: if the progressive context does not carry
+        a confirmed industry/organism type (taxonomy_phase == "FASE_0_IDENTIDAD"),
+        the system must ask first, before running any clinical pipeline.
+        """
+        if progressive_context is None:
+            return True
+        return not progressive_context.has_taxonomic_identity
+
+    def _build_taxonomic_framing_message(self) -> str:
+        """Builds the canonical FASE_0_IDENTIDAD response.
+
+        Sober, premium, human. Goes from general (organism type) to specific
+        (operational nature → scale). Does NOT diagnose, request documents,
+        emit hypotheses, or ask confidential/financial questions.
+        """
+        return (
+            "Antes de analizar números o sacar conclusiones, necesito ubicar "
+            "qué tipo de negocio estamos mirando.\n\n"
+            "Para empezar, contame:\n"
+            "¿Es un comercio, una fábrica / industria, una empresa de servicios, "
+            "logística / distribución, gastronomía, construcción, agro, salud, "
+            "educación u otro tipo de organización?\n\n"
+            "Y si podés agregar:\n"
+            "¿Fabricás, revendés, distribuís o prestás servicios?\n"
+            "¿Vendés al público, a empresas, por local, online, por WhatsApp, "
+            "por Mercado Libre u otro canal?\n"
+            "¿Tenés empleados? Aproximadamente, ¿cuántos?\n\n"
+            "Con eso puedo armar el contexto base antes de pedirte datos o documentos."
+        )
+
+    def _build_taxonomic_framing_result(
+        self,
+        *,
+        tenant_id: str,
+        channel: str,
+        text: str,
+        progressive_context: ProgressiveTenantClinicalContext | None,
+    ) -> InitialLaboratoryAnamnesisResult:
+        """Returns the structured result for FASE_0_IDENTIDAD.
+
+        No hypotheses, no documents requested, no clinical diagnosis.
+        Estado conversacional: encuadre_taxonomico_inicial.
+        """
+        message = self._build_taxonomic_framing_message()
+        anamnesis = AnamnesisOriginaria(
+            tenant_id=tenant_id,
+            canal=channel,
+            frases_textuales=[text],
+            dolores_detectados=[],
+            hipotesis_iniciales=[],
+            taxonomia_inicial={
+                "rubro": None,
+                "tipo_pyme": None,
+                "produce_o_revende": None,
+                "maneja_stock": None,
+            },
+            documentos_pedidos=[],
+            estado_conversacional=ESTADO_ENCUADRE_TAXONOMICO,
+        )
+        laboratorio = LaboratorioInicialContrato(
+            tenant_id=tenant_id,
+            estado_conversacional=ESTADO_ENCUADRE_TAXONOMICO,
+            hipotesis_a_contrastar=[],
+            evidencia_requerida=[],
+            capability="encuadre_taxonomico",
+            tipo_documental_esperado=[],
+            campos_esperados=[],
+            nivel_confianza="sin_contexto_taxonomico",
+            limite_actual="No se puede iniciar análisis sin conocer el tipo de organismo.",
+        )
+        return InitialLaboratoryAnamnesisResult(
+            message=message,
+            anamnesis=anamnesis,
+            laboratorio=laboratorio,
+            progressive_context=progressive_context,
+        )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Supporting helpers
+    # ─────────────────────────────────────────────────────────────────────────
+
     def _filter_requested_documents_by_evidence(self, documentos: list[str], evidence: object | None) -> list[str]:
         if evidence is None:
             return documentos
@@ -475,7 +624,7 @@ class InitialLaboratoryAnamnesisService:
         if any(signal in normalized for signal in self._MARGIN_SIGNALS):
             symptom_summary = list(dict.fromkeys(symptom_summary + ["incertidumbre de rentabilidad"]))
 
-        industry_hint = "distribucion" if "ruta" in normalized else None
+        taxonomic_identity = self._classify_taxonomic_response(normalized)
 
         documents_requested: list[str] = []
         if evidence is None:
@@ -485,13 +634,52 @@ class InitialLaboratoryAnamnesisService:
             tenant_id=tenant_id,
             channel=channel,
             business_identity=ProgressiveBusinessIdentity(
-                display_name=None,
-                country_code=None,
-                industry_hint=industry_hint,
+                display_name=taxonomic_identity.display_name,
+                country_code=taxonomic_identity.country_code,
+                industry_hint=taxonomic_identity.industry_hint,
+                taxonomy_phase=taxonomic_identity.taxonomy_phase,
             ),
             symptom_summary=symptom_summary,
             documents_requested=documents_requested,
         )
+
+    def _classify_taxonomic_response(self, normalized: str) -> ProgressiveBusinessIdentity:
+        organism_patterns: tuple[tuple[tuple[str, ...], str], ...] = (
+            (("distribuidora", "distribucion", "distribuimos", "logistica", "ruta", "reparto"), "logistica/distribucion"),
+            (("comercio", "local", "minorista", "mayorista", "tienda", "negocio a la calle"), "comercio"),
+            (("fabrica", "industria", "fabricamos", "produccion", "taller"), "industria/fabrica"),
+            (("servicio", "servicios", "prestamos servicios"), "servicios"),
+            (("gastronomia", "restaurant", "restaurante", "bar", "cafeteria"), "gastronomia"),
+            (("construccion", "obra", "obras"), "construccion"),
+            (("agro", "campo", "agricola", "ganader"), "agro"),
+            (("salud", "clinica", "consultorio", "farmacia"), "salud"),
+            (("educacion", "escuela", "instituto", "capacitacion"), "educacion"),
+        )
+
+        industry_hint: str | None = None
+        for patterns, candidate in organism_patterns:
+            if any(pattern in normalized for pattern in patterns):
+                industry_hint = candidate
+                break
+
+        taxonomy_phase = "FASE_0_IDENTIDAD" if industry_hint is not None else None
+        country_code = "AR" if taxonomy_phase == "FASE_0_IDENTIDAD" else None
+
+        return ProgressiveBusinessIdentity(
+            display_name=self._extract_declared_business_name(normalized),
+            country_code=country_code,
+            industry_hint=industry_hint,
+            taxonomy_phase=taxonomy_phase,
+        )
+
+    def _extract_declared_business_name(self, normalized: str) -> str | None:
+        markers = ("se llama ", "nos llamamos ", "mi negocio es ", "la empresa es ")
+        for marker in markers:
+            if marker in normalized:
+                candidate = normalized.split(marker, 1)[1].strip()
+                if candidate:
+                    return candidate.split(",", 1)[0].split(".", 1)[0].strip() or None
+        return None
 
     def _merge_progressive_context(
         self,
@@ -512,6 +700,8 @@ class InitialLaboratoryAnamnesisService:
             display_name=prev_identity.display_name or curr_identity.display_name,
             country_code=prev_identity.country_code or curr_identity.country_code,
             industry_hint=prev_identity.industry_hint or curr_identity.industry_hint,
+            # taxonomy_phase is preserved across turns once established.
+            taxonomy_phase=prev_identity.taxonomy_phase or curr_identity.taxonomy_phase,
         )
 
         return ProgressiveTenantClinicalContext(
