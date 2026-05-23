@@ -20,6 +20,10 @@ from pymia.hermes.adapter import (
     HermesPayload,
 )
 from pymia.interfaces.conversational_port import ClinicalConversationalPort
+from pymia.services.initial_laboratory_anamnesis_service import (
+    ProgressiveBusinessIdentity,
+    ProgressiveTenantClinicalContext,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -343,3 +347,102 @@ def test_adapter_respects_tenant_isolation(adapter: HermesAdapter):
     assert out_a.payload.anamnesis.tenant_id == "tenant_A"
     assert out_b.payload.anamnesis.tenant_id == "tenant_B"
     assert out_a.payload.anamnesis.tenant_id != out_b.payload.anamnesis.tenant_id
+
+
+def _previous_progressive(tenant_id: str) -> ProgressiveTenantClinicalContext:
+    return ProgressiveTenantClinicalContext(
+        tenant_id=tenant_id,
+        channel="telegram",
+        business_identity=ProgressiveBusinessIdentity(
+            display_name=None,
+            country_code=None,
+            industry_hint="retail",
+        ),
+        symptom_summary=["tension de stock"],
+        documents_requested=["ventas"],
+    )
+
+
+def test_hermes_payload_contains_progressive_context_on_ok(adapter: HermesAdapter):
+    output = adapter.handle(HermesInput(
+        tenant_id="tenant_progressive_ok",
+        channel="telegram",
+        message_text="vendo mucho pero no se si gano plata",
+        metadata={},
+    ))
+    assert output.status == "ok"
+    assert output.payload.progressive_context is not None
+
+
+def test_hermes_payload_progressive_context_is_none_on_no_signal(adapter: HermesAdapter):
+    output = adapter.handle(HermesInput(
+        tenant_id="tenant_progressive_none",
+        channel="telegram",
+        message_text="hola",
+        metadata={},
+    ))
+    assert output.status == "no_signal"
+    assert output.payload.progressive_context is None
+
+
+def test_hermes_input_accepts_previous_progressive_context():
+    previous = _previous_progressive("tenant_prev_accept")
+    hermes_input = HermesInput(
+        tenant_id="tenant_prev_accept",
+        channel="telegram",
+        message_text="mensaje",
+        metadata={},
+        previous_progressive_context=previous,
+    )
+    assert hermes_input.previous_progressive_context == previous
+
+
+def test_adapter_passes_previous_progressive_context_to_port():
+    previous = _previous_progressive("tenant_prev_pass")
+    adapter = HermesAdapter()
+    adapter._port = MagicMock(wraps=ClinicalConversationalPort())
+
+    adapter.handle(HermesInput(
+        tenant_id="tenant_prev_pass",
+        channel="telegram",
+        message_text="vendo mucho pero no se si gano plata",
+        metadata={},
+        previous_progressive_context=previous,
+    ))
+
+    call_args = adapter._port.handle.call_args
+    clinical_input = call_args[0][0]
+    assert clinical_input.previous_progressive_context == previous
+
+
+def test_hermes_roundtrip_two_turns_accumulates_progressive_context(adapter: HermesAdapter):
+    first = adapter.handle(HermesInput(
+        tenant_id="tenant_roundtrip",
+        channel="telegram",
+        message_text="tengo stock parado",
+        metadata={},
+    ))
+    second = adapter.handle(HermesInput(
+        tenant_id="tenant_roundtrip",
+        channel="telegram",
+        message_text="vendo mucho pero no se si gano plata",
+        metadata={},
+        previous_progressive_context=first.payload.progressive_context,
+    ))
+    assert second.payload.progressive_context is not None
+    assert "tension de stock" in second.payload.progressive_context.symptom_summary
+    assert "incertidumbre de rentabilidad" in second.payload.progressive_context.symptom_summary
+
+
+def test_cross_tenant_previous_progressive_context_is_discarded_through_adapter(adapter: HermesAdapter):
+    previous = _previous_progressive("tenant_other")
+    output = adapter.handle(HermesInput(
+        tenant_id="tenant_current",
+        channel="telegram",
+        message_text="vendo mucho pero no se si gano plata",
+        metadata={},
+        previous_progressive_context=previous,
+    ))
+    assert output.payload.progressive_context is not None
+    assert output.payload.progressive_context.tenant_id == "tenant_current"
+    assert "tension de stock" not in output.payload.progressive_context.symptom_summary

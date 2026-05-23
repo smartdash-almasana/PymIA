@@ -91,6 +91,7 @@ from pymia.interfaces.conversational_port import (
 from pymia.services.initial_laboratory_anamnesis_service import (
     AnamnesisOriginaria,
     LaboratorioInicialContrato,
+    ProgressiveTenantClinicalContext,
 )
 
 
@@ -143,6 +144,10 @@ class HermesInput(BaseModel):
         default=None,
         description="Agrupación de adjuntos recibidos y su estado de procesamiento.",
     )
+    previous_progressive_context: ProgressiveTenantClinicalContext | None = Field(
+        default=None,
+        description="Snapshot previo de contexto progresivo para roundtrip entre turnos.",
+    )
 
 
 class HermesPayload(BaseModel):
@@ -165,6 +170,10 @@ class HermesPayload(BaseModel):
     input_metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Metadata original de HermesInput, preservada para trazabilidad.",
+    )
+    progressive_context: ProgressiveTenantClinicalContext | None = Field(
+        default=None,
+        description="Contexto progresivo devuelto por el kernel para siguiente turno.",
     )
 
 
@@ -261,6 +270,7 @@ class HermesAdapter:
             channel=hermes_input.channel,
             text=hermes_input.message_text,
             bundle=hermes_input.evidence_bundle,
+            previous_progressive_context=hermes_input.previous_progressive_context,
         )
 
         # — Delegación al kernel clínico —
@@ -271,6 +281,7 @@ class HermesAdapter:
             anamnesis=clinical_output.anamnesis,
             laboratorio=clinical_output.laboratorio,
             input_metadata=hermes_input.metadata,
+            progressive_context=clinical_output.progressive_context,
         )
 
         # — Traducción salida: vocabulario clínico → vocabulario Hermes —
