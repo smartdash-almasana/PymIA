@@ -188,7 +188,7 @@ La preparación del sandbox debe permanecer en estado **BLOCKED** ante cualquier
 ## 11. Criterios READY_FOR_SANDBOX_CREATION
 
 El estado formal de esta fase del sandbox local SCN se define como:
-**READY_FOR_SANDBOX_CREATION_DOC_ONLY**
+**DOC_PREP_COMPLETE_AWAITING_DECISION**
 
 Se alcanza exclusivamente si:
 - Esta checklist documental preflight se encuentra 100% completada y revisada.
