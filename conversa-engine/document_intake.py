@@ -9,6 +9,21 @@ from inbound_event import RawInboundEvent
 from intake_repository import DocumentIntakeRepository
 
 
+class DocumentIntakeBoundaryError(Exception):
+    """Base class for all document intake boundary exceptions."""
+    pass
+
+
+class IntakeStatePersistenceError(DocumentIntakeBoundaryError):
+    """Raised when critical state persistence fails."""
+    pass
+
+
+class OperationalAuditExecutionError(DocumentIntakeBoundaryError):
+    """Raised when the operational audit execution fails unexpectedly."""
+    pass
+
+
 def _mime_from_extension(file_name: str) -> str:
     ext = Path(file_name).suffix.lower()
     if ext == ".pdf":
@@ -24,6 +39,67 @@ def _mime_from_extension(file_name: str) -> str:
     if ext == ".png":
         return "image/png"
     return "application/octet-stream"
+
+
+def _persist_lifecycle_state(
+    repo: DocumentIntakeRepository,
+    session_id: str,
+    lifecycle_state: str,
+) -> None:
+    try:
+        state = repo.load(session_id=session_id)
+        state.last_lifecycle_state = lifecycle_state
+        repo.save(session_id=session_id, state=state)
+    except Exception as e:
+        raise IntakeStatePersistenceError(
+            f"Failed to persist state {lifecycle_state} for session {session_id}: {e}"
+        ) from e
+
+
+def _run_operational_audit(
+    file_path: str,
+    tenant_id: str,
+    session_id: str,
+    audits_dir: Path,
+):
+    from operational_audit_runner import run_excel_operational_audit
+    try:
+        return run_excel_operational_audit(
+            excel_path=file_path,
+            tenant_id=tenant_id,
+            session_id=session_id,
+            output_dir=audits_dir,
+        )
+    except Exception as e:
+        raise OperationalAuditExecutionError(
+            f"Unexpected error executing operational audit: {e}"
+        ) from e
+
+
+def _sync_audit_status_to_state(
+    chosen_state_path: Path,
+    session_id: str,
+    file_name: str,
+    evidence_path: Path,
+) -> None:
+    import json
+    if evidence_path.exists():
+        with open(evidence_path, "r", encoding="utf-8") as f:
+            status_data = json.load(f)
+        
+        repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
+        state = repo.load(session_id=session_id)
+        state.last_file_name = file_name
+        state.last_lifecycle_state = status_data.get("lifecycle_state")
+        state.last_parse_status = status_data.get("parse_status")
+        state.last_parse_error = status_data.get("parse_error")
+        state.last_root_cause = status_data.get("root_cause")
+        state.last_user_message = status_data.get("user_message")
+        repo.save(session_id=session_id, state=state)
+
+
+def _build_fail_closed_response(file_name: str) -> str:
+    return f"Error inesperado al ejecutar la auditoría operacional del archivo '{file_name}'."
 
 
 def _session_id(tenant_id: str, user_id: str) -> str:
@@ -109,13 +185,8 @@ def intake_document(
 
     # Record DOWNLOADED state
     if chosen_state_path is not None:
-        try:
-            repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
-            state = repo.load(session_id=session_id)
-            state.last_lifecycle_state = "DOWNLOADED"
-            repo.save(session_id=session_id, state=state)
-        except Exception:
-            pass
+        repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
+        _persist_lifecycle_state(repo, session_id, "DOWNLOADED")
 
     route_label = {
         IngestionRoute.BEM_AI: "BEM_AI",
@@ -130,54 +201,58 @@ def intake_document(
 
     # Record PARSE_ATTEMPTED if we are running the parser
     if route == IngestionRoute.INTERNAL_FACT and chosen_state_path is not None:
-        try:
-            repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
-            state = repo.load(session_id=session_id)
-            state.last_lifecycle_state = "PARSE_ATTEMPTED"
-            repo.save(session_id=session_id, state=state)
-        except Exception:
-            pass
+        repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
+        _persist_lifecycle_state(repo, session_id, "PARSE_ATTEMPTED")
 
-    audit_active = False
+    audit_state = "not_run"
     kernel_msg = None
     if route == IngestionRoute.INTERNAL_FACT and chosen_state_path is not None:
-        from operational_audit_runner import run_excel_operational_audit
-        import json
         audits_dir = chosen_state_path / "audits"
         try:
-            audit_res = run_excel_operational_audit(
-                excel_path=file_path,
+            audit_res = _run_operational_audit(
+                file_path=file_path,
                 tenant_id=tenant_id,
                 session_id=session_id,
-                output_dir=audits_dir,
+                audits_dir=audits_dir,
             )
-            audit_active = audit_res.ok
+            audit_state = "active" if audit_res.ok else "failed"
 
             # Load status from evidence.json and sync back to intake state
-            if audit_res.evidence_path.exists():
-                with open(audit_res.evidence_path, "r", encoding="utf-8") as f:
-                    status_data = json.load(f)
-                
-                repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
-                state = repo.load(session_id=session_id)
-                state.last_file_name = file_name
-                state.last_lifecycle_state = status_data.get("lifecycle_state")
-                state.last_parse_status = status_data.get("parse_status")
-                state.last_parse_error = status_data.get("parse_error")
-                state.last_root_cause = status_data.get("root_cause")
-                state.last_user_message = status_data.get("user_message")
-                repo.save(session_id=session_id, state=state)
+            _sync_audit_status_to_state(
+                chosen_state_path=chosen_state_path,
+                session_id=session_id,
+                file_name=file_name,
+                evidence_path=audit_res.evidence_path,
+            )
 
             # If not active (failed), read clinical port message
-            if not audit_active and audit_res.kernel_path.exists():
+            if audit_state != "active" and audit_res.kernel_path.exists():
+                import json
                 with open(audit_res.kernel_path, "r", encoding="utf-8") as f:
                     kernel_data = json.load(f)
                 kernel_msg = kernel_data.get("kernel", {}).get("message")
-        except Exception:
-            audit_active = False
+        except Exception as e:
+            audit_state = "failed"
+            # Persist failure in intake state
+            repo = DocumentIntakeRepository(base_path=chosen_state_path, stale_lock_seconds=60.0)
+            state = repo.load(session_id=session_id)
+            state.last_file_name = file_name
+            state.last_lifecycle_state = "PARSE_FAILED"
+            state.last_parse_status = "FAILED"
+            state.last_root_cause = "operational_audit_execution_error"
+            state.last_parse_error = f"{type(e).__name__}: {str(e)}"
+            state.last_user_message = _build_fail_closed_response(file_name)
+            try:
+                repo.save(session_id=session_id, state=state)
+            except Exception as persist_err:
+                raise IntakeStatePersistenceError(
+                    f"Failed to persist audit failure state: {persist_err}"
+                ) from persist_err
+            
+            kernel_msg = state.last_user_message
 
     # Block textual fallback if attachments parsing failed
-    if route == IngestionRoute.INTERNAL_FACT and not audit_active:
+    if route == IngestionRoute.INTERNAL_FACT and audit_state != "active":
         if kernel_msg:
             return kernel_msg
         return f"Error al procesar el archivo '{file_name}'."
@@ -200,7 +275,7 @@ def intake_document(
             classification.required_followup,
         ])
 
-    if audit_active:
+    if audit_state == "active":
         lines.extend([
             "",
             "[Auditoría Operacional Activa]",

@@ -369,3 +369,139 @@ def test_document_intake_fails_and_saves_state(tmp_path: Path):
     assert "FileNotFoundError" in state.last_parse_error or "Exception" in state.last_parse_error
     assert state.last_root_cause == "file_not_found"
     assert "El archivo Excel no pudo ser encontrado" in state.last_user_message
+
+
+def test_document_intake_records_unexpected_audit_exception(tmp_path, monkeypatch):
+    """Verifies that unexpected audit errors are gracefully handled, fail-closed, and persisted securely."""
+    import importlib.util
+    import sys
+    conversa_dir = Path(__file__).resolve().parent.parent.parent / "conversa-engine"
+    if str(conversa_dir) not in sys.path:
+        sys.path.insert(0, str(conversa_dir))
+
+    spec = importlib.util.spec_from_file_location("document_intake", conversa_dir / "document_intake.py")
+    document_intake = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(document_intake)
+    intake_document = document_intake.intake_document
+
+    import operational_audit_runner
+    def mock_run(*args, **kwargs):
+        raise RuntimeError("boom")
+        
+    monkeypatch.setattr(operational_audit_runner, "run_excel_operational_audit", mock_run)
+
+    # Load repo to verify state
+    DocumentIntakeRepository = document_intake.DocumentIntakeRepository
+
+    state_path = tmp_path / "state"
+    file_path = "boom_file.xlsx"
+
+    msg = intake_document(
+        tenant_id="tenant-intake-boom",
+        user_id="user-222",
+        file_path=file_path,
+        file_name="boom_file.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        expected_schema="unknown",
+        entropy_level=0.1,  # INTERNAL_FACT
+        base_path=state_path,
+    )
+
+    # verificar respuesta segura
+    assert "Error inesperado al ejecutar la auditoría operacional del archivo 'boom_file.xlsx'." == msg
+    
+    # verificar state
+    repo = DocumentIntakeRepository(base_path=state_path)
+    state = repo.load(session_id="tenant-intake-boom/user-222")
+    
+    assert state.last_file_name == "boom_file.xlsx"
+    assert state.last_lifecycle_state == "PARSE_FAILED"
+    assert state.last_parse_status == "FAILED"
+    assert state.last_root_cause == "operational_audit_execution_error"
+    assert "boom" in state.last_parse_error
+    assert "Error inesperado al ejecutar la auditoría operacional" in state.last_user_message
+
+
+def test_document_intake_downloaded_state_persistence_failure_is_observable(tmp_path, monkeypatch):
+    """Verifies that downloaded state persistence failure raises IntakeStatePersistenceError."""
+    import importlib.util
+    import sys
+    conversa_dir = Path(__file__).resolve().parent.parent.parent / "conversa-engine"
+    if str(conversa_dir) not in sys.path:
+        sys.path.insert(0, str(conversa_dir))
+
+    spec = importlib.util.spec_from_file_location("document_intake", conversa_dir / "document_intake.py")
+    document_intake = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(document_intake)
+    intake_document = document_intake.intake_document
+    IntakeStatePersistenceError = document_intake.IntakeStatePersistenceError
+
+    DocumentIntakeRepository = document_intake.DocumentIntakeRepository
+
+    original_save = DocumentIntakeRepository.save
+    def mock_save(self, *args, **kwargs):
+        state = kwargs.get("state") or (args[1] if len(args) > 1 else None)
+        if state and state.last_lifecycle_state == "DOWNLOADED":
+            raise RuntimeError("persistence failed")
+        return original_save(self, *args, **kwargs)
+
+    monkeypatch.setattr(DocumentIntakeRepository, "save", mock_save)
+
+    state_path = tmp_path / "state"
+
+    with pytest.raises(IntakeStatePersistenceError) as exc_info:
+        intake_document(
+            tenant_id="tenant-persist-fail-download",
+            user_id="user-333",
+            file_path="some_file.xlsx",
+            file_name="some_file.xlsx",
+            mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            expected_schema="unknown",
+            entropy_level=0.1,
+            base_path=state_path,
+        )
+
+    assert "Failed to persist state DOWNLOADED" in str(exc_info.value)
+
+
+def test_document_intake_parse_attempted_state_persistence_failure_is_observable(tmp_path, monkeypatch):
+    """Verifies that parse attempted state persistence failure raises IntakeStatePersistenceError."""
+    import importlib.util
+    import sys
+    conversa_dir = Path(__file__).resolve().parent.parent.parent / "conversa-engine"
+    if str(conversa_dir) not in sys.path:
+        sys.path.insert(0, str(conversa_dir))
+
+    spec = importlib.util.spec_from_file_location("document_intake", conversa_dir / "document_intake.py")
+    document_intake = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(document_intake)
+    intake_document = document_intake.intake_document
+    IntakeStatePersistenceError = document_intake.IntakeStatePersistenceError
+
+    DocumentIntakeRepository = document_intake.DocumentIntakeRepository
+
+    original_save = DocumentIntakeRepository.save
+    def mock_save(self, *args, **kwargs):
+        state = kwargs.get("state") or (args[1] if len(args) > 1 else None)
+        if state and state.last_lifecycle_state == "PARSE_ATTEMPTED":
+            raise RuntimeError("persistence failed")
+        return original_save(self, *args, **kwargs)
+
+    monkeypatch.setattr(DocumentIntakeRepository, "save", mock_save)
+
+    state_path = tmp_path / "state"
+
+    with pytest.raises(IntakeStatePersistenceError) as exc_info:
+        intake_document(
+            tenant_id="tenant-persist-fail-parse",
+            user_id="user-444",
+            file_path="some_file.xlsx",
+            file_name="some_file.xlsx",
+            mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            expected_schema="unknown",
+            entropy_level=0.1,
+            base_path=state_path,
+        )
+
+    assert "Failed to persist state PARSE_ATTEMPTED" in str(exc_info.value)
+
