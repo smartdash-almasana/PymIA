@@ -38,6 +38,10 @@ def verify_operational_audit_result(result: Mapping[str, Any]) -> Mapping[str, A
     if status not in VALID_STATUSES:
         raise SCNVerificationError(f"OperationalAuditResult invalid status: {status}")
 
+    sovereign_mark = result["sovereign_mark"]
+    if sovereign_mark is None or (isinstance(sovereign_mark, str) and not sovereign_mark.strip()):
+        raise SCNVerificationError("OperationalAuditResult missing sovereign_mark")
+
     forbidden_inferences = result["forbidden_inferences"]
     if not isinstance(forbidden_inferences, list):
         raise SCNVerificationError("OperationalAuditResult forbidden_inferences must be a list")
