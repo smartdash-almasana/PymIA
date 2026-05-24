@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pymia.local/contracts/scn/kernel_request.schema.json",
+  "title": "KernelRequest (SCN Draft Contract)",
+  "description": "Typed request envelope toward PymIA kernel. Hermes must not call kernel directly outside Boundary Layer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "tenant_id",
+    "operation",
+    "evidence_refs",
+    "requested_by",
+    "conversation_context_ref",
+    "policy_profile",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "operation": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "requested_by": {
+      "type": "string",
+      "enum": ["boundary_layer"]
+    },
+    "conversation_context_ref": {
+      "type": "string"
+    },
+    "policy_profile": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

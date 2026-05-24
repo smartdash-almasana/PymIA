@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pymia.local/contracts/scn/operational_audit_result.scn.schema.json",
+  "title": "OperationalAuditResult SCN Projection (Draft Contract)",
+  "description": "Conceptual SCN projection of sovereign output. This does not replace existing runtime model. Finding without PymIA sovereign mark is not valid.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "tenant_id",
+    "status",
+    "findings",
+    "evidence_used",
+    "missing_evidence",
+    "allowed_rendering",
+    "forbidden_inferences",
+    "audit_trail_ref",
+    "sovereign_mark",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "result_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "pending_data", "blocked", "error"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "missing_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_rendering": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "forbidden_inferences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "audit_trail_ref": {
+      "type": "string"
+    },
+    "sovereign_mark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issuer", "mark_type", "mark_value"],
+      "properties": {
+        "issuer": {
+          "type": "string"
+        },
+        "mark_type": {
+          "type": "string"
+        },
+        "mark_value": {
+          "type": "string"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

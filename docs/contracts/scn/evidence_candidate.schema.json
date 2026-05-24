@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pymia.local/contracts/scn/evidence_candidate.schema.json",
+  "title": "EvidenceCandidate (SCN Draft Contract)",
+  "description": "External input collected by Hermes or user before PymIA validation. EvidenceCandidate is not a Finding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "tenant_id",
+    "conversation_id",
+    "source_type",
+    "source_origin",
+    "collected_by",
+    "collected_at",
+    "raw_content_hash",
+    "payload",
+    "provenance",
+    "confidence",
+    "hermes_notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Contract version for SCN draft alignment."
+    },
+    "evidence_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "conversation_id": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string"
+    },
+    "source_origin": {
+      "type": "string"
+    },
+    "collected_by": {
+      "type": "string",
+      "enum": ["hermes", "user", "system"]
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "raw_content_hash": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Opaque external payload to be validated by Boundary Layer.",
+      "additionalProperties": true
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "hermes_notes": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["role", "diagnostic_authority"],
+      "properties": {
+        "role": {
+          "type": "string",
+          "const": "context_only"
+        },
+        "diagnostic_authority": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    }
+  }
+}

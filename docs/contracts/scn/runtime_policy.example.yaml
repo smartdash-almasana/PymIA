@@ -1,0 +1,27 @@
+allowed_actions:
+  - collect_evidence
+  - request_missing_data
+  - submit_evidence_candidate
+  - request_kernel_evaluation
+  - render_pymia_output
+
+forbidden_actions:
+  - generate_findings
+  - reinterpret_kernel_output
+  - perform_financial_diagnosis
+  - emit_operational_truth
+  - persist_clinical_memory
+  - create_kernel_logic_skill
+  - bypass_boundary_layer
+  - use_real_telegram_in_sandbox
+  - execute_mcp3_without_authorization
+
+fail_closed_on:
+  - invalid_evidence_candidate
+  - missing_kernel_result
+  - invalid_operational_audit_result
+  - missing_sovereign_mark
+  - forbidden_inferences_not_propagated
+  - hermes_attempts_to_generate_finding
+  - policy_conflict
+  - kernel_error

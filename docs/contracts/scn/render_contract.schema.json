@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pymia.local/contracts/scn/render_contract.schema.json",
+  "title": "RenderContract (SCN Draft Contract)",
+  "description": "Whitelisted output envelope that Hermes can render. Hermes renders. Hermes does not reinterpret.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "render_id",
+    "result_ref",
+    "tenant_id",
+    "summary",
+    "next_questions",
+    "next_steps",
+    "blocked_message",
+    "forbidden_inferences",
+    "references",
+    "allowed_tone",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "render_id": {
+      "type": "string"
+    },
+    "result_ref": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "next_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked_message": {
+      "type": ["string", "null"]
+    },
+    "forbidden_inferences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_tone": {
+      "type": "string",
+      "enum": ["neutral", "clinical", "operational", "blocked"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
