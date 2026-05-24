@@ -127,7 +127,17 @@ def route_from_operational_audit(text: str, operational_audit_result_payload: di
     return decision.reply_text
 
 
+def _configure_cli_encoding() -> None:
+    """Use UTF-8 for CLI output when the host stream supports reconfiguration."""
+
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 if __name__ == "__main__":
+    _configure_cli_encoding()
     exit_code, message, error = _cli_message_from_args(sys.argv[1:])
     if error is not None:
         print(error, file=sys.stderr)
