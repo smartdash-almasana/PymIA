@@ -42,12 +42,14 @@
     },
     "evidence_used": {
       "type": "array",
+      "description": "Validated evidence references used by PymIA to produce this OperationalAuditResult.",
       "items": {
         "type": "string"
       }
     },
     "missing_evidence": {
       "type": "array",
+      "description": "Evidence references still required before PymIA can complete or strengthen this OperationalAuditResult.",
       "items": {
         "type": "string"
       }
