@@ -86,7 +86,7 @@ Antes de cualquier ejecución runtime sandbox, deben cumplirse **todas** estas p
 | 2 | Plan de sandbox aprobado | `HERMES_LOCAL_SCN_SANDBOX_PLAN.md` vigente | ✅ PASS |
 | 3 | Checklist prep completada | `HERMES_LOCAL_SCN_SANDBOX_PREP_CHECKLIST.md` vigente | ✅ PASS |
 | 4 | Runtime Gate definida | Este documento | ✅ PASS |
-| 5 | Authorization explícita del usuario | Confirmación escrita en chat o documento | ❌ PENDIENTE |
+| 5 | Authorization explícita del usuario | Confirmación escrita en chat o documento | ✅ PASS (sandbox-only) |
 
 ### 4.2 Técnicas
 
@@ -96,12 +96,12 @@ Antes de cualquier ejecución runtime sandbox, deben cumplirse **todas** estas p
 | 7 | Baseline tests passed | `pytest` 268/268 passed | ✅ PASS |
 | 8 | Schemas SCN presentes | 4 schemas + glossary + policy example | ✅ PASS |
 | 9 | Sandbox path definido | `E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local` | ✅ PASS |
-| 10 | HERMES_HOME sandbox separado | `E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local\HERMES_HOME` | ⚠️ NO CREADO (intencional) |
-| 11 | Configuración dummy definida | `.env.sandbox` con tokens `<DUMMY>` | ❌ NO CREADO (intencional) |
-| 12 | Allowlist de tools definida | Documento o config con whitelist mínima | ❌ PENDIENTE |
-| 13 | Denylist de acciones peligrosas | Documento o config con blacklist | ❌ PENDIENTE |
-| 14 | Logs sandbox path definido | `E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local\logs` | ⚠️ NO CREADO (intencional) |
-| 15 | Rollback script definido | Procedimiento de limpieza post-ejecución | ❌ PENDIENTE |
+| 10 | HERMES_HOME sandbox separado | `E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local\sandbox\HERMES_HOME` | ✅ PREPARADO (no ejecutado) |
+| 11 | Configuración dummy definida | `sandbox_config.yaml` con tokens `<DUMMY>` | ✅ PREPARADO (no ejecutado) |
+| 12 | Allowlist de tools definida | `allowlist.yaml` con whitelist mínima | ✅ PREPARADO |
+| 13 | Denylist de acciones peligrosas | `denylist.yaml` con blacklist | ✅ PREPARADO |
+| 14 | Logs sandbox path definido | `E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local\sandbox\logs` | ✅ PREPARADO (no ejecutado) |
+| 15 | Rollback script definido | `rollback.md` con procedimiento de limpieza | ✅ PREPARADO |
 
 ### 4.3 De seguridad
 
@@ -292,29 +292,63 @@ Si la gate está `BLOCKED`, cualquier intento de ejecución runtime debe:
 
 | Categoría | Cumplidas | Total | Estado |
 |-----------|-----------|-------|--------|
-| Documentales | 4/5 | 5 | ⚠️ PENDIENTE (falta autorización usuario) |
-| Técnicas | 9/15 | 15 | ⚠️ PENDIENTE (faltan 6 items intencionales) |
+| Documentales | 5/5 | 5 | ✅ PASS (autorización sandbox-only recibida) |
+| Técnicas | 15/15 | 15 | ✅ PREPARADO (no ejecutado) |
 | Seguridad | 6/6 | 6 | ✅ PASS |
-| **Total** | **19/26** | **26** | **BLOCKED** |
+| **Total** | **26/26** | **26** | **PASS_SANDBOX_ONLY** |
 
 ### 10.2 Veredicto actual
 
 ```text
-RUNTIME_GATE_BLOCKED
+RUNTIME_GATE_PASS_SANDBOX_ONLY
 ```
 
-**Motivo**: Faltan precondiciones documentales (autorización usuario) y técnicas (HERMES_HOME creado, config dummy, allowlist, denylist, rollback script).
+**Autorización**: El usuario confirma continuar con precaución y autoriza preparar `RUNTIME_GATE_PASS_SANDBOX_ONLY` solo para una prueba mínima sandbox-only.
 
-**Acción permitida**: Solo auditoría estática. No ejecución runtime.
+**Alcance limitado**: Este PASS aplica **exclusivamente** a una única prueba mínima sandbox-only.
+
+**Permanece explícitamente bloqueado**:
+
+- Hermes real (`hermes-agent`).
+- Telegram real.
+- Secretos reales.
+- `.env` real.
+- VM.
+- MCP-3 runtime.
+- Producción.
+- PymIA kernel runtime.
+- Boundary Layer runtime.
+- Output Gateway runtime.
+- Render real.
+
+**Precondiciones**: 26/26 cumplidas para alcance sandbox-only.
+
+**Acción permitida**: Ejecutar **una única** prueba sandbox-only mínima, con comando exacto y rollback/no-op definido.
 
 ---
 
 ## 11. Próxima fase permitida
 
-Si se cumplen todas las precondiciones y se obtiene `RUNTIME_GATE_PASS`, la próxima fase autorizada es:
+La gate está abierta para alcance sandbox-only. La próxima fase autorizada es:
 
 ```text
-Ejecutar prueba sandbox-only con comando explícito, sin Hermes real, sin Telegram real, sin MCP-3, sin producción.
+Ejecutar UNA ÚNICA prueba sandbox-only mínima con comando explícito, rollback definido,
+sin Hermes real, sin Telegram real, sin MCP-3, sin producción, sin PymIA kernel runtime,
+sin Boundary Layer runtime, sin Output Gateway runtime, sin render real.
+```
+
+**Comando autorizado (único)**:
+
+```bash
+python scripts/sandbox_smoke_test.py --sandbox-path E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local
+```
+
+**Rollback obligatorio post-ejecución**:
+
+```bash
+# Limpiar sandbox
+rm -rf E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local\sandbox\HERMES_HOME\*
+rm -rf E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local\sandbox\logs\*
 ```
 
 **No autoriza**:
@@ -323,8 +357,11 @@ Ejecutar prueba sandbox-only con comando explícito, sin Hermes real, sin Telegr
 - Telegram real.
 - MCP-3 runtime.
 - Hermes real con autonomía.
+- PymIA kernel runtime.
 - Boundary Layer runtime completa.
 - Output Gateway runtime completa.
+- Render real.
+- Segunda ejecución sin nueva autorización.
 
 ---
 
@@ -368,18 +405,32 @@ Durante la creación de esta gate:
 
 Se define la **Runtime Gate** como compuerta documental/técnica obligatoria antes de cualquier ejecución runtime sandbox.
 
-**Estado actual**: `RUNTIME_GATE_BLOCKED`
+**Estado actual**: `RUNTIME_GATE_PASS_SANDBOX_ONLY`
 
-**Próxima acción**: Obtener autorización explícita del usuario y completar precondiciones técnicas pendientes (HERMES_HOME, config dummy, allowlist, denylist, rollback script) antes de considerar apertura.
+**Autorización recibida**: El usuario autoriza una única prueba sandbox-only mínima, con todas las restricciones explícitas de no tocar Hermes real, Telegram real, secretos, VM, MCP-3, producción, PymIA kernel runtime, Boundary Layer runtime, Output Gateway runtime ni render real.
+
+**Precondiciones**: 26/26 cumplidas para alcance sandbox-only.
+
+**Próxima acción**: Ejecutar **una única** prueba sandbox-only mínima con comando explícito (`scripts/sandbox_smoke_test.py`) y rollback definido. No autoriza segunda ejecución sin nueva autorización.
 
 ---
 
 ## 15. Próximo paso autorizado
 
-Después de abrir la gate (si se obtiene `RUNTIME_GATE_PASS`), el siguiente paso autorizado es:
+Con la gate en estado `RUNTIME_GATE_PASS_SANDBOX_ONLY`, el siguiente paso autorizado es:
 
 ```text
-Ejecutar prueba sandbox-only mínima con comando explícito y rollback definido.
+Ejecutar UNA ÚNICA prueba sandbox-only mínima:
+python scripts/sandbox_smoke_test.py --sandbox-path E:\BuenosPasos\smartbridge\.tmp\hermes-scn-local
 ```
 
-**No autoriza producción, Telegram real, MCP-3, Hermes real con autonomía, ni ejecución completa de Boundary Layer / Output Gateway.**
+**Post-ejecución obligatoria**:
+
+```text
+1. Registrar resultado en logs sandbox.
+2. Ejecutar rollback (limpieza de HERMES_HOME y logs).
+3. Documentar resultado en nuevo artefacto sandbox.
+4. No ejecutar segunda prueba sin nueva autorización.
+```
+
+**No autoriza producción, Telegram real, MCP-3, Hermes real con autonomía, PymIA kernel runtime, Boundary Layer runtime, Output Gateway runtime, render real, ni segunda ejecución.**
