@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import sys
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from evidence_router import IngestionRoute
 from inbound_event import RawInboundEvent
 from intake_state import DocumentIntakeState

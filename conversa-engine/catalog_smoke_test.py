@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import sys
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from symptom_pathology_catalog import (
     get_candidate_pathologies,
     get_mayeutic_questions,
