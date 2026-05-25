@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 from typing import Any
 
 from pymia.mcp_server.first_clinical_interview import (
@@ -17,7 +18,8 @@ _TOOL_DESCRIPTION = (
 
 def build_app() -> Any:
     try:
-        from mcp.server.fastmcp import FastMCP
+        fastmcp_module = importlib.import_module("mcp.server.fastmcp")
+        FastMCP = fastmcp_module.FastMCP
     except Exception as exc:  # pragma: no cover - optional runtime dependency
         raise RuntimeError(
             "El paquete opcional 'mcp' no está disponible. "
