@@ -5,6 +5,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
+from pymia.smartpyme.classifications.supplier_duplicate_check import diagnose_supplier_duplicates
 from pymia.smartpyme.excel_diagnostic import diagnose_excel
 from pymia.smartpyme.reception import ReceptionRecord, create_reception
 from pymia.smartpyme.storage import append_reception_jsonl, ensure_tenant_storage, write_result_reception
@@ -19,6 +20,23 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--storage-dir", required=False, default=None)
     return parser
+
+
+def _run_classification(*, classification: str, excel_path: Path, tenant_id: str, report_path: Path):
+    if classification == "supplier_duplicate_check":
+        diag, diagnostic_status = diagnose_supplier_duplicates(
+            excel_path=excel_path,
+            tenant_id=tenant_id,
+            markdown_output_path=report_path,
+        )
+        return diag, diagnostic_status
+
+    diag = diagnose_excel(
+        excel_path=excel_path,
+        tenant_id=tenant_id,
+        markdown_output_path=report_path,
+    )
+    return diag, "PASS"
 
 
 def run_e2e(
@@ -42,10 +60,11 @@ def run_e2e(
     result_path = out / "diagnostic_result.json"
     reception_path = out / "reception_record.json"
 
-    diag = diagnose_excel(
+    diag, diagnostic_status = _run_classification(
+        classification=classification,
         excel_path=excel_path,
         tenant_id=tenant_id,
-        markdown_output_path=report_path,
+        report_path=report_path,
     )
     findings = [asdict(f) for f in diag.findings]
     if not findings:
@@ -54,6 +73,7 @@ def run_e2e(
     diagnostic_result = {
         "tenant_id": tenant_id,
         "classification": classification,
+        "diagnostic_status": diagnostic_status,
         "source_file": str(excel_path),
         "findings_count": len(findings),
         "findings": findings,
@@ -66,7 +86,7 @@ def run_e2e(
         tenant_id=tenant_id,
         message=message,
         classification=classification,
-        status="DELIVERED",
+        status="BLOCKED" if diagnostic_status == "BLOCKED" else "DELIVERED",
         evidence_refs=evidence_refs,
         output_refs=output_refs,
     )
@@ -79,6 +99,7 @@ def run_e2e(
     return {
         "tenant_id": tenant_id,
         "status": reception.status,
+        "diagnostic_status": diagnostic_status,
         "findings_count": len(findings),
         "output_paths": {
             "diagnostic_report_md": str(report_path),
