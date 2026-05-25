@@ -333,7 +333,84 @@ Tipos documentales esperables:
 
 ---
 
-## 7. Preguntas no inductivas
+## 7. Microcuestionario estructural no inductivo
+
+El sistema puede usar botones/selectores para capturar contexto estructural rápido del organismo PyME.
+
+**Principio:** los selectores sirven para ubicar el organismo. El texto/audio sirve para entender el síntoma.
+
+### Reglas del microcuestionario
+
+- Los selectores **no diagnostican**.
+- **No deben forzar** el dolor del usuario a categorías cerradas.
+- Sirven para mejorar la taxonomía del organismo.
+- Deben ser **breves** (3 a 5 selectores máximo).
+- Deben ser **opcionales o progresivos**.
+- Deben convivir con relato libre por texto/audio.
+- Si el usuario llega con audio/texto espontáneo, no interrumpirlo con formulario; capturar primero y luego pedir contexto faltante.
+
+### Selectores permitidos
+
+#### Canal de venta
+- Local
+- Mayorista
+- Mercado Libre
+- Ecommerce
+- Instagram/WhatsApp
+- Mixto
+
+#### Tipo de operación
+- Revendo productos
+- Produzco/fabrico
+- Presto servicios
+- Distribuyo
+- Mixto
+- No estoy seguro
+
+#### Stock
+- Manejo stock
+- No manejo stock
+- Lo manejo informalmente
+- No sé si está actualizado
+
+#### Herramientas actuales
+- Excel
+- Sistema de gestión
+- Cuaderno/papel
+- Contador/estudio
+- Mercado Libre/tienda online
+- Varios
+
+#### Evidencia disponible
+- Excel
+- PDF/facturas
+- Capturas
+- Export de sistema
+- Audio/texto
+- Todavía no sé
+
+### Selectores prohibidos o peligrosos
+
+Estos selectores inducen diagnóstico prematuro y no deben usarse:
+
+```text
+¿Tu problema es margen, caja, proveedores o stock?
+¿Querés auditoría financiera, comercial o de inventario?
+¿Qué diagnóstico querés correr?
+```
+
+### Captura del dolor
+
+El dolor siempre debe capturarse con pregunta abierta, no con selector:
+
+```text
+Contame con tus palabras qué querés entender o qué te preocupa.
+Podés escribirlo o mandarlo por audio.
+```
+
+---
+
+## 8. Preguntas no inductivas
 
 Ejemplos concretos de preguntas correctas:
 
@@ -356,7 +433,7 @@ Estas preguntas:
 
 ---
 
-## 8. Preguntas prohibidas o débiles
+## 9. Preguntas prohibidas o débiles
 
 Ejemplos de menús prematuros que no deben usarse:
 
@@ -375,7 +452,7 @@ Estas preguntas:
 
 ---
 
-## 9. Relación con runtime real
+## 10. Relación con runtime real
 
 ### Clasificaciones vigentes
 
@@ -408,7 +485,7 @@ Si el usuario pasa clasificación explícita distinta, el sistema respeta pero p
 
 ---
 
-## 10. Criterios de cierre del interrogatorio
+## 11. Criterios de cierre del interrogatorio
 
 El interrogatorio queda cerrado cuando:
 
@@ -423,7 +500,7 @@ Cierre no significa diagnóstico. Significa que el sistema sabe qué analizar y 
 
 ---
 
-## 11. Gaps posteriores
+## 12. Gaps posteriores
 
 Este documento no define todavía:
 
@@ -440,7 +517,7 @@ Estos gaps se resuelven en frentes específicos posteriores.
 
 ---
 
-## 12. Roadmap siguiente
+## 13. Roadmap siguiente
 
 ### SMARTPYME_INTERROGATION_TAXONOMY_SLICE
 

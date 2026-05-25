@@ -40,7 +40,9 @@ El dueño habla primero. El sistema captura sin interpretar. Reformula para vali
 ## Secuencia de la fase
 
 ```text
-Captura literal del relato
+Captura mínima estructural por selectores (si el canal lo permite)
+→ Relato libre del usuario por texto/audio
+→ Conservación literal del relato
 → Reformulación del sistema
 → Confirmación/corrección del usuario
 → Extracción de síntomas candidatos
@@ -52,6 +54,52 @@ Captura literal del relato
 ```
 
 Cada paso es una micro-fase. No se saltean. No se fusionan prematuramente.
+
+---
+
+## Entrada híbrida: selectores estructurales + relato libre
+
+La fase semántico-dialéctica se complementa con un microcuestionario estructural inicial que usa botones/selectores para capturar contexto rápido del organismo.
+
+**Principio:** los selectores sirven para ubicar el organismo. El texto/audio sirve para entender el síntoma.
+
+### Reglas
+
+- Los selectores **no reemplazan** la conversación.
+- Los selectores **reducen fricción** y mejoran contexto.
+- El usuario **no debe sentir** que está llenando un ERP.
+- Máximo recomendado: **3 a 5 selectores** antes del relato libre.
+- Si el usuario llega con audio/texto espontáneo, **no interrumpirlo** con formulario; capturar primero y luego pedir contexto faltante.
+
+### Ejemplo A — Bot con botones
+
+El sistema inicia con selectores y luego abre la narrativa:
+
+```text
+Sistema:
+"Para ubicar rápido tu negocio, marcame estas opciones y después
+contame con tus palabras qué te preocupa."
+
+Botones:
+- Canal de venta: Local / Mayorista / Mercado Libre / Ecommerce / Mixto
+- Stock: Sí / No / Informal
+- Herramienta: Excel / Sistema / Cuaderno / Varios
+
+Luego:
+"Ahora contame qué querés entender o qué te preocupa.
+Podés escribirlo o mandarlo por audio."
+```
+
+### Ejemplo B — Usuario manda audio primero
+
+El sistema no debe cortar con formulario. Debe responder:
+
+```text
+Sistema:
+"Recibí tu explicación. Antes de pedirte documentos, necesito ubicar
+dos datos rápidos: ¿vendés por local, Mercado Libre, ecommerce,
+mayorista o mixto? ¿Manejás stock?"
+```
 
 ---
 
