@@ -186,7 +186,7 @@ class SupermemoryTenantRecallClient:
         _assert_tenant_scoped_payload(summary.tenant_id, payload)
         response = self._transport(
             method="POST",
-            url=f"{self._config.base_url.rstrip('/')}/memories",
+            url=f"{self._config.base_url.rstrip('/')}/documents",
             api_key=self._config.api_key,
             payload=payload,
         )
@@ -200,21 +200,28 @@ class SupermemoryTenantRecallClient:
         tenant_id: str,
         query: str,
         limit: int = 5,
+        search_mode: str = "hybrid",
+        threshold: float = 0.3,
     ) -> TenantRecallResult:
         _require_non_empty("tenant_id", tenant_id)
         _require_non_empty("query", query)
         if not isinstance(limit, int) or limit <= 0:
             raise ValueError("limit must be a positive integer")
+        _require_non_empty("search_mode", search_mode)
+        if not isinstance(threshold, (int, float)) or threshold < 0:
+            raise ValueError("threshold must be a non-negative number")
 
         payload = {
             "q": query,
             "containerTag": build_tenant_container_tag(tenant_id),
+            "searchMode": search_mode,
             "limit": limit,
+            "threshold": float(threshold),
         }
         _assert_tenant_scoped_payload(tenant_id, payload)
         response = self._transport(
             method="POST",
-            url=f"{self._config.base_url.rstrip('/')}/search",
+            url="https://api.supermemory.ai/v4/search",
             api_key=self._config.api_key,
             payload=payload,
         )
@@ -260,7 +267,25 @@ def _normalize_search_results(body: Mapping[str, Any]) -> tuple[Mapping[str, Any
     raw = body.get("results") or body.get("memories") or []
     if not isinstance(raw, list):
         return ()
-    return tuple(item for item in raw if isinstance(item, Mapping))
+    normalized: list[Mapping[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, Mapping):
+            continue
+        text = _extract_memory_text(item)
+        if text is None:
+            continue
+        row = dict(item)
+        row.setdefault("content", text)
+        normalized.append(row)
+    return tuple(normalized)
+
+
+def _extract_memory_text(item: Mapping[str, Any]) -> str | None:
+    for key in ("memory", "chunk", "content", "text", "summary"):
+        value = item.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
 
 
 def _default_http_transport(

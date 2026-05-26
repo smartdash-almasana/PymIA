@@ -110,7 +110,7 @@ def test_save_tenant_turn_summary_uses_tenant_scoped_payload_and_bearer_key():
     assert len(transport.calls) == 1
     call = transport.calls[0]
     assert call["method"] == "POST"
-    assert call["url"].endswith("/memories")
+    assert call["url"].endswith("/documents")
     assert call["api_key"] == "test-key"
     assert call["payload"]["containerTag"] == "tenant:T001"
     assert call["payload"]["customId"] == "turn:T001:S001:2"
@@ -134,12 +134,34 @@ def test_recall_tenant_context_always_filters_by_tenant_container_tag():
     assert result.memories == ({"content": "fabrica ropa"},)
     call = transport.calls[0]
     assert call["method"] == "POST"
-    assert call["url"].endswith("/search")
+    assert call["url"] == "https://api.supermemory.ai/v4/search"
     assert call["payload"] == {
         "q": "qué negocio declaró",
         "containerTag": "tenant:T001",
+        "searchMode": "hybrid",
         "limit": 4,
+        "threshold": 0.3,
     }
+
+
+def test_recall_tenant_context_allows_search_mode_and_threshold_override():
+    transport = RecorderTransport(body={"results": [{"content": "fabrica ropa"}]})
+    client = SupermemoryTenantRecallClient(
+        config=SupermemoryClientConfig(api_key="test-key"),
+        transport=transport,
+    )
+
+    client.recall_tenant_context(
+        tenant_id="T001",
+        query="query",
+        limit=3,
+        search_mode="hybrid",
+        threshold=0.45,
+    )
+
+    call = transport.calls[0]
+    assert call["payload"]["searchMode"] == "hybrid"
+    assert call["payload"]["threshold"] == 0.45
 
 
 def test_recall_rejects_missing_query_or_bad_limit():
@@ -151,6 +173,8 @@ def test_recall_rejects_missing_query_or_bad_limit():
         client.recall_tenant_context(tenant_id="T001", query="", limit=5)
     with pytest.raises(ValueError):
         client.recall_tenant_context(tenant_id="T001", query="x", limit=0)
+    with pytest.raises(ValueError):
+        client.recall_tenant_context(tenant_id="T001", query="x", threshold=-1)
 
 
 def test_client_raises_on_http_error_status():
@@ -166,3 +190,19 @@ def test_config_from_env_reads_api_key_without_logging_it(monkeypatch):
     monkeypatch.setenv("SUPERMEMORY_API_KEY", "secret-key")
     config = SupermemoryClientConfig.from_env()
     assert config.api_key == "secret-key"
+
+
+def test_normalizes_results_accepting_memory_and_chunk_fields():
+    transport = RecorderTransport(
+        body={"results": [{"memory": "m1"}, {"chunk": "c1"}, {"foo": "bar"}]}
+    )
+    client = SupermemoryTenantRecallClient(
+        config=SupermemoryClientConfig(api_key="test-key"),
+        transport=transport,
+    )
+
+    result = client.recall_tenant_context(tenant_id="T001", query="q")
+
+    assert len(result.memories) == 2
+    assert result.memories[0]["content"] == "m1"
+    assert result.memories[1]["content"] == "c1"
