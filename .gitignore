@@ -10,3 +10,5 @@ venv/
 .intake_state/
 factory/control/
 Pymia-memoria/
+
+docs/mermaid/
