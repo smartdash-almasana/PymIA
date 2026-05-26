@@ -125,6 +125,8 @@ def _reconstruct_state_from_context(
     Reconstruye AnamnesisFSMState desde progressive_context serializado.
 
     Si el contexto está corrupto o incompleto, devuelve None (fail-closed).
+    Cada sub-objeto se reconstruye de forma independiente: si uno falla,
+    queda None/vacío sin bloquear los demás.
     """
     if not context or not isinstance(context, dict):
         return None
@@ -137,32 +139,20 @@ def _reconstruct_state_from_context(
         phase_str = fsm_state_dict.get("phase", "INIT")
         phase = FSMPhase(phase_str) if phase_str in [p.value for p in FSMPhase] else FSMPhase.INIT
 
-        # Reconstruir contratos anidados si existen
-        taxonomy_dict = fsm_state_dict.get("taxonomy")
-        taxonomy = None
-        if taxonomy_dict and isinstance(taxonomy_dict, dict):
-            # No reconstruimos el dataclass completo, solo pasamos el dict
-            # process_message() aceptará None y reconstruirá desde texto
-            pass
+        # --- Reconstruir taxonomy ---
+        taxonomy = _reconstruct_taxonomy(tenant_id, fsm_state_dict.get("taxonomy"))
 
-        contract_dict = fsm_state_dict.get("contract")
-        contract = None
-        if contract_dict and isinstance(contract_dict, dict):
-            pass
+        # --- Reconstruir contract ---
+        contract = _reconstruct_contract(fsm_state_dict.get("contract"))
 
-        # Reconstruir hypotheses (tupla vacía si no hay)
-        hypotheses_dicts = fsm_state_dict.get("hypotheses", [])
-        hypotheses = tuple()  # No reconstruimos, process_message maneja esto
+        # --- Reconstruir hypotheses ---
+        hypotheses = _reconstruct_hypotheses(fsm_state_dict.get("hypotheses", []))
 
-        # Reconstruir evidence_requests
-        evidence_dicts = fsm_state_dict.get("evidence_requests", [])
-        evidence_requests = tuple()
+        # --- Reconstruir evidence_requests ---
+        evidence_requests = _reconstruct_evidence_requests(fsm_state_dict.get("evidence_requests", []))
 
-        # Reconstruir readiness
-        readiness_dict = fsm_state_dict.get("readiness")
-        readiness = None
-        if readiness_dict and isinstance(readiness_dict, dict):
-            pass
+        # --- Reconstruir readiness ---
+        readiness = _reconstruct_readiness(fsm_state_dict.get("readiness"))
 
         # Reconstruir blocking_reasons
         blocking_reasons = tuple(fsm_state_dict.get("blocking_reasons", []))
@@ -171,17 +161,166 @@ def _reconstruct_state_from_context(
             phase=phase,
             tenant_id=tenant_id,
             user_text=fsm_state_dict.get("user_text", ""),
-            taxonomy=None,  # Se reconstruye desde texto en próximo turno
-            contract=None,
+            taxonomy=taxonomy,
+            contract=contract,
             hypotheses=hypotheses,
             evidence_requests=evidence_requests,
-            readiness=None,
+            readiness=readiness,
             blocking_reasons=blocking_reasons,
             created_at=fsm_state_dict.get("created_at", ""),
             updated_at=fsm_state_dict.get("updated_at", ""),
         )
     except Exception:
         # Fail-closed: contexto corrupto → None (sesión nueva)
+        return None
+
+
+def _reconstruct_taxonomy(
+    tenant_id: str, taxonomy_dict: dict[str, Any] | None
+) -> BusinessTaxonomySnapshot | None:
+    """Reconstruct BusinessTaxonomySnapshot from dict. None on failure."""
+    if not taxonomy_dict or not isinstance(taxonomy_dict, dict):
+        return None
+    try:
+        from pymia.smartpyme.taxonomy import TaxonomyType, create_taxonomy_snapshot
+
+        organism_raw = taxonomy_dict.get("organism_type", "")
+        organism = TaxonomyType(organism_raw)
+        return create_taxonomy_snapshot(
+            tenant_id=tenant_id,
+            organism_type=organism,
+            industry=taxonomy_dict.get("industry", ""),
+            size=taxonomy_dict.get("size", "pendiente_confirmacion"),
+            complexity=taxonomy_dict.get("complexity", "simple"),
+            sales_channels=taxonomy_dict.get("sales_channels", []),
+            operational_flow_stages=taxonomy_dict.get("operational_flow_stages", []),
+            areas_present=taxonomy_dict.get("areas_present", []),
+            systems_available=taxonomy_dict.get("systems_available", []),
+            jurisdiction=taxonomy_dict.get("jurisdiction", "AR"),
+            currency=taxonomy_dict.get("currency", "ARS"),
+            confidence=float(taxonomy_dict.get("confidence", 0.0)),
+        )
+    except Exception:
+        return None
+
+
+def _reconstruct_contract(
+    contract_dict: dict[str, Any] | None,
+) -> ConversationContract | None:
+    """Reconstruct ConversationContract from dict. None on failure."""
+    if not contract_dict or not isinstance(contract_dict, dict):
+        return None
+    try:
+        return create_conversation_contract(
+            contract_id=contract_dict.get("contract_id", ""),
+            tenant_id=contract_dict.get("tenant_id", ""),
+            anamnesis_ref=contract_dict.get("anamnesis_ref", ""),
+            taxonomy_ref=contract_dict.get("taxonomy_ref", ""),
+            current_phase=contract_dict.get("current_phase", "ANAMNESIS"),
+            allowed_actions=contract_dict.get("allowed_actions", []),
+            forbidden_actions=contract_dict.get("forbidden_actions", []),
+        )
+    except Exception:
+        return None
+
+
+def _reconstruct_hypotheses(
+    hypotheses_dicts: list[dict[str, Any]],
+) -> tuple[OperationalHypothesis, ...]:
+    """Reconstruct tuple of OperationalHypothesis from list of dicts."""
+    if not hypotheses_dicts or not isinstance(hypotheses_dicts, list):
+        return ()
+    result: list[OperationalHypothesis] = []
+    for h_dict in hypotheses_dicts:
+        if not isinstance(h_dict, dict):
+            continue
+        try:
+            from pymia.smartpyme.operational_hypothesis import HypothesisStatus as HS
+
+            status_raw = h_dict.get("status", "ABIERTA")
+            try:
+                status = HS(status_raw)
+            except ValueError:
+                status = HS.ABIERTA
+
+            hyp = OperationalHypothesis(
+                hypothesis_id=h_dict.get("hypothesis_id", ""),
+                tenant_id=h_dict.get("tenant_id", ""),
+                intake_id=h_dict.get("intake_id", ""),
+                formulation=h_dict.get("formulation", ""),
+                source=h_dict.get("source", ""),
+                domain=h_dict.get("domain", ""),
+                related_symptoms=list(h_dict.get("related_symptoms", [])),
+                required_evidence=list(h_dict.get("required_evidence", [])),
+                status=status,
+                findings_refs=list(h_dict.get("findings_refs", [])),
+                created_at=h_dict.get("created_at", ""),
+                closed_at=h_dict.get("closed_at"),
+            )
+            result.append(hyp)
+        except Exception:
+            continue  # Skip corrupted hypothesis, keep rest
+    return tuple(result)
+
+
+def _reconstruct_evidence_requests(
+    evidence_dicts: list[dict[str, Any]],
+) -> tuple[EvidenceRequirement, ...]:
+    """Reconstruct tuple of EvidenceRequirement from list of dicts."""
+    if not evidence_dicts or not isinstance(evidence_dicts, list):
+        return ()
+    result: list[EvidenceRequirement] = []
+    for e_dict in evidence_dicts:
+        if not isinstance(e_dict, dict):
+            continue
+        try:
+            er = EvidenceRequirement(
+                requirement_id=e_dict.get("requirement_id", ""),
+                tenant_id=e_dict.get("tenant_id", ""),
+                intake_id=e_dict.get("intake_id", ""),
+                hypothesis_id=e_dict.get("hypothesis_id", ""),
+                evidence_type=e_dict.get("evidence_type", ""),
+                description=e_dict.get("description", ""),
+                required_fields=list(e_dict.get("required_fields", [])),
+                reason=e_dict.get("reason", ""),
+                blocks_analysis=bool(e_dict.get("blocks_analysis", True)),
+                priority=int(e_dict.get("priority", 1)),
+                telegram_message=e_dict.get("telegram_message", ""),
+                enables_classification=e_dict.get("enables_classification"),
+                source_tank=e_dict.get("source_tank"),
+                created_at=e_dict.get("created_at", ""),
+            )
+            result.append(er)
+        except Exception:
+            continue  # Skip corrupted requirement, keep rest
+    return tuple(result)
+
+
+def _reconstruct_readiness(
+    readiness_dict: dict[str, Any] | None,
+) -> AnamnesisReadiness | None:
+    """Reconstruct AnamnesisReadiness from dict. None on failure."""
+    if not readiness_dict or not isinstance(readiness_dict, dict):
+        return None
+    try:
+        status_raw = readiness_dict.get("status", "NEEDS_MORE_INFO")
+        try:
+            status = ReadinessStatus(status_raw)
+        except ValueError:
+            status = ReadinessStatus.NEEDS_MORE_INFO
+
+        return AnamnesisReadiness(
+            tenant_id=readiness_dict.get("tenant_id", ""),
+            anamnesis_id=readiness_dict.get("anamnesis_id", ""),
+            status=status,
+            taxonomy_complete=bool(readiness_dict.get("taxonomy_complete", False)),
+            narrative_sufficient=bool(readiness_dict.get("narrative_sufficient", False)),
+            blocking_reasons=list(readiness_dict.get("blocking_reasons", [])),
+            missing_taxonomy_fields=list(readiness_dict.get("missing_taxonomy_fields", [])),
+            open_hypotheses_count=int(readiness_dict.get("open_hypotheses_count", 0)),
+            pending_evidence_count=int(readiness_dict.get("pending_evidence_count", 0)),
+        )
+    except Exception:
         return None
 
 

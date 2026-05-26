@@ -157,8 +157,10 @@ def test_caso_3_taxonomia_progresiva_entre_turnos():
 
     # Debe preservar taxonomía del turno 1
     fsm_state2 = output2.updated_progressive_context["fsm_state"]
-    if fsm_state2["taxonomy"]:
-        assert fsm_state2["taxonomy"]["organism_type"] == "textil"
+    assert fsm_state2["taxonomy"] is not None, (
+        "taxonomy debe sobrevivir rehidratación entre turnos"
+    )
+    assert fsm_state2["taxonomy"]["organism_type"] == "textil"
 
 
 # CASO 4: Preservación de estado entre turnos
@@ -207,14 +209,18 @@ def test_caso_4_hipotesis_abierta_con_taxonomia_suficiente():
     )
     output2 = run_anamnesis_turn(input2)
 
-    # Si readiness está READY, debe tener hipótesis
-    if output2.readiness_status == "READY":
-        assert output2.has_hypotheses is True
-        # Hipótesis deben estar ABIERTAS (no CONFIRMADAS)
-        fsm_state = output2.updated_progressive_context["fsm_state"]
-        for h in fsm_state.get("hypotheses", []):
-            assert h["status"] in ["ABIERTA", "EN_CONTRASTE"]
-            assert h["status"] not in ["CONFIRMADA", "DESCARTADA"]
+    # Debe tener hipótesis (ya hay taxonomía + síntoma)
+    assert output2.has_hypotheses is True, (
+        "Con taxonomía textil + síntoma de margen, debe generar hipótesis"
+    )
+    # Hipótesis deben estar ABIERTAS (no CONFIRMADAS)
+    fsm_state = output2.updated_progressive_context["fsm_state"]
+    assert len(fsm_state.get("hypotheses", [])) > 0, (
+        "hypotheses no debe estar vacío tras rehidratación"
+    )
+    for h in fsm_state.get("hypotheses", []):
+        assert h["status"] in ["ABIERTA", "EN_CONTRASTE"]
+        assert h["status"] not in ["CONFIRMADA", "DESCARTADA"]
 
 
 def test_caso_4_solicita_evidencia_con_hipotesis():
@@ -237,13 +243,14 @@ def test_caso_4_solicita_evidencia_con_hipotesis():
     )
     output2 = run_anamnesis_turn(input2)
 
-    # Si readiness está READY, debe solicitar evidencia
-    if output2.readiness_status == "READY":
-        assert output2.has_evidence_requests is True
-        fsm_state = output2.updated_progressive_context["fsm_state"]
-        evidence_types = [e["evidence_type"] for e in fsm_state.get("evidence_requests", [])]
-        assert any("ventas" in et or "ingresos" in et for et in evidence_types)
-        assert any("costos" in et or "gastos" in et for et in evidence_types)
+    # Debe solicitar evidencia (hay taxonomía + hipótesis de margen)
+    assert output2.has_evidence_requests is True, (
+        "Con taxonomía + hipótesis de margen, debe solicitar evidencia"
+    )
+    fsm_state = output2.updated_progressive_context["fsm_state"]
+    evidence_types = [e["evidence_type"] for e in fsm_state.get("evidence_requests", [])]
+    assert any("ventas" in et or "ingresos" in et for et in evidence_types)
+    assert any("costos" in et or "gastos" in et for et in evidence_types)
 
 
 # CASO 5: Contexto corrupto → fail-closed
@@ -595,3 +602,83 @@ def test_permite_mencionar_hipotesis():
     # Si hay hipótesis, puede mencionar "hipótesis" pero no "diagnóstico"
     if output2.has_hypotheses:
         assert "diagnóstico" not in output2.reply_text.lower()
+
+
+def test_conversacion_5_turnos_conserva_estado():
+    """Conversación de 5 turnos conserva taxonomía, hipótesis y evidencia.
+
+    Este test verifica el fix de BUG-1: _reconstruct_state_from_context()
+    debe rehidratar objetos completos entre turnos, no perder memoria.
+    """
+    # Turno 1: menú inicial
+    output1 = run_anamnesis_turn(AnamnesisTurnInput(
+        tenant_id="T_5TURNOS",
+        session_id="S_5TURNOS",
+        message_text="hola",
+        previous_progressive_context=None,
+    ))
+    assert output1.phase == FSMPhase.MENU_INICIAL.value
+    ctx1 = output1.updated_progressive_context
+
+    # Turno 2: opción 1 (contame tu negocio)
+    output2 = run_anamnesis_turn(AnamnesisTurnInput(
+        tenant_id="T_5TURNOS",
+        session_id="S_5TURNOS",
+        message_text="1",
+        previous_progressive_context=ctx1,
+    ))
+    assert output2.phase == FSMPhase.CAPTURA_RELATO_CRUDO.value
+    ctx2 = output2.updated_progressive_context
+
+    # Turno 3: relato textil completo → debe generar taxonomía
+    output3 = run_anamnesis_turn(AnamnesisTurnInput(
+        tenant_id="T_5TURNOS",
+        session_id="S_5TURNOS",
+        message_text="fabrico ropa, compro tela, corto, coso, empaco y vendo por mayor y por Mercado Libre",
+        previous_progressive_context=ctx2,
+    ))
+    ctx3 = output3.updated_progressive_context
+    fsm3 = ctx3["fsm_state"]
+    assert fsm3["taxonomy"] is not None, "Turno 3 debe generar taxonomía"
+    assert fsm3["taxonomy"]["organism_type"] == "textil"
+
+    # Turno 4: síntoma de margen → debe preservar taxonomía + generar hipótesis
+    output4 = run_anamnesis_turn(AnamnesisTurnInput(
+        tenant_id="T_5TURNOS",
+        session_id="S_5TURNOS",
+        message_text="el margen es bajo, no gano plata",
+        previous_progressive_context=ctx3,
+    ))
+    ctx4 = output4.updated_progressive_context
+    fsm4 = ctx4["fsm_state"]
+
+    # CRITICAL: taxonomía del turno 3 debe sobrevivir rehidratación
+    assert fsm4["taxonomy"] is not None, (
+        "BUG-1 regression: taxonomía perdida después de rehidratación turno 4"
+    )
+    assert fsm4["taxonomy"]["organism_type"] == "textil", (
+        "organism_type debe seguir siendo 'textil' del turno 3"
+    )
+    # Debe haber hipótesis abiertas
+    assert len(fsm4.get("hypotheses", [])) > 0, (
+        "Con taxonomía + síntoma de margen, debe haber hipótesis"
+    )
+
+    # Turno 5: información adicional → debe preservar todo lo anterior
+    output5 = run_anamnesis_turn(AnamnesisTurnInput(
+        tenant_id="T_5TURNOS",
+        session_id="S_5TURNOS",
+        message_text="uso excel para todo, no tengo sistema",
+        previous_progressive_context=ctx4,
+    ))
+    ctx5 = output5.updated_progressive_context
+    fsm5 = ctx5["fsm_state"]
+
+    # Turno 5: taxonomía, hipótesis siguen presentes
+    assert fsm5["taxonomy"] is not None, (
+        "BUG-1 regression: taxonomía perdida en turno 5"
+    )
+    assert fsm5["taxonomy"]["organism_type"] == "textil"
+    assert len(fsm5.get("hypotheses", [])) > 0, (
+        "Hipótesis deben persistir después de 5 turnos"
+    )
