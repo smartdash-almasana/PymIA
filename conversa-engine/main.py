@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from uuid import uuid4
@@ -12,6 +13,8 @@ RESERVED_COMMANDS = {
 }
 
 _PROGRESSIVE_CONTEXT_BY_SESSION = {}
+_SUPERMEMORY_RECALL_CLIENT = None
+_SUPERMEMORY_RECALL_INITIALIZED = False
 
 
 def _cli_message_from_args(args: list[str]) -> tuple[int, str, str | None]:
@@ -44,22 +47,101 @@ def _ensure_repo_on_path() -> None:
 
 def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
     _ensure_repo_on_path()
-    from pymia.hermes.adapter import HermesAdapter, HermesInput
+    from pymia.smartpyme.anamnesis_fsm_integration import (
+        AnamnesisTurnInput,
+        run_anamnesis_turn,
+    )
+    from pymia.smartpyme.supermemory_recall_integration import (
+        RecallBeforeReplyInput,
+        run_recall_before_reply,
+    )
 
     session_id = _session_id(tenant_id, user_id)
-    adapter = HermesAdapter()
-    result = adapter.handle(
-        HermesInput(
+    previous_context = _PROGRESSIVE_CONTEXT_BY_SESSION.get(session_id)
+    turn_index = _turn_index_from_context(previous_context)
+    message_for_anamnesis = text
+    try:
+        recall_output = run_recall_before_reply(
+            RecallBeforeReplyInput(
+                tenant_id=tenant_id,
+                session_key=session_id,
+                user_message=text,
+                turn_index=turn_index,
+                phase=_phase_from_context(previous_context),
+            ),
+            client=_get_supermemory_recall_client(),
+        )
+        message_for_anamnesis = recall_output.augmented_message
+    except Exception:
+        # Fail-open: semantic memory must never block the conversation.
+        message_for_anamnesis = text
+
+    result = run_anamnesis_turn(
+        AnamnesisTurnInput(
             tenant_id=tenant_id,
-            channel="telegram",
-            message_text=text,
-            metadata={"telegram_user_id": user_id},
-            previous_progressive_context=_PROGRESSIVE_CONTEXT_BY_SESSION.get(session_id),
+            message_text=message_for_anamnesis,
+            session_id=session_id,
+            previous_progressive_context=previous_context,
         )
     )
-    if result.payload.progressive_context is not None:
-        _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = result.payload.progressive_context
+    if result.updated_progressive_context is not None:
+        _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = result.updated_progressive_context
     return result.reply_text or ""
+
+
+def _get_supermemory_recall_client():
+    """Return optional Supermemory recall client.
+
+    Fail-open by returning None when SUPERMEMORY_API_KEY is absent or client
+    initialization fails. This keeps the conversational runtime usable without
+    making external memory mandatory.
+    """
+    global _SUPERMEMORY_RECALL_CLIENT, _SUPERMEMORY_RECALL_INITIALIZED
+    if _SUPERMEMORY_RECALL_INITIALIZED:
+        return _SUPERMEMORY_RECALL_CLIENT
+    _SUPERMEMORY_RECALL_INITIALIZED = True
+    if not os.environ.get("SUPERMEMORY_API_KEY"):
+        return None
+    try:
+        from pymia.smartpyme.supermemory_tenant_recall import (
+            SupermemoryClientConfig,
+            SupermemoryTenantRecallClient,
+        )
+
+        _SUPERMEMORY_RECALL_CLIENT = SupermemoryTenantRecallClient(
+            SupermemoryClientConfig.from_env()
+        )
+    except Exception:
+        _SUPERMEMORY_RECALL_CLIENT = None
+    return _SUPERMEMORY_RECALL_CLIENT
+
+
+def _turn_index_from_context(context: dict | None) -> int:
+    if not isinstance(context, dict):
+        return 0
+    current = context.get("turn_index")
+    if isinstance(current, int) and current >= 0:
+        return current + 1
+    fsm_state = context.get("fsm_state")
+    if isinstance(fsm_state, dict):
+        raw = fsm_state.get("turn_index")
+        if isinstance(raw, int) and raw >= 0:
+            return raw + 1
+    return 0
+
+
+def _phase_from_context(context: dict | None) -> str | None:
+    if not isinstance(context, dict):
+        return None
+    phase = context.get("phase")
+    if isinstance(phase, str) and phase:
+        return phase
+    fsm_state = context.get("fsm_state")
+    if isinstance(fsm_state, dict):
+        raw = fsm_state.get("phase")
+        if isinstance(raw, str) and raw:
+            return raw
+    return None
 
 
 def _session_id(tenant_id: str, user_id: str) -> str:
