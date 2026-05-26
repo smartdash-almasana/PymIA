@@ -128,7 +128,7 @@ def test_caso_3_flujo_productivo_textil():
     
     # Debe detectar taxonomía
     assert state.taxonomy is not None
-    assert state.taxonomy.organism_type == TaxonomyType.INDUSTRIA
+    assert state.taxonomy.organism_type == TaxonomyType.textil
     
     # Debe detectar canales
     assert "mayorista" in state.taxonomy.sales_channels
@@ -151,7 +151,7 @@ def test_caso_3_negocio_mixto():
     state, message = process_message(user_text, tenant_id="T004", previous_state=None)
     
     assert state.taxonomy is not None
-    assert state.taxonomy.organism_type == TaxonomyType.INDUSTRIA
+    assert state.taxonomy.organism_type == TaxonomyType.produccion_fabrica
     assert "minorista" in state.taxonomy.sales_channels or "local" in state.taxonomy.sales_channels
     assert "mercado_libre" in state.taxonomy.sales_channels
 
@@ -425,10 +425,10 @@ def test_contract_phase_consistente():
     if state.contract:
         # Si phase es SOLICITUD_EVIDENCIA, contract debe estar en EVIDENCE
         if state.phase == FSMPhase.SOLICITUD_EVIDENCIA:
-            assert state.contract.current_phase == ConversationPhase.EVIDENCE
+            assert state.contract.current_phase == ConversationPhase.EVIDENCIA
         # Si phase es HIPOTESIS_FORMULADA, contract debe estar en CONTRAST
         elif state.phase == FSMPhase.HIPOTESIS_FORMULADA:
-            assert state.contract.current_phase == ConversationPhase.CONTRAST
+            assert state.contract.current_phase == ConversationPhase.CONTRASTE
 
 
 def test_evidence_requirement_telegram_message_no_vacio():
@@ -496,9 +496,9 @@ def test_hypothesis_status_enum_values():
 def test_conversation_phase_enum_values():
     """ConversationPhase enum tiene valores correctos."""
     assert ConversationPhase.ANAMNESIS == "ANAMNESIS"
-    assert ConversationPhase.EVIDENCE == "EVIDENCE"
-    assert ConversationPhase.CONTRAST == "CONTRAST"
-    assert ConversationPhase.DELIVERY == "DELIVERY"
+    assert ConversationPhase.EVIDENCIA == "EVIDENCIA"
+    assert ConversationPhase.CONTRASTE == "CONTRASTE"
+    assert ConversationPhase.ENTREGA == "ENTREGA"
 
 
 def test_blocking_reasons_es_tuple():
