@@ -71,6 +71,16 @@ class AnamnesisTurnInput:
     message_text: str
     previous_progressive_context: dict[str, Any] | None = None
 
+    def __post_init__(self) -> None:
+        """Fail-closed input validation for integration boundary.
+
+        Does NOT execute runtime logic; only validates basic contract shape.
+        """
+        if self.tenant_id is None or not isinstance(self.tenant_id, str):
+            raise ValueError("tenant_id obligatorio")
+        if self.session_id is None or not isinstance(self.session_id, str):
+            raise ValueError("session_id obligatorio")
+
 
 @dataclass(frozen=True)
 class AnamnesisTurnOutput:
@@ -209,9 +219,15 @@ def run_anamnesis_turn(input_data: AnamnesisTurnInput) -> AnamnesisTurnOutput:
     Raises:
         ValueError: Si tenant_id o session_id están vacíos.
     """
-    if not input_data.tenant_id or not isinstance(input_data.tenant_id, str):
+    if (
+        not isinstance(input_data.tenant_id, str)
+        or not input_data.tenant_id.strip()
+    ):
         raise ValueError("tenant_id obligatorio")
-    if not input_data.session_id or not isinstance(input_data.session_id, str):
+    if (
+        not isinstance(input_data.session_id, str)
+        or not input_data.session_id.strip()
+    ):
         raise ValueError("session_id obligatorio")
 
     # Reconstruir estado previo desde progressive_context
