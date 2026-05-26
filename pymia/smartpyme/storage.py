@@ -29,9 +29,10 @@ def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Pat
     results_dir = tenant_root / "results"
     receptions_jsonl = tenant_root / "receptions.jsonl"
     intakes_jsonl = tenant_root / "intakes.jsonl"
+    evidences_jsonl = tenant_root / "evidences.jsonl"
     for d in (tenant_root, evidence_dir, reports_dir, results_dir):
         d.mkdir(parents=True, exist_ok=True)
-    for jsonl in (receptions_jsonl, intakes_jsonl):
+    for jsonl in (receptions_jsonl, intakes_jsonl, evidences_jsonl):
         if not jsonl.exists():
             jsonl.write_text("", encoding="utf-8")
     return {
@@ -41,6 +42,7 @@ def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Pat
         "results_dir": results_dir,
         "receptions_jsonl": receptions_jsonl,
         "intakes_jsonl": intakes_jsonl,
+        "evidences_jsonl": evidences_jsonl,
     }
 
 
@@ -226,6 +228,225 @@ def load_intake_record_by_id(
     records = load_intake_records(tenant_id, base_dir=base_dir)
     for record in records:
         if record.get("intake_id") == intake_id:
+            return record
+
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Contrato aprobado: save_evidence_record
+# ---------------------------------------------------------------------------
+def save_evidence_record(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    """Persiste un EvidenceRecord o dict en <base_dir>/<tenant_id>/evidences.jsonl.
+
+    Contrato aprobado:
+        save_evidence_record(tenant_id, record, *, base_dir=None) -> Path
+
+    Validaciones fail-closed:
+        - tenant_id no vacío
+        - record es EvidenceRecord (con to_dict()) o dict
+        - record["tenant_id"] existe
+        - record["tenant_id"] == tenant_id
+        - campos core requeridos presentes
+        - tipos de campos core correctos
+    """
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+
+    if base_dir is None:
+        raise ValueError("base_dir is required")
+
+    # Convertir record a dict
+    if hasattr(record, "to_dict") and callable(record.to_dict):
+        record_dict = record.to_dict()
+    elif isinstance(record, dict):
+        record_dict = record.copy()
+    else:
+        raise ValueError("record must be EvidenceRecord or dict")
+
+    # Validar tenant_id en record
+    if "tenant_id" not in record_dict:
+        raise ValueError("record missing tenant_id field")
+    if record_dict["tenant_id"] != tenant_id:
+        raise ValueError(
+            f"record tenant_id ({record_dict['tenant_id']}) does not match "
+            f"argument tenant_id ({tenant_id})"
+        )
+
+    # Validar campos core requeridos
+    required_fields = [
+        "evidence_id",
+        "tenant_id",
+        "intake_id",
+        "request_id",
+        "evidence_type",
+        "source_kind",
+        "source_ref",
+        "original_filename",
+        "mime_type",
+        "size_bytes",
+        "content_hash",
+        "status",
+        "received_at",
+        "notes",
+        "metadata",
+    ]
+    for field in required_fields:
+        if field not in record_dict:
+            raise ValueError(f"record missing required field: {field}")
+
+    # Validar tipos de campos core
+    # notes: list, metadata: dict
+    if not isinstance(record_dict["notes"], list):
+        raise ValueError("field notes must be list")
+    if not isinstance(record_dict["metadata"], dict):
+        raise ValueError("field metadata must be dict")
+
+    # size_bytes: int | None
+    if record_dict["size_bytes"] is not None:
+        if not isinstance(record_dict["size_bytes"], int) or isinstance(
+            record_dict["size_bytes"], bool
+        ):
+            raise ValueError("field size_bytes must be int or None")
+
+    # request_id, original_filename, mime_type, content_hash: str | None
+    nullable_str_fields = [
+        "request_id",
+        "original_filename",
+        "mime_type",
+        "content_hash",
+    ]
+    for field in nullable_str_fields:
+        if record_dict[field] is not None and not isinstance(record_dict[field], str):
+            raise ValueError(f"field {field} must be str or None")
+
+    # Escribir JSONL
+    paths = ensure_tenant_storage(base_dir, tenant_id)
+    return _write_jsonl_line(paths["evidences_jsonl"], record_dict)
+
+
+# ---------------------------------------------------------------------------
+# Contrato aprobado: load_evidence_records
+# ---------------------------------------------------------------------------
+def load_evidence_records(
+    tenant_id: str,
+    *,
+    base_dir: str | Path | None = None,
+) -> list[dict]:
+    """Carga todos los EvidenceRecords de un tenant como list[dict].
+
+    Contrato aprobado:
+        load_evidence_records(tenant_id, *, base_dir=None) -> list[dict]
+
+    Comportamiento:
+        - valida tenant_id no vacío
+        - retorna [] si evidences.jsonl no existe
+        - retorna list[dict] (no EvidenceRecord)
+        - preserva orden de inserción
+        - ValueError en JSON malformado
+        - ValueError en línea que no es dict
+    """
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+
+    if base_dir is None:
+        raise ValueError("base_dir is required")
+
+    paths = ensure_tenant_storage(base_dir, tenant_id)
+    evidences_jsonl = paths["evidences_jsonl"]
+
+    if not evidences_jsonl.exists():
+        return []
+
+    content = evidences_jsonl.read_text(encoding="utf-8").strip()
+    if not content:
+        return []
+
+    records: list[dict] = []
+    for line_num, line in enumerate(content.splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"malformed JSON at line {line_num}") from e
+
+        if not isinstance(obj, dict):
+            raise ValueError(f"line {line_num} is not a dict")
+
+        records.append(obj)
+
+    return records
+
+
+# ---------------------------------------------------------------------------
+# Contrato aprobado: load_evidence_records_by_intake_id
+# ---------------------------------------------------------------------------
+def load_evidence_records_by_intake_id(
+    tenant_id: str,
+    intake_id: str,
+    *,
+    base_dir: str | Path | None = None,
+) -> list[dict]:
+    """Filtra EvidenceRecords de un tenant por intake_id.
+
+    Contrato aprobado:
+        load_evidence_records_by_intake_id(tenant_id, intake_id, *, base_dir=None) -> list[dict]
+
+    Comportamiento:
+        - valida tenant_id no vacío
+        - valida intake_id no vacío
+        - retorna list[dict] filtrado
+        - preserva orden
+        - retorna [] si no hay matches
+        - no cruza boundaries de tenant
+    """
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+
+    if not intake_id or not intake_id.strip():
+        raise ValueError("intake_id is required")
+
+    records = load_evidence_records(tenant_id, base_dir=base_dir)
+    return [r for r in records if r.get("intake_id") == intake_id]
+
+
+# ---------------------------------------------------------------------------
+# Contrato aprobado: load_evidence_record_by_id
+# ---------------------------------------------------------------------------
+def load_evidence_record_by_id(
+    tenant_id: str,
+    evidence_id: str,
+    *,
+    base_dir: str | Path | None = None,
+) -> dict | None:
+    """Busca un EvidenceRecord por evidence_id dentro de un tenant.
+
+    Contrato aprobado:
+        load_evidence_record_by_id(tenant_id, evidence_id, *, base_dir=None) -> dict | None
+
+    Comportamiento:
+        - valida tenant_id no vacío
+        - valida evidence_id no vacío
+        - retorna dict si existe
+        - retorna None si no existe
+        - no cruza boundaries de tenant
+    """
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+
+    if not evidence_id or not evidence_id.strip():
+        raise ValueError("evidence_id is required")
+
+    records = load_evidence_records(tenant_id, base_dir=base_dir)
+    for record in records:
+        if record.get("evidence_id") == evidence_id:
             return record
 
     return None
