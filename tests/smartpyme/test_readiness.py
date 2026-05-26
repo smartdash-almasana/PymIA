@@ -424,8 +424,8 @@ class TestOutputContract:
 class TestRuntimeIsolation:
     def test_does_not_import_runtime_modules(self):
         """readiness.py must not import excel_diagnostic or supplier_duplicate_check."""
-        here = Path(__file__).resolve()
-        readiness_path = here.parent.parent / "pymia" / "smartpyme" / "readiness.py"
+        import pymia.smartpyme.readiness as readiness_module
+        readiness_path = Path(readiness_module.__file__).resolve()
         src = readiness_path.read_text(encoding="utf-8")
         tree = ast.parse(src)
         for node in ast.walk(tree):
