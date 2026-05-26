@@ -298,9 +298,12 @@ def evaluate_evidence_sufficiency(
 
             # Strong match: request_id on both sides
             ev_req_id = ev.get("request_id")
-            if req.get("request_id") and ev_req_id and str(req["request_id"]) == str(ev_req_id):
-                matched_ids.append(str(ev["evidence_id"]))
-                matched_evs.append(ev)
+            req_req_id = req.get("request_id")
+
+            if req_req_id and ev_req_id:
+                if str(req_req_id) == str(ev_req_id):
+                    matched_ids.append(str(ev["evidence_id"]))
+                    matched_evs.append(ev)
                 continue
 
             # Fallback: evidence_type match
