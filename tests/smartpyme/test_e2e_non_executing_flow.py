@@ -94,34 +94,36 @@ class TestE2ENonExecutingFlow:
         assert loaded_intake is not None
         assert loaded_intake["intake_id"] == intake.intake_id
 
-        # Step 4: Create evidence record matching the request
-        # Get the first evidence_request from the intake
+        # Step 4: Create evidence records for all blocking requests
         evidence_requests = intake.evidence_requests
-        if not evidence_requests:
-            pytest.skip("No evidence requests generated for this input")
+        assert evidence_requests, "Expected evidence_requests for ready scenario"
 
-        first_request = evidence_requests[0]
-        evidence = create_evidence_record(
-            tenant_id=tenant_id,
-            intake_id=intake.intake_id,
-            evidence_type=first_request.evidence_type,
-            source_kind=SOURCE_KIND_UPLOADED_FILE,
-            source_ref="/path/to/ventas_costos.xlsx",
-            request_id=first_request.request_id,
-            status=EVIDENCE_STATUS_RECEIVED,
-        )
+        blocking_requests = [req for req in evidence_requests if req.blocks_analysis]
+        assert blocking_requests, "Expected blocking evidence_requests for ready scenario"
 
-        # Step 5: Save evidence
-        evidence_path = save_evidence_record(tenant_id, evidence, base_dir=base_dir)
-        assert evidence_path.exists()
-        assert evidence_path.name == "evidences.jsonl"
+        for idx, req in enumerate(blocking_requests, start=1):
+            required_fields = list(getattr(req, "required_fields", []) or [])
+            metadata = {field: f"value_{field}" for field in required_fields}
+            evidence = create_evidence_record(
+                tenant_id=tenant_id,
+                intake_id=intake.intake_id,
+                evidence_type=req.evidence_type,
+                source_kind=SOURCE_KIND_UPLOADED_FILE,
+                source_ref=f"/path/to/ventas_costos_{idx}.xlsx",
+                request_id=req.request_id,
+                status=EVIDENCE_STATUS_RECEIVED,
+                metadata=metadata,
+            )
+
+            evidence_path = save_evidence_record(tenant_id, evidence, base_dir=base_dir)
+            assert evidence_path.exists()
+            assert evidence_path.name == "evidences.jsonl"
 
         # Step 6: Load evidence
         loaded_evidences = load_evidence_records_by_intake_id(
             tenant_id, intake.intake_id, base_dir=base_dir
         )
-        assert len(loaded_evidences) == 1
-        assert loaded_evidences[0]["evidence_id"] == evidence.evidence_id
+        assert len(loaded_evidences) >= len(blocking_requests)
 
         # Step 7: Evaluate evidence sufficiency
         sufficiency = evaluate_evidence_sufficiency(loaded_intake, loaded_evidences)
@@ -178,30 +180,32 @@ class TestE2ENonExecutingFlow:
         )
         assert loaded_intake is not None
 
-        # Step 4: Create evidence record
+        # Step 4: Create evidence records for all blocking requests
         evidence_requests = intake.evidence_requests
-        if not evidence_requests:
-            pytest.skip("No evidence requests generated for this input")
+        assert evidence_requests, "Expected evidence_requests for ready scenario"
+        blocking_requests = [req for req in evidence_requests if req.blocks_analysis]
+        assert blocking_requests, "Expected blocking evidence_requests for ready scenario"
 
-        first_request = evidence_requests[0]
-        evidence = create_evidence_record(
-            tenant_id=tenant_id,
-            intake_id=intake.intake_id,
-            evidence_type=first_request.evidence_type,
-            source_kind=SOURCE_KIND_UPLOADED_FILE,
-            source_ref="/path/to/proveedores.xlsx",
-            request_id=first_request.request_id,
-            status=EVIDENCE_STATUS_RECEIVED,
-        )
-
-        # Step 5: Save evidence
-        save_evidence_record(tenant_id, evidence, base_dir=base_dir)
+        for idx, req in enumerate(blocking_requests, start=1):
+            required_fields = list(getattr(req, "required_fields", []) or [])
+            metadata = {field: f"value_{field}" for field in required_fields}
+            evidence = create_evidence_record(
+                tenant_id=tenant_id,
+                intake_id=intake.intake_id,
+                evidence_type=req.evidence_type,
+                source_kind=SOURCE_KIND_UPLOADED_FILE,
+                source_ref=f"/path/to/proveedores_{idx}.xlsx",
+                request_id=req.request_id,
+                status=EVIDENCE_STATUS_RECEIVED,
+                metadata=metadata,
+            )
+            save_evidence_record(tenant_id, evidence, base_dir=base_dir)
 
         # Step 6: Load evidence
         loaded_evidences = load_evidence_records_by_intake_id(
             tenant_id, intake.intake_id, base_dir=base_dir
         )
-        assert len(loaded_evidences) == 1
+        assert len(loaded_evidences) >= len(blocking_requests)
 
         # Step 7: Evaluate evidence sufficiency
         sufficiency = evaluate_evidence_sufficiency(loaded_intake, loaded_evidences)
