@@ -60,21 +60,45 @@ def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
     previous_context = _PROGRESSIVE_CONTEXT_BY_SESSION.get(session_id)
     turn_index = _turn_index_from_context(previous_context)
     message_for_anamnesis = text
-    try:
-        recall_output = run_recall_before_reply(
-            RecallBeforeReplyInput(
-                tenant_id=tenant_id,
-                session_key=session_id,
-                user_message=text,
-                turn_index=turn_index,
-                phase=_phase_from_context(previous_context),
-            ),
-            client=_get_supermemory_recall_client(),
-        )
-        message_for_anamnesis = recall_output.augmented_message
-    except Exception:
-        # Fail-open: semantic memory must never block the conversation.
-        message_for_anamnesis = text
+
+    client = _get_supermemory_recall_client()
+    recall_status = "no_client"
+    recall_memories_count = 0
+
+    if client is not None:
+        try:
+            recall_output = run_recall_before_reply(
+                RecallBeforeReplyInput(
+                    tenant_id=tenant_id,
+                    session_key=session_id,
+                    user_message=text,
+                    turn_index=turn_index,
+                    phase=_phase_from_context(previous_context),
+                ),
+                client=client,
+            )
+            message_for_anamnesis = recall_output.augmented_message
+            recall_status = "ok"
+            recall_memories_count = recall_output.recalled_memories_count
+        except Exception as exc:
+            # Fail-open: semantic memory must never block the conversation.
+            # No API key, no payload, no user text in stderr.
+            err_repr = repr(exc)
+            if len(err_repr) > 240:
+                err_repr = err_repr[:240] + "..."
+            print(
+                f"[supermemory.recall] FAIL tenant={tenant_id} "
+                f"session={session_id} err={err_repr}",
+                file=sys.stderr,
+            )
+            message_for_anamnesis = text
+            recall_status = "error"
+            recall_memories_count = 0
+
+    last_recall = {
+        "status": recall_status,
+        "memories_count": recall_memories_count,
+    }
 
     result = run_anamnesis_turn(
         AnamnesisTurnInput(
@@ -85,7 +109,18 @@ def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
         )
     )
     if result.updated_progressive_context is not None:
-        _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = result.updated_progressive_context
+        updated = result.updated_progressive_context
+        if isinstance(updated, dict):
+            updated["last_recall"] = last_recall
+            _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = updated
+        else:
+            _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = {
+                "last_recall": last_recall,
+            }
+    else:
+        _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = {
+            "last_recall": last_recall,
+        }
     return result.reply_text or ""
 
 
