@@ -108,7 +108,9 @@ def test_build_safe_turn_summary_uses_safe_non_diagnostic_wording():
     assert summary.turn_index == 5
     assert "Registro no computacional" in summary.summary
     assert payload["containerTag"] == "tenant:T001"
-    assert payload["customId"] == "turn:T001:S001:5"
+    assert payload["customId"] == "turn_T001_S001_5"
+    assert "/" not in payload["customId"]
+    assert ":" not in payload["customId"]
 
 
 def test_recall_before_reply_input_validates_required_fields():

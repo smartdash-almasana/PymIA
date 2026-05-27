@@ -7,6 +7,7 @@ from pymia.smartpyme.supermemory_tenant_recall import (
     SupermemoryTenantRecallClient,
     SupermemoryTransportResponse,
     TenantTurnSummary,
+    build_safe_custom_id,
     build_tenant_container_tag,
     validate_safe_conversational_summary,
 )
@@ -38,6 +39,23 @@ def test_build_tenant_container_tag_requires_tenant_id():
         build_tenant_container_tag("tenant con espacios")
 
 
+def test_build_safe_custom_id_removes_api_unsafe_separators():
+    custom_id = build_safe_custom_id("turn", "tenant/a", "session:b", "1")
+
+    assert custom_id == "turn_tenant_a_session_b_1"
+    assert "/" not in custom_id
+    assert ":" not in custom_id
+    assert custom_id == build_safe_custom_id("turn", "tenant/a", "session:b", "1")
+
+
+def test_build_safe_custom_id_hashes_long_values():
+    custom_id = build_safe_custom_id("turn", "tenant" * 50, "session" * 50, "1")
+
+    assert len(custom_id) <= 117
+    assert "/" not in custom_id
+    assert ":" not in custom_id
+
+
 def test_tenant_turn_summary_builds_safe_supermemory_payload():
     summary = TenantTurnSummary(
         tenant_id="T001",
@@ -54,7 +72,9 @@ def test_tenant_turn_summary_builds_safe_supermemory_payload():
     payload = summary.to_supermemory_payload()
 
     assert payload["containerTag"] == "tenant:T001"
-    assert payload["customId"] == "turn:T001:telegram:42:3"
+    assert payload["customId"] == "turn_T001_telegram_42_3"
+    assert "/" not in payload["customId"]
+    assert ":" not in payload["customId"]
     assert payload["content"] == summary.summary
     assert payload["metadata"]["tenant_id"] == "T001"
     assert payload["metadata"]["session_key"] == "telegram:42"
@@ -113,7 +133,9 @@ def test_save_tenant_turn_summary_uses_tenant_scoped_payload_and_bearer_key():
     assert call["url"].endswith("/documents")
     assert call["api_key"] == "test-key"
     assert call["payload"]["containerTag"] == "tenant:T001"
-    assert call["payload"]["customId"] == "turn:T001:S001:2"
+    assert call["payload"]["customId"] == "turn_T001_S001_2"
+    assert "/" not in call["payload"]["customId"]
+    assert ":" not in call["payload"]["customId"]
 
 
 def test_recall_tenant_context_always_filters_by_tenant_container_tag():
@@ -184,6 +206,61 @@ def test_client_raises_on_http_error_status():
     )
     with pytest.raises(RuntimeError):
         client.recall_tenant_context(tenant_id="T001", query="x")
+
+
+def test_save_http_400_includes_sanitized_body_in_error_message():
+    client = SupermemoryTenantRecallClient(
+        config=SupermemoryClientConfig(api_key="test-key"),
+        transport=RecorderTransport(
+            status_code=400,
+            body={
+                "error": "missing field",
+                "Authorization": "Bearer secret",
+                "token": "abc123",
+            },
+        ),
+    )
+    summary = TenantTurnSummary(
+        tenant_id="T001",
+        session_key="S001",
+        turn_index=1,
+        summary="El dueño declaró que vende por Mercado Libre.",
+    )
+
+    with pytest.raises(RuntimeError) as exc_info:
+        client.save_tenant_turn_summary(summary)
+
+    message = str(exc_info.value)
+    assert "Supermemory save failed: HTTP 400:" in message
+    assert '"error": "missing field"' in message
+    assert '"Authorization": "***"' in message
+    assert '"token": "***"' in message
+    assert "abc123" not in message
+
+
+def test_recall_http_error_redacts_sensitive_response_fields():
+    client = SupermemoryTenantRecallClient(
+        config=SupermemoryClientConfig(api_key="test-key"),
+        transport=RecorderTransport(
+            status_code=400,
+            body={
+                "api_key": "k-123",
+                "access_token": "t-456",
+                "reason": "bad request",
+            },
+        ),
+    )
+
+    with pytest.raises(RuntimeError) as exc_info:
+        client.recall_tenant_context(tenant_id="T001", query="x")
+
+    message = str(exc_info.value)
+    assert "Supermemory recall failed: HTTP 400:" in message
+    assert '"api_key": "***"' in message
+    assert '"access_token": "***"' in message
+    assert '"reason": "bad request"' in message
+    assert "k-123" not in message
+    assert "t-456" not in message
 
 
 def test_config_from_env_reads_api_key_without_logging_it(monkeypatch):

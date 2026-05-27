@@ -14,8 +14,10 @@ Design invariants
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Protocol
 from urllib.error import HTTPError, URLError
@@ -101,7 +103,12 @@ class TenantTurnSummary:
 
     @property
     def custom_id(self) -> str:
-        return f"turn:{self.tenant_id}:{self.session_key}:{self.turn_index}"
+        return build_safe_custom_id(
+            "turn",
+            self.tenant_id,
+            self.session_key,
+            str(self.turn_index),
+        )
 
     def to_supermemory_payload(self) -> dict[str, Any]:
         metadata: dict[str, str | int | float | bool] = {
@@ -191,7 +198,10 @@ class SupermemoryTenantRecallClient:
             payload=payload,
         )
         if response.status_code >= 400:
-            raise RuntimeError(f"Supermemory save failed: HTTP {response.status_code}")
+            raise RuntimeError(
+                f"Supermemory save failed: HTTP {response.status_code}: "
+                f"{_sanitize_response_body(response.body)}"
+            )
         return response.body
 
     def recall_tenant_context(
@@ -226,9 +236,34 @@ class SupermemoryTenantRecallClient:
             payload=payload,
         )
         if response.status_code >= 400:
-            raise RuntimeError(f"Supermemory recall failed: HTTP {response.status_code}")
+            raise RuntimeError(
+                f"Supermemory recall failed: HTTP {response.status_code}: "
+                f"{_sanitize_response_body(response.body)}"
+            )
         memories = _normalize_search_results(response.body)
         return TenantRecallResult(tenant_id=tenant_id, query=query, memories=memories)
+
+
+def build_safe_custom_id(*parts: object) -> str:
+    """Build a deterministic API-safe customId for Supermemory.
+
+    The resulting identifier intentionally avoids separators that are known to
+    cause ambiguity in external APIs, especially `/` and `:`.
+    """
+    if not parts:
+        raise ValueError("at least one custom id part is required")
+    raw_parts: list[str] = []
+    for index, part in enumerate(parts):
+        _require_non_empty(f"custom_id_part_{index}", part)
+        raw_parts.append(str(part))
+    raw = "::".join(raw_parts)
+    slug = re.sub(r"[^A-Za-z0-9_-]+", "_", raw).strip("_")
+    if not slug:
+        raise ValueError("custom id cannot be empty after sanitization")
+    if len(slug) <= 120:
+        return slug
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+    return f"{slug[:100]}_{digest}"
 
 
 def build_tenant_container_tag(tenant_id: str) -> str:
@@ -286,6 +321,23 @@ def _extract_memory_text(item: Mapping[str, Any]) -> str | None:
         if isinstance(value, str) and value.strip():
             return value
     return None
+
+
+def _sanitize_response_body(body: Any) -> str:
+    if isinstance(body, Mapping):
+        redacted = dict(body)
+        for key in (
+            "api_key",
+            "authorization",
+            "Authorization",
+            "token",
+            "access_token",
+        ):
+            if key in redacted:
+                redacted[key] = "***"
+        rendered = json.dumps(redacted, ensure_ascii=False)
+        return rendered[:500]
+    return str(body)[:500]
 
 
 def _default_http_transport(
