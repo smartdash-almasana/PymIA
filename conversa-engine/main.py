@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -15,6 +16,7 @@ RESERVED_COMMANDS = {
 _PROGRESSIVE_CONTEXT_BY_SESSION = {}
 _SUPERMEMORY_RECALL_CLIENT = None
 _SUPERMEMORY_RECALL_INITIALIZED = False
+logger = logging.getLogger(__name__)
 
 
 def _cli_message_from_args(args: list[str]) -> tuple[int, str, str | None]:
@@ -121,6 +123,14 @@ def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
         _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = {
             "last_recall": last_recall,
         }
+    logger.info(
+        "[pymia.recall] session_id=%s tenant_id=%s user_id=%s status=%s memories_count=%s",
+        session_id,
+        tenant_id,
+        user_id,
+        last_recall.get("status"),
+        last_recall.get("memories_count"),
+    )
     return result.reply_text or ""
 
 
