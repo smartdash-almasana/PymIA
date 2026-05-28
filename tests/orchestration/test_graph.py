@@ -23,6 +23,7 @@ from pymia.smartpyme.storage import (
     load_intake_records,
     load_evidence_records_by_intake_id,
 )
+from pymia.orchestration.state_storage import load_state
 
 
 def test_normalize_event_updates_last_message() -> None:
@@ -608,3 +609,49 @@ def test_graph_module_has_no_telegram_or_hermes_imports() -> None:
     assert "from hermes" not in source
     assert "import telegram" not in source
     assert "from telegram" not in source
+
+
+def test_delivered_state_has_no_delivery_package_and_jsonl_omits_it(tmp_path: Path) -> None:
+    doc_path = tmp_path / "test.xlsx"
+    pd.DataFrame(
+        [
+            {"producto": "A", "ventas": 100, "costo": 80},
+            {"producto": "B", "ventas": 50, "costo": 40},
+        ]
+    ).to_excel(doc_path, index=False)
+
+    event_doc = PymIAEvent(
+        event_type="document_received",
+        tenant_id="tenant_c4b",
+        chat_id="chat_c4b",
+        conversation_id="conv_c4b",
+        document_path=doc_path,
+        document_name="test.xlsx",
+    )
+    run_pymia_graph(event_doc, base_dir=tmp_path)
+
+    event_diag = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_c4b",
+        chat_id="chat_c4b",
+        conversation_id="conv_c4b",
+        text="diagnosticalo",
+    )
+    run_pymia_graph(event_diag, base_dir=tmp_path)
+
+    state = load_state("tenant_c4b", "chat_c4b", tmp_path)
+    assert state is not None
+    # Contrato 4B: no atributo delivery_package
+    assert not hasattr(state, "delivery_package")
+
+    # Estado serializable mínimo presente
+    assert state.phase in {"DELIVERED", "BLOCKED", "FAILED"}
+    if state.phase == "DELIVERED":
+        assert isinstance(state.delivery_summary, str) and state.delivery_summary
+        assert isinstance(state.output_refs, list)
+        assert all(isinstance(x, str) for x in state.output_refs)
+        assert isinstance(state.findings_count, int)
+
+    state_file = tmp_path / "tenant_c4b" / "conversation_states.jsonl"
+    raw = state_file.read_text(encoding="utf-8")
+    assert "delivery_package" not in raw
