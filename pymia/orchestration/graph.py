@@ -15,30 +15,44 @@ SIN integración Telegram todavía.
 from __future__ import annotations
 
 from copy import deepcopy
+from importlib import import_module
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from pymia.orchestration.state import PymIAState, PymIAEvent
 from pymia.orchestration.state_storage import save_state, load_state
-
-# Capas estáticas smartpyme (CICLO 2)
-from pymia.smartpyme.intake import create_intake_record
-from pymia.smartpyme.evidence import create_evidence_record, SOURCE_KIND_UPLOADED_FILE
-from pymia.smartpyme.storage import (
-    save_intake_record,
-    save_evidence_record,
-    load_intake_record_by_id,
-    load_evidence_records_by_intake_id,
-)
-from pymia.smartpyme.evidence_gate import evaluate_evidence_sufficiency
-from pymia.smartpyme.readiness import evaluate_analysis_readiness
-from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
-from pymia.smartpyme.microservice_dispatcher import dispatch_candidate
-from pymia.smartpyme.execution_result_gate import validate_execution_result
-from pymia.smartpyme.delivery_package import build_delivery_package
+from pymia.orchestration.conversation_adapter import adapt_text_message
 
 SENTINEL = "[PymIA:TELEGRAM_RUNTIME]"
 STORAGE_BASE_DIR = Path(".runtime/telegram_storage")
+
+
+def _smartpyme_deps() -> dict[str, Any]:
+    """Carga lazy de dependencias SmartPyme para evitar acoplamiento en imports de módulo."""
+    intake = import_module("pymia.smartpyme.intake")
+    evidence = import_module("pymia.smartpyme.evidence")
+    storage = import_module("pymia.smartpyme.storage")
+    evidence_gate = import_module("pymia.smartpyme.evidence_gate")
+    readiness = import_module("pymia.smartpyme.readiness")
+    runtime_bridge = import_module("pymia.smartpyme.runtime_bridge")
+    dispatcher = import_module("pymia.smartpyme.microservice_dispatcher")
+    exec_gate = import_module("pymia.smartpyme.execution_result_gate")
+    delivery = import_module("pymia.smartpyme.delivery_package")
+    return {
+        "create_intake_record": intake.create_intake_record,
+        "create_evidence_record": evidence.create_evidence_record,
+        "SOURCE_KIND_UPLOADED_FILE": evidence.SOURCE_KIND_UPLOADED_FILE,
+        "save_intake_record": storage.save_intake_record,
+        "save_evidence_record": storage.save_evidence_record,
+        "load_intake_record_by_id": storage.load_intake_record_by_id,
+        "load_evidence_records_by_intake_id": storage.load_evidence_records_by_intake_id,
+        "evaluate_evidence_sufficiency": evidence_gate.evaluate_evidence_sufficiency,
+        "evaluate_analysis_readiness": readiness.evaluate_analysis_readiness,
+        "prepare_runtime_execution": runtime_bridge.prepare_runtime_execution,
+        "dispatch_candidate": dispatcher.dispatch_candidate,
+        "validate_execution_result": exec_gate.validate_execution_result,
+        "build_delivery_package": delivery.build_delivery_package,
+    }
 
 
 def normalize_event(state: PymIAState, event: PymIAEvent) -> PymIAState:
@@ -98,9 +112,21 @@ def decide_route(state: PymIAState, event: PymIAEvent) -> PymIAState:
             new_state.pending_question = "Necesito un Excel para analizar. ¿Podés subirlo?"
     
     elif event.event_type == "text_message":
-        new_state.add_decision("Route: fallback_text")
-        new_state.phase = "NEW"
-        new_state.pending_question = "Entiendo tu consulta. Para ayudarte necesito un Excel con datos operativos."
+        adapter_result = adapt_text_message(
+            text=event.text or "",
+            tenant_id=new_state.tenant_id,
+            user_id=new_state.chat_id,
+            progressive_context=new_state.progressive_context,
+        )
+        new_state.progressive_context = dict(adapter_result.updated_progressive_context)
+        new_state.pending_question = adapter_result.reply_text
+        new_state.add_decision(adapter_result.decision_trail_entry)
+        if adapter_result.phase_hint == "NEEDS_EVIDENCE":
+            new_state.phase = "WAITING_FOR_EVIDENCE"
+        elif adapter_result.phase_hint == "BLOCKED":
+            new_state.phase = "BLOCKED"
+        else:
+            new_state.phase = "NEW"
     
     elif event.event_type == "system_error":
         new_state.add_decision("Route: error_response")
@@ -122,29 +148,30 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
     new_state = deepcopy(state)
     
     if new_state.phase == "EVIDENCE_RECEIVED":
+        deps = _smartpyme_deps()
         # CICLO 2: Integración real con intake + evidence + storage
         try:
             # 1. Crear IntakeRecord
             raw_text = event.text or f"Documento recibido: {event.document_name or 'archivo'}"
-            intake = create_intake_record(
+            intake = deps["create_intake_record"](
                 tenant_id=new_state.tenant_id,
                 raw_text=raw_text,
             )
-            save_intake_record(new_state.tenant_id, intake, base_dir=base_dir)
+            deps["save_intake_record"](new_state.tenant_id, intake, base_dir=base_dir)
             new_state.intake_id = intake.intake_id
             new_state.add_decision(f"Intake created: {intake.intake_id}")
             
             # 2. Crear EvidenceRecord
             if event.document_path:
-                evidence = create_evidence_record(
+                evidence = deps["create_evidence_record"](
                     tenant_id=new_state.tenant_id,
                     intake_id=intake.intake_id,
                     evidence_type="excel_file",
-                    source_kind=SOURCE_KIND_UPLOADED_FILE,
+                    source_kind=deps["SOURCE_KIND_UPLOADED_FILE"],
                     source_ref=str(event.document_path),
                     original_filename=event.document_name,
                 )
-                save_evidence_record(new_state.tenant_id, evidence, base_dir=base_dir)
+                deps["save_evidence_record"](new_state.tenant_id, evidence, base_dir=base_dir)
                 new_state.evidence_ids.append(evidence.evidence_id)
                 new_state.add_decision(f"Evidence registered: {evidence.evidence_id}")
             
@@ -154,6 +181,7 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
             new_state.add_decision(f"Failed to create intake/evidence: {exc}")
     
     elif new_state.phase == "READY_TO_EXECUTE":
+        deps = _smartpyme_deps()
         # CICLO 4: Integración real con dispatch + gate + delivery
         try:
             if not new_state.intake_id:
@@ -166,7 +194,9 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
                 return new_state
             
             # 1. Cargar intake y evidences
-            intake_dict = load_intake_record_by_id(new_state.tenant_id, new_state.intake_id, base_dir=base_dir)
+            intake_dict = deps["load_intake_record_by_id"](
+                new_state.tenant_id, new_state.intake_id, base_dir=base_dir
+            )
             if intake_dict is None:
                 new_state.phase = "BLOCKED"
                 new_state.runtime_candidate_status = "BLOCKED"
@@ -176,20 +206,22 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
                 new_state.add_decision("Runtime candidate: BLOCKED (intake not found)")
                 return new_state
             
-            evidence_dicts = load_evidence_records_by_intake_id(new_state.tenant_id, new_state.intake_id, base_dir=base_dir)
+            evidence_dicts = deps["load_evidence_records_by_intake_id"](
+                new_state.tenant_id, new_state.intake_id, base_dir=base_dir
+            )
             
             # 2. Evaluar sufficiency
-            sufficiency = evaluate_evidence_sufficiency(intake_dict, evidence_dicts)
+            sufficiency = deps["evaluate_evidence_sufficiency"](intake_dict, evidence_dicts)
             new_state.sufficiency_status = sufficiency.status
             new_state.add_decision(f"Evidence sufficiency: {sufficiency.status}")
             
             # 3. Evaluar readiness
-            readiness = evaluate_analysis_readiness(intake_dict, sufficiency)
+            readiness = deps["evaluate_analysis_readiness"](intake_dict, sufficiency)
             new_state.readiness_status = readiness.status
             new_state.add_decision(f"Analysis readiness: {readiness.status}")
             
             # 4. Preparar runtime candidate
-            candidate = prepare_runtime_execution(readiness)
+            candidate = deps["prepare_runtime_execution"](readiness)
             new_state.runtime_candidate_status = candidate.status
             new_state.add_decision(f"Runtime candidate: {candidate.status}")
 
@@ -209,7 +241,7 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
                 return new_state
 
             out_dir = base_dir / new_state.tenant_id / "dispatch" / new_state.conversation_id
-            dispatch_result = dispatch_candidate(
+            dispatch_result = deps["dispatch_candidate"](
                 candidate.to_dict(),
                 evidence_path=new_state.latest_evidence_path,
                 output_dir=out_dir,
@@ -219,7 +251,7 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
             new_state.output_refs = list(dispatch_result.output_refs)
             new_state.add_decision(f"Dispatch executed: status={dispatch_result.status}")
 
-            gate = validate_execution_result(dispatch_result)
+            gate = deps["validate_execution_result"](dispatch_result)
             new_state.gate_verdict = gate.verdict
             new_state.add_decision(f"Execution result gate evaluated: verdict={gate.verdict}")
 
@@ -231,7 +263,7 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
                 return new_state
 
             try:
-                delivery = build_delivery_package(dispatch_result, gate)
+                delivery = deps["build_delivery_package"](dispatch_result, gate)
             except Exception as exc:
                 new_state.phase = "FAILED"
                 new_state.delivery_status = "FAILED"

@@ -141,6 +141,73 @@ def test_decide_route_diagnostic_without_evidence() -> None:
     assert "ask_evidence" in new_state.decision_trail[-1]
 
 
+def test_graph_text_message_invokes_adapter_and_updates_context() -> None:
+    state = PymIAState(
+        tenant_id="test",
+        chat_id="123",
+        conversation_id="conv_1",
+        progressive_context={"old": "value"},
+    )
+    event = PymIAEvent(
+        event_type="text_message",
+        tenant_id="test",
+        chat_id="123",
+        conversation_id="conv_1",
+        text="hola",
+    )
+    with patch("pymia.orchestration.graph.adapt_text_message") as adapter_mock:
+        from pymia.orchestration.conversation_adapter import ConversationAdapterResult
+
+        adapter_mock.return_value = ConversationAdapterResult(
+            reply_text="respuesta adapter",
+            updated_progressive_context={"new": "ctx"},
+            phase_hint="CONVERSATIONAL",
+            decision_trail_entry="adapter-ok",
+        )
+        new_state = decide_route(state, event)
+
+    adapter_mock.assert_called_once()
+    assert new_state.progressive_context == {"new": "ctx"}
+    assert new_state.pending_question == "respuesta adapter"
+    assert new_state.phase == "NEW"
+
+
+def test_graph_text_message_phase_hint_mapping() -> None:
+    state = PymIAState(
+        tenant_id="test",
+        chat_id="123",
+        conversation_id="conv_1",
+    )
+    event = PymIAEvent(
+        event_type="text_message",
+        tenant_id="test",
+        chat_id="123",
+        conversation_id="conv_1",
+        text="hola",
+    )
+    from pymia.orchestration.conversation_adapter import ConversationAdapterResult
+
+    with patch("pymia.orchestration.graph.adapt_text_message") as adapter_mock:
+        adapter_mock.return_value = ConversationAdapterResult(
+            reply_text="need evidence",
+            updated_progressive_context={},
+            phase_hint="NEEDS_EVIDENCE",
+            decision_trail_entry="adapter-needs-evidence",
+        )
+        needs_evidence_state = decide_route(state, event)
+    assert needs_evidence_state.phase == "WAITING_FOR_EVIDENCE"
+
+    with patch("pymia.orchestration.graph.adapt_text_message") as adapter_mock:
+        adapter_mock.return_value = ConversationAdapterResult(
+            reply_text="blocked",
+            updated_progressive_context={},
+            phase_hint="BLOCKED",
+            decision_trail_entry="adapter-blocked",
+        )
+        blocked_state = decide_route(state, event)
+    assert blocked_state.phase == "BLOCKED"
+
+
 # ---------------------------------------------------------------------------
 # CICLO 2: Tests de integración con capas estáticas
 # ---------------------------------------------------------------------------
@@ -566,11 +633,18 @@ def test_decision_trail_includes_dispatch_gate_delivery(tmp_path: Path) -> None:
         summary = "Execution validated and ready to deliver."
         output_refs = [str(tmp_path / "diagnostic_report.md")]
 
-    with patch("pymia.orchestration.graph.prepare_runtime_execution", return_value=_Candidate()), patch(
-        "pymia.orchestration.graph.dispatch_candidate", return_value=_DispatchResult()
-    ), patch("pymia.orchestration.graph.validate_execution_result", return_value=_Gate()), patch(
-        "pymia.orchestration.graph.build_delivery_package", return_value=_Delivery()
-    ):
+    deps = {
+        "load_intake_record_by_id": lambda *args, **kwargs: {"intake_id": state_after_doc.intake_id},
+        "load_evidence_records_by_intake_id": lambda *args, **kwargs: [{"evidence_id": "ev1"}],
+        "evaluate_evidence_sufficiency": lambda *args, **kwargs: type("S", (), {"status": "READY"})(),
+        "evaluate_analysis_readiness": lambda *args, **kwargs: type("R", (), {"status": "READY"})(),
+        "prepare_runtime_execution": lambda *args, **kwargs: _Candidate(),
+        "dispatch_candidate": lambda *args, **kwargs: _DispatchResult(),
+        "validate_execution_result": lambda *args, **kwargs: _Gate(),
+        "build_delivery_package": lambda *args, **kwargs: _Delivery(),
+    }
+
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
         state_after_diag = execute_static_capability(state_diag, event_diag, base_dir=tmp_path)
     joined = "\n".join(state_after_diag.decision_trail)
     assert "Dispatch executed" in joined
@@ -609,6 +683,13 @@ def test_graph_module_has_no_telegram_or_hermes_imports() -> None:
     assert "from hermes" not in source
     assert "import telegram" not in source
     assert "from telegram" not in source
+
+
+def test_graph_has_no_direct_smartpyme_imports() -> None:
+    from pymia.orchestration import graph as graph_module
+
+    source = Path(graph_module.__file__).read_text(encoding="utf-8")
+    assert "from pymia.smartpyme" not in source
 
 
 def test_delivered_state_has_no_delivery_package_and_jsonl_omits_it(tmp_path: Path) -> None:
