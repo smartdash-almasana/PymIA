@@ -91,15 +91,16 @@ def handle_pre_gateway_dispatch(
         event_type = "on_message"
     else:
         logger.warning(
-            "[pymia.bridge] event_type=unknown chat_id=%s user_id=%s reason=no_message_or_document",
+            "[pymia.bridge] event_type=unknown chat_id=%s user_id=%s reason=no_message_or_document route=fallback",
             chat_id,
             user_id,
         )
         return {
-            "handled": False,
-            "reply_text": "",
-            "status": "NOT_HANDLED",
-            "skip_gateway": False,
+            "handled": True,
+            "reply_text": "No entendí el mensaje. ¿Podés reformular?",
+            "status": "FALLBACK",
+            "skip_gateway": True,
+            "route": "fallback",
         }
 
     # Build session
@@ -156,15 +157,16 @@ def handle_pre_gateway_dispatch(
 
     if not should_route:
         logger.info(
-            "[pymia.bridge] event_type=on_message chat_id=%s user_id=%s handled=false status=NOT_HANDLED",
+            "[pymia.bridge] event_type=on_message chat_id=%s user_id=%s handled=true status=FALLBACK route=fallback",
             chat_id,
             user_id,
         )
         return {
-            "handled": False,
-            "reply_text": "",
-            "status": "NOT_HANDLED",
-            "skip_gateway": False,
+            "handled": True,
+            "reply_text": "Para ayudarte necesito entender mejor el problema operativo. ¿Querés revisar ventas, costos, stock, caja o un Excel?",
+            "status": "FALLBACK",
+            "skip_gateway": True,
+            "route": "fallback",
         }
 
     # Route to Excel microservice

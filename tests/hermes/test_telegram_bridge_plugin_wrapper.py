@@ -76,8 +76,8 @@ class TestHandlePreGatewayDispatch:
         assert "Hallazgos" in result["reply_text"]
         mock_handler.assert_called_once()
 
-    def test_dispatch_returns_not_handled_without_excel(self, temp_repo):
-        """Test that dispatch returns not_handled when no Excel exists."""
+    def test_dispatch_returns_fallback_without_excel(self, temp_repo):
+        """Test that dispatch returns fallback when no Excel exists."""
         event = {
             "message_text": "Analizá rentabilidad marzo abril mayo",
             "chat_id": "123456",
@@ -90,13 +90,16 @@ class TestHandlePreGatewayDispatch:
             repo_root=temp_repo,
         )
 
-        assert result["handled"] is False
-        assert result["status"] == "NOT_HANDLED"
-        assert result["skip_gateway"] is False
-        assert result["reply_text"] == ""
+        assert result["handled"] is True
+        assert result["status"] == "FALLBACK"
+        assert result["skip_gateway"] is True
+        assert result["route"] == "fallback"
+        assert "problema operativo" in result["reply_text"]
+        assert "PymIA Factory" not in result["reply_text"]
+        assert "agente genérico" not in result["reply_text"]
 
-    def test_dispatch_returns_not_handled_without_intent(self, temp_repo, sample_excel):
-        """Test that dispatch returns not_handled when message has no Excel intent."""
+    def test_dispatch_returns_fallback_without_intent(self, temp_repo, sample_excel):
+        """Test that dispatch returns fallback when message has no Excel intent."""
         event = {
             "message_text": "Hola, ¿cómo estás?",
             "chat_id": "123456",
@@ -109,9 +112,13 @@ class TestHandlePreGatewayDispatch:
             repo_root=temp_repo,
         )
 
-        assert result["handled"] is False
-        assert result["status"] == "NOT_HANDLED"
-        assert result["skip_gateway"] is False
+        assert result["handled"] is True
+        assert result["status"] == "FALLBACK"
+        assert result["skip_gateway"] is True
+        assert result["route"] == "fallback"
+        assert "problema operativo" in result["reply_text"]
+        assert "PymIA Factory" not in result["reply_text"]
+        assert "agente genérico" not in result["reply_text"]
 
     def test_dispatch_handles_document_upload(self, temp_repo):
         """Test that dispatch handles document upload event."""
@@ -161,8 +168,8 @@ class TestHandlePreGatewayDispatch:
         assert result["skip_gateway"] is True
         assert "Error" in result["reply_text"]
 
-    def test_dispatch_returns_not_handled_for_empty_event(self, temp_repo):
-        """Test that dispatch returns not_handled for event with no message or document."""
+    def test_dispatch_returns_fallback_for_empty_event(self, temp_repo):
+        """Test that dispatch returns fallback for event with no message or document."""
         event = {
             "chat_id": "123456",
             "user_id": "789",
@@ -174,9 +181,11 @@ class TestHandlePreGatewayDispatch:
             repo_root=temp_repo,
         )
 
-        assert result["handled"] is False
-        assert result["status"] == "NOT_HANDLED"
-        assert result["skip_gateway"] is False
+        assert result["handled"] is True
+        assert result["status"] == "FALLBACK"
+        assert result["skip_gateway"] is True
+        assert result["route"] == "fallback"
+        assert "No entendí el mensaje" in result["reply_text"]
 
     def test_dispatch_handles_excel_handler_failure(self, temp_repo, sample_excel):
         """Test that dispatch handles Excel handler failure gracefully."""
@@ -235,3 +244,67 @@ class TestHandlePreGatewayDispatch:
         call_args = mock_handler.call_args
         assert call_args.kwargs["tenant_id"] == "telegram:123456"
         assert call_args.kwargs["user_id"] == "789"
+
+    def test_dispatch_never_returns_handled_false_for_on_message(self, temp_repo):
+        """Test that dispatch NEVER returns handled=False for on_message events."""
+        # Test 1: message without Excel
+        event1 = {
+            "message_text": "Hola, ¿cómo estás?",
+            "chat_id": "123456",
+            "user_id": "789",
+        }
+        result1 = handle_pre_gateway_dispatch(event=event1, adapter=None, repo_root=temp_repo)
+        assert result1["handled"] is True, "Escape hatch still open: handled=False for message without Excel"
+
+        # Test 2: message with Excel but no intent
+        excel_path = temp_repo / ".runtime" / "telegram_documents" / "123456_test.xlsx"
+        excel_path.write_text("dummy")
+        
+        event2 = {
+            "message_text": "Buen día",
+            "chat_id": "123456",
+            "user_id": "789",
+        }
+        result2 = handle_pre_gateway_dispatch(event=event2, adapter=None, repo_root=temp_repo)
+        assert result2["handled"] is True, "Escape hatch still open: handled=False for message with Excel but no intent"
+
+        # Test 3: empty message
+        event3 = {
+            "message_text": "",
+            "chat_id": "123456",
+            "user_id": "789",
+        }
+        result3 = handle_pre_gateway_dispatch(event=event3, adapter=None, repo_root=temp_repo)
+        assert result3["handled"] is True, "Escape hatch still open: handled=False for empty message"
+
+    def test_dispatch_never_returns_skip_gateway_false_for_on_message(self, temp_repo):
+        """Test that dispatch NEVER returns skip_gateway=False for on_message events."""
+        # Test 1: message without Excel
+        event1 = {
+            "message_text": "Hola",
+            "chat_id": "123456",
+            "user_id": "789",
+        }
+        result1 = handle_pre_gateway_dispatch(event=event1, adapter=None, repo_root=temp_repo)
+        assert result1["skip_gateway"] is True, "Escape hatch still open: skip_gateway=False for message without Excel"
+
+        # Test 2: message with Excel but no intent
+        excel_path = temp_repo / ".runtime" / "telegram_documents" / "123456_test.xlsx"
+        excel_path.write_text("dummy")
+        
+        event2 = {
+            "message_text": "Buen día",
+            "chat_id": "123456",
+            "user_id": "789",
+        }
+        result2 = handle_pre_gateway_dispatch(event=event2, adapter=None, repo_root=temp_repo)
+        assert result2["skip_gateway"] is True, "Escape hatch still open: skip_gateway=False for message with Excel but no intent"
+
+        # Test 3: empty message
+        event3 = {
+            "message_text": "",
+            "chat_id": "123456",
+            "user_id": "789",
+        }
+        result3 = handle_pre_gateway_dispatch(event=event3, adapter=None, repo_root=temp_repo)
+        assert result3["skip_gateway"] is True, "Escape hatch still open: skip_gateway=False for empty message"
