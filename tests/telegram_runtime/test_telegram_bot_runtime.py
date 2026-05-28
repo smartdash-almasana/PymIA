@@ -13,6 +13,8 @@ import pytest
 
 from pymia.telegram_bot_runtime import (
     ANALYSIS_TRIGGERS,
+    TELEGRAM_MODE_LEGACY,
+    TELEGRAM_MODE_LLM_OPERATOR,
     dry_run,
     get_updates,
     live_loop,
@@ -221,7 +223,7 @@ class TestLiveLoopDocumentSupport:
         ) as mocked_process, patch("pymia.telegram_bot_runtime.send_message", return_value=True) as mocked_send:
             live_loop("fake-token")
 
-        mocked_process.assert_called_once_with("hola runtime")
+        mocked_process.assert_called_once_with("hola runtime", chat_id=778)
         mocked_send.assert_called_once_with("fake-token", 778, f"{SENTINEL} ok")
 
     def test_live_loop_updates_offset_after_document(self):
@@ -283,4 +285,61 @@ class TestExcelSummaryRouting:
         mocked_summary.assert_not_called()
         mocked_process.assert_not_called()
         assert "Diagnostico Excel via dispatcher" in reply
+        assert SENTINEL in reply
+
+
+class TestLLMOperatorMode:
+    def test_legacy_is_default_mode(self):
+        with patch.dict("os.environ", {}, clear=False):
+            with patch("pymia.telegram_bot_runtime.process_message", return_value=f"{SENTINEL} legacy") as mocked_process:
+                reply = route_text_message("hola")
+        mocked_process.assert_called_once_with("hola")
+        assert reply == f"{SENTINEL} legacy"
+
+    def test_llm_operator_mode_uses_operator_mocked_no_network(self):
+        fake_provider = MagicMock()
+        fake_operator = MagicMock()
+        fake_operator.handle_turn.return_value.reply_text = f"{SENTINEL} operator ok"
+        with patch.dict("os.environ", {"PYMIA_TELEGRAM_MODE": TELEGRAM_MODE_LLM_OPERATOR, "OPENROUTER_API_KEY": "x"}, clear=False), patch(
+            "pymia.llm_operator.providers_openrouter.OpenRouterProvider", return_value=fake_provider
+        ) as mocked_provider_cls, patch("pymia.llm_operator.operator.LLMOperator", return_value=fake_operator) as mocked_operator_cls:
+            reply = route_text_message("hola", chat_id=123)
+        mocked_provider_cls.assert_called_once()
+        mocked_operator_cls.assert_called_once()
+        fake_operator.handle_turn.assert_called_once()
+        assert SENTINEL in reply
+
+    def test_llm_operator_mode_without_key_fails_controlled(self):
+        with patch.dict("os.environ", {"PYMIA_TELEGRAM_MODE": TELEGRAM_MODE_LLM_OPERATOR}, clear=True):
+            with patch("pymia.telegram_bot_runtime._load_env_local", return_value={}):
+                reply = route_text_message("hola")
+        assert SENTINEL in reply
+        assert "OPENROUTER_API_KEY" in reply
+
+    def test_documents_do_not_pass_through_operator(self):
+        update = {
+            "update_id": 300,
+            "message": {
+                "chat": {"id": 880},
+                "document": {"file_id": "file-3", "file_name": "ventas.xlsx"},
+            },
+        }
+        with patch.dict("os.environ", {"PYMIA_TELEGRAM_MODE": TELEGRAM_MODE_LLM_OPERATOR}, clear=False), patch(
+            "pymia.telegram_bot_runtime.get_updates", side_effect=[[update], KeyboardInterrupt]
+        ), patch("pymia.telegram_bot_runtime.handle_document") as mocked_handle_document, patch(
+            "pymia.telegram_bot_runtime.send_message", return_value=True
+        ), patch("pymia.telegram_bot_runtime._route_text_with_operator") as mocked_operator_route:
+            mocked_handle_document.return_value.text = f"{SENTINEL} Documento recibido"
+            live_loop("fake-token")
+        mocked_handle_document.assert_called_once()
+        mocked_operator_route.assert_not_called()
+
+    def test_excel_triggers_still_use_legacy_paths_in_llm_mode(self):
+        with patch.dict("os.environ", {"PYMIA_TELEGRAM_MODE": TELEGRAM_MODE_LLM_OPERATOR, "OPENROUTER_API_KEY": "x"}, clear=False), patch(
+            "pymia.telegram_bot_runtime.run_latest_excel_diagnostic"
+        ) as mocked_diagnostic, patch("pymia.telegram_bot_runtime._route_text_with_operator") as mocked_operator_route:
+            mocked_diagnostic.return_value.text = f"{SENTINEL} Diagnostico Excel via dispatcher"
+            reply = route_text_message("diagnosticalo")
+        mocked_diagnostic.assert_called_once()
+        mocked_operator_route.assert_not_called()
         assert SENTINEL in reply

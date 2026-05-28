@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 from pymia.telegram_document_handler import handle_document
@@ -30,6 +31,43 @@ ANALYSIS_TRIGGERS = (
     "leer el excel",
     "estructura del excel",
 )
+TELEGRAM_OPERATOR_BASE_DIR = Path(".runtime/telegram_operator")
+TELEGRAM_MODE_LEGACY = "legacy"
+TELEGRAM_MODE_LLM_OPERATOR = "llm_operator"
+
+
+def _load_env_local(path: Path) -> dict[str, str]:
+    loaded: dict[str, str] = {}
+    if not path.exists():
+        return loaded
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            loaded[key] = value
+    return loaded
+
+
+def _resolve_openrouter_key() -> str | None:
+    key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if key:
+        return key
+    env_values = _load_env_local(Path(".env.local"))
+    key = env_values.get("OPENROUTER_API_KEY", "").strip()
+    if key and "OPENROUTER_API_KEY" not in os.environ:
+        os.environ["OPENROUTER_API_KEY"] = key
+    return key or None
+
+
+def _runtime_mode() -> str:
+    mode = os.environ.get("PYMIA_TELEGRAM_MODE", TELEGRAM_MODE_LEGACY).strip().lower()
+    if mode not in {TELEGRAM_MODE_LEGACY, TELEGRAM_MODE_LLM_OPERATOR}:
+        return TELEGRAM_MODE_LEGACY
+    return mode
 
 
 def get_updates(token: str, offset: int | None = None, timeout: int = 30) -> list[dict[str, Any]]:
@@ -106,7 +144,34 @@ def process_message(text: str) -> str:
     return result.text
 
 
-def route_text_message(text: str) -> str:
+def _route_text_with_operator(text: str, chat_id: int | str | None) -> str:
+    key = _resolve_openrouter_key()
+    if not key:
+        return f"{SENTINEL} Modo llm_operator activo pero falta OPENROUTER_API_KEY."
+    try:
+        from pymia.llm_operator.operator import LLMOperator
+        from pymia.llm_operator.providers_openrouter import OpenRouterProvider
+        import pymia.orchestration.os_tool_registry as registry_module
+
+        session_id = str(chat_id) if chat_id is not None else "dry_run"
+        provider = OpenRouterProvider(api_key=key)
+        operator = LLMOperator(provider=provider, registry=registry_module)
+        result = operator.handle_turn(
+            tenant_id="telegram",
+            chat_id=session_id,
+            conversation_id=session_id,
+            message=text,
+            base_dir=TELEGRAM_OPERATOR_BASE_DIR,
+        )
+        reply = result.reply_text
+        if SENTINEL not in reply:
+            return f"{SENTINEL} {reply}"
+        return reply
+    except Exception:
+        return f"{SENTINEL} No pude procesar tu mensaje con llm_operator en este momento."
+
+
+def route_text_message(text: str, chat_id: int | str | None = None) -> str:
     lowered = (text or "").strip().lower()
     if is_diagnostic_request(lowered):
         diagnostic = run_latest_excel_diagnostic()
@@ -114,6 +179,8 @@ def route_text_message(text: str) -> str:
     if any(trigger in lowered for trigger in ANALYSIS_TRIGGERS):
         summary = analyze_latest_excel()
         return summary.text if SENTINEL in summary.text else f"{SENTINEL} {summary.text}"
+    if _runtime_mode() == TELEGRAM_MODE_LLM_OPERATOR:
+        return _route_text_with_operator(text, chat_id)
     return process_message(text)
 
 
@@ -121,7 +188,7 @@ def dry_run(message: str) -> None:
     """
     Modo dry-run: procesa mensaje sin red.
     """
-    reply = route_text_message(message)
+    reply = route_text_message(message, chat_id="dry_run")
     print(f"[DRY-RUN] Message: {message}")
     print(f"[DRY-RUN] Reply: {reply}")
 
@@ -161,7 +228,7 @@ def live_loop(token: str) -> None:
                             print(f"[ERROR] Failed to send reply to {chat_id}")
                     elif chat_id and text:
                         print(f"[MSG] chat_id={chat_id}, text={text[:50]}...")
-                        reply = route_text_message(text)
+                        reply = route_text_message(text, chat_id=chat_id)
                         success = send_message(token, chat_id, reply)
                         if success:
                             print(f"[SENT] Reply sent to {chat_id}")
