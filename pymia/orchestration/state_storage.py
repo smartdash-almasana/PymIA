@@ -5,9 +5,31 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from pymia.orchestration.state import PymIAState
+
+
+def _read_jsonl_records(state_file: Path) -> list[dict[str, Any]]:
+    """Lee JSONL tolerando líneas vacías y fallando explícitamente ante JSON inválido."""
+    records: list[dict[str, Any]] = []
+    with state_file.open("r", encoding="utf-8") as f:
+        for lineno, line in enumerate(f, start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                record = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Invalid JSONL in {state_file} at line {lineno}"
+                ) from exc
+            if not isinstance(record, dict):
+                raise ValueError(
+                    f"Invalid JSONL record type in {state_file} at line {lineno}"
+                )
+            records.append(record)
+    return records
 
 
 def save_state(
@@ -98,3 +120,79 @@ def load_state(
             )
     
     return None
+
+
+def replay_conversation(
+    tenant_id: str,
+    chat_id: str,
+    base_dir: Path,
+) -> Optional[PymIAState]:
+    """Wrapper semántico para recuperar el último estado de una conversación."""
+    return load_state(tenant_id, chat_id, base_dir)
+
+
+def get_conversation_history(
+    tenant_id: str,
+    chat_id: str,
+    base_dir: Path,
+) -> list[dict[str, Any]]:
+    """Retorna historial completo de un chat ordenado por updated_at asc."""
+    state_file = base_dir / tenant_id / "conversation_states.jsonl"
+    if not state_file.exists():
+        return []
+
+    records = _read_jsonl_records(state_file)
+    filtered = [record for record in records if record.get("chat_id") == chat_id]
+    filtered.sort(key=lambda item: item.get("updated_at", ""))
+    return filtered
+
+
+def find_conversations_by_tenant(
+    tenant_id: str,
+    base_dir: Path,
+) -> list[dict[str, Any]]:
+    """Lista conversaciones por tenant usando el último estado por conversation_id."""
+    state_file = base_dir / tenant_id / "conversation_states.jsonl"
+    if not state_file.exists():
+        return []
+
+    records = _read_jsonl_records(state_file)
+    by_conversation: dict[str, dict[str, Any]] = {}
+
+    for record in records:
+        conversation_id = str(record.get("conversation_id") or "")
+        if not conversation_id:
+            continue
+        previous = by_conversation.get(conversation_id)
+        if previous is None or record.get("updated_at", "") > previous.get("updated_at", ""):
+            by_conversation[conversation_id] = record
+
+    conversations = [
+        {
+            "conversation_id": conversation_id,
+            "chat_id": latest.get("chat_id"),
+            "last_phase": latest.get("phase"),
+            "last_updated": latest.get("updated_at"),
+            "evidence_count": len(latest.get("evidence_ids", []) or []),
+        }
+        for conversation_id, latest in by_conversation.items()
+    ]
+    conversations.sort(key=lambda item: item.get("last_updated") or "", reverse=True)
+    return conversations
+
+
+def export_conversation_jsonl(
+    tenant_id: str,
+    chat_id: str,
+    base_dir: Path,
+    output_path: Path,
+) -> int:
+    """Exporta historial filtrado de un chat a JSONL y retorna cantidad de líneas."""
+    history = get_conversation_history(tenant_id, chat_id, base_dir)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", encoding="utf-8") as f:
+        for record in history:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    return len(history)
