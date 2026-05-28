@@ -32,6 +32,9 @@ from pymia.hermes.plugins.pymia_telegram_bridge.document_resolver import (
     remember_latest_document,
     resolve_latest_excel,
 )
+from pymia.hermes.plugins.pymia_telegram_bridge.plugin_wrapper import (
+    handle_pre_gateway_dispatch,
+)
 
 __all__ = [
     "TELEGRAM_DOCUMENTS_DIR",
@@ -41,4 +44,5 @@ __all__ = [
     "ExcelRef",
     "remember_latest_document",
     "resolve_latest_excel",
+    "handle_pre_gateway_dispatch",
 ]

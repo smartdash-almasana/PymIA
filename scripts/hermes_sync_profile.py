@@ -13,6 +13,9 @@ Usage:
     # Check environment (validate secrets are present)
     python scripts/hermes_sync_profile.py --profile pymiafactory --check-env
 
+    # Apply plugin template (copy hermes_plugin/__init__.py to AppData)
+    python scripts/hermes_sync_profile.py --profile pymiafactory --apply
+
     # Full sync (copy to AppData, requires secrets)
     python scripts/hermes_sync_profile.py --profile pymiafactory
 
@@ -176,6 +179,47 @@ def sync_profile_config(
     print(f"Copied: profile.yaml")
 
 
+def apply_plugin_template(
+    plugin_dir: Path,
+    target_plugin_dir: Path,
+    dry_run: bool = False,
+) -> None:
+    """
+    Apply plugin template by copying hermes_plugin/__init__.py to AppData.
+
+    Args:
+        plugin_dir: Source plugin directory (repo)
+        target_plugin_dir: Target plugin directory (AppData)
+        dry_run: If True, only validate without copying
+
+    Raises:
+        FileNotFoundError: If hermes_plugin/__init__.py does not exist
+    """
+    template_path = plugin_dir / "hermes_plugin" / "__init__.py"
+
+    if not template_path.exists():
+        raise FileNotFoundError(
+            f"Plugin template not found: {template_path}\n"
+            f"Expected: {plugin_dir}/hermes_plugin/__init__.py"
+        )
+
+    target_init = target_plugin_dir / "__init__.py"
+
+    if dry_run:
+        print(f"[DRY RUN] Would copy plugin template from: {template_path}")
+        print(f"[DRY RUN] To: {target_init}")
+        return
+
+    import shutil
+
+    # Ensure target exists
+    target_plugin_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy template
+    shutil.copy2(template_path, target_init)
+    print(f"Applied plugin template: {target_init}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Sync Hermes profile from repo to AppData"
@@ -189,6 +233,11 @@ def main() -> int:
         "--dry-run",
         action="store_true",
         help="Validate structure without copying or checking secrets",
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply plugin template (copy hermes_plugin/__init__.py to AppData)",
     )
     parser.add_argument(
         "--check-env",
@@ -211,6 +260,7 @@ def main() -> int:
 
     profile_name = args.profile
     dry_run = args.dry_run
+    apply_mode = args.apply
     check_env = args.check_env
     force = args.force
     appdata = args.appdata
@@ -219,6 +269,7 @@ def main() -> int:
     print(f"Repo root: {REPO_ROOT}")
     print(f"AppData: {appdata}")
     print(f"Dry run: {dry_run}")
+    print(f"Apply mode: {apply_mode}")
     print(f"Check env: {check_env}")
     print(f"Force: {force}")
     print()
@@ -244,8 +295,8 @@ def main() -> int:
         print(f"  - {var}")
     print()
 
-    # Step 3: Validate environment presence (only with --check-env or full sync, NOT dry-run)
-    if check_env or (not dry_run):
+    # Step 3: Validate environment presence (only with --check-env or full sync, NOT dry-run or apply)
+    if check_env or (not dry_run and not apply_mode):
         print("Step 3: Validating environment variables presence...")
         missing_env = validate_required_env(sources["required_env_yaml"])
         if missing_env:
@@ -259,19 +310,35 @@ def main() -> int:
             print("✓ All required environment variables are set")
         print()
     else:
-        print("Step 3: Skipping environment validation (dry-run mode)")
+        print("Step 3: Skipping environment validation (dry-run or apply mode)")
         print()
 
-    # Step 4: Sync plugin code
-    print("Step 4: Syncing plugin code...")
+    # Step 4: Sync plugin code or apply plugin template
     target_plugin_dir = appdata / profile_name / "plugins" / "pymia-telegram-bridge"
-    try:
-        sync_plugin_code(sources["plugin_dir"], target_plugin_dir, dry_run=dry_run)
-        if not dry_run:
-            print("✓ Plugin code synced")
-    except Exception as e:
-        print(f"✗ Failed to sync plugin code: {e}")
-        return 3
+
+    if apply_mode:
+        print("Step 4: Applying plugin template...")
+        try:
+            apply_plugin_template(
+                sources["plugin_dir"], target_plugin_dir, dry_run=dry_run
+            )
+            if not dry_run:
+                print("✓ Plugin template applied")
+        except FileNotFoundError as e:
+            print(f"✗ Failed to apply plugin template:\n{e}")
+            return 3
+        except Exception as e:
+            print(f"✗ Failed to apply plugin template: {e}")
+            return 3
+    else:
+        print("Step 4: Syncing plugin code...")
+        try:
+            sync_plugin_code(sources["plugin_dir"], target_plugin_dir, dry_run=dry_run)
+            if not dry_run:
+                print("✓ Plugin code synced")
+        except Exception as e:
+            print(f"✗ Failed to sync plugin code: {e}")
+            return 3
 
     print()
 
