@@ -5,7 +5,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -51,7 +51,7 @@ def download_telegram_file(token: str, file_id: str, file_name: str, dest_dir: P
         return None
 
     sanitized_name = Path(file_name).name
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     output_name = f"{timestamp}_{sanitized_name}"
     dest_dir.mkdir(parents=True, exist_ok=True)
     output_path = (dest_dir / output_name).resolve()
