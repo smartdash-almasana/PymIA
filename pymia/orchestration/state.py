@@ -26,9 +26,11 @@ class PymIAState:
         "NEW",                      # mensaje nuevo, sin contexto
         "WAITING_FOR_EVIDENCE",     # esperando archivo
         "EVIDENCE_RECEIVED",        # archivo recibido, listo para diagnosticar
+        "READY_TO_EXECUTE",         # candidato listo para ejecutar
         "EXECUTING",                # ejecutando microservicio
         "EXECUTED",                 # ejecución completada
         "DELIVERY_READY",           # paquete listo para entregar
+        "DELIVERED",                # entrega lista para responder
         "BLOCKED",                  # bloqueado (falta evidencia, error, etc.)
         "FAILED",                   # fallo controlado
     ] = "NEW"
@@ -49,6 +51,10 @@ class PymIAState:
     runtime_candidate_status: Optional[str] = None  # READY_TO_EXECUTE, BLOCKED
     execution_status: Optional[str] = None          # EXECUTED, FAILED
     delivery_status: Optional[str] = None           # READY_TO_DELIVER, BLOCKED
+    gate_verdict: Optional[str] = None
+    delivery_summary: Optional[str] = None
+    output_refs: list[str] = field(default_factory=list)
+    findings_count: int = 0
     
     # Paths
     latest_evidence_path: Optional[Path] = None

@@ -7,8 +7,8 @@
 4. render_response - renderiza respuesta final
 
 CICLO 2: Integración con capas estáticas (intake, evidence, storage, gates, readiness, runtime_bridge).
+CICLO 4: Integración de ejecución y entrega (dispatch, execution_result_gate, delivery_package).
 SIN integración Telegram todavía.
-SIN dispatch real todavía (eso es CICLO 4).
 
 """
 
@@ -33,6 +33,9 @@ from pymia.smartpyme.storage import (
 from pymia.smartpyme.evidence_gate import evaluate_evidence_sufficiency
 from pymia.smartpyme.readiness import evaluate_analysis_readiness
 from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
+from pymia.smartpyme.microservice_dispatcher import dispatch_candidate
+from pymia.smartpyme.execution_result_gate import validate_execution_result
+from pymia.smartpyme.delivery_package import build_delivery_package
 
 SENTINEL = "[PymIA:TELEGRAM_RUNTIME]"
 STORAGE_BASE_DIR = Path(".runtime/telegram_storage")
@@ -151,11 +154,12 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
             new_state.add_decision(f"Failed to create intake/evidence: {exc}")
     
     elif new_state.phase == "READY_TO_EXECUTE":
-        # CICLO 2: Integración real con gates + readiness + runtime_bridge
+        # CICLO 4: Integración real con dispatch + gate + delivery
         try:
             if not new_state.intake_id:
                 new_state.phase = "BLOCKED"
                 new_state.runtime_candidate_status = "BLOCKED"
+                new_state.execution_status = "BLOCKED"
                 new_state.pending_question = "No hay intake registrado. Subí un archivo primero."
                 new_state.add_decision("Blocked: no intake_id")
                 new_state.add_decision("Runtime candidate: BLOCKED (no intake_id)")
@@ -166,6 +170,7 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
             if intake_dict is None:
                 new_state.phase = "BLOCKED"
                 new_state.runtime_candidate_status = "BLOCKED"
+                new_state.execution_status = "BLOCKED"
                 new_state.pending_question = f"Intake {new_state.intake_id} no encontrado."
                 new_state.add_decision(f"Blocked: intake not found")
                 new_state.add_decision("Runtime candidate: BLOCKED (intake not found)")
@@ -187,19 +192,63 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
             candidate = prepare_runtime_execution(readiness)
             new_state.runtime_candidate_status = candidate.status
             new_state.add_decision(f"Runtime candidate: {candidate.status}")
-            
-            if candidate.status == "READY_TO_EXECUTE":
-                new_state.phase = "READY_TO_EXECUTE"
-                # En CICLO 4: aquí se ejecutará dispatch_candidate
-            else:
+
+            if candidate.status != "READY_TO_EXECUTE":
                 new_state.phase = "BLOCKED"
                 reason = candidate.blocking_reasons[0] if candidate.blocking_reasons else "candidato no listo"
+                new_state.execution_status = "BLOCKED"
                 new_state.pending_question = f"Diagnóstico bloqueado: {reason}"
                 new_state.add_decision(f"Blocked: {reason}")
+                return new_state
+
+            if not new_state.latest_evidence_path or not new_state.latest_evidence_path.exists():
+                new_state.phase = "BLOCKED"
+                new_state.execution_status = "BLOCKED"
+                new_state.pending_question = "No hay evidencia disponible para ejecutar el diagnóstico."
+                new_state.add_decision("Blocked: no evidence path for dispatch")
+                return new_state
+
+            out_dir = base_dir / new_state.tenant_id / "dispatch" / new_state.conversation_id
+            dispatch_result = dispatch_candidate(
+                candidate.to_dict(),
+                evidence_path=new_state.latest_evidence_path,
+                output_dir=out_dir,
+            )
+            new_state.execution_status = dispatch_result.status
+            new_state.findings_count = int(dispatch_result.findings_count)
+            new_state.output_refs = list(dispatch_result.output_refs)
+            new_state.add_decision(f"Dispatch executed: status={dispatch_result.status}")
+
+            gate = validate_execution_result(dispatch_result)
+            new_state.gate_verdict = gate.verdict
+            new_state.add_decision(f"Execution result gate evaluated: verdict={gate.verdict}")
+
+            if gate.verdict != "PASS":
+                new_state.phase = "BLOCKED" if gate.verdict == "BLOCKED" else "FAILED"
+                new_state.delivery_status = "BLOCKED" if gate.verdict == "BLOCKED" else "FAILED"
+                reason = gate.reasons[0] if gate.reasons else "resultado no entregable"
+                new_state.pending_question = f"Diagnóstico bloqueado: {reason}"
+                return new_state
+
+            try:
+                delivery = build_delivery_package(dispatch_result, gate)
+            except Exception as exc:
+                new_state.phase = "FAILED"
+                new_state.delivery_status = "FAILED"
+                new_state.add_error(f"Delivery package build failed: {exc}")
+                new_state.add_decision(f"Delivery package build failed: {exc}")
+                return new_state
+
+            new_state.delivery_status = delivery.status
+            new_state.delivery_summary = delivery.summary
+            new_state.output_refs = list(delivery.output_refs)
+            new_state.phase = "DELIVERED" if delivery.status == "READY_TO_DELIVER" else "BLOCKED"
+            new_state.add_decision(f"Delivery package built: status={delivery.status}")
         
         except Exception as exc:
             new_state.phase = "FAILED"
             new_state.runtime_candidate_status = "FAILED"
+            new_state.execution_status = "FAILED"
             new_state.add_error(f"Readiness/Runtime preparation failed: {exc}")
             new_state.add_decision(f"Failed readiness/runtime: {exc}")
             new_state.add_decision("Runtime candidate: FAILED (exception)")
@@ -228,9 +277,12 @@ def render_response(state: PymIAState) -> tuple[PymIAState, str]:
         response = f"{SENTINEL} Recibí tu archivo. {new_state.pending_question or ''}"
     
     elif new_state.phase == "READY_TO_EXECUTE":
-        # En CICLO 4: aquí se ejecutará dispatch y se renderizará resultado real
-        response = f"{SENTINEL} Listo para ejecutar diagnóstico. (CICLO 2: candidate preparado, sin dispatch real todavía)"
+        response = f"{SENTINEL} Listo para ejecutar diagnóstico."
         new_state.add_decision("Response rendered: ready_to_execute")
+
+    elif new_state.phase == "DELIVERED":
+        response = f"{SENTINEL} {new_state.delivery_summary or 'Diagnóstico ejecutado y listo para entregar.'}"
+        new_state.add_decision("Response rendered: delivered")
     
     elif new_state.phase == "WAITING_FOR_EVIDENCE":
         response = f"{SENTINEL} {new_state.pending_question or 'Necesito evidencia.'}"

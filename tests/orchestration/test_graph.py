@@ -3,7 +3,11 @@
 CICLO 2: Integración con capas estáticas smartpyme.
 """
 
+import json
 from pathlib import Path
+from unittest.mock import patch
+
+import pandas as pd
 
 from pymia.orchestration.state import PymIAEvent
 from pymia.orchestration.graph import (
@@ -450,3 +454,157 @@ def test_render_response_waiting_for_evidence() -> None:
     
     assert SENTINEL in response
     assert "Necesito un Excel" in response
+
+
+def test_execute_static_capability_fail_closed_without_runtime_candidate(tmp_path: Path) -> None:
+    state = PymIAState(
+        tenant_id="test",
+        chat_id="123",
+        conversation_id="conv_1",
+        phase="READY_TO_EXECUTE",
+        intake_id=None,
+    )
+    event = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="test",
+        chat_id="123",
+        conversation_id="conv_1",
+        text="diagnosticalo",
+    )
+
+    new_state = execute_static_capability(state, event, base_dir=tmp_path)
+    assert new_state.phase == "BLOCKED"
+    assert new_state.execution_status == "BLOCKED"
+    assert any("Blocked: no intake_id" in d for d in new_state.decision_trail)
+
+
+def test_decision_trail_includes_dispatch_gate_delivery(tmp_path: Path) -> None:
+    doc_path = tmp_path / "test.xlsx"
+    pd.DataFrame(
+        [
+            {"producto": "A", "ventas": 100, "costo": 80},
+            {"producto": "B", "ventas": 50, "costo": 40},
+        ]
+    ).to_excel(doc_path, index=False)
+
+    state_doc = PymIAState(
+        tenant_id="tenant_x",
+        chat_id="chat_x",
+        conversation_id="conv_x",
+        phase="EVIDENCE_RECEIVED",
+        latest_evidence_path=doc_path,
+    )
+    event_doc = PymIAEvent(
+        event_type="document_received",
+        tenant_id="tenant_x",
+        chat_id="chat_x",
+        conversation_id="conv_x",
+        document_path=doc_path,
+        document_name="test.xlsx",
+    )
+    state_after_doc = execute_static_capability(state_doc, event_doc, base_dir=tmp_path)
+
+    state_diag = PymIAState(
+        tenant_id="tenant_x",
+        chat_id="chat_x",
+        conversation_id="conv_x",
+        phase="READY_TO_EXECUTE",
+        intake_id=state_after_doc.intake_id,
+        evidence_ids=list(state_after_doc.evidence_ids),
+        latest_evidence_path=doc_path,
+    )
+    event_diag = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_x",
+        chat_id="chat_x",
+        conversation_id="conv_x",
+        text="diagnosticalo",
+    )
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_x",
+                "intake_id": state_after_doc.intake_id,
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    class _DispatchResult:
+        status = "EXECUTED"
+        findings_count = 2
+        output_refs = [str(tmp_path / "diagnostic_report.md")]
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_x",
+                "intake_id": state_after_doc.intake_id,
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "EXECUTED",
+                "output_refs": self.output_refs,
+                "findings_count": self.findings_count,
+                "raw_result": {"ok": True},
+                "warnings": [],
+            }
+
+    class _Gate:
+        verdict = "PASS"
+        reasons = ["ok"]
+        warnings = []
+
+        def to_dict(self):
+            return {"verdict": "PASS", "reasons": self.reasons, "warnings": self.warnings}
+
+    class _Delivery:
+        status = "READY_TO_DELIVER"
+        summary = "Execution validated and ready to deliver."
+        output_refs = [str(tmp_path / "diagnostic_report.md")]
+
+    with patch("pymia.orchestration.graph.prepare_runtime_execution", return_value=_Candidate()), patch(
+        "pymia.orchestration.graph.dispatch_candidate", return_value=_DispatchResult()
+    ), patch("pymia.orchestration.graph.validate_execution_result", return_value=_Gate()), patch(
+        "pymia.orchestration.graph.build_delivery_package", return_value=_Delivery()
+    ):
+        state_after_diag = execute_static_capability(state_diag, event_diag, base_dir=tmp_path)
+    joined = "\n".join(state_after_diag.decision_trail)
+    assert "Dispatch executed" in joined
+    assert "Execution result gate evaluated" in joined
+    assert "Delivery package built" in joined
+
+
+def test_state_serializable_runtime_fields() -> None:
+    state = PymIAState(
+        tenant_id="tenant_s",
+        chat_id="chat_s",
+        conversation_id="conv_s",
+        execution_status="EXECUTED",
+        gate_verdict="PASS",
+        delivery_status="READY_TO_DELIVER",
+        delivery_summary="Execution validated and ready to deliver.",
+        output_refs=["/tmp/report.md"],
+        findings_count=3,
+    )
+    payload = {
+        "execution_status": state.execution_status,
+        "gate_verdict": state.gate_verdict,
+        "delivery_status": state.delivery_status,
+        "delivery_summary": state.delivery_summary,
+        "output_refs": state.output_refs,
+        "findings_count": state.findings_count,
+    }
+    json.dumps(payload)
+
+
+def test_graph_module_has_no_telegram_or_hermes_imports() -> None:
+    from pymia.orchestration import graph as graph_module
+
+    source = Path(graph_module.__file__).read_text(encoding="utf-8").lower()
+    assert "import hermes" not in source
+    assert "from hermes" not in source
+    assert "import telegram" not in source
+    assert "from telegram" not in source
