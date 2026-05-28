@@ -12,10 +12,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pymia.telegram_bot_runtime import (
+    ANALYSIS_TRIGGERS,
     dry_run,
     get_updates,
     live_loop,
     process_message,
+    route_text_message,
     send_message,
 )
 from pymia.telegram_runtime import SENTINEL
@@ -215,7 +217,7 @@ class TestLiveLoopDocumentSupport:
         }
 
         with patch("pymia.telegram_bot_runtime.get_updates", side_effect=[[update], KeyboardInterrupt]), patch(
-            "pymia.telegram_bot_runtime.process_message", return_value=f"{SENTINEL} ok"
+            "pymia.telegram_bot_runtime.route_text_message", return_value=f"{SENTINEL} ok"
         ) as mocked_process, patch("pymia.telegram_bot_runtime.send_message", return_value=True) as mocked_send:
             live_loop("fake-token")
 
@@ -246,3 +248,25 @@ class TestLiveLoopDocumentSupport:
             live_loop("fake-token")
 
         assert offsets == [None, 556]
+
+
+class TestExcelSummaryRouting:
+    def test_route_text_message_dispatches_excel_summary_for_trigger(self):
+        trigger = ANALYSIS_TRIGGERS[0]
+        with patch(
+            "pymia.telegram_bot_runtime.analyze_latest_excel"
+        ) as mocked_summary, patch("pymia.telegram_bot_runtime.process_message") as mocked_process:
+            mocked_summary.return_value.text = f"{SENTINEL} Resumen estructural del Excel"
+            reply = route_text_message(trigger)
+        mocked_summary.assert_called_once()
+        mocked_process.assert_not_called()
+        assert SENTINEL in reply
+
+    def test_route_text_message_dispatches_process_without_trigger(self):
+        with patch("pymia.telegram_bot_runtime.analyze_latest_excel") as mocked_summary, patch(
+            "pymia.telegram_bot_runtime.process_message", return_value=f"{SENTINEL} normal"
+        ) as mocked_process:
+            reply = route_text_message("hola")
+        mocked_summary.assert_not_called()
+        mocked_process.assert_called_once_with("hola")
+        assert reply == f"{SENTINEL} normal"

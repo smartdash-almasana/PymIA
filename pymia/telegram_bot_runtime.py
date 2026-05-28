@@ -16,10 +16,19 @@ import urllib.request
 from typing import Any
 
 from pymia.telegram_document_handler import handle_document
+from pymia.telegram_excel_summary import analyze_latest_excel
 from pymia.telegram_runtime import SENTINEL, handle_telegram_message
 
 TELEGRAM_API_BASE = "https://api.telegram.org/bot{token}/{method}"
 POLL_INTERVAL_SECONDS = 1
+ANALYSIS_TRIGGERS = (
+    "analizá el excel",
+    "analiza el excel",
+    "resumen del excel",
+    "qué tiene el excel",
+    "leer el excel",
+    "estructura del excel",
+)
 
 
 def get_updates(token: str, offset: int | None = None, timeout: int = 30) -> list[dict[str, Any]]:
@@ -96,11 +105,19 @@ def process_message(text: str) -> str:
     return result.text
 
 
+def route_text_message(text: str) -> str:
+    lowered = (text or "").strip().lower()
+    if any(trigger in lowered for trigger in ANALYSIS_TRIGGERS):
+        summary = analyze_latest_excel()
+        return summary.text if SENTINEL in summary.text else f"{SENTINEL} {summary.text}"
+    return process_message(text)
+
+
 def dry_run(message: str) -> None:
     """
     Modo dry-run: procesa mensaje sin red.
     """
-    reply = process_message(message)
+    reply = route_text_message(message)
     print(f"[DRY-RUN] Message: {message}")
     print(f"[DRY-RUN] Reply: {reply}")
 
@@ -140,7 +157,7 @@ def live_loop(token: str) -> None:
                             print(f"[ERROR] Failed to send reply to {chat_id}")
                     elif chat_id and text:
                         print(f"[MSG] chat_id={chat_id}, text={text[:50]}...")
-                        reply = process_message(text)
+                        reply = route_text_message(text)
                         success = send_message(token, chat_id, reply)
                         if success:
                             print(f"[SENT] Reply sent to {chat_id}")
