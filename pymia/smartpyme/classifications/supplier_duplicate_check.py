@@ -166,7 +166,12 @@ def diagnose_supplier_duplicates(
         status = "PASS" if has_minimum else "PARTIAL"
 
     base = ExcelDiagnosticResult(
-        evidence=EvidenceRecord(tenant_id=tenant_id, source_file=str(path), total_rows=int(len(df))),
+        evidence=EvidenceRecord(
+            tenant_id=tenant_id,
+            source_file=str(path),
+            total_rows=int(len(df)),
+            sheets_processed=1,
+        ),
         findings=findings,
         markdown="",
     )
