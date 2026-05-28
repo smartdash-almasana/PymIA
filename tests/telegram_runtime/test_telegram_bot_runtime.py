@@ -270,3 +270,17 @@ class TestExcelSummaryRouting:
         mocked_summary.assert_not_called()
         mocked_process.assert_called_once_with("hola")
         assert reply == f"{SENTINEL} normal"
+
+    def test_route_text_message_dispatches_real_diagnostic_for_diagnostic_trigger(self):
+        with patch(
+            "pymia.telegram_bot_runtime.run_latest_excel_diagnostic"
+        ) as mocked_diagnostic, patch("pymia.telegram_bot_runtime.analyze_latest_excel") as mocked_summary, patch(
+            "pymia.telegram_bot_runtime.process_message"
+        ) as mocked_process:
+            mocked_diagnostic.return_value.text = f"{SENTINEL} Diagnostico Excel via dispatcher\nstatus: EXECUTED"
+            reply = route_text_message("diagnosticalo")
+        mocked_diagnostic.assert_called_once()
+        mocked_summary.assert_not_called()
+        mocked_process.assert_not_called()
+        assert "Diagnostico Excel via dispatcher" in reply
+        assert SENTINEL in reply

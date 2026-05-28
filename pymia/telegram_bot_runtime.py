@@ -16,6 +16,7 @@ import urllib.request
 from typing import Any
 
 from pymia.telegram_document_handler import handle_document
+from pymia.telegram_excel_diagnostic import is_diagnostic_request, run_latest_excel_diagnostic
 from pymia.telegram_excel_summary import analyze_latest_excel
 from pymia.telegram_runtime import SENTINEL, handle_telegram_message
 
@@ -107,6 +108,9 @@ def process_message(text: str) -> str:
 
 def route_text_message(text: str) -> str:
     lowered = (text or "").strip().lower()
+    if is_diagnostic_request(lowered):
+        diagnostic = run_latest_excel_diagnostic()
+        return diagnostic.text if SENTINEL in diagnostic.text else f"{SENTINEL} {diagnostic.text}"
     if any(trigger in lowered for trigger in ANALYSIS_TRIGGERS):
         summary = analyze_latest_excel()
         return summary.text if SENTINEL in summary.text else f"{SENTINEL} {summary.text}"
