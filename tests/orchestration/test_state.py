@@ -19,8 +19,18 @@ def test_pymia_state_creation() -> None:
     assert state.conversation_id == "conv_001"
     assert state.phase == "NEW"
     assert state.evidence_ids == []
+    assert state.progressive_context == {}
     assert state.decision_trail == []
     assert state.errors == []
+
+
+def test_pymia_state_progressive_context_default_is_empty_dict() -> None:
+    state = PymIAState(
+        tenant_id="test_tenant",
+        chat_id="12345",
+        conversation_id="conv_001",
+    )
+    assert state.progressive_context == {}
 
 
 def test_pymia_state_add_decision() -> None:
@@ -126,6 +136,7 @@ def test_pymia_state_serialization_roundtrip() -> None:
         "conversation_id": original.conversation_id,
         "phase": original.phase,
         "last_user_message": original.last_user_message,
+        "progressive_context": {"step": "intake", "questions_done": 2},
         "intake_id": original.intake_id,
         "evidence_ids": original.evidence_ids,
         "latest_evidence_path": str(original.latest_evidence_path),
@@ -140,6 +151,7 @@ def test_pymia_state_serialization_roundtrip() -> None:
         conversation_id=state_dict["conversation_id"],
         phase=state_dict["phase"],
         last_user_message=state_dict["last_user_message"],
+        progressive_context=state_dict["progressive_context"],
         intake_id=state_dict["intake_id"],
         evidence_ids=state_dict["evidence_ids"],
         latest_evidence_path=Path(state_dict["latest_evidence_path"]),
@@ -150,6 +162,13 @@ def test_pymia_state_serialization_roundtrip() -> None:
     assert reconstructed.tenant_id == original.tenant_id
     assert reconstructed.chat_id == original.chat_id
     assert reconstructed.phase == original.phase
+    assert reconstructed.progressive_context == {"step": "intake", "questions_done": 2}
     assert reconstructed.intake_id == original.intake_id
     assert reconstructed.evidence_ids == original.evidence_ids
     assert reconstructed.decision_trail == original.decision_trail
+
+
+def test_state_source_does_not_reintroduce_complex_delivery_fields() -> None:
+    source = Path("pymia/orchestration/state.py").read_text(encoding="utf-8")
+    assert "delivery_package" not in source
+    assert "Optional[object]" not in source

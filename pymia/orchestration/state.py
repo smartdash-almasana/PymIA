@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 
 @dataclass
@@ -38,6 +38,7 @@ class PymIAState:
     # Contexto conversacional
     last_user_message: str = ""
     pending_question: Optional[str] = None
+    progressive_context: dict[str, Any] = field(default_factory=dict)
     
     # Registros formales
     intake_id: Optional[str] = None

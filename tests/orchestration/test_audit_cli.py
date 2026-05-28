@@ -58,6 +58,7 @@ def test_show_state_prints_required_fields(tmp_path: Path, capsys) -> None:
         phase="DELIVERED",
         evidence_ids=["ev1", "ev2"],
         delivery_status="READY_TO_DELIVER",
+        progressive_context={"step": "intake", "slot": "costs"},
     )
     save_state("tenant", "chat1", state, tmp_path)
 
@@ -67,6 +68,8 @@ def test_show_state_prints_required_fields(tmp_path: Path, capsys) -> None:
     assert "phase: DELIVERED" in out.out
     assert "evidence_count: 2" in out.out
     assert "delivery_status: READY_TO_DELIVER" in out.out
+    assert "has_progressive_context: True" in out.out
+    assert "progressive_context_keys: ['slot', 'step']" in out.out
 
 
 def test_history_outputs_phases_in_order(tmp_path: Path, capsys) -> None:

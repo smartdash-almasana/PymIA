@@ -453,3 +453,93 @@ def test_export_conversation_jsonl_includes_delivery_summary(tmp_path: Path) -> 
     row = json.loads(lines[0])
     assert row["delivery_summary"] == "Export summary"
     assert "delivery_package" not in row
+
+
+def test_save_load_preserves_progressive_context(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "chat_ctx"
+    state = PymIAState(
+        tenant_id=tenant_id,
+        chat_id=chat_id,
+        conversation_id="conv_ctx",
+        phase="DELIVERED",
+        progressive_context={"stage": "exploring_facts", "answered": ["q1", "q2"]},
+    )
+    save_state(tenant_id, chat_id, state, tmp_path)
+
+    loaded = load_state(tenant_id, chat_id, tmp_path)
+    assert loaded is not None
+    assert loaded.progressive_context == {"stage": "exploring_facts", "answered": ["q1", "q2"]}
+
+
+def test_load_state_legacy_without_progressive_context_defaults_empty_dict(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "legacy_without_ctx"
+    state_file = tmp_path / tenant_id / "conversation_states.jsonl"
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    legacy_record = {
+        "tenant_id": tenant_id,
+        "chat_id": chat_id,
+        "conversation_id": "conv_legacy_ctx",
+        "phase": "NEW",
+        "last_user_message": "hola",
+        "pending_question": None,
+        "intake_id": None,
+        "evidence_ids": [],
+        "sufficiency_status": None,
+        "readiness_status": None,
+        "runtime_candidate_status": None,
+        "execution_status": None,
+        "delivery_status": None,
+        "gate_verdict": None,
+        "delivery_summary": None,
+        "output_refs": [],
+        "findings_count": 0,
+        "latest_evidence_path": None,
+        "decision_trail": [],
+        "errors": [],
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:01+00:00",
+    }
+    state_file.write_text(json.dumps(legacy_record) + "\n", encoding="utf-8")
+
+    loaded = load_state(tenant_id, chat_id, tmp_path)
+    assert loaded is not None
+    assert loaded.progressive_context == {}
+
+
+def test_replay_conversation_preserves_progressive_context(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "chat_replay_ctx"
+    state = PymIAState(
+        tenant_id=tenant_id,
+        chat_id=chat_id,
+        conversation_id="conv_replay_ctx",
+        phase="DELIVERED",
+        progressive_context={"checkpoint": "validated_evidence", "turn": 3},
+    )
+    save_state(tenant_id, chat_id, state, tmp_path)
+
+    replayed = replay_conversation(tenant_id, chat_id, tmp_path)
+    assert replayed is not None
+    assert replayed.progressive_context == {"checkpoint": "validated_evidence", "turn": 3}
+
+
+def test_export_conversation_jsonl_includes_progressive_context(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "chat_export_ctx"
+    state = PymIAState(
+        tenant_id=tenant_id,
+        chat_id=chat_id,
+        conversation_id="conv_export_ctx",
+        phase="DELIVERED",
+        progressive_context={"fsm_state": "intake"},
+    )
+    save_state(tenant_id, chat_id, state, tmp_path)
+
+    output_path = tmp_path / "exports" / "chat_export_ctx.jsonl"
+    count = export_conversation_jsonl(tenant_id, chat_id, tmp_path, output_path)
+    assert count == 1
+    row = json.loads(output_path.read_text(encoding="utf-8").strip())
+    assert row["progressive_context"] == {"fsm_state": "intake"}
+    assert "delivery_package" not in row

@@ -79,6 +79,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"delivery_status: {state.delivery_status}")
             print(f"findings_count: {state.findings_count}")
             print(f"output_refs: {state.output_refs}")
+            print(f"has_progressive_context: {bool(state.progressive_context)}")
+            print(f"progressive_context_keys: {sorted(state.progressive_context.keys())}")
             print(f"updated_at: {state.updated_at.isoformat()}")
             return 0
 
