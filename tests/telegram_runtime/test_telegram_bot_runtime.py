@@ -14,6 +14,7 @@ import pytest
 from pymia.telegram_bot_runtime import (
     dry_run,
     get_updates,
+    live_loop,
     process_message,
     send_message,
 )
@@ -180,3 +181,68 @@ class TestGetUpdates:
         with patch("urllib.request.urlopen", return_value=mock_response):
             updates = get_updates("fake_token", offset=0)
             assert updates == []
+
+
+class TestLiveLoopDocumentSupport:
+    """Tests de soporte mínimo para documentos en live_loop."""
+
+    def test_live_loop_processes_document_update_before_text(self):
+        update = {
+            "update_id": 200,
+            "message": {
+                "chat": {"id": 777},
+                "text": "esto no debe usarse si hay document",
+                "document": {"file_id": "file-1", "file_name": "ventas.xlsx"},
+            },
+        }
+
+        with patch("pymia.telegram_bot_runtime.get_updates", side_effect=[[update], KeyboardInterrupt]), patch(
+            "pymia.telegram_bot_runtime.handle_document"
+        ) as mocked_handle_document, patch("pymia.telegram_bot_runtime.send_message", return_value=True) as mocked_send:
+            mocked_handle_document.return_value.text = f"{SENTINEL} Documento recibido"
+            live_loop("fake-token")
+
+        mocked_handle_document.assert_called_once_with("fake-token", "file-1", "ventas.xlsx", 777)
+        mocked_send.assert_called_once_with("fake-token", 777, f"{SENTINEL} Documento recibido")
+
+    def test_live_loop_text_flow_regression(self):
+        update = {
+            "update_id": 201,
+            "message": {
+                "chat": {"id": 778},
+                "text": "hola runtime",
+            },
+        }
+
+        with patch("pymia.telegram_bot_runtime.get_updates", side_effect=[[update], KeyboardInterrupt]), patch(
+            "pymia.telegram_bot_runtime.process_message", return_value=f"{SENTINEL} ok"
+        ) as mocked_process, patch("pymia.telegram_bot_runtime.send_message", return_value=True) as mocked_send:
+            live_loop("fake-token")
+
+        mocked_process.assert_called_once_with("hola runtime")
+        mocked_send.assert_called_once_with("fake-token", 778, f"{SENTINEL} ok")
+
+    def test_live_loop_updates_offset_after_document(self):
+        offsets: list[int | None] = []
+        update = {
+            "update_id": 555,
+            "message": {
+                "chat": {"id": 779},
+                "document": {"file_id": "file-2", "file_name": "ventas.xls"},
+            },
+        }
+
+        def _fake_get_updates(_token: str, offset=None, timeout=30):
+            del timeout
+            offsets.append(offset)
+            if len(offsets) == 1:
+                return [update]
+            raise KeyboardInterrupt()
+
+        with patch("pymia.telegram_bot_runtime.get_updates", side_effect=_fake_get_updates), patch(
+            "pymia.telegram_bot_runtime.handle_document"
+        ) as mocked_handle_document, patch("pymia.telegram_bot_runtime.send_message", return_value=True):
+            mocked_handle_document.return_value.text = f"{SENTINEL} Documento recibido"
+            live_loop("fake-token")
+
+        assert offsets == [None, 556]

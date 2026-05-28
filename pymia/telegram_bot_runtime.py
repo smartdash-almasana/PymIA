@@ -15,6 +15,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from pymia.telegram_document_handler import handle_document
 from pymia.telegram_runtime import SENTINEL, handle_telegram_message
 
 TELEGRAM_API_BASE = "https://api.telegram.org/bot{token}/{method}"
@@ -124,8 +125,20 @@ def live_loop(token: str) -> None:
                 if message:
                     chat_id = message.get("chat", {}).get("id")
                     text = message.get("text", "")
+                    document = message.get("document")
 
-                    if chat_id and text:
+                    if chat_id and document:
+                        file_id = document.get("file_id", "")
+                        file_name = document.get("file_name", "")
+                        print(f"[DOC] chat_id={chat_id}, file={file_name[:80]}...")
+                        doc_result = handle_document(token, file_id, file_name, chat_id)
+                        reply = doc_result.text
+                        success = send_message(token, chat_id, reply)
+                        if success:
+                            print(f"[SENT] Reply sent to {chat_id}")
+                        else:
+                            print(f"[ERROR] Failed to send reply to {chat_id}")
+                    elif chat_id and text:
                         print(f"[MSG] chat_id={chat_id}, text={text[:50]}...")
                         reply = process_message(text)
                         success = send_message(token, chat_id, reply)
@@ -133,7 +146,6 @@ def live_loop(token: str) -> None:
                             print(f"[SENT] Reply sent to {chat_id}")
                         else:
                             print(f"[ERROR] Failed to send reply to {chat_id}")
-
                 # Actualizar offset para no reprocesar
                 if update_id is not None:
                     offset = update_id + 1
