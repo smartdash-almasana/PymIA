@@ -349,3 +349,107 @@ def test_get_conversation_history_raises_on_corrupt_jsonl(tmp_path: Path) -> Non
         raise AssertionError("Expected ValueError")
     except ValueError as exc:
         assert "Invalid JSONL" in str(exc)
+
+
+def test_save_load_preserves_delivery_serializable_fields(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "12345"
+    state = PymIAState(
+        tenant_id=tenant_id,
+        chat_id=chat_id,
+        conversation_id="conv_001",
+        phase="DELIVERED",
+        gate_verdict="ACCEPTED",
+        delivery_summary="Resumen de entrega",
+        output_refs=["ref:a", "ref:b"],
+        findings_count=2,
+    )
+
+    save_state(tenant_id, chat_id, state, tmp_path)
+    loaded = load_state(tenant_id, chat_id, tmp_path)
+
+    assert loaded is not None
+    assert loaded.gate_verdict == "ACCEPTED"
+    assert loaded.delivery_summary == "Resumen de entrega"
+    assert loaded.output_refs == ["ref:a", "ref:b"]
+    assert loaded.findings_count == 2
+
+
+def test_load_state_supports_legacy_jsonl_missing_delivery_fields(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "legacy_chat"
+    state_file = tmp_path / tenant_id / "conversation_states.jsonl"
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    legacy_record = {
+        "tenant_id": tenant_id,
+        "chat_id": chat_id,
+        "conversation_id": "conv_legacy",
+        "phase": "EXECUTED",
+        "last_user_message": "hola",
+        "pending_question": None,
+        "intake_id": None,
+        "evidence_ids": [],
+        "sufficiency_status": None,
+        "readiness_status": None,
+        "runtime_candidate_status": "READY_TO_EXECUTE",
+        "execution_status": "EXECUTED",
+        "delivery_status": None,
+        "latest_evidence_path": None,
+        "decision_trail": [],
+        "errors": [],
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:01+00:00",
+    }
+    state_file.write_text(json.dumps(legacy_record) + "\n", encoding="utf-8")
+
+    loaded = load_state(tenant_id, chat_id, tmp_path)
+    assert loaded is not None
+    assert loaded.gate_verdict is None
+    assert loaded.delivery_summary is None
+    assert loaded.output_refs == []
+    assert loaded.findings_count == 0
+
+
+def test_replay_conversation_recovers_delivered_fields(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "chat_replay"
+    state = PymIAState(
+        tenant_id=tenant_id,
+        chat_id=chat_id,
+        conversation_id="conv_replay",
+        phase="DELIVERED",
+        delivery_status="READY_TO_DELIVER",
+        delivery_summary="Entrega final",
+        output_refs=["out:1"],
+    )
+    save_state(tenant_id, chat_id, state, tmp_path)
+
+    loaded = replay_conversation(tenant_id, chat_id, tmp_path)
+    assert loaded is not None
+    assert loaded.phase == "DELIVERED"
+    assert loaded.delivery_summary == "Entrega final"
+    assert loaded.output_refs == ["out:1"]
+
+
+def test_export_conversation_jsonl_includes_delivery_summary(tmp_path: Path) -> None:
+    tenant_id = "test_tenant"
+    chat_id = "chat_export"
+    state = PymIAState(
+        tenant_id=tenant_id,
+        chat_id=chat_id,
+        conversation_id="conv_export",
+        phase="DELIVERED",
+        delivery_summary="Export summary",
+        output_refs=["r1"],
+    )
+    save_state(tenant_id, chat_id, state, tmp_path)
+
+    output_path = tmp_path / "exports" / "chat_export.jsonl"
+    count = export_conversation_jsonl(tenant_id, chat_id, tmp_path, output_path)
+    assert count == 1
+
+    lines = [line for line in output_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(lines) == 1
+    row = json.loads(lines[0])
+    assert row["delivery_summary"] == "Export summary"
+    assert "delivery_package" not in row
