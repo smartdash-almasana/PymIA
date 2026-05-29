@@ -343,3 +343,17 @@ class TestLLMOperatorMode:
         mocked_diagnostic.assert_called_once()
         mocked_operator_route.assert_not_called()
         assert SENTINEL in reply
+
+    def test_dry_run_llm_operator_uses_orientation_mock_instead_of_free_anamnesis(self, capsys):
+        fake_provider = MagicMock()
+        fake_operator = MagicMock()
+        fake_operator.handle_turn.return_value.reply_text = (
+            f"{SENTINEL} Antes de empezar, completamos la ficha. Tipo de organizacion/negocio:"
+        )
+        with patch.dict("os.environ", {"PYMIA_TELEGRAM_MODE": TELEGRAM_MODE_LLM_OPERATOR, "OPENROUTER_API_KEY": "x"}, clear=False), patch(
+            "pymia.llm_operator.providers_openrouter.OpenRouterProvider", return_value=fake_provider
+        ), patch("pymia.llm_operator.operator.LLMOperator", return_value=fake_operator):
+            dry_run("hola")
+        captured = capsys.readouterr()
+        assert "Tipo de organizacion/negocio" in captured.out
+        assert "¿vendés productos, fabricás algo o prestás servicios?" not in captured.out

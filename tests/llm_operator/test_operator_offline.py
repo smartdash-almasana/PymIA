@@ -112,7 +112,7 @@ def test_mock_provider_chooses_submit_text_for_generic_message() -> None:
     provider = MockProvider()
     schema = registry_module.OS_TOOLS
     decision = provider.choose_tool("hola, necesito ayuda", state={}, tools_schema=schema)
-    assert decision.tool_name == "submit_text_message"
+    assert decision.tool_name == "start_organization_profile"
     assert isinstance(decision.reasoning, str)
     assert decision.reasoning
 
@@ -121,13 +121,40 @@ def test_mock_provider_chooses_request_diagnostic_for_margen() -> None:
     provider = MockProvider()
     schema = registry_module.OS_TOOLS
     decision = provider.choose_tool("no sé si gano plata con esto", state={}, tools_schema=schema)
-    assert decision.tool_name == "request_diagnostic"
+    assert decision.tool_name == "start_organization_profile"
 
 
 def test_mock_provider_chooses_request_diagnostic_for_diagnosticar() -> None:
     provider = MockProvider()
     schema = registry_module.OS_TOOLS
     decision = provider.choose_tool("quiero diagnosticar mi negocio", state={}, tools_schema=schema)
+    assert decision.tool_name == "start_organization_profile"
+
+
+def test_mock_provider_chooses_answer_organization_profile_when_in_progress() -> None:
+    provider = MockProvider()
+    schema = registry_module.OS_TOOLS
+    state = {
+        "progressive_context": {
+            "organization_profile_status": "IN_PROGRESS",
+            "organization_profile": {},
+        }
+    }
+    decision = provider.choose_tool("PyME", state=state, tools_schema=schema)
+    assert decision.tool_name == "answer_organization_profile"
+    assert decision.extra_args["answer"] == "PyME"
+
+
+def test_mock_provider_allows_request_diagnostic_after_profile_completed() -> None:
+    provider = MockProvider()
+    schema = registry_module.OS_TOOLS
+    state = {
+        "progressive_context": {
+            "organization_profile_status": "COMPLETED",
+            "organization_profile": {"business_type": "PyME"},
+        }
+    }
+    decision = provider.choose_tool("quiero diagnosticar mi negocio", state=state, tools_schema=schema)
     assert decision.tool_name == "request_diagnostic"
 
 
@@ -135,7 +162,13 @@ def test_mock_provider_chooses_submit_document_when_path_available(tmp_path: Pat
     doc = _minimal_xlsx(tmp_path / "ventas.xlsx")
     provider = MockProvider(extra_input={"document_path": doc, "document_name": "ventas.xlsx"})
     schema = registry_module.OS_TOOLS
-    decision = provider.choose_tool("te mando el excel con las ventas", state={}, tools_schema=schema)
+    state = {
+        "progressive_context": {
+            "organization_profile_status": "COMPLETED",
+            "organization_profile": {"business_type": "PyME"},
+        }
+    }
+    decision = provider.choose_tool("te mando el excel con las ventas", state=state, tools_schema=schema)
     assert decision.tool_name == "submit_document"
     assert "document_path" in decision.extra_args
 
@@ -144,7 +177,13 @@ def test_mock_provider_falls_back_to_text_when_no_document_path() -> None:
     """Menciona excel pero no hay document_path → submit_text_message."""
     provider = MockProvider()  # sin extra_input
     schema = registry_module.OS_TOOLS
-    decision = provider.choose_tool("quiero subir un excel", state={}, tools_schema=schema)
+    state = {
+        "progressive_context": {
+            "organization_profile_status": "COMPLETED",
+            "organization_profile": {"business_type": "PyME"},
+        }
+    }
+    decision = provider.choose_tool("quiero subir un excel", state=state, tools_schema=schema)
     assert decision.tool_name == "submit_text_message"
 
 
@@ -204,10 +243,11 @@ def test_handle_turn_text_message_returns_operator_result(tmp_path: Path) -> Non
         base_dir=tmp_path,
     )
     assert isinstance(result, OperatorResult)
-    assert result.selected_tool == "submit_text_message"
+    assert result.selected_tool == "start_organization_profile"
     assert result.error is None
     assert result.reply_text
     assert result.is_json_serializable()
+    assert "tipo de organizacion" in result.reply_text.lower()
 
 
 def test_handle_turn_uses_registry_not_graph_directly(tmp_path: Path) -> None:
@@ -231,8 +271,35 @@ def test_handle_turn_request_diagnostic_after_document(tmp_path: Path) -> None:
         message="hola, tengo un negocio de ropa",
         base_dir=tmp_path,
     )
-    assert result1.selected_tool == "submit_text_message"
+    assert result1.selected_tool == "start_organization_profile"
     assert result1.error is None
+
+    # Completar ficha obligatoria
+    profile_answers = [
+        "PyME",
+        "Textil",
+        "Fabrico productos",
+        "Pequena",
+        "6-20",
+        "Medio",
+        "Mixto",
+        "Planillas",
+        "Stock",
+        "Rentabilidad",
+        "Medio",
+        "Excel ventas",
+        "Si, ahora",
+    ]
+    for answer in profile_answers:
+        step = op_text.handle_turn(
+            tenant_id="tenant_diag",
+            chat_id="chat_diag",
+            conversation_id="conv_diag",
+            message=answer,
+            base_dir=tmp_path,
+        )
+        assert step.selected_tool == "answer_organization_profile"
+        assert step.error is None
 
     # Turno 2: documento
     doc = _minimal_xlsx(tmp_path / "ventas_ropa.xlsx")

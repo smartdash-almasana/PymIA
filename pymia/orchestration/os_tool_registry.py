@@ -4,8 +4,12 @@ from pathlib import Path
 from typing import Any
 
 from pymia.orchestration.graph import run_pymia_graph
+from pymia.orchestration.organization_profile_intake import (
+    answer_organization_profile_question,
+    start_organization_profile_intake,
+)
 from pymia.orchestration.state import PymIAEvent
-from pymia.orchestration.state_storage import load_state
+from pymia.orchestration.state_storage import load_state, save_state
 
 DEFAULT_BASE_DIR = Path(".runtime/os_storage")
 
@@ -18,6 +22,124 @@ def _tail_decision(state: Any) -> str | None:
     if state is None or not state.decision_trail:
         return None
     return state.decision_trail[-1]
+
+
+def _coerce_state(tenant_id: str, chat_id: str, conversation_id: str, base_dir: Path) -> Any:
+    from pymia.orchestration.state import PymIAState
+
+    state = load_state(tenant_id, chat_id, base_dir)
+    if state is None:
+        state = PymIAState(
+            tenant_id=tenant_id,
+            chat_id=chat_id,
+            conversation_id=conversation_id,
+        )
+    return state
+
+
+def start_organization_profile(
+    *,
+    tenant_id: str,
+    chat_id: str,
+    conversation_id: str,
+    base_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    if not (_is_non_empty_str(tenant_id) and _is_non_empty_str(chat_id) and _is_non_empty_str(conversation_id)):
+        return {
+            "phase": None,
+            "reply_text": None,
+            "completed": False,
+            "next_question_id": None,
+            "progressive_context_updated": False,
+            "decision_trail_entry": None,
+            "error": "invalid tenant_id/chat_id/conversation_id",
+        }
+    target_base = Path(base_dir) if base_dir is not None else DEFAULT_BASE_DIR
+    try:
+        state = _coerce_state(tenant_id, chat_id, conversation_id, target_base)
+        before_context = dict(state.progressive_context) if isinstance(state.progressive_context, dict) else {}
+        intake_result = start_organization_profile_intake(before_context)
+        state.progressive_context = dict(intake_result.updated_progressive_context)
+        state.phase = "NEW"
+        state.add_decision(intake_result.decision_trail_entry)
+        save_state(tenant_id, chat_id, state, target_base)
+        return {
+            "phase": state.phase,
+            "reply_text": intake_result.reply_text,
+            "completed": intake_result.completed,
+            "next_question_id": intake_result.next_question_id,
+            "progressive_context_updated": state.progressive_context != before_context,
+            "decision_trail_entry": intake_result.decision_trail_entry,
+            "error": None,
+        }
+    except Exception as exc:
+        return {
+            "phase": None,
+            "reply_text": None,
+            "completed": False,
+            "next_question_id": None,
+            "progressive_context_updated": False,
+            "decision_trail_entry": None,
+            "error": str(exc),
+        }
+
+
+def answer_organization_profile(
+    *,
+    tenant_id: str,
+    chat_id: str,
+    conversation_id: str,
+    answer: str,
+    base_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    if not (_is_non_empty_str(tenant_id) and _is_non_empty_str(chat_id) and _is_non_empty_str(conversation_id)):
+        return {
+            "phase": None,
+            "reply_text": None,
+            "completed": False,
+            "next_question_id": None,
+            "progressive_context_updated": False,
+            "decision_trail_entry": None,
+            "error": "invalid tenant_id/chat_id/conversation_id",
+        }
+    if not _is_non_empty_str(answer):
+        return {
+            "phase": None,
+            "reply_text": None,
+            "completed": False,
+            "next_question_id": None,
+            "progressive_context_updated": False,
+            "decision_trail_entry": None,
+            "error": "invalid answer",
+        }
+    target_base = Path(base_dir) if base_dir is not None else DEFAULT_BASE_DIR
+    try:
+        state = _coerce_state(tenant_id, chat_id, conversation_id, target_base)
+        before_context = dict(state.progressive_context) if isinstance(state.progressive_context, dict) else {}
+        intake_result = answer_organization_profile_question(before_context, answer)
+        state.progressive_context = dict(intake_result.updated_progressive_context)
+        state.phase = "NEW"
+        state.add_decision(intake_result.decision_trail_entry)
+        save_state(tenant_id, chat_id, state, target_base)
+        return {
+            "phase": state.phase,
+            "reply_text": intake_result.reply_text,
+            "completed": intake_result.completed,
+            "next_question_id": intake_result.next_question_id,
+            "progressive_context_updated": state.progressive_context != before_context,
+            "decision_trail_entry": intake_result.decision_trail_entry,
+            "error": None,
+        }
+    except Exception as exc:
+        return {
+            "phase": None,
+            "reply_text": None,
+            "completed": False,
+            "next_question_id": None,
+            "progressive_context_updated": False,
+            "decision_trail_entry": None,
+            "error": str(exc),
+        }
 
 
 def submit_text_message(
@@ -46,6 +168,23 @@ def submit_text_message(
         }
     target_base = Path(base_dir) if base_dir is not None else DEFAULT_BASE_DIR
     try:
+        current = load_state(tenant_id, chat_id, target_base)
+        progressive_context = (
+            dict(current.progressive_context)
+            if current is not None and isinstance(current.progressive_context, dict)
+            else {}
+        )
+        profile_status = str(progressive_context.get("organization_profile_status") or "").upper()
+        profile = progressive_context.get("organization_profile")
+        profile_complete = profile_status == "COMPLETED" and isinstance(profile, dict) and bool(profile)
+        if not profile_complete:
+            return start_organization_profile(
+                tenant_id=tenant_id,
+                chat_id=chat_id,
+                conversation_id=conversation_id,
+                base_dir=target_base,
+            )
+
         before = load_state(tenant_id, chat_id, target_base)
         before_context = dict(before.progressive_context) if before else {}
         reply = run_pymia_graph(
@@ -202,6 +341,18 @@ def get_conversation_state(
 
 
 OS_TOOLS = [
+    {
+        "name": "start_organization_profile",
+        "description": "Start mandatory organization profile intake flow.",
+        "parameters": ["tenant_id", "chat_id", "conversation_id", "base_dir"],
+        "returns": ["phase", "reply_text", "completed", "next_question_id", "progressive_context_updated", "decision_trail_entry", "error"],
+    },
+    {
+        "name": "answer_organization_profile",
+        "description": "Answer next organization profile intake question.",
+        "parameters": ["tenant_id", "chat_id", "conversation_id", "answer", "base_dir"],
+        "returns": ["phase", "reply_text", "completed", "next_question_id", "progressive_context_updated", "decision_trail_entry", "error"],
+    },
     {
         "name": "submit_text_message",
         "description": "Submit a text message turn to orchestration OS.",

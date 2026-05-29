@@ -7,17 +7,26 @@ import pandas as pd
 
 from pymia.orchestration.os_tool_registry import (
     OS_TOOLS,
+    answer_organization_profile,
     get_conversation_state,
     request_diagnostic,
+    start_organization_profile,
     submit_document,
     submit_text_message,
 )
 
 
-def test_registry_exposes_exactly_four_tools_with_schema_keys() -> None:
-    assert len(OS_TOOLS) == 4
+def test_registry_exposes_exactly_six_tools_with_schema_keys() -> None:
+    assert len(OS_TOOLS) == 6
     names = {tool["name"] for tool in OS_TOOLS}
-    assert names == {"submit_text_message", "submit_document", "request_diagnostic", "get_conversation_state"}
+    assert names == {
+        "start_organization_profile",
+        "answer_organization_profile",
+        "submit_text_message",
+        "submit_document",
+        "request_diagnostic",
+        "get_conversation_state",
+    }
     for tool in OS_TOOLS:
         assert "name" in tool
         assert "description" in tool
@@ -66,17 +75,54 @@ def test_submit_document_then_request_diagnostic_basic_flow(tmp_path: Path) -> N
 
 
 def test_get_conversation_state_returns_serializable_dict(tmp_path: Path) -> None:
-    _ = submit_text_message(
+    started = start_organization_profile(
         tenant_id="tenant_c",
         chat_id="chat_c",
         conversation_id="conv_c",
-        text="hola",
         base_dir=tmp_path,
     )
+    assert started["error"] is None
     state = get_conversation_state(tenant_id="tenant_c", chat_id="chat_c", base_dir=tmp_path)
     json.dumps(state)
     assert "phase" in state
     assert "progressive_context" in state
+    assert "organization_profile" in state["progressive_context"]
+
+
+def test_start_organization_profile_returns_orientation_and_next_question(tmp_path: Path) -> None:
+    result = start_organization_profile(
+        tenant_id="tenant_org",
+        chat_id="chat_org",
+        conversation_id="conv_org",
+        base_dir=tmp_path,
+    )
+    assert result["error"] is None
+    assert isinstance(result["reply_text"], str)
+    assert result["next_question_id"] is not None
+    assert result["completed"] is False
+
+
+def test_answer_organization_profile_advances_and_persists_profile(tmp_path: Path) -> None:
+    _ = start_organization_profile(
+        tenant_id="tenant_org2",
+        chat_id="chat_org2",
+        conversation_id="conv_org2",
+        base_dir=tmp_path,
+    )
+    answered = answer_organization_profile(
+        tenant_id="tenant_org2",
+        chat_id="chat_org2",
+        conversation_id="conv_org2",
+        answer="PyME",
+        base_dir=tmp_path,
+    )
+    assert answered["error"] is None
+    assert answered["completed"] is False
+    assert answered["next_question_id"] is not None
+
+    state = get_conversation_state(tenant_id="tenant_org2", chat_id="chat_org2", base_dir=tmp_path)
+    profile = state["progressive_context"]["organization_profile"]
+    assert profile.get("business_type") == "PyME"
 
 
 def test_invalid_params_return_error_without_exception(tmp_path: Path) -> None:
@@ -101,6 +147,15 @@ def test_invalid_params_return_error_without_exception(tmp_path: Path) -> None:
 
     invalid_state = get_conversation_state(tenant_id="", chat_id="chat_x", base_dir=tmp_path)
     assert invalid_state["error"] is not None
+
+    invalid_answer = answer_organization_profile(
+        tenant_id="tenant_x",
+        chat_id="chat_x",
+        conversation_id="conv_x",
+        answer="",
+        base_dir=tmp_path,
+    )
+    assert invalid_answer["error"] is not None
 
 
 def test_source_has_no_forbidden_tokens_or_direct_smartpyme() -> None:

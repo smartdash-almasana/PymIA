@@ -101,11 +101,14 @@ class MockProvider(AbstractProvider):
     """Provider determinístico para tests offline.
 
     Reglas de selección de tool:
-    1. Si el mensaje menciona documento/archivo/excel Y hay document_path en extra_input
+    1. Si organization_profile aún no existe/completa:
+       - sin status o vacío → start_organization_profile
+       - status IN_PROGRESS → answer_organization_profile(answer=message)
+    2. Si el mensaje menciona documento/archivo/excel Y hay document_path en extra_input
        → submit_document.
-    2. Si el mensaje menciona diagnóstico/margen/gano plata
+    3. Si el mensaje menciona diagnóstico/margen/gano plata
        → request_diagnostic.
-    3. En cualquier otro caso
+    4. En cualquier otro caso
        → submit_text_message.
 
     render_reply:
@@ -130,6 +133,26 @@ class MockProvider(AbstractProvider):
         tools_schema: list[dict[str, Any]],
     ) -> ToolDecision:
         available = {t["name"] for t in tools_schema}
+        progressive_context = state.get("progressive_context") if isinstance(state, dict) else {}
+        if not isinstance(progressive_context, dict):
+            progressive_context = {}
+        profile_status = str(progressive_context.get("organization_profile_status") or "").upper()
+        profile_data = progressive_context.get("organization_profile")
+        profile_complete = profile_status == "COMPLETED" and isinstance(profile_data, dict) and bool(profile_data)
+
+        if not profile_complete:
+            if profile_status == "IN_PROGRESS" and "answer_organization_profile" in available:
+                return ToolDecision(
+                    tool_name="answer_organization_profile",
+                    extra_args={"answer": message},
+                    reasoning="organization profile intake in progress; routing answer",
+                )
+            if "start_organization_profile" in available:
+                return ToolDecision(
+                    tool_name="start_organization_profile",
+                    extra_args={},
+                    reasoning="organization profile not completed; start mandatory intake",
+                )
 
         # Regla 1: documento presente explícitamente en extra_input
         if (
