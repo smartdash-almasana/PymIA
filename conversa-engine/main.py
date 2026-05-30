@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 from pathlib import Path
+from typing import Callable
 from uuid import uuid4
 
 RESERVED_COMMANDS = {
@@ -17,6 +18,18 @@ _PROGRESSIVE_CONTEXT_BY_SESSION = {}
 _SUPERMEMORY_RECALL_CLIENT = None
 _SUPERMEMORY_RECALL_INITIALIZED = False
 logger = logging.getLogger(__name__)
+
+
+class ConversaRuntimeDeps:
+    """Optional runtime dependencies for controlled/offline execution."""
+    def __init__(
+        self,
+        *,
+        register_text_intake: Callable[[str, str, str], None],
+        get_supermemory_recall_client: Callable[[], object | None],
+    ) -> None:
+        self.register_text_intake = register_text_intake
+        self.get_supermemory_recall_client = get_supermemory_recall_client
 
 
 def _cli_message_from_args(args: list[str]) -> tuple[int, str, str | None]:
@@ -47,7 +60,13 @@ def _ensure_repo_on_path() -> None:
         sys.path.insert(0, str(conversa_dir))
 
 
-def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
+def _pymia_reply(
+    text: str,
+    tenant_id: str,
+    user_id: str,
+    *,
+    get_supermemory_recall_client: Callable[[], object | None] | None = None,
+) -> str:
     _ensure_repo_on_path()
     from pymia.smartpyme.anamnesis_fsm_integration import (
         AnamnesisTurnInput,
@@ -63,7 +82,8 @@ def _pymia_reply(text: str, tenant_id: str, user_id: str) -> str:
     turn_index = _turn_index_from_context(previous_context)
     message_for_anamnesis = text
 
-    client = _get_supermemory_recall_client()
+    client_getter = get_supermemory_recall_client or _get_supermemory_recall_client
+    client = client_getter()
     recall_status = "no_client"
     recall_memories_count = 0
 
@@ -234,9 +254,23 @@ def _register_text_intake(text: str, tenant_id: str, user_id: str) -> None:
             continue
 
 
-def run_message(text: str, tenant_id: str = "telegram:42", user_id: str = "42") -> str:
-    _register_text_intake(text, tenant_id, user_id)
-    return _pymia_reply(text, tenant_id, user_id)
+def run_message(
+    text: str,
+    tenant_id: str = "telegram:42",
+    user_id: str = "42",
+    deps: ConversaRuntimeDeps | None = None,
+) -> str:
+    register_text_intake = deps.register_text_intake if deps else _register_text_intake
+    get_supermemory_recall_client = (
+        deps.get_supermemory_recall_client if deps else _get_supermemory_recall_client
+    )
+    register_text_intake(text, tenant_id, user_id)
+    return _pymia_reply(
+        text,
+        tenant_id,
+        user_id,
+        get_supermemory_recall_client=get_supermemory_recall_client,
+    )
 
 
 def route_from_operational_audit(text: str, operational_audit_result_payload: dict) -> str:
