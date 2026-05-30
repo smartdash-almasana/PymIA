@@ -104,8 +104,38 @@ class LearningCycle:
                 raise ValueError("ABORTADO no admite closed_at")
 
     def _validate_temporal_coherence(self) -> None:
+        self._require_timezone_aware(
+            self.initiated_at,
+            "initiated_at",
+        )
+        self._require_timezone_aware(
+            self.created_at,
+            "created_at",
+        )
+        self._require_timezone_aware(
+            self.updated_at,
+            "updated_at",
+        )
+        for name, ts in [
+            ("result_registered_at", self.result_registered_at),
+            ("attribution_completed_at", self.attribution_completed_at),
+            ("learning_extracted_at", self.learning_extracted_at),
+            ("ki_updated_at", self.ki_updated_at),
+            ("closed_at", self.closed_at),
+            ("aborted_at", self.aborted_at),
+        ]:
+            if ts is not None:
+                self._require_timezone_aware(ts, name)
+
         prev = None
-        for ts in [self.initiated_at, self.result_registered_at, self.attribution_completed_at, self.learning_extracted_at, self.ki_updated_at, self.closed_at]:
+        for ts in [
+            self.initiated_at,
+            self.result_registered_at,
+            self.attribution_completed_at,
+            self.learning_extracted_at,
+            self.ki_updated_at,
+            self.closed_at,
+        ]:
             if ts is not None:
                 if prev is not None and ts < prev:
                     raise ValueError("Timestamps deben ser monótonos no decrecientes")
@@ -114,6 +144,15 @@ class LearningCycle:
             raise ValueError("aborted_at debe ser >= initiated_at")
         if self.updated_at < self.created_at:
             raise ValueError("updated_at debe ser >= created_at")
+
+    @staticmethod
+    def _require_timezone_aware(value: datetime, field_name: str) -> None:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError(f"{field_name} debe ser timezone-aware")
+
+    def _revalidate_after_mutation(self) -> None:
+        self._validate_state_invariants()
+        self._validate_temporal_coherence()
 
     def register_result(self, outcome_observed: str, outcome_matches_expectation: bool, observed_at: datetime) -> None:
         if self.state != LearningCycleState.INICIADO:
@@ -125,6 +164,7 @@ class LearningCycle:
         self.result_registered_at = observed_at
         self.state = LearningCycleState.RESULTADO_REGISTRADO
         self.updated_at = datetime.now(timezone.utc)
+        self._revalidate_after_mutation()
 
     def complete_attribution(self, attribution_type: AttributionType, attribution_reasoning: str, completed_at: datetime) -> None:
         if self.state != LearningCycleState.RESULTADO_REGISTRADO:
@@ -136,6 +176,7 @@ class LearningCycle:
         self.attribution_completed_at = completed_at
         self.state = LearningCycleState.ATRIBUCION_COMPLETADA
         self.updated_at = datetime.now(timezone.utc)
+        self._revalidate_after_mutation()
 
     def extract_learning(self, statement: str, confidence_delta: Optional[float], extracted_at: datetime) -> None:
         if self.state != LearningCycleState.ATRIBUCION_COMPLETADA:
@@ -149,6 +190,7 @@ class LearningCycle:
         self.learning_extracted_at = extracted_at
         self.state = LearningCycleState.APRENDIZAJE_EXTRAIDO
         self.updated_at = datetime.now(timezone.utc)
+        self._revalidate_after_mutation()
 
     def register_knowledge_updates(self, produced: List[UUID], updated: List[UUID], updated_at: datetime) -> None:
         if self.state != LearningCycleState.APRENDIZAJE_EXTRAIDO:
@@ -166,6 +208,7 @@ class LearningCycle:
         self.ki_updated_at = updated_at
         self.state = LearningCycleState.KI_ACTUALIZADO
         self.updated_at = datetime.now(timezone.utc)
+        self._revalidate_after_mutation()
 
     def close(self, closed_at: datetime) -> None:
         if self.state != LearningCycleState.KI_ACTUALIZADO:
@@ -173,6 +216,7 @@ class LearningCycle:
         self.closed_at = closed_at
         self.state = LearningCycleState.CERRADO
         self.updated_at = datetime.now(timezone.utc)
+        self._revalidate_after_mutation()
 
     def abort(self, reason: str, aborted_at: datetime) -> None:
         if self.state in TERMINAL_STATES:
@@ -183,6 +227,7 @@ class LearningCycle:
         self.aborted_at = aborted_at
         self.state = LearningCycleState.ABORTADO
         self.updated_at = datetime.now(timezone.utc)
+        self._revalidate_after_mutation()
 
     def to_dict(self) -> Dict[str, Any]:
         return {

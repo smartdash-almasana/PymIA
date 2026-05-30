@@ -167,6 +167,23 @@ class TestLearningCycleInvariants:
                 result_registered_at=base_time - timedelta(hours=1),
             )
 
+    def test_rejects_naive_initiated_at(self):
+        naive_time = datetime.now()
+        with pytest.raises(ValueError, match="timezone-aware"):
+            _make_cycle(initiated_at=naive_time)
+
+    def test_rejects_naive_result_registered_at(self):
+        base_time = datetime.now(timezone.utc)
+        with pytest.raises(ValueError, match="timezone-aware"):
+            _make_cycle(
+                state=LearningCycleState.RESULTADO_REGISTRADO,
+                outcome_observed="Resultado",
+                result_registered_at=datetime.now(),
+                initiated_at=base_time,
+                created_at=base_time,
+                updated_at=base_time,
+            )
+
 
 class TestLearningCycleTransitions:
     def test_register_result_transitions_correctly(self):
