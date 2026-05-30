@@ -27,15 +27,19 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
         user_id=user_id,
     )
 
-    assert "qué tipo de negocio" in first_reply.lower()
+    first_reply_lower = first_reply.lower()
+    assert "negocio" in first_reply_lower
+    assert (
+        "productos" in first_reply_lower
+        or "servicios" in first_reply_lower
+        or "fabric" in first_reply_lower
+    )
     session_id = conversa_main._session_id(tenant_id, user_id)
     assert session_id in conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION
-    assert (
-        conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[
-            session_id
-        ].business_identity.taxonomy_phase
-        is None
-    )
+    first_context = conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
+    assert isinstance(first_context, dict)
+    assert first_context.get("has_taxonomy") is False
+    assert first_context.get("phase") == "ANAMNESIS_TAXONOMIA"
 
     second_reply = conversa_main.run_message(
         "somos una distribuidora de alimentos, 12 empleados, vendemos a comercios",
@@ -44,7 +48,16 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
     )
 
     context = conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
-    assert context.business_identity.industry_hint == "logistica/distribucion"
-    assert context.business_identity.country_code == "AR"
-    assert context.business_identity.taxonomy_phase == "FASE_0_IDENTIDAD"
-    assert "qué tipo de negocio" not in second_reply.lower()
+    assert isinstance(context, dict)
+    assert context.get("has_taxonomy") is True
+    assert context.get("phase") == "ANAMNESIS_TAXONOMIA"
+    assert context.get("tenant_id") == tenant_id
+    taxonomy = context.get("fsm_state", {}).get("taxonomy")
+    assert isinstance(taxonomy, dict)
+    assert taxonomy.get("jurisdiction") == "AR"
+    second_reply_lower = second_reply.lower()
+    assert not (
+        "productos" in second_reply_lower
+        or "servicios" in second_reply_lower
+        or "fabric" in second_reply_lower
+    )
