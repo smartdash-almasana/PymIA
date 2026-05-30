@@ -27,6 +27,8 @@ from .intervention_priority import InterventionPriority
 from .intervention_status import InterventionStatus
 from .prognosis_trajectory import PrognosisTrajectory
 from .prognosis_risk_level import PrognosisRiskLevel
+from .decision_authority_type import DecisionAuthorityType
+from .governance_formality_level import GovernanceFormalityLevel
 
 __all__ = [
     "EpistemicState",
@@ -55,4 +57,6 @@ __all__ = [
     "InterventionStatus",
     "PrognosisTrajectory",
     "PrognosisRiskLevel",
+    "DecisionAuthorityType",
+    "GovernanceFormalityLevel",
 ]
