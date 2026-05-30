@@ -25,6 +25,8 @@ from .diagnostic_status import DiagnosticStatus
 from .intervention_type import InterventionType
 from .intervention_priority import InterventionPriority
 from .intervention_status import InterventionStatus
+from .prognosis_trajectory import PrognosisTrajectory
+from .prognosis_risk_level import PrognosisRiskLevel
 
 __all__ = [
     "EpistemicState",
@@ -51,4 +53,6 @@ __all__ = [
     "InterventionType",
     "InterventionPriority",
     "InterventionStatus",
+    "PrognosisTrajectory",
+    "PrognosisRiskLevel",
 ]
