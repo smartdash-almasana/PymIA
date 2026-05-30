@@ -164,3 +164,54 @@ def test_equality():
         observed_at=ts,
     )
     assert c1 == c2
+
+
+def test_from_dict_roundtrip():
+    original = OrganizationalConstraint(
+        id=uuid4(),
+        constraint_type=ConstraintType.CAJA,
+        magnitude="150000",
+        description="Caja",
+        observed_at=datetime(2026, 5, 31, 10, 0, 0),
+        metadata={"src": "x"},
+    )
+    restored = OrganizationalConstraint.from_dict(original.to_dict())
+    assert restored == original
+
+
+def test_same_business_value_as_ignores_id_metadata_and_timestamp():
+    c1 = OrganizationalConstraint(
+        id=uuid4(),
+        constraint_type=ConstraintType.CAJA,
+        magnitude="150000",
+        description="Caja",
+        observed_at=datetime(2026, 5, 31, 10, 0, 0),
+        metadata={"x": 1},
+    )
+    c2 = OrganizationalConstraint(
+        id=uuid4(),
+        constraint_type=ConstraintType.CAJA,
+        magnitude="150000",
+        description="Caja",
+        observed_at=datetime(2026, 6, 1, 10, 0, 0),
+        metadata={"x": 2},
+    )
+    assert c1.same_business_value_as(c2) is True
+
+
+def test_same_business_value_as_detects_content_difference():
+    c1 = OrganizationalConstraint(
+        id=uuid4(),
+        constraint_type=ConstraintType.CAJA,
+        magnitude="150000",
+        description="Caja",
+        observed_at=datetime(2026, 5, 31, 10, 0, 0),
+    )
+    c2 = OrganizationalConstraint(
+        id=uuid4(),
+        constraint_type=ConstraintType.CAJA,
+        magnitude="250000",
+        description="Caja",
+        observed_at=datetime(2026, 6, 1, 10, 0, 0),
+    )
+    assert c1.same_business_value_as(c2) is False

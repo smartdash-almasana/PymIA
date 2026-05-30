@@ -127,3 +127,15 @@ class FunctionalOrgan:
             symptoms=data.get("symptoms", []),
             metadata=data.get("metadata", {}) or {},
         )
+
+    def same_business_value_as(self, other: object) -> bool:
+        """Compara contenido de negocio ignorando metadatos técnicos."""
+        if not isinstance(other, FunctionalOrgan):
+            return False
+        return (
+            self.organ_type == other.organ_type
+            and self.state == other.state
+            and self.capacity_score == other.capacity_score
+            and self.description == other.description
+            and self.symptoms == other.symptoms
+        )

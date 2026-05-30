@@ -176,3 +176,36 @@ def test_equality():
         description="Tensión",
     )
     assert t1 == t2
+
+
+def test_from_dict_roundtrip():
+    original = StructuralTension(
+        id=uuid4(),
+        tension_type=TensionType.CALIDAD_VS_COSTO,
+        pole_a_intensity=3,
+        pole_b_intensity=6,
+        description="Tradeoff activo",
+        metadata={"src": "obs"},
+    )
+    restored = StructuralTension.from_dict(original.to_dict())
+    assert restored == original
+
+
+def test_same_business_value_as_ignores_id_and_metadata():
+    t1 = StructuralTension(
+        id=uuid4(),
+        tension_type=TensionType.CALIDAD_VS_COSTO,
+        pole_a_intensity=3,
+        pole_b_intensity=6,
+        description="Tradeoff activo",
+        metadata={"a": 1},
+    )
+    t2 = StructuralTension(
+        id=uuid4(),
+        tension_type=TensionType.CALIDAD_VS_COSTO,
+        pole_a_intensity=3,
+        pole_b_intensity=6,
+        description="Tradeoff activo",
+        metadata={"a": 2},
+    )
+    assert t1.same_business_value_as(t2) is True

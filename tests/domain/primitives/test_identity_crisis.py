@@ -210,3 +210,36 @@ def test_equality():
         description="Test",
     )
     assert c1 == c2
+
+
+def test_from_dict_roundtrip():
+    original = IdentityCrisis(
+        id=uuid4(),
+        crisis_type="proposito",
+        affected_layers=[IdentityLayer.NUCLEO_PERSISTENTE, IdentityLayer.CAPA_ADAPTABLE],
+        severity=8,
+        description="Divergencia estructural",
+        metadata={"src": "obs"},
+    )
+    restored = IdentityCrisis.from_dict(original.to_dict())
+    assert restored == original
+
+
+def test_same_business_value_as_ignores_id_and_metadata():
+    c1 = IdentityCrisis(
+        id=uuid4(),
+        crisis_type="negacion",
+        affected_layers=[IdentityLayer.NUCLEO_PERSISTENTE],
+        severity=7,
+        description="Test",
+        metadata={"m": 1},
+    )
+    c2 = IdentityCrisis(
+        id=uuid4(),
+        crisis_type="negacion",
+        affected_layers=[IdentityLayer.NUCLEO_PERSISTENTE],
+        severity=7,
+        description="Test",
+        metadata={"m": 2},
+    )
+    assert c1.same_business_value_as(c2) is True

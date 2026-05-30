@@ -72,3 +72,25 @@ class ExchangeCommitment:
             "created_at": self.created_at.isoformat(),
             "metadata": self.metadata or {},
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ExchangeCommitment":
+        """Reconstrucción desde diccionario serializado."""
+        return cls(
+            id=UUID(data["id"]),
+            parties=data["parties"],
+            object=data["object"],
+            conditions=data["conditions"],
+            created_at=datetime.fromisoformat(data["created_at"]),
+            metadata=data.get("metadata", {}) or {},
+        )
+
+    def same_business_value_as(self, other: object) -> bool:
+        """Compara contenido de negocio ignorando identidad técnica."""
+        if not isinstance(other, ExchangeCommitment):
+            return False
+        return (
+            self.parties == other.parties
+            and self.object == other.object
+            and self.conditions == other.conditions
+        )

@@ -171,3 +171,41 @@ def test_equality():
         description="Test",
     )
     assert r1 == r2
+
+
+def test_from_dict_roundtrip():
+    original = StructuralRelationship(
+        id=uuid4(),
+        source_id=uuid4(),
+        target_id=uuid4(),
+        weight=RelationshipWeight.CRITICO,
+        relationship_kind="cliente_mayorista",
+        description="Vinculo central",
+        metadata={"src": "obs"},
+    )
+    restored = StructuralRelationship.from_dict(original.to_dict())
+    assert restored == original
+
+
+def test_same_business_value_as_ignores_id_and_metadata():
+    source = uuid4()
+    target = uuid4()
+    r1 = StructuralRelationship(
+        id=uuid4(),
+        source_id=source,
+        target_id=target,
+        weight=RelationshipWeight.ALTO,
+        relationship_kind="test",
+        description="Test",
+        metadata={"m": 1},
+    )
+    r2 = StructuralRelationship(
+        id=uuid4(),
+        source_id=source,
+        target_id=target,
+        weight=RelationshipWeight.ALTO,
+        relationship_kind="test",
+        description="Test",
+        metadata={"m": 2},
+    )
+    assert r1.same_business_value_as(r2) is True

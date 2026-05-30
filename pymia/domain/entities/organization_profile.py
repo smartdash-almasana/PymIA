@@ -25,10 +25,7 @@ from pymia.domain.primitives.organizational_dependency import OrganizationalDepe
 from pymia.domain.primitives.structural_relationship import StructuralRelationship
 from pymia.domain.primitives.structural_tension import StructuralTension
 from pymia.domain.types.capability_level import CapabilityLevel
-from pymia.domain.types.constraint_type import ConstraintType
 from pymia.domain.types.epistemic_state import EpistemicState
-from pymia.domain.types.relationship_weight import RelationshipWeight
-from pymia.domain.types.tension_type import TensionType
 
 
 @dataclass
@@ -198,8 +195,7 @@ class OrganizationProfile:
     def from_dict(cls, data: Dict[str, Any]) -> "OrganizationProfile":
         """Reconstrucción desde diccionario serializado.
 
-        Construye cada VO inline porque los VOs de M1/M2 no tienen from_dict.
-        Esto mantiene el contrato de no tocar M1/M2 (restricción de milestone).
+        Delega reconstrucción de primitives en sus propios from_dict.
         """
         identity = data.get("identity", {})
         flow = data.get("flow", {})
@@ -207,67 +203,31 @@ class OrganizationProfile:
 
         # Reconstruir ExchangeCommitment (M1)
         commitments = [
-            ExchangeCommitment(
-                id=UUID(c["id"]),
-                parties=c["parties"],
-                object=c["object"],
-                conditions=c["conditions"],
-                created_at=datetime.fromisoformat(c["created_at"]),
-                metadata=c.get("metadata"),
-            )
+            ExchangeCommitment.from_dict(c)
             for c in data.get("exchange_commitments", [])
         ]
 
         # Reconstruir StructuralRelationship (M2)
         relationships = [
-            StructuralRelationship(
-                id=UUID(r["id"]),
-                source_id=UUID(r["source_id"]),
-                target_id=UUID(r["target_id"]),
-                weight=RelationshipWeight(r["weight"]),
-                relationship_kind=r["relationship_kind"],
-                description=r["description"],
-                metadata=r.get("metadata"),
-            )
+            StructuralRelationship.from_dict(r)
             for r in data.get("relationships", [])
         ]
 
         # Reconstruir OrganizationalConstraint (M2)
         constraints = [
-            OrganizationalConstraint(
-                id=UUID(c["id"]),
-                constraint_type=ConstraintType(c["constraint_type"]),
-                magnitude=c["magnitude"],
-                description=c["description"],
-                observed_at=datetime.fromisoformat(c["observed_at"]),
-                metadata=c.get("metadata"),
-            )
+            OrganizationalConstraint.from_dict(c)
             for c in data.get("constraints", [])
         ]
 
         # Reconstruir OrganizationalDependency (M2)
         dependencies = [
-            OrganizationalDependency(
-                id=UUID(d["id"]),
-                dependency_type=d["dependency_type"],
-                criticality=d["criticality"],
-                dependency_target=d["dependency_target"],
-                description=d["description"],
-                metadata=d.get("metadata"),
-            )
+            OrganizationalDependency.from_dict(d)
             for d in data.get("dependencies", [])
         ]
 
         # Reconstruir StructuralTension (M2)
         tensions = [
-            StructuralTension(
-                id=UUID(t["id"]),
-                tension_type=TensionType(t["tension_type"]),
-                pole_a_intensity=t["pole_a_intensity"],
-                pole_b_intensity=t["pole_b_intensity"],
-                description=t["description"],
-                metadata=t.get("metadata"),
-            )
+            StructuralTension.from_dict(t)
             for t in data.get("tensions", [])
         ]
 

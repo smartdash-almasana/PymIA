@@ -89,3 +89,28 @@ class IdentityCrisis:
             "description": self.description,
             "metadata": self.metadata or {},
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "IdentityCrisis":
+        """Reconstrucción desde diccionario serializado."""
+        return cls(
+            id=UUID(data["id"]),
+            crisis_type=data["crisis_type"],
+            affected_layers=[
+                IdentityLayer(layer) for layer in data.get("affected_layers", [])
+            ],
+            severity=data["severity"],
+            description=data["description"],
+            metadata=data.get("metadata", {}) or {},
+        )
+
+    def same_business_value_as(self, other: object) -> bool:
+        """Compara contenido de negocio ignorando identidad técnica."""
+        if not isinstance(other, IdentityCrisis):
+            return False
+        return (
+            self.crisis_type == other.crisis_type
+            and self.affected_layers == other.affected_layers
+            and self.severity == other.severity
+            and self.description == other.description
+        )

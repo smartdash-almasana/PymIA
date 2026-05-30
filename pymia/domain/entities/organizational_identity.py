@@ -9,10 +9,9 @@ Fuente doctrinal: PYMIA_ORGANIZATIONAL_IDENTITY_THEORY.md
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pymia.domain.types.epistemic_state import EpistemicState
-from pymia.domain.types.identity_layer import IdentityLayer
 from pymia.domain.primitives.identity_crisis import IdentityCrisis
 
 
@@ -163,23 +162,10 @@ class OrganizationalIdentity:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "OrganizationalIdentity":
         """Reconstrucción desde diccionario."""
-        # Reconstruir crisis inline (sin depender de from_dict de IdentityCrisis)
-        crises = []
-        for c in data.get("active_crises", []):
-            affected_layers = [
-                IdentityLayer(layer)
-                for layer in c.get("affected_layers", [])
-            ]
-            crises.append(
-                IdentityCrisis(
-                    id=UUID(c["id"]),
-                    crisis_type=c["crisis_type"],
-                    affected_layers=affected_layers,
-                    severity=c["severity"],
-                    description=c["description"],
-                    metadata=c.get("metadata"),
-                )
-            )
+        crises = [
+            IdentityCrisis.from_dict(c)
+            for c in data.get("active_crises", [])
+        ]
         
         return cls(
             id=UUID(data["id"]),

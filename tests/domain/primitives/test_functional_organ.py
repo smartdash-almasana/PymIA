@@ -223,3 +223,21 @@ def test_valid_organ_states_constant():
     assert "fragil" in VALID_ORGAN_STATES
     assert "enfermo" in VALID_ORGAN_STATES
     assert "critico" in VALID_ORGAN_STATES
+
+
+def test_same_business_value_as_ignores_metadata_and_timestamp():
+    o1 = _make_organ(
+        observed_at=datetime(2026, 5, 31, 10, 0, 0, tzinfo=timezone.utc),
+        metadata={"m": 1},
+    )
+    o2 = _make_organ(
+        observed_at=datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc),
+        metadata={"m": 2},
+    )
+    assert o1.same_business_value_as(o2) is True
+
+
+def test_same_business_value_as_detects_real_content_difference():
+    o1 = _make_organ(state="sano")
+    o2 = _make_organ(state="fragil")
+    assert o1.same_business_value_as(o2) is False

@@ -117,3 +117,54 @@ def test_exchange_commitment_with_metadata():
         metadata={"source": "manual", "confidence": 0.9},
     )
     assert commitment.metadata == {"source": "manual", "confidence": 0.9}
+
+
+def test_exchange_commitment_from_dict_roundtrip():
+    original = ExchangeCommitment(
+        id=uuid4(),
+        parties=["A", "B"],
+        object="Objeto",
+        conditions="Condiciones",
+        created_at=datetime(2026, 5, 31, 10, 0, 0),
+        metadata={"src": "x"},
+    )
+    restored = ExchangeCommitment.from_dict(original.to_dict())
+    assert restored == original
+
+
+def test_exchange_commitment_same_business_value_as_ignores_id_metadata_and_timestamp():
+    c1 = ExchangeCommitment(
+        id=uuid4(),
+        parties=["A", "B"],
+        object="Objeto",
+        conditions="Condiciones",
+        created_at=datetime(2026, 5, 31, 10, 0, 0),
+        metadata={"k": "v1"},
+    )
+    c2 = ExchangeCommitment(
+        id=uuid4(),
+        parties=["A", "B"],
+        object="Objeto",
+        conditions="Condiciones",
+        created_at=datetime(2026, 6, 1, 10, 0, 0),
+        metadata={"k": "v2"},
+    )
+    assert c1.same_business_value_as(c2) is True
+
+
+def test_exchange_commitment_same_business_value_as_detects_content_difference():
+    c1 = ExchangeCommitment(
+        id=uuid4(),
+        parties=["A", "B"],
+        object="Objeto A",
+        conditions="Condiciones",
+        created_at=datetime(2026, 5, 31, 10, 0, 0),
+    )
+    c2 = ExchangeCommitment(
+        id=uuid4(),
+        parties=["A", "B"],
+        object="Objeto B",
+        conditions="Condiciones",
+        created_at=datetime(2026, 6, 1, 10, 0, 0),
+    )
+    assert c1.same_business_value_as(c2) is False

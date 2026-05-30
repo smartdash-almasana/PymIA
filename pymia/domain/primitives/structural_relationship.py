@@ -76,3 +76,28 @@ class StructuralRelationship:
             "description": self.description,
             "metadata": self.metadata or {},
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "StructuralRelationship":
+        """Reconstrucción desde diccionario serializado."""
+        return cls(
+            id=UUID(data["id"]),
+            source_id=UUID(data["source_id"]),
+            target_id=UUID(data["target_id"]),
+            weight=RelationshipWeight(data["weight"]),
+            relationship_kind=data["relationship_kind"],
+            description=data["description"],
+            metadata=data.get("metadata", {}) or {},
+        )
+
+    def same_business_value_as(self, other: object) -> bool:
+        """Compara contenido de negocio ignorando identidad técnica."""
+        if not isinstance(other, StructuralRelationship):
+            return False
+        return (
+            self.source_id == other.source_id
+            and self.target_id == other.target_id
+            and self.weight == other.weight
+            and self.relationship_kind == other.relationship_kind
+            and self.description == other.description
+        )

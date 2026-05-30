@@ -73,3 +73,26 @@ class StructuralTension:
             "description": self.description,
             "metadata": self.metadata or {},
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "StructuralTension":
+        """Reconstrucción desde diccionario serializado."""
+        return cls(
+            id=UUID(data["id"]),
+            tension_type=TensionType(data["tension_type"]),
+            pole_a_intensity=data["pole_a_intensity"],
+            pole_b_intensity=data["pole_b_intensity"],
+            description=data["description"],
+            metadata=data.get("metadata", {}) or {},
+        )
+
+    def same_business_value_as(self, other: object) -> bool:
+        """Compara contenido de negocio ignorando identidad técnica."""
+        if not isinstance(other, StructuralTension):
+            return False
+        return (
+            self.tension_type == other.tension_type
+            and self.pole_a_intensity == other.pole_a_intensity
+            and self.pole_b_intensity == other.pole_b_intensity
+            and self.description == other.description
+        )

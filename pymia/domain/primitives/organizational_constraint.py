@@ -80,3 +80,25 @@ class OrganizationalConstraint:
             "observed_at": self.observed_at.isoformat(),
             "metadata": self.metadata or {},
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OrganizationalConstraint":
+        """Reconstrucción desde diccionario serializado."""
+        return cls(
+            id=UUID(data["id"]),
+            constraint_type=ConstraintType(data["constraint_type"]),
+            magnitude=data["magnitude"],
+            description=data["description"],
+            observed_at=datetime.fromisoformat(data["observed_at"]),
+            metadata=data.get("metadata", {}) or {},
+        )
+
+    def same_business_value_as(self, other: object) -> bool:
+        """Compara contenido de negocio ignorando identidad técnica."""
+        if not isinstance(other, OrganizationalConstraint):
+            return False
+        return (
+            self.constraint_type == other.constraint_type
+            and self.magnitude == other.magnitude
+            and self.description == other.description
+        )

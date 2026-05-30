@@ -165,3 +165,36 @@ def test_equality():
         description="Test",
     )
     assert d1 == d2
+
+
+def test_from_dict_roundtrip():
+    original = OrganizationalDependency(
+        id=uuid4(),
+        dependency_type="cliente_concentrado",
+        criticality="critica",
+        dependency_target="Cliente X",
+        description="Alta concentracion",
+        metadata={"src": "obs"},
+    )
+    restored = OrganizationalDependency.from_dict(original.to_dict())
+    assert restored == original
+
+
+def test_same_business_value_as_ignores_id_and_metadata():
+    d1 = OrganizationalDependency(
+        id=uuid4(),
+        dependency_type="cliente_concentrado",
+        criticality="alta",
+        dependency_target="Cliente X",
+        description="Dependencia",
+        metadata={"x": 1},
+    )
+    d2 = OrganizationalDependency(
+        id=uuid4(),
+        dependency_type="cliente_concentrado",
+        criticality="alta",
+        dependency_target="Cliente X",
+        description="Dependencia",
+        metadata={"x": 2},
+    )
+    assert d1.same_business_value_as(d2) is True

@@ -74,3 +74,26 @@ class OrganizationalDependency:
             "description": self.description,
             "metadata": self.metadata or {},
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OrganizationalDependency":
+        """Reconstrucción desde diccionario serializado."""
+        return cls(
+            id=UUID(data["id"]),
+            dependency_type=data["dependency_type"],
+            criticality=data["criticality"],
+            dependency_target=data["dependency_target"],
+            description=data["description"],
+            metadata=data.get("metadata", {}) or {},
+        )
+
+    def same_business_value_as(self, other: object) -> bool:
+        """Compara contenido de negocio ignorando identidad técnica."""
+        if not isinstance(other, OrganizationalDependency):
+            return False
+        return (
+            self.dependency_type == other.dependency_type
+            and self.criticality == other.criticality
+            and self.dependency_target == other.dependency_target
+            and self.description == other.description
+        )
