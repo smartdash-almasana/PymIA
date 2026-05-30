@@ -16,5 +16,12 @@ from pymia.domain.entities.organization_profile import OrganizationProfile
 from pymia.domain.entities.organizational_identity import OrganizationalIdentity
 from pymia.domain.entities.knowledge_item import KnowledgeItem
 from pymia.domain.entities.decision_record import DecisionRecord
+from pymia.domain.entities.learning_cycle import LearningCycle
 
-__all__ = ["OrganizationProfile", "OrganizationalIdentity", "KnowledgeItem", "DecisionRecord"]
+__all__ = [
+    "OrganizationProfile",
+    "OrganizationalIdentity",
+    "KnowledgeItem",
+    "DecisionRecord",
+    "LearningCycle",
+]

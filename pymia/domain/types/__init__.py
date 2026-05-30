@@ -9,6 +9,13 @@ from .functional_organ_type import FunctionalOrganType
 from .decision_type import DecisionType
 from .decision_outcome import DecisionOutcome
 from .decision_reversibility import DecisionReversibility
+from .learning_cycle_state import (
+    LearningCycleState,
+    LEARNING_CYCLE_STATE_ORDER,
+    TERMINAL_STATES,
+    state_index,
+)
+from .attribution_type import AttributionType
 
 __all__ = [
     "EpistemicState",
@@ -21,4 +28,9 @@ __all__ = [
     "DecisionType",
     "DecisionOutcome",
     "DecisionReversibility",
+    "LearningCycleState",
+    "LEARNING_CYCLE_STATE_ORDER",
+    "TERMINAL_STATES",
+    "state_index",
+    "AttributionType",
 ]
