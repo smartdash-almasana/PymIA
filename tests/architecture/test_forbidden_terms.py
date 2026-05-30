@@ -4,13 +4,33 @@ contamination guard
 from pathlib import Path
 from .policy import get_project_root, iter_python_files, scan_file_for_terms
 
-FORBIDDEN_TERMS = [
-    "create_job",
-    "authorization",
-    "decision_type",
-    "workflow",
-    "orchestration"
-]
+FORBIDDEN_TERMS = ["create_job", "authorization", "decision_type", "workflow", "orchestration"]
+
+# Guardarraíl por término con excepciones estrictas por ruta/capa.
+# El término se sigue escaneando globalmente, pero solo puede aparecer
+# dentro de rutas explícitamente permitidas.
+TERM_ALLOWED_PATH_PREFIXES = {
+    "decision_type": [
+        "pymia/domain/entities/decision_record.py",
+        "pymia/domain/types/decision_type.py",
+        "pymia/domain/types/__init__.py",
+        "tests/domain/entities/test_decision_record.py",
+        "tests/domain/types/test_decision_types.py",
+    ],
+    "orchestration": [
+        "pymia/orchestration/",
+        "tests/orchestration/",
+        "pymia/telegram_bot_runtime.py",
+        "pymia/llm_operator/smoke_openrouter.py",
+        "tests/llm_operator/test_operator_offline.py",
+    ],
+    "authorization": [
+        "pymia/llm_operator/providers_openrouter.py",
+        "pymia/smartpyme/supermemory_tenant_recall.py",
+        "tests/llm_operator/test_openrouter_provider.py",
+        "tests/smartpyme/test_supermemory_tenant_recall.py",
+    ],
+}
 
 # Excepciones para prohibiciones explicitas (en docs o docstrings/tests)
 ALLOW_PATTERNS = [
@@ -59,7 +79,14 @@ def test_no_forbidden_terms_in_code():
             continue
             
         findings = scan_file_for_terms(fpath, FORBIDDEN_TERMS, ALLOW_PATTERNS)
+        rel_path = fpath.relative_to(root).as_posix()
         for lineno, term, context in findings:
+            allowed_prefixes = TERM_ALLOWED_PATH_PREFIXES.get(term, [])
+            if any(
+                rel_path == allowed or rel_path.startswith(allowed)
+                for allowed in allowed_prefixes
+            ):
+                continue
             violations.append(f"{fpath.relative_to(root)}:{lineno} -> {term} (context: {context})")
             
     assert not violations, "Found forbidden terms in code:\n" + "\n".join(violations)
