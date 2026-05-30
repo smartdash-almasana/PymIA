@@ -29,6 +29,7 @@ from .prognosis_trajectory import PrognosisTrajectory
 from .prognosis_risk_level import PrognosisRiskLevel
 from .decision_authority_type import DecisionAuthorityType
 from .governance_formality_level import GovernanceFormalityLevel
+from .decision_capability_rating import DecisionCapabilityRating
 
 __all__ = [
     "EpistemicState",
@@ -59,4 +60,5 @@ __all__ = [
     "PrognosisRiskLevel",
     "DecisionAuthorityType",
     "GovernanceFormalityLevel",
+    "DecisionCapabilityRating",
 ]
