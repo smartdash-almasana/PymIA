@@ -18,6 +18,7 @@ from pymia.domain.entities.knowledge_item import KnowledgeItem
 from pymia.domain.entities.decision_record import DecisionRecord
 from pymia.domain.entities.learning_cycle import LearningCycle
 from pymia.domain.entities.organizational_pathology import OrganizationalPathology
+from pymia.domain.entities.intervention_plan import InterventionPlan
 
 __all__ = [
     "OrganizationProfile",
@@ -26,4 +27,5 @@ __all__ = [
     "DecisionRecord",
     "LearningCycle",
     "OrganizationalPathology",
+    "InterventionPlan",
 ]
