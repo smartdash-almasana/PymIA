@@ -4,6 +4,8 @@ from .constraint_type import ConstraintType
 from .tension_type import TensionType
 from .relationship_weight import RelationshipWeight
 from .capability_level import CapabilityLevel
+from .identity_layer import IdentityLayer
+from .functional_organ_type import FunctionalOrganType
 
 __all__ = [
     "EpistemicState",
@@ -11,4 +13,6 @@ __all__ = [
     "TensionType",
     "RelationshipWeight",
     "CapabilityLevel",
+    "IdentityLayer",
+    "FunctionalOrganType",
 ]
