@@ -9,10 +9,12 @@ Capa 2 (organizacional):
 
 Capa 3 (epistémica):
 - KnowledgeItem: unidad atómica de conocimiento con ciclo de vida
+- DecisionRecord: registro de decisión con ciclo propuesta→decisión→ejecución→evaluación
 """
 
 from pymia.domain.entities.organization_profile import OrganizationProfile
 from pymia.domain.entities.organizational_identity import OrganizationalIdentity
 from pymia.domain.entities.knowledge_item import KnowledgeItem
+from pymia.domain.entities.decision_record import DecisionRecord
 
-__all__ = ["OrganizationProfile", "OrganizationalIdentity", "KnowledgeItem"]
+__all__ = ["OrganizationProfile", "OrganizationalIdentity", "KnowledgeItem", "DecisionRecord"]
