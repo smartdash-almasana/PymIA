@@ -21,6 +21,7 @@ from .pathology_type import PathologyType
 from .pathology_severity import PathologySeverity
 from .pathology_stage import PathologyStage
 from .pathology_status import PathologyStatus
+from .diagnostic_status import DiagnosticStatus
 
 __all__ = [
     "EpistemicState",
@@ -43,4 +44,5 @@ __all__ = [
     "PathologySeverity",
     "PathologyStage",
     "PathologyStatus",
+    "DiagnosticStatus",
 ]
