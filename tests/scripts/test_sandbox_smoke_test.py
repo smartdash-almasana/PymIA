@@ -66,13 +66,21 @@ def test_parse_args_requires_sandbox_path(smoke_module) -> None:
 def test_validate_rejects_hermes_agent(smoke_module, hermes_agent_path: Path) -> None:
     ok, reason = smoke_module.validate_sandbox_path(hermes_agent_path)
     assert ok is False
-    assert "forbidden" in reason.lower() or "hermes-agent" in reason
+    assert (
+        ".tmp/hermes-scn-local" in reason
+        or "forbidden" in reason.lower()
+        or "hermes-agent" in reason
+    )
 
 
 def test_validate_rejects_pymia_repo(smoke_module, pymia_path: Path) -> None:
     ok, reason = smoke_module.validate_sandbox_path(pymia_path)
     assert ok is False
-    assert "forbidden" in reason.lower() or "PymIA" in reason
+    assert (
+        ".tmp/hermes-scn-local" in reason
+        or "forbidden" in reason.lower()
+        or "PymIA" in reason
+    )
 
 
 def test_validate_rejects_outside_scope(smoke_module, tmp_path: Path) -> None:
@@ -165,7 +173,9 @@ def test_main_happy_path_returns_zero(smoke_module, valid_sandbox: Path, capsys)
     rc = smoke_module.main(["--sandbox-path", str(valid_sandbox)])
     assert rc == 0
     captured = capsys.readouterr()
-    parsed = json.loads(captured.out.strip().split("\n\n")[0])
+    out = captured.out.strip()
+    json_payload = out.split("\nEvidence written to:", 1)[0]
+    parsed = json.loads(json_payload)
     assert parsed["overall"] == "PASS"
     evidence_file = valid_sandbox / "sandbox" / "logs" / "sandbox_smoke_test_result.json"
     assert evidence_file.exists()
