@@ -17,6 +17,10 @@ from .learning_cycle_state import (
 )
 from .attribution_type import AttributionType
 from .health_classification import HealthClassification
+from .pathology_type import PathologyType
+from .pathology_severity import PathologySeverity
+from .pathology_stage import PathologyStage
+from .pathology_status import PathologyStatus
 
 __all__ = [
     "EpistemicState",
@@ -35,4 +39,8 @@ __all__ = [
     "state_index",
     "AttributionType",
     "HealthClassification",
+    "PathologyType",
+    "PathologySeverity",
+    "PathologyStage",
+    "PathologyStatus",
 ]
