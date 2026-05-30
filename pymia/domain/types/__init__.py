@@ -16,6 +16,7 @@ from .learning_cycle_state import (
     state_index,
 )
 from .attribution_type import AttributionType
+from .health_classification import HealthClassification
 
 __all__ = [
     "EpistemicState",
@@ -33,4 +34,5 @@ __all__ = [
     "TERMINAL_STATES",
     "state_index",
     "AttributionType",
+    "HealthClassification",
 ]
