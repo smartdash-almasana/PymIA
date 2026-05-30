@@ -4,7 +4,6 @@ Tests for ExchangeCommitment value object
 Valida invariantes de dominio del átomo organizacional.
 """
 import pytest
-from datetime import datetime
 from uuid import uuid4
 from dataclasses import FrozenInstanceError
 from pymia.domain.primitives import ExchangeCommitment
@@ -17,7 +16,6 @@ def test_exchange_commitment_valid_construction():
         parties=["Textiles SA", "Cliente Mayorista"],
         object="Venta de 100 remeras",
         conditions="Pago contado, entrega 7 días",
-        created_at=datetime(2026, 5, 31, 10, 0, 0),
     )
     assert commitment.parties == ["Textiles SA", "Cliente Mayorista"]
     assert commitment.object == "Venta de 100 remeras"
@@ -32,7 +30,6 @@ def test_exchange_commitment_rejects_single_party():
             parties=["Solo una parte"],
             object="Algo",
             conditions="Alguna condición",
-            created_at=datetime.now(),
         )
 
 
@@ -44,7 +41,6 @@ def test_exchange_commitment_rejects_empty_parties():
             parties=[],
             object="Algo",
             conditions="Alguna condición",
-            created_at=datetime.now(),
         )
 
 
@@ -56,7 +52,6 @@ def test_exchange_commitment_rejects_empty_object():
             parties=["A", "B"],
             object="",
             conditions="Alguna condición",
-            created_at=datetime.now(),
         )
 
 
@@ -68,7 +63,6 @@ def test_exchange_commitment_rejects_empty_conditions():
             parties=["A", "B"],
             object="Algo",
             conditions="",
-            created_at=datetime.now(),
         )
 
 
@@ -79,7 +73,6 @@ def test_exchange_commitment_is_immutable():
         parties=["A", "B"],
         object="Objeto",
         conditions="Condiciones",
-        created_at=datetime.now(),
     )
     with pytest.raises(FrozenInstanceError):
         commitment.object = "Otro objeto"
@@ -88,13 +81,11 @@ def test_exchange_commitment_is_immutable():
 def test_exchange_commitment_to_dict():
     """Serialización a diccionario."""
     commitment_id = uuid4()
-    created_at = datetime(2026, 5, 31, 10, 0, 0)
     commitment = ExchangeCommitment(
         id=commitment_id,
         parties=["A", "B"],
         object="Objeto",
         conditions="Condiciones",
-        created_at=created_at,
     )
     
     data = commitment.to_dict()
@@ -102,7 +93,6 @@ def test_exchange_commitment_to_dict():
     assert data["parties"] == ["A", "B"]
     assert data["object"] == "Objeto"
     assert data["conditions"] == "Condiciones"
-    assert data["created_at"] == "2026-05-31T10:00:00"
     assert data["metadata"] == {}
 
 
@@ -113,7 +103,6 @@ def test_exchange_commitment_with_metadata():
         parties=["A", "B"],
         object="Objeto",
         conditions="Condiciones",
-        created_at=datetime.now(),
         metadata={"source": "manual", "confidence": 0.9},
     )
     assert commitment.metadata == {"source": "manual", "confidence": 0.9}
@@ -125,20 +114,18 @@ def test_exchange_commitment_from_dict_roundtrip():
         parties=["A", "B"],
         object="Objeto",
         conditions="Condiciones",
-        created_at=datetime(2026, 5, 31, 10, 0, 0),
         metadata={"src": "x"},
     )
     restored = ExchangeCommitment.from_dict(original.to_dict())
     assert restored == original
 
 
-def test_exchange_commitment_same_business_value_as_ignores_id_metadata_and_timestamp():
+def test_exchange_commitment_same_business_value_as_ignores_id_and_metadata():
     c1 = ExchangeCommitment(
         id=uuid4(),
         parties=["A", "B"],
         object="Objeto",
         conditions="Condiciones",
-        created_at=datetime(2026, 5, 31, 10, 0, 0),
         metadata={"k": "v1"},
     )
     c2 = ExchangeCommitment(
@@ -146,7 +133,6 @@ def test_exchange_commitment_same_business_value_as_ignores_id_metadata_and_time
         parties=["A", "B"],
         object="Objeto",
         conditions="Condiciones",
-        created_at=datetime(2026, 6, 1, 10, 0, 0),
         metadata={"k": "v2"},
     )
     assert c1.same_business_value_as(c2) is True
@@ -158,13 +144,11 @@ def test_exchange_commitment_same_business_value_as_detects_content_difference()
         parties=["A", "B"],
         object="Objeto A",
         conditions="Condiciones",
-        created_at=datetime(2026, 5, 31, 10, 0, 0),
     )
     c2 = ExchangeCommitment(
         id=uuid4(),
         parties=["A", "B"],
         object="Objeto B",
         conditions="Condiciones",
-        created_at=datetime(2026, 6, 1, 10, 0, 0),
     )
     assert c1.same_business_value_as(c2) is False

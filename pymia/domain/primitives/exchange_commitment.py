@@ -8,7 +8,6 @@ Definición: Acuerdo (explícito o implícito) por el cual la organización
 entrega algo a cambio de algo bajo condiciones determinadas.
 """
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import List, Dict, Any, Optional
 from uuid import UUID
 
@@ -31,14 +30,12 @@ class ExchangeCommitment:
             parties=["Textiles SA", "Cliente Mayorista"],
             object="Venta de 100 remeras",
             conditions="Pago contado, entrega 7 días",
-            created_at=datetime.utcnow(),
         )
     """
     id: UUID
     parties: List[str]
     object: str
     conditions: str
-    created_at: datetime
     metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
     
     def __post_init__(self):
@@ -69,7 +66,6 @@ class ExchangeCommitment:
             "parties": self.parties,
             "object": self.object,
             "conditions": self.conditions,
-            "created_at": self.created_at.isoformat(),
             "metadata": self.metadata or {},
         }
 
@@ -81,7 +77,6 @@ class ExchangeCommitment:
             parties=data["parties"],
             object=data["object"],
             conditions=data["conditions"],
-            created_at=datetime.fromisoformat(data["created_at"]),
             metadata=data.get("metadata", {}) or {},
         )
 

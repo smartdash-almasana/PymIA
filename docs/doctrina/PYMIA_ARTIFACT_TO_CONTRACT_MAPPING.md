@@ -72,6 +72,8 @@ Solo las entidades (Capas 2, 3, 5) tienen `id: UUID`. Los value objects no. Los 
 
 Los value objects no tienen `created_at` ni `updated_at`. Los timestamps pertenecen a la capa de persistencia o a entidades con ciclo de vida.
 
+**Nota aclaratoria:** Esta prohibición aplica a timestamps de ciclo de vida técnico (`created_at`, `updated_at`). Los timestamps epistémicos del fenómeno observado (por ejemplo `observed_at`, `assessed_at`) sí están permitidos en value objects inmutables cuando forman parte del contenido de dominio.
+
 ---
 
 ## 3. Capas de implementación

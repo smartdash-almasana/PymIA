@@ -34,7 +34,6 @@ def _make_commitment() -> ExchangeCommitment:
         parties=["Textiles SA", "Cliente X"],
         object="Venta 100 remeras",
         conditions="Pago contado",
-        created_at=datetime.now(timezone.utc),
     )
 
 
@@ -185,7 +184,6 @@ def test_rejects_duplicate_commitment_ids():
         parties=["A", "B"],
         object="Otro",
         conditions="Otras",
-        created_at=datetime.now(timezone.utc),
     )
     with pytest.raises(ValueError, match="IDs duplicados"):
         _make_profile(exchange_commitments=[commitment, dup])
