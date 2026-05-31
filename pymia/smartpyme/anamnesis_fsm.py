@@ -67,22 +67,19 @@ Primera pregunta: ¿cuál es tu nombre y apellido?"""
 
 FICHA_PYME_STEPS: tuple[str, ...] = (
     "ASK_CONTACT_NAME",
-    "ASK_CONTACT_ROLE",
-    "ASK_CONTACT_PHONE",
-    "ASK_CONTACT_EMAIL",
     "ASK_COMPANY_NAME",
     "ASK_ACTIVITY_TYPE",
     "ASK_INDUSTRY_LABEL",
-    "ASK_OPERATING_MODEL",
-    "ASK_SALES_CHANNELS",
-    "ASK_DIGITAL_PRESENCE",
-    "ASK_WEBSITE_AND_SOCIALS",
-    "ASK_CATALOG_AVAILABLE",
     "ASK_TEAM_SIZE",
+    "ASK_SALES_CHANNELS_AND_PRESENCE",
     "ASK_CURRENT_TOOLS",
+    "ASK_CATALOG_AVAILABLE",
     "ASK_PRIMARY_PAIN",
     "ASK_PERIOD",
     "ASK_AVAILABLE_EVIDENCE",
+    "ASK_CONTACT_ROLE",
+    "ASK_CONTACT_PHONE",
+    "ASK_CONTACT_EMAIL",
     "INITIAL_PROFILE_COMPLETE",
 )
 
@@ -280,24 +277,22 @@ def _first_profile_message() -> str:
     return MENU_INICIAL_TEXTO
 
 
-def _next_prompt(step: str) -> str:
+def _next_prompt(step: str, profile: dict[str, Any]) -> str:
     prompts = {
-        "ASK_CONTACT_ROLE": "¿Cuál es tu rol en la empresa? Por ejemplo: dueño, socio, gerente, administración o ventas.",
-        "ASK_CONTACT_PHONE": "¿Cuál es tu teléfono o WhatsApp de contacto?",
-        "ASK_CONTACT_EMAIL": "¿Cuál es tu email de contacto? Si no usás email, respondé 'no tengo'.",
+        "ASK_CONTACT_NAME": "¿Cuál es tu nombre?",
         "ASK_COMPANY_NAME": "¿Cómo se llama tu empresa o marca comercial?",
         "ASK_ACTIVITY_TYPE": "¿Qué describe mejor a tu empresa?\n" + _options_text(ACTIVITY_OPTIONS),
         "ASK_INDUSTRY_LABEL": "¿En qué rubro trabajás concretamente? Por ejemplo: ropa, calzado, ferretería, repuestos, alimentos, textil, transporte, vivero, consultoría, salud, educación u otro.",
-        "ASK_OPERATING_MODEL": "¿Cómo funciona principalmente tu operación? Contame si vendés de stock, fabricás a pedido, prestás servicios por turno/proyecto, comprás y revendés, o si es mixto.",
-        "ASK_SALES_CHANNELS": "¿Por dónde vendés hoy? Podés elegir una o varias opciones.\n" + _options_text(SALES_CHANNEL_OPTIONS),
-        "ASK_DIGITAL_PRESENCE": "¿Qué presencia online tiene hoy tu empresa? Podés elegir una o varias opciones.\n" + _options_text(DIGITAL_PRESENCE_OPTIONS),
-        "ASK_WEBSITE_AND_SOCIALS": "Pasame los links disponibles: página web, Instagram, Facebook, TikTok, LinkedIn, Mercado Libre, Google Maps u otros. Si no tenés, respondé 'no tengo'.",
-        "ASK_CATALOG_AVAILABLE": "¿Tenés catálogo, lista de precios o productos para compartir?\n" + _options_text(CATALOG_OPTIONS),
         "ASK_TEAM_SIZE": "Para ubicar escala: ¿cuántas personas trabajan en la empresa contando dueños, empleados y colaboradores?\n" + _options_text(TEAM_SIZE_OPTIONS),
+        "ASK_SALES_CHANNELS_AND_PRESENCE": "¿Cuáles son los principales canales por donde consiguen clientes y venden hoy? Podés elegir varias.\n" + _options_text(SALES_CHANNEL_OPTIONS),
         "ASK_CURRENT_TOOLS": "¿Dónde llevás hoy la información principal del negocio?\n" + _options_text(TOOLS_OPTIONS),
-        "ASK_PRIMARY_PAIN": "¿Qué querés entender o resolver primero?\n" + _options_text(PAIN_OPTIONS),
+        "ASK_CATALOG_AVAILABLE": "¿Tenés catálogo, lista de precios o productos para compartir?\n" + _options_text(CATALOG_OPTIONS),
+        "ASK_PRIMARY_PAIN": f"En tu primer mensaje me comentaste: '{profile.get('raw_first_message', '')}'. ¿Podemos confirmar que este es el dolor principal que querés resolver hoy?\n" + _options_text(PAIN_OPTIONS),
         "ASK_PERIOD": "¿Qué período querés mirar primero?\n" + _options_text(PERIOD_OPTIONS),
         "ASK_AVAILABLE_EVIDENCE": "¿Qué información tenés disponible para empezar? Podés elegir una o varias opciones.\n" + _options_text(EVIDENCE_OPTIONS),
+        "ASK_CONTACT_ROLE": "Para dejar armado tu legajo y poder enviarte reportes luego: ¿qué rol ocupás en la empresa?",
+        "ASK_CONTACT_PHONE": "¿Cuál es tu teléfono o WhatsApp de contacto?",
+        "ASK_CONTACT_EMAIL": "¿Cuál es tu email de contacto? Si no usás email, respondé 'no tengo'.",
         "INITIAL_PROFILE_COMPLETE": "Perfecto. Ya tengo la ficha inicial de tu empresa. Ahora puedo decirte qué evidencia necesitamos para avanzar y qué análisis corresponde hacer primero.",
     }
     return prompts[step]
@@ -465,69 +460,59 @@ def _advance_profile(previous_state: AnamnesisFSMState | None, text: str) -> tup
     step = previous_state.profile_step or "ASK_CONTACT_NAME"
     profile = dict(previous_state.profile_data)
     next_step_by_step = {
-        "ASK_CONTACT_NAME": "ASK_CONTACT_ROLE",
-        "ASK_CONTACT_ROLE": "ASK_CONTACT_PHONE",
-        "ASK_CONTACT_PHONE": "ASK_CONTACT_EMAIL",
-        "ASK_CONTACT_EMAIL": "ASK_COMPANY_NAME",
+        "ASK_CONTACT_NAME": "ASK_COMPANY_NAME",
         "ASK_COMPANY_NAME": "ASK_ACTIVITY_TYPE",
         "ASK_ACTIVITY_TYPE": "ASK_INDUSTRY_LABEL",
-        "ASK_INDUSTRY_LABEL": "ASK_OPERATING_MODEL",
-        "ASK_OPERATING_MODEL": "ASK_SALES_CHANNELS",
-        "ASK_SALES_CHANNELS": "ASK_DIGITAL_PRESENCE",
-        "ASK_DIGITAL_PRESENCE": "ASK_WEBSITE_AND_SOCIALS",
-        "ASK_WEBSITE_AND_SOCIALS": "ASK_CATALOG_AVAILABLE",
-        "ASK_CATALOG_AVAILABLE": "ASK_TEAM_SIZE",
-        "ASK_TEAM_SIZE": "ASK_CURRENT_TOOLS",
-        "ASK_CURRENT_TOOLS": "ASK_PRIMARY_PAIN",
+        "ASK_INDUSTRY_LABEL": "ASK_TEAM_SIZE",
+        "ASK_TEAM_SIZE": "ASK_SALES_CHANNELS_AND_PRESENCE",
+        "ASK_SALES_CHANNELS_AND_PRESENCE": "ASK_CURRENT_TOOLS",
+        "ASK_CURRENT_TOOLS": "ASK_CATALOG_AVAILABLE",
+        "ASK_CATALOG_AVAILABLE": "ASK_PRIMARY_PAIN",
         "ASK_PRIMARY_PAIN": "ASK_PERIOD",
         "ASK_PERIOD": "ASK_AVAILABLE_EVIDENCE",
-        "ASK_AVAILABLE_EVIDENCE": "INITIAL_PROFILE_COMPLETE",
+        "ASK_AVAILABLE_EVIDENCE": "ASK_CONTACT_ROLE",
+        "ASK_CONTACT_ROLE": "ASK_CONTACT_PHONE",
+        "ASK_CONTACT_PHONE": "ASK_CONTACT_EMAIL",
+        "ASK_CONTACT_EMAIL": "INITIAL_PROFILE_COMPLETE",
     }
     if step == "ASK_CONTACT_NAME":
         profile = _with_profile_value(profile, ("contact", "full_name"), text)
-    elif step == "ASK_CONTACT_ROLE":
-        profile = _with_profile_value(profile, ("contact", "role"), text)
-    elif step == "ASK_CONTACT_PHONE":
-        profile = _with_profile_value(profile, ("contact", "phone"), text)
-    elif step == "ASK_CONTACT_EMAIL":
-        profile = _with_profile_value(profile, ("contact", "email"), text)
     elif step == "ASK_COMPANY_NAME":
         profile = _with_profile_value(profile, ("company", "legal_or_trade_name"), text)
     elif step == "ASK_ACTIVITY_TYPE":
         profile = _with_profile_value(profile, ("business_taxonomy", "activity_type"), _map_activity_type(text))
     elif step == "ASK_INDUSTRY_LABEL":
         profile = _with_profile_value(profile, ("business_taxonomy", "industry_label"), text)
-    elif step == "ASK_OPERATING_MODEL":
-        profile = _with_profile_value(profile, ("business_model", "operating_model"), text)
-    elif step == "ASK_SALES_CHANNELS":
+    elif step == "ASK_TEAM_SIZE":
+        profile = _with_profile_value(profile, ("company_profile", "team_size_range"), _map_team_size(text))
+    elif step == "ASK_SALES_CHANNELS_AND_PRESENCE":
         profile = _append_profile_values(profile, ("business_model", "sales_channels"), _map_sales_channels(text))
-    elif step == "ASK_DIGITAL_PRESENCE":
         profile = _append_profile_values(profile, ("digital_presence", "presence_channels"), _map_digital_presence(text))
-    elif step == "ASK_WEBSITE_AND_SOCIALS":
-        profile = _append_profile_values(profile, ("digital_presence", "social_links"), [text])
-        if "http" in text or "." in text:
-            profile = _with_profile_value(profile, ("digital_presence", "website_url"), text)
+    elif step == "ASK_CURRENT_TOOLS":
+        profile = _with_profile_value(profile, ("current_tools", "primary_information_system"), _map_tools(text))
     elif step == "ASK_CATALOG_AVAILABLE":
         has_catalog, catalog_type = _map_catalog(text)
         profile = _with_profile_value(profile, ("commercial_catalog", "has_catalog"), has_catalog)
         profile = _with_profile_value(profile, ("commercial_catalog", "catalog_type"), catalog_type)
-    elif step == "ASK_TEAM_SIZE":
-        profile = _with_profile_value(profile, ("company_profile", "team_size_range"), _map_team_size(text))
-    elif step == "ASK_CURRENT_TOOLS":
-        profile = _with_profile_value(profile, ("current_tools", "primary_information_system"), _map_tools(text))
     elif step == "ASK_PRIMARY_PAIN":
         profile = _with_profile_value(profile, ("initial_problem", "primary_pain"), _map_primary_pain(text))
     elif step == "ASK_PERIOD":
         profile = _with_profile_value(profile, ("analysis_scope", "period"), _map_period(text))
     elif step == "ASK_AVAILABLE_EVIDENCE":
         profile = _append_profile_values(profile, ("evidence", "available"), _map_evidence(text))
+    elif step == "ASK_CONTACT_ROLE":
+        profile = _with_profile_value(profile, ("contact", "role"), text)
+    elif step == "ASK_CONTACT_PHONE":
+        profile = _with_profile_value(profile, ("contact", "phone"), text)
+    elif step == "ASK_CONTACT_EMAIL":
+        profile = _with_profile_value(profile, ("contact", "email"), text)
         profile = _with_profile_value(profile, ("profile_status",), "COMPLETE")
     return profile, next_step_by_step.get(step, "INITIAL_PROFILE_COMPLETE")
 
 
 def _profile_state(tenant_id: str, text: str, now: str, previous_state: AnamnesisFSMState | None) -> tuple[AnamnesisFSMState, str]:
     profile, next_step = _advance_profile(previous_state, text)
-    message = _first_profile_message() if previous_state is None or not previous_state.profile_data else _next_prompt(next_step)
+    message = _first_profile_message() if previous_state is None or not previous_state.profile_data else _next_prompt(next_step, profile)
     return (
         AnamnesisFSMState(
             phase=FSMPhase.FICHA_PYME_INICIAL,
@@ -776,7 +761,8 @@ def process_message(user_text: str, tenant_id: str, previous_state: AnamnesisFSM
 
     if taxonomy is None:
         phase = FSMPhase.ANAMNESIS_TAXONOMIA
-        message = _next_prompt("ASK_ACTIVITY_TYPE")
+        profile = previous_state.profile_data if previous_state else {}
+        message = _next_prompt("ASK_ACTIVITY_TYPE", profile)
     elif readiness.status != ReadinessStatus.READY:
         phase = FSMPhase.ANAMNESIS_TAXONOMIA
         missing = ", ".join(readiness.missing_taxonomy_fields) or "contexto operativo"

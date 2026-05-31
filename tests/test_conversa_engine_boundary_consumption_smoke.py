@@ -48,22 +48,19 @@ def test_conversa_engine_boundary_consumption_smoke() -> None:
 
     profile_answers = [
         'Juan Perez',
-        'dueno',
-        '+5491122334455',
-        'juan@example.com',
         'Textiles JP',
         '2',
         'textil',
-        'fabrico y vendo',
+        '2',
         '6,5',
-        '2',
-        'no tengo',
-        '2',
-        '2',
         '1',
+        'no tengo',
         '1',
         '3',
         '1,4',
+        'dueno',
+        '+5491122334455',
+        'juan@example.com',
     ]
 
     for answer in profile_answers:

@@ -34,22 +34,19 @@ def _complete_initial_profile(tenant_id: str, session_id: str, first_message: st
 
     answers = [
         "Juan Perez",
-        "dueno",
-        "+5491122334455",
-        "juan@example.com",
         "Textiles JP",
         "2",
         "textil",
-        "fabrico y vendo",
+        "2",
         "6,5",
-        "2",
-        "no tengo",
-        "2",
-        "2",
         "1",
+        "no tengo",
         "1",
         "3",
         "1,4",
+        "dueno",
+        "+5491122334455",
+        "juan@example.com",
     ]
 
     for answer in answers:
@@ -102,7 +99,7 @@ def test_segundo_turno_avanza_paso_de_ficha():
     )
 
     assert output2.phase == FSMPhase.FICHA_PYME_INICIAL.value
-    assert output2.updated_progressive_context["fsm_state"]["profile_step"] == "ASK_CONTACT_ROLE"
+    assert output2.updated_progressive_context["fsm_state"]["profile_step"] == "ASK_COMPANY_NAME"
     assert output2.updated_progressive_context["fsm_state"]["profile_data"]["contact"]["full_name"] == "Juan Perez"
 
 

@@ -99,23 +99,20 @@ def test_caso_2_vendo_mucho_ficha_pyme():
 def test_flujo_completo_ficha_pyme():
     """Verifica que el flujo avanza por los 18 pasos hasta INITIAL_PROFILE_COMPLETE."""
     inputs = [
-        "Juan",  # ASK_CONTACT_ROLE
-        "Dueño", # ASK_CONTACT_PHONE
-        "12345", # ASK_CONTACT_EMAIL
-        "juan@juan.com", # ASK_COMPANY_NAME
+        "Juan",  # ASK_COMPANY_NAME
         "Mi Empresa", # ASK_ACTIVITY_TYPE
         "1. Vendo productos", # ASK_INDUSTRY_LABEL
-        "Ropa", # ASK_OPERATING_MODEL
-        "Stock", # ASK_SALES_CHANNELS
-        "1. Local", # ASK_DIGITAL_PRESENCE
-        "2. Instagram", # ASK_WEBSITE_AND_SOCIALS
-        "instagram.com/miempresa", # ASK_CATALOG_AVAILABLE
-        "1. PDF", # ASK_TEAM_SIZE
-        "1. Solo yo", # ASK_CURRENT_TOOLS
-        "1. Excel", # ASK_PRIMARY_PAIN
+        "Ropa", # ASK_TEAM_SIZE
+        "1. Solo yo", # ASK_SALES_CHANNELS_AND_PRESENCE
+        "1. Local", # ASK_CURRENT_TOOLS
+        "1. Excel", # ASK_CATALOG_AVAILABLE
+        "1. PDF", # ASK_PRIMARY_PAIN
         "1. Gano plata", # ASK_PERIOD
         "1. Este mes", # ASK_AVAILABLE_EVIDENCE
-        "1. Ventas", # INITIAL_PROFILE_COMPLETE
+        "1. Ventas", # ASK_CONTACT_ROLE
+        "Dueño", # ASK_CONTACT_PHONE
+        "12345", # ASK_CONTACT_EMAIL
+        "juan@juan.com", # INITIAL_PROFILE_COMPLETE
     ]
     
     state, msg = process_message("hola, tengo un problema", tenant_id="TF", previous_state=None)
@@ -288,4 +285,4 @@ def test_inputs_no_mutados():
     state2, _ = process_message("Juan", tenant_id="T015", previous_state=state1)
     assert state1.phase == state1_phase
     assert state1.profile_step == "ASK_CONTACT_NAME"
-    assert state2.profile_step == "ASK_CONTACT_ROLE"
+    assert state2.profile_step == "ASK_COMPANY_NAME"

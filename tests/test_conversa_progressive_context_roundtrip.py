@@ -52,13 +52,13 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
     )
 
     second_reply_lower = second_reply.lower()
-    assert "rol en la empresa" in second_reply_lower
+    assert "empresa o marca" in second_reply_lower
 
     context = conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
     assert isinstance(context, dict)
     fsm_state2 = context.get("fsm_state", {})
     assert fsm_state2.get("phase") == "FICHA_PYME_INICIAL"
-    assert fsm_state2.get("profile_step") == "ASK_CONTACT_ROLE"
+    assert fsm_state2.get("profile_step") == "ASK_COMPANY_NAME"
     assert context.get("has_taxonomy") is False
     
     profile_data2 = fsm_state2.get("profile_data", {})
@@ -92,10 +92,10 @@ def test_conversa_cli_mode_persists_context_across_module_reloads(tmp_path: Path
             use_persistent_state=True,
         )
 
-        assert "rol en la empresa" in second_reply.lower()
+        assert "empresa o marca" in second_reply.lower()
         session_id = second_module._session_id(tenant_id, user_id)
         ctx = second_module._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
-        assert ctx.get("fsm_state", {}).get("profile_step") == "ASK_CONTACT_ROLE"
+        assert ctx.get("fsm_state", {}).get("profile_step") == "ASK_COMPANY_NAME"
     finally:
         if previous is None:
             os.environ.pop("PYMIA_CONVERSA_STATE_BASE_DIR", None)
