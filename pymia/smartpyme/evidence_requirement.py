@@ -25,6 +25,7 @@ class EvidenceRequirement:
     telegram_message: str
     enables_classification: str | None = None
     source_tank: str | None = None
+    formula_id: str | None = None
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
@@ -46,6 +47,7 @@ def create_evidence_requirement(
     telegram_message: str,
     enables_classification: str | None = None,
     source_tank: str | None = None,
+    formula_id: str | None = None,
 ) -> EvidenceRequirement:
     """Create a validated evidence requirement contract.
 
@@ -86,6 +88,7 @@ def create_evidence_requirement(
         telegram_message=telegram_message,
         enables_classification=enables_classification,
         source_tank=source_tank,
+        formula_id=formula_id,
     )
 
 

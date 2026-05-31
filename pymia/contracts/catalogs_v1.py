@@ -42,6 +42,12 @@ class FormulaCatalogEntryV1(BaseModel):
         "CALCULABLE_CON_SUPUESTOS",
         "NO_CALCULABLE_POR_EVIDENCIA_INSUFICIENTE",
     ]
+    # Campos opcionales presentes en el catálogo real
+    canonical_formula_id: str | None = None
+    family_id: str | None = None
+    priority_mvp: Literal["alta", "media", "baja"] | None = None
+    priority_robustez: Literal["alta", "media", "baja"] | None = None
+    interpretation: str | None = None
 
 
 class FormulaCatalogV1(BaseModel):

@@ -10,7 +10,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from pymia.services.catalog_loader_v1 import get_candidate_formula_ids_by_pathology_codes
+from pymia.services.catalog_loader_v1 import get_candidate_formula_ids_by_pathology_codes, load_formula_catalog_v1
+from pymia.contracts.catalogs_v1 import FormulaCatalogV1
+from pymia.smartpyme.evidence_requirement import EvidenceRequirement, create_evidence_requirement
 
 
 class HypothesisStatus(str, Enum):
@@ -192,6 +194,95 @@ def update_hypothesis_status(
     return replace(hypothesis, status=new_status, closed_at=closed_at)
 
 
+def derive_evidence_requirements_from_formulas(
+    hypothesis: OperationalHypothesis,
+    *,
+    tenant_id: str,
+    intake_id: str,
+    formula_catalog: FormulaCatalogV1 | None = None,
+) -> list[EvidenceRequirement]:
+    """Derive EvidenceRequirement objects from the hypothesis candidate_formula_ids.
+
+    For each formula in candidate_formula_ids, reads required_evidence from the
+    catalog and creates one EvidenceRequirement per unique evidence_type.
+
+    Rules:
+    - Uses the injected formula_catalog when provided (for tests).
+    - Deduplicates by evidence_type: first formula encountered wins.
+    - blocks_analysis=True when formula.calculation_state == "CALCULABLE".
+    - priority derived from priority_robustez (alta→1, media→2, else→3).
+    - Does NOT execute formulas.
+    - Does NOT persist anything.
+    - Does NOT modify the hypothesis.
+    """
+    if not isinstance(hypothesis, OperationalHypothesis):
+        raise ValueError("hypothesis must be an OperationalHypothesis")
+    if not isinstance(tenant_id, str) or not tenant_id.strip():
+        raise ValueError("tenant_id must be a non-empty string")
+    if not isinstance(intake_id, str) or not intake_id.strip():
+        raise ValueError("intake_id must be a non-empty string")
+
+    if not hypothesis.candidate_formula_ids:
+        return []
+
+    catalog = formula_catalog if formula_catalog is not None else load_formula_catalog_v1()
+
+    # Build lookup: formula_id -> entry
+    formula_by_id = {f.formula_id: f for f in catalog.formulas}
+
+    _PRIORITY_MAP = {"alta": 1, "media": 2}
+
+    seen_evidence_types: dict[str, str] = {}  # evidence_type -> formula_id that claimed it
+    requirements: list[EvidenceRequirement] = []
+
+    for formula_id in hypothesis.candidate_formula_ids:
+        formula = formula_by_id.get(formula_id)
+        if formula is None:
+            continue
+
+        priority_raw = getattr(formula, "priority_robustez", None) or "media"
+        priority = _PRIORITY_MAP.get(str(priority_raw), 3)
+        blocks = formula.calculation_state == "CALCULABLE"
+
+        for evidence_type in formula.required_evidence:
+            evidence_type = evidence_type.strip()
+            if not evidence_type:
+                continue
+            if evidence_type in seen_evidence_types:
+                # Deduplication: first formula wins
+                continue
+
+            seen_evidence_types[evidence_type] = formula_id
+            req_id = f"{intake_id}_catreq_{formula_id}_{evidence_type[:30]}"
+
+            requirements.append(
+                create_evidence_requirement(
+                    requirement_id=req_id,
+                    tenant_id=tenant_id,
+                    intake_id=intake_id,
+                    hypothesis_id=hypothesis.hypothesis_id,
+                    formula_id=formula_id,
+                    evidence_type=evidence_type,
+                    description=(
+                        f"Requerimiento para fórmula '{formula.name}' "
+                        f"(patología {formula.pathology_code})"
+                    ),
+                    required_fields=[],
+                    reason=(
+                        f"Necesario para contrastar hipótesis '{hypothesis.formulation[:60]}' "
+                        f"mediante fórmula {formula_id}"
+                    ),
+                    blocks_analysis=blocks,
+                    priority=priority,
+                    telegram_message=(
+                        f"Para analizar tu caso necesito: {evidence_type.replace('_', ' ')}"
+                    ),
+                )
+            )
+
+    return requirements
+
+
 __all__ = [
     "HypothesisStatus",
     "OperationalHypothesis",
@@ -199,4 +290,5 @@ __all__ = [
     "derive_candidate_pathology_codes",
     "build_operational_hypotheses_for_intake",
     "update_hypothesis_status",
+    "derive_evidence_requirements_from_formulas",
 ]
