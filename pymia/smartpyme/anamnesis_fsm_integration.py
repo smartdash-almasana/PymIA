@@ -34,12 +34,14 @@ from pymia.smartpyme.conversation_contract import (
     create_conversation_contract,
 )
 from pymia.smartpyme.evidence_requirement import EvidenceRequirement
+from pymia.smartpyme.interrogation import StructuredSelectors
 from pymia.smartpyme.operational_hypothesis import OperationalHypothesis
 from pymia.smartpyme.taxonomy import BusinessTaxonomySnapshot
 
 __all__ = [
     "AnamnesisTurnInput",
     "AnamnesisTurnOutput",
+    "build_structured_selectors_from_profile_data",
     "run_anamnesis_turn",
 ]
 
@@ -115,6 +117,129 @@ class AnamnesisTurnOutput:
     has_hypotheses: bool
     has_evidence_requests: bool
     readiness_status: str | None = None
+
+
+def build_structured_selectors_from_profile_data(profile_data: dict[str, Any]) -> StructuredSelectors:
+    """Traduce profile_data de Ficha PyME a StructuredSelectors de forma pura y determinística."""
+    profile = profile_data if isinstance(profile_data, dict) else {}
+    business_taxonomy = profile.get("business_taxonomy") if isinstance(profile.get("business_taxonomy"), dict) else {}
+    current_tools = profile.get("current_tools") if isinstance(profile.get("current_tools"), dict) else {}
+    company_profile = profile.get("company_profile") if isinstance(profile.get("company_profile"), dict) else {}
+    business_model = profile.get("business_model") if isinstance(profile.get("business_model"), dict) else {}
+    digital_presence = profile.get("digital_presence") if isinstance(profile.get("digital_presence"), dict) else {}
+    evidence = profile.get("evidence") if isinstance(profile.get("evidence"), dict) else {}
+
+    activity_type = str(business_taxonomy.get("activity_type") or "").strip()
+    primary_information_system = str(current_tools.get("primary_information_system") or "").strip()
+    team_size_range = str(company_profile.get("team_size_range") or "").strip()
+
+    raw_sales_channels = business_model.get("sales_channels")
+    sales_channels = [str(x).strip().lower() for x in raw_sales_channels if str(x).strip()] if isinstance(raw_sales_channels, list) else []
+
+    raw_presence_channels = digital_presence.get("presence_channels")
+    presence_channels = [str(x).strip().lower() for x in raw_presence_channels if str(x).strip()] if isinstance(raw_presence_channels, list) else []
+
+    raw_available = evidence.get("available")
+    available_evidence = [str(x).strip().lower() for x in raw_available if str(x).strip()] if isinstance(raw_available, list) else []
+
+    operation_type_map = {
+        "manufacturing": "Produzco",
+        "commerce_products": "Revendo",
+        "resale_distribution": "Distribuyo",
+        "services": "Servicios",
+        "transport_logistics": "Servicios",
+        "food_gastronomy": "Produzco",
+        "agro_plants": "Produzco",
+        "other_mixed": "Mixto",
+    }
+    operation_type = operation_type_map.get(activity_type, "Mixto")
+
+    tools_map = {
+        "spreadsheet": "Excel",
+        "erp": "Sistema",
+        "manual_informal": "Cuaderno",
+        "payments_banks": "Varios",
+        "accountant": "Varios",
+        "mixed_tools": "Varios",
+    }
+    tools_used = tools_map.get(primary_information_system)
+
+    employee_map = {
+        "solo_owner": "1",
+        "team_2_5": "2 a 5",
+        "team_6_15": "6 a 15",
+        "team_16_50": "16 a 50",
+        "team_50_plus": "Más de 50",
+    }
+    employee_range = employee_map.get(team_size_range)
+
+    sales_channel = None
+    if len(sales_channels) > 1:
+        sales_channel = "Mixto"
+    elif sales_channels:
+        channel = sales_channels[0]
+        if "wholesale" in channel:
+            sales_channel = "Mayorista"
+        elif "physical_store" in channel:
+            sales_channel = "Local"
+        elif "marketplace" in channel:
+            sales_channel = "Marketplace"
+        elif "ecommerce" in channel or "web" in channel or "own_website" in channel:
+            sales_channel = "Ecommerce"
+        elif channel in {"social", "social_media", "instagram", "whatsapp"} or "instagram" in channel:
+            sales_channel = "Instagram / WhatsApp"
+
+    marketplace_presence = None
+    marketplace_tokens = {"marketplace", "mercado_libre", "mercado libre"}
+    marketplace_found = any(
+        any(token in value for token in marketplace_tokens)
+        for value in sales_channels + presence_channels
+    )
+    has_any_market_data = bool(sales_channels or presence_channels)
+    if marketplace_found:
+        marketplace_presence = "Sí"
+    elif has_any_market_data:
+        marketplace_presence = "No"
+
+    has_excel = any(
+        token in available_evidence
+        for token in ("sales_records", "cost_records", "price_list", "mixed_excel", "spreadsheet")
+    )
+    has_pdf = any(token in available_evidence for token in ("purchase_invoices", "pdf", "invoices"))
+    has_captures = any(token in available_evidence for token in ("screenshots", "images"))
+    has_no_idea = any(token in available_evidence for token in ("no_idea", "unknown"))
+
+    evidence_available = None
+    if has_excel:
+        evidence_available = "Excel"
+    elif has_pdf:
+        evidence_available = "PDF"
+    elif has_captures:
+        evidence_available = "Capturas"
+    elif has_no_idea:
+        evidence_available = "NoSe"
+
+    stock_mode = None
+    if activity_type in {
+        "commerce_products",
+        "resale_distribution",
+        "manufacturing",
+        "food_gastronomy",
+        "agro_plants",
+    }:
+        stock_mode = "Informal"
+    elif activity_type in {"services", "transport_logistics"}:
+        stock_mode = "No"
+
+    return StructuredSelectors(
+        sales_channel=sales_channel,
+        operation_type=operation_type,
+        stock_mode=stock_mode,
+        tools_used=tools_used,
+        evidence_available=evidence_available,
+        employee_range=employee_range,
+        marketplace_presence=marketplace_presence,
+    )
 
 
 def _reconstruct_state_from_context(
