@@ -31,6 +31,10 @@ from pymia.smartpyme.interrogation import (
     run_interrogation,
     STATUS_BLOCKED_INSUFFICIENT_CONTEXT,
 )
+from pymia.smartpyme.operational_hypothesis import (
+    OperationalHypothesis,
+    build_operational_hypotheses_for_intake,
+)
 from pymia.smartpyme.tank_selection import (
     TankSelectionResult,
     EvidenceRequest,
@@ -102,6 +106,7 @@ class IntakeEvidenceRequest:
     enables_classification: Optional[str]
     source_tank: str
     status: str
+    hypothesis_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -131,6 +136,7 @@ class IntakeRecord:
     warnings: List[str]
     audit_notes: List[str]
     created_at: str
+    hypotheses: List[OperationalHypothesis] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -146,6 +152,7 @@ class IntakeRecord:
             "warnings": self.warnings,
             "audit_notes": self.audit_notes,
             "created_at": self.created_at,
+            "hypotheses": [h.to_dict() for h in self.hypotheses],
         }
 
 
@@ -259,10 +266,22 @@ def create_intake_record(
         for i, er in enumerate(tsr.evidence_requests)
     ]
 
-    # 4. Estado del intake
+    # 4. Hipótesis operacionales abiertas para contraste posterior
+    hypotheses = build_operational_hypotheses_for_intake(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        candidate_symptoms=ir.candidate_symptoms,
+        candidate_domains=ir.candidate_domains,
+        required_evidence=[req.evidence_type for req in intake_evidence],
+    )
+    hypothesis_id = hypotheses[0].hypothesis_id if hypotheses else None
+    for request in intake_evidence:
+        request.hypothesis_id = hypothesis_id
+
+    # 5. Estado del intake
     intake_state = _resolve_intake_state(ir, tsr)
 
-    # 5. Audit notes
+    # 6. Audit notes
     audit: List[str] = [
         f"intake_id={intake_id}",
         f"tenant_id={tenant_id}",
@@ -271,9 +290,10 @@ def create_intake_record(
         f"tank_selection.suggested_next_state={tsr.suggested_next_state}",
         f"intake_state={intake_state}",
         f"evidence_requests_count={len(intake_evidence)}",
+        f"hypotheses_count={len(hypotheses)}",
     ]
 
-    # 6. Selectores como dict
+    # 7. Selectores como dict
     selectors_dict: Dict[str, Any] = (
         structured_selectors.to_dict()
         if structured_selectors is not None
@@ -293,6 +313,7 @@ def create_intake_record(
         warnings=list(tsr.warnings),
         audit_notes=audit,
         created_at=_now_iso(),
+        hypotheses=hypotheses,
     )
 
 

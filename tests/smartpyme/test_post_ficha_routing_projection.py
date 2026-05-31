@@ -58,6 +58,7 @@ def test_post_ficha_routing_created_when_profile_completes() -> None:
     assert "suggested_next_state" in routing
     assert "candidate_symptoms" in routing
     assert "evidence_requests" in routing
+    assert "hypotheses" in routing
 
 
 def test_post_ficha_routing_projection_is_lightweight() -> None:
@@ -73,6 +74,31 @@ def test_post_ficha_routing_projection_is_lightweight() -> None:
         "rejected_tanks",
     }
     assert not any(key in routing for key in forbidden_keys)
+
+
+def test_post_ficha_routing_hypotheses_projection_is_lightweight() -> None:
+    context = _complete_initial_profile("T_POSTFICHA_2B", "S_POSTFICHA_2B")
+    routing = context["post_ficha_routing"]
+    assert routing["hypotheses"]
+    for hypothesis in routing["hypotheses"]:
+        assert set(hypothesis) == {
+            "hypothesis_id",
+            "formulation",
+            "domain",
+            "status",
+        }
+
+
+def test_post_ficha_routing_evidence_requests_link_to_hypothesis() -> None:
+    context = _complete_initial_profile("T_POSTFICHA_2C", "S_POSTFICHA_2C")
+    routing = context["post_ficha_routing"]
+    hypothesis_ids = {h["hypothesis_id"] for h in routing["hypotheses"]}
+    assert hypothesis_ids
+    assert routing["evidence_requests"]
+    assert all(
+        request.get("hypothesis_id") in hypothesis_ids
+        for request in routing["evidence_requests"]
+    )
 
 
 def test_post_ficha_routing_is_idempotent() -> None:

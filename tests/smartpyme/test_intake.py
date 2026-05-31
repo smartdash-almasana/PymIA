@@ -221,6 +221,7 @@ class TestSerialization:
             "warnings",
             "audit_notes",
             "created_at",
+            "hypotheses",
         }
         assert set(d.keys()) == expected_keys
 
@@ -236,6 +237,15 @@ class TestSerialization:
         assert "evidence_type" in ev_dict
         assert "status" in ev_dict
         assert ev_dict["status"] == EVIDENCE_STATUS_REQUESTED
+
+    def test_to_dict_serializa_hypotheses(self):
+        record = create_intake_record(
+            tenant_id="tenant_07b",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
+        )
+        hypotheses = record.to_dict()["hypotheses"]
+        assert hypotheses
+        assert hypotheses[0]["intake_id"] == record.intake_id
 
 
 # ---------------------------------------------------------------------------
@@ -309,6 +319,26 @@ class TestIntakeRecordIntegrity:
         assert isinstance(r.tank_selection_result, dict)
         assert "suggested_next_state" in r.tank_selection_result
         assert "selected_tanks" in r.tank_selection_result
+
+    def test_hypothesis_uses_formal_intake_id(self):
+        r = create_intake_record(
+            tenant_id="t1",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
+        )
+        assert r.hypotheses
+        assert all(h.intake_id == r.intake_id for h in r.hypotheses)
+
+    def test_evidence_requests_link_to_hypothesis(self):
+        r = create_intake_record(
+            tenant_id="t1",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
+        )
+        assert r.hypotheses
+        assert r.evidence_requests
+        assert all(
+            ev.hypothesis_id == r.hypotheses[0].hypothesis_id
+            for ev in r.evidence_requests
+        )
 
 
 # ---------------------------------------------------------------------------

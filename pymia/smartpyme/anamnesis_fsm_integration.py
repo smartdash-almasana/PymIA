@@ -524,8 +524,22 @@ def _build_post_ficha_routing_projection(
                 "description": req.description,
                 "reason": req.reason,
                 "status": req.status,
+                "hypothesis_id": req.hypothesis_id,
             }
             for req in intake_record.evidence_requests
+        ],
+        "hypotheses": [
+            {
+                "hypothesis_id": hypothesis.hypothesis_id,
+                "formulation": hypothesis.formulation,
+                "domain": hypothesis.domain,
+                "status": (
+                    hypothesis.status.value
+                    if hasattr(hypothesis.status, "value")
+                    else hypothesis.status
+                ),
+            }
+            for hypothesis in intake_record.hypotheses
         ],
     }
 

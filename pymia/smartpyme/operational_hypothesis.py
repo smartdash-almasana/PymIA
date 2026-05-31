@@ -76,6 +76,56 @@ def create_hypothesis(
     )
 
 
+def build_operational_hypotheses_for_intake(
+    *,
+    tenant_id: str,
+    intake_id: str,
+    candidate_symptoms: list[str],
+    candidate_domains: list[str],
+    required_evidence: list[str],
+) -> list[OperationalHypothesis]:
+    """Build lightweight, contrastable hypotheses for a formal intake.
+
+    This is intentionally conservative: one aggregate hypothesis anchors the
+    current symptoms to the formal intake without diagnosing or running formulas.
+    """
+    symptoms = [
+        symptom.strip()
+        for symptom in candidate_symptoms
+        if isinstance(symptom, str) and symptom.strip() and symptom.strip() != "DESCONOCIDO"
+    ]
+    if not symptoms:
+        return []
+
+    domains = [
+        domain.strip()
+        for domain in candidate_domains
+        if isinstance(domain, str) and domain.strip() and domain.strip() != "DESCONOCIDO"
+    ]
+    domain = domains[0] if domains else "desconocido"
+    evidence = list(dict.fromkeys(
+        item.strip()
+        for item in required_evidence
+        if isinstance(item, str) and item.strip()
+    ))
+    formulation = (
+        "Hipótesis operativa abierta a contrastar "
+        f"en {domain}: {', '.join(symptoms)}"
+    )
+    return [
+        create_hypothesis(
+            hypothesis_id=f"{intake_id}_hyp_000",
+            tenant_id=tenant_id,
+            intake_id=intake_id,
+            formulation=formulation,
+            source="intake_interrogation",
+            domain=domain,
+            related_symptoms=symptoms,
+            required_evidence=evidence,
+        )
+    ]
+
+
 def update_hypothesis_status(
     hypothesis: OperationalHypothesis,
     new_status: HypothesisStatus | str,
@@ -109,5 +159,6 @@ __all__ = [
     "HypothesisStatus",
     "OperationalHypothesis",
     "create_hypothesis",
+    "build_operational_hypotheses_for_intake",
     "update_hypothesis_status",
 ]

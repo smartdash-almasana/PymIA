@@ -16,6 +16,7 @@ def _base_context() -> dict:
                     "description": "Ventas",
                     "reason": "Contrastar",
                     "status": "REQUESTED",
+                    "hypothesis_id": "hyp_1",
                 },
                 {
                     "request_id": "req_2",
@@ -23,6 +24,7 @@ def _base_context() -> dict:
                     "description": "Lista",
                     "reason": "Contrastar",
                     "status": "REQUESTED",
+                    "hypothesis_id": "hyp_1",
                 },
             ],
         }
@@ -83,6 +85,7 @@ def test_updates_request_and_calculates_readiness_with_idempotency() -> None:
     )
     assert len(out1["evidence_records"]) == 1
     assert out1["post_ficha_readiness"]["readiness_state"] == "NEEDS_EVIDENCE"
+    assert out1["post_ficha_routing"]["evidence_requests"][0]["hypothesis_id"] == "hyp_1"
 
     out2, _ = apply_post_ficha_evidence_turn(
         tenant_id="t1",
