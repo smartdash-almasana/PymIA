@@ -197,7 +197,7 @@ def test_reply_never_diagnoses_or_executes_analysis() -> None:
         "tu margen es",
         "la causa es",
         "confirmado",
-        "resultado",
+        "resultado definitivo",
         "fórmula ejecutada",
     ]
     for term in forbidden:

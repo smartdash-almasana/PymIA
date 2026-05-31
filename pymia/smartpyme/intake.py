@@ -34,6 +34,7 @@ from pymia.smartpyme.interrogation import (
 from pymia.smartpyme.operational_hypothesis import (
     OperationalHypothesis,
     build_operational_hypotheses_for_intake,
+    derive_evidence_requirements_from_formulas,
 )
 from pymia.smartpyme.tank_selection import (
     TankSelectionResult,
@@ -107,6 +108,7 @@ class IntakeEvidenceRequest:
     source_tank: str
     status: str
     hypothesis_id: Optional[str] = None
+    formula_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -277,6 +279,49 @@ def create_intake_record(
     hypothesis_id = hypotheses[0].hypothesis_id if hypotheses else None
     for request in intake_evidence:
         request.hypothesis_id = hypothesis_id
+
+    # 4b. Enriquecer/completar evidence_requests con requerimientos derivados del catálogo
+    #     Para cada hipótesis: derivar EvidenceRequirement por fórmula/control candidato.
+    #     Deduplicación por evidence_type: si ya existe un IntakeEvidenceRequest con ese tipo,
+    #     enriquecer required_fields y formula_id; si no existe, agregar uno nuevo.
+    existing_types: Dict[str, int] = {
+        req.evidence_type: idx for idx, req in enumerate(intake_evidence)
+    }
+    catalog_req_index = len(intake_evidence)  # para IDs consecutivos
+
+    for hyp in hypotheses:
+        catalog_reqs = derive_evidence_requirements_from_formulas(
+            hyp,
+            tenant_id=tenant_id,
+            intake_id=intake_id,
+        )
+        for cat_req in catalog_reqs:
+            if cat_req.evidence_type in existing_types:
+                # Enriquecer el existente con formula_id y required_fields del catálogo
+                idx = existing_types[cat_req.evidence_type]
+                existing = intake_evidence[idx]
+                if existing.formula_id is None:
+                    existing.formula_id = cat_req.formula_id
+                if not existing.required_fields and cat_req.required_fields:
+                    existing.required_fields = list(cat_req.required_fields)
+            else:
+                # Nuevo tipo documental derivado del catálogo
+                new_req = IntakeEvidenceRequest(
+                    request_id=f"{intake_id}_ev_{catalog_req_index:03d}",
+                    evidence_type=cat_req.evidence_type,
+                    description=cat_req.description,
+                    required_fields=list(cat_req.required_fields),
+                    reason=cat_req.reason,
+                    blocks_analysis=cat_req.blocks_analysis,
+                    enables_classification=None,
+                    source_tank="catalog_derived",
+                    status=EVIDENCE_STATUS_REQUESTED,
+                    hypothesis_id=hyp.hypothesis_id,
+                    formula_id=cat_req.formula_id,
+                )
+                intake_evidence.append(new_req)
+                existing_types[cat_req.evidence_type] = catalog_req_index
+                catalog_req_index += 1
 
     # 5. Estado del intake
     intake_state = _resolve_intake_state(ir, tsr)
