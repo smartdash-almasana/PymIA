@@ -16,6 +16,7 @@ from pymia.smartpyme.evidence_gate import (
     SUGGESTED_READY_FOR_ANALYSIS,
     evaluate_evidence_sufficiency,
 )
+from pymia.smartpyme.readiness import evaluate_analysis_readiness
 from pymia.smartpyme.intake import (
     EVIDENCE_STATUS_RECEIVED,
     EVIDENCE_STATUS_REQUESTED,
@@ -275,6 +276,20 @@ def apply_post_ficha_evidence_turn(
         "missing_evidence_types": [x for x in missing_types if x],
         "ready_for_analysis": ready_for_analysis,
     }
+
+    # Construir analysis_readiness consumible por runtime_bridge.prepare_runtime_execution
+    # Esto NO ejecuta runtime ni despacha microservicios; solo produce el candidato.
+    intake_record_for_readiness = {
+        "tenant_id": tenant_id,
+        "intake_id": intake_id,
+        "intake_state": "READY_FOR_ANALYSIS" if ready_for_analysis else "NEEDS_EVIDENCE",
+        "evidence_requests": updated_requests,
+    }
+    readiness_result = evaluate_analysis_readiness(
+        intake_record_for_readiness,
+        sufficiency,
+    )
+    out_context["analysis_readiness"] = readiness_result.to_dict()
 
     if ready_for_analysis:
         reply = (

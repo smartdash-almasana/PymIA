@@ -17,6 +17,7 @@ def _base_context() -> dict:
                     "reason": "Contrastar",
                     "status": "REQUESTED",
                     "hypothesis_id": "hyp_1",
+                    "enables_classification": "excel_diagnostic",
                 },
                 {
                     "request_id": "req_2",
@@ -461,7 +462,9 @@ def test_post_ficha_evidence_gate_ast_rules():
         "excel_evidence",
         "ClinicalConversationalPort",
         "formula",
-        "diagnostico"
+        "diagnostico",
+        "prepare_runtime_execution",
+        "RuntimeExecutionCandidate"
     }
     
     for node in ast.walk(tree):
@@ -473,3 +476,54 @@ def test_post_ficha_evidence_gate_ast_rules():
                 assert not any(forbidden in node.module for forbidden in forbidden_imports), f"Forbidden import from found: {node.module}"
             for alias in node.names:
                 assert not any(forbidden in alias.name for forbidden in forbidden_imports), f"Forbidden imported name found: {alias.name}"
+
+
+# --- Proyección de analysis_readiness ---
+
+from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
+
+def test_analysis_readiness_is_projected_and_not_ready_if_missing_evidence():
+    ctx = _base_context()
+    # base context has 2 requested evidences, so 1 won't be enough
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    assert "analysis_readiness" in out
+    ar = out["analysis_readiness"]
+    assert "tenant_id" in ar
+    assert "intake_id" in ar
+    assert "status" in ar
+    assert "can_execute" in ar
+    assert "runtime_classification" in ar
+    assert "matched_evidence_ids" in ar
+    assert "warnings" in ar
+    assert "audit_notes" in ar
+    assert ar["status"] == "NEEDS_EVIDENCE"
+    assert ar["can_execute"] is False
+
+
+def test_analysis_readiness_is_projected_and_ready_if_all_satisfied():
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    ar = out2["analysis_readiness"]
+    assert ar["status"] == "READY_FOR_ANALYSIS"
+    assert ar["can_execute"] is True
+    # 5. Verify it is consumable by prepare_runtime_execution
+    candidate = prepare_runtime_execution(ar)
+    assert candidate.intake_id == "intake_test_001"
+    assert candidate.tenant_id == "t1"
+    assert candidate.can_dispatch is True
