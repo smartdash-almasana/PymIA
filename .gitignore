@@ -11,5 +11,6 @@ venv/
 factory/control/
 Pymia-memoria/
 .runtime/
+conversa-engine/.conversation_state/
 
 docs/mermaid/
