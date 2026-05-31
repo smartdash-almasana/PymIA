@@ -16,7 +16,7 @@ $env:PYTHONIOENCODING = "utf-8"
 
 $message = ($MessageParts -join " ").Trim()
 if ([string]::IsNullOrWhiteSpace($message)) {
-    throw "Debes pasar un mensaje. Ejemplo: .\\scripts\\run_conversa_local.ps1 `"vendo mucho pero no sé si gano plata`""
+    throw "Debes pasar un mensaje. Ejemplo: .\\scripts\\run_conversa_local.ps1 `"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY`""
 }
 
 python conversa-engine/main.py "$message"

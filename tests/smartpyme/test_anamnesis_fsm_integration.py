@@ -14,6 +14,7 @@ import json
 import pytest
 
 from pymia.smartpyme.anamnesis_fsm import FSMPhase
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 from pymia.smartpyme.anamnesis_fsm_integration import (
     AnamnesisTurnInput,
     AnamnesisTurnOutput,
@@ -76,7 +77,7 @@ def test_primer_turno_inicia_ficha_obligatoria_y_conserva_mensaje():
         AnamnesisTurnInput(
             tenant_id="T001",
             session_id="S001",
-            message_text="vendo mucho pero no se si gano plata",
+            message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             previous_progressive_context=None,
         )
     )
@@ -84,7 +85,7 @@ def test_primer_turno_inicia_ficha_obligatoria_y_conserva_mensaje():
     assert output.phase == FSMPhase.FICHA_PYME_INICIAL.value
     assert "ficha" in output.reply_text.lower()
     assert output.updated_progressive_context["fsm_state"]["profile_step"] == "ASK_CONTACT_NAME"
-    assert output.updated_progressive_context["fsm_state"]["profile_data"]["raw_first_message"] == "vendo mucho pero no se si gano plata"
+    assert output.updated_progressive_context["fsm_state"]["profile_data"]["raw_first_message"] == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     assert output.updated_progressive_context["has_taxonomy"] is False
     assert output.updated_progressive_context["has_hypotheses"] is False
     assert output.updated_progressive_context["has_evidence_requests"] is False
@@ -152,7 +153,7 @@ def test_hipotesis_y_evidencia_despues_de_taxonomia_y_sintoma():
         AnamnesisTurnInput("T006", "S006", "fabrico ropa y vendo por mayor", ready_context)
     )
     output2 = run_anamnesis_turn(
-        AnamnesisTurnInput("T006", "S006", "el margen es bajo, no gano plata", output1.updated_progressive_context)
+        AnamnesisTurnInput("T006", "S006", "el margen es bajo", output1.updated_progressive_context)
     )
 
     assert output2.has_hypotheses is True
@@ -254,7 +255,7 @@ def test_no_pide_excel_en_primer_turno():
 
 def test_no_diagnostica_en_primer_turno():
     output = run_anamnesis_turn(
-        AnamnesisTurnInput("T017", "S017", "no se si gano plata", None)
+        AnamnesisTurnInput("T017", "S017", RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, None)
     )
     forbidden = ["tu problema", "diagnóstico", "margen bajo"]
     text = output.reply_text.lower()

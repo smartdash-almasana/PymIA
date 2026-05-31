@@ -74,7 +74,7 @@ Debe conservar:
 Ejemplos de entrada semántica:
 
 ```text
-vendo pero no sé si gano
+vendo pero RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 creo que tengo mucho stock parado
 me va bien pero quiero entender mejor el negocio
 pierdo tiempo haciendo todo a mano

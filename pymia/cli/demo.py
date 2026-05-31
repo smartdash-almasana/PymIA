@@ -2,7 +2,7 @@
 CLI Demo — PymIA Laboratorio Inicial.
 
 Caso canónico offline/determinístico:
-    python -m pymia.cli.demo "vendo mucho pero no sé si gano plata"
+    python -m pymia.cli.demo RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 Sin LLM. Sin env vars. Sin red.
 """
@@ -20,6 +20,7 @@ def _configure_stdout() -> None:
 
 from pymia.pipeline.admission.v1.pipeline import AdmissionPipelineV1
 from pymia.pipeline.admission.v1.response_formatter import AdmissionResponseFormatterV1
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 _SEPARATOR = "-" * 60
@@ -105,7 +106,7 @@ def main() -> None:
         print(
             "\nUso: python -m pymia.cli.demo \"<relato del dueño>\"\n"
             "\nEjemplo:\n"
-            "  python -m pymia.cli.demo \"vendo mucho pero no sé si gano plata\"\n"
+            "  python -m pymia.cli.demo \"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY\"\n"
         )
         sys.exit(1)
 

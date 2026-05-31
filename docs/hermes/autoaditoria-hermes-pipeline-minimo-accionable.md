@@ -684,7 +684,7 @@ python conversa-engine/main.py --execute
 => stderr: COMANDO_NO_IMPLEMENTADO: --execute
 => exit_code: 1
 
-python conversa-engine/main.py "vendo mucho pero no se si gano plata"
+python conversa-engine/main.py "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 => sigue funcionando como hoy.
 ```
 
@@ -1052,7 +1052,7 @@ No empezar por todas las áreas PyME.
 Elegir una sola familia clínica-operativa:
 
 ```text
-rentabilidad / margen / vendo pero no sé si gano
+rentabilidad / margen / vendo pero RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 ```
 
 Porque permite validar el circuito completo con pocas variables:

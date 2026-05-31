@@ -6,6 +6,7 @@ sea limpio: modo correcto, mensaje clínico presente, evidencia disponible,
 y ausencia total de conceptos de factoría/orchestration/jobs.
 """
 import pytest
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 from pymia.interfaces.conversational_port import (
     ClinicalConversationalPort,
@@ -47,7 +48,7 @@ def canonical_input() -> ConversationalInput:
     return ConversationalInput(
         tenant_id="tenant_test_001",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         previous_progressive_context=prev_ctx,
     )
 
@@ -276,7 +277,7 @@ def test_port_is_stateless(port: ClinicalConversationalPort):
     inp = ConversationalInput(
         tenant_id="tenant_test_005",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         previous_progressive_context=prev_ctx,
     )
     out1 = port.handle(inp)
@@ -319,13 +320,13 @@ def test_port_respects_tenant_isolation(port: ClinicalConversationalPort):
     out_a = port.handle(ConversationalInput(
         tenant_id="tenant_A",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         previous_progressive_context=prev_ctx_a,
     ))
     out_b = port.handle(ConversationalInput(
         tenant_id="tenant_B",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         previous_progressive_context=prev_ctx_b,
     ))
 

@@ -23,6 +23,7 @@ from pymia.telegram_bot_runtime import (
     send_message,
 )
 from pymia.telegram_runtime import SENTINEL
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 class TestDryRun:
@@ -30,7 +31,7 @@ class TestDryRun:
 
     def test_dry_run_contains_sentinel(self, capsys):
         """dry-run debe incluir SENTINEL en output."""
-        dry_run("no se si gano plata")
+        dry_run(RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
         captured = capsys.readouterr()
         assert SENTINEL in captured.out
         assert "[DRY-RUN]" in captured.out
@@ -49,7 +50,7 @@ class TestProcessMessage:
 
     def test_process_message_always_includes_sentinel(self):
         """process_message debe garantizar SENTINEL en toda respuesta."""
-        reply = process_message("no se si gano plata")
+        reply = process_message(RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
         assert SENTINEL in reply
 
     def test_process_message_empty_returns_blocked(self):
@@ -60,7 +61,7 @@ class TestProcessMessage:
 
     def test_process_message_profitability_requests_evidence(self):
         """Consulta de rentabilidad debe pedir evidencia."""
-        reply = process_message("no se si gano plata")
+        reply = process_message(RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
         assert "ventas del periodo" in reply
         assert "costos" in reply or "compras" in reply
         assert "gastos fijos" in reply

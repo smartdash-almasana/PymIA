@@ -774,9 +774,9 @@ Los 8 gates definidos en `SMARTPYME_KNOWLEDGE_TANKS_ARCHITECTURE.md`:
 - **enabled_classification:** `null`.
 - **safety_warning:** "No afirmar desfalco sin evidencia validada."
 
-### 16.2 Ejemplo 2 — "Vendo mucho pero no me queda nada"
+### 16.2 Ejemplo 2 — "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 
-- **raw_input:** "Vendo mucho pero no me queda nada."
+- **raw_input:** "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY."
 - **síntoma:** `MARGEN_DUDOSO`.
 - **patología previa:** `MARGIN_LEAKAGE_SUSPECTED`.
 - **hipótesis contrastable:** `margen_erosionado_por_comisiones`.
@@ -844,9 +844,9 @@ Los 8 gates definidos en `SMARTPYME_KNOWLEDGE_TANKS_ARCHITECTURE.md`:
 - **safety_warning:** "No concluir viabilidad del canal sin benchmark."
 - **gate activado:** `NO_SELECTOR_ONLY_ACTIVATION`.
 
-### 16.7 Ejemplo 7 — "No sé si gano con lo que produzco"
+### 16.7 Ejemplo 7 — "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY con lo que produzco"
 
-- **raw_input:** "No sé si gano con lo que produzco."
+- **raw_input:** "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY con lo que produzco."
 - **síntoma:** `COSTO_INCIERTO` + `MARGEN_DUDOSO`.
 - **patología previa:** `COST_UPDATE_LAG` / `MARGIN_LEAKAGE_SUSPECTED`.
 - **hipótesis contrastable:** `costo_reposicion_no_trasladado`.

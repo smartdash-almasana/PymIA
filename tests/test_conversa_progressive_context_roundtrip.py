@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import os
 from pathlib import Path
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def _load_conversa_main():
@@ -23,7 +24,7 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
     conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION.clear()
 
     first_reply = conversa_main.run_message(
-        "vendo mucho pero no se si gano plata",
+        RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_id=tenant_id,
         user_id=user_id,
     )
@@ -43,7 +44,7 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
     assert first_context.get("has_taxonomy") is False
     
     profile_data = fsm_state.get("profile_data", {})
-    assert profile_data.get("raw_first_message") == "vendo mucho pero no se si gano plata"
+    assert profile_data.get("raw_first_message") == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
     second_reply = conversa_main.run_message(
         "Juan Perez",
@@ -63,7 +64,7 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
     
     profile_data2 = fsm_state2.get("profile_data", {})
     assert profile_data2.get("contact", {}).get("full_name") == "Juan Perez"
-    assert profile_data2.get("raw_first_message") == "vendo mucho pero no se si gano plata"
+    assert profile_data2.get("raw_first_message") == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def test_conversa_cli_mode_persists_context_across_module_reloads(tmp_path: Path) -> None:
@@ -76,7 +77,7 @@ def test_conversa_cli_mode_persists_context_across_module_reloads(tmp_path: Path
         first_module = _load_conversa_main()
         first_module._PROGRESSIVE_CONTEXT_BY_SESSION.clear()
         first_reply = first_module.run_message(
-            "vendo mucho pero no se si gano plata",
+            RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             tenant_id=tenant_id,
             user_id=user_id,
             use_persistent_state=True,

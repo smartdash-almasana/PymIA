@@ -110,13 +110,13 @@ output = run_anamnesis_turn(input_data)
 # output.reply_text contiene "Contame qué te preocupa"
 ```
 
-### Caso 2: "vendo mucho pero no se si gano plata" → anamnesis/taxonomía
+### Caso 2: "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY" → anamnesis/taxonomía
 
 ```python
 input_data = AnamnesisTurnInput(
     tenant_id="T002",
     session_id="S002",
-    message_text="vendo mucho pero no se si gano plata",
+    message_text="RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
     previous_progressive_context=None,
 )
 output = run_anamnesis_turn(input_data)
@@ -182,7 +182,7 @@ output1 = run_anamnesis_turn(input1)
 input2 = AnamnesisTurnInput(
     tenant_id="T005",
     session_id="S005",
-    message_text="el margen es bajo, no gano plata",
+    message_text="RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
     previous_progressive_context=output1.updated_progressive_context,
 )
 output2 = run_anamnesis_turn(input2)

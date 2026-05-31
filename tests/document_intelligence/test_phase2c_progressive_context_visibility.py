@@ -3,6 +3,7 @@
 from pymia.document_intelligence import BusinessIdentity, TenantClinicalContext
 from pymia.interfaces.conversational_port import ClinicalConversationalPort, ConversationalInput
 from pymia.services.initial_laboratory_anamnesis_service import InitialLaboratoryAnamnesisService
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def _explicit_tenant_context() -> TenantClinicalContext:
@@ -20,7 +21,7 @@ def test_progressive_context_surfaces_in_result_when_tenant_context_is_none() ->
     result = service.process(
         tenant_id="tenant-p2c-none",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=None,
     )
     assert result is not None
@@ -33,7 +34,7 @@ def test_progressive_context_is_none_when_explicit_tenant_context_provided() -> 
     result = service.process(
         tenant_id="tenant-p2c-explicit",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=_explicit_tenant_context(),
     )
     assert result is not None
@@ -72,7 +73,7 @@ def test_progressive_context_carries_symptom_summary() -> None:
     result = service.process(
         tenant_id="tenant-p2c-symptom",
         channel="test",
-        text="vendo mucho pero no se si gano plata y tengo stock parado",
+        text=RAW_OWNER_CLAIM_STOCK_MISMATCH,
         tenant_context=None,
     )
     assert result is not None

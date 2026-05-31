@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -17,7 +18,7 @@ from symptom_pathology_catalog import (
 
 
 def main() -> None:
-    message = "vendo mucho pero no sé si gano plata"
+    message = RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     matches = match_symptoms_from_owner_message(message)
     assert matches, "Expected at least one catalog match"
 

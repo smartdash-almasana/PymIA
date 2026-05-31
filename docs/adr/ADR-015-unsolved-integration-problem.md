@@ -25,7 +25,7 @@ Este documento formula el problema de ingeniería subyacente, evidencia el colap
 Un dueño PyME se conecta por Telegram:
 
 1. Escribe `"hola"` → recibe menú inicial correcto.
-2. Escribe `"vendo mucho pero no sé si gano plata"` → recibe respuesta genérica de anamnesis.
+2. Escribe `"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"` → recibe respuesta genérica de anamnesis.
 3. Escribe `"fabrico ropa, compro tela, corto, coso, empaco y vendo por mayor y por Mercado Libre"` → recibe `"Gracias. Para seguir necesito confirmar cómo funciona tu negocio..."`.
 
 El dueño **acaba de describir su negocio completo**. Y el sistema le responde como si no hubiera escuchado. La conversación es robótica, sorda. El dueño abandona.

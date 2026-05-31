@@ -253,7 +253,7 @@ No debe interpretarse como implementación productiva de PymIA.
 Prueba directa opcional del stub, sin Hermes:
 
 ```bash
-echo '{"tenant_id":"sm2-vm-test","channel":"sandbox-cli","text":"vendo mucho pero no se si gano plata","previous_progressive_context":null}' \
+echo '{"tenant_id":"sm2-vm-test","channel":"sandbox-cli","text":"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY","previous_progressive_context":null}' \
   | python3 /tmp/pymia-sm2-vm/pymia-mcp-stub/server.py \
   > /tmp/pymia-sm2-vm/evidencias/SM2/stub_direct_CA01.txt 2>&1
 ```
@@ -327,7 +327,7 @@ o equivalente, invocar payload CA01:
 {
   "tenant_id": "sm2-vm-test",
   "channel": "sandbox-cli",
-  "text": "vendo mucho pero no se si gano plata",
+  "text": "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
   "previous_progressive_context": null
 }
 ```

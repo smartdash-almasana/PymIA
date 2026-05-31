@@ -80,11 +80,11 @@ Hola. Antes de revisar números necesito entender tu negocio.
 4. Tengo una pregunta específica
 ```
 
-### Caso 2: "vendo mucho pero no se si gano plata" → pregunta de anamnesis
+### Caso 2: "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY" → pregunta de anamnesis
 
 ```python
 state, message = process_message(
-    "vendo mucho pero no se si gano plata",
+    "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
     tenant_id="T002",
     previous_state=None
 )
@@ -113,7 +113,7 @@ state, message = process_message(
 ```python
 state1, _ = process_message("fabrico ropa y vendo por mayor", tenant_id="T005", previous_state=None)
 state2, message = process_message(
-    "vendo mucho pero no me queda ganancia, el margen es bajo",
+    "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
     tenant_id="T005",
     previous_state=state1
 )

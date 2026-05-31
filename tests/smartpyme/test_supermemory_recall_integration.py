@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pymia.smartpyme.supermemory_tenant_recall import TenantRecallResult
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 from pymia.smartpyme.supermemory_recall_integration import (
     RecallBeforeReplyInput,
     build_recall_augmented_message,
@@ -32,13 +33,13 @@ def test_run_recall_before_reply_no_client_is_noop():
     input_data = RecallBeforeReplyInput(
         tenant_id="T001",
         session_key="telegram:42",
-        user_message="no se si gano plata",
+        user_message=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         turn_index=1,
     )
 
     output = run_recall_before_reply(input_data, client=None)
 
-    assert output.augmented_message == "no se si gano plata"
+    assert output.augmented_message == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     assert output.recalled_memories_count == 0
     assert output.saved_summary is None
 
@@ -48,7 +49,7 @@ def test_run_recall_before_reply_recalls_same_tenant_and_saves_summary():
     input_data = RecallBeforeReplyInput(
         tenant_id="T001",
         session_key="telegram:42",
-        user_message="no se si gano plata",
+        user_message=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         turn_index=2,
         phase="ANAMNESIS_TAXONOMIA",
         recall_limit=3,
@@ -60,9 +61,9 @@ def test_run_recall_before_reply_recalls_same_tenant_and_saves_summary():
     assert "Contexto conversacional recuperado del mismo tenant" in output.augmented_message
     assert "El tenant fabrica ropa y vende por Mercado Libre." in output.augmented_message
     assert "Mensaje actual del dueño:" in output.augmented_message
-    assert "no se si gano plata" in output.augmented_message
+    assert RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY in output.augmented_message
     assert client.recall_calls == [
-        {"tenant_id": "T001", "query": "no se si gano plata", "limit": 3}
+        {"tenant_id": "T001", "query": RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, "limit": 3}
     ]
     assert len(client.save_calls) == 1
     saved = client.save_calls[0]
@@ -96,7 +97,7 @@ def test_build_safe_turn_summary_uses_safe_non_diagnostic_wording():
     input_data = RecallBeforeReplyInput(
         tenant_id="T001",
         session_key="S001",
-        user_message="vendo mucho pero no se si gano",
+        user_message=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         turn_index=5,
     )
 

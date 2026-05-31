@@ -108,7 +108,7 @@ def test_pipeline_handles_mixed_claim(pipeline: AdmissionPipelineV1):
     y que la priorización sea correcta.
     """
     pyme_id = uuid.uuid4()
-    claim = "vendo mucho pero no queda plata y además tengo stock clavado"
+    claim = "vendo mucho pero no queda plata y tengo stock clavado"
 
     artifact, _ = pipeline.run(pyme_id=pyme_id, claim=claim)
 

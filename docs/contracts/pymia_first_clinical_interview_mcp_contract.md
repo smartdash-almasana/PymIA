@@ -370,7 +370,7 @@ El sufijo `.v1` es parte del nombre y permite versionado sin romper contratos pr
 {
   "tenant_id": "tenant_pyme_001",
   "channel": "telegram",
-  "text": "vendo mucho pero no se si gano plata",
+  "text": "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
   "previous_progressive_context": null
 }
 ```
@@ -384,7 +384,7 @@ El sufijo `.v1` es parte del nombre y permite versionado sin romper contratos pr
   "anamnesis": {
     "tenant_id": "tenant_pyme_001",
     "canal": "telegram",
-    "frases_textuales": ["vendo mucho pero no se si gano plata"],
+    "frases_textuales": ["RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"],
     "dolores_detectados": [],
     "hipotesis_iniciales": [],
     "taxonomia_inicial": {
@@ -540,7 +540,7 @@ El sufijo `.v1` es parte del nombre y permite versionado sin romper contratos pr
 {
   "tenant_id": "tenant_pyme_001",
   "channel": "telegram",
-  "text": "vendo mucho pero no gano plata",
+  "text": "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
   "previous_progressive_context": {
     "tenant_id": "tenant_pyme_OTRO",
     "channel": "telegram",
@@ -659,7 +659,7 @@ def test_ca01_first_contact_returns_taxonomic_framing():
     request = {
         "tenant_id": "tenant_ca01",
         "channel": "test",
-        "text": "vendo mucho pero no se si gano plata",
+        "text": "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
         "previous_progressive_context": None,
     }
     # ACT
@@ -796,7 +796,7 @@ def test_ca06_tenant_isolation_violation_returns_error():
     request = {
         "tenant_id": "tenant_ca06",
         "channel": "test",
-        "text": "vendo mucho",
+        "text": RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         "previous_progressive_context": prev_ctx,
     }
     # ACT

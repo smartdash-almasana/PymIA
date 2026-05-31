@@ -43,7 +43,7 @@ Este documento fija los invariantes arquitectónicos para evitar la contaminaci�
 * todo boundary nuevo debe tener tests
 * tests deben verificar ausencia de contaminación
 * caso canónico obligatorio:
-  “vendo mucho pero no sé si gano plata”
+  “RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY”
 
 ## 6. ACCEPTANCE_CRITERIA
 

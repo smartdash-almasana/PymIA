@@ -9,6 +9,7 @@ Documento rector: docs/arquitectura/CONTRATO_PRIMER_ENCUENTRO_TAXONOMICO.md
 from __future__ import annotations
 
 import pytest
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 from pymia.services.initial_laboratory_anamnesis_service import (
     InitialLaboratoryAnamnesisService,
@@ -61,7 +62,7 @@ def test_first_contact_starts_with_taxonomic_funnel(service: InitialLaboratoryAn
 
     Valida: el estado conversacional es encuadre_taxonomico_inicial.
     """
-    result = _first_contact_result(service, "vendo mucho pero no sé si gano plata")
+    result = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
     assert result is not None
     assert result.anamnesis.estado_conversacional == ESTADO_ENCUADRE_TAXONOMICO
 
@@ -72,7 +73,7 @@ def test_first_contact_asks_type_of_organization_before_symptom(service: Initial
     Valida: el mensaje menciona tipos de organismos (comercio, fábrica, servicios, etc.)
     sin abrir hipótesis clínicas.
     """
-    result = _first_contact_result(service, "vendo mucho pero no sé si gano plata")
+    result = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
     assert result is not None
     msg = result.message.lower()
 
@@ -89,7 +90,7 @@ def test_first_contact_asks_operational_nature_after_general_category(service: I
     Valida: menciona al menos una de: fabrica, revende, distribuye, presta servicios,
     local, online, WhatsApp, Mercado Libre.
     """
-    result = _first_contact_result(service, "vendo mucho pero no sé si gano plata")
+    result = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
     assert result is not None
     msg = result.message.lower()
 
@@ -106,7 +107,7 @@ def test_first_contact_does_not_emit_margin_cash_or_stock_hypothesis(service: In
 
     Valida: ausencia de terminología diagnóstica prematura.
     """
-    result = _first_contact_result(service, "vendo mucho pero no sé si gano plata")
+    result = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
     assert result is not None
     msg = result.message.lower()
 
@@ -140,7 +141,7 @@ def test_first_contact_does_not_request_documents_first(service: InitialLaborato
     Valida: documentos_pedidos vacío; el mensaje no pide Excel, CSV, PDF,
     planillas ni archivos.
     """
-    result = _first_contact_result(service, "vendo mucho pero no sé si gano plata")
+    result = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
     assert result is not None
 
     # No documents should be listed in the anamnesis
@@ -197,7 +198,7 @@ def test_taxonomic_intake_updates_progressive_context_identity_phase(service: In
     Valida: el progressive_context existe y tiene taxonomy_phase=None
     (aún no completado — requiere turno de confirmación del dueño).
     """
-    result = _first_contact_result(service, "vendo mucho pero no sé si gano plata")
+    result = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
     assert result is not None
     assert result.progressive_context is not None
 
@@ -221,7 +222,7 @@ def test_existing_taxonomic_context_does_not_restart_full_funnel(service: Initia
     result = service.process(
         tenant_id="tenant_phase2f_test",
         channel="test",
-        text="vendo mucho pero no sé si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=None,
         previous_progressive_context=confirmed_context,
     )
@@ -235,7 +236,7 @@ def test_existing_taxonomic_context_does_not_restart_full_funnel(service: Initia
 
 
 def test_taxonomic_owner_response_confirms_phase_zero(service: InitialLaboratoryAnamnesisService) -> None:
-    previous = _first_contact_result(service, "vendo mucho pero no sé si gano plata").progressive_context
+    previous = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY).progressive_context
 
     result = service.process(
         tenant_id="tenant_phase2f_test",
@@ -255,7 +256,7 @@ def test_taxonomic_owner_response_confirms_phase_zero(service: InitialLaboratory
 
 
 def test_unrelated_second_turn_keeps_taxonomic_framing_open(service: InitialLaboratoryAnamnesisService) -> None:
-    previous = _first_contact_result(service, "vendo mucho pero no sé si gano plata").progressive_context
+    previous = _first_contact_result(service, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY).progressive_context
 
     result = service.process(
         tenant_id="tenant_phase2f_test",

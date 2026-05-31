@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pymia.llm_operator import smoke_openrouter
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 @dataclass
@@ -45,7 +46,7 @@ def test_loads_key_from_env_local_and_runs_without_exposing_key(
     monkeypatch.setattr(smoke_openrouter, "OpenRouterProvider", _FakeProvider)
     monkeypatch.setattr(smoke_openrouter, "LLMOperator", _FakeOperator)
 
-    code = smoke_openrouter.main(["--message", "no se si gano plata", "--env-file", str(env_file)])
+    code = smoke_openrouter.main(["--message", RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, "--env-file", str(env_file)])
     out = capsys.readouterr().out
 
     assert code == 0

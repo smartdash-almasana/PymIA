@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 
 from pymia.smartpyme.supermemory_tenant_recall import TenantRecallResult
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def _load_conversa_main():
@@ -55,7 +56,7 @@ def test_conversa_runtime_uses_injected_supermemory_recall_client() -> None:
     conversa_main._SUPERMEMORY_RECALL_INITIALIZED = True
 
     reply = conversa_main.run_message(
-        "no se si gano plata",
+        RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_id=tenant_id,
         user_id=user_id,
     )
@@ -63,7 +64,7 @@ def test_conversa_runtime_uses_injected_supermemory_recall_client() -> None:
     assert isinstance(reply, str)
     assert reply.strip()
     assert fake_client.recall_calls == [
-        {"tenant_id": tenant_id, "query": "no se si gano plata", "limit": 3}
+        {"tenant_id": tenant_id, "query": RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, "limit": 3}
     ]
     assert len(fake_client.save_calls) == 1
     saved = fake_client.save_calls[0]
@@ -89,7 +90,7 @@ def test_conversa_runtime_fail_open_when_recall_client_raises() -> None:
     conversa_main._SUPERMEMORY_RECALL_INITIALIZED = True
 
     reply = conversa_main.run_message(
-        "no se si gano plata",
+        RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_id=tenant_id,
         user_id=user_id,
     )

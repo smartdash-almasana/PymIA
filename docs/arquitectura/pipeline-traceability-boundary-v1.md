@@ -23,7 +23,7 @@ un archivo de evidencia, por ejemplo Excel, CSV o PDF
 Ejemplo:
 
 ```text
-"Vendo mucho pero no me queda plata"
+"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 +
 ventas_abril.xlsx
 ```

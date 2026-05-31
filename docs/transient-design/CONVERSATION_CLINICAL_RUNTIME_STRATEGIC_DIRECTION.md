@@ -170,7 +170,7 @@ Detectar motivo principal de consulta.
 
 ### Ejemplos
 
-- vendo mucho y no queda plata.
+- RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 - no entiendo márgenes.
 - sospecho fuga de dinero.
 - stock desordenado.

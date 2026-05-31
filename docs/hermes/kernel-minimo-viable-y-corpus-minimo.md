@@ -236,7 +236,7 @@ El kernel mínimo confiable existe cuando puede responder correctamente a estos 
 Entrada:
 
 ```text
-vendo mucho pero no sé si gano
+RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 ```
 
 Sin ventas ni costos.

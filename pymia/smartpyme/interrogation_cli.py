@@ -14,6 +14,7 @@ import json
 import os
 import sys
 from typing import Dict, List
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 from pymia.smartpyme.interrogation import (
     StructuredSelectors,
@@ -29,7 +30,7 @@ DEMO_CASES: List[Dict] = [
     },
     {
         "case_id": "case_02_margen",
-        "raw_text": "Vendo mucho pero no me queda nada",
+        "raw_text": RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         "selectors": None,
     },
     {

@@ -45,9 +45,9 @@ Las frases textuales del dueño se preservan sin reescribir. Son material clíni
 Ejemplos válidos:
 
 ```text
-"vendo mucho pero no me queda plata"
+"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 "Paulita tiene un Excel con el stock"
-"no sé si gano por producto"
+"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY por producto"
 ```
 
 ### Encuadrar organismo con mínima fricción

@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from pymia.document_intelligence import BusinessIdentity, TenantClinicalContext
 from pymia.interfaces.conversational_port import ClinicalConversationalPort, ConversationalInput
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 class InvalidTenantClinicalContext(TenantClinicalContext):
@@ -37,7 +38,7 @@ def test_conversational_input_accepts_tenant_context() -> None:
     inp = ConversationalInput(
         tenant_id="tenant_test",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=ctx,
     )
     assert inp.tenant_context == ctx
@@ -66,7 +67,7 @@ def test_clinical_port_propagates_tenant_context_to_service() -> None:
             ConversationalInput(
                 tenant_id="tenant_test",
                 channel="test",
-                text="vendo mucho pero no se si gano plata",
+                text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
                 tenant_context=ctx,
             )
         )
@@ -82,7 +83,7 @@ def test_tenant_context_none_keeps_existing_behavior() -> None:
         ConversationalInput(
             tenant_id="tenant_test",
             channel="test",
-            text="vendo mucho pero no se si gano plata",
+            text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             tenant_context=None,
         )
     )
@@ -117,7 +118,7 @@ def test_valid_tenant_context_does_not_call_schema_inference_engine_yet() -> Non
             ConversationalInput(
                 tenant_id="tenant_test",
                 channel="test",
-                text="vendo mucho pero no se si gano plata",
+                text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
                 tenant_context=_valid_tenant_context(),
             )
         )

@@ -34,7 +34,7 @@ Finding requires evidence contrast.
 Given a symptom such as:
 
 ```text
-vendo mucho pero no sé si gano plata
+RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 ```
 
 The system must contrast against catalog entries such as:

@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from pymia.smartpyme.intake import ALLOWED_INTAKE_STATES, IntakeRecord, create_intake_record
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 from pymia.smartpyme.storage import (
     load_intake_record_by_id,
     load_intake_records,
@@ -89,7 +90,7 @@ def test_load_missing_intakes_returns_empty_list(tmp_path: Path) -> None:
 def test_save_creates_intakes_jsonl(tmp_path: Path) -> None:
     record = create_intake_record(
         tenant_id="tenant_create",
-        raw_text="vendo mucho pero no me queda plata",
+        raw_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
     )
     result_path = save_intake_record("tenant_create", record, base_dir=tmp_path)
 

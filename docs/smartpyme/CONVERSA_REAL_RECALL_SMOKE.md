@@ -33,7 +33,7 @@ scripts/smoke_conversa_real_recall_local.py
 5. Ejecuta:
 
 ```text
-run_message("no se si gano plata", tenant_id="smoke_tenant_conversa_real_recall", user_id="user_conversa_real_recall")
+run_message("RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY", tenant_id="smoke_tenant_conversa_real_recall", user_id="user_conversa_real_recall")
 ```
 
 6. Evalúa si la respuesta contiene marcadores de amnesia:

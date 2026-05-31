@@ -2,6 +2,7 @@
 
 from pymia.document_intelligence import BusinessIdentity, TenantClinicalContext
 from pymia.interfaces.conversational_port import ClinicalConversationalPort, ConversationalInput
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 from pymia.services.initial_laboratory_anamnesis_service import (
     InitialLaboratoryAnamnesisService,
     ProgressiveBusinessIdentity,
@@ -50,7 +51,7 @@ def test_previous_progressive_context_enriches_current_turn() -> None:
     result = service.process(
         tenant_id="tenant-b",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=None,
         previous_progressive_context=prev,
     )
@@ -81,7 +82,7 @@ def test_previous_progressive_context_ignored_when_explicit_tenant_context_prese
     result = service.process(
         tenant_id="tenant-d",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=_explicit_context(),
         previous_progressive_context=prev,
     )
@@ -94,7 +95,7 @@ def test_fresh_progressive_built_when_both_contexts_absent() -> None:
     result = service.process(
         tenant_id="tenant-e",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=None,
         previous_progressive_context=None,
     )
@@ -116,7 +117,7 @@ def test_roundtrip_simulation_two_turns() -> None:
     second = service.process(
         tenant_id="tenant-f",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=None,
         previous_progressive_context=first.progressive_context,
     )
@@ -133,7 +134,7 @@ def test_port_propagates_previous_progressive_context_to_service() -> None:
         ConversationalInput(
             tenant_id="tenant-g",
             channel="test",
-            text="vendo mucho pero no se si gano plata",
+            text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             tenant_context=None,
             previous_progressive_context=prev,
         )
@@ -148,7 +149,7 @@ def test_previous_progressive_context_cross_tenant_is_discarded() -> None:
     result = service.process(
         tenant_id="tenant-h-current",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=None,
         previous_progressive_context=prev,
     )

@@ -103,7 +103,7 @@ python -m pymia.mcp_server.server
 
 **text:**
 
-> "vendo mucho pero no se si gano plata"
+> "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 
 **expected:**
 

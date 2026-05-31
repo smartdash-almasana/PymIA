@@ -8,10 +8,11 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 from main import run_message
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def main() -> None:
-    message = "vendo mucho pero no sé si gano plata"
+    message = RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     result = run_message(message)
 
     assert "CONTRASTE CON CATÁLOGO PYME" not in result

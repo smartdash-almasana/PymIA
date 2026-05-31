@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 from pymia.document_intelligence import TenantClinicalContext
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 ESTADO_ESPERANDO_DOCUMENTACION = "esperando_documentacion"
@@ -93,8 +94,8 @@ class InitialLaboratoryAnamnesisService:
     """
 
     _MARGIN_SIGNALS = (
-        "no se si gano",
-        "no sé si gano",
+        RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
+        RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         "no se si estoy ganando",
         "no sé si estoy ganando",
         "perdiendo plata",

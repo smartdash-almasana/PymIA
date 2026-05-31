@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -67,7 +68,7 @@ def main() -> int:
         client.save_tenant_turn_summary(summary)
         recalled = client.recall_tenant_context(
             tenant_id=tenant_id,
-            query="no se si gano plata",
+            query=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             limit=5,
         )
 

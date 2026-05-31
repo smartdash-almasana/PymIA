@@ -16,6 +16,7 @@ from pymia.smartpyme.taxonomy import TaxonomyType
 from pymia.smartpyme.anamnesis_readiness import ReadinessStatus
 from pymia.smartpyme.operational_hypothesis import HypothesisStatus
 from pymia.smartpyme.conversation_contract import ConversationPhase
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def test_import_smoke():
@@ -85,7 +86,7 @@ def test_caso_1_texto_espacios_ficha_pyme():
 
 def test_caso_2_vendo_mucho_ficha_pyme():
     """Relato con dolor en primer contacto → FICHA_PYME_INICIAL."""
-    user_text = "vendo mucho pero no se si gano plata"
+    user_text = RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     state, message = process_message(user_text, tenant_id="T002", previous_state=None)
     
     assert state.phase == FSMPhase.FICHA_PYME_INICIAL
@@ -168,7 +169,7 @@ def test_caso_4_taxonomia_suficiente_hipotesis_abierta():
         previous_state=_mock_complete_profile_state("T005")
     )
     state2, message = process_message(
-        "vendo mucho pero no me queda ganancia, el margen es bajo",
+        "el margen es bajo",
         tenant_id="T005",
         previous_state=state1
     )
@@ -197,7 +198,7 @@ def test_caso_5_solicita_evidencia_concreta():
         previous_state=_mock_complete_profile_state("T007")
     )
     state2, _ = process_message(
-        "el margen es bajo, no gano plata",
+        "el margen es bajo",
         tenant_id="T007",
         previous_state=state1
     )

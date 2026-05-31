@@ -127,7 +127,7 @@ class TestMarginIntake:
     def test_margen_con_excel_crea_evidence_request(self):
         record = create_intake_record(
             tenant_id="tenant_02",
-            raw_text="Vendo mucho pero no me queda nada, tengo todo en Excel",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
         )
         types = [e.evidence_type for e in record.evidence_requests]
         assert "excel_ventas_costos" in types
@@ -135,7 +135,7 @@ class TestMarginIntake:
     def test_margen_evidence_required_fields(self):
         record = create_intake_record(
             tenant_id="tenant_02",
-            raw_text="Vendo mucho pero no me queda nada, tengo todo en Excel",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
         )
         ev = next(
             e for e in record.evidence_requests
@@ -255,7 +255,7 @@ class TestNoUnsupportedClassification:
     def test_evidence_requests_solo_runtime_compatible(self):
         record = create_intake_record(
             tenant_id="tenant_09",
-            raw_text="Vendo mucho pero no me queda nada, tengo todo en Excel",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
         )
         for ev in record.evidence_requests:
             if ev.enables_classification:

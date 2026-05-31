@@ -126,5 +126,5 @@ Cada cambio que toque esta frontera debe cerrar con:
 pytest -q
 check_forbidden_terms
 audit_docs_index
-run_pymia_demo("vendo mucho pero no sé si gano plata")
+run_pymia_demo("RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY")
 ```

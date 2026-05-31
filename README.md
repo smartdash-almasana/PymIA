@@ -26,7 +26,7 @@ Hermes puede ser la interfaz conversacional elegida para hablar por Telegram con
 Entrada:
 
 ```text
-vendo mucho pero no sé si gano plata
+RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 ```
 
 Salida esperada:
@@ -54,7 +54,7 @@ PymIA/
 
 ```bash
 cd PymIA
-python -m pymia.cli.demo "vendo mucho pero no sé si gano plata"
+python -m pymia.cli.demo "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 ```
 
 ## Tests

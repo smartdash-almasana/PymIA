@@ -42,7 +42,7 @@ No pegar tokens en chats, commits ni documentación.
 Enviar a `@pymIA_bot`:
 
 ```text
-CANARY_DIRECT_RUNTIME_001 no se si gano plata
+CANARY_DIRECT_RUNTIME_001 RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 ```
 
 ## PASS obligatorio

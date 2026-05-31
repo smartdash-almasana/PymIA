@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from pymia.contracts.primary_context_v1 import PrimaryContextRecord, PrimaryContextSignal
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def test_primary_context_record_defaults_to_pending_data() -> None:
     record = PrimaryContextRecord(
         tenant_id="tenant-1",
-        raw_message="vendo mucho pero no se si gano plata",
+        raw_message=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         expressed_pain=[PrimaryContextSignal(code="margin_uncertainty")],
     )
 

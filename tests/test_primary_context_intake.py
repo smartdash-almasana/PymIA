@@ -23,7 +23,7 @@ def test_primary_context_intake_classifies_margin_uncertainty() -> None:
     mod = _load_primary_context_module()
     record = mod.build_primary_context_record(
         tenant_id="tenant-test",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text="vendo mucho pero no sé si gano plata con este margen",
     )
 
     pain_codes = {p.code for p in record.expressed_pain}

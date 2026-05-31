@@ -20,6 +20,7 @@ from pymia.hermes.adapter import (
     HermesPayload,
 )
 from pymia.interfaces.conversational_port import ClinicalConversationalPort
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 from pymia.services.initial_laboratory_anamnesis_service import (
     ProgressiveBusinessIdentity,
     ProgressiveTenantClinicalContext,
@@ -56,7 +57,7 @@ def canonical_input() -> HermesInput:
     return HermesInput(
         tenant_id="tenant_hermes_001",
         channel="telegram",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={"message_id": "msg_001", "user_id": "usr_42"},
         previous_progressive_context=prev_ctx,
     )
@@ -154,7 +155,7 @@ def test_empty_metadata_is_preserved(adapter: HermesAdapter):
     output = adapter.handle(HermesInput(
         tenant_id="tenant_001",
         channel="api",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={},
     ))
     assert output.payload.input_metadata == {}
@@ -257,7 +258,7 @@ def test_adapter_passes_correct_fields_to_port():
         adapter.handle(HermesInput(
             tenant_id="tenant_spy",
             channel="spy_channel",
-            message_text="vendo mucho pero no se si gano plata",
+            message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             metadata={"secret": "this_must_not_reach_kernel"},
         ))
 
@@ -267,7 +268,7 @@ def test_adapter_passes_correct_fields_to_port():
         # Los tres campos requeridos deben estar presentes
         assert clinical_input.tenant_id == "tenant_spy"
         assert clinical_input.channel == "spy_channel"
-        assert clinical_input.text == "vendo mucho pero no se si gano plata"
+        assert clinical_input.text == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
         # La metadata NO debe haber llegado al kernel
         assert not hasattr(clinical_input, "metadata")
@@ -342,7 +343,7 @@ def test_adapter_is_stateless(adapter: HermesAdapter):
     inp = HermesInput(
         tenant_id="tenant_005",
         channel="test",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={"run": 1},
     )
     out1 = adapter.handle(inp)
@@ -362,13 +363,13 @@ def test_adapter_respects_tenant_isolation(adapter: HermesAdapter):
     out_a = adapter.handle(HermesInput(
         tenant_id="tenant_A",
         channel="test",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={},
     ))
     out_b = adapter.handle(HermesInput(
         tenant_id="tenant_B",
         channel="test",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={},
     ))
 
@@ -395,7 +396,7 @@ def test_hermes_payload_contains_progressive_context_on_ok(adapter: HermesAdapte
     output = adapter.handle(HermesInput(
         tenant_id="tenant_progressive_ok",
         channel="telegram",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={},
     ))
     assert output.status == "ok"
@@ -447,7 +448,7 @@ def test_adapter_passes_previous_progressive_context_to_port():
     adapter.handle(HermesInput(
         tenant_id="tenant_prev_pass",
         channel="telegram",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={},
         previous_progressive_context=previous,
     ))
@@ -467,7 +468,7 @@ def test_hermes_roundtrip_two_turns_accumulates_progressive_context(adapter: Her
     second = adapter.handle(HermesInput(
         tenant_id="tenant_roundtrip",
         channel="telegram",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={},
         previous_progressive_context=first.payload.progressive_context,
     ))
@@ -481,7 +482,7 @@ def test_cross_tenant_previous_progressive_context_is_discarded_through_adapter(
     output = adapter.handle(HermesInput(
         tenant_id="tenant_current",
         channel="telegram",
-        message_text="vendo mucho pero no se si gano plata",
+        message_text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         metadata={},
         previous_progressive_context=previous,
     ))

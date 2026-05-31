@@ -32,7 +32,7 @@ Términos no visibles en conversación final:
 
 ### `hipotesis_abierta`
 
-Se usa cuando el usuario solo aporta un síntoma, por ejemplo: “vendo mucho pero no me queda plata”.
+Se usa cuando el usuario solo aporta un síntoma, por ejemplo: “RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY”.
 
 Respuesta esperada:
 

@@ -48,13 +48,13 @@ python3 -m venv .venv
 ## Ejecución mínima (Windows)
 
 ```powershell
-.\.venv\Scripts\python.exe main.py "vendo mucho pero no se si gano plata"
+.\.venv\Scripts\python.exe main.py "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 ```
 
 ## Ejecución mínima (Linux)
 
 ```bash
-./.venv/bin/python main.py "vendo mucho pero no se si gano plata"
+./.venv/bin/python main.py "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 ```
 
 ## Local execution wrappers
@@ -66,13 +66,13 @@ Los wrappers locales evitan ese error de import y fuerzan UTF-8 para prevenir mo
 Windows PowerShell:
 
 ```powershell
-.\scripts\run_conversa_local.ps1 "vendo mucho pero no sé si gano plata"
+.\scripts\run_conversa_local.ps1 "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 ```
 
 Bash/Linux:
 
 ```bash
-./scripts/run_conversa_local.sh "vendo mucho pero no sé si gano plata"
+./scripts/run_conversa_local.sh "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 ```
 
 ## Routing sobre OperationalAuditResult

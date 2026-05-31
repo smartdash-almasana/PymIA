@@ -98,7 +98,7 @@ Debe conservar:
 Ejemplos de entrada semántica:
 
 ```text
-vendo pero no sé si gano
+vendo pero RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 creo que tengo mucho stock parado
 me va bien pero quiero entender mejor el negocio
 pierdo tiempo haciendo todo a mano
@@ -357,8 +357,8 @@ Define patologías operacionales:
 
 Define dolores frecuentes expresados en lenguaje del dueño:
 
-- no sé si gano
-- vendo pero no me queda plata
+- RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
+- RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 - tengo mucho stock parado
 - pierdo tiempo cargando planillas
 - no sé qué producto me conviene vender

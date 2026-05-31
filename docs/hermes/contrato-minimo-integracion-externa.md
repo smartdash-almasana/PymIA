@@ -74,7 +74,7 @@ Hermes externo debe construir:
 HermesInput(
     tenant_id="tenant-001",
     channel="telegram",
-    message_text="vendo mucho pero no sé si gano plata",
+    message_text="RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
     metadata={
         "telegram_chat_id": 123,
         "telegram_message_id": 456,

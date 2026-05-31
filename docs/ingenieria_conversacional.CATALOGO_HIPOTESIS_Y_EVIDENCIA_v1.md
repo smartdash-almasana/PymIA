@@ -20,7 +20,7 @@ Ventas sostenidas pero rentabilidad caída por costos, inflación, descuentos o 
 
 ### Síntomas típicos
 
-- vendo mucho pero no queda plata;
+- RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 - vendo y no gano;
 - los costos subieron;
 - el margen bajó;

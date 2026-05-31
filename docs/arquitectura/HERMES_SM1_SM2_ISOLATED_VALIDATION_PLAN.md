@@ -382,7 +382,7 @@ Guardar en: `evidencias/SM2/tool_discovery.txt`.
 
 **Input al Hermes:**
 ```
-vendo mucho pero no se si gano plata
+RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 ```
 
 **Verificar en transcript:**
@@ -397,7 +397,7 @@ vendo mucho pero no se si gano plata
 {
   "tenant_id": "sm2-test-tenant-001",
   "channel": "sandbox-cli",
-  "text": "vendo mucho pero no se si gano plata",
+  "text": "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY",
   "previous_progressive_context": null
 }
 ```

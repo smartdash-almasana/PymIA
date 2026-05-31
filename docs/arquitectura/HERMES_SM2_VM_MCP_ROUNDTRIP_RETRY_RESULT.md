@@ -84,7 +84,7 @@ pymia.first_clinical_interview.v1
 Input:
 
 ```text
-vendo mucho pero no se si gano plata
+RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 ```
 
 Resultado:

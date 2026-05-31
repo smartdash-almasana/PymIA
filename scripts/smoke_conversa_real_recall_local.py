@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ENV_LOCAL = REPO_ROOT / ".env.local"
@@ -102,7 +103,7 @@ def main() -> int:
         conversa_main._SUPERMEMORY_RECALL_INITIALIZED = False
 
         reply = conversa_main.run_message(
-            "no se si gano plata",
+            RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             tenant_id=tenant_id,
             user_id=user_id,
         )

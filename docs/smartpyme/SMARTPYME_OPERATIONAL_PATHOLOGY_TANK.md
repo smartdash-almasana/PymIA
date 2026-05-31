@@ -215,7 +215,7 @@ El tanque soporta los 9 síntomas mínimos definidos en
 ### 8.2 MARGEN_DUDOSO
 - **Definición:** el dueño sospecha que el margen no es el esperado o que
   vende sin que quede resultado.
-- **Frases típicas:** "vendo pero no me queda", "no sé si gano", "los
+- **Frases típicas:** "vendo pero no me queda", "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY", "los
   precios no cubren", "margen chico".
 - **Señales semánticas:** `margen`, `precio`, `costo`, `queda`, `gano`,
   `cubro`.
@@ -740,9 +740,9 @@ Los 8 gates definidos en `SMARTPYME_KNOWLEDGE_TANKS_ARCHITECTURE.md`:
   específica de conciliación).
 - **qué NO concluir:** causa del descalce.
 
-### 16.2 Ejemplo 2 — "Vendo mucho pero no me queda nada"
+### 16.2 Ejemplo 2 — "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 
-- **raw_input:** "Vendo mucho pero no me queda nada."
+- **raw_input:** "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY."
 - **síntoma:** `MARGEN_DUDOSO`.
 - **patología candidata:** `MARGIN_LEAKAGE_SUSPECTED`.
 - **reformulación:** "Entiendo que la sensación es que las ventas no se

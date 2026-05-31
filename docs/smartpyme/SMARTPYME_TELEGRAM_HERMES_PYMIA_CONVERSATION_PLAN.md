@@ -443,7 +443,7 @@ pending_evidence_count: int
 
 | ID | Escenario | Input | Resultado esperado |
 |---|---|---|---|
-| TINT-001 | Relato: "vendo mucho pero no me queda nada" | `message_text` sin selectors | `InterrogationResult.candidate_symptoms=[MARGEN_DUDOSO]`, `status=NEEDS_EVIDENCE` |
+| TINT-001 | Relato: "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY" | `message_text` sin selectors | `InterrogationResult.candidate_symptoms=[MARGEN_DUDOSO]`, `status=NEEDS_EVIDENCE` |
 | TINT-002 | Sesión nueva sin texto | Vacío | Menú inicial, no análisis |
 | TINT-003 | Hermes intenta afirmar diagnóstico sin `DeliveryPackage` | Mock de output con `gate_verdict=None` | `AuditDecision=BLOCK` |
 | TINT-004 | `progressive_context` perdido en turno 2 | `previous_progressive_context=None` + turno > 1 | `AuditDecision=WARN`, reinicio desde menú |
@@ -456,7 +456,7 @@ pending_evidence_count: int
 
 | ID | Descripción |
 |---|---|
-| TSMK-001 | `run_message("vendo mucho pero no se si gano plata")` devuelve reply_text no vacío |
+| TSMK-001 | `run_message("RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY")` devuelve reply_text no vacío |
 | TSMK-002 | `_PROGRESSIVE_CONTEXT_BY_SESSION` persiste entre turnos del mismo tenant/user |
 | TSMK-003 | Comando reservado `--execute` devuelve `COMANDO_NO_IMPLEMENTADO` |
 | TSMK-004 | `route_from_operational_audit` no cruza metadata al kernel |

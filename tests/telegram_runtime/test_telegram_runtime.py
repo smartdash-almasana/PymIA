@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from pymia.telegram_runtime import SENTINEL, RuntimeResult, handle_telegram_message
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -13,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_dry_run_contains_sentinel() -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "pymia.telegram_runtime", "--dry-run", "no se si gano plata"],
+        [sys.executable, "-m", "pymia.telegram_runtime", "--dry-run", RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY],
         cwd=str(ROOT),
         capture_output=True,
         text=True,
@@ -23,7 +24,7 @@ def test_dry_run_contains_sentinel() -> None:
 
 
 def test_profitability_query_requests_evidence() -> None:
-    result = handle_telegram_message("no se si gano plata")
+    result = handle_telegram_message(RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY)
     lowered = result.text.lower()
     assert SENTINEL in result.text
     assert "ventas del período" in lowered or "ventas del periodo" in lowered

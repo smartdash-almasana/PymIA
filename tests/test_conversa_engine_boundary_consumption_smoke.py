@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 from pathlib import Path
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, RAW_OWNER_CLAIM_STOCK_MISMATCH, RAW_OWNER_CLAIM_MANUAL_OVERLOAD
 
 
 def _load_conversa_main():
@@ -29,7 +30,7 @@ def test_conversa_engine_boundary_consumption_smoke() -> None:
     )
 
     first_reply = conversa_main.run_message(
-        'Tengo una fábrica textil y no sé si gano plata',
+        RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_id=tenant_id,
         user_id=user_id,
         deps=deps,
@@ -44,7 +45,7 @@ def test_conversa_engine_boundary_consumption_smoke() -> None:
     assert context_after_first.get('has_hypotheses') is False
     assert context_after_first.get('has_evidence_requests') is False
     assert context_after_first.get('fsm_state', {}).get('profile_step') == 'ASK_CONTACT_NAME'
-    assert context_after_first.get('fsm_state', {}).get('profile_data', {}).get('raw_first_message') == 'Tengo una fábrica textil y no sé si gano plata'
+    assert context_after_first.get('fsm_state', {}).get('profile_data', {}).get('raw_first_message') == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
     profile_answers = [
         'Juan Perez',

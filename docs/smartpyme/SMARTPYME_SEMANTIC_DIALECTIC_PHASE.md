@@ -115,9 +115,9 @@ Frase textual del dueño. Se preserva sin reescribir.
 
 Ejemplo:
 ```text
-"vendo mucho pero no me queda plata"
+"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 "Paulita tiene un Excel con el stock"
-"no sé si gano por producto"
+"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY por producto"
 ```
 
 ### OwnerClaim
@@ -308,7 +308,7 @@ El sistema reformula el relato para validar comprensión.
 Ejemplo:
 
 ```text
-Entrada: "Vendo mucho pero no me queda plata, Paulita tiene un Excel con el stock."
+Entrada: "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, Paulita tiene un Excel con el stock."
 
 Reformulación:
 "Esto entendí que querés revisar:
@@ -352,7 +352,7 @@ Cada dolor confirmado se transforma en síntoma operacional.
 Ejemplo:
 
 ```text
-Claim confirmado: "No sé si gano por producto."
+Claim confirmado: "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY por producto."
 Síntoma operacional: incertidumbre de rentabilidad
 Área afectada: margen, precios
 Temporalidad: no declarada (pendiente desambiguación)

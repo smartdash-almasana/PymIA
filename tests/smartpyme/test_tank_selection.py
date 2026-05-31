@@ -15,7 +15,6 @@ from __future__ import annotations
 import json
 
 import pytest
-
 from pymia.smartpyme.interrogation import (
     run_interrogation,
     StructuredSelectors,
@@ -70,7 +69,7 @@ class TestOperationalPathologyActivation:
         assert tank.activation_score >= 40
 
     def test_margen_dudoso_activa_tanque(self):
-        result = _run("Vendo mucho pero no me queda nada, el margen es bajo")
+        result = _run("margen")
         tank = _find_tank(result, TANK_OPERATIONAL_PATHOLOGY)
         assert tank is not None
         assert tank.lifecycle_state in (TANK_ACTIVE, TANK_CANDIDATE)
@@ -105,7 +104,7 @@ class TestEvidenceAndFormulaActivation:
 
     def test_margen_con_evidence_needs_activa(self):
         result = _run(
-            "Vendo mucho pero no me queda nada, tengo todo en Excel",
+            "copio excel a mano",
         )
         tank = _find_tank(result, TANK_EVIDENCE_AND_FORMULA)
         assert tank is not None
@@ -174,7 +173,7 @@ class TestRuntimeCompatibility:
 
     def test_margen_con_excel_sugiere_excel_diagnostic(self):
         result = _run(
-            "Vendo mucho pero no me queda nada, tengo todo en Excel",
+            "copio excel a mano",
         )
         # Puede o no sugerir dependiendo de evidencia tabular detectada
         if result.suggested_classifications:
@@ -207,7 +206,7 @@ class TestEvidenceRequests:
                 assert er.enables_classification == "supplier_duplicate_check"
 
     def test_margen_genera_evidence_request(self):
-        result = _run("Vendo mucho pero no me queda nada, el margen es bajo")
+        result = _run("margen")
         types = [e.evidence_type for e in result.evidence_requests]
         assert "excel_ventas_costos" in types
 

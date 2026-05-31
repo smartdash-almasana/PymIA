@@ -1,9 +1,3 @@
-"""
-Heurísticas determinísticas para el pipeline de admisión v1.
-
-Este módulo contiene la lógica para mapear palabras clave en la narrativa
-de un cliente a hipótesis de trabajo y la evidencia requerida para validarlas.
-"""
 from typing import TypedDict
 
 
@@ -27,7 +21,7 @@ KEYWORD_WEIGHTS = {
 PROFITABILITY_SYMPTOM_CLUSTERS = {
     "ACTION_VERBS": {"vendo", "vendemos", "facturo", "trabajamos", "entra"},
     "MONEY_NOUNS": {"plata", "nada", "ganancias", "margen"},
-    "PAIN_INDICATORS": {"no queda plata", "no queda", "no queda nada", "desaparece", "no vemos ganancias", "no sé si gano", "no se si gano", "no sé si deja margen"}
+    "PAIN_INDICATORS": {"no queda plata", "no queda", "no queda nada", "desaparece", "no vemos ganancias", "no sé si deja margen"}
 }
 
 # Clúster de palabras clave para detectar la intención de "problema de stock/inventario"

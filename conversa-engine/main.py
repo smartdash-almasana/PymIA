@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from typing import Callable
 from uuid import uuid4
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 RESERVED_COMMANDS = {
     "--register-evidence",
@@ -41,7 +42,7 @@ def _cli_message_from_args(args: list[str]) -> tuple[int, str, str | None]:
         (exit_code, stdout, stderr)
     """
     if not args:
-        return 0, "vendo mucho pero no se si gano plata", None
+        return 0, RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, None
 
     first_arg = args[0]
     if first_arg.startswith("-"):

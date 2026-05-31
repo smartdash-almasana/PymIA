@@ -60,7 +60,7 @@ La Ficha PyME inicial cubre:
 Comandos ejecutados como procesos separados:
 
 ```powershell
-python conversa-engine/main.py "vendo mucho pero no sé si gano plata"
+python conversa-engine/main.py "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 python conversa-engine/main.py "Alejandro Arab"
 python conversa-engine/main.py "Dueño"
 python conversa-engine/main.py "11 1234 5678"
@@ -75,7 +75,7 @@ python conversa-engine/main.py "https://instagram.com/smartpymetest"
 python conversa-engine/main.py "lista de precios Excel"
 python conversa-engine/main.py "2 a 5 personas"
 python conversa-engine/main.py "Excel y WhatsApp"
-python conversa-engine/main.py "no sé si gano plata"
+python conversa-engine/main.py "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 python conversa-engine/main.py "últimos 3 meses"
 python conversa-engine/main.py "ventas, compras, lista de precios"
 ```
@@ -86,7 +86,7 @@ Resultado validado:
 - la ficha avanza paso por paso;
 - al finalizar, el estado llega a `INITIAL_PROFILE_COMPLETE`;
 - `profile_data.profile_status` queda en `COMPLETE`;
-- `raw_first_message` conserva `vendo mucho pero no sé si gano plata`.
+- `raw_first_message` conserva `RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY`.
 
 ## Persistencia
 

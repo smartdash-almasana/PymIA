@@ -2,7 +2,7 @@
 
 Cubren los 8 casos definidos en SMARTPYME_INTERROGATION_TAXONOMY_SLICE:
 1. "No me cierra la plata"
-2. "Vendo mucho pero no me queda nada"
+2. RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 3. "Tengo proveedores duplicados y CUIT mezclados"
 4. "El sistema dice un stock y el depósito otro"
 5. "Copio todos los días de un Excel a otro"
@@ -54,10 +54,10 @@ def test_descuadre_dinero_sin_clasificacion():
 
 
 # ---------------------------------------------------------------------------
-# 2. "Vendo mucho pero no me queda nada"
+# 2. Margen dudoso
 # ---------------------------------------------------------------------------
 def test_margen_dudoso_sin_diagnostico_cerrado():
-    r = run_interrogation("Vendo mucho pero no me queda nada")
+    r = run_interrogation("margen")
     assert (SYMPTOM_MARGEN_DUDOSO in r.candidate_symptoms or
             SYMPTOM_COSTO_INCIERTO in r.candidate_symptoms)
     assert DOMAIN_COMERCIAL in r.candidate_domains
@@ -69,9 +69,7 @@ def test_margen_dudoso_sin_diagnostico_cerrado():
 
 
 def test_margen_con_evidencia_excel_sugiere_excel_diagnostic():
-    r = run_interrogation(
-        "Vendo mucho pero no me queda nada, tengo todo en Excel",
-    )
+    r = run_interrogation("margen excel manual")
     assert r.suggested_classification == CLASSIFICATION_EXCEL_DIAGNOSTIC
 
 

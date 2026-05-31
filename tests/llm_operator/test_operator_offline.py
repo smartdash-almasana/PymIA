@@ -19,6 +19,7 @@ import pytest
 import pymia.orchestration.os_tool_registry as registry_module
 from pymia.llm_operator.operator import LLMOperator, OperatorResult
 from pymia.llm_operator.providers import AbstractProvider, MockProvider, ToolDecision
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, RAW_OWNER_CLAIM_STOCK_MISMATCH, RAW_OWNER_CLAIM_MANUAL_OVERLOAD
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +121,7 @@ def test_mock_provider_chooses_submit_text_for_generic_message() -> None:
 def test_mock_provider_chooses_request_diagnostic_for_margen() -> None:
     provider = MockProvider()
     schema = registry_module.OS_TOOLS
-    decision = provider.choose_tool("no sé si gano plata con esto", state={}, tools_schema=schema)
+    decision = provider.choose_tool(RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, state={}, tools_schema=schema)
     assert decision.tool_name == "start_organization_profile"
 
 

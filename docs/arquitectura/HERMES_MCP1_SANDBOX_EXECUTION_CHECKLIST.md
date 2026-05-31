@@ -59,7 +59,7 @@ No ejecutar en este ciclo. Solo documentar:
 
 ## Casos de prueba
 ### CA01
-- input: `"vendo mucho pero no se si gano plata"`
+- input: `"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"`
 - contexto previo esperado: `previous_progressive_context = null` o contexto vacío del tenant/session.
 - resultado esperado: encuadre taxonómico inicial, sin diagnóstico, sin evidencia prematura, con `progressive_context` generado.
 - evidencia a guardar: payload enviado, respuesta MCP, contexto antes/después, mensaje final de Hermes.

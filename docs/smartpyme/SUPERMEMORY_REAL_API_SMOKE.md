@@ -30,7 +30,7 @@ python scripts/smoke_supermemory_recall_local.py
    - `containerTag = tenant:smoke_tenant_memory`
    - `customId = turn:smoke_tenant_memory:smoke_local:0`
 4. Ejecuta `recall_tenant_context` con query:
-   - `"no se si gano plata"`
+   - `"RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"`
 5. Imprime solo:
    - `STATUS: OK|FAIL`
    - `MEMORIES: <cantidad>`

@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 from pymia.document_intelligence import BusinessIdentity, TenantClinicalContext
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 from pymia.services.initial_laboratory_anamnesis_service import (
     InitialLaboratoryAnamnesisService,
     ProgressiveTenantClinicalContext,
@@ -24,7 +25,7 @@ def test_progressive_context_is_built_when_tenant_context_is_none() -> None:
     progressive = service._build_progressive_tenant_context(
         tenant_id="tenant-progressive",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         evidence=None,
     )
     assert isinstance(progressive, ProgressiveTenantClinicalContext)
@@ -39,7 +40,7 @@ def test_process_with_none_context_keeps_existing_behavior() -> None:
     result = service.process(
         tenant_id="tenant-behavior",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         tenant_context=None,
     )
     assert result is not None
@@ -53,7 +54,7 @@ def test_explicit_tenant_context_is_not_replaced_by_progressive_builder() -> Non
         result = service.process(
             tenant_id="tenant-explicit",
             channel="test",
-            text="vendo mucho pero no se si gano plata",
+            text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             tenant_context=ctx,
         )
     progressive_mock.assert_not_called()
@@ -80,7 +81,7 @@ def test_phase2b_does_not_call_schema_inference_engine() -> None:
         result = service.process(
             tenant_id="tenant-no-infer",
             channel="test",
-            text="vendo mucho pero no se si gano plata",
+            text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
             tenant_context=None,
         )
     infer_mock.assert_not_called()

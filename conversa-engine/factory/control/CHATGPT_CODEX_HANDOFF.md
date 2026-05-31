@@ -34,7 +34,7 @@ python intake_repository_hardening_smoke_test.py
 python intake_repository_lock_smoke_test.py
 python intake_repository_stale_lock_smoke_test.py
 python intake_integration_smoke_test.py
-python main.py "vendo mucho pero no sé si gano plata"
+python main.py "RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY"
 ```
 
 ## ACCEPTANCE

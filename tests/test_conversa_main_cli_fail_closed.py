@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def _load_conversa_main():
@@ -42,7 +43,7 @@ def test_text_message_still_passes_through():
     )
 
     assert exit_code == 0
-    assert stdout == "vendo mucho pero no se si gano plata"
+    assert stdout == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     assert stderr is None
 
 
@@ -52,5 +53,5 @@ def test_empty_args_keep_default_demo_message():
     exit_code, stdout, stderr = main._cli_message_from_args([])
 
     assert exit_code == 0
-    assert stdout == "vendo mucho pero no se si gano plata"
+    assert stdout == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     assert stderr is None

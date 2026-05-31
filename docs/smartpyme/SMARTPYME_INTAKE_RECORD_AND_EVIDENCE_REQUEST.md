@@ -241,7 +241,7 @@ create_intake_record(
 ```python
 create_intake_record(
     tenant_id="tenant_02",
-    raw_text="Vendo mucho pero no me queda nada, tengo todo en Excel",
+    raw_text="RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, tengo todo en Excel",
 )
 ```
 

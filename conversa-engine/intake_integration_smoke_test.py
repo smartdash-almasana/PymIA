@@ -14,6 +14,7 @@ from inbound_event import RawInboundEvent
 from intake_repository import DocumentIntakeRepository
 from intake_state import DocumentIntakeState
 from evidence_router import IngestionRoute
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def main() -> None:
@@ -26,7 +27,7 @@ def main() -> None:
             event_id="evt-integration-text-001",
             tenant_id="telegram:42",
             user_id="42",
-            text="vendo mucho pero no sé si gano plata",
+            text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         )
         assert text_event.get_ingestion_route() == IngestionRoute.NARRATIVE
         state.register(text_event)

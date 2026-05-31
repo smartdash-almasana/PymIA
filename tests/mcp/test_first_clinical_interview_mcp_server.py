@@ -5,6 +5,7 @@ from pymia.mcp_server.first_clinical_interview import (
     invoke_first_clinical_interview,
 )
 from pymia.mcp_server.server import build_app
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 
 
 def test_tool_name_is_versioned_contract() -> None:
@@ -23,7 +24,7 @@ def test_ca01_first_contact_returns_taxonomic_framing() -> None:
     response = invoke_first_clinical_interview(
         tenant_id="tenant_ca01",
         channel="test",
-        text="vendo mucho pero no se si gano plata",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         previous_progressive_context=None,
     )
 
@@ -93,7 +94,7 @@ def test_tenant_isolation_violation_returns_error() -> None:
     response = invoke_first_clinical_interview(
         tenant_id="tenant_A",
         channel="test",
-        text="vendo mucho",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         previous_progressive_context={
             "tenant_id": "tenant_B",
             "channel": "test",
@@ -111,7 +112,7 @@ def test_invalid_input_returns_error() -> None:
     response = invoke_first_clinical_interview(
         tenant_id="",
         channel="test",
-        text="vendo mucho",
+        text=RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY,
         previous_progressive_context=None,
     )
 
