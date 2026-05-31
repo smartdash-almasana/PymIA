@@ -301,15 +301,15 @@ def test_idempotent_resend_merges_declared_fields() -> None:
     assert out2["post_ficha_routing"]["evidence_requests"][0]["status"] == "SATISFIED"
 
 
-# --- Integración con xlsx_document_metadata_adapter ---
+# --- Integración con document_parser_front ---
 
 import ast
 from unittest.mock import patch, MagicMock
 from pymia.smartpyme.parsed_document_metadata import PARSE_STATUS_FAILED
 
-# 1. Si input trae FIELDS=..., no se invoca adapter XLSX.
-@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_xlsx_to_document_metadata")
-def test_fields_suffix_skips_xlsx_adapter(mock_parse):
+# 1. Si input trae FIELDS=..., no se invoca parse_document_to_metadata.
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_fields_suffix_skips_document_parser_front(mock_parse):
     ctx = _base_context()
     apply_post_ficha_evidence_turn(
         tenant_id="t1",
@@ -322,11 +322,10 @@ def test_fields_suffix_skips_xlsx_adapter(mock_parse):
     )
     mock_parse.assert_not_called()
 
-
-# 2. Si no trae FIELDS y source_ref es XLSX local existente, EvidenceRecord.metadata recibe ParsedDocumentMetadata.to_dict().
+# 2. Si no trae FIELDS y source_ref es local existente, EvidenceRecord.metadata recibe ParsedDocumentMetadata.to_dict().
 @patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
-@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_xlsx_to_document_metadata")
-def test_xlsx_adapter_enriches_metadata_if_no_fields(mock_parse, mock_exists):
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_document_parser_front_enriches_metadata_if_no_fields(mock_parse, mock_exists):
     mock_exists.return_value = True
     mock_metadata = MagicMock()
     mock_metadata.to_dict.return_value = {"file_type": "xlsx", "fields": ["ventas"]}
@@ -344,14 +343,13 @@ def test_xlsx_adapter_enriches_metadata_if_no_fields(mock_parse, mock_exists):
     assert out["evidence_records"][0]["metadata"]["file_type"] == "xlsx"
     assert out["evidence_records"][0]["metadata"]["fields"] == ["ventas"]
 
-
-# 3. Si XLSX parsea OK y fields cubren required_fields, request pasa a SATISFIED.
+# 3. Si parser parsea OK y fields cubren required_fields, request pasa a SATISFIED.
 @patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
-@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_xlsx_to_document_metadata")
-def test_xlsx_adapter_satisfies_request_if_fields_cover_required(mock_parse, mock_exists):
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_document_parser_front_satisfies_request_if_fields_cover_required(mock_parse, mock_exists):
     mock_exists.return_value = True
     mock_metadata = MagicMock()
-    mock_metadata.to_dict.return_value = {"file_type": "xlsx", "fields": ["period", "amount"]}
+    mock_metadata.to_dict.return_value = {"file_type": "pdf", "fields": ["period", "amount"]}
     mock_parse.return_value = mock_metadata
     
     ctx = _base_context()
@@ -367,7 +365,7 @@ def test_xlsx_adapter_satisfies_request_if_fields_cover_required(mock_parse, moc
     
     out, _ = apply_post_ficha_evidence_turn(
         tenant_id="t1",
-        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.pdf",
         previous_context=None,
         updated_context=ctx,
     )
@@ -375,14 +373,13 @@ def test_xlsx_adapter_satisfies_request_if_fields_cover_required(mock_parse, moc
     assert out["post_ficha_routing"]["evidence_requests"][0]["status"] == "SATISFIED"
     assert out["post_ficha_readiness"]["readiness_state"] == "READY_FOR_ANALYSIS"
 
-
-# 4. Si XLSX parsea pero faltan required_fields, queda RECEIVED / NEEDS_EVIDENCE.
+# 4. Si parser parsea pero faltan required_fields, queda RECEIVED / NEEDS_EVIDENCE.
 @patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
-@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_xlsx_to_document_metadata")
-def test_xlsx_adapter_leaves_received_if_fields_missing(mock_parse, mock_exists):
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_document_parser_front_leaves_received_if_fields_missing(mock_parse, mock_exists):
     mock_exists.return_value = True
     mock_metadata = MagicMock()
-    mock_metadata.to_dict.return_value = {"file_type": "xlsx", "fields": ["period"]}
+    mock_metadata.to_dict.return_value = {"file_type": "docx", "fields": ["period"]}
     mock_parse.return_value = mock_metadata
     
     ctx = _base_context()
@@ -398,7 +395,7 @@ def test_xlsx_adapter_leaves_received_if_fields_missing(mock_parse, mock_exists)
     
     out, _ = apply_post_ficha_evidence_turn(
         tenant_id="t1",
-        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.docx",
         previous_context=None,
         updated_context=ctx,
     )
@@ -406,10 +403,9 @@ def test_xlsx_adapter_leaves_received_if_fields_missing(mock_parse, mock_exists)
     assert out["post_ficha_routing"]["evidence_requests"][0]["status"] == "RECEIVED"
     assert out["post_ficha_readiness"]["readiness_state"] == "NEEDS_EVIDENCE"
 
-
 # 5. Si source_ref no existe, no rompe flujo.
 @patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
-@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_xlsx_to_document_metadata")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
 def test_missing_source_ref_does_not_break_flow(mock_parse, mock_exists):
     mock_exists.return_value = False
     
@@ -434,39 +430,10 @@ def test_missing_source_ref_does_not_break_flow(mock_parse, mock_exists):
     mock_parse.assert_not_called()
     assert out["post_ficha_routing"]["evidence_requests"][0]["status"] == "RECEIVED"
 
-
-# 6. Si source_ref no es XLSX, no invoca adapter.
+# 6. Si parser falla, se conserva metadata fail-closed con parse_status=FAILED y warnings.
 @patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
-@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_xlsx_to_document_metadata")
-def test_non_xlsx_source_ref_skips_adapter(mock_parse, mock_exists):
-    mock_exists.return_value = True
-    
-    ctx = _base_context()
-    ctx["post_ficha_routing"]["evidence_requests"] = [
-        {
-            "request_id": "req_required",
-            "evidence_type": "sales_records",
-            "status": "REQUESTED",
-            "blocks_analysis": True,
-            "required_fields": ["period", "amount"],
-        }
-    ]
-    
-    out, _ = apply_post_ficha_evidence_turn(
-        tenant_id="t1",
-        message_text="EVIDENCE::uploaded_file::sales_records::ventas.pdf",
-        previous_context=None,
-        updated_context=ctx,
-    )
-    
-    mock_parse.assert_not_called()
-    assert out["post_ficha_routing"]["evidence_requests"][0]["status"] == "RECEIVED"
-
-
-# 7. Si adapter falla, se conserva metadata fail-closed con parse_status=FAILED y warnings.
-@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
-@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_xlsx_to_document_metadata")
-def test_adapter_failure_produces_fail_closed_metadata(mock_parse, mock_exists):
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_document_parser_front_failure_produces_fail_closed_metadata(mock_parse, mock_exists):
     mock_exists.return_value = True
     mock_parse.side_effect = Exception("simulated crash")
     
@@ -480,18 +447,22 @@ def test_adapter_failure_produces_fail_closed_metadata(mock_parse, mock_exists):
     
     meta = out["evidence_records"][0]["metadata"]
     assert meta["parse_status"] == PARSE_STATUS_FAILED
-    assert any("xlsx_adapter_error" in w for w in meta["warnings"])
+    assert any("document_parser_front_error" in w for w in meta["warnings"])
 
-
-# 8. No se usa tools/excel_evidence.py.
-# 9. No se llama ClinicalConversationalPort.
-# 10. No se ejecutan fórmulas ni diagnóstico.
+# 7. No se usa xlsx_document_metadata_adapter, docling, tools/excel_evidence.py ni ClinicalConversationalPort.
 def test_post_ficha_evidence_gate_ast_rules():
     with open("pymia/smartpyme/post_ficha_evidence_gate.py", "r", encoding="utf-8") as f:
         source = f.read()
 
     tree = ast.parse(source)
-    forbidden_imports = {"excel_evidence", "ClinicalConversationalPort", "formula", "diagnostico"}
+    forbidden_imports = {
+        "xlsx_document_metadata_adapter",
+        "docling",
+        "excel_evidence",
+        "ClinicalConversationalPort",
+        "formula",
+        "diagnostico"
+    }
     
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

@@ -1,6 +1,7 @@
 """Post-ficha evidence reception and readiness gate.
 
 Pure helpers for handling structured evidence messages after post_ficha_routing exists.
+
 """
 
 from __future__ import annotations
@@ -9,9 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from pymia.smartpyme.evidence import create_evidence_record
-from pymia.smartpyme.xlsx_document_metadata_adapter import (
-    parse_xlsx_to_document_metadata,
-)
+from pymia.smartpyme.document_parser_front import parse_document_to_metadata
 from pymia.smartpyme.evidence_gate import (
     ASSESSMENT_SATISFIED,
     SUGGESTED_READY_FOR_ANALYSIS,
@@ -58,19 +57,23 @@ def parse_post_ficha_evidence_input(text: str) -> tuple[str, str, str]:
     source_kind, evidence_type, source_ref, _ = _parse_post_ficha_evidence_input_with_metadata(text)
     return source_kind, evidence_type, source_ref
 
-
 def is_post_ficha_evidence_input(text: str) -> bool:
     return isinstance(text, str) and text.strip().upper().startswith("EVIDENCE::")
-
 
 def _enrich_metadata_from_source(
     source_ref: str,
     record_metadata: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Si ``source_ref`` apunta a un archivo XLSX local existente y no hay
-    ``FIELDS=`` declarados en ``record_metadata``, invoca el adaptador XLSX
-    para poblar metadata estructural automáticamente.
+    Si ``source_ref`` apunta a un archivo local existente y no hay
+    ``FIELDS=`` declarados en ``record_metadata``, invoca el router documental
+    general para poblar metadata estructural automáticamente.
+
+    El router (``parse_document_to_metadata``) ya maneja:
+        - Dispatch por extensión (.xlsx, .xlsm, .pdf, .docx, .pptx, .txt, .md, .csv, .tsv)
+        - Fail-closed determinístico si el parser no está configurado
+        - Fail-closed determinístico si Docling no está instalado
+        - Fail-closed determinístico si el archivo no existe o es inválido
 
     Si el parseo falla, no rompe el flujo: retorna metadata con
     ``parse_status=FAILED`` y warnings, pero sin exceptions.
@@ -79,7 +82,7 @@ def _enrich_metadata_from_source(
     if "fields" in record_metadata:
         return record_metadata
 
-    # 2) Solo procesar si source_ref parece un path local a XLSX
+    # 2) Solo procesar si source_ref parece un path local válido
     try:
         path = Path(source_ref)
     except (TypeError, ValueError):
@@ -88,16 +91,16 @@ def _enrich_metadata_from_source(
     if not path.exists():
         return record_metadata
 
-    if path.suffix.lower() not in {".xlsx", ".xlsm"}:
-        return record_metadata
-
-    # 3) Invocar adaptador XLSX (fail-closed: nunca lanza)
+    # 3) Invocar router documental general (fail-closed: nunca lanza)
+    # El router ya decide qué adaptador usar según extensión y maneja
+    # todos los casos fail-closed (extensión desconocida, parser no
+    # configurado, dependencia opcional faltante, etc.)
     try:
-        parsed = parse_xlsx_to_document_metadata(path)
+        parsed = parse_document_to_metadata(path)
         enriched = dict(record_metadata)
         enriched.update(parsed.to_dict())
         return enriched
-    except Exception as exc:  # noqa: BLE001 — aislamiento del adaptador
+    except Exception as exc:  # noqa: BLE001 — aislamiento del router
         # Fallar abierto: metadata mínima con warning
         from pymia.smartpyme.parsed_document_metadata import (
             PARSE_STATUS_FAILED,
@@ -105,10 +108,9 @@ def _enrich_metadata_from_source(
         return {
             **record_metadata,
             "parse_status": PARSE_STATUS_FAILED,
-            "warnings": [f"xlsx_adapter_error: {exc}"],
+            "warnings": [f"document_parser_front_error: {exc}"],
             "confidence": 0.0,
         }
-
 
 def merge_previous_post_ficha_evidence_context(
     *,
@@ -130,7 +132,6 @@ def merge_previous_post_ficha_evidence_context(
         merged["post_ficha_readiness"] = dict(prev_readiness)
     return merged
 
-
 def _find_matching_request_id(evidence_requests: list[dict[str, Any]], evidence_type: str) -> str | None:
     for req in evidence_requests:
         if not isinstance(req, dict):
@@ -140,7 +141,6 @@ def _find_matching_request_id(evidence_requests: list[dict[str, Any]], evidence_
             if isinstance(request_id, str) and request_id.strip():
                 return request_id
     return None
-
 
 def apply_post_ficha_evidence_turn(
     *,
