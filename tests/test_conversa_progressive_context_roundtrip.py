@@ -28,36 +28,38 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
     )
 
     first_reply_lower = first_reply.lower()
-    assert "negocio" in first_reply_lower
-    assert (
-        "productos" in first_reply_lower
-        or "servicios" in first_reply_lower
-        or "fabric" in first_reply_lower
-    )
+    assert "bienvenido a pymia" in first_reply_lower
+    assert "nombre y apellido" in first_reply_lower
+
     session_id = conversa_main._session_id(tenant_id, user_id)
     assert session_id in conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION
     first_context = conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
+    
     assert isinstance(first_context, dict)
+    fsm_state = first_context.get("fsm_state", {})
+    assert fsm_state.get("phase") == "FICHA_PYME_INICIAL"
+    assert fsm_state.get("profile_step") == "ASK_CONTACT_NAME"
     assert first_context.get("has_taxonomy") is False
-    assert first_context.get("phase") == "ANAMNESIS_TAXONOMIA"
+    
+    profile_data = fsm_state.get("profile_data", {})
+    assert profile_data.get("raw_first_message") == "vendo mucho pero no se si gano plata"
 
     second_reply = conversa_main.run_message(
-        "somos una distribuidora de alimentos, 12 empleados, vendemos a comercios",
+        "Juan Perez",
         tenant_id=tenant_id,
         user_id=user_id,
     )
 
+    second_reply_lower = second_reply.lower()
+    assert "rol en la empresa" in second_reply_lower
+
     context = conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
     assert isinstance(context, dict)
-    assert context.get("has_taxonomy") is True
-    assert context.get("phase") == "ANAMNESIS_TAXONOMIA"
-    assert context.get("tenant_id") == tenant_id
-    taxonomy = context.get("fsm_state", {}).get("taxonomy")
-    assert isinstance(taxonomy, dict)
-    assert taxonomy.get("jurisdiction") == "AR"
-    second_reply_lower = second_reply.lower()
-    assert not (
-        "productos" in second_reply_lower
-        or "servicios" in second_reply_lower
-        or "fabric" in second_reply_lower
-    )
+    fsm_state2 = context.get("fsm_state", {})
+    assert fsm_state2.get("phase") == "FICHA_PYME_INICIAL"
+    assert fsm_state2.get("profile_step") == "ASK_CONTACT_ROLE"
+    assert context.get("has_taxonomy") is False
+    
+    profile_data2 = fsm_state2.get("profile_data", {})
+    assert profile_data2.get("contact", {}).get("full_name") == "Juan Perez"
+    assert profile_data2.get("raw_first_message") == "vendo mucho pero no se si gano plata"

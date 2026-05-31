@@ -5,7 +5,6 @@ import importlib.util
 from pathlib import Path
 
 
-
 def _load_conversa_main():
     module_path = Path(__file__).resolve().parents[1] / 'conversa-engine' / 'main.py'
     spec = importlib.util.spec_from_file_location('conversa_engine_main_for_boundary_smoke_test', module_path)
@@ -28,26 +27,58 @@ def test_conversa_engine_boundary_consumption_smoke() -> None:
         register_text_intake=lambda _text, _tenant, _user: None,
         get_supermemory_recall_client=lambda: None,
     )
+
     first_reply = conversa_main.run_message(
         'Tengo una fábrica textil y no sé si gano plata',
         tenant_id=tenant_id,
         user_id=user_id,
         deps=deps,
     )
-    second_reply = conversa_main.run_message(
+
+    session_id = conversa_main._session_id(tenant_id, user_id)
+    context_after_first = conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
+    assert isinstance(first_reply, str)
+    assert first_reply.strip() != ''
+    assert context_after_first.get('phase') == 'FICHA_PYME_INICIAL'
+    assert context_after_first.get('has_taxonomy') is False
+    assert context_after_first.get('has_hypotheses') is False
+    assert context_after_first.get('has_evidence_requests') is False
+    assert context_after_first.get('fsm_state', {}).get('profile_step') == 'ASK_CONTACT_NAME'
+    assert context_after_first.get('fsm_state', {}).get('profile_data', {}).get('raw_first_message') == 'Tengo una fábrica textil y no sé si gano plata'
+
+    profile_answers = [
+        'Juan Perez',
+        'dueno',
+        '+5491122334455',
+        'juan@example.com',
+        'Textiles JP',
+        '2',
+        'textil',
+        'fabrico y vendo',
+        '6,5',
+        '2',
+        'no tengo',
+        '2',
+        '2',
+        '1',
+        '1',
+        '3',
+        '1,4',
+    ]
+
+    for answer in profile_answers:
+        reply = conversa_main.run_message(answer, tenant_id=tenant_id, user_id=user_id, deps=deps)
+        assert isinstance(reply, str)
+        assert reply.strip() != ''
+
+    taxonomy_reply = conversa_main.run_message(
         'fabrico ropa y vendo por mayor',
         tenant_id=tenant_id,
         user_id=user_id,
         deps=deps,
     )
-
-    assert isinstance(first_reply, str)
-    assert first_reply.strip() != ''
-    assert isinstance(second_reply, str)
-    assert second_reply.strip() != ''
-
-    session_id = conversa_main._session_id(tenant_id, user_id)
-    assert session_id in conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION
+    assert isinstance(taxonomy_reply, str)
+    assert taxonomy_reply.strip() != ''
 
     context = conversa_main._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
     assert isinstance(context, dict)

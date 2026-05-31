@@ -13,11 +13,14 @@ def test_domain_core_v1_consumption_smoke_from_smartpyme_boundary() -> None:
 
     assert output.updated_progressive_context is not None
     assert output.updated_progressive_context['tenant_id'] == 'T_M18_SMOKE'
-    assert output.updated_progressive_context['phase'] == 'ANAMNESIS_TAXONOMIA'
-    assert output.updated_progressive_context['has_taxonomy'] is True
+    assert output.updated_progressive_context['phase'] == 'FICHA_PYME_INICIAL'
+    assert output.updated_progressive_context['has_taxonomy'] is False
+    assert output.updated_progressive_context['has_hypotheses'] is False
+    assert output.updated_progressive_context['has_evidence_requests'] is False
 
     fsm_state = output.updated_progressive_context['fsm_state']
-    taxonomy = fsm_state['taxonomy']
-    assert taxonomy is not None
-    assert taxonomy['organism_type'] == 'textil'
-    assert taxonomy['jurisdiction'] == 'AR'
+    assert fsm_state['profile_step'] == 'ASK_CONTACT_NAME'
+    assert fsm_state['profile_data']['raw_first_message'] == 'fabrico ropa y vendo por mayor'
+    assert fsm_state['taxonomy'] is None
+    assert fsm_state['hypotheses'] == []
+    assert fsm_state['evidence_requests'] == []

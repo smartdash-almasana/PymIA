@@ -169,6 +169,8 @@ def _reconstruct_state_from_context(
             blocking_reasons=blocking_reasons,
             created_at=fsm_state_dict.get("created_at", ""),
             updated_at=fsm_state_dict.get("updated_at", ""),
+            profile_step=fsm_state_dict.get("profile_step"),
+            profile_data=fsm_state_dict.get("profile_data", {}),
         )
     except Exception:
         # Fail-closed: contexto corrupto → None (sesión nueva)
