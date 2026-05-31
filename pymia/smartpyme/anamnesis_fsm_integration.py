@@ -34,9 +34,16 @@ from pymia.smartpyme.conversation_contract import (
     create_conversation_contract,
 )
 from pymia.smartpyme.evidence_requirement import EvidenceRequirement
-from pymia.smartpyme.intake import create_intake_record
+from pymia.smartpyme.intake import (
+    create_intake_record,
+)
 from pymia.smartpyme.interrogation import StructuredSelectors
 from pymia.smartpyme.operational_hypothesis import OperationalHypothesis
+from pymia.smartpyme.post_ficha_evidence_gate import (
+    apply_post_ficha_evidence_turn,
+    is_post_ficha_evidence_input,
+    merge_previous_post_ficha_evidence_context,
+)
 from pymia.smartpyme.taxonomy import BusinessTaxonomySnapshot
 
 __all__ = [
@@ -601,8 +608,31 @@ def run_anamnesis_turn(input_data: AnamnesisTurnInput) -> AnamnesisTurnOutput:
     existing_post_ficha_routing = _get_existing_post_ficha_routing(input_data.previous_progressive_context)
     if existing_post_ficha_routing is not None:
         updated_context["post_ficha_routing"] = existing_post_ficha_routing
+    updated_context = merge_previous_post_ficha_evidence_context(
+        previous_context=input_data.previous_progressive_context,
+        updated_context=updated_context,
+    )
 
-    if _is_initial_profile_complete(new_state):
+    handled_evidence_input = False
+    if is_post_ficha_evidence_input(input_data.message_text):
+        try:
+            updated_context, reply_text = apply_post_ficha_evidence_turn(
+                tenant_id=input_data.tenant_id,
+                message_text=input_data.message_text,
+                previous_context=input_data.previous_progressive_context,
+                updated_context=updated_context,
+            )
+            handled_evidence_input = True
+        except ValueError as exc:
+            reply_text = str(exc)
+            if not reply_text:
+                reply_text = (
+                    "No pude registrar la evidencia. "
+                    "Usá: EVIDENCE::<source_kind>::<evidence_type>::<source_ref>."
+                )
+            handled_evidence_input = True
+
+    if _is_initial_profile_complete(new_state) and not handled_evidence_input:
         post_ficha_routing = updated_context.get("post_ficha_routing")
         if not (isinstance(post_ficha_routing, dict) and str(post_ficha_routing.get("intake_id") or "").strip()):
             profile_data = new_state.profile_data if isinstance(new_state.profile_data, dict) else {}
