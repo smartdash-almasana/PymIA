@@ -8,6 +8,11 @@ from __future__ import annotations
 from typing import Any
 
 from pymia.smartpyme.evidence import create_evidence_record
+from pymia.smartpyme.evidence_gate import (
+    ASSESSMENT_SATISFIED,
+    SUGGESTED_READY_FOR_ANALYSIS,
+    evaluate_evidence_sufficiency,
+)
 from pymia.smartpyme.intake import (
     EVIDENCE_STATUS_RECEIVED,
     EVIDENCE_STATUS_REQUESTED,
@@ -55,10 +60,6 @@ def merge_previous_post_ficha_evidence_context(
     return merged
 
 
-def _request_is_satisfied(status: str) -> bool:
-    return status in {EVIDENCE_STATUS_RECEIVED, EVIDENCE_STATUS_SATISFIED}
-
-
 def _find_matching_request_id(evidence_requests: list[dict[str, Any]], evidence_type: str) -> str | None:
     for req in evidence_requests:
         if not isinstance(req, dict):
@@ -76,8 +77,9 @@ def apply_post_ficha_evidence_turn(
     message_text: str,
     previous_context: dict[str, Any] | None,
     updated_context: dict[str, Any],
+    evidence_metadata: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], str]:
-    """Apply evidence reception, request update, and readiness projection."""
+    """Apply evidence reception and delegate declared-content sufficiency evaluation."""
     source_kind, evidence_type, source_ref = parse_post_ficha_evidence_input(message_text.strip())
 
     post_ficha_routing = updated_context.get("post_ficha_routing")
@@ -123,6 +125,7 @@ def apply_post_ficha_evidence_turn(
             evidence_type=evidence_type,
             source_kind=source_kind,
             source_ref=source_ref,
+            metadata=evidence_metadata,
         )
         evidence_records.append(evidence_record.to_dict())
 
@@ -135,31 +138,52 @@ def apply_post_ficha_evidence_turn(
             item["status"] = EVIDENCE_STATUS_REQUESTED
         updated_requests.append(item)
 
+    sufficiency = evaluate_evidence_sufficiency(
+        {
+            "tenant_id": tenant_id,
+            "intake_id": intake_id,
+            "evidence_requests": updated_requests,
+        },
+        evidence_records,
+    )
+    assessment_by_id = {
+        assessment.request_id: assessment for assessment in sufficiency.assessments
+    }
+    for item in updated_requests:
+        assessment = assessment_by_id.get(str(item.get("request_id") or ""))
+        if assessment is None:
+            continue
+        if assessment.status == ASSESSMENT_SATISFIED:
+            item["status"] = EVIDENCE_STATUS_SATISFIED
+        elif assessment.matched_evidence_ids:
+            item["status"] = EVIDENCE_STATUS_RECEIVED
+
     out_context = dict(updated_context)
     updated_post_ficha_routing = dict(post_ficha_routing)
     updated_post_ficha_routing["evidence_requests"] = updated_requests
     out_context["post_ficha_routing"] = updated_post_ficha_routing
     out_context["evidence_records"] = evidence_records
 
-    blocking_requests = [
-        req for req in updated_requests if bool(req.get("blocks_analysis", True))
+    blocking_assessments = [
+        assessment for assessment in sufficiency.assessments if assessment.blocking
     ]
-    requested_count = len(blocking_requests)
-    missing_types: list[str] = []
-    received_count = 0
-    for req in blocking_requests:
-        status = str(req.get("status") or EVIDENCE_STATUS_REQUESTED).strip()
-        if _request_is_satisfied(status):
-            received_count += 1
-        else:
-            missing_types.append(str(req.get("evidence_type") or "").strip())
-
-    ready_for_analysis = requested_count == 0 or len(missing_types) == 0
+    requested_count = len(blocking_assessments)
+    received_count = sum(bool(assessment.matched_evidence_ids) for assessment in blocking_assessments)
+    satisfied_count = sum(
+        assessment.status == ASSESSMENT_SATISFIED for assessment in blocking_assessments
+    )
+    missing_types = [
+        assessment.evidence_type
+        for assessment in blocking_assessments
+        if assessment.status != ASSESSMENT_SATISFIED
+    ]
+    ready_for_analysis = sufficiency.suggested_next_state == SUGGESTED_READY_FOR_ANALYSIS
     readiness_state = "READY_FOR_ANALYSIS" if ready_for_analysis else "NEEDS_EVIDENCE"
     out_context["post_ficha_readiness"] = {
         "intake_id": intake_id,
         "readiness_state": readiness_state,
         "received_count": received_count,
+        "satisfied_count": satisfied_count,
         "requested_count": requested_count,
         "missing_evidence_types": [x for x in missing_types if x],
         "ready_for_analysis": ready_for_analysis,

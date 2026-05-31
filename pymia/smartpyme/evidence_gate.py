@@ -275,7 +275,8 @@ def evaluate_evidence_sufficiency(
         req_id = _extract_request_id(req)
         evidence_type = req.get("evidence_type") or ""
         source_tank = req.get("source_tank")
-        blocking = bool(req.get("blocks_analysis", False))
+        # Legacy requests predate blocks_analysis and were blocking by default.
+        blocking = bool(req.get("blocks_analysis", True))
         required = bool(req.get("required", blocking))
         required_fields = req.get("required_fields") or []
         if not isinstance(required_fields, list):
@@ -332,13 +333,15 @@ def evaluate_evidence_sufficiency(
             # Check required fields against evidence metadata
             missing_f = []
             if required_fields:
+                declared_fields: set[str] = set()
                 for ev in matched_evs:
                     meta = ev.get("metadata") or {}
                     if not isinstance(meta, dict):
                         meta = {}
-                    for rf in required_fields:
-                        if rf not in meta and rf not in missing_f:
-                            missing_f.append(rf)
+                    declared_fields.update(str(key) for key in meta)
+                missing_f = [
+                    rf for rf in required_fields if rf not in declared_fields
+                ]
 
             if missing_f:
                 status = ASSESSMENT_PARTIAL

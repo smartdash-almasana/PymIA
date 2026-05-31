@@ -135,3 +135,60 @@ def test_non_blocking_request_does_not_prevent_readiness() -> None:
     assert readiness["ready_for_analysis"] is True
     assert readiness["requested_count"] == 2
     assert readiness["missing_evidence_types"] == []
+
+
+def test_received_request_without_required_metadata_is_not_satisfied() -> None:
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "description": "Ventas",
+            "reason": "Contrastar",
+            "status": "REQUESTED",
+            "hypothesis_id": "hyp_1",
+            "blocks_analysis": True,
+            "required_fields": ["period", "amount"],
+        }
+    ]
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    request = out["post_ficha_routing"]["evidence_requests"][0]
+    readiness = out["post_ficha_readiness"]
+    assert request["status"] == "RECEIVED"
+    assert readiness["readiness_state"] == "NEEDS_EVIDENCE"
+    assert readiness["received_count"] == 1
+    assert readiness["satisfied_count"] == 0
+
+
+def test_declared_required_metadata_marks_request_satisfied() -> None:
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "description": "Ventas",
+            "reason": "Contrastar",
+            "status": "REQUESTED",
+            "hypothesis_id": "hyp_1",
+            "blocks_analysis": True,
+            "required_fields": ["period", "amount"],
+        }
+    ]
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+        evidence_metadata={"period": "2026-01", "amount": 1000},
+    )
+    request = out["post_ficha_routing"]["evidence_requests"][0]
+    readiness = out["post_ficha_readiness"]
+    assert request["status"] == "SATISFIED"
+    assert readiness["readiness_state"] == "READY_FOR_ANALYSIS"
+    assert readiness["received_count"] == 1
+    assert readiness["satisfied_count"] == 1

@@ -105,7 +105,7 @@ def test_readiness_remains_needs_evidence_when_blocking_requests_missing() -> No
     assert len(readiness["missing_evidence_types"]) >= 1
 
 
-def test_readiness_becomes_ready_for_analysis_when_all_blocking_requests_received() -> None:
+def test_readiness_remains_needs_evidence_without_declared_required_metadata() -> None:
     context = _complete_initial_profile("T_EVID_4", "S_EVID_4")
     current_context = context
     requests = context["post_ficha_routing"]["evidence_requests"]
@@ -122,9 +122,10 @@ def test_readiness_becomes_ready_for_analysis_when_all_blocking_requests_receive
         current_context = output.updated_progressive_context
 
     readiness = current_context["post_ficha_readiness"]
-    assert readiness["readiness_state"] == "READY_FOR_ANALYSIS"
-    assert readiness["ready_for_analysis"] is True
-    assert readiness["missing_evidence_types"] == []
+    assert readiness["readiness_state"] == "NEEDS_EVIDENCE"
+    assert readiness["ready_for_analysis"] is False
+    assert readiness["received_count"] >= 1
+    assert readiness["satisfied_count"] < readiness["requested_count"]
 
 
 def test_evidence_reception_is_idempotent_for_same_evidence() -> None:

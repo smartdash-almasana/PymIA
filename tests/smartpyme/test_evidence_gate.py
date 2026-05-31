@@ -262,6 +262,27 @@ class TestRequiredFields:
         # But assessment is still MISSING
         assert result.assessments[0].status == ASSESSMENT_MISSING
 
+    def test_legacy_request_without_blocks_analysis_remains_blocking(self):
+        request = _req(request_id="r1", required_fields=["period"])
+        request.pop("blocks_analysis")
+        intake = _make_intake(evidence_requests=[request])
+        ev = _make_evidence(request_id="r1", metadata={})
+        result = evaluate_evidence_sufficiency(intake, [ev])
+        assert result.status == SUFFICIENCY_NEEDS_MORE_EVIDENCE
+        assert result.assessments[0].blocking is True
+
+    def test_multiple_records_can_declare_required_fields_collectively(self):
+        intake = _make_intake(
+            evidence_requests=[
+                _req(request_id="r1", required_fields=["period", "amount"])
+            ]
+        )
+        ev1 = _make_evidence(evidence_id="ev_1", request_id="r1", metadata={"period": "2026-01"})
+        ev2 = _make_evidence(evidence_id="ev_2", request_id="r1", metadata={"amount": 1000})
+        result = evaluate_evidence_sufficiency(intake, [ev1, ev2])
+        assert result.assessments[0].status == ASSESSMENT_SATISFIED
+        assert result.status == SUFFICIENCY_READY
+
 
 # ---------------------------------------------------------------------------
 # Blocked intake
