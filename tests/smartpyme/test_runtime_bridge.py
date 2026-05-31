@@ -172,12 +172,35 @@ def test_missing_intake_id_raises():
         prepare_runtime_execution(d)
 
 
-def test_missing_runtime_classification_raises():
-    from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
+def test_missing_runtime_classification_blocks_ready_analysis():
+    from pymia.smartpyme.runtime_bridge import (
+        EXECUTION_BLOCKED,
+        prepare_runtime_execution,
+    )
 
     d = _make_readiness(runtime_classification=None)
-    with pytest.raises(ValueError):
-        prepare_runtime_execution(d)
+    c = prepare_runtime_execution(d)
+    assert c.status == EXECUTION_BLOCKED
+    assert c.can_dispatch is False
+    assert c.microservice_name == ""
+    assert "Missing runtime_classification for ready analysis." in c.blocking_reasons
+
+
+def test_missing_runtime_classification_allowed_when_not_ready():
+    from pymia.smartpyme.runtime_bridge import (
+        EXECUTION_BLOCKED,
+        prepare_runtime_execution,
+    )
+
+    d = _make_readiness(
+        status="NEEDS_EVIDENCE",
+        can_execute=False,
+        runtime_classification=None,
+    )
+    c = prepare_runtime_execution(d)
+    assert c.status == EXECUTION_BLOCKED
+    assert c.can_dispatch is False
+    assert c.runtime_classification == ""
 
 
 def test_inputs_not_mutated():

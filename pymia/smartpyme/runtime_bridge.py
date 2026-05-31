@@ -88,6 +88,13 @@ def _require_non_empty(data: dict, key: str) -> str:
     return str(value)
 
 
+def _optional_str(data: dict, key: str) -> str:
+    value = data.get(key)
+    if value is None or str(value).strip() == "":
+        return ""
+    return str(value)
+
+
 def prepare_runtime_execution(
     readiness_result: AnalysisReadinessResult | dict,
 ) -> RuntimeExecutionCandidate:
@@ -96,6 +103,7 @@ def prepare_runtime_execution(
     Rules:
     - status != READY_FOR_ANALYSIS -> BLOCKED
     - can_execute == False -> BLOCKED
+    - missing classification while ready -> BLOCKED
     - runtime_classification unsupported -> UNSUPPORTED
     - else -> READY_TO_EXECUTE
     """
@@ -112,7 +120,7 @@ def prepare_runtime_execution(
         raise ValueError("readiness_result is missing required field: can_execute")
     can_execute = bool(rr["can_execute"])
 
-    runtime_classification = _require_non_empty(rr, "runtime_classification")
+    runtime_classification = _optional_str(rr, "runtime_classification")
 
     evidence_ids = [str(x) for x in (rr.get("matched_evidence_ids") or [])]
     warnings = [str(x) for x in (rr.get("warnings") or [])]
@@ -144,6 +152,22 @@ def prepare_runtime_execution(
             tenant_id=tenant_id,
             intake_id=intake_id,
             runtime_classification=runtime_classification,
+            microservice_name="",
+            evidence_ids=evidence_ids,
+            status=EXECUTION_BLOCKED,
+            can_dispatch=False,
+            blocking_reasons=blocking_reasons,
+            warnings=warnings,
+            audit_notes=audit_notes,
+        )
+
+    if not runtime_classification:
+        blocking_reasons = list(blocking_reasons)
+        blocking_reasons.append("Missing runtime_classification for ready analysis.")
+        return RuntimeExecutionCandidate(
+            tenant_id=tenant_id,
+            intake_id=intake_id,
+            runtime_classification="",
             microservice_name="",
             evidence_ids=evidence_ids,
             status=EXECUTION_BLOCKED,

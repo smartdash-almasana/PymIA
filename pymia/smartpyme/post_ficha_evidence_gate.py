@@ -17,6 +17,7 @@ from pymia.smartpyme.evidence_gate import (
     evaluate_evidence_sufficiency,
 )
 from pymia.smartpyme.readiness import evaluate_analysis_readiness
+from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
 from pymia.smartpyme.intake import (
     EVIDENCE_STATUS_RECEIVED,
     EVIDENCE_STATUS_REQUESTED,
@@ -290,6 +291,16 @@ def apply_post_ficha_evidence_turn(
         sufficiency,
     )
     out_context["analysis_readiness"] = readiness_result.to_dict()
+
+    # Proyectar runtime_execution_candidate desde analysis_readiness.
+    # Esto NO ejecuta runtime ni despacha microservicios; solo produce
+    # el candidato consumible por runtime_bridge. Si analysis_readiness
+    # no es READY_FOR_ANALYSIS, candidate queda BLOCKED por contrato
+    # de prepare_runtime_execution(...).
+    execution_candidate = prepare_runtime_execution(
+        out_context["analysis_readiness"],
+    )
+    out_context["runtime_execution_candidate"] = execution_candidate.to_dict()
 
     if ready_for_analysis:
         reply = (

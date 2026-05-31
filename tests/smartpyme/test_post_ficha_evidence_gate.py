@@ -463,8 +463,8 @@ def test_post_ficha_evidence_gate_ast_rules():
         "ClinicalConversationalPort",
         "formula",
         "diagnostico",
-        "prepare_runtime_execution",
-        "RuntimeExecutionCandidate"
+        "microservice_dispatcher",
+        "ExecutionResult"
     }
     
     for node in ast.walk(tree):
@@ -527,3 +527,50 @@ def test_analysis_readiness_is_projected_and_ready_if_all_satisfied():
     assert candidate.intake_id == "intake_test_001"
     assert candidate.tenant_id == "t1"
     assert candidate.can_dispatch is True
+
+
+# --- Proyección de runtime_execution_candidate ---
+
+def test_runtime_execution_candidate_is_projected_and_blocked_if_not_ready():
+    ctx = _base_context()
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    assert "runtime_execution_candidate" in out
+    candidate = out["runtime_execution_candidate"]
+    assert candidate["tenant_id"] == "t1"
+    assert candidate["intake_id"] == "intake_test_001"
+    assert "runtime_classification" in candidate
+    assert "microservice_name" in candidate
+    assert "evidence_ids" in candidate
+    assert "status" in candidate
+    assert "can_dispatch" in candidate
+    assert "blocking_reasons" in candidate
+    assert "warnings" in candidate
+    assert "audit_notes" in candidate
+    assert candidate["status"] == "BLOCKED"
+    assert candidate["can_dispatch"] is False
+
+
+def test_runtime_execution_candidate_is_ready_if_all_satisfied():
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    candidate = out2["runtime_execution_candidate"]
+    assert candidate["status"] == "READY_TO_EXECUTE"
+    assert candidate["can_dispatch"] is True
+    assert candidate["runtime_classification"] == "excel_diagnostic"
+    assert candidate["microservice_name"] == "excel_diagnostic_worker"
