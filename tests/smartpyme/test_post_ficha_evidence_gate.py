@@ -41,6 +41,30 @@ def test_parse_valid_evidence_input() -> None:
     assert is_post_ficha_evidence_input("EVIDENCE::uploaded_file::x::y")
 
 
+def test_fields_metadata_is_persisted_normalized_and_deduplicated() -> None:
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text=(
+            "EVIDENCE::uploaded_file::sales_records::ventas.xlsx"
+            "::FIELDS= period, amount,period "
+        ),
+        previous_context=None,
+        updated_context=_base_context(),
+    )
+    record = out["evidence_records"][0]
+    assert record["metadata"] == {"fields": ["period", "amount"]}
+
+
+def test_input_without_fields_preserves_empty_metadata() -> None:
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=_base_context(),
+    )
+    assert out["evidence_records"][0]["metadata"] == {}
+
+
 def test_parse_invalid_evidence_input_fail_closed() -> None:
     try:
         parse_post_ficha_evidence_input("EVIDENCE::uploaded_file::missing_ref")
@@ -192,3 +216,86 @@ def test_declared_required_metadata_marks_request_satisfied() -> None:
     assert readiness["readiness_state"] == "READY_FOR_ANALYSIS"
     assert readiness["received_count"] == 1
     assert readiness["satisfied_count"] == 1
+
+
+def test_fields_suffix_marks_request_satisfied_without_file_reading() -> None:
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "description": "Ventas",
+            "reason": "Contrastar",
+            "status": "REQUESTED",
+            "hypothesis_id": "hyp_1",
+            "blocks_analysis": True,
+            "required_fields": ["period", "amount"],
+        }
+    ]
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text=(
+            "EVIDENCE::uploaded_file::sales_records::does-not-exist.xlsx"
+            "::FIELDS=period,amount"
+        ),
+        previous_context=None,
+        updated_context=ctx,
+    )
+    assert out["evidence_records"][0]["metadata"] == {"fields": ["period", "amount"]}
+    assert out["post_ficha_routing"]["evidence_requests"][0]["status"] == "SATISFIED"
+    assert out["post_ficha_readiness"]["ready_for_analysis"] is True
+
+
+def test_incomplete_fields_suffix_leaves_request_received() -> None:
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "description": "Ventas",
+            "reason": "Contrastar",
+            "status": "REQUESTED",
+            "hypothesis_id": "hyp_1",
+            "blocks_analysis": True,
+            "required_fields": ["period", "amount"],
+        }
+    ]
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx::FIELDS=period",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    assert out["post_ficha_routing"]["evidence_requests"][0]["status"] == "RECEIVED"
+    assert out["post_ficha_readiness"]["readiness_state"] == "NEEDS_EVIDENCE"
+
+
+def test_idempotent_resend_merges_declared_fields() -> None:
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "description": "Ventas",
+            "reason": "Contrastar",
+            "status": "REQUESTED",
+            "hypothesis_id": "hyp_1",
+            "blocks_analysis": True,
+            "required_fields": ["period", "amount"],
+        }
+    ]
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx::FIELDS=period",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx::FIELDS=amount",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    assert len(out2["evidence_records"]) == 1
+    assert out2["evidence_records"][0]["metadata"] == {"fields": ["period", "amount"]}
+    assert out2["post_ficha_routing"]["evidence_requests"][0]["status"] == "SATISFIED"

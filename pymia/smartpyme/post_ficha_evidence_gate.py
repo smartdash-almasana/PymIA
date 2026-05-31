@@ -20,18 +20,38 @@ from pymia.smartpyme.intake import (
 )
 
 
-def parse_post_ficha_evidence_input(text: str) -> tuple[str, str, str]:
-    """Parse `EVIDENCE::<source_kind>::<evidence_type>::<source_ref>`."""
+def _parse_post_ficha_evidence_input_with_metadata(
+    text: str,
+) -> tuple[str, str, str, dict[str, Any]]:
+    """Parse evidence input and optional declared structural fields."""
     parts = text.split("::")
-    if len(parts) != 4:
+    if len(parts) not in {4, 5}:
         raise ValueError(
             "Formato inválido. Usá: EVIDENCE::<source_kind>::<evidence_type>::<source_ref>"
+            "[::FIELDS=<campo1,campo2>]"
         )
-    prefix, source_kind, evidence_type, source_ref = [p.strip() for p in parts]
+    prefix, source_kind, evidence_type, source_ref = [p.strip() for p in parts[:4]]
     if prefix != "EVIDENCE" or not source_kind or not evidence_type or not source_ref:
         raise ValueError(
             "Formato inválido. Usá: EVIDENCE::<source_kind>::<evidence_type>::<source_ref>"
+            "[::FIELDS=<campo1,campo2>]"
         )
+    metadata: dict[str, Any] = {}
+    if len(parts) == 5:
+        fields_part = parts[4].strip()
+        if not fields_part.upper().startswith("FIELDS="):
+            raise ValueError("Metadata inválida. Usá: FIELDS=<campo1,campo2>")
+        raw_fields = fields_part.split("=", 1)[1]
+        fields = list(dict.fromkeys(
+            field.strip() for field in raw_fields.split(",") if field.strip()
+        ))
+        metadata["fields"] = fields
+    return source_kind, evidence_type, source_ref, metadata
+
+
+def parse_post_ficha_evidence_input(text: str) -> tuple[str, str, str]:
+    """Parse evidence input while preserving the original public return shape."""
+    source_kind, evidence_type, source_ref, _ = _parse_post_ficha_evidence_input_with_metadata(text)
     return source_kind, evidence_type, source_ref
 
 
@@ -80,7 +100,12 @@ def apply_post_ficha_evidence_turn(
     evidence_metadata: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Apply evidence reception and delegate declared-content sufficiency evaluation."""
-    source_kind, evidence_type, source_ref = parse_post_ficha_evidence_input(message_text.strip())
+    source_kind, evidence_type, source_ref, declared_metadata = (
+        _parse_post_ficha_evidence_input_with_metadata(message_text.strip())
+    )
+    record_metadata = dict(evidence_metadata or {})
+    if "fields" in declared_metadata:
+        record_metadata["fields"] = list(declared_metadata["fields"])
 
     post_ficha_routing = updated_context.get("post_ficha_routing")
     if not isinstance(post_ficha_routing, dict):
@@ -105,7 +130,7 @@ def apply_post_ficha_evidence_turn(
             if isinstance(row, dict):
                 evidence_records.append(dict(row))
 
-    already_exists = False
+    existing_record: dict[str, Any] | None = None
     for row in evidence_records:
         row_key = (
             str(row.get("intake_id") or "").strip(),
@@ -114,10 +139,10 @@ def apply_post_ficha_evidence_turn(
             str(row.get("source_ref") or "").strip(),
         )
         if row_key == evidence_key:
-            already_exists = True
+            existing_record = row
             break
 
-    if not already_exists:
+    if existing_record is None:
         evidence_record = create_evidence_record(
             tenant_id=tenant_id,
             intake_id=intake_id,
@@ -125,9 +150,17 @@ def apply_post_ficha_evidence_turn(
             evidence_type=evidence_type,
             source_kind=source_kind,
             source_ref=source_ref,
-            metadata=evidence_metadata,
+            metadata=record_metadata,
         )
         evidence_records.append(evidence_record.to_dict())
+    elif record_metadata:
+        merged_metadata = dict(existing_record.get("metadata") or {})
+        existing_fields = merged_metadata.get("fields")
+        new_fields = record_metadata.get("fields")
+        if isinstance(existing_fields, list) and isinstance(new_fields, list):
+            record_metadata["fields"] = list(dict.fromkeys([*existing_fields, *new_fields]))
+        merged_metadata.update(record_metadata)
+        existing_record["metadata"] = merged_metadata
 
     updated_requests: list[dict[str, Any]] = []
     for req in evidence_requests:

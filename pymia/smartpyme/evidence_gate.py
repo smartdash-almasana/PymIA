@@ -338,7 +338,14 @@ def evaluate_evidence_sufficiency(
                     meta = ev.get("metadata") or {}
                     if not isinstance(meta, dict):
                         meta = {}
-                    declared_fields.update(str(key) for key in meta)
+                    declared_fields.update(str(key) for key in meta if key != "fields")
+                    metadata_fields = meta.get("fields")
+                    if isinstance(metadata_fields, list):
+                        declared_fields.update(
+                            str(field).strip()
+                            for field in metadata_fields
+                            if str(field).strip()
+                        )
                 missing_f = [
                     rf for rf in required_fields if rf not in declared_fields
                 ]
