@@ -29,6 +29,7 @@ class OperationalHypothesis:
     domain: str
     related_symptoms: list[str] = field(default_factory=list)
     required_evidence: list[str] = field(default_factory=list)
+    candidate_pathology_codes: list[str] = field(default_factory=list)
     status: HypothesisStatus = HypothesisStatus.ABIERTA
     findings_refs: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -48,6 +49,7 @@ def create_hypothesis(
     domain: str,
     related_symptoms: list[str] | None = None,
     required_evidence: list[str] | None = None,
+    candidate_pathology_codes: list[str] | None = None,
 ) -> OperationalHypothesis:
     """Create an operational hypothesis contract object.
 
@@ -73,7 +75,32 @@ def create_hypothesis(
         domain=domain,
         related_symptoms=list(related_symptoms or []),
         required_evidence=list(required_evidence or []),
+        candidate_pathology_codes=list(candidate_pathology_codes or []),
     )
+
+
+_CANDIDATE_PATHOLOGY_CODES_BY_SYMPTOM: dict[str, tuple[str, ...]] = {
+    "DESCUADRE_DINERO": ("LIQ_001", "LIQ_002", "PYME_013", "PYME_026", "PYME_046"),
+    "MARGEN_DUDOSO": ("REN_001", "REN_002", "PYME_014", "PYME_017", "PYME_044", "PYME_048", "PYME_049"),
+    "DATOS_DUPLICADOS": ("PYME_018", "PYME_022", "PYME_038"),
+    "STOCK_INCONSISTENTE": ("INV_001", "INV_002", "PYME_008", "PYME_042"),
+    "SOBRECARGA_MANUAL": ("PYME_015", "PYME_020", "PYME_040", "PYME_047"),
+    "COSTO_INCIERTO": ("REN_002", "PYME_014", "PYME_048", "PYME_049"),
+    "DOCUMENTACION_DESORDENADA": ("PYME_018", "PYME_022", "PYME_038"),
+    "MAESTRO_DESORDENADO": ("PYME_018", "PYME_022"),
+}
+
+
+def derive_candidate_pathology_codes(candidate_symptoms: list[str]) -> list[str]:
+    """Derive documented candidate pathologies without selecting a diagnosis."""
+    codes: list[str] = []
+    for symptom in candidate_symptoms:
+        if not isinstance(symptom, str):
+            continue
+        for code in _CANDIDATE_PATHOLOGY_CODES_BY_SYMPTOM.get(symptom.strip(), ()):
+            if code not in codes:
+                codes.append(code)
+    return codes
 
 
 def build_operational_hypotheses_for_intake(
@@ -122,6 +149,7 @@ def build_operational_hypotheses_for_intake(
             domain=domain,
             related_symptoms=symptoms,
             required_evidence=evidence,
+            candidate_pathology_codes=derive_candidate_pathology_codes(symptoms),
         )
     ]
 
@@ -159,6 +187,7 @@ __all__ = [
     "HypothesisStatus",
     "OperationalHypothesis",
     "create_hypothesis",
+    "derive_candidate_pathology_codes",
     "build_operational_hypotheses_for_intake",
     "update_hypothesis_status",
 ]

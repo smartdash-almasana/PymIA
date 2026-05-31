@@ -387,6 +387,7 @@ def _reconstruct_hypotheses(
                 domain=h_dict.get("domain", ""),
                 related_symptoms=list(h_dict.get("related_symptoms", [])),
                 required_evidence=list(h_dict.get("required_evidence", [])),
+                candidate_pathology_codes=list(h_dict.get("candidate_pathology_codes", [])),
                 status=status,
                 findings_refs=list(h_dict.get("findings_refs", [])),
                 created_at=h_dict.get("created_at", ""),
@@ -533,6 +534,7 @@ def _build_post_ficha_routing_projection(
                 "hypothesis_id": hypothesis.hypothesis_id,
                 "formulation": hypothesis.formulation,
                 "domain": hypothesis.domain,
+                "candidate_pathology_codes": list(hypothesis.candidate_pathology_codes),
                 "status": (
                     hypothesis.status.value
                     if hasattr(hypothesis.status, "value")
