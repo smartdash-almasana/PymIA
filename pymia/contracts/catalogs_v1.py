@@ -35,6 +35,7 @@ class FormulaCatalogEntryV1(BaseModel):
     display_expression: str
     category: str
     required_variables: list[str] = Field(default_factory=list)
+    required_evidence: list[str] = Field(default_factory=list)
     output_unit: str
     calculation_state: Literal[
         "CALCULABLE",
