@@ -34,6 +34,7 @@ from pymia.smartpyme.conversation_contract import (
     create_conversation_contract,
 )
 from pymia.smartpyme.evidence_requirement import EvidenceRequirement
+from pymia.smartpyme.intake import create_intake_record
 from pymia.smartpyme.interrogation import StructuredSelectors
 from pymia.smartpyme.operational_hypothesis import OperationalHypothesis
 from pymia.smartpyme.taxonomy import BusinessTaxonomySnapshot
@@ -470,6 +471,82 @@ def _serialize_state_to_context(state: AnamnesisFSMState) -> dict[str, Any]:
     }
 
 
+def _is_initial_profile_complete(state: AnamnesisFSMState) -> bool:
+    if state.profile_step != "INITIAL_PROFILE_COMPLETE":
+        return False
+    profile_data = state.profile_data if isinstance(state.profile_data, dict) else {}
+    profile_status = profile_data.get("profile_status")
+    if profile_status is None:
+        return True
+    return profile_status == "COMPLETE"
+
+
+def _get_existing_post_ficha_routing(context: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(context, dict):
+        return None
+    projection = context.get("post_ficha_routing")
+    if not isinstance(projection, dict):
+        return None
+    intake_id = projection.get("intake_id")
+    if isinstance(intake_id, str) and intake_id.strip():
+        return projection
+    return None
+
+
+def _build_post_ficha_routing_projection(
+    *,
+    tenant_id: str,
+    profile_data: dict[str, Any],
+    raw_first_message: str,
+) -> dict[str, Any]:
+    selectors = build_structured_selectors_from_profile_data(profile_data)
+    intake_record = create_intake_record(
+        tenant_id=tenant_id,
+        raw_text=raw_first_message,
+        structured_selectors=selectors,
+    )
+    return {
+        "intake_id": intake_record.intake_id,
+        "intake_state": intake_record.intake_state,
+        "suggested_next_state": intake_record.suggested_next_state,
+        "candidate_symptoms": intake_record.interrogation_result.get("candidate_symptoms", []),
+        "evidence_requests": [
+            {
+                "request_id": req.request_id,
+                "evidence_type": req.evidence_type,
+                "description": req.description,
+                "reason": req.reason,
+                "status": req.status,
+            }
+            for req in intake_record.evidence_requests
+        ],
+    }
+
+
+def _build_post_ficha_reply(post_ficha_routing: dict[str, Any]) -> str:
+    evidence_requests = post_ficha_routing.get("evidence_requests")
+    if isinstance(evidence_requests, list) and evidence_requests:
+        descriptions: list[str] = []
+        for item in evidence_requests[:2]:
+            if not isinstance(item, dict):
+                continue
+            description = str(item.get("description") or "").strip()
+            if description:
+                descriptions.append(description)
+        if descriptions:
+            lines = [
+                "Ya tengo la ficha inicial.",
+                "Para avanzar sin adivinar necesito esta evidencia mínima:",
+            ]
+            for idx, description in enumerate(descriptions, start=1):
+                lines.append(f"{idx}. {description}")
+            return "\n".join(lines)
+    return (
+        "Ya tengo la ficha inicial.\n"
+        "Antes de pedir documentos necesito aclarar el frente operativo que querés ordenar primero."
+    )
+
+
 def run_anamnesis_turn(input_data: AnamnesisTurnInput) -> AnamnesisTurnOutput:
     """
     Ejecuta un turno de anamnesis usando el FSM offline.
@@ -521,6 +598,24 @@ def run_anamnesis_turn(input_data: AnamnesisTurnInput) -> AnamnesisTurnOutput:
 
     # Serializar nuevo estado a progressive_context
     updated_context = _serialize_state_to_context(new_state)
+    existing_post_ficha_routing = _get_existing_post_ficha_routing(input_data.previous_progressive_context)
+    if existing_post_ficha_routing is not None:
+        updated_context["post_ficha_routing"] = existing_post_ficha_routing
+
+    if _is_initial_profile_complete(new_state):
+        post_ficha_routing = updated_context.get("post_ficha_routing")
+        if not (isinstance(post_ficha_routing, dict) and str(post_ficha_routing.get("intake_id") or "").strip()):
+            profile_data = new_state.profile_data if isinstance(new_state.profile_data, dict) else {}
+            raw_first_message = str(profile_data.get("raw_first_message") or "").strip()
+            if not raw_first_message:
+                raw_first_message = str(input_data.message_text or "").strip()
+            post_ficha_routing = _build_post_ficha_routing_projection(
+                tenant_id=input_data.tenant_id,
+                profile_data=profile_data,
+                raw_first_message=raw_first_message,
+            )
+            updated_context["post_ficha_routing"] = post_ficha_routing
+        reply_text = _build_post_ficha_reply(post_ficha_routing)
 
     # Extraer metadata para output
     phase_str = new_state.phase.value if isinstance(new_state.phase, FSMPhase) else new_state.phase
