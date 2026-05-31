@@ -7,7 +7,10 @@ from pymia.smartpyme.operational_hypothesis import (
     derive_candidate_pathology_codes,
     update_hypothesis_status,
 )
-from pymia.services.catalog_loader_v1 import load_pathology_catalog_v1
+from pymia.services.catalog_loader_v1 import (
+    load_formula_catalog_v1,
+    load_pathology_catalog_v1,
+)
 
 
 def test_create_hypothesis_valid():
@@ -79,3 +82,23 @@ def test_build_hypothesis_candidates_exist_in_pathology_catalog():
     assert hypotheses
     assert isinstance(hypotheses[0].candidate_pathology_codes, list)
     assert set(hypotheses[0].candidate_pathology_codes) <= catalog_codes
+
+
+def test_build_hypothesis_candidate_formula_ids_come_from_formula_catalog():
+    hypotheses = build_operational_hypotheses_for_intake(
+        tenant_id="t1",
+        intake_id="i1",
+        candidate_symptoms=["MARGEN_DUDOSO", "SOBRECARGA_MANUAL"],
+        candidate_domains=["comercial"],
+        required_evidence=["excel_ventas_costos"],
+    )
+    formula_catalog = load_formula_catalog_v1()
+    linked_formula_ids = {
+        formula.formula_id
+        for formula in formula_catalog.formulas
+        if formula.pathology_code in hypotheses[0].candidate_pathology_codes
+    }
+    assert isinstance(hypotheses[0].candidate_formula_ids, list)
+    assert len(hypotheses[0].candidate_formula_ids) > 1
+    assert set(hypotheses[0].candidate_formula_ids) == linked_formula_ids
+    assert "formula_id" not in hypotheses[0].to_dict()

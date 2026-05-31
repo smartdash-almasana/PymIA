@@ -18,7 +18,10 @@ import json
 
 import pytest
 
-from pymia.services.catalog_loader_v1 import load_pathology_catalog_v1
+from pymia.services.catalog_loader_v1 import (
+    load_formula_catalog_v1,
+    load_pathology_catalog_v1,
+)
 from pymia.smartpyme.intake import (
     create_intake_record,
     IntakeRecord,
@@ -355,6 +358,21 @@ class TestIntakeRecordIntegrity:
         assert len(candidate_codes) > 1
         assert set(candidate_codes) <= catalog_codes
         assert "pathology_code" not in r.hypotheses[0].to_dict()
+
+    def test_hypothesis_has_catalog_backed_candidate_formula_ids(self):
+        r = create_intake_record(
+            tenant_id="t1",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
+        )
+        formula_ids = {
+            formula.formula_id
+            for formula in load_formula_catalog_v1().formulas
+        }
+        candidate_formula_ids = r.hypotheses[0].candidate_formula_ids
+        assert isinstance(candidate_formula_ids, list)
+        assert len(candidate_formula_ids) > 1
+        assert set(candidate_formula_ids) <= formula_ids
+        assert "formula_id" not in r.hypotheses[0].to_dict()
 
 
 # ---------------------------------------------------------------------------

@@ -46,3 +46,21 @@ def validate_formula_pathology_links(
         for formula in formulas.formulas
         if formula.pathology_code not in pathology_codes
     ]
+
+
+def get_candidate_formula_ids_by_pathology_codes(
+    pathology_codes: list[str],
+    formula_catalog: FormulaCatalogV1 | None = None,
+) -> list[str]:
+    """Return lightweight formula IDs linked to candidate pathologies."""
+    candidate_codes = {
+        code.strip()
+        for code in pathology_codes
+        if isinstance(code, str) and code.strip()
+    }
+    formulas = formula_catalog or load_formula_catalog_v1()
+    formula_ids: list[str] = []
+    for formula in formulas.formulas:
+        if formula.pathology_code in candidate_codes and formula.formula_id not in formula_ids:
+            formula_ids.append(formula.formula_id)
+    return formula_ids

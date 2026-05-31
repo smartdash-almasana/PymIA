@@ -86,11 +86,15 @@ def test_post_ficha_routing_hypotheses_projection_is_lightweight() -> None:
             "formulation",
             "domain",
             "candidate_pathology_codes",
+            "candidate_formula_ids",
             "status",
         }
         assert isinstance(hypothesis["candidate_pathology_codes"], list)
+        assert isinstance(hypothesis["candidate_formula_ids"], list)
+        assert len(hypothesis["candidate_formula_ids"]) > 1
         assert "pathology_code" not in hypothesis
         assert "formula_id" not in hypothesis
+        assert "candidate_formulas" not in hypothesis
 
 
 def test_post_ficha_routing_evidence_requests_link_to_hypothesis() -> None:

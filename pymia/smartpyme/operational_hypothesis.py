@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from pymia.services.catalog_loader_v1 import get_candidate_formula_ids_by_pathology_codes
+
 
 class HypothesisStatus(str, Enum):
     ABIERTA = "ABIERTA"
@@ -30,6 +32,7 @@ class OperationalHypothesis:
     related_symptoms: list[str] = field(default_factory=list)
     required_evidence: list[str] = field(default_factory=list)
     candidate_pathology_codes: list[str] = field(default_factory=list)
+    candidate_formula_ids: list[str] = field(default_factory=list)
     status: HypothesisStatus = HypothesisStatus.ABIERTA
     findings_refs: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -50,6 +53,7 @@ def create_hypothesis(
     related_symptoms: list[str] | None = None,
     required_evidence: list[str] | None = None,
     candidate_pathology_codes: list[str] | None = None,
+    candidate_formula_ids: list[str] | None = None,
 ) -> OperationalHypothesis:
     """Create an operational hypothesis contract object.
 
@@ -76,6 +80,7 @@ def create_hypothesis(
         related_symptoms=list(related_symptoms or []),
         required_evidence=list(required_evidence or []),
         candidate_pathology_codes=list(candidate_pathology_codes or []),
+        candidate_formula_ids=list(candidate_formula_ids or []),
     )
 
 
@@ -139,6 +144,7 @@ def build_operational_hypotheses_for_intake(
         "Hipótesis operativa abierta a contrastar "
         f"en {domain}: {', '.join(symptoms)}"
     )
+    candidate_pathology_codes = derive_candidate_pathology_codes(symptoms)
     return [
         create_hypothesis(
             hypothesis_id=f"{intake_id}_hyp_000",
@@ -149,7 +155,10 @@ def build_operational_hypotheses_for_intake(
             domain=domain,
             related_symptoms=symptoms,
             required_evidence=evidence,
-            candidate_pathology_codes=derive_candidate_pathology_codes(symptoms),
+            candidate_pathology_codes=candidate_pathology_codes,
+            candidate_formula_ids=get_candidate_formula_ids_by_pathology_codes(
+                candidate_pathology_codes
+            ),
         )
     ]
 
