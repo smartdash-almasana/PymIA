@@ -141,10 +141,13 @@ def apply_post_ficha_evidence_turn(
     out_context["post_ficha_routing"] = updated_post_ficha_routing
     out_context["evidence_records"] = evidence_records
 
-    requested_count = len(updated_requests)
+    blocking_requests = [
+        req for req in updated_requests if bool(req.get("blocks_analysis", True))
+    ]
+    requested_count = len(blocking_requests)
     missing_types: list[str] = []
     received_count = 0
-    for req in updated_requests:
+    for req in blocking_requests:
         status = str(req.get("status") or EVIDENCE_STATUS_REQUESTED).strip()
         if _request_is_satisfied(status):
             received_count += 1
@@ -178,4 +181,3 @@ def apply_post_ficha_evidence_turn(
             reply = "Evidencia recibida. Todavía faltan evidencias para avanzar."
 
     return out_context, reply
-

@@ -103,3 +103,35 @@ def test_updates_request_and_calculates_readiness_with_idempotency() -> None:
     )
     assert out3["post_ficha_readiness"]["readiness_state"] == "READY_FOR_ANALYSIS"
     assert out3["post_ficha_readiness"]["ready_for_analysis"] is True
+
+
+def test_non_blocking_request_does_not_prevent_readiness() -> None:
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"].append(
+        {
+            "request_id": "req_optional",
+            "evidence_type": "optional_context",
+            "description": "Deseable",
+            "reason": "Amplía contexto",
+            "status": "REQUESTED",
+            "hypothesis_id": "hyp_1",
+            "blocks_analysis": False,
+        }
+    )
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    readiness = out2["post_ficha_readiness"]
+    assert readiness["readiness_state"] == "READY_FOR_ANALYSIS"
+    assert readiness["ready_for_analysis"] is True
+    assert readiness["requested_count"] == 2
+    assert readiness["missing_evidence_types"] == []

@@ -425,6 +425,8 @@ def _reconstruct_evidence_requests(
                 telegram_message=e_dict.get("telegram_message", ""),
                 enables_classification=e_dict.get("enables_classification"),
                 source_tank=e_dict.get("source_tank"),
+                formula_id=e_dict.get("formula_id"),
+                formula_ids=list(e_dict.get("formula_ids", [])),
                 created_at=e_dict.get("created_at", ""),
             )
             result.append(er)
@@ -527,6 +529,10 @@ def _build_post_ficha_routing_projection(
                 "reason": req.reason,
                 "status": req.status,
                 "hypothesis_id": req.hypothesis_id,
+                "formula_id": req.formula_id,
+                "formula_ids": list(req.formula_ids),
+                "blocks_analysis": req.blocks_analysis,
+                "required_fields": list(req.required_fields),
             }
             for req in intake_record.evidence_requests
         ],
@@ -552,7 +558,15 @@ def _build_post_ficha_reply(post_ficha_routing: dict[str, Any]) -> str:
     evidence_requests = post_ficha_routing.get("evidence_requests")
     if isinstance(evidence_requests, list) and evidence_requests:
         descriptions: list[str] = []
-        for item in evidence_requests[:2]:
+        blocking_requests = [
+            item
+            for item in evidence_requests
+            if isinstance(item, dict) and bool(item.get("blocks_analysis", True))
+        ]
+        visible_requests = blocking_requests or [
+            item for item in evidence_requests if isinstance(item, dict)
+        ][:2]
+        for item in visible_requests:
             if not isinstance(item, dict):
                 continue
             description = str(item.get("description") or "").strip()

@@ -26,6 +26,7 @@ class EvidenceRequirement:
     enables_classification: str | None = None
     source_tank: str | None = None
     formula_id: str | None = None
+    formula_ids: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,6 +49,7 @@ def create_evidence_requirement(
     enables_classification: str | None = None,
     source_tank: str | None = None,
     formula_id: str | None = None,
+    formula_ids: list[str] | None = None,
 ) -> EvidenceRequirement:
     """Create a validated evidence requirement contract.
 
@@ -74,6 +76,12 @@ def create_evidence_requirement(
     if priority < 1 or priority > 3:
         raise ValueError("priority must be between 1 and 3")
 
+    normalized_formula_ids = list(dict.fromkeys(
+        value.strip()
+        for value in ([formula_id] if formula_id else []) + list(formula_ids or [])
+        if isinstance(value, str) and value.strip()
+    ))
+
     return EvidenceRequirement(
         requirement_id=requirement_id,
         tenant_id=tenant_id,
@@ -88,7 +96,8 @@ def create_evidence_requirement(
         telegram_message=telegram_message,
         enables_classification=enables_classification,
         source_tank=source_tank,
-        formula_id=formula_id,
+        formula_id=normalized_formula_ids[0] if normalized_formula_ids else None,
+        formula_ids=normalized_formula_ids,
     )
 
 

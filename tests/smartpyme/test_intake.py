@@ -147,6 +147,24 @@ class TestMarginIntake:
         )
         assert "producto" in ev.required_fields
 
+    def test_no_genera_mas_de_tres_evidencias_bloqueantes_iniciales(self):
+        record = create_intake_record(
+            tenant_id="tenant_02",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
+        )
+        blocking = [ev for ev in record.evidence_requests if ev.blocks_analysis]
+        assert len(blocking) <= 3
+        assert len(record.evidence_requests) > len(blocking)
+
+    def test_evidence_request_preserva_formula_ids_completos(self):
+        record = create_intake_record(
+            tenant_id="tenant_02",
+            raw_text="mi margen es dudoso y hago copia manual en excel",
+        )
+        formula_linked = [ev for ev in record.evidence_requests if ev.formula_ids]
+        assert formula_linked
+        assert all(ev.formula_id == ev.formula_ids[0] for ev in formula_linked)
+
 
 # ---------------------------------------------------------------------------
 # Selector-only no se vuelve READY_FOR_ANALYSIS

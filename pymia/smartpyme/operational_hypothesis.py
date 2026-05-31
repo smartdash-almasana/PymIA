@@ -208,7 +208,7 @@ def derive_evidence_requirements_from_formulas(
 
     Rules:
     - Uses the injected formula_catalog when provided (for tests).
-    - Deduplicates by evidence_type: first formula encountered wins.
+    - Deduplicates by evidence_type while preserving every related formula_id.
     - blocks_analysis=True when formula.calculation_state == "CALCULABLE".
     - priority derived from priority_robustez (alta→1, media→2, else→3).
     - Does NOT execute formulas.
@@ -232,7 +232,7 @@ def derive_evidence_requirements_from_formulas(
 
     _PRIORITY_MAP = {"alta": 1, "media": 2}
 
-    seen_evidence_types: dict[str, str] = {}  # evidence_type -> formula_id that claimed it
+    requirements_by_evidence_type: dict[str, EvidenceRequirement] = {}
     requirements: list[EvidenceRequirement] = []
 
     for formula_id in hypothesis.candidate_formula_ids:
@@ -248,20 +248,23 @@ def derive_evidence_requirements_from_formulas(
             evidence_type = evidence_type.strip()
             if not evidence_type:
                 continue
-            if evidence_type in seen_evidence_types:
-                # Deduplication: first formula wins
+            existing = requirements_by_evidence_type.get(evidence_type)
+            if existing is not None:
+                if formula_id not in existing.formula_ids:
+                    existing.formula_ids.append(formula_id)
+                existing.blocks_analysis = existing.blocks_analysis or blocks
+                existing.priority = min(existing.priority, priority)
                 continue
 
-            seen_evidence_types[evidence_type] = formula_id
             req_id = f"{intake_id}_catreq_{formula_id}_{evidence_type[:30]}"
 
-            requirements.append(
-                create_evidence_requirement(
+            requirement = create_evidence_requirement(
                     requirement_id=req_id,
                     tenant_id=tenant_id,
                     intake_id=intake_id,
                     hypothesis_id=hypothesis.hypothesis_id,
                     formula_id=formula_id,
+                    formula_ids=[formula_id],
                     evidence_type=evidence_type,
                     description=(
                         f"Requerimiento para fórmula '{formula.name}' "
@@ -277,8 +280,9 @@ def derive_evidence_requirements_from_formulas(
                     telegram_message=(
                         f"Para analizar tu caso necesito: {evidence_type.replace('_', ' ')}"
                     ),
-                )
             )
+            requirements_by_evidence_type[evidence_type] = requirement
+            requirements.append(requirement)
 
     return requirements
 

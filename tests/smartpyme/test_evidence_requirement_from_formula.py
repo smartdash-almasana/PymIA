@@ -161,7 +161,7 @@ class TestDeduplication:
         assert len(types) == len(set(types)), "No debe haber evidence_types duplicados"
 
     def test_dedup_first_formula_wins_formula_id(self):
-        """ventas_del_periodo es reclamado por LIQ primero."""
+        """formula_id singular conserva compatibilidad con el primer enlace."""
         catalog = _make_catalog([_FORMULA_LIQ, _FORMULA_REN])
         hyp = _make_hypothesis(
             candidate_formula_ids=["LIQ_001_vendido_cobrado", "REN_001_margen_neto_real"]
@@ -171,6 +171,21 @@ class TestDeduplication:
         )
         ventas_req = next(r for r in result if r.evidence_type == "ventas_del_periodo")
         assert ventas_req.formula_id == "LIQ_001_vendido_cobrado"
+
+    def test_dedup_preserves_all_formula_ids(self):
+        """Una evidencia compartida conserva trazabilidad muchos-a-muchos."""
+        catalog = _make_catalog([_FORMULA_LIQ, _FORMULA_REN])
+        hyp = _make_hypothesis(
+            candidate_formula_ids=["LIQ_001_vendido_cobrado", "REN_001_margen_neto_real"]
+        )
+        result = derive_evidence_requirements_from_formulas(
+            hyp, tenant_id="t1", intake_id="i1", formula_catalog=catalog,
+        )
+        ventas_req = next(r for r in result if r.evidence_type == "ventas_del_periodo")
+        assert ventas_req.formula_ids == [
+            "LIQ_001_vendido_cobrado",
+            "REN_001_margen_neto_real",
+        ]
 
 
 class TestBlocksAnalysis:

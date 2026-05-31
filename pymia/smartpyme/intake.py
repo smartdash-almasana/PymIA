@@ -87,6 +87,8 @@ ALLOWED_EVIDENCE_STATUSES = (
     EVIDENCE_STATUS_BLOCKED,
 )
 
+MAX_INITIAL_BLOCKING_EVIDENCE_REQUESTS = 3
+
 
 # ---------------------------------------------------------------------------
 # Modelos de datos
@@ -109,6 +111,7 @@ class IntakeEvidenceRequest:
     status: str
     hypothesis_id: Optional[str] = None
     formula_id: Optional[str] = None
+    formula_ids: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -230,6 +233,34 @@ def _resolve_intake_state(
     return INTAKE_BLOCKED
 
 
+def _merge_formula_ids(
+    request: IntakeEvidenceRequest,
+    *,
+    formula_id: Optional[str],
+    formula_ids: List[str],
+) -> None:
+    merged_ids = list(dict.fromkeys(
+        value
+        for value in [request.formula_id, formula_id, *request.formula_ids, *formula_ids]
+        if isinstance(value, str) and value.strip()
+    ))
+    request.formula_ids = merged_ids
+    request.formula_id = merged_ids[0] if merged_ids else None
+
+
+def _enforce_initial_blocking_limit(
+    requests: List[IntakeEvidenceRequest],
+) -> None:
+    """Keep every request traceable, but block on at most three evidence types."""
+    blocking_count = 0
+    for request in requests:
+        if not request.blocks_analysis:
+            continue
+        blocking_count += 1
+        if blocking_count > MAX_INITIAL_BLOCKING_EVIDENCE_REQUESTS:
+            request.blocks_analysis = False
+
+
 # ---------------------------------------------------------------------------
 # API pública
 # ---------------------------------------------------------------------------
@@ -300,8 +331,11 @@ def create_intake_record(
                 # Enriquecer el existente con formula_id y required_fields del catálogo
                 idx = existing_types[cat_req.evidence_type]
                 existing = intake_evidence[idx]
-                if existing.formula_id is None:
-                    existing.formula_id = cat_req.formula_id
+                _merge_formula_ids(
+                    existing,
+                    formula_id=cat_req.formula_id,
+                    formula_ids=cat_req.formula_ids,
+                )
                 if not existing.required_fields and cat_req.required_fields:
                     existing.required_fields = list(cat_req.required_fields)
             else:
@@ -318,10 +352,13 @@ def create_intake_record(
                     status=EVIDENCE_STATUS_REQUESTED,
                     hypothesis_id=hyp.hypothesis_id,
                     formula_id=cat_req.formula_id,
+                    formula_ids=list(cat_req.formula_ids),
                 )
                 intake_evidence.append(new_req)
                 existing_types[cat_req.evidence_type] = catalog_req_index
                 catalog_req_index += 1
+
+    _enforce_initial_blocking_limit(intake_evidence)
 
     # 5. Estado del intake
     intake_state = _resolve_intake_state(ir, tsr)
@@ -335,6 +372,7 @@ def create_intake_record(
         f"tank_selection.suggested_next_state={tsr.suggested_next_state}",
         f"intake_state={intake_state}",
         f"evidence_requests_count={len(intake_evidence)}",
+        f"blocking_evidence_requests_count={sum(req.blocks_analysis for req in intake_evidence)}",
         f"hypotheses_count={len(hypotheses)}",
     ]
 
@@ -380,4 +418,5 @@ __all__ = [
     "EVIDENCE_STATUS_SATISFIED",
     "EVIDENCE_STATUS_WAIVED",
     "EVIDENCE_STATUS_BLOCKED",
+    "MAX_INITIAL_BLOCKING_EVIDENCE_REQUESTS",
 ]

@@ -1,5 +1,6 @@
 from pymia.smartpyme.anamnesis_fsm_integration import (
     AnamnesisTurnInput,
+    _build_post_ficha_reply,
     run_anamnesis_turn,
 )
 
@@ -107,6 +108,34 @@ def test_post_ficha_routing_evidence_requests_link_to_hypothesis() -> None:
         request.get("hypothesis_id") in hypothesis_ids
         for request in routing["evidence_requests"]
     )
+
+
+def test_post_ficha_routing_evidence_requests_preserve_lightweight_contract() -> None:
+    context = _complete_initial_profile("T_POSTFICHA_2D", "S_POSTFICHA_2D")
+    requests = context["post_ficha_routing"]["evidence_requests"]
+    assert requests
+    assert sum(bool(request["blocks_analysis"]) for request in requests) <= 3
+    for request in requests:
+        assert "formula_id" in request
+        assert isinstance(request["formula_ids"], list)
+        assert isinstance(request["blocks_analysis"], bool)
+        assert isinstance(request["required_fields"], list)
+
+
+def test_post_ficha_reply_communicates_every_blocking_request() -> None:
+    routing = {
+        "evidence_requests": [
+            {"description": "Ventas", "blocks_analysis": True},
+            {"description": "Costos", "blocks_analysis": True},
+            {"description": "Comisiones", "blocks_analysis": True},
+            {"description": "Deseable", "blocks_analysis": False},
+        ]
+    }
+    reply = _build_post_ficha_reply(routing)
+    assert "Ventas" in reply
+    assert "Costos" in reply
+    assert "Comisiones" in reply
+    assert "Deseable" not in reply
 
 
 def test_post_ficha_routing_is_idempotent() -> None:
