@@ -5,9 +5,13 @@ Pure helpers for handling structured evidence messages after post_ficha_routing 
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from pymia.smartpyme.evidence import create_evidence_record
+from pymia.smartpyme.xlsx_document_metadata_adapter import (
+    parse_xlsx_to_document_metadata,
+)
 from pymia.smartpyme.evidence_gate import (
     ASSESSMENT_SATISFIED,
     SUGGESTED_READY_FOR_ANALYSIS,
@@ -59,6 +63,53 @@ def is_post_ficha_evidence_input(text: str) -> bool:
     return isinstance(text, str) and text.strip().upper().startswith("EVIDENCE::")
 
 
+def _enrich_metadata_from_source(
+    source_ref: str,
+    record_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Si ``source_ref`` apunta a un archivo XLSX local existente y no hay
+    ``FIELDS=`` declarados en ``record_metadata``, invoca el adaptador XLSX
+    para poblar metadata estructural automáticamente.
+
+    Si el parseo falla, no rompe el flujo: retorna metadata con
+    ``parse_status=FAILED`` y warnings, pero sin exceptions.
+    """
+    # 1) Solo enriquecer si no hay fields declarados manualmente
+    if "fields" in record_metadata:
+        return record_metadata
+
+    # 2) Solo procesar si source_ref parece un path local a XLSX
+    try:
+        path = Path(source_ref)
+    except (TypeError, ValueError):
+        return record_metadata
+
+    if not path.exists():
+        return record_metadata
+
+    if path.suffix.lower() not in {".xlsx", ".xlsm"}:
+        return record_metadata
+
+    # 3) Invocar adaptador XLSX (fail-closed: nunca lanza)
+    try:
+        parsed = parse_xlsx_to_document_metadata(path)
+        enriched = dict(record_metadata)
+        enriched.update(parsed.to_dict())
+        return enriched
+    except Exception as exc:  # noqa: BLE001 — aislamiento del adaptador
+        # Fallar abierto: metadata mínima con warning
+        from pymia.smartpyme.parsed_document_metadata import (
+            PARSE_STATUS_FAILED,
+        )
+        return {
+            **record_metadata,
+            "parse_status": PARSE_STATUS_FAILED,
+            "warnings": [f"xlsx_adapter_error: {exc}"],
+            "confidence": 0.0,
+        }
+
+
 def merge_previous_post_ficha_evidence_context(
     *,
     previous_context: dict[str, Any] | None,
@@ -106,6 +157,9 @@ def apply_post_ficha_evidence_turn(
     record_metadata = dict(evidence_metadata or {})
     if "fields" in declared_metadata:
         record_metadata["fields"] = list(declared_metadata["fields"])
+
+    # Enriquecer metadata automáticamente desde source_ref si aplica
+    record_metadata = _enrich_metadata_from_source(source_ref, record_metadata)
 
     post_ficha_routing = updated_context.get("post_ficha_routing")
     if not isinstance(post_ficha_routing, dict):
