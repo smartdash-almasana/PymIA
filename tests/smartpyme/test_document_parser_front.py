@@ -4,8 +4,8 @@ Tests for document_parser_front.
 Verifica:
 1. source_ref inexistente devuelve parse_status FAILED.
 2. extensión desconocida devuelve file_type="unknown" y warning unknown_extension.
-3. .pdf devuelve FAILED y warning parser_not_configured:.pdf.
-4. .docx devuelve FAILED y warning parser_not_configured:.docx.
+3. .pdf delega a parse_docling_to_document_metadata.
+4. .docx delega a parse_docling_to_document_metadata.
 5. .txt devuelve FAILED y warning parser_not_configured:.txt.
 6. .csv devuelve FAILED y warning parser_not_configured:.csv.
 7. .xlsx delega a parse_xlsx_to_document_metadata.
@@ -44,28 +44,52 @@ def test_unknown_extension_returns_unknown_and_warning(mock_exists):
     assert any("unknown_extension:.xyz123" in w for w in result.warnings)
 
 
-# 3. .pdf devuelve FAILED y warning parser_not_configured:.pdf.
+# 3. .pdf delega a parse_docling_to_document_metadata.
 @patch("pymia.smartpyme.document_parser_front.Path.exists")
-def test_pdf_returns_failed_and_warning(mock_exists):
+@patch("pymia.smartpyme.document_parser_front.parse_docling_to_document_metadata")
+def test_pdf_delegates_to_docling_adapter(mock_parse_docling, mock_exists):
     mock_exists.return_value = True
+    mock_meta = MagicMock(spec=ParsedDocumentMetadata)
+    mock_meta.file_type = "pdf"
+    mock_meta.parse_status = PARSE_STATUS_OK
+    mock_parse_docling.return_value = mock_meta
+
     result = parse_document_to_metadata("dummy.pdf")
-    assert isinstance(result, ParsedDocumentMetadata)
-    assert result.parse_status == PARSE_STATUS_FAILED
+    mock_parse_docling.assert_called_once()
     assert result.file_type == "pdf"
-    assert result.parser_name == "docling_v1"
-    assert any("parser_not_configured:.pdf" in w for w in result.warnings)
+    assert result.parse_status == PARSE_STATUS_OK
 
 
-# 4. .docx devuelve FAILED y warning parser_not_configured:.docx.
+# 4. .docx delega a parse_docling_to_document_metadata.
 @patch("pymia.smartpyme.document_parser_front.Path.exists")
-def test_docx_returns_failed_and_warning(mock_exists):
+@patch("pymia.smartpyme.document_parser_front.parse_docling_to_document_metadata")
+def test_docx_delegates_to_docling_adapter(mock_parse_docling, mock_exists):
     mock_exists.return_value = True
+    mock_meta = MagicMock(spec=ParsedDocumentMetadata)
+    mock_meta.file_type = "docx"
+    mock_meta.parse_status = PARSE_STATUS_OK
+    mock_parse_docling.return_value = mock_meta
+
     result = parse_document_to_metadata("dummy.docx")
-    assert isinstance(result, ParsedDocumentMetadata)
-    assert result.parse_status == PARSE_STATUS_FAILED
+    mock_parse_docling.assert_called_once()
     assert result.file_type == "docx"
-    assert result.parser_name == "docling_v1"
-    assert any("parser_not_configured:.docx" in w for w in result.warnings)
+    assert result.parse_status == PARSE_STATUS_OK
+
+
+# 4b. .pptx delega a parse_docling_to_document_metadata.
+@patch("pymia.smartpyme.document_parser_front.Path.exists")
+@patch("pymia.smartpyme.document_parser_front.parse_docling_to_document_metadata")
+def test_pptx_delegates_to_docling_adapter(mock_parse_docling, mock_exists):
+    mock_exists.return_value = True
+    mock_meta = MagicMock(spec=ParsedDocumentMetadata)
+    mock_meta.file_type = "pptx"
+    mock_meta.parse_status = PARSE_STATUS_OK
+    mock_parse_docling.return_value = mock_meta
+
+    result = parse_document_to_metadata("dummy.pptx")
+    mock_parse_docling.assert_called_once()
+    assert result.file_type == "pptx"
+    assert result.parse_status == PARSE_STATUS_OK
 
 
 # 5. .txt devuelve FAILED y warning parser_not_configured:.txt.
@@ -139,19 +163,28 @@ def test_document_parser_front_ast_rules():
         "post_ficha_evidence_gate", 
         "intake"
     }
-    
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 for forbidden in forbidden_imports:
-                    assert forbidden not in alias.name, f"Forbidden import found: {alias.name}"
+                    if forbidden == "docling":
+                        assert alias.name != "docling", f"Forbidden import found: {alias.name}"
+                    else:
+                        assert forbidden not in alias.name, f"Forbidden import found: {alias.name}"
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 for forbidden in forbidden_imports:
-                    assert forbidden not in node.module, f"Forbidden import from found: {node.module}"
+                    if forbidden == "docling":
+                        assert node.module != "docling" and not node.module.startswith("docling."), f"Forbidden import from found: {node.module}"
+                    else:
+                        assert forbidden not in node.module, f"Forbidden import from found: {node.module}"
             for alias in node.names:
                 for forbidden in forbidden_imports:
-                    assert forbidden not in alias.name, f"Forbidden imported name found: {alias.name}"
+                    if forbidden == "docling":
+                        assert alias.name != "docling", f"Forbidden imported name found: {alias.name}"
+                    else:
+                        assert forbidden not in alias.name, f"Forbidden imported name found: {alias.name}"
 
 
 # 14. Todo devuelve ParsedDocumentMetadata.

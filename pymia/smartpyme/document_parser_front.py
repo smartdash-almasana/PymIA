@@ -7,12 +7,16 @@ el adaptador disponible según tipo de archivo.
 Este módulo:
     - NO asume XLSX como único formato.
     - Delegates a ``parse_xlsx_to_document_metadata`` para ``.xlsx`` / ``.xlsm``.
-    - Para ``.pdf``, ``.docx``, ``.txt``, ``.csv`` y otros formatos todavía
-      no implementados, retorna ``ParsedDocumentMetadata`` con
-      ``parse_status=FAILED`` y warnings explícitos.
+    - Delegates a ``parse_docling_to_document_metadata`` para ``.pdf`` /
+      ``.docx`` / ``.pptx`` (Docling es dependencia opcional; el adaptador
+      hace el import lazy y es fail-closed si no está instalado).
+    - Para ``.txt``, ``.md``, ``.csv``, ``.tsv`` (todavía no implementados),
+      retorna ``ParsedDocumentMetadata`` con ``parse_status=FAILED`` y
+      warnings explícitos.
+    - Para extensiones desconocidas, retorna ``parse_status=FAILED`` con
+      ``file_type="unknown"`` y warning ``unknown_extension:<ext>``.
     - NO instala Docling.
-    - NO importa Docling.
-    - NO lee PDF/DOCX/TXT/CSV todavía.
+    - NO importa Docling directamente (el adaptador lo importa lazy).
     - NO ejecuta fórmulas.
     - NO diagnostica.
     - NO crea ``EvidenceRecord``.
@@ -34,19 +38,20 @@ from pymia.smartpyme.parsed_document_metadata import (
 from pymia.smartpyme.xlsx_document_metadata_adapter import (
     parse_xlsx_to_document_metadata,
 )
+from pymia.smartpyme.docling_document_metadata_adapter import (
+    parse_docling_to_document_metadata,
+)
 
 
 ROUTER_NAME = "document_parser_front"
-ROUTER_VERSION = "1.0.0"
+ROUTER_VERSION = "1.1.0"
 
 # Extensiones soportadas por adaptadores existentes
 _XLSX_EXTENSIONS = {".xlsx", ".xlsm"}
+_DOCLING_EXTENSIONS = {".pdf", ".docx", ".pptx"}
 
 # Extensiones reconocidas pero sin parser implementado todavía
 _UNIMPLEMENTED_PARSERS = {
-    ".pdf": "docling_v1",
-    ".docx": "docling_v1",
-    ".pptx": "docling_v1",
     ".txt": "plaintext_v1",
     ".md": "plaintext_v1",
     ".csv": "csv_parser_v1",
@@ -64,10 +69,13 @@ def parse_document_to_metadata(source_ref: str | Path) -> ParsedDocumentMetadata
         - Si la extensión no es reconocida → ``parse_status=FAILED`` con
           ``file_type="unknown"`` y warning ``"unknown_extension:<ext>"``.
         - Si la extensión es reconocida pero el parser no está implementado
-          todavía → ``parse_status=FAILED`` con warning
-          ``"parser_not_configured:<ext>"``.
+          todavía (``.txt`` / ``.md`` / ``.csv`` / ``.tsv``) →
+          ``parse_status=FAILED`` con warning ``"parser_not_configured:<ext>"``.
         - Si la extensión es ``.xlsx`` o ``.xlsm`` → delega a
           ``parse_xlsx_to_document_metadata`` (que ya es fail-closed).
+        - Si la extensión es ``.pdf``, ``.docx`` o ``.pptx`` → delega a
+          ``parse_docling_to_document_metadata`` (que hace import lazy de
+          Docling y es fail-closed si la dependencia no está instalada).
     """
     warnings: list[str] = []
 
@@ -91,6 +99,11 @@ def parse_document_to_metadata(source_ref: str | Path) -> ParsedDocumentMetadata
     # 2) Dispatch por extensión ----------------------------------------------
     if ext in _XLSX_EXTENSIONS:
         return parse_xlsx_to_document_metadata(path)
+
+    if ext in _DOCLING_EXTENSIONS:
+        # El adaptador Docling hace el import lazy y retorna FAILED si
+        # docling no está instalado; no necesitamos verificarlo aquí.
+        return parse_docling_to_document_metadata(path)
 
     if ext in _UNIMPLEMENTED_PARSERS:
         parser_name = _UNIMPLEMENTED_PARSERS[ext]
