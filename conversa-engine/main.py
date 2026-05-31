@@ -18,6 +18,7 @@ _PROGRESSIVE_CONTEXT_BY_SESSION = {}
 _SUPERMEMORY_RECALL_CLIENT = None
 _SUPERMEMORY_RECALL_INITIALIZED = False
 logger = logging.getLogger(__name__)
+_STATE_BASE_DIR_ENV = "PYMIA_CONVERSA_STATE_BASE_DIR"
 
 
 class ConversaRuntimeDeps:
@@ -213,6 +214,63 @@ def _session_id(tenant_id: str, user_id: str) -> str:
     return f"{tenant_id}/{user_id}"
 
 
+def _state_base_dir() -> Path:
+    configured = os.environ.get(_STATE_BASE_DIR_ENV)
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parent / ".conversation_state"
+
+
+def _storage_tenant_key(tenant_id: str) -> str:
+    safe = tenant_id.strip() or "default_tenant"
+    for ch in (":", "/", "\\", "*", "?", "\"", "<", ">", "|"):
+        safe = safe.replace(ch, "_")
+    return safe
+
+
+def _load_stateful_progressive_context(tenant_id: str, user_id: str) -> tuple[dict, object | None]:
+    _ensure_repo_on_path()
+    from pymia.orchestration.state_storage import load_state
+
+    session_id = _session_id(tenant_id, user_id)
+    loaded_state = load_state(_storage_tenant_key(tenant_id), session_id, _state_base_dir())
+    if loaded_state and isinstance(loaded_state.progressive_context, dict):
+        return dict(loaded_state.progressive_context), loaded_state
+    return {}, loaded_state
+
+
+def _persist_stateful_progressive_context(
+    *,
+    tenant_id: str,
+    user_id: str,
+    text: str,
+    updated_progressive_context: dict | None,
+    existing_state: object | None,
+) -> None:
+    _ensure_repo_on_path()
+    from pymia.orchestration.state import PymIAState
+    from pymia.orchestration.state_storage import save_state
+
+    session_id = _session_id(tenant_id, user_id)
+    state = existing_state
+    if not isinstance(state, PymIAState):
+        state = PymIAState(
+            tenant_id=tenant_id,
+            chat_id=session_id,
+            conversation_id=session_id,
+            phase="NEW",
+        )
+
+    state.last_user_message = text
+    state.progressive_context = (
+        dict(updated_progressive_context)
+        if isinstance(updated_progressive_context, dict)
+        else {}
+    )
+    state.add_decision("conversa-engine turn persisted")
+    save_state(_storage_tenant_key(tenant_id), session_id, state, _state_base_dir())
+
+
 def _new_text_event(text: str, tenant_id: str, user_id: str):
     from inbound_event import RawInboundEvent
 
@@ -259,18 +317,34 @@ def run_message(
     tenant_id: str = "telegram:42",
     user_id: str = "42",
     deps: ConversaRuntimeDeps | None = None,
+    use_persistent_state: bool = False,
 ) -> str:
     register_text_intake = deps.register_text_intake if deps else _register_text_intake
     get_supermemory_recall_client = (
         deps.get_supermemory_recall_client if deps else _get_supermemory_recall_client
     )
+    session_id = _session_id(tenant_id, user_id)
+    loaded_state = None
+    if use_persistent_state:
+        loaded_context, loaded_state = _load_stateful_progressive_context(tenant_id, user_id)
+        if session_id not in _PROGRESSIVE_CONTEXT_BY_SESSION and loaded_context:
+            _PROGRESSIVE_CONTEXT_BY_SESSION[session_id] = loaded_context
     register_text_intake(text, tenant_id, user_id)
-    return _pymia_reply(
+    reply_text = _pymia_reply(
         text,
         tenant_id,
         user_id,
         get_supermemory_recall_client=get_supermemory_recall_client,
     )
+    if use_persistent_state:
+        _persist_stateful_progressive_context(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            text=text,
+            updated_progressive_context=_PROGRESSIVE_CONTEXT_BY_SESSION.get(session_id),
+            existing_state=loaded_state,
+        )
+    return reply_text
 
 
 def route_from_operational_audit(text: str, operational_audit_result_payload: dict) -> str:
@@ -303,4 +377,4 @@ if __name__ == "__main__":
     if error is not None:
         print(error, file=sys.stderr)
         raise SystemExit(exit_code)
-    print(run_message(message))
+    print(run_message(message, use_persistent_state=True))

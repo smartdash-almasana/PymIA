@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 
 
@@ -63,3 +64,40 @@ def test_conversa_preserves_progressive_context_between_turns() -> None:
     profile_data2 = fsm_state2.get("profile_data", {})
     assert profile_data2.get("contact", {}).get("full_name") == "Juan Perez"
     assert profile_data2.get("raw_first_message") == "vendo mucho pero no se si gano plata"
+
+
+def test_conversa_cli_mode_persists_context_across_module_reloads(tmp_path: Path) -> None:
+    previous = os.environ.get("PYMIA_CONVERSA_STATE_BASE_DIR")
+    os.environ["PYMIA_CONVERSA_STATE_BASE_DIR"] = str(tmp_path / "conversa_state")
+    try:
+        tenant_id = "tenant_conversa_cli_persist"
+        user_id = "user_conversa_cli_persist"
+
+        first_module = _load_conversa_main()
+        first_module._PROGRESSIVE_CONTEXT_BY_SESSION.clear()
+        first_reply = first_module.run_message(
+            "vendo mucho pero no se si gano plata",
+            tenant_id=tenant_id,
+            user_id=user_id,
+            use_persistent_state=True,
+        )
+        assert "nombre y apellido" in first_reply.lower()
+
+        second_module = _load_conversa_main()
+        second_module._PROGRESSIVE_CONTEXT_BY_SESSION.clear()
+        second_reply = second_module.run_message(
+            "Juan Perez",
+            tenant_id=tenant_id,
+            user_id=user_id,
+            use_persistent_state=True,
+        )
+
+        assert "rol en la empresa" in second_reply.lower()
+        session_id = second_module._session_id(tenant_id, user_id)
+        ctx = second_module._PROGRESSIVE_CONTEXT_BY_SESSION[session_id]
+        assert ctx.get("fsm_state", {}).get("profile_step") == "ASK_CONTACT_ROLE"
+    finally:
+        if previous is None:
+            os.environ.pop("PYMIA_CONVERSA_STATE_BASE_DIR", None)
+        else:
+            os.environ["PYMIA_CONVERSA_STATE_BASE_DIR"] = previous
