@@ -463,7 +463,6 @@ def test_post_ficha_evidence_gate_ast_rules():
         "ClinicalConversationalPort",
         "formula",
         "diagnostico",
-        "microservice_dispatcher",
         "ExecutionResult"
     }
     
@@ -574,3 +573,167 @@ def test_runtime_execution_candidate_is_ready_if_all_satisfied():
     assert candidate["can_dispatch"] is True
     assert candidate["runtime_classification"] == "excel_diagnostic"
     assert candidate["microservice_name"] == "excel_diagnostic_worker"
+
+
+# --- Dispatch controlado ---
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_dispatch_not_called_when_can_dispatch_is_false(mock_dispatch):
+    """Si candidate BLOCKED, dispatch_candidate no se invoca y microservice_execution_result queda BLOCKED."""
+    ctx = _base_context()
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    mock_dispatch.assert_not_called()
+    result = out["microservice_execution_result"]
+    assert result["status"] == "BLOCKED"
+    assert result["can_dispatch"] is False
+    assert "blocking_reasons" in result
+    assert len(result["blocking_reasons"]) > 0
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_dispatch_called_once_when_can_dispatch_is_true(mock_dispatch, mock_exists):
+    """Si candidate READY_TO_EXECUTE y source_ref existe, dispatch_candidate se invoca exactamente una vez."""
+    mock_exists.return_value = True
+    mock_result = MagicMock()
+    mock_result.to_dict.return_value = {
+        "tenant_id": "t1",
+        "intake_id": "intake_test_001",
+        "runtime_classification": "excel_diagnostic",
+        "microservice_name": "excel_diagnostic_worker",
+        "status": "EXECUTED",
+        "output_refs": ["/tmp/diagnostic_report.md"],
+        "findings_count": 3,
+        "raw_result": {},
+        "executed_at": "2026-06-01T20:00:00+00:00",
+        "warnings": [],
+    }
+    mock_dispatch.return_value = mock_result
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    mock_dispatch.assert_called_once()
+    call_args = mock_dispatch.call_args
+    assert call_args.kwargs["evidence_path"] == "precios.xlsx"
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_executed_result_is_stored_in_microservice_execution_result(mock_dispatch, mock_exists):
+    """Resultado EXECUTED se guarda en microservice_execution_result."""
+    mock_exists.return_value = True
+    mock_result = MagicMock()
+    mock_result.to_dict.return_value = {
+        "tenant_id": "t1",
+        "intake_id": "intake_test_001",
+        "runtime_classification": "excel_diagnostic",
+        "microservice_name": "excel_diagnostic_worker",
+        "status": "EXECUTED",
+        "output_refs": ["/tmp/diagnostic_report.md"],
+        "findings_count": 3,
+        "raw_result": {"findings": []},
+        "executed_at": "2026-06-01T20:00:00+00:00",
+        "warnings": [],
+    }
+    mock_dispatch.return_value = mock_result
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    result = out2["microservice_execution_result"]
+    assert result["status"] == "EXECUTED"
+    assert result["findings_count"] == 3
+    assert result["output_refs"] == ["/tmp/diagnostic_report.md"]
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_dispatch_error_does_not_break_flow(mock_dispatch, mock_exists):
+    """Error del dispatcher no rompe flujo: guarda metadata serializable con status=FAILED."""
+    mock_exists.return_value = True
+    mock_dispatch.side_effect = RuntimeError("simulated dispatcher crash")
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    result = out2["microservice_execution_result"]
+    assert result["status"] == "FAILED"
+    assert any("dispatch_error" in w for w in result["warnings"])
+    assert result["raw_result"]["error_type"] == "RuntimeError"
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_no_execution_if_evidence_path_missing(mock_dispatch, mock_exists):
+    """No hay ejecución si evidence_path está vacío (path no existe localmente)."""
+    mock_exists.return_value = False
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::missing.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    mock_dispatch.assert_not_called()
+    result = out2["microservice_execution_result"]
+    assert result["status"] == "BLOCKED"
+    assert any("Evidence path is not available" in r for r in result["blocking_reasons"])
+
+
+def test_no_report_or_findings_generated_in_gate():
+    """El gate no genera reporte/hallazgo final (eso ocurre en capa posterior)."""
+    ctx = _base_context()
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    result = out["microservice_execution_result"]
+    assert result["findings_count"] == 0
+    assert result["output_refs"] == []
+    assert "report" not in str(result.get("raw_result", {}))
+    assert "findings" not in str(result.get("raw_result", {}))

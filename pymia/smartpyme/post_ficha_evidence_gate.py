@@ -18,6 +18,7 @@ from pymia.smartpyme.evidence_gate import (
 )
 from pymia.smartpyme.readiness import evaluate_analysis_readiness
 from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
+from pymia.smartpyme.microservice_dispatcher import dispatch_candidate
 from pymia.smartpyme.intake import (
     EVIDENCE_STATUS_RECEIVED,
     EVIDENCE_STATUS_REQUESTED,
@@ -306,6 +307,52 @@ def apply_post_ficha_evidence_turn(
         "can_dispatch": can_dispatch,
         "blocking_reasons": blocking_reasons,
     }
+
+    # --- Dispatch controlado ---
+    # Solo invoca dispatch_candidate cuando runtime_dispatch_input.can_dispatch=True.
+    # Si falla, NO rompe el flujo: guarda metadata serializable con status=FAILED.
+    # No genera reporte ni hallazgo final (eso ocurre en una capa posterior).
+    if can_dispatch:
+        try:
+            execution_result = dispatch_candidate(
+                candidate_dict,
+                evidence_path=evidence_path,
+            )
+            out_context["microservice_execution_result"] = execution_result.to_dict()
+        except Exception as exc:  # noqa: BLE001 — aislamiento del dispatcher
+            out_context["microservice_execution_result"] = {
+                "tenant_id": tenant_id,
+                "intake_id": intake_id,
+                "runtime_classification": str(
+                    candidate_dict.get("runtime_classification") or ""
+                ),
+                "microservice_name": str(
+                    candidate_dict.get("microservice_name") or ""
+                ),
+                "status": "FAILED",
+                "output_refs": [],
+                "findings_count": 0,
+                "raw_result": {"error": str(exc), "error_type": type(exc).__name__},
+                "executed_at": "",
+                "warnings": [f"dispatch_error: {exc}"],
+            }
+    else:
+        out_context["microservice_execution_result"] = {
+            "tenant_id": tenant_id,
+            "intake_id": intake_id,
+            "runtime_classification": str(
+                candidate_dict.get("runtime_classification") or ""
+            ),
+            "microservice_name": str(candidate_dict.get("microservice_name") or ""),
+            "can_dispatch": False,
+            "status": "BLOCKED",
+            "output_refs": [],
+            "findings_count": 0,
+            "raw_result": {},
+            "executed_at": "",
+            "warnings": [],
+            "blocking_reasons": list(blocking_reasons),
+        }
 
     if ready_for_analysis:
         reply = (
