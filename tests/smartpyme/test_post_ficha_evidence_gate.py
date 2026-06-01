@@ -468,6 +468,8 @@ def test_post_ficha_evidence_gate_ast_rules():
         "openai",
         "hermes",
         "telegram",
+        "report_html",
+        "delivery_package",
     }
     
     for node in ast.walk(tree):
@@ -921,3 +923,90 @@ def test_no_final_report_generated():
     )
     assert "final_report" not in out
     assert "delivery_report" not in out
+
+
+def test_minimal_business_report_no_findings():
+    """Sin hallazgos → report status NO_FINDINGS."""
+    ctx = _base_context()
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    assert "minimal_business_report" in out
+    rep = out["minimal_business_report"]
+    assert rep["status"] == "NO_FINDINGS"
+    assert "No se detectaron hallazgos" in rep["summary"]
+    assert rep["findings"] == []
+    assert "findings_count" not in rep
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_minimal_business_report_has_findings(mock_dispatch, mock_exists):
+    """Con LOW_MARGIN → report status HAS_FINDINGS, findings_count correcto y findings serializados preservados."""
+    mock_exists.return_value = True
+    mock_result = MagicMock()
+    mock_result.to_dict.return_value = {
+        "tenant_id": "t1",
+        "intake_id": "intake_test_001",
+        "runtime_classification": "excel_diagnostic",
+        "microservice_name": "excel_diagnostic_worker",
+        "status": "EXECUTED",
+        "output_refs": ["/tmp/diagnostic_report.md"],
+        "findings_count": 1,
+        "raw_result": {
+            "evidence": {
+                "source_file": "precios.xlsx",
+            },
+            "findings": [
+                {
+                    "code": "LOW_MARGIN",
+                    "severity": "medium",
+                    "message": "Margen bajo.",
+                    "count": 3,
+                    "sheet_name": "ventas",
+                }
+            ],
+        },
+        "executed_at": "2026-06-01T20:00:00+00:00",
+        "warnings": [],
+    }
+    mock_dispatch.return_value = mock_result
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+
+    assert "minimal_business_report" in out2
+    rep = out2["minimal_business_report"]
+    assert rep["status"] == "HAS_FINDINGS"
+    assert rep["findings_count"] == 1
+    assert len(rep["findings"]) == 1
+    assert rep["findings"][0]["metric"] == "margen"
+    assert "Se detectaron 1 hallazgos" in rep["summary"]
+
+
+def test_minimal_business_report_no_forbidden_keys():
+    """No existen claves final_report, delivery_report, html_report, pdf_report en out_context."""
+    ctx = _base_context()
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    forbidden = ["final_report", "delivery_report", "html_report", "pdf_report"]
+    for key in forbidden:
+        assert key not in out

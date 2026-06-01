@@ -358,6 +358,21 @@ def apply_post_ficha_evidence_turn(
     findings = project_actionable_findings(out_context["microservice_execution_result"])
     out_context["actionable_findings"] = [f.to_dict() for f in findings]
 
+    if not out_context["actionable_findings"]:
+        out_context["minimal_business_report"] = {
+            "status": "NO_FINDINGS",
+            "summary": "No se detectaron hallazgos accionables con la evidencia disponible.",
+            "findings": [],
+        }
+    else:
+        findings_count = len(out_context["actionable_findings"])
+        out_context["minimal_business_report"] = {
+            "status": "HAS_FINDINGS",
+            "summary": f"Se detectaron {findings_count} hallazgos accionables en la evidencia provista.",
+            "findings": list(out_context["actionable_findings"]),
+            "findings_count": findings_count,
+        }
+
     if ready_for_analysis:
         reply = (
             "Evidencia recibida. Ya quedó reunida la evidencia mínima para revisión y análisis posterior."
