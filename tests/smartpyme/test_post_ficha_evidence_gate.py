@@ -463,18 +463,25 @@ def test_post_ficha_evidence_gate_ast_rules():
         "ClinicalConversationalPort",
         "formula",
         "diagnostico",
-        "ExecutionResult"
+        "ExecutionResult",
+        "llm",
+        "openai",
+        "hermes",
+        "telegram",
     }
     
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                assert not any(forbidden in alias.name for forbidden in forbidden_imports), f"Forbidden import found: {alias.name}"
+                lowered_name = alias.name.lower()
+                assert not any(forbidden in lowered_name for forbidden in forbidden_imports), f"Forbidden import found: {alias.name}"
         elif isinstance(node, ast.ImportFrom):
             if node.module:
-                assert not any(forbidden in node.module for forbidden in forbidden_imports), f"Forbidden import from found: {node.module}"
+                lowered_module = node.module.lower()
+                assert not any(forbidden in lowered_module for forbidden in forbidden_imports), f"Forbidden import from found: {node.module}"
             for alias in node.names:
-                assert not any(forbidden in alias.name for forbidden in forbidden_imports), f"Forbidden imported name found: {alias.name}"
+                lowered_alias = alias.name.lower()
+                assert not any(forbidden in lowered_alias for forbidden in forbidden_imports), f"Forbidden imported name found: {alias.name}"
 
 
 # --- Proyección de analysis_readiness ---
@@ -737,3 +744,180 @@ def test_no_report_or_findings_generated_in_gate():
     assert result["output_refs"] == []
     assert "report" not in str(result.get("raw_result", {}))
     assert "findings" not in str(result.get("raw_result", {}))
+
+
+def test_finding_projection_empty_when_blocked():
+    """Si microservice_execution_result queda BLOCKED, actionable_findings == []."""
+    ctx = _base_context()
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    assert out["microservice_execution_result"]["status"] == "BLOCKED"
+    assert out["actionable_findings"] == []
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_finding_projection_empty_when_executed_with_zero_findings(mock_dispatch, mock_exists):
+    """Si dispatcher devuelve EXECUTED con findings_count=0, actionable_findings == []."""
+    mock_exists.return_value = True
+    mock_result = MagicMock()
+    mock_result.to_dict.return_value = {
+        "tenant_id": "t1",
+        "intake_id": "intake_test_001",
+        "runtime_classification": "excel_diagnostic",
+        "microservice_name": "excel_diagnostic_worker",
+        "status": "EXECUTED",
+        "output_refs": ["/tmp/diagnostic_report.md"],
+        "findings_count": 0,
+        "raw_result": {"findings": []},
+        "executed_at": "2026-06-01T20:00:00+00:00",
+        "warnings": [],
+    }
+    mock_dispatch.return_value = mock_result
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    assert out2["microservice_execution_result"]["status"] == "EXECUTED"
+    assert out2["actionable_findings"] == []
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_finding_projection_has_item_when_executed_with_low_margin(mock_dispatch, mock_exists):
+    """Si dispatcher devuelve EXECUTED con raw_result.findings LOW_MARGIN, actionable_findings tiene al menos 1 item."""
+    mock_exists.return_value = True
+    mock_result = MagicMock()
+    mock_result.to_dict.return_value = {
+        "tenant_id": "t1",
+        "intake_id": "intake_test_001",
+        "runtime_classification": "excel_diagnostic",
+        "microservice_name": "excel_diagnostic_worker",
+        "status": "EXECUTED",
+        "output_refs": ["/tmp/diagnostic_report.md"],
+        "findings_count": 1,
+        "raw_result": {
+            "evidence": {
+                "source_file": "precios.xlsx",
+            },
+            "findings": [
+                {
+                    "code": "LOW_MARGIN",
+                    "severity": "medium",
+                    "message": "Margen bajo.",
+                    "count": 3,
+                    "sheet_name": "ventas",
+                }
+            ],
+        },
+        "executed_at": "2026-06-01T20:00:00+00:00",
+        "warnings": [],
+    }
+    mock_dispatch.return_value = mock_result
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+    assert len(out2["actionable_findings"]) >= 1
+    finding = out2["actionable_findings"][0]
+    assert finding["metric"] == "margen"
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.dispatch_candidate")
+def test_finding_projection_serialized_schema(mock_dispatch, mock_exists):
+    """El finding serializado contiene: entity, metric, difference, source_comparison, severity, evidence_refs, recommendation."""
+    mock_exists.return_value = True
+    mock_result = MagicMock()
+    mock_result.to_dict.return_value = {
+        "tenant_id": "t1",
+        "intake_id": "intake_test_001",
+        "runtime_classification": "excel_diagnostic",
+        "microservice_name": "excel_diagnostic_worker",
+        "status": "EXECUTED",
+        "output_refs": ["/tmp/diagnostic_report.md"],
+        "findings_count": 1,
+        "raw_result": {
+            "evidence": {
+                "source_file": "precios.xlsx",
+            },
+            "findings": [
+                {
+                    "code": "LOW_MARGIN",
+                    "severity": "medium",
+                    "message": "Margen bajo.",
+                    "count": 3,
+                    "sheet_name": "ventas",
+                }
+            ],
+        },
+        "executed_at": "2026-06-01T20:00:00+00:00",
+        "warnings": [],
+    }
+    mock_dispatch.return_value = mock_result
+
+    ctx = _base_context()
+    out1, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    out2, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::price_list::precios.xlsx",
+        previous_context=out1,
+        updated_context=out1,
+    )
+
+    assert len(out2["actionable_findings"]) == 1
+    finding = out2["actionable_findings"][0]
+    expected_keys = {
+        "entity",
+        "metric",
+        "difference",
+        "source_comparison",
+        "severity",
+        "evidence_refs",
+        "recommendation",
+    }
+    assert expected_keys.issubset(finding.keys())
+    assert isinstance(finding["evidence_refs"], list)
+    assert finding["evidence_refs"] == ["/tmp/diagnostic_report.md"]
+
+
+def test_no_final_report_generated():
+    """No se genera reporte final (no existe final_report ni delivery_report en out_context)."""
+    ctx = _base_context()
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+    assert "final_report" not in out
+    assert "delivery_report" not in out

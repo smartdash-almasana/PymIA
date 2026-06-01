@@ -19,6 +19,7 @@ from pymia.smartpyme.evidence_gate import (
 from pymia.smartpyme.readiness import evaluate_analysis_readiness
 from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
 from pymia.smartpyme.microservice_dispatcher import dispatch_candidate
+from pymia.smartpyme.finding_projection import project_actionable_findings
 from pymia.smartpyme.intake import (
     EVIDENCE_STATUS_RECEIVED,
     EVIDENCE_STATUS_REQUESTED,
@@ -353,6 +354,9 @@ def apply_post_ficha_evidence_turn(
             "warnings": [],
             "blocking_reasons": list(blocking_reasons),
         }
+
+    findings = project_actionable_findings(out_context["microservice_execution_result"])
+    out_context["actionable_findings"] = [f.to_dict() for f in findings]
 
     if ready_for_analysis:
         reply = (
