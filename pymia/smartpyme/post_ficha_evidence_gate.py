@@ -59,8 +59,10 @@ def parse_post_ficha_evidence_input(text: str) -> tuple[str, str, str]:
     source_kind, evidence_type, source_ref, _ = _parse_post_ficha_evidence_input_with_metadata(text)
     return source_kind, evidence_type, source_ref
 
+
 def is_post_ficha_evidence_input(text: str) -> bool:
     return isinstance(text, str) and text.strip().upper().startswith("EVIDENCE::")
+
 
 def _enrich_metadata_from_source(
     source_ref: str,
@@ -70,21 +72,10 @@ def _enrich_metadata_from_source(
     Si ``source_ref`` apunta a un archivo local existente y no hay
     ``FIELDS=`` declarados en ``record_metadata``, invoca el router documental
     general para poblar metadata estructural automáticamente.
-
-    El router (``parse_document_to_metadata``) ya maneja:
-        - Dispatch por extensión (.xlsx, .xlsm, .pdf, .docx, .pptx, .txt, .md, .csv, .tsv)
-        - Fail-closed determinístico si el parser no está configurado
-        - Fail-closed determinístico si Docling no está instalado
-        - Fail-closed determinístico si el archivo no existe o es inválido
-
-    Si el parseo falla, no rompe el flujo: retorna metadata con
-    ``parse_status=FAILED`` y warnings, pero sin exceptions.
     """
-    # 1) Solo enriquecer si no hay fields declarados manualmente
     if "fields" in record_metadata:
         return record_metadata
 
-    # 2) Solo procesar si source_ref parece un path local válido
     try:
         path = Path(source_ref)
     except (TypeError, ValueError):
@@ -93,17 +84,12 @@ def _enrich_metadata_from_source(
     if not path.exists():
         return record_metadata
 
-    # 3) Invocar router documental general (fail-closed: nunca lanza)
-    # El router ya decide qué adaptador usar según extensión y maneja
-    # todos los casos fail-closed (extensión desconocida, parser no
-    # configurado, dependencia opcional faltante, etc.)
     try:
         parsed = parse_document_to_metadata(path)
         enriched = dict(record_metadata)
         enriched.update(parsed.to_dict())
         return enriched
     except Exception as exc:  # noqa: BLE001 — aislamiento del router
-        # Fallar abierto: metadata mínima con warning
         from pymia.smartpyme.parsed_document_metadata import (
             PARSE_STATUS_FAILED,
         )
@@ -113,6 +99,7 @@ def _enrich_metadata_from_source(
             "warnings": [f"document_parser_front_error: {exc}"],
             "confidence": 0.0,
         }
+
 
 def merge_previous_post_ficha_evidence_context(
     *,
@@ -134,6 +121,7 @@ def merge_previous_post_ficha_evidence_context(
         merged["post_ficha_readiness"] = dict(prev_readiness)
     return merged
 
+
 def _find_matching_request_id(evidence_requests: list[dict[str, Any]], evidence_type: str) -> str | None:
     for req in evidence_requests:
         if not isinstance(req, dict):
@@ -143,6 +131,7 @@ def _find_matching_request_id(evidence_requests: list[dict[str, Any]], evidence_
             if isinstance(request_id, str) and request_id.strip():
                 return request_id
     return None
+
 
 def apply_post_ficha_evidence_turn(
     *,
@@ -160,7 +149,6 @@ def apply_post_ficha_evidence_turn(
     if "fields" in declared_metadata:
         record_metadata["fields"] = list(declared_metadata["fields"])
 
-    # Enriquecer metadata automáticamente desde source_ref si aplica
     record_metadata = _enrich_metadata_from_source(source_ref, record_metadata)
 
     post_ficha_routing = updated_context.get("post_ficha_routing")
@@ -278,8 +266,6 @@ def apply_post_ficha_evidence_turn(
         "ready_for_analysis": ready_for_analysis,
     }
 
-    # Construir analysis_readiness consumible por runtime_bridge.prepare_runtime_execution
-    # Esto NO ejecuta runtime ni despacha microservicios; solo produce el candidato.
     intake_record_for_readiness = {
         "tenant_id": tenant_id,
         "intake_id": intake_id,
@@ -292,15 +278,34 @@ def apply_post_ficha_evidence_turn(
     )
     out_context["analysis_readiness"] = readiness_result.to_dict()
 
-    # Proyectar runtime_execution_candidate desde analysis_readiness.
-    # Esto NO ejecuta runtime ni despacha microservicios; solo produce
-    # el candidato consumible por runtime_bridge. Si analysis_readiness
-    # no es READY_FOR_ANALYSIS, candidate queda BLOCKED por contrato
-    # de prepare_runtime_execution(...).
     execution_candidate = prepare_runtime_execution(
         out_context["analysis_readiness"],
     )
     out_context["runtime_execution_candidate"] = execution_candidate.to_dict()
+
+    candidate_dict = out_context["runtime_execution_candidate"]
+    can_dispatch = bool(candidate_dict.get("can_dispatch", False))
+    blocking_reasons = list(candidate_dict.get("blocking_reasons", []))
+    evidence_path = ""
+
+    if can_dispatch:
+        try:
+            source_path = Path(source_ref)
+            if source_path.exists():
+                evidence_path = str(source_path)
+            else:
+                can_dispatch = False
+                blocking_reasons.append("Evidence path is not available for dispatch.")
+        except (TypeError, ValueError):
+            can_dispatch = False
+            blocking_reasons.append("Evidence path is not available for dispatch.")
+
+    out_context["runtime_dispatch_input"] = {
+        "candidate": candidate_dict,
+        "evidence_path": evidence_path,
+        "can_dispatch": can_dispatch,
+        "blocking_reasons": blocking_reasons,
+    }
 
     if ready_for_analysis:
         reply = (
