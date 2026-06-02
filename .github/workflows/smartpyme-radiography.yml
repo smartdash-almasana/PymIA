@@ -1,6 +1,7 @@
 name: SmartPyme Pipeline Radiography CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -42,7 +43,13 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install runtime and test dependencies
-        run: python -m pip install pydantic>=2.0 openpyxl>=3.1 pandas>=2.2 mcp>=1.0 pytest>=7.0
+        run: >-
+          python -m pip install
+          "pydantic>=2.0"
+          "openpyxl>=3.1"
+          "pandas>=2.2"
+          "mcp>=1.0"
+          "pytest>=7.0"
 
       - name: Run Pipeline Radiography
         run: python -m pymia.pipeline_radiography.run_scenarios --output-dir .pipeline_radiography/ci
