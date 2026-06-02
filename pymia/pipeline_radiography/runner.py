@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
@@ -24,6 +25,7 @@ from .trace import PipelineStageTrace, PipelineTrace
 
 @dataclass
 class PipelineRunResult:
+    scenario: PipelineScenario
     trace: PipelineTrace
     intake_record: dict[str, Any]
     evidence_records: list[dict[str, Any]]
@@ -109,10 +111,12 @@ def run_pipeline_scenario(
     *,
     output_root: str | Path | None = None,
 ) -> PipelineRunResult:
+    started_at = perf_counter()
     trace = PipelineTrace(
         trace_id=f"trace_{uuid4().hex[:12]}",
         scenario_id=scenario.scenario_id,
     )
+    stage_started_at = perf_counter()
     intake = create_intake_record(
         tenant_id=scenario.tenant_id,
         raw_text=scenario.owner_message,
@@ -124,9 +128,11 @@ def run_pipeline_scenario(
             input_type="owner_message",
             output_type="IntakeRecord",
             summary=_stage_summary_intake(intake),
+            duration_ms=int((perf_counter() - stage_started_at) * 1000),
         )
     )
 
+    stage_started_at = perf_counter()
     evidence_records = _build_evidence_records(scenario=scenario, intake_record=intake)
     trace.add_stage(
         PipelineStageTrace(
@@ -135,9 +141,11 @@ def run_pipeline_scenario(
             input_type="ScenarioEvidence",
             output_type="EvidenceRecordList",
             summary=_stage_summary_evidence(evidence_records),
+            duration_ms=int((perf_counter() - stage_started_at) * 1000),
         )
     )
 
+    stage_started_at = perf_counter()
     sufficiency = evaluate_evidence_sufficiency(intake, evidence_records).to_dict()
     trace.add_stage(
         PipelineStageTrace(
@@ -150,9 +158,11 @@ def run_pipeline_scenario(
                 "missing_request_ids": list(sufficiency.get("missing_request_ids") or []),
                 "matched_evidence_ids": list(sufficiency.get("matched_evidence_ids") or []),
             },
+            duration_ms=int((perf_counter() - stage_started_at) * 1000),
         )
     )
 
+    stage_started_at = perf_counter()
     readiness = evaluate_analysis_readiness(intake, sufficiency).to_dict()
     trace.add_stage(
         PipelineStageTrace(
@@ -165,9 +175,11 @@ def run_pipeline_scenario(
                 "can_execute": readiness.get("can_execute"),
                 "blocking_reasons": list(readiness.get("blocking_reasons") or []),
             },
+            duration_ms=int((perf_counter() - stage_started_at) * 1000),
         )
     )
 
+    stage_started_at = perf_counter()
     candidate = prepare_runtime_execution(readiness).to_dict()
     trace.add_stage(
         PipelineStageTrace(
@@ -181,6 +193,7 @@ def run_pipeline_scenario(
                 "can_dispatch": candidate.get("can_dispatch"),
                 "blocking_reasons": list(candidate.get("blocking_reasons") or []),
             },
+            duration_ms=int((perf_counter() - stage_started_at) * 1000),
         )
     )
 
@@ -204,6 +217,7 @@ def run_pipeline_scenario(
             output_dir = Path(output_root) / trace.trace_id
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        stage_started_at = perf_counter()
         execution_result = dispatch_candidate(
             candidate,
             evidence_path=evidence_path,
@@ -220,9 +234,11 @@ def run_pipeline_scenario(
                     "findings_count": execution_result.get("findings_count"),
                     "warnings": list(execution_result.get("warnings") or []),
                 },
+                duration_ms=int((perf_counter() - stage_started_at) * 1000),
             )
         )
 
+        stage_started_at = perf_counter()
         execution_gate_verdict = validate_execution_result(execution_result).to_dict()
         trace.add_stage(
             PipelineStageTrace(
@@ -234,9 +250,11 @@ def run_pipeline_scenario(
                     "reasons": list(execution_gate_verdict.get("reasons") or []),
                     "warnings": list(execution_gate_verdict.get("warnings") or []),
                 },
+                duration_ms=int((perf_counter() - stage_started_at) * 1000),
             )
         )
 
+        stage_started_at = perf_counter()
         delivery_package = build_delivery_package(
             execution_result,
             execution_gate_verdict,
@@ -251,12 +269,14 @@ def run_pipeline_scenario(
                     "gate_verdict": delivery_package.get("gate_verdict"),
                     "output_refs": list(delivery_package.get("output_refs") or []),
                 },
+                duration_ms=int((perf_counter() - stage_started_at) * 1000),
             )
         )
     else:
         blocked_at = "readiness"
         if sufficiency.get("status") != "READY":
             blocked_at = "evidence_gate"
+        trace.duration_ms = int((perf_counter() - started_at) * 1000)
         trace.set_final(
             overall_status="BLOCKED_EXPECTED",
             blocked_at=blocked_at,
@@ -269,6 +289,7 @@ def run_pipeline_scenario(
             },
         )
         return PipelineRunResult(
+            scenario=scenario,
             trace=trace,
             intake_record=intake,
             evidence_records=evidence_records,
@@ -303,6 +324,7 @@ def run_pipeline_scenario(
     if findings_count < scenario.expected.min_findings_count:
         overall_status = "FAIL"
 
+    trace.duration_ms = int((perf_counter() - started_at) * 1000)
     trace.set_final(
         overall_status=overall_status,
         blocked_at=None,
@@ -315,6 +337,7 @@ def run_pipeline_scenario(
         },
     )
     return PipelineRunResult(
+        scenario=scenario,
         trace=trace,
         intake_record=intake,
         evidence_records=evidence_records,

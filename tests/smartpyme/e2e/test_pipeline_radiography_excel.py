@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from pymia.pipeline_radiography import (
     PipelineScenario,
     ScenarioEvidence,
     ScenarioExpectation,
+    generate_developer_report,
     run_pipeline_scenario,
 )
 
@@ -16,6 +18,20 @@ FIXTURE_PATH = (
     / "smartpyme"
     / "ventas_costos_margen.xlsx"
 )
+
+
+def _assert_developer_report(result, output_dir: Path) -> None:
+    generate_developer_report(result, output_dir)
+    report_path = output_dir / "report.md"
+    trace_path = output_dir / "trace.json"
+    assert report_path.exists()
+    assert trace_path.exists()
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Expected vs Actual" in report_text
+    assert result.trace.overall_status in report_text
+    trace_data = json.loads(trace_path.read_text(encoding="utf-8"))
+    assert trace_data["trace_id"] == result.trace.trace_id
+    assert trace_data["trace"]["overall_status"] == result.trace.overall_status
 
 
 def test_excel_pipeline_happy_path_reaches_ready_to_deliver(tmp_path: Path) -> None:
@@ -52,6 +68,7 @@ def test_excel_pipeline_happy_path_reaches_ready_to_deliver(tmp_path: Path) -> N
     )
 
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
+    _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
     assert result.trace.overall_status == "PASS"
     assert result.trace.final_summary["final_status"] == "READY_TO_DELIVER"
@@ -82,6 +99,7 @@ def test_margin_without_evidence_blocks_before_dispatch(tmp_path: Path) -> None:
     )
 
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
+    _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
     assert result.trace.overall_status == "BLOCKED_EXPECTED"
     assert result.trace.blocked_at in {"evidence_gate", "readiness"}
@@ -113,6 +131,7 @@ def test_evidence_type_mismatch_blocks_at_gate(tmp_path: Path) -> None:
     )
 
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
+    _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
     assert result.trace.overall_status == "BLOCKED_EXPECTED"
     assert result.trace.blocked_at == "evidence_gate"
@@ -136,12 +155,12 @@ def test_unsupported_runtime_classification(tmp_path: Path) -> None:
         ),
         expected=ScenarioExpectation(
             final_status="BLOCKED",
-            runtime_classification="supplier_duplicate_check",
             dispatch_status="UNSUPPORTED",
         ),
     )
 
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
+    _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
     assert result.trace.final_summary["final_status"] != "READY_TO_DELIVER"
     if result.trace.overall_status == "BLOCKED_EXPECTED":

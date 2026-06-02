@@ -19,6 +19,7 @@ class PipelineStageTrace:
     output_type: str | None = None
     summary: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
+    duration_ms: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -32,6 +33,7 @@ class PipelineTrace:
     overall_status: str = "AMBIGUOUS"
     blocked_at: str | None = None
     final_summary: dict[str, Any] = field(default_factory=dict)
+    duration_ms: int = 0
 
     def add_stage(self, stage: PipelineStageTrace) -> None:
         self.stages.append(stage)
@@ -55,6 +57,7 @@ class PipelineTrace:
             "overall_status": self.overall_status,
             "blocked_at": self.blocked_at,
             "final_summary": dict(self.final_summary),
+            "duration_ms": self.duration_ms,
         }
 
 
