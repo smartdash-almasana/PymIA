@@ -3,6 +3,8 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -428,9 +430,48 @@ def test_ambiguous_take_precedence_over_stale(monkeypatch, tmp_path: Path) -> No
     assert result["next_action"] == "RE_RUN_RADIOGRAPHY"
 
 
+def test_harness_main_writes_status_json(tmp_path: Path) -> None:
+    scenarios = [
+        {"scenario_id": "s1", "trace_id": "t1", "overall_status": "PASS", "blocked_at": None, "duration_ms": 1},
+        {"scenario_id": "s2", "trace_id": "t2", "overall_status": "PASS", "blocked_at": None, "duration_ms": 2},
+    ]
+    traces = {
+        "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="PASS", runtime_classification="excel_diagnostic"),
+        "s2": _trace_payload(trace_id="t2", scenario_id="s2", overall_status="PASS", runtime_classification="supplier_duplicate_check"),
+    }
+    _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pymia.operational_harness",
+            "--output-dir",
+            str(tmp_path),
+        ],
+        cwd=Path.cwd(),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    status_path = tmp_path / "harness_status.json"
+    assert status_path.exists()
+    data = json.loads(status_path.read_text(encoding="utf-8"))
+    assert data["harness_version"] == "1.0"
+    assert "pipeline_status" in data
+    assert "next_action" in data
+    assert "counts" in data
+    assert "certified_capabilities" in data
+    assert "partial_capabilities" in data
+    assert "failed_scenarios" in data
+    assert "blocked_expected_scenarios" in data
+    assert "ambiguous_scenarios" in data
+    assert "stale_certified_capabilities" in data
+
+
 def test_forbidden_imports_not_present() -> None:
-    source = Path("pymia/operational_harness/harness.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
     forbidden_roots = {
         "requ" "ests",
         "htt" "px",
@@ -441,14 +482,17 @@ def test_forbidden_imports_not_present() -> None:
         "tele" "gram",
         "microservice" "_dispatcher",
     )
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                root = alias.name.split(".")[0]
+    for source_path in Path("pymia/operational_harness").glob("*.py"):
+        source = source_path.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    root = alias.name.split(".")[0]
+                    assert root not in forbidden_roots
+                    assert not alias.name.startswith(forbidden_prefixes)
+            if isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                root = module.split(".")[0] if module else ""
                 assert root not in forbidden_roots
-                assert not alias.name.startswith(forbidden_prefixes)
-        if isinstance(node, ast.ImportFrom):
-            module = node.module or ""
-            root = module.split(".")[0] if module else ""
-            assert root not in forbidden_roots
-            assert not module.startswith(forbidden_prefixes)
+                assert not module.startswith(forbidden_prefixes)

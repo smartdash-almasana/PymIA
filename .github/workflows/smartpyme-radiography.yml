@@ -55,8 +55,20 @@ jobs:
       - name: Run Pipeline Radiography
         run: python -m pymia.pipeline_radiography.run_scenarios --output-dir .pipeline_radiography/ci
 
+      - name: Build Operational Harness Status
+        run: |
+          python -m pymia.operational_harness --output-dir .pipeline_radiography/ci
+
       - name: Run SmartPyme tests
         run: python -m pytest tests/smartpyme -q
+
+      - name: Upload Operational Harness Status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operational-harness-status
+          path: .pipeline_radiography/ci/harness_status.json
+          retention-days: 7
 
       - name: Upload Pipeline Radiography artifacts
         if: always()
