@@ -19,6 +19,10 @@ qué está incompleto,
 y qué no debe prometerse.
 ```
 
+Nota M20:
+`pymia/smartpyme/capabilities.yaml` es la fuente machine-readable inicial.
+Este Markdown sigue como explicación humana y M20 no conecta `supplier_duplicate_check` al dispatcher formal.
+
 Regla madre:
 
 ```text
