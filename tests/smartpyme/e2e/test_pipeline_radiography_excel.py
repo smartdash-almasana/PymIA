@@ -4,19 +4,9 @@ import json
 from pathlib import Path
 
 from pymia.pipeline_radiography import (
-    PipelineScenario,
-    ScenarioEvidence,
-    ScenarioExpectation,
     generate_developer_report,
+    get_all_scenarios,
     run_pipeline_scenario,
-)
-
-
-FIXTURE_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "fixtures"
-    / "smartpyme"
-    / "ventas_costos_margen.xlsx"
 )
 
 
@@ -34,39 +24,12 @@ def _assert_developer_report(result, output_dir: Path) -> None:
     assert trace_data["trace"]["overall_status"] == result.trace.overall_status
 
 
-def test_excel_pipeline_happy_path_reaches_ready_to_deliver(tmp_path: Path) -> None:
-    scenario = PipelineScenario(
-        scenario_id="margin_excel_happy_path",
-        tenant_id="tenant_demo",
-        owner_message="No se si vendo con margen",
-        evidence_items=(
-            ScenarioEvidence(
-                evidence_type="excel_ventas_costos",
-                source_kind="uploaded_file",
-                source_ref=str(FIXTURE_PATH),
-                metadata={"columns": ["producto", "ventas", "costo"]},
-            ),
-            ScenarioEvidence(
-                evidence_type="ventas_del_periodo",
-                source_kind="uploaded_file",
-                source_ref=str(FIXTURE_PATH),
-                metadata={"columns": ["producto", "ventas", "costo"]},
-            ),
-            ScenarioEvidence(
-                evidence_type="costos_directos",
-                source_kind="uploaded_file",
-                source_ref=str(FIXTURE_PATH),
-                metadata={"columns": ["producto", "ventas", "costo"]},
-            ),
-        ),
-        expected=ScenarioExpectation(
-            final_status="READY_TO_DELIVER",
-            runtime_classification="excel_diagnostic",
-            dispatch_status="EXECUTED",
-            min_findings_count=1,
-        ),
-    )
+def _scenario_by_id(scenario_id: str):
+    return next(item for item in get_all_scenarios() if item.scenario_id == scenario_id)
 
+
+def test_excel_pipeline_happy_path_reaches_ready_to_deliver(tmp_path: Path) -> None:
+    scenario = _scenario_by_id("margin_excel_happy_path")
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
     _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
@@ -87,17 +50,7 @@ def test_excel_pipeline_happy_path_reaches_ready_to_deliver(tmp_path: Path) -> N
 
 
 def test_margin_without_evidence_blocks_before_dispatch(tmp_path: Path) -> None:
-    scenario = PipelineScenario(
-        scenario_id="margin_excel_missing_evidence",
-        tenant_id="tenant_demo",
-        owner_message="No se si vendo con margen",
-        evidence_items=(),
-        expected=ScenarioExpectation(
-            final_status="NEEDS_EVIDENCE",
-            must_not_dispatch=True,
-        ),
-    )
-
+    scenario = _scenario_by_id("margin_excel_missing_evidence")
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
     _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
@@ -112,24 +65,7 @@ def test_margin_without_evidence_blocks_before_dispatch(tmp_path: Path) -> None:
 
 
 def test_evidence_type_mismatch_blocks_at_gate(tmp_path: Path) -> None:
-    scenario = PipelineScenario(
-        scenario_id="evidence_type_mismatch",
-        tenant_id="tenant_demo",
-        owner_message="No se si vendo con margen",
-        evidence_items=(
-            ScenarioEvidence(
-                evidence_type="excel_proveedores",
-                source_kind="uploaded_file",
-                source_ref=str(FIXTURE_PATH),
-                metadata={"columns": ["producto", "ventas", "costo"]},
-            ),
-        ),
-        expected=ScenarioExpectation(
-            final_status="NEEDS_EVIDENCE",
-            must_not_dispatch=True,
-        ),
-    )
-
+    scenario = _scenario_by_id("evidence_type_mismatch")
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
     _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
@@ -141,24 +77,7 @@ def test_evidence_type_mismatch_blocks_at_gate(tmp_path: Path) -> None:
 
 
 def test_unsupported_runtime_classification(tmp_path: Path) -> None:
-    scenario = PipelineScenario(
-        scenario_id="unsupported_runtime_classification",
-        tenant_id="tenant_demo",
-        owner_message="Quiero revisar duplicados de proveedores",
-        evidence_items=(
-            ScenarioEvidence(
-                evidence_type="excel_proveedores",
-                source_kind="uploaded_file",
-                source_ref=str(FIXTURE_PATH),
-                metadata={"columns": ["producto", "ventas", "costo"]},
-            ),
-        ),
-        expected=ScenarioExpectation(
-            final_status="BLOCKED",
-            dispatch_status="UNSUPPORTED",
-        ),
-    )
-
+    scenario = _scenario_by_id("unsupported_runtime_classification")
     result = run_pipeline_scenario(scenario, output_root=tmp_path)
     _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
