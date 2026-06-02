@@ -49,6 +49,7 @@ jobs:
           "openpyxl>=3.1"
           "pandas>=2.2"
           "mcp>=1.0"
+          "PyYAML>=6.0"
           "pytest>=7.0"
 
       - name: Run Pipeline Radiography
