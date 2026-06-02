@@ -91,3 +91,62 @@ def test_margin_without_evidence_blocks_before_dispatch(tmp_path: Path) -> None:
     assert result.delivery_package is None
     stage_names = [stage.name for stage in result.trace.stages]
     assert "microservice_dispatcher" not in stage_names
+
+
+def test_evidence_type_mismatch_blocks_at_gate(tmp_path: Path) -> None:
+    scenario = PipelineScenario(
+        scenario_id="evidence_type_mismatch",
+        tenant_id="tenant_demo",
+        owner_message="No se si vendo con margen",
+        evidence_items=(
+            ScenarioEvidence(
+                evidence_type="excel_proveedores",
+                source_kind="uploaded_file",
+                source_ref=str(FIXTURE_PATH),
+                metadata={"columns": ["producto", "ventas", "costo"]},
+            ),
+        ),
+        expected=ScenarioExpectation(
+            final_status="NEEDS_EVIDENCE",
+            must_not_dispatch=True,
+        ),
+    )
+
+    result = run_pipeline_scenario(scenario, output_root=tmp_path)
+
+    assert result.trace.overall_status == "BLOCKED_EXPECTED"
+    assert result.trace.blocked_at == "evidence_gate"
+    assert result.trace.final_summary["must_not_dispatch"] is True
+    stage_names = [stage.name for stage in result.trace.stages]
+    assert "microservice_dispatcher" not in stage_names
+
+
+def test_unsupported_runtime_classification(tmp_path: Path) -> None:
+    scenario = PipelineScenario(
+        scenario_id="unsupported_runtime_classification",
+        tenant_id="tenant_demo",
+        owner_message="Quiero revisar duplicados de proveedores",
+        evidence_items=(
+            ScenarioEvidence(
+                evidence_type="excel_proveedores",
+                source_kind="uploaded_file",
+                source_ref=str(FIXTURE_PATH),
+                metadata={"columns": ["producto", "ventas", "costo"]},
+            ),
+        ),
+        expected=ScenarioExpectation(
+            final_status="BLOCKED",
+            runtime_classification="supplier_duplicate_check",
+            dispatch_status="UNSUPPORTED",
+        ),
+    )
+
+    result = run_pipeline_scenario(scenario, output_root=tmp_path)
+
+    assert result.trace.final_summary["final_status"] != "READY_TO_DELIVER"
+    if result.trace.overall_status == "BLOCKED_EXPECTED":
+        assert result.trace.blocked_at in {"readiness", "runtime_bridge"}
+    else:
+        assert result.trace.final_summary["dispatch_status"] == "UNSUPPORTED"
+        stage_names = [stage.name for stage in result.trace.stages]
+        assert "microservice_dispatcher" in stage_names
