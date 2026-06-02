@@ -11,6 +11,7 @@ venv/
 factory/control/
 Pymia-memoria/
 .runtime/
+.pipeline_radiography/
 conversa-engine/.conversation_state/
 
 docs/mermaid/
