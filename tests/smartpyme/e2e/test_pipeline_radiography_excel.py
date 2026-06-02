@@ -82,9 +82,23 @@ def test_unsupported_runtime_classification(tmp_path: Path) -> None:
     _assert_developer_report(result, tmp_path / result.trace.trace_id)
 
     assert result.trace.final_summary["final_status"] != "READY_TO_DELIVER"
-    if result.trace.overall_status == "BLOCKED_EXPECTED":
-        assert result.trace.blocked_at in {"readiness", "runtime_bridge"}
-    else:
-        assert result.trace.final_summary["dispatch_status"] == "UNSUPPORTED"
-        stage_names = [stage.name for stage in result.trace.stages]
-        assert "microservice_dispatcher" in stage_names
+    assert result.trace.overall_status == "BLOCKED_EXPECTED"
+    assert result.trace.blocked_at in {"evidence_gate", "readiness", "runtime_bridge"}
+    stage_names = [stage.name for stage in result.trace.stages]
+    assert "microservice_dispatcher" not in stage_names
+
+
+def test_supplier_duplicate_check_happy_path(tmp_path: Path) -> None:
+    scenario = _scenario_by_id("supplier_duplicate_check_happy_path")
+    result = run_pipeline_scenario(scenario, output_root=tmp_path)
+    _assert_developer_report(result, tmp_path / result.trace.trace_id)
+
+    assert result.trace.overall_status == "PASS"
+    assert result.trace.final_summary["final_status"] == "READY_TO_DELIVER"
+    assert result.trace.final_summary["runtime_classification"] == "supplier_duplicate_check"
+    assert result.trace.final_summary["dispatch_status"] == "EXECUTED"
+    assert result.trace.final_summary["findings_count"] >= 1
+    assert result.execution_gate_verdict is not None
+    assert result.execution_gate_verdict["verdict"] == "PASS"
+    assert result.delivery_package is not None
+    assert result.delivery_package["status"] == "READY_TO_DELIVER"

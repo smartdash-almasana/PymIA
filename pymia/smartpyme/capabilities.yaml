@@ -18,9 +18,9 @@ capabilities:
 
   - capability_id: supplier_duplicate_check
     label: Revision de proveedores duplicados
-    status: PARTIALLY_AVAILABLE_BY_PATH
-    pipeline_certified: false
-    dispatcher_available: false
+    status: PIPELINE_CERTIFIED
+    pipeline_certified: true
+    dispatcher_available: true
     cli_available: true
     plugin_module: pymia.smartpyme.classifications.supplier_duplicate_check
     plugin_function: diagnose_supplier_duplicates
@@ -31,7 +31,7 @@ capabilities:
     docs:
       - docs/smartpyme/SMARTPYME_CAPABILITY_PLUGIN_REGISTRY.md
       - docs/smartpyme/M17_SUPPLIER_DISPATCHER_CONTRACT_FINDING.md
-    no_promise_reason: disponible por CLI/camino lateral, no por dispatcher formal
+    no_promise_reason: null
 
   - capability_id: report_html
     label: Reporte HTML

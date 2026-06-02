@@ -15,6 +15,16 @@ def _fixture_path() -> Path:
     )
 
 
+def _supplier_fixture_path() -> Path:
+    return (
+        Path(__file__).resolve().parents[2]
+        / "tests"
+        / "fixtures"
+        / "smartpyme"
+        / "proveedores_duplicados.xlsx"
+    )
+
+
 def _margin_excel_happy_path() -> PipelineScenario:
     fixture_path = _fixture_path()
     return PipelineScenario(
@@ -85,9 +95,22 @@ def _evidence_type_mismatch() -> PipelineScenario:
 
 
 def _unsupported_runtime_classification() -> PipelineScenario:
-    fixture_path = _fixture_path()
     return PipelineScenario(
         scenario_id="unsupported_runtime_classification",
+        tenant_id="tenant_demo",
+        owner_message="Quiero analizar este archivo",
+        evidence_items=(),
+        expected=ScenarioExpectation(
+            final_status="BLOCKED",
+            must_not_dispatch=True,
+        ),
+    )
+
+
+def _supplier_duplicate_check_happy_path() -> PipelineScenario:
+    fixture_path = _supplier_fixture_path()
+    return PipelineScenario(
+        scenario_id="supplier_duplicate_check_happy_path",
         tenant_id="tenant_demo",
         owner_message="Quiero revisar duplicados de proveedores",
         evidence_items=(
@@ -95,12 +118,14 @@ def _unsupported_runtime_classification() -> PipelineScenario:
                 evidence_type="excel_proveedores",
                 source_kind="uploaded_file",
                 source_ref=str(fixture_path),
-                metadata={"columns": ["producto", "ventas", "costo"]},
+                metadata={"columns": ["proveedor", "cuit", "razon_social"]},
             ),
         ),
         expected=ScenarioExpectation(
-            final_status="BLOCKED",
-            dispatch_status="UNSUPPORTED",
+            final_status="READY_TO_DELIVER",
+            runtime_classification="supplier_duplicate_check",
+            dispatch_status="EXECUTED",
+            min_findings_count=1,
         ),
     )
 
@@ -111,6 +136,7 @@ def get_all_scenarios() -> list[PipelineScenario]:
         _margin_excel_missing_evidence(),
         _evidence_type_mismatch(),
         _unsupported_runtime_classification(),
+        _supplier_duplicate_check_happy_path(),
     ]
 
 

@@ -27,10 +27,11 @@ def test_get_excel_diagnostic_is_pipeline_certified() -> None:
     assert is_pipeline_certified("excel_diagnostic") is True
 
 
-def test_supplier_duplicate_check_is_not_dispatcher_available() -> None:
+def test_supplier_duplicate_check_is_dispatcher_available_and_pipeline_certified() -> None:
     capability = get_capability("supplier_duplicate_check")
-    assert capability["status"] == "PARTIALLY_AVAILABLE_BY_PATH"
-    assert is_dispatcher_available("supplier_duplicate_check") is False
+    assert capability["status"] == "PIPELINE_CERTIFIED"
+    assert is_dispatcher_available("supplier_duplicate_check") is True
+    assert is_pipeline_certified("supplier_duplicate_check") is True
 
 
 def test_capability_ids_are_unique() -> None:

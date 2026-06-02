@@ -10,6 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from pymia.smartpyme.classifications.supplier_duplicate_check import (
+    diagnose_supplier_duplicates,
+)
 from pymia.smartpyme.excel_diagnostic import diagnose_excel
 from .runtime_bridge import RuntimeExecutionCandidate, EXECUTION_READY_TO_EXECUTE
 
@@ -88,7 +91,7 @@ def dispatch_candidate(candidate: Any, *, evidence_path: str | Path, output_dir:
             warnings=["Candidate can_dispatch is False."],
         )
 
-    if runtime_classification != "excel_diagnostic":
+    if runtime_classification not in {"excel_diagnostic", "supplier_duplicate_check"}:
         return MicroserviceExecutionResult(
             tenant_id=tenant_id,
             intake_id=intake_id,
@@ -106,11 +109,18 @@ def dispatch_candidate(candidate: Any, *, evidence_path: str | Path, output_dir:
             out_dir.mkdir(parents=True, exist_ok=True)
             markdown_output_path = out_dir / "diagnostic_report.md"
 
-        result = diagnose_excel(
-            excel_path=evidence_path,
-            tenant_id=tenant_id,
-            markdown_output_path=markdown_output_path,
-        )
+        if runtime_classification == "excel_diagnostic":
+            result = diagnose_excel(
+                excel_path=evidence_path,
+                tenant_id=tenant_id,
+                markdown_output_path=markdown_output_path,
+            )
+        else:
+            result, _ = diagnose_supplier_duplicates(
+                excel_path=evidence_path,
+                tenant_id=tenant_id,
+                markdown_output_path=markdown_output_path,
+            )
 
         if markdown_output_path is not None and markdown_output_path.exists():
             out_refs.append(str(markdown_output_path))

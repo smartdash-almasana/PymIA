@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 import copy
 import json
-import sys
 from pathlib import Path
 
 import pandas as pd
@@ -43,6 +42,22 @@ def _write_excel(path: Path) -> None:
     df.to_excel(path, index=False)
 
 
+def _write_supplier_excel(path: Path) -> None:
+    df = pd.DataFrame(
+        {
+            "proveedor": ["Proveedor Uno", "Proveedor Uno", "Proveedor Dos", "Proveedor Tres"],
+            "cuit": ["30-12345678-9", "30-12345678-9", "30-87654321-0", ""],
+            "razon_social": [
+                "Proveedor Uno SRL",
+                "Proveedor Uno S.R.L.",
+                "Proveedor Dos SA",
+                "Proveedor Tres SAS",
+            ],
+        }
+    )
+    df.to_excel(path, index=False)
+
+
 def test_import_smoke():
     from pymia.smartpyme.microservice_dispatcher import (  # noqa: F401
         dispatch_candidate,
@@ -62,22 +77,6 @@ def test_dispatcher_imports_excel_diagnostic():
         if isinstance(node, ast.ImportFrom) and (node.module or "") == "pymia.smartpyme.excel_diagnostic":
             found = True
     assert found
-
-
-def test_dispatcher_does_not_import_supplier_duplicate_check():
-    source = Path("pymia/smartpyme/microservice_dispatcher.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    forbidden = (
-        "pymia.smartpyme.supplier_duplicate_check",
-        "pymia.smartpyme.classifications.supplier_duplicate_check",
-    )
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                assert not alias.name.startswith(forbidden)
-        if isinstance(node, ast.ImportFrom):
-            module = node.module or ""
-            assert not module.startswith(forbidden)
 
 
 def test_excel_synthetic_ready_candidate_executes(tmp_path):
@@ -140,10 +139,29 @@ def test_unsupported_runtime_returns_unsupported(tmp_path):
 
     excel_path = tmp_path / "ventas_costos.xlsx"
     _write_excel(excel_path)
-    candidate = _ready_candidate(runtime_classification="supplier_duplicate_check")
+    candidate = _ready_candidate(runtime_classification="unknown_classification")
 
     result = dispatch_candidate(candidate, evidence_path=excel_path)
     assert result.status == EXECUTION_UNSUPPORTED
+
+
+def test_supplier_duplicate_check_ready_candidate_executes(tmp_path):
+    from pymia.smartpyme.microservice_dispatcher import dispatch_candidate, EXECUTION_EXECUTED
+
+    excel_path = tmp_path / "proveedores_duplicados.xlsx"
+    output_dir = tmp_path / "out"
+    _write_supplier_excel(excel_path)
+
+    result = dispatch_candidate(
+        _ready_candidate(runtime_classification="supplier_duplicate_check"),
+        evidence_path=excel_path,
+        output_dir=output_dir,
+    )
+
+    assert result.status == EXECUTION_EXECUTED
+    assert result.runtime_classification == "supplier_duplicate_check"
+    assert result.findings_count >= 1
+    assert result.output_refs
 
 
 def test_non_ready_status_returns_blocked(tmp_path):
@@ -217,13 +235,3 @@ def test_inputs_not_mutated(tmp_path):
     snapshot = copy.deepcopy(candidate)
     dispatch_candidate(candidate, evidence_path=excel_path)
     assert candidate == snapshot
-
-
-def test_supplier_duplicate_check_module_not_loaded_by_dispatcher_import():
-    before = set(sys.modules.keys())
-    from pymia.smartpyme import microservice_dispatcher  # noqa: F401
-
-    after = set(sys.modules.keys())
-    loaded = after - before
-    assert "pymia.smartpyme.supplier_duplicate_check" not in loaded
-    assert "pymia.smartpyme.classifications.supplier_duplicate_check" not in loaded
