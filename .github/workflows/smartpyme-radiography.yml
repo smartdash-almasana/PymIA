@@ -1,0 +1,55 @@
+name: SmartPyme Pipeline Radiography CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "pymia/**"
+      - "tests/smartpyme/**"
+      - "docs/smartpyme/**"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - ".github/workflows/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "pymia/**"
+      - "tests/smartpyme/**"
+      - "docs/smartpyme/**"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - ".github/workflows/**"
+
+jobs:
+  smartpyme-radiography:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: pip install -e .[dev]
+
+      - name: Run Pipeline Radiography
+        run: python -m pymia.pipeline_radiography.run_scenarios --output-dir .pipeline_radiography/ci
+
+      - name: Run SmartPyme tests
+        run: python -m pytest tests/smartpyme -q
+
+      - name: Upload Pipeline Radiography artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartpyme-radiography-artifacts
+          path: .pipeline_radiography/ci
