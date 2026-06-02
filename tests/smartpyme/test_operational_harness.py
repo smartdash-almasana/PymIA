@@ -16,6 +16,7 @@ from pymia.operational_harness.harness import (
 def _registry(
     *,
     partial: bool = False,
+    include_supplier: bool = False,
     include_orphan_target: bool = False,
 ) -> dict:
     capabilities = [
@@ -32,20 +33,23 @@ def _registry(
             "tests": [],
             "docs": [],
         },
-        {
-            "capability_id": "supplier_duplicate_check",
-            "label": "Revision proveedores",
-            "status": "PIPELINE_CERTIFIED",
-            "pipeline_certified": True,
-            "dispatcher_available": True,
-            "cli_available": True,
-            "plugin_module": "module.suppliers",
-            "plugin_function": "fn_suppliers",
-            "dispatcher_classification": "supplier_duplicate_check",
-            "tests": [],
-            "docs": [],
-        },
     ]
+    if include_supplier:
+        capabilities.append(
+            {
+                "capability_id": "supplier_duplicate_check",
+                "label": "Revision proveedores",
+                "status": "PIPELINE_CERTIFIED",
+                "pipeline_certified": True,
+                "dispatcher_available": True,
+                "cli_available": True,
+                "plugin_module": "module.suppliers",
+                "plugin_function": "fn_suppliers",
+                "dispatcher_classification": "supplier_duplicate_check",
+                "tests": [],
+                "docs": [],
+            }
+        )
     if partial:
         capabilities.append(
             {
@@ -196,14 +200,16 @@ def test_loads_summary_and_traces_successfully(monkeypatch, tmp_path: Path) -> N
 
 
 def test_green_when_no_fail_and_no_ambiguous(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("pymia.operational_harness.harness.load_registry", lambda: _registry())
+    monkeypatch.setattr("pymia.operational_harness.harness.load_registry", lambda: _registry(include_supplier=True))
     scenarios = [
         {"scenario_id": "s1", "trace_id": "t1", "overall_status": "PASS", "blocked_at": None, "duration_ms": 1},
-        {"scenario_id": "s2", "trace_id": "t2", "overall_status": "BLOCKED_EXPECTED", "blocked_at": "evidence_gate", "duration_ms": 2},
+        {"scenario_id": "s2", "trace_id": "t2", "overall_status": "PASS", "blocked_at": None, "duration_ms": 2},
+        {"scenario_id": "s3", "trace_id": "t3", "overall_status": "BLOCKED_EXPECTED", "blocked_at": "evidence_gate", "duration_ms": 3},
     ]
     traces = {
         "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="PASS", runtime_classification="excel_diagnostic"),
-        "s2": _trace_payload(trace_id="t2", scenario_id="s2", overall_status="BLOCKED_EXPECTED", runtime_classification=None, blocked_at="evidence_gate"),
+        "s2": _trace_payload(trace_id="t2", scenario_id="s2", overall_status="PASS", runtime_classification="supplier_duplicate_check"),
+        "s3": _trace_payload(trace_id="t3", scenario_id="s3", overall_status="BLOCKED_EXPECTED", runtime_classification=None, blocked_at="evidence_gate"),
     }
     _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
 
@@ -211,6 +217,7 @@ def test_green_when_no_fail_and_no_ambiguous(monkeypatch, tmp_path: Path) -> Non
 
     assert result["pipeline_status"] == "GREEN"
     assert result["next_action"] == "NONE"
+    assert result["stale_certified_capabilities"] == []
 
 
 def test_yellow_when_ambiguous_exists(monkeypatch, tmp_path: Path) -> None:
@@ -297,14 +304,19 @@ def test_fails_loud_when_trace_missing_for_summary_entry(monkeypatch, tmp_path: 
 
 
 def test_deterministic_output(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("pymia.operational_harness.harness.load_registry", lambda: _registry(partial=True))
+    monkeypatch.setattr(
+        "pymia.operational_harness.harness.load_registry",
+        lambda: _registry(partial=True, include_supplier=True),
+    )
     scenarios = [
-        {"scenario_id": "s2", "trace_id": "t2", "overall_status": "BLOCKED_EXPECTED", "blocked_at": "evidence_gate", "duration_ms": 2},
+        {"scenario_id": "s3", "trace_id": "t3", "overall_status": "BLOCKED_EXPECTED", "blocked_at": "evidence_gate", "duration_ms": 3},
+        {"scenario_id": "s2", "trace_id": "t2", "overall_status": "PASS", "blocked_at": None, "duration_ms": 2},
         {"scenario_id": "s1", "trace_id": "t1", "overall_status": "PASS", "blocked_at": None, "duration_ms": 1},
     ]
     traces = {
         "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="PASS", runtime_classification="excel_diagnostic"),
-        "s2": _trace_payload(trace_id="t2", scenario_id="s2", overall_status="BLOCKED_EXPECTED", runtime_classification=None, blocked_at="evidence_gate"),
+        "s2": _trace_payload(trace_id="t2", scenario_id="s2", overall_status="PASS", runtime_classification="supplier_duplicate_check"),
+        "s3": _trace_payload(trace_id="t3", scenario_id="s3", overall_status="BLOCKED_EXPECTED", runtime_classification=None, blocked_at="evidence_gate"),
     }
     _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
 
@@ -313,6 +325,107 @@ def test_deterministic_output(monkeypatch, tmp_path: Path) -> None:
 
     assert first == second
     assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
+
+
+def test_detects_stale_certified_capability(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "pymia.operational_harness.harness.load_registry",
+        lambda: _registry(include_supplier=True),
+    )
+    scenarios = [
+        {"scenario_id": "s1", "trace_id": "t1", "overall_status": "PASS", "blocked_at": None, "duration_ms": 1},
+    ]
+    traces = {
+        "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="PASS", runtime_classification="excel_diagnostic"),
+    }
+    _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
+
+    result = build_operational_status(tmp_path)
+
+    assert result["pipeline_status"] == "YELLOW"
+    assert result["next_action"] == "REVIEW_REGISTRY"
+    assert result["stale_certified_capabilities"] == [
+        {
+            "capability_id": "supplier_duplicate_check",
+            "label": "Revision proveedores",
+        }
+    ]
+
+
+def test_no_stale_certified_capability_when_traces_exist(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "pymia.operational_harness.harness.load_registry",
+        lambda: _registry(include_supplier=True),
+    )
+    scenarios = [
+        {"scenario_id": "s2", "trace_id": "t2", "overall_status": "PASS", "blocked_at": None, "duration_ms": 2},
+        {"scenario_id": "s1", "trace_id": "t1", "overall_status": "PASS", "blocked_at": None, "duration_ms": 1},
+    ]
+    traces = {
+        "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="PASS", runtime_classification="excel_diagnostic"),
+        "s2": _trace_payload(trace_id="t2", scenario_id="s2", overall_status="PASS", runtime_classification="supplier_duplicate_check"),
+    }
+    _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
+
+    result = build_operational_status(tmp_path)
+
+    assert result["stale_certified_capabilities"] == []
+
+
+def test_stale_takes_precedence_over_partial(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "pymia.operational_harness.harness.load_registry",
+        lambda: _registry(partial=True, include_supplier=True),
+    )
+    scenarios = [
+        {"scenario_id": "s1", "trace_id": "t1", "overall_status": "PASS", "blocked_at": None, "duration_ms": 1},
+    ]
+    traces = {
+        "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="PASS", runtime_classification="excel_diagnostic"),
+    }
+    _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
+
+    result = build_operational_status(tmp_path)
+
+    assert result["next_action"] == "REVIEW_REGISTRY"
+
+
+def test_fails_take_precedence_over_stale(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "pymia.operational_harness.harness.load_registry",
+        lambda: _registry(include_supplier=True),
+    )
+    scenarios = [
+        {"scenario_id": "s1", "trace_id": "t1", "overall_status": "FAIL", "blocked_at": "delivery_package", "duration_ms": 1},
+    ]
+    traces = {
+        "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="FAIL", runtime_classification="excel_diagnostic", blocked_at="delivery_package"),
+    }
+    _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
+
+    result = build_operational_status(tmp_path)
+
+    assert result["pipeline_status"] == "RED"
+    assert result["next_action"] == "FIX_SCENARIO"
+
+
+def test_ambiguous_take_precedence_over_stale(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "pymia.operational_harness.harness.load_registry",
+        lambda: _registry(include_supplier=True),
+    )
+    scenarios = [
+        {"scenario_id": "s1", "trace_id": "t1", "overall_status": "AMBIGUOUS", "blocked_at": None, "duration_ms": 1},
+    ]
+    traces = {
+        "s1": _trace_payload(trace_id="t1", scenario_id="s1", overall_status="AMBIGUOUS", runtime_classification="excel_diagnostic"),
+    }
+    _write_bundle(tmp_path, scenarios=scenarios, traces=traces)
+
+    result = build_operational_status(tmp_path)
+
+    assert result["pipeline_status"] == "YELLOW"
+    assert result["next_action"] == "RE_RUN_RADIOGRAPHY"
 
 
 def test_forbidden_imports_not_present() -> None:

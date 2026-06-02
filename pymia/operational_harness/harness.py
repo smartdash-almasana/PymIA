@@ -113,6 +113,7 @@ def build_operational_status(output_dir: Path | str) -> dict[str, Any]:
     }
 
     certified_capabilities: list[dict[str, Any]] = []
+    stale_certified_capabilities: list[dict[str, Any]] = []
     for capability in capabilities:
         if capability["status"] != "PIPELINE_CERTIFIED":
             continue
@@ -133,6 +134,13 @@ def build_operational_status(output_dir: Path | str) -> dict[str, Any]:
                 ),
             }
         )
+        if capability.get("pipeline_certified") and not matching_traces:
+            stale_certified_capabilities.append(
+                {
+                    "capability_id": capability["capability_id"],
+                    "label": capability.get("label"),
+                }
+            )
 
     partial_capabilities = [
         {
@@ -202,13 +210,17 @@ def build_operational_status(output_dir: Path | str) -> dict[str, Any]:
     )
 
     failed_count = len(failed_scenarios)
+    overall_ambiguous_count = sum(
+        1 for trace in traces if trace["overall_status"] == "AMBIGUOUS"
+    )
     ambiguous_count = len(ambiguous_scenarios)
     partial_count = len(partial_capabilities)
+    stale_count = len(stale_certified_capabilities)
     has_orphan = any(item.get("reason") == "orphan_classification" for item in ambiguous_scenarios)
 
     if failed_count > 0:
         pipeline_status = "RED"
-    elif ambiguous_count > 0 or partial_count > 0:
+    elif ambiguous_count > 0 or partial_count > 0 or stale_count > 0:
         pipeline_status = "YELLOW"
     else:
         pipeline_status = "GREEN"
@@ -217,10 +229,10 @@ def build_operational_status(output_dir: Path | str) -> dict[str, Any]:
         next_action = "FIX_SCENARIOS"
     elif failed_count == 1:
         next_action = "FIX_SCENARIO"
-    elif has_orphan:
-        next_action = "REVIEW_REGISTRY"
-    elif ambiguous_count > 0:
+    elif overall_ambiguous_count > 0:
         next_action = "RE_RUN_RADIOGRAPHY"
+    elif has_orphan or stale_count > 0:
+        next_action = "REVIEW_REGISTRY"
     elif partial_count > 0:
         next_action = "REVIEW_PARTIAL_CAPABILITY"
     else:
@@ -239,6 +251,10 @@ def build_operational_status(output_dir: Path | str) -> dict[str, Any]:
             "partial_capabilities": partial_count,
         },
         "certified_capabilities": certified_capabilities,
+        "stale_certified_capabilities": sorted(
+            stale_certified_capabilities,
+            key=lambda item: item["capability_id"],
+        ),
         "partial_capabilities": partial_capabilities,
         "failed_scenarios": failed_scenarios,
         "blocked_expected_scenarios": blocked_expected_scenarios,
