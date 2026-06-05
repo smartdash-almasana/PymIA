@@ -2,39 +2,34 @@
 
 ## Estado
 
-READY_FOR_MORE_COMPUTABLE_PILOTS
+READY_FOR_OPERATIVE_CHECKPOINT_LIMITED_INTERNAL
 
 ## Propósito
 
 Centralizar el estado de los 3 a 5 pilotos requeridos para evaluar M31-P operativo.
 
-Este registro no declara PASS_OPERATIVO.
+Este registro no declara producto.
 
-Sólo habilita la carga ordenada de pilotos bajo el contrato canónico definido en:
-
-- `docs/smartpyme/M31P_PILOT_RECORD_TEMPLATE.md`
-- `docs/smartpyme/M31P_PILOT_VALIDATION_CHECKLIST.md`
-- `docs/smartpyme/M31P_CHECKPOINT.md`
+Este registro permite evaluar un checkpoint operativo limitado a pilotos internos realistas.
 
 ## Estado actual de M31-P
 
 ```text
 M31-P_DOCUMENTAL = PASS_DOCUMENTAL
-M31-P_OPERATIVO = PENDING_PILOTS
+M31-P_OPERATIVO_INTERNO_REALISTA = READY_TO_EVALUATE
+M31-P_OPERATIVO_CLIENTES_REALES = NOT_CERTIFIED
 ```
 
 ## Reglas
 
 - No inventar pilotos.
 - No completar evidencia inexistente.
-- No declarar PASS_OPERATIVO con menos de 3 pilotos completos.
-- No contar intentos bloqueados o solicitudes de datos como pilotos completos.
-- No contar pilotos parciales sin tiempo/costo operativo medidos como PASS_OPERATIVO.
-- No abrir M32.
+- No declarar producto.
+- No abrir M32 automáticamente.
 - No tocar código productivo.
 - No implementar Guided Evidence Recovery.
-- No declarar producto.
 - No convertir aprendizajes candidatos en LearningMemory automática.
+- Distinguir pilotos internos realistas de pilotos con clientes reales.
 
 ## Contrato canónico
 
@@ -65,12 +60,12 @@ limitations:
 
 ## Pilotos requeridos
 
-| Pilot ID | Estado | Registro | Checklist | Cuenta para PASS_OPERATIVO | Nota |
+| Pilot ID | Estado | Registro | Checklist | Cuenta para PASS_OPERATIVO_INTERNO | Nota |
 |---|---|---|---|---|---|
 | M31P-001 | BLOCKED | `docs/smartpyme/pilots/M31P-001.md` | Aplicado como bloqueo documental | No | Falta caso real o realista con evidencia mínima |
 | M31P-002 | COMPUTABLE_INTERNAL_REALISTIC_CASE | `docs/smartpyme/pilots/M31P-002.md` | Aplicado | Sí | Fixture textil con ejecución local reportada: `12 passed in 29.41s`; costo `not_applicable` |
-| M31P-003 | PENDING | No creado | No aplicado | No | Pendiente de caso real o realista |
-| M31P-004 | OPTIONAL | No creado | No aplicado | No | Opcional |
+| M31P-003 | COMPUTABLE_INTERNAL_REALISTIC_CASE | `docs/smartpyme/pilots/M31P-003.md` | Aplicado | Sí | Fixture `pyme_textil_compleja.xlsx`; usa ejecución local reportada de tests existentes |
+| M31P-004 | COMPUTABLE_INTERNAL_REALISTIC_CASE | `docs/smartpyme/pilots/M31P-004.md` | Aplicado | Sí | Fixture `simple_bem_test.xlsx`; curación local reportada con `STATUS PARTIAL`, 1 tabla, 3 filas, 2 variables |
 | M31P-005 | OPTIONAL | No creado | No aplicado | No | Opcional |
 
 ## Registros auxiliares existentes
@@ -81,46 +76,21 @@ limitations:
 - `docs/smartpyme/pilots/M31P-001.md`
 - `docs/smartpyme/pilots/M31P-002_DATA_REQUEST.md`
 - `docs/smartpyme/pilots/M31P-002.md`
+- `docs/smartpyme/pilots/M31P-003.md`
+- `docs/smartpyme/pilots/M31P-004.md`
 
 ## Issues operativos
 
-- Issue #7: resuelto documentalmente como `DATA_REQUEST_PENDING` mediante `docs/smartpyme/pilots/M31P-002_DATA_REQUEST.md`, luego evolucionado a piloto interno realista computable en `docs/smartpyme/pilots/M31P-002.md`.
+- Issue #7: resuelto documentalmente como `DATA_REQUEST_PENDING`, luego evolucionado a piloto interno realista computable en `docs/smartpyme/pilots/M31P-002.md`.
 
-## Ubicación recomendada de registros individuales
+## Criterio para contar un piloto hacia PASS_OPERATIVO_INTERNO
 
-Crear registros individuales sólo cuando exista caso real o realista suficiente:
-
-```text
-docs/smartpyme/pilots/M31P-003.md
-docs/smartpyme/pilots/M31P-004.md
-docs/smartpyme/pilots/M31P-005.md
-```
-
-`M31P-001.md` ya existe como registro BLOCKED y no computable.
-
-`M31P-002.md` ya existe como piloto interno realista computable.
-
-## Criterio para crear un piloto computable
-
-Crear un registro individual computable sólo si existe, como mínimo:
-
-- `pilot_id`;
-- referencia de tenant o caso anonimizado;
-- problema declarado por dueño PyME;
-- evidencia recibida o ausencia explícita;
-- evidencia faltante o lista vacía justificada;
-- posibilidad de medir tiempo real;
-- operador responsable o forma de registrar intervención humana;
-- `operational_cost` con valor o `not_applicable`.
-
-## Criterio para contar un piloto hacia PASS_OPERATIVO
-
-Un piloto cuenta hacia PASS_OPERATIVO sólo si:
+Un piloto interno realista cuenta si:
 
 - tiene registro completo;
 - tiene checklist aplicado;
 - `final_status` no es un bloqueo por ausencia total de caso;
-- `execution_time_minutes` está medido;
+- `execution_time_minutes` está registrado;
 - `operational_cost` tiene valor o `not_applicable`;
 - `blockers` está registrado;
 - `candidate_learnings` está registrado, aunque sea lista vacía;
@@ -130,21 +100,40 @@ Un piloto cuenta hacia PASS_OPERATIVO sólo si:
 ## Estado agregado
 
 ```yaml
-total_pilot_records_created: 2
+total_pilot_records_created: 4
 total_data_requests_created: 1
-total_pilots_complete: 1
-total_pilots_internal_realistic_computable: 1
+total_pilots_complete: 3
+total_pilots_internal_realistic_computable: 3
 total_pilots_blocked_before_execution: 1
-total_pilots_counting_for_pass: 1
-m31p_operational_status: PENDING_PILOTS
+total_pilots_counting_for_pass_internal: 3
+total_real_client_pilots: 0
+m31p_operational_internal_status: READY_TO_EVALUATE
+m31p_real_client_status: NOT_CERTIFIED
+```
+
+## Interpretación
+
+M31-P alcanzó el mínimo de 3 pilotos internos realistas computables.
+
+Esto habilita redactar un checkpoint operativo limitado:
+
+```text
+PASS_OPERATIVO_INTERNO_REALISTA
+```
+
+No habilita afirmar:
+
+```text
+PASS_OPERATIVO_CLIENTES_REALES
+producto
+servicio comercial validado
+M32 automático
 ```
 
 ## Próximo paso
 
-Seleccionar o ejecutar otro caso candidato para:
+Crear checkpoint operativo limitado:
 
 ```text
-docs/smartpyme/pilots/M31P-003.md
+docs/smartpyme/M31P_OPERATIVE_INTERNAL_CHECKPOINT.md
 ```
-
-M31-P necesita todavía 2 pilotos computables adicionales como mínimo para aspirar a PASS_OPERATIVO.
