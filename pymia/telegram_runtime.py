@@ -35,6 +35,7 @@ def handle_telegram_message(message: str) -> RuntimeResult:
         "costes",
         "perdida",
         "pérdida",
+        "__owner_claim_margin_uncertainty__",
     )
 
     if any(keyword in lowered for keyword in profitability_keywords):
