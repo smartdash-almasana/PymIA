@@ -2,11 +2,11 @@
 
 ## Estado
 
-CHECKLIST
+CHECKLIST_ALINEADO
 
 ## Propósito
 
-Validar que cada piloto M31-P esté suficientemente registrado para evaluar repetibilidad operativa asistida.
+Validar que cada piloto M31-P esté suficientemente registrado para evaluar repetibilidad operativa asistida bajo un contrato único de campos.
 
 Este checklist no certifica producto, autonomía ni capacidad comercial validada.
 
@@ -16,6 +16,42 @@ Aplicar este checklist a cada registro creado con:
 
 ```text
 docs/smartpyme/M31P_PILOT_RECORD_TEMPLATE.md
+```
+
+## Contrato canónico esperado
+
+Todo registro debe contener estos campos:
+
+```text
+pilot_id
+tenant_ref
+case_date
+business_type
+case_origin
+owner_problem_statement
+owner_operational_meaning
+received_evidence
+missing_evidence
+protocol_steps_applied
+output_delivered
+final_status
+execution_time_minutes
+operational_cost
+human_intervention
+operator_notes
+blockers
+candidate_learnings
+repeatability_assessment
+limitations
+```
+
+No aceptar variantes incompatibles como:
+
+```text
+status
+evidence_received
+evidence_missing
+business_context
 ```
 
 ## Checklist por piloto
@@ -65,29 +101,42 @@ docs/smartpyme/M31P_PILOT_RECORD_TEMPLATE.md
   - BLOCKED
   - PARTIAL
   - UNSUPPORTED
+- [ ] No se usa el campo incompatible `status`.
 - [ ] La salida no se presenta como producto final.
 
-### 7. Tiempo e intervención humana
+### 7. Tiempo real
 
 - [ ] `execution_time_minutes` está registrado.
-- [ ] Si no se midió tiempo, hay justificación explícita.
-- [ ] `human_intervention` está registrada si existió.
-- [ ] La intervención humana no se oculta bajo falsa autonomía.
+- [ ] `execution_time_minutes` contiene un número medido si el piloto aspira a contar para PASS_OPERATIVO.
+- [ ] Si no se midió tiempo, la ausencia está explicada en `limitations` y el piloto no cuenta como completo para PASS_OPERATIVO.
 
-### 8. Bloqueos
+### 8. Costo operativo
+
+- [ ] `operational_cost` está registrado.
+- [ ] `operational_cost` contiene monto, estimación explícita, `not_applicable` o `not_measured`.
+- [ ] Si usa `not_measured`, está justificado en `limitations`.
+
+### 9. Intervención humana y notas
+
+- [ ] `human_intervention` está registrada si existió.
+- [ ] `operator_notes` está registrado si corresponde.
+- [ ] La intervención humana no se oculta bajo falsa autonomía.
+- [ ] Las notas del operador no se confunden con evidencia del dueño.
+
+### 10. Bloqueos
 
 - [ ] `blockers` está registrado, aunque sea lista vacía.
 - [ ] Los bloqueos distinguen falta de evidencia, falta de sentido operativo, restricción técnica o restricción metodológica.
 - [ ] Si el caso está BLOCKED, el bloqueo es trazable.
 
-### 9. Aprendizajes candidatos
+### 11. Aprendizajes candidatos
 
-- [ ] `candidate_learnings` está registrado si corresponde.
-- [ ] Los aprendizajes están marcados como candidatos.
+- [ ] `candidate_learnings` está registrado, aunque sea lista vacía.
+- [ ] Los aprendizajes, si existen, están marcados como candidatos.
 - [ ] No se convirtieron automáticamente en LearningMemory.
 - [ ] No se convirtieron automáticamente en ADR, política o arquitectura.
 
-### 10. Repetibilidad
+### 12. Repetibilidad
 
 - [ ] `repeatability_assessment` usa sólo valores permitidos:
   - REPEATABLE
@@ -97,10 +146,10 @@ docs/smartpyme/M31P_PILOT_RECORD_TEMPLATE.md
 - [ ] La evaluación está justificada por evidencia del piloto.
 - [ ] No se generaliza a producto con un solo caso.
 
-### 11. Limitaciones
+### 13. Limitaciones
 
 - [ ] `limitations` está registrado.
-- [ ] Las limitaciones distinguen evidencia, alcance, tiempo, intervención humana y aplicabilidad.
+- [ ] Las limitaciones distinguen evidencia, alcance, tiempo, costo, intervención humana y aplicabilidad.
 - [ ] No se ocultan supuestos.
 
 ## Checklist de fase M31-P
@@ -111,8 +160,9 @@ Para evaluar la fase completa:
 - [ ] No hay más de 5 pilotos en el primer cierre M31-P, salvo decisión explícita.
 - [ ] Cada piloto tiene registro completo.
 - [ ] Cada piloto tiene checklist aplicado.
-- [ ] Hay tiempos reales o justificación de ausencia.
-- [ ] Hay bloqueos registrados.
+- [ ] Todos los pilotos que cuentan para PASS_OPERATIVO tienen `execution_time_minutes` medido.
+- [ ] Todos los pilotos tienen `operational_cost` registrado.
+- [ ] Hay bloqueos registrados, aunque sean listas vacías.
 - [ ] Hay salidas o estados de bloqueo documentados.
 - [ ] Hay evaluación de repetibilidad por piloto.
 - [ ] Hay evaluación agregada de repetibilidad.
@@ -125,10 +175,11 @@ M31-P puede cerrar como PASS_OPERATIVO sólo si:
 - [ ] existen 3 a 5 pilotos;
 - [ ] todos tienen registro completo;
 - [ ] todos tienen checklist aplicado;
-- [ ] se registraron tiempos reales o justificaciones;
-- [ ] se registraron bloqueos;
+- [ ] todos tienen `execution_time_minutes` medido;
+- [ ] todos tienen `operational_cost` registrado con valor o `not_applicable`;
+- [ ] todos tienen `blockers` registrado;
 - [ ] se documentaron salidas o razones de bloqueo;
-- [ ] se evaluó repetibilidad;
+- [ ] se evaluó repetibilidad por piloto y agregada;
 - [ ] se redactó checkpoint M31-P;
 - [ ] no se tocó código productivo;
 - [ ] no se abrió M32;
@@ -140,10 +191,13 @@ M31-P debe cerrar como PARTIAL si:
 
 - [ ] hay 1 o 2 pilotos solamente;
 - [ ] existen registros incompletos;
-- [ ] falta medición de tiempo sin justificación;
+- [ ] falta medición de tiempo;
+- [ ] falta `operational_cost` o su justificación;
 - [ ] falta evaluación de repetibilidad;
 - [ ] hay evidencia parcial;
 - [ ] el protocolo funcionó sólo parcialmente.
+
+La ausencia de aprendizajes candidatos no implica PARTIAL si `candidate_learnings` existe y está explícitamente vacío.
 
 ## Criterio BLOCKED
 
@@ -154,7 +208,8 @@ M31-P debe cerrar como BLOCKED si:
 - [ ] el protocolo M31 no puede aplicarse sin nueva implementación;
 - [ ] se intenta implementar Guided Evidence Recovery;
 - [ ] se intenta abrir M32;
-- [ ] se intenta declarar producto sin evidencia.
+- [ ] se intenta declarar producto sin evidencia;
+- [ ] se intenta declarar PASS_OPERATIVO sin contrato de registro completo.
 
 ## Regla final
 
