@@ -2,7 +2,7 @@
 
 ## Estado
 
-READY_FOR_PILOTS_WITH_BLOCKED_INTAKE
+READY_FOR_PILOTS_WITH_DATA_REQUESTS
 
 ## Propósito
 
@@ -28,7 +28,7 @@ M31-P_OPERATIVO = PENDING_PILOTS
 - No inventar pilotos.
 - No completar evidencia inexistente.
 - No declarar PASS_OPERATIVO con menos de 3 pilotos completos.
-- No contar intentos bloqueados como pilotos completos.
+- No contar intentos bloqueados o solicitudes de datos como pilotos completos.
 - No abrir M32.
 - No tocar código productivo.
 - No implementar Guided Evidence Recovery.
@@ -67,7 +67,7 @@ limitations:
 | Pilot ID | Estado | Registro | Checklist | Cuenta para PASS_OPERATIVO | Nota |
 |---|---|---|---|---|---|
 | M31P-001 | BLOCKED | `docs/smartpyme/pilots/M31P-001.md` | Aplicado como bloqueo documental | No | Falta caso real o realista con evidencia mínima |
-| M31P-002 | PENDING | No creado | No aplicado | No | Pendiente de caso real o realista |
+| M31P-002 | DATA_REQUEST_PENDING | `docs/smartpyme/pilots/M31P-002_DATA_REQUEST.md` | No aplica todavía | No | Issue #7 resuelto como solicitud de datos; falta caso mínimo |
 | M31P-003 | PENDING | No creado | No aplicado | No | Pendiente de caso real o realista |
 | M31P-004 | OPTIONAL | No creado | No aplicado | No | Opcional |
 | M31P-005 | OPTIONAL | No creado | No aplicado | No | Opcional |
@@ -78,6 +78,11 @@ limitations:
 - `docs/smartpyme/pilots/M31P-001_INTAKE.md`
 - `docs/smartpyme/pilots/M31P-001_DATA_REQUEST.md`
 - `docs/smartpyme/pilots/M31P-001.md`
+- `docs/smartpyme/pilots/M31P-002_DATA_REQUEST.md`
+
+## Issues operativos
+
+- Issue #7: resuelto documentalmente como `DATA_REQUEST_PENDING` mediante `docs/smartpyme/pilots/M31P-002_DATA_REQUEST.md`.
 
 ## Ubicación recomendada de registros individuales
 
@@ -91,6 +96,8 @@ docs/smartpyme/pilots/M31P-005.md
 ```
 
 `M31P-001.md` ya existe como registro BLOCKED y no computable.
+
+`M31P-002_DATA_REQUEST.md` ya existe como solicitud de datos y no computa.
 
 ## Criterio para crear un piloto computable
 
@@ -123,6 +130,7 @@ Un piloto cuenta hacia PASS_OPERATIVO sólo si:
 
 ```yaml
 total_pilot_records_created: 1
+total_data_requests_created: 1
 total_pilots_complete: 0
 total_pilots_blocked_before_execution: 1
 total_pilots_counting_for_pass: 0
@@ -131,12 +139,10 @@ m31p_operational_status: PENDING_PILOTS
 
 ## Próximo paso
 
-Conseguir o seleccionar un caso real o realista suficiente para crear un piloto computable.
-
-Opciones válidas:
+Aportar datos reales o realistas suficientes para convertir `M31P-002_DATA_REQUEST.md` en:
 
 ```text
-M31P-002.md
+docs/smartpyme/pilots/M31P-002.md
 ```
 
-O reemplazar `M31P-001.md` sólo si se aportan datos reales suficientes para dejar de estar BLOCKED.
+O seleccionar otro caso candidato para `M31P-003`.
