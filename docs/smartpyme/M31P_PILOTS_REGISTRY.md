@@ -2,7 +2,7 @@
 
 ## Estado
 
-READY_FOR_PILOTS
+READY_FOR_PILOTS_WITH_BLOCKED_INTAKE
 
 ## Propósito
 
@@ -28,6 +28,7 @@ M31-P_OPERATIVO = PENDING_PILOTS
 - No inventar pilotos.
 - No completar evidencia inexistente.
 - No declarar PASS_OPERATIVO con menos de 3 pilotos completos.
+- No contar intentos bloqueados como pilotos completos.
 - No abrir M32.
 - No tocar código productivo.
 - No implementar Guided Evidence Recovery.
@@ -65,27 +66,35 @@ limitations:
 
 | Pilot ID | Estado | Registro | Checklist | Cuenta para PASS_OPERATIVO | Nota |
 |---|---|---|---|---|---|
-| M31P-001 | PENDING | No creado | No aplicado | No | Pendiente de caso real o realista |
+| M31P-001 | BLOCKED | `docs/smartpyme/pilots/M31P-001.md` | Aplicado como bloqueo documental | No | Falta caso real o realista con evidencia mínima |
 | M31P-002 | PENDING | No creado | No aplicado | No | Pendiente de caso real o realista |
 | M31P-003 | PENDING | No creado | No aplicado | No | Pendiente de caso real o realista |
 | M31P-004 | OPTIONAL | No creado | No aplicado | No | Opcional |
 | M31P-005 | OPTIONAL | No creado | No aplicado | No | Opcional |
+
+## Registros auxiliares existentes
+
+- `docs/smartpyme/pilots/README.md`
+- `docs/smartpyme/pilots/M31P-001_INTAKE.md`
+- `docs/smartpyme/pilots/M31P-001_DATA_REQUEST.md`
+- `docs/smartpyme/pilots/M31P-001.md`
 
 ## Ubicación recomendada de registros individuales
 
 Crear registros individuales sólo cuando exista caso real o realista suficiente:
 
 ```text
-docs/smartpyme/pilots/M31P-001.md
 docs/smartpyme/pilots/M31P-002.md
 docs/smartpyme/pilots/M31P-003.md
 docs/smartpyme/pilots/M31P-004.md
 docs/smartpyme/pilots/M31P-005.md
 ```
 
-## Criterio para crear un piloto
+`M31P-001.md` ya existe como registro BLOCKED y no computable.
 
-Crear un registro individual sólo si existe, como mínimo:
+## Criterio para crear un piloto computable
+
+Crear un registro individual computable sólo si existe, como mínimo:
 
 - `pilot_id`;
 - referencia de tenant o caso anonimizado;
@@ -93,7 +102,8 @@ Crear un registro individual sólo si existe, como mínimo:
 - evidencia recibida o ausencia explícita;
 - evidencia faltante o lista vacía justificada;
 - posibilidad de medir tiempo real;
-- operador responsable o forma de registrar intervención humana.
+- operador responsable o forma de registrar intervención humana;
+- `operational_cost` con valor o `not_applicable`.
 
 ## Criterio para contar un piloto hacia PASS_OPERATIVO
 
@@ -101,6 +111,7 @@ Un piloto cuenta hacia PASS_OPERATIVO sólo si:
 
 - tiene registro completo;
 - tiene checklist aplicado;
+- `final_status` no es un bloqueo por ausencia total de caso;
 - `execution_time_minutes` está medido;
 - `operational_cost` tiene valor o `not_applicable`;
 - `blockers` está registrado;
@@ -111,12 +122,21 @@ Un piloto cuenta hacia PASS_OPERATIVO sólo si:
 ## Estado agregado
 
 ```yaml
-total_pilots_created: 0
+total_pilot_records_created: 1
 total_pilots_complete: 0
+total_pilots_blocked_before_execution: 1
 total_pilots_counting_for_pass: 0
 m31p_operational_status: PENDING_PILOTS
 ```
 
 ## Próximo paso
 
-Crear `docs/smartpyme/pilots/M31P-001.md` sólo cuando exista un primer caso piloto real o realista con evidencia suficiente para ser registrado sin inventar datos.
+Conseguir o seleccionar un caso real o realista suficiente para crear un piloto computable.
+
+Opciones válidas:
+
+```text
+M31P-002.md
+```
+
+O reemplazar `M31P-001.md` sólo si se aportan datos reales suficientes para dejar de estar BLOCKED.
