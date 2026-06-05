@@ -2,7 +2,7 @@
 
 ## Estado
 
-READY_FOR_PILOTS_WITH_PARTIAL_INTERNAL_CASE
+READY_FOR_MORE_COMPUTABLE_PILOTS
 
 ## Propósito
 
@@ -68,7 +68,7 @@ limitations:
 | Pilot ID | Estado | Registro | Checklist | Cuenta para PASS_OPERATIVO | Nota |
 |---|---|---|---|---|---|
 | M31P-001 | BLOCKED | `docs/smartpyme/pilots/M31P-001.md` | Aplicado como bloqueo documental | No | Falta caso real o realista con evidencia mínima |
-| M31P-002 | PARTIAL_INTERNAL_REALISTIC_CASE | `docs/smartpyme/pilots/M31P-002.md` | Aplicado | No | Usa fixture `la_textil_cosida_srl_mar_abr_may_2026.xlsx`; falta medición real de tiempo/costo y dueño real |
+| M31P-002 | COMPUTABLE_INTERNAL_REALISTIC_CASE | `docs/smartpyme/pilots/M31P-002.md` | Aplicado | Sí | Fixture textil con ejecución local reportada: `12 passed in 29.41s`; costo `not_applicable` |
 | M31P-003 | PENDING | No creado | No aplicado | No | Pendiente de caso real o realista |
 | M31P-004 | OPTIONAL | No creado | No aplicado | No | Opcional |
 | M31P-005 | OPTIONAL | No creado | No aplicado | No | Opcional |
@@ -84,7 +84,7 @@ limitations:
 
 ## Issues operativos
 
-- Issue #7: resuelto documentalmente como `DATA_REQUEST_PENDING` mediante `docs/smartpyme/pilots/M31P-002_DATA_REQUEST.md`, luego evolucionado a piloto parcial interno realista en `docs/smartpyme/pilots/M31P-002.md`.
+- Issue #7: resuelto documentalmente como `DATA_REQUEST_PENDING` mediante `docs/smartpyme/pilots/M31P-002_DATA_REQUEST.md`, luego evolucionado a piloto interno realista computable en `docs/smartpyme/pilots/M31P-002.md`.
 
 ## Ubicación recomendada de registros individuales
 
@@ -98,7 +98,7 @@ docs/smartpyme/pilots/M31P-005.md
 
 `M31P-001.md` ya existe como registro BLOCKED y no computable.
 
-`M31P-002.md` ya existe como PARTIAL interno realista, no computable para PASS_OPERATIVO hasta medir tiempo/costo y resolver limitaciones.
+`M31P-002.md` ya existe como piloto interno realista computable.
 
 ## Criterio para crear un piloto computable
 
@@ -132,17 +132,19 @@ Un piloto cuenta hacia PASS_OPERATIVO sólo si:
 ```yaml
 total_pilot_records_created: 2
 total_data_requests_created: 1
-total_pilots_complete: 0
-total_pilots_partial_internal_realistic: 1
+total_pilots_complete: 1
+total_pilots_internal_realistic_computable: 1
 total_pilots_blocked_before_execution: 1
-total_pilots_counting_for_pass: 0
+total_pilots_counting_for_pass: 1
 m31p_operational_status: PENDING_PILOTS
 ```
 
 ## Próximo paso
 
-Medir una ejecución real del fixture textil para intentar convertir `M31P-002` en piloto computable, o seleccionar otro caso candidato para:
+Seleccionar o ejecutar otro caso candidato para:
 
 ```text
 docs/smartpyme/pilots/M31P-003.md
 ```
+
+M31-P necesita todavía 2 pilotos computables adicionales como mínimo para aspirar a PASS_OPERATIVO.
