@@ -2,7 +2,7 @@
 
 ## Estado
 
-DRAFT_OPERATIVO
+READY_FOR_DOCUMENTAL_VALIDATION
 
 ## Capability ID
 
@@ -12,7 +12,7 @@ smartpyme.m31p.assisted_pilot_validation
 
 ## Propósito
 
-Validar si el protocolo M31 de servicio asistido repetible puede ejecutarse en 3 a 5 casos piloto con evidencia suficiente, tiempos reales, bloqueos documentados y evaluación de repetibilidad.
+Validar si el protocolo M31 de servicio asistido repetible puede ejecutarse en 3 a 5 casos piloto con evidencia suficiente, tiempos reales medidos, bloqueos documentados, costo operativo registrado y evaluación de repetibilidad.
 
 Esta capacidad no implementa producto, autonomía ni código productivo.
 
@@ -27,6 +27,42 @@ Esta capacidad no implementa producto, autonomía ni código productivo.
 - `docs/smartpyme/M31_SERVICIO_ASISTIDO_REPETIBLE_CHECKPOINT.md`
 - `docs/roadmap/ROADMAP_SERVICIO_ASISTIDO_EXCEL_SEMANTICA_PYME.md`
 
+## Contrato canónico de piloto
+
+Todos los registros M31-P deben usar estos campos:
+
+```yaml
+pilot_id: string
+tenant_ref: string
+case_date: string
+business_type: string | null
+case_origin: string | null
+owner_problem_statement: string
+owner_operational_meaning: string | null
+received_evidence: list[string]
+missing_evidence: list[string]
+protocol_steps_applied: list[string]
+output_delivered: string | null
+final_status: DELIVERED | BLOCKED | PARTIAL | UNSUPPORTED
+execution_time_minutes: number
+operational_cost: number | string
+human_intervention: string | null
+operator_notes: string | null
+blockers: list[string]
+candidate_learnings: list[string]
+repeatability_assessment: REPEATABLE | PARTIALLY_REPEATABLE | NOT_REPEATABLE | NOT_ENOUGH_EVIDENCE
+limitations: list[string]
+```
+
+No usar nombres alternativos como:
+
+```text
+status
+evidence_received
+evidence_missing
+business_context
+```
+
 ## Qué puede hacer esta capacidad
 
 M31-P puede:
@@ -40,9 +76,11 @@ M31-P puede:
 - aplicar el protocolo documental M31;
 - registrar salida entregada o bloqueo;
 - registrar tiempo real de ejecución;
+- registrar costo operativo o `not_applicable`;
 - registrar intervención humana requerida;
+- registrar notas del operador;
 - registrar bloqueos reales;
-- registrar aprendizajes candidatos;
+- registrar aprendizajes candidatos como lista obligatoria, vacía si no existen;
 - evaluar repetibilidad o no repetibilidad.
 
 ## Inputs requeridos
@@ -54,10 +92,9 @@ pilot_id: string
 tenant_ref: string
 case_date: string
 owner_problem_statement: string
-business_context: string | null
+owner_operational_meaning: string | null
 received_evidence: list[string]
 missing_evidence: list[string]
-operator_notes: string | null
 ```
 
 ## Input de sentido operativo
@@ -73,25 +110,25 @@ Ejemplos:
 - qué dato falta pero existe en otro lugar;
 - qué decisión necesita tomar.
 
-Este sentido debe registrarse como evidencia semántica o nota operativa, no como conclusión diagnóstica automática.
+Este sentido debe registrarse en `owner_operational_meaning`, no como conclusión diagnóstica automática.
 
 ## Outputs esperados
 
-Cada piloto debe producir un registro con:
+Cada piloto debe producir un registro completo con el contrato canónico.
 
-```yaml
-pilot_id: string
-status: DELIVERED | BLOCKED | PARTIAL | UNSUPPORTED
-evidence_received: list[string]
-evidence_missing: list[string]
-output_delivered: string | null
-blockers: list[string]
-execution_time_minutes: number | null
-human_intervention: string | null
-candidate_learnings: list[string]
-repeatability_assessment: REPEATABLE | PARTIALLY_REPEATABLE | NOT_REPEATABLE | NOT_ENOUGH_EVIDENCE
-limitations: list[string]
-```
+Valores permitidos de `final_status`:
+
+- DELIVERED;
+- BLOCKED;
+- PARTIAL;
+- UNSUPPORTED.
+
+Valores permitidos de `repeatability_assessment`:
+
+- REPEATABLE;
+- PARTIALLY_REPEATABLE;
+- NOT_REPEATABLE;
+- NOT_ENOUGH_EVIDENCE.
 
 ## Estados válidos
 
@@ -116,10 +153,13 @@ El caso queda fuera del alcance de M31-P.
 Para certificar un piloto:
 
 - registro de intake;
-- evidencia recibida;
-- evidencia faltante;
-- tiempo real o razón de ausencia de medición;
+- evidencia recibida en `received_evidence`;
+- evidencia faltante en `missing_evidence`;
+- tiempo real medido en `execution_time_minutes`;
+- costo operativo en `operational_cost` con valor, `not_applicable` o `not_measured` justificado;
 - salida o bloqueo;
+- intervención humana, si existió;
+- notas del operador, si corresponde;
 - limitaciones;
 - evaluación de repetibilidad.
 
@@ -128,10 +168,12 @@ Para certificar un piloto:
 La capacidad `smartpyme.m31p.assisted_pilot_validation` puede declararse PASS_OPERATIVO sólo si existen:
 
 - 3 a 5 registros de pilotos completos;
-- tiempos reales registrados o justificación explícita de ausencia;
-- bloqueos documentados;
+- `execution_time_minutes` medido en todos los pilotos;
+- `operational_cost` registrado en todos los pilotos con valor o `not_applicable`;
+- `blockers` registrado en todos los pilotos, aunque sea lista vacía;
 - salidas o estados BLOCKED/PARTIAL documentados;
-- evaluación de repetibilidad;
+- evaluación de repetibilidad por piloto;
+- evaluación agregada de repetibilidad;
 - checkpoint M31-P.
 
 ## Criterio PARTIAL
@@ -140,9 +182,12 @@ La capacidad queda PARTIAL si:
 
 - hay menos de 3 pilotos;
 - los registros están incompletos;
+- faltan tiempos reales medidos;
+- falta `operational_cost` o su justificación;
 - no se puede medir repetibilidad;
-- faltan tiempos reales;
 - hay evidencia parcial.
+
+La ausencia de aprendizajes candidatos no implica PARTIAL si el campo `candidate_learnings` existe y está explícitamente vacío.
 
 ## Criterio BLOCKED
 
@@ -153,7 +198,8 @@ La capacidad queda BLOCKED si:
 - el protocolo M31 no puede aplicarse sin código nuevo;
 - se intenta convertir la fase en producto;
 - se intenta implementar Guided Evidence Recovery;
-- se intenta abrir M32 por inercia.
+- se intenta abrir M32 por inercia;
+- se intenta declarar PASS_OPERATIVO sin contrato de registro completo.
 
 ## Fuera de alcance
 
@@ -176,7 +222,7 @@ Esta CapabilitySpec no autoriza:
 ## Dependencias
 
 - Protocolo M31 existente.
-- Plan M31-P.
+- Plan M31-P alineado.
 - ADR-M31P.
 - Disponibilidad de 3 a 5 casos piloto o casos realistas suficientemente documentados.
 
@@ -191,10 +237,10 @@ Esta CapabilitySpec no autoriza:
 
 ## Regla de aprendizaje
 
-Los aprendizajes derivados de pilotos sólo pueden registrarse como candidatos.
+Los aprendizajes derivados de pilotos sólo pueden registrarse como candidatos en `candidate_learnings`.
 
 No pueden convertirse automáticamente en LearningMemory, política, ADR ni arquitectura.
 
 ## Próximo paso
 
-Ejecutar `docs/smartpyme/M31P_TASK_SPEC.md` para preparar plantilla de registro y validación documental de los pilotos.
+Validar documentalmente que TaskSpec, plantilla y checklist usan este mismo contrato canónico.
