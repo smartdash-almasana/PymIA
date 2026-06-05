@@ -2,7 +2,7 @@
 
 ## Estado
 
-TEMPLATE
+TEMPLATE_ALINEADO
 
 ## Propósito
 
@@ -13,15 +13,18 @@ Esta plantilla debe usarse para 3 a 5 pilotos reales o realistas antes de consid
 ## Reglas de uso
 
 - Completar un registro por piloto.
+- Usar exactamente el contrato canónico de campos.
 - No inventar evidencia faltante.
 - Registrar explícitamente bloqueos.
 - Separar dato aportado por el dueño de interpretación del operador.
 - Registrar sentido operativo aportado por el dueño cuando exista.
+- Registrar costo operativo o `not_applicable`.
+- Medir `execution_time_minutes` si se quiere aspirar a PASS_OPERATIVO.
 - Registrar aprendizajes sólo como candidatos.
 - No convertir candidatos en LearningMemory automática.
 - No declarar PASS_OPERATIVO con menos de 3 pilotos completos.
 
-## Registro
+## Contrato canónico de registro
 
 ```yaml
 pilot_id:
@@ -92,22 +95,33 @@ final_status:
 execution_time_minutes:
   value:
   required: true
-  description: Tiempo real de ejecución. Si no se midió, registrar null y justificar en limitations.
+  description: Tiempo real medido de ejecución. Para PASS_OPERATIVO no puede ser null.
+
+operational_cost:
+  value:
+  required: true
+  allowed_values_note: Monto o estimación explícita, not_applicable o not_measured justificado en limitations.
+  description: Costo operativo del piloto cuando corresponda.
 
 human_intervention:
   value:
   required: false
   description: Intervención humana requerida. Ejemplo lectura de Excel, aclaración semántica, decisión de bloqueo.
 
+operator_notes:
+  value:
+  required: false
+  description: Notas del operador asistido, separadas de datos/evidencia del dueño.
+
 blockers:
   value: []
   required: true
-  description: Bloqueos encontrados durante el piloto.
+  description: Bloqueos encontrados durante el piloto. Lista vacía si no hubo bloqueos.
 
 candidate_learnings:
   value: []
-  required: false
-  description: Aprendizajes candidatos. No son LearningMemory aprobada.
+  required: true
+  description: Aprendizajes candidatos. Lista vacía si no hubo aprendizajes. No son LearningMemory aprobada.
 
 repeatability_assessment:
   value:
@@ -147,7 +161,9 @@ protocol_steps_applied:
 output_delivered:
 final_status:
 execution_time_minutes:
+operational_cost:
 human_intervention:
+operator_notes:
 blockers:
   -
 candidate_learnings:
@@ -165,14 +181,32 @@ Un registro de piloto está completo si tiene:
 - `tenant_ref`;
 - `case_date`;
 - `owner_problem_statement`;
-- evidencia recibida o constancia explícita de ausencia;
-- evidencia faltante o lista vacía justificada;
-- pasos aplicados;
-- estado final;
-- tiempo real o limitación explícita;
-- bloqueos, aunque sea lista vacía;
-- evaluación de repetibilidad;
-- limitaciones.
+- `received_evidence` o constancia explícita de ausencia;
+- `missing_evidence` o lista vacía justificada;
+- `protocol_steps_applied`;
+- `final_status`;
+- `execution_time_minutes`;
+- `operational_cost`;
+- `blockers`, aunque sea lista vacía;
+- `candidate_learnings`, aunque sea lista vacía;
+- `repeatability_assessment`;
+- `limitations`.
+
+## Regla de PASS_OPERATIVO por tiempo
+
+Para que el piloto pueda integrar un cierre PASS_OPERATIVO de fase, `execution_time_minutes` debe tener un número medido.
+
+Si no se midió el tiempo, el piloto puede documentarse, pero no cuenta como completo para PASS_OPERATIVO.
+
+## Regla de costo operativo
+
+`operational_cost` debe existir siempre.
+
+Valores válidos:
+
+- monto o estimación explícita;
+- `not_applicable`;
+- `not_measured`, sólo si se justifica en `limitations`.
 
 ## Estados finales
 
@@ -213,6 +247,12 @@ Todo aprendizaje debe quedar como:
 ```yaml
 candidate_learnings:
   - aprendizaje candidato pendiente de revisión
+```
+
+Si no hay aprendizaje candidato:
+
+```yaml
+candidate_learnings: []
 ```
 
 No usar este registro para modificar arquitectura, política, ADR o LearningMemory automáticamente.
