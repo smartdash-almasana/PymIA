@@ -2,7 +2,7 @@
 
 ## Estado
 
-PASS
+CLOSED / PASS
 
 ## Contexto
 
@@ -41,30 +41,60 @@ El protocolo cubre:
 - criterio de repetibilidad;
 - criterio de no repetibilidad.
 
-## Validación reportada por auditor externo/local
+## Validación ejecutada localmente
 
-El asistente de chat no ejecutó pytest directamente.
-La siguiente evidencia fue reportada por el usuario desde auditor externo/local.
+Comando pytest:
 
-Comando ejecutado:
+```text
+python -m pytest tests/smartpyme/test_m31_service_protocol_docs.py -v
+```
 
-python -m pytest tests/smartpyme/test_m31_service_protocol_docs.py -q
+Resultado pytest exacto:
 
-Resultado reportado:
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.3, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: E:\BuenosPasos\smartbridge\PymIA
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.1.0, anyio-4.12.1
+collecting ... collected 4 items
 
-4 passed in 0.21s
+tests/smartpyme/test_m31_service_protocol_docs.py::test_m31_protocol_document_exists_and_declares_non_product_scope PASSED [ 25%]
+tests/smartpyme/test_m31_service_protocol_docs.py::test_m31_protocol_contains_entry_block_delivery_continuity_measurement_and_learning PASSED [ 50%]
+tests/smartpyme/test_m31_service_protocol_docs.py::test_m31_protocol_defines_pilot_record_template_and_decision_metrics PASSED [ 75%]
+tests/smartpyme/test_m31_service_protocol_docs.py::test_m31_plan_and_protocol_preserve_scope_boundaries PASSED [100%]
 
-## Veredicto de auditoría externa
+============================== 4 passed in 0.73s ==============================
+```
 
-PASS.
+Fecha de validación:
 
-Causa reportada:
+```text
+2026-06-06 16:07:05 -03:00
+```
 
-1. Los archivos creados para M31 son estrictamente documentales y de prueba de conformidad.
-2. Respetan las restricciones operativas.
+Referencia operativa:
+
+- `docs/smartpyme/M31P_OPERATIVE_INTERNAL_CHECKPOINT.md`
+
+Notas de cierre:
+
+- M31 certifica protocolo de servicio asistido repetible, no producto, no autonomía.
+- M31-P tiene pilotos internos computables.
+
+## Veredicto
+
+M31 CLOSED / PASS.
+
+Certificado por evidencia ejecutada localmente:
+
+1. Los artefactos de M31 son documentales y de prueba de conformidad.
+2. Respetan las restricciones operativas del roadmap.
 3. No modifican código productivo, dispatcher, registry, UI ni integraciones.
-4. El protocolo define servicio asistido y no declara producto autónomo o comercial.
-5. El test documental funciona como gate estático de conformidad del roadmap.
+4. El protocolo define servicio asistido repetible y no declara producto autónomo o comercial.
+5. El test documental funciona como gate estático de conformidad.
+6. Existen pilotos internos computables en `docs/smartpyme/pilots/M31P-002.md`, `docs/smartpyme/pilots/M31P-003.md` y `docs/smartpyme/pilots/M31P-004.md`.
 
 ## Riesgo detectado
 
