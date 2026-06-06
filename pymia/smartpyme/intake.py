@@ -248,6 +248,42 @@ def _merge_formula_ids(
     request.formula_id = merged_ids[0] if merged_ids else None
 
 
+def _merge_required_fields(
+    request: IntakeEvidenceRequest,
+    *,
+    required_fields: List[str],
+) -> None:
+    merged_fields = list(dict.fromkeys(
+        value.strip()
+        for value in [*request.required_fields, *required_fields]
+        if isinstance(value, str) and value.strip()
+    ))
+    request.required_fields = merged_fields
+
+
+def _humanize_evidence_type(evidence_type: str) -> str:
+    text = evidence_type.replace("_", " ").strip()
+    return text[:1].upper() + text[1:] if text else text
+
+
+def _disambiguate_duplicate_descriptions(
+    requests: List[IntakeEvidenceRequest],
+) -> None:
+    positions_by_description: Dict[str, List[int]] = {}
+    for idx, request in enumerate(requests):
+        description = request.description.strip()
+        if not description:
+            continue
+        positions_by_description.setdefault(description, []).append(idx)
+
+    for description, positions in positions_by_description.items():
+        if len(positions) <= 1:
+            continue
+        for idx in positions:
+            request = requests[idx]
+            request.description = _humanize_evidence_type(request.evidence_type)
+
+
 def _enforce_initial_blocking_limit(
     requests: List[IntakeEvidenceRequest],
 ) -> None:
@@ -336,8 +372,14 @@ def create_intake_record(
                     formula_id=cat_req.formula_id,
                     formula_ids=cat_req.formula_ids,
                 )
-                if not existing.required_fields and cat_req.required_fields:
-                    existing.required_fields = list(cat_req.required_fields)
+                _merge_required_fields(
+                    existing,
+                    required_fields=list(cat_req.required_fields),
+                )
+                if not existing.description and cat_req.description:
+                    existing.description = cat_req.description
+                if not existing.reason and cat_req.reason:
+                    existing.reason = cat_req.reason
             else:
                 # Nuevo tipo documental derivado del catálogo
                 new_req = IntakeEvidenceRequest(
@@ -358,6 +400,7 @@ def create_intake_record(
                 existing_types[cat_req.evidence_type] = catalog_req_index
                 catalog_req_index += 1
 
+    _disambiguate_duplicate_descriptions(intake_evidence)
     _enforce_initial_blocking_limit(intake_evidence)
 
     # 5. Estado del intake
