@@ -342,7 +342,7 @@ class InitialLaboratoryAnamnesisService:
             )
         else:
             normalized = self._normalize(text)
-            if any(signal in normalized for signal in self._MARGIN_SIGNALS) or (evidence is not None):
+            if self._has_margin_signal(normalized) or (evidence is not None):
                 documentos = [
                     "ventas del período",
                     "costos o facturas de compra",
@@ -604,6 +604,9 @@ class InitialLaboratoryAnamnesisService:
             normalized = normalized.replace(source, target)
         return normalized
 
+    def _has_margin_signal(self, normalized: str) -> bool:
+        return any(self._normalize(signal) in normalized for signal in self._MARGIN_SIGNALS)
+
     def _tenant_context_is_minimum_valid(self, tenant_context: TenantClinicalContext) -> bool:
         validator = getattr(tenant_context, "is_minimum_valid", None)
         if callable(validator):
@@ -622,7 +625,7 @@ class InitialLaboratoryAnamnesisService:
     ) -> ProgressiveTenantClinicalContext:
         normalized = self._normalize(text)
         symptom_summary = self._extract_operational_signals(normalized)
-        if any(signal in normalized for signal in self._MARGIN_SIGNALS):
+        if self._has_margin_signal(normalized):
             symptom_summary = list(dict.fromkeys(symptom_summary + ["incertidumbre de rentabilidad"]))
 
         taxonomic_identity = self._classify_taxonomic_response(normalized)
