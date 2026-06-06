@@ -20,6 +20,7 @@ from pymia.smartpyme.readiness import evaluate_analysis_readiness
 from pymia.smartpyme.runtime_bridge import prepare_runtime_execution
 from pymia.smartpyme.microservice_dispatcher import dispatch_candidate
 from pymia.smartpyme.finding_projection import project_actionable_findings
+from pymia.smartpyme.semantic_field_resolution import resolve_semantic_fields
 from pymia.smartpyme.intake import (
     EVIDENCE_STATUS_RECEIVED,
     EVIDENCE_STATUS_REQUESTED,
@@ -66,9 +67,67 @@ def is_post_ficha_evidence_input(text: str) -> bool:
     return isinstance(text, str) and text.strip().upper().startswith("EVIDENCE::")
 
 
+def _derive_parser_fields(metadata: dict[str, Any]) -> list[str]:
+    parser_fields: list[str] = []
+    seen: set[str] = set()
+
+    raw_fields = metadata.get("fields")
+    if isinstance(raw_fields, list):
+        for field in raw_fields:
+            value = str(field).strip()
+            key = value.lower()
+            if value and key not in seen:
+                seen.add(key)
+                parser_fields.append(value)
+
+    raw_field_map = metadata.get("field_map")
+    if isinstance(raw_field_map, dict):
+        for mapped_field in raw_field_map.values():
+            value = str(mapped_field).strip()
+            key = value.lower()
+            if value and key not in seen:
+                seen.add(key)
+                parser_fields.append(value)
+
+    return parser_fields
+
+
+def _apply_semantic_resolution(
+    *,
+    metadata: dict[str, Any],
+    required_fields: list[str],
+) -> dict[str, Any]:
+    parser_fields = _derive_parser_fields(metadata)
+    if not parser_fields or not required_fields:
+        return metadata
+
+    resolution = resolve_semantic_fields(
+        parser_fields=parser_fields,
+        required_fields=required_fields,
+        field_map=metadata.get("field_map") if isinstance(metadata.get("field_map"), dict) else None,
+    )
+
+    enriched = dict(metadata)
+    enriched["fields"] = list(resolution.covered_fields)
+
+    ambiguous_fields = list(resolution.ambiguous_fields)
+    existing_ambiguous = metadata.get("ambiguous_fields")
+    if isinstance(existing_ambiguous, list):
+        for value in existing_ambiguous:
+            item = str(value).strip()
+            if item and item not in ambiguous_fields:
+                ambiguous_fields.append(item)
+    enriched["ambiguous_fields"] = ambiguous_fields
+    enriched["field_resolution"] = resolution.to_dict()["field_resolution"]
+    enriched["owner_questions_required"] = resolution.owner_questions_required
+    enriched["owner_questions"] = list(resolution.owner_questions)
+    return enriched
+
+
 def _enrich_metadata_from_source(
     source_ref: str,
     record_metadata: dict[str, Any],
+    required_fields: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Si ``source_ref`` apunta a un archivo local existente y no hay
@@ -90,6 +149,10 @@ def _enrich_metadata_from_source(
         parsed = parse_document_to_metadata(path)
         enriched = dict(record_metadata)
         enriched.update(parsed.to_dict())
+        enriched = _apply_semantic_resolution(
+            metadata=enriched,
+            required_fields=list(required_fields or []),
+        )
         return enriched
     except Exception as exc:  # noqa: BLE001 — aislamiento del router
         from pymia.smartpyme.parsed_document_metadata import (
@@ -135,6 +198,18 @@ def _find_matching_request_id(evidence_requests: list[dict[str, Any]], evidence_
     return None
 
 
+def _find_matching_request(
+    evidence_requests: list[dict[str, Any]],
+    evidence_type: str,
+) -> dict[str, Any] | None:
+    for req in evidence_requests:
+        if not isinstance(req, dict):
+            continue
+        if str(req.get("evidence_type") or "").strip() == evidence_type:
+            return dict(req)
+    return None
+
+
 def apply_post_ficha_evidence_turn(
     *,
     tenant_id: str,
@@ -151,8 +226,6 @@ def apply_post_ficha_evidence_turn(
     if "fields" in declared_metadata:
         record_metadata["fields"] = list(declared_metadata["fields"])
 
-    record_metadata = _enrich_metadata_from_source(source_ref, record_metadata)
-
     post_ficha_routing = updated_context.get("post_ficha_routing")
     if not isinstance(post_ficha_routing, dict):
         raise ValueError("No hay post_ficha_routing disponible. Completá primero la ficha inicial.")
@@ -165,6 +238,14 @@ def apply_post_ficha_evidence_turn(
     evidence_requests = [
         dict(req) for req in evidence_requests_raw if isinstance(req, dict)
     ] if isinstance(evidence_requests_raw, list) else []
+
+    matching_request = _find_matching_request(evidence_requests, evidence_type)
+    required_fields = list(matching_request.get("required_fields") or []) if isinstance(matching_request, dict) else []
+    record_metadata = _enrich_metadata_from_source(
+        source_ref,
+        record_metadata,
+        required_fields,
+    )
 
     request_id = _find_matching_request_id(evidence_requests, evidence_type)
     evidence_key = (intake_id, evidence_type, source_kind, source_ref)

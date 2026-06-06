@@ -450,6 +450,221 @@ def test_document_parser_front_failure_produces_fail_closed_metadata(mock_parse,
     assert meta["parse_status"] == PARSE_STATUS_FAILED
     assert any("document_parser_front_error" in w for w in meta["warnings"])
 
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_semantic_auto_enrichment_adds_field_resolution_when_no_manual_metadata(mock_parse, mock_exists):
+    mock_exists.return_value = True
+    mock_metadata = MagicMock()
+    mock_metadata.to_dict.return_value = {
+        "file_type": "xlsx",
+        "fields": ["producto", "fecha"],
+    }
+    mock_parse.return_value = mock_metadata
+
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "status": "REQUESTED",
+            "blocks_analysis": True,
+            "required_fields": ["producto", "periodo"],
+        }
+    ]
+
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    meta = out["evidence_records"][0]["metadata"]
+    assert "field_resolution" in meta
+    assert meta["fields"] == ["producto", "periodo"]
+    assert meta["owner_questions_required"] is False
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_semantic_auto_enrichment_maps_fecha_or_mes_to_periodo_as_high_field(mock_parse, mock_exists):
+    mock_exists.return_value = True
+    mock_metadata = MagicMock()
+    mock_metadata.to_dict.return_value = {
+        "file_type": "xlsx",
+        "fields": ["mes"],
+    }
+    mock_parse.return_value = mock_metadata
+
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "status": "REQUESTED",
+            "blocks_analysis": True,
+            "required_fields": ["periodo"],
+        }
+    ]
+
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    meta = out["evidence_records"][0]["metadata"]
+    assert meta["fields"] == ["periodo"]
+    assert meta["field_resolution"]["periodo"]["confidence"] == "high"
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_semantic_auto_enrichment_keeps_venta_total_to_venta_neta_ambiguous(mock_parse, mock_exists):
+    mock_exists.return_value = True
+    mock_metadata = MagicMock()
+    mock_metadata.to_dict.return_value = {
+        "file_type": "xlsx",
+        "fields": ["venta_total"],
+    }
+    mock_parse.return_value = mock_metadata
+
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "status": "REQUESTED",
+            "blocks_analysis": True,
+            "required_fields": ["venta_neta"],
+        }
+    ]
+
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    meta = out["evidence_records"][0]["metadata"]
+    assert meta["fields"] == []
+    assert meta["ambiguous_fields"] == ["venta_neta"]
+    assert meta["owner_questions_required"] is True
+    assert any("venta neta" in q.lower() for q in meta["owner_questions"])
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_semantic_auto_enrichment_keeps_costo_unitario_to_costo_directo_ambiguous(mock_parse, mock_exists):
+    mock_exists.return_value = True
+    mock_metadata = MagicMock()
+    mock_metadata.to_dict.return_value = {
+        "file_type": "xlsx",
+        "fields": ["costo_unitario"],
+    }
+    mock_parse.return_value = mock_metadata
+
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "status": "REQUESTED",
+            "blocks_analysis": True,
+            "required_fields": ["costo_directo"],
+        }
+    ]
+
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    meta = out["evidence_records"][0]["metadata"]
+    assert meta["fields"] == []
+    assert meta["ambiguous_fields"] == ["costo_directo"]
+    assert meta["owner_questions_required"] is True
+    assert any("costo directo" in q.lower() for q in meta["owner_questions"])
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_semantic_auto_enrichment_costos_fijos_does_not_satisfy_costo_directo(mock_parse, mock_exists):
+    mock_exists.return_value = True
+    mock_metadata = MagicMock()
+    mock_metadata.to_dict.return_value = {
+        "file_type": "xlsx",
+        "fields": ["costos_fijos"],
+    }
+    mock_parse.return_value = mock_metadata
+
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "status": "REQUESTED",
+            "blocks_analysis": True,
+            "required_fields": ["costo_directo"],
+        }
+    ]
+
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    meta = out["evidence_records"][0]["metadata"]
+    assert meta["fields"] == []
+    assert meta["ambiguous_fields"] == []
+    assert "field_resolution" in meta
+    assert "costo_directo" not in meta["field_resolution"]
+
+
+@patch("pymia.smartpyme.post_ficha_evidence_gate.Path.exists")
+@patch("pymia.smartpyme.post_ficha_evidence_gate.parse_document_to_metadata")
+def test_evidence_gate_remains_partial_when_semantic_matches_are_only_medium(mock_parse, mock_exists):
+    mock_exists.return_value = True
+    mock_metadata = MagicMock()
+    mock_metadata.to_dict.return_value = {
+        "file_type": "xlsx",
+        "fields": ["venta_total", "costo_unitario"],
+    }
+    mock_parse.return_value = mock_metadata
+
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_required",
+            "evidence_type": "sales_records",
+            "status": "REQUESTED",
+            "blocks_analysis": True,
+            "required_fields": ["venta_neta", "costo_directo"],
+        }
+    ]
+
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text="EVIDENCE::uploaded_file::sales_records::ventas.xlsx",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    meta = out["evidence_records"][0]["metadata"]
+    request = out["post_ficha_routing"]["evidence_requests"][0]
+    readiness = out["post_ficha_readiness"]
+    assert set(meta["ambiguous_fields"]) == {"venta_neta", "costo_directo"}
+    assert meta["fields"] == []
+    assert request["status"] == "RECEIVED"
+    assert readiness["readiness_state"] == "NEEDS_EVIDENCE"
+
 # 7. No se usa xlsx_document_metadata_adapter, docling, tools/excel_evidence.py ni ClinicalConversationalPort.
 def test_post_ficha_evidence_gate_ast_rules():
     with open("pymia/smartpyme/post_ficha_evidence_gate.py", "r", encoding="utf-8") as f:
