@@ -3,6 +3,7 @@ from pymia.smartpyme.post_ficha_evidence_gate import (
     is_post_ficha_evidence_input,
     parse_post_ficha_evidence_input,
 )
+from pathlib import Path
 
 
 def _base_context() -> dict:
@@ -30,6 +31,10 @@ def _base_context() -> dict:
             ],
         }
     }
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+TEXTILE_FIXTURE = REPO_ROOT / "prueba_excels" / "la_textil_cosida_srl_mar_abr_may_2026.xlsx"
 
 
 def test_parse_valid_evidence_input() -> None:
@@ -664,6 +669,57 @@ def test_evidence_gate_remains_partial_when_semantic_matches_are_only_medium(moc
     assert meta["fields"] == []
     assert request["status"] == "RECEIVED"
     assert readiness["readiness_state"] == "NEEDS_EVIDENCE"
+
+
+def test_textile_fixture_natural_flow_enriches_semantics_without_manual_metadata() -> None:
+    assert TEXTILE_FIXTURE.exists()
+
+    ctx = _base_context()
+    ctx["post_ficha_routing"]["evidence_requests"] = [
+        {
+            "request_id": "req_textil_margin",
+            "evidence_type": "excel_ventas_costos",
+            "status": "REQUESTED",
+            "blocks_analysis": True,
+            "required_fields": ["periodo", "venta_neta", "costo_directo"],
+        }
+    ]
+
+    out, _ = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text=f"EVIDENCE::uploaded_file::excel_ventas_costos::{TEXTILE_FIXTURE}",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    meta = out["evidence_records"][0]["metadata"]
+    request = out["post_ficha_routing"]["evidence_requests"][0]
+    readiness = out["post_ficha_readiness"]
+    analysis = out["analysis_readiness"]
+
+    assert "field_resolution" in meta
+    assert meta["owner_questions_required"] is True
+    assert any("venta neta" in q.lower() for q in meta["owner_questions"])
+    assert any("costo directo" in q.lower() for q in meta["owner_questions"])
+
+    resolution = meta["field_resolution"]
+    assert resolution["venta_neta"]["confidence"] == "medium"
+    assert resolution["venta_neta"]["covered"] is False
+    assert resolution["costo_directo"]["covered"] is False
+    assert resolution["costo_directo"]["confidence"] in {"medium", "low"}
+    assert resolution["periodo"]["confidence"] == "high"
+    assert resolution["periodo"]["covered"] is True
+
+    assert "periodo" in meta["fields"]
+    assert "venta_neta" not in meta["fields"]
+    assert "costo_directo" not in meta["fields"]
+    assert "venta_neta" in meta["ambiguous_fields"]
+    assert "costo_directo" in meta["ambiguous_fields"]
+
+    assert request["status"] == "RECEIVED"
+    assert readiness["readiness_state"] == "NEEDS_EVIDENCE"
+    assert readiness["ready_for_analysis"] is False
+    assert analysis["status"] == "NEEDS_EVIDENCE"
 
 # 7. No se usa xlsx_document_metadata_adapter, docling, tools/excel_evidence.py ni ClinicalConversationalPort.
 def test_post_ficha_evidence_gate_ast_rules():
