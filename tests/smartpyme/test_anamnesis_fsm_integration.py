@@ -18,6 +18,7 @@ from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
 from pymia.smartpyme.anamnesis_fsm_integration import (
     AnamnesisTurnInput,
     AnamnesisTurnOutput,
+    _build_post_ficha_reply,
     run_anamnesis_turn,
 )
 
@@ -159,6 +160,48 @@ def test_hipotesis_y_evidencia_despues_de_taxonomia_y_sintoma():
     assert output2.has_hypotheses is True
     assert output2.has_evidence_requests is True
     assert output2.phase == FSMPhase.SOLICITUD_EVIDENCIA.value
+
+
+def test_post_ficha_reply_gives_owner_guidance_without_technical_terms():
+    reply = _build_post_ficha_reply(
+        {
+            "evidence_requests": [
+                {
+                    "description": "Movimientos de caja, banco o conciliación",
+                    "blocks_analysis": True,
+                },
+                {
+                    "description": "Ventas del período",
+                    "blocks_analysis": True,
+                },
+                {
+                    "description": "Costos o compras del período",
+                    "blocks_analysis": True,
+                },
+            ]
+        }
+    )
+    lowered = reply.lower()
+    assert "Ya tengo la ficha inicial." in reply
+    assert "excel" in lowered
+    assert "excel mezclado" in lowered
+    assert "qué columnas sirven" in lowered or "que columnas sirven" in lowered
+    assert "qué falta" in lowered or "que falta" in lowered
+    assert "'no sé'" in lowered or "'no se'" in lowered or "no sé" in lowered or "no se" in lowered
+    assert "liq_001" not in lowered
+    assert "formula" not in lowered
+    assert "evidence_type" not in lowered
+    assert "ready_for_analysis" not in lowered
+    assert "tu margen" not in lowered
+    assert "la causa" not in lowered
+
+    visible_lines = [
+        line.strip()
+        for line in reply.splitlines()
+        if line.strip() and line.strip()[0].isdigit() and ". " in line
+    ]
+    assert visible_lines
+    assert len(visible_lines) == len(set(visible_lines))
 
 
 def test_contexto_corrupto_fail_closed_reinicia_ficha():

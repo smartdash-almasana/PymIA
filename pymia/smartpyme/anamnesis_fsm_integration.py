@@ -579,6 +579,16 @@ def _build_post_ficha_reply(post_ficha_routing: dict[str, Any]) -> str:
             ]
             for idx, description in enumerate(descriptions, start=1):
                 lines.append(f"{idx}. {description}")
+            lines.extend(
+                [
+                    "",
+                    "Podés subir un Excel, exportación o archivo donde estén esos datos.",
+                    "Si tenés un Excel mezclado, subilo igual.",
+                    "Voy a revisar qué columnas sirven y qué falta.",
+                    "Si no sabés qué archivo corresponde, respondé 'no sé' y te guío.",
+                    "Todavía no voy a diagnosticar ni calcular rentabilidad hasta tener evidencia suficiente.",
+                ]
+            )
             return "\n".join(lines)
     return (
         "Ya tengo la ficha inicial.\n"
