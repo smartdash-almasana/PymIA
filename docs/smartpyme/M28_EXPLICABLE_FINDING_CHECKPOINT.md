@@ -2,7 +2,7 @@
 
 ## Estado
 
-ACCEPT_WIP_FOR_CLOSURE
+CLOSED / PASS
 
 ## Contexto
 
@@ -111,10 +111,7 @@ M28 no debe interpretarse como:
 
 ---
 
-## Validación reportada por agente externo/local
-
-El asistente de chat no ejecutó pytest directamente.
-La siguiente evidencia fue reportada por el usuario desde auditor/agente local.
+## Validación ejecutada localmente
 
 Comando focal:
 
@@ -128,14 +125,48 @@ Comando de ecosistema narrativo:
 python -m pytest tests/test_narrative_pipeline.py tests/test_narrative_report_v2.py tests/test_narrative_actionable_findings_adapter.py -q
 ```
 
-Salida reportada:
+Fecha de validación:
 
 ```text
+2026-06-06 15:24:52 -03:00
+```
+
+Resultado focal exacto:
+
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.3, pluggy-1.6.0
+rootdir: E:\BuenosPasos\smartbridge\PymIA
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.1.0, anyio-4.12.1
+collected 4 items
+
+tests\test_narrative_actionable_findings_adapter.py ....                 [100%]
+
+============================== 4 passed in 1.26s ==============================
+```
+
+Resultado ecosistema narrativo exacto:
+
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.3, pluggy-1.6.0
+rootdir: E:\BuenosPasos\smartbridge\PymIA
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.1.0, anyio-4.12.1
+collected 13 items
+
 tests\test_narrative_pipeline.py .....                                   [ 38%]
 tests\test_narrative_report_v2.py ....                                   [ 69%]
 tests\test_narrative_actionable_findings_adapter.py ....                 [100%]
 
-============================= 13 passed in 1.27s ==============================
+============================= 13 passed in 3.79s ==============================
+```
+
+Nota de cierre:
+
+```text
+M28 valida ActionableFinding[] → NarrativeReport grounded → markdown legible/auditable.
 ```
 
 ---
