@@ -2,7 +2,7 @@
 Telegram Bot Runtime - Conexión directa sin Hermes.
 
 Usa solo stdlib para polling mínimo contra Telegram Bot API.
-Cada mensaje pasa por pymia.telegram_runtime.handle_telegram_message.
+Texto conversacional normal pasa por la FSM de ficha PyME cuando hay chat_id.
 """
 from __future__ import annotations
 
@@ -32,6 +32,8 @@ ANALYSIS_TRIGGERS = (
     "estructura del excel",
 )
 TELEGRAM_OPERATOR_BASE_DIR = Path(".runtime/telegram_operator")
+TELEGRAM_STATE_BASE_DIR_ENV = "PYMIA_TELEGRAM_STATE_BASE_DIR"
+TELEGRAM_STATE_BASE_DIR = Path(".runtime/telegram_state")
 TELEGRAM_MODE_LEGACY = "legacy"
 TELEGRAM_MODE_LLM_OPERATOR = "llm_operator"
 
@@ -144,6 +146,58 @@ def process_message(text: str) -> str:
     return result.text
 
 
+def _telegram_state_base_dir() -> Path:
+    configured = os.environ.get(TELEGRAM_STATE_BASE_DIR_ENV, "").strip()
+    if configured:
+        return Path(configured)
+    return TELEGRAM_STATE_BASE_DIR
+
+
+def _route_text_with_fsm(text: str, chat_id: int | str) -> str:
+    from pymia.orchestration.state import PymIAState
+    from pymia.orchestration.state_storage import load_state, save_state
+    from pymia.smartpyme.anamnesis_fsm_integration import (
+        AnamnesisTurnInput,
+        run_anamnesis_turn,
+    )
+
+    session_id = str(chat_id)
+    tenant_id = "telegram"
+    base_dir = _telegram_state_base_dir()
+    previous_state = load_state(tenant_id, session_id, base_dir)
+    previous_context = (
+        dict(previous_state.progressive_context)
+        if previous_state is not None and isinstance(previous_state.progressive_context, dict)
+        else None
+    )
+
+    output = run_anamnesis_turn(
+        AnamnesisTurnInput(
+            tenant_id=tenant_id,
+            session_id=session_id,
+            message_text=text,
+            previous_progressive_context=previous_context,
+        )
+    )
+
+    state = previous_state or PymIAState(
+        tenant_id=tenant_id,
+        chat_id=session_id,
+        conversation_id=session_id,
+    )
+    state.chat_id = session_id
+    state.conversation_id = session_id
+    state.phase = output.phase
+    state.last_user_message = text
+    state.pending_question = output.reply_text
+    state.progressive_context = dict(output.updated_progressive_context)
+    save_state(tenant_id, session_id, state, base_dir)
+
+    if SENTINEL not in output.reply_text:
+        return f"{SENTINEL} {output.reply_text}"
+    return output.reply_text
+
+
 def _route_text_with_operator(text: str, chat_id: int | str | None) -> str:
     key = _resolve_openrouter_key()
     if not key:
@@ -181,6 +235,8 @@ def route_text_message(text: str, chat_id: int | str | None = None) -> str:
         return summary.text if SENTINEL in summary.text else f"{SENTINEL} {summary.text}"
     if _runtime_mode() == TELEGRAM_MODE_LLM_OPERATOR:
         return _route_text_with_operator(text, chat_id)
+    if chat_id is not None:
+        return _route_text_with_fsm(text, chat_id)
     return process_message(text)
 
 
