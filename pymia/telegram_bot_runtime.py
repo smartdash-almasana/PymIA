@@ -198,6 +198,89 @@ def _route_text_with_fsm(text: str, chat_id: int | str) -> str:
     return output.reply_text
 
 
+def _route_document_with_evidence_gate(
+    token: str,
+    file_id: str,
+    file_name: str,
+    chat_id: int | str,
+) -> str:
+    from pymia.orchestration.state import PymIAState
+    from pymia.orchestration.state_storage import load_state, save_state
+    from pymia.smartpyme.anamnesis_fsm_integration import (
+        AnamnesisTurnInput,
+        run_anamnesis_turn,
+    )
+
+    doc_result = handle_document(token, file_id, file_name, chat_id)
+    if doc_result.mode != "received" or not doc_result.file_path:
+        return doc_result.text if SENTINEL in doc_result.text else f"{SENTINEL} {doc_result.text}"
+
+    session_id = str(chat_id)
+    tenant_id = "telegram"
+    base_dir = _telegram_state_base_dir()
+    previous_state = load_state(tenant_id, session_id, base_dir)
+    if previous_state is None or not isinstance(previous_state.progressive_context, dict):
+        return doc_result.text if SENTINEL in doc_result.text else f"{SENTINEL} {doc_result.text}"
+
+    previous_context = dict(previous_state.progressive_context)
+    post_ficha_routing = previous_context.get("post_ficha_routing")
+    if not isinstance(post_ficha_routing, dict):
+        return doc_result.text if SENTINEL in doc_result.text else f"{SENTINEL} {doc_result.text}"
+
+    evidence_requests_raw = post_ficha_routing.get("evidence_requests")
+    evidence_requests = [
+        dict(req) for req in evidence_requests_raw if isinstance(req, dict)
+    ] if isinstance(evidence_requests_raw, list) else []
+    if not evidence_requests:
+        return doc_result.text if SENTINEL in doc_result.text else f"{SENTINEL} {doc_result.text}"
+
+    pending_request = next(
+        (
+            req
+            for req in evidence_requests
+            if str(req.get("status") or "").strip() != "SATISFIED"
+            and str(req.get("evidence_type") or "").strip()
+        ),
+        None,
+    )
+    if pending_request is None:
+        return doc_result.text if SENTINEL in doc_result.text else f"{SENTINEL} {doc_result.text}"
+
+    evidence_type = str(pending_request.get("evidence_type") or "").strip()
+    if not evidence_type:
+        return doc_result.text if SENTINEL in doc_result.text else f"{SENTINEL} {doc_result.text}"
+
+    output = run_anamnesis_turn(
+        AnamnesisTurnInput(
+            tenant_id=tenant_id,
+            session_id=session_id,
+            message_text=f"EVIDENCE::uploaded_file::{evidence_type}::{doc_result.file_path}",
+            previous_progressive_context=previous_context,
+        )
+    )
+
+    state = previous_state or PymIAState(
+        tenant_id=tenant_id,
+        chat_id=session_id,
+        conversation_id=session_id,
+    )
+    state.chat_id = session_id
+    state.conversation_id = session_id
+    state.phase = output.phase
+    state.last_user_message = f"[document] {Path(file_name).name}"
+    state.pending_question = output.reply_text
+    state.progressive_context = dict(output.updated_progressive_context)
+    state.add_decision(f"document_turn evidence_type={evidence_type}")
+    save_state(tenant_id, session_id, state, base_dir)
+
+    doc_text = (
+        f"{SENTINEL} Documento recibido: {Path(file_name).name}. Ya lo guardé."
+    )
+    gate_text = output.reply_text if SENTINEL in output.reply_text else f"{SENTINEL} {output.reply_text}"
+    gate_body = gate_text.replace(f"{SENTINEL} ", "", 1) if gate_text.startswith(f"{SENTINEL} ") else gate_text.replace(SENTINEL, "", 1).lstrip()
+    return f"{doc_text}\n\n{gate_body}"
+
+
 def _route_text_with_operator(text: str, chat_id: int | str | None) -> str:
     key = _resolve_openrouter_key()
     if not key:
@@ -275,8 +358,7 @@ def live_loop(token: str) -> None:
                         file_id = document.get("file_id", "")
                         file_name = document.get("file_name", "")
                         print(f"[DOC] chat_id={chat_id}, file={file_name[:80]}...")
-                        doc_result = handle_document(token, file_id, file_name, chat_id)
-                        reply = doc_result.text
+                        reply = _route_document_with_evidence_gate(token, file_id, file_name, chat_id)
                         success = send_message(token, chat_id, reply)
                         if success:
                             print(f"[SENT] Reply sent to {chat_id}")
