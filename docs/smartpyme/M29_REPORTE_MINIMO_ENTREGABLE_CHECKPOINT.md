@@ -2,7 +2,7 @@
 
 ## Estado
 
-PASS
+CLOSED / PASS
 
 ## Contexto
 
@@ -46,7 +46,7 @@ El reporte contiene:
 
 ## Comportamiento cubierto
 
-Según evidencia reportada, M29 cubre:
+M29 cubre:
 
 1. reporte completo legible;
 2. trace oculto en modo cliente;
@@ -55,26 +55,62 @@ Según evidencia reportada, M29 cubre:
 5. validación de inputs mínimos;
 6. AST sin imports prohibidos.
 
-## Validación reportada por agente local
-
-El asistente de chat no ejecutó pytest directamente.
-La evidencia fue reportada por el usuario desde agente local.
+## Validación ejecutada localmente
 
 Comando focal:
 
+```text
 python -m pytest tests/test_minimal_delivery_report.py -q
+```
 
-Resultado reportado:
+Resultado focal exacto:
 
-5 passed in 0.62s
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.3, pluggy-1.6.0
+rootdir: E:\BuenosPasos\smartbridge\PymIA
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.1.0, anyio-4.12.1
+collected 5 items
+
+tests\test_minimal_delivery_report.py .....                              [100%]
+
+============================== 5 passed in 1.46s ==============================
+```
 
 Comando de integración con M28:
 
+```text
 python -m pytest tests/test_narrative_actionable_findings_adapter.py tests/test_minimal_delivery_report.py -q
+```
 
-Resultado reportado:
+Resultado integración exacto:
 
-9 passed in 0.66s
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.3, pluggy-1.6.0
+rootdir: E:\BuenosPasos\smartbridge\PymIA
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.1.0, anyio-4.12.1
+collected 9 items
+
+tests\test_narrative_actionable_findings_adapter.py ....                 [ 44%]
+tests\test_minimal_delivery_report.py .....                              [100%]
+
+============================== 9 passed in 2.24s ==============================
+```
+
+Fecha de validación:
+
+```text
+2026-06-06 15:37:42 -03:00
+```
+
+Nota de cierre:
+
+```text
+M29 certifica owner_message + tenant_id + case_id + evidence_refs + ActionableFinding[] → Markdown mínimo entregable.
+```
 
 ## Riesgos detectados
 
@@ -83,9 +119,9 @@ Resultado reportado:
 
 ## Veredicto
 
-M29 PASS.
+M29 CLOSED / PASS.
 
-Certificado por evidencia reportada:
+Certificado por evidencia ejecutada localmente:
 
 owner_message + tenant_id + case_id + evidence_refs + ActionableFinding[] -> Markdown mínimo entregable.
 
