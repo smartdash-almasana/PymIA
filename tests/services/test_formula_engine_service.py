@@ -295,3 +295,31 @@ def test_engine_blocks_liq002_when_expected_payments_is_missing():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "MISSING_INPUTS: expected_payments"
+
+
+def test_engine_allows_liq002_zero_result():
+    result = FormulaEngineService().calculate(
+        "LIQ_002_saldo_final_proyectado",
+        [
+            FormulaInput(name="initial_balance", value=1000),
+            FormulaInput(name="expected_collections", value=3000),
+            FormulaInput(name="expected_payments", value=4000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0
+
+
+def test_engine_allows_liq002_negative_result():
+    result = FormulaEngineService().calculate(
+        "LIQ_002_saldo_final_proyectado",
+        [
+            FormulaInput(name="initial_balance", value=1000),
+            FormulaInput(name="expected_collections", value=2000),
+            FormulaInput(name="expected_payments", value=4000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == -1000.0
