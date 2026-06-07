@@ -100,6 +100,15 @@ class FormulaEngineService:
         if formula_id == "punto_equilibrio_ventas":
             fixed_costs = values["fixed_costs"]
             contribution_margin_rate = values["contribution_margin_rate"]
+            if contribution_margin_rate < 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="INVALID_INPUT: contribution_margin_rate",
+                )
             if contribution_margin_rate == 0:
                 return FormulaResult(
                     formula_id=formula_id,

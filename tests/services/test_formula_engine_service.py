@@ -522,3 +522,29 @@ def test_engine_blocks_punto_equilibrio_ventas_division_by_zero():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "DIVISION_BY_ZERO: contribution_margin_rate"
+
+
+def test_engine_blocks_punto_equilibrio_ventas_negative_margin():
+    result = FormulaEngineService().calculate(
+        "punto_equilibrio_ventas",
+        [
+            FormulaInput(name="fixed_costs", value=10000),
+            FormulaInput(name="contribution_margin_rate", value=-0.1),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "INVALID_INPUT: contribution_margin_rate"
+
+
+def test_engine_allows_punto_equilibrio_ventas_zero_fixed_costs():
+    result = FormulaEngineService().calculate(
+        "punto_equilibrio_ventas",
+        [
+            FormulaInput(name="fixed_costs", value=0),
+            FormulaInput(name="contribution_margin_rate", value=0.25),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0
