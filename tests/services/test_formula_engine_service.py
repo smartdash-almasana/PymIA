@@ -323,3 +323,42 @@ def test_engine_allows_liq002_negative_result():
 
     assert result.status == FormulaStatus.OK
     assert result.value == -1000.0
+
+
+def test_engine_calculates_pyme024_liquidez_corriente():
+    result = FormulaEngineService().calculate(
+        "PYME_024_liquidez_corriente",
+        [
+            FormulaInput(name="current_assets", value=15000, source_refs=["assets:1"]),
+            FormulaInput(name="current_liabilities", value=10000, source_refs=["liabilities:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 1.5
+    assert result.source_refs == ["assets:1", "liabilities:1"]
+
+
+def test_engine_blocks_pyme024_when_current_liabilities_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_024_liquidez_corriente",
+        [
+            FormulaInput(name="current_assets", value=15000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: current_liabilities"
+
+
+def test_engine_blocks_pyme024_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "PYME_024_liquidez_corriente",
+        [
+            FormulaInput(name="current_assets", value=15000),
+            FormulaInput(name="current_liabilities", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: current_liabilities"

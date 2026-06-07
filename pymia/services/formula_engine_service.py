@@ -80,6 +80,9 @@ class FormulaEngineService:
                 source_refs,
             )
 
+        if formula_id == "PYME_024_liquidez_corriente":
+            return self._calculate_pyme_024_liquidez_corriente(values, source_refs)
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,
@@ -189,6 +192,27 @@ class FormulaEngineService:
             )
 
         return self._ok(formula_id, (accounts_receivable / sales) * days, inputs, source_refs)
+
+    def _calculate_pyme_024_liquidez_corriente(
+        self,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        formula_id = "PYME_024_liquidez_corriente"
+        current_assets = inputs["current_assets"]
+        current_liabilities = inputs["current_liabilities"]
+
+        if current_liabilities == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: current_liabilities",
+            )
+
+        return self._ok(formula_id, current_assets / current_liabilities, inputs, source_refs)
 
     def _collect_source_refs(self, inputs: list[FormulaInput]) -> list[str]:
         refs: list[str] = []

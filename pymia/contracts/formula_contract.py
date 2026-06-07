@@ -74,6 +74,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["initial_balance", "expected_collections", "expected_payments"],
         description="initial_balance + expected_collections - expected_payments",
     ),
+    "PYME_024_liquidez_corriente": FormulaDefinition(
+        formula_id="PYME_024_liquidez_corriente",
+        required_inputs=["current_assets", "current_liabilities"],
+        description="current_assets / current_liabilities",
+    ),
 }
 
 

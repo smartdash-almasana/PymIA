@@ -224,3 +224,29 @@ def test_calculates_liq002_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme024_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-10",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_024"],
+            formula_ids=["PYME_024_liquidez_corriente"],
+            variables={"current_assets": 15000, "current_liabilities": 10000},
+            evidence_refs={
+                "current_assets": ["sheet:assets"],
+                "current_liabilities": ["sheet:liabilities"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 1.5
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:assets",
+        "sheet:liabilities",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"
