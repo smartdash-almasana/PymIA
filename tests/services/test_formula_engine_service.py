@@ -82,3 +82,16 @@ def test_engine_blocks_ren001_division_by_zero():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "DIVISION_BY_ZERO: sale_price"
+
+
+def test_engine_blocks_ren001_when_taxes_input_is_missing():
+    result = FormulaEngineService().calculate(
+        "REN_001_margen_neto_real",
+        [
+            FormulaInput(name="sale_price", value=1000),
+            FormulaInput(name="costs", value=700),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: taxes"
