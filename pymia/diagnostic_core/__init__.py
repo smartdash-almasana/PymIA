@@ -1,4 +1,5 @@
 from .core import DiagnosticCoreV1
+from .evidence_binding import build_diagnostic_core_input_from_structured_evidence
 from .models import (
     CoreDiagnosticResult,
     CoreFinding,
@@ -14,4 +15,5 @@ __all__ = [
     "CoreFormulaResult",
     "CoreDiagnosticResult",
     "CoreFinding",
+    "build_diagnostic_core_input_from_structured_evidence",
 ]
