@@ -59,6 +59,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["cost_of_goods_sold", "average_stock"],
         description="cost_of_goods_sold / average_stock",
     ),
+    "PYME_011_dso": FormulaDefinition(
+        formula_id="PYME_011_dso",
+        required_inputs=["accounts_receivable", "sales", "days"],
+        description="accounts_receivable / sales * days",
+    ),
 }
 
 

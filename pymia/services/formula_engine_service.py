@@ -61,6 +61,9 @@ class FormulaEngineService:
         if formula_id == "INV_002_rotacion_stock":
             return self._calculate_inv_002_rotacion_stock(values, source_refs)
 
+        if formula_id == "PYME_011_dso":
+            return self._calculate_pyme_011_dso(values, source_refs)
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,
@@ -148,6 +151,28 @@ class FormulaEngineService:
             )
 
         return self._ok(formula_id, cost_of_goods_sold / average_stock, inputs, source_refs)
+
+    def _calculate_pyme_011_dso(
+        self,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        formula_id = "PYME_011_dso"
+        accounts_receivable = inputs["accounts_receivable"]
+        sales = inputs["sales"]
+        days = inputs["days"]
+
+        if sales == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: sales",
+            )
+
+        return self._ok(formula_id, (accounts_receivable / sales) * days, inputs, source_refs)
 
     def _collect_source_refs(self, inputs: list[FormulaInput]) -> list[str]:
         refs: list[str] = []

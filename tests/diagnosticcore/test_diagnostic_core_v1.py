@@ -138,3 +138,31 @@ def test_calculates_inv002_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme011_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-7",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_011"],
+            formula_ids=["PYME_011_dso"],
+            variables={"accounts_receivable": 3000, "sales": 12000, "days": 30},
+            evidence_refs={
+                "accounts_receivable": ["sheet:ar"],
+                "sales": ["sheet:sales"],
+                "days": ["sheet:days"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 7.5
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:ar",
+        "sheet:sales",
+        "sheet:days",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

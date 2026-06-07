@@ -173,3 +173,45 @@ def test_engine_blocks_inv002_division_by_zero():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "DIVISION_BY_ZERO: average_stock"
+
+
+def test_engine_calculates_pyme011_dso():
+    result = FormulaEngineService().calculate(
+        "PYME_011_dso",
+        [
+            FormulaInput(name="accounts_receivable", value=3000, source_refs=["ar:1"]),
+            FormulaInput(name="sales", value=12000, source_refs=["sales:1"]),
+            FormulaInput(name="days", value=30, source_refs=["days:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 7.5
+    assert result.source_refs == ["ar:1", "sales:1", "days:1"]
+
+
+def test_engine_blocks_pyme011_when_days_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_011_dso",
+        [
+            FormulaInput(name="accounts_receivable", value=3000),
+            FormulaInput(name="sales", value=12000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: days"
+
+
+def test_engine_blocks_pyme011_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "PYME_011_dso",
+        [
+            FormulaInput(name="accounts_receivable", value=3000),
+            FormulaInput(name="sales", value=0),
+            FormulaInput(name="days", value=30),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: sales"
