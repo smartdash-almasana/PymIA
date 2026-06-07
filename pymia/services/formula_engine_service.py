@@ -69,6 +69,17 @@ class FormulaEngineService:
             dpo = values["dpo"]
             return self._ok(formula_id, dso - dpo, values, source_refs)
 
+        if formula_id == "LIQ_002_saldo_final_proyectado":
+            initial_balance = values["initial_balance"]
+            expected_collections = values["expected_collections"]
+            expected_payments = values["expected_payments"]
+            return self._ok(
+                formula_id,
+                initial_balance + expected_collections - expected_payments,
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

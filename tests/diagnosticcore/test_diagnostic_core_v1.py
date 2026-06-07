@@ -192,3 +192,35 @@ def test_calculates_pyme013_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_liq002_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-9",
+            tenant_id="tenant-1",
+            hypothesis_codes=["LIQ_002"],
+            formula_ids=["LIQ_002_saldo_final_proyectado"],
+            variables={
+                "initial_balance": 5000,
+                "expected_collections": 2000,
+                "expected_payments": 3000,
+            },
+            evidence_refs={
+                "initial_balance": ["sheet:saldo"],
+                "expected_collections": ["sheet:cobranzas"],
+                "expected_payments": ["sheet:pagos"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 4000.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:saldo",
+        "sheet:cobranzas",
+        "sheet:pagos",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

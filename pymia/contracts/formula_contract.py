@@ -69,6 +69,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["dso", "dpo"],
         description="dso - dpo",
     ),
+    "LIQ_002_saldo_final_proyectado": FormulaDefinition(
+        formula_id="LIQ_002_saldo_final_proyectado",
+        required_inputs=["initial_balance", "expected_collections", "expected_payments"],
+        description="initial_balance + expected_collections - expected_payments",
+    ),
 }
 
 

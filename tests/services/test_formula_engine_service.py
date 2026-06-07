@@ -267,3 +267,31 @@ def test_engine_blocks_pyme013_when_dpo_is_missing():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "MISSING_INPUTS: dpo"
+
+
+def test_engine_calculates_liq002_saldo_final_proyectado():
+    result = FormulaEngineService().calculate(
+        "LIQ_002_saldo_final_proyectado",
+        [
+            FormulaInput(name="initial_balance", value=5000, source_refs=["saldo:1"]),
+            FormulaInput(name="expected_collections", value=2000, source_refs=["cobranzas:1"]),
+            FormulaInput(name="expected_payments", value=3000, source_refs=["pagos:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 4000.0
+    assert result.source_refs == ["saldo:1", "cobranzas:1", "pagos:1"]
+
+
+def test_engine_blocks_liq002_when_expected_payments_is_missing():
+    result = FormulaEngineService().calculate(
+        "LIQ_002_saldo_final_proyectado",
+        [
+            FormulaInput(name="initial_balance", value=5000),
+            FormulaInput(name="expected_collections", value=2000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: expected_payments"
