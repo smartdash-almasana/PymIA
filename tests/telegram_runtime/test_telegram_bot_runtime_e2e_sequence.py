@@ -160,11 +160,19 @@ def test_telegram_e2e_sequence_ficha_to_evidence_gate_no_duplicates(tmp_path, mo
         )
 
     assert "Documento recibido" in upload_reply
-    assert "Evidencia recibida" in upload_reply
+    assert "Recibí el Excel" in upload_reply or "Documento recibido" in upload_reply
+    assert WHOLESALE_FIXTURE.name in upload_reply
+    assert "Lo que pude rescatar" in upload_reply
+    assert "Lo que todavía no queda claro" in upload_reply
+    assert "Para avanzar" in upload_reply
     lowered = upload_reply.lower()
     assert "diagnóstico" not in lowered
     assert "diagnostico" not in lowered
     assert "margen" not in lowered
+    assert "excel_caja_banco" not in lowered
+    assert "ventas_del_periodo" not in lowered
+    assert "cobranzas_del_periodo" not in lowered
+    assert "liq_001" not in lowered
 
     state = load_state("telegram", "tg-e2e-002", tmp_path)
     assert state is not None

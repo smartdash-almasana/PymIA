@@ -28,6 +28,135 @@ from pymia.smartpyme.intake import (
 )
 
 
+def _humanize_evidence_type(evidence_type: str) -> str:
+    mapping = {
+        "excel_caja_banco": "movimientos de caja, banco o Mercado Pago",
+        "ventas_del_periodo": "ventas del período",
+        "cobranzas_del_periodo": "cobranzas del período",
+        "costos_directos": "costos o compras del período",
+        "costos_o_compras": "costos o compras del período",
+        "compras_del_periodo": "compras o facturas del período",
+        "sales_records": "ventas del período",
+        "price_list": "lista de precios o productos",
+    }
+    key = str(evidence_type or "").strip().lower()
+    if key in mapping:
+        return mapping[key]
+    text = str(evidence_type or "").strip().replace("_", " ")
+    return text if text else "evidencia adicional"
+
+
+def _looks_like_sales_field(field: str) -> bool:
+    lowered = str(field or "").strip().lower()
+    return any(token in lowered for token in ("venta", "cliente", "producto", "ruta", "precio"))
+
+
+def _summarize_received_file(*, source_ref: str, metadata: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    file_name = Path(source_ref).name if str(source_ref or "").strip() else ""
+    if file_name:
+        lines.append(f"Recibí el Excel {file_name}.")
+    else:
+        lines.append("Recibí el archivo que subiste.")
+
+    sheets = metadata.get("sheets")
+    fields = metadata.get("fields")
+    if isinstance(sheets, list) and sheets:
+        first_sheet = sheets[0] if isinstance(sheets[0], dict) else None
+        lines.append("")
+        lines.append("Lo que pude rescatar:")
+        if isinstance(first_sheet, dict):
+            sheet_name = str(first_sheet.get("name") or "").strip()
+            row_count = int(first_sheet.get("row_count") or 0)
+            column_count = int(first_sheet.get("column_count") or 0)
+            if sheet_name:
+                lines.append(f"- tiene una hoja {sheet_name};")
+            if row_count > 0 or column_count > 0:
+                lines.append(
+                    f"- trae una estructura tabular con {row_count or 'varios'} registros y {column_count or 'varias'} columnas;"
+                )
+            detected_fields = first_sheet.get("fields_detected")
+            if isinstance(detected_fields, list) and detected_fields:
+                preview = ", ".join(str(item).strip() for item in detected_fields[:4] if str(item).strip())
+                if preview:
+                    lines.append(f"- aparecen columnas o campos como {preview};")
+        elif isinstance(fields, list) and fields:
+            preview = ", ".join(str(item).strip() for item in fields[:4] if str(item).strip())
+            if preview:
+                lines.append(f"- aparecen columnas o campos como {preview};")
+
+        if isinstance(fields, list) and any(_looks_like_sales_field(field) for field in fields):
+            lines.append("- sirve como punto de partida para revisar parte del movimiento comercial.")
+    return lines
+
+
+def _build_missing_clarity_lines(*, missing_types: list[str], metadata: dict[str, Any]) -> list[str]:
+    lines = ["", "Lo que todavía no queda claro:"]
+    normalized = {str(item or "").strip().lower() for item in missing_types if str(item or "").strip()}
+
+    if "ventas_del_periodo" in normalized and "cobranzas_del_periodo" in normalized:
+        lines.append("- si los importes representan ventas emitidas, ventas cobradas o ambas;")
+    elif "ventas_del_periodo" in normalized:
+        lines.append("- si el archivo alcanza para reconstruir ventas del período completo;")
+
+    if "excel_caja_banco" in normalized:
+        lines.append("- si hay información suficiente de caja, banco o Mercado Pago;")
+    if "cobranzas_del_periodo" in normalized:
+        lines.append("- si las cobranzas están en este archivo o en otro;")
+    if "costos_directos" in normalized or "costos_o_compras" in normalized or "compras_del_periodo" in normalized:
+        lines.append("- si los costos o compras están incluidos o faltan;")
+
+    if len(lines) == 2:
+        raw_preview = ", ".join(sorted(normalized)) if normalized else "otra evidencia"
+        lines.append(
+            f"- si este archivo alcanza por sí solo o hace falta otra aclaración; hoy sigue pendiente {raw_preview};"
+        )
+    return lines
+
+
+def _build_next_steps_lines(missing_types: list[str]) -> list[str]:
+    lines = ["", "Para avanzar podés..."]
+    normalized = [str(item or "").strip().lower() for item in missing_types if str(item or "").strip()]
+    step = 1
+    if "cobranzas_del_periodo" in normalized:
+        lines.append(f"{step}. Confirmarme si este Excel incluye pagos o cobranzas reales.")
+        step += 1
+    if "excel_caja_banco" in normalized:
+        lines.append(f"{step}. Subir movimientos de caja, banco o Mercado Pago.")
+        step += 1
+    if any(item in normalized for item in ("costos_directos", "costos_o_compras", "compras_del_periodo")):
+        lines.append(f"{step}. Subir compras, costos o facturas si querés revisar rentabilidad.")
+        step += 1
+    if "ventas_del_periodo" in normalized:
+        lines.append(f"{step}. Confirmarme si este archivo representa todas las ventas del período.")
+        step += 1
+    if step == 1:
+        lines.append("1. Contarme qué representa este archivo y si tenés otro respaldo para completar la revisión.")
+    return lines
+
+
+def _build_contextual_missing_evidence_reply(
+    *,
+    source_ref: str,
+    metadata: dict[str, Any],
+    missing_types: list[str],
+) -> str:
+    lines = [
+        "Evidencia recibida. Para avanzar todavía falta esta evidencia mínima.",
+        "",
+    ]
+    lines.extend(_summarize_received_file(source_ref=source_ref, metadata=metadata))
+    lines.extend(_build_missing_clarity_lines(missing_types=missing_types, metadata=metadata))
+    lines.extend(_build_next_steps_lines(missing_types))
+    lines.extend(
+        [
+            "",
+            "Todavía no voy a diagnosticar ni sacar conclusiones hasta tener evidencia suficiente.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _parse_post_ficha_evidence_input_with_metadata(
     text: str,
 ) -> tuple[str, str, str, dict[str, Any]]:
@@ -461,10 +590,16 @@ def apply_post_ficha_evidence_turn(
     else:
         missing_list = [x for x in missing_types if x]
         if missing_list:
-            missing_lines = "\n".join(f"- {item}" for item in missing_list)
-            reply = (
-                "Evidencia recibida. Para avanzar todavía falta esta evidencia mínima:\n"
-                f"{missing_lines}"
+            latest_record = evidence_records[-1] if evidence_records else {}
+            latest_metadata = (
+                dict(latest_record.get("metadata") or {})
+                if isinstance(latest_record, dict)
+                else {}
+            )
+            reply = _build_contextual_missing_evidence_reply(
+                source_ref=source_ref,
+                metadata=latest_metadata,
+                missing_types=missing_list,
             )
         else:
             reply = "Evidencia recibida. Todavía faltan evidencias para avanzar."

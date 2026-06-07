@@ -35,6 +35,7 @@ def _base_context() -> dict:
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEXTILE_FIXTURE = REPO_ROOT / "prueba_excels" / "la_textil_cosida_srl_mar_abr_may_2026.xlsx"
+WHOLESALE_FIXTURE = REPO_ROOT / "prueba_excels" / "distribuidora_mayorista_compleja.xlsx"
 
 
 def test_parse_valid_evidence_input() -> None:
@@ -720,6 +721,70 @@ def test_textile_fixture_natural_flow_enriches_semantics_without_manual_metadata
     assert readiness["readiness_state"] == "NEEDS_EVIDENCE"
     assert readiness["ready_for_analysis"] is False
     assert analysis["status"] == "NEEDS_EVIDENCE"
+
+
+def test_contextual_reply_for_wholesale_fixture_stays_honest_and_non_technical() -> None:
+    assert WHOLESALE_FIXTURE.exists()
+
+    ctx = {
+        "post_ficha_routing": {
+            "intake_id": "intake_wholesale_001",
+            "evidence_requests": [
+                {
+                    "request_id": "req_1",
+                    "evidence_type": "excel_caja_banco",
+                    "description": "Movimientos de caja, banco o conciliación.",
+                    "required_fields": ["periodo", "monto"],
+                    "status": "REQUESTED",
+                    "blocks_analysis": True,
+                },
+                {
+                    "request_id": "req_2",
+                    "evidence_type": "ventas_del_periodo",
+                    "description": "Ventas del período",
+                    "required_fields": ["venta_neta", "periodo"],
+                    "status": "REQUESTED",
+                    "blocks_analysis": True,
+                },
+                {
+                    "request_id": "req_3",
+                    "evidence_type": "cobranzas_del_periodo",
+                    "description": "Cobranzas del período",
+                    "required_fields": ["periodo", "monto"],
+                    "status": "REQUESTED",
+                    "blocks_analysis": True,
+                },
+            ],
+        }
+    }
+
+    out, reply = apply_post_ficha_evidence_turn(
+        tenant_id="t1",
+        message_text=f"EVIDENCE::uploaded_file::excel_caja_banco::{WHOLESALE_FIXTURE}",
+        previous_context=None,
+        updated_context=ctx,
+    )
+
+    lowered = reply.lower()
+    assert "recibí el excel" in lowered or "documento recibido" in lowered
+    assert WHOLESALE_FIXTURE.name.lower() in lowered
+    assert "lo que pude rescatar" in lowered
+    assert "hoja" in lowered or "columnas" in lowered or "campos" in lowered
+    assert "lo que todavía no queda claro" in lowered
+    assert "para avanzar" in lowered
+    assert "caja, banco o mercado pago" in lowered
+    assert "excel_caja_banco" not in lowered
+    assert "ventas_del_periodo" not in lowered
+    assert "cobranzas_del_periodo" not in lowered
+    assert "liq_001" not in lowered
+    assert "formula" not in lowered
+    assert "margen" not in lowered
+
+    readiness = out["post_ficha_readiness"]
+    assert readiness["readiness_state"] == "NEEDS_EVIDENCE"
+    assert "excel_caja_banco" in readiness["missing_evidence_types"]
+    assert "ventas_del_periodo" in readiness["missing_evidence_types"]
+    assert "cobranzas_del_periodo" in readiness["missing_evidence_types"]
 
 # 7. No se usa xlsx_document_metadata_adapter, docling, tools/excel_evidence.py ni ClinicalConversationalPort.
 def test_post_ficha_evidence_gate_ast_rules():
