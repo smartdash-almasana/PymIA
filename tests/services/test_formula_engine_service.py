@@ -175,6 +175,34 @@ def test_engine_blocks_inv002_division_by_zero():
     assert result.blocking_reason == "DIVISION_BY_ZERO: average_stock"
 
 
+def test_engine_calculates_inv001_punto_reposicion():
+    result = FormulaEngineService().calculate(
+        "INV_001_punto_reposicion",
+        [
+            FormulaInput(name="average_sales", value=20, source_refs=["avg_sales:1"]),
+            FormulaInput(name="lead_time", value=5, source_refs=["lead_time:1"]),
+            FormulaInput(name="safety_stock", value=30, source_refs=["safety_stock:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 130.0
+    assert result.source_refs == ["avg_sales:1", "lead_time:1", "safety_stock:1"]
+
+
+def test_engine_blocks_inv001_when_safety_stock_is_missing():
+    result = FormulaEngineService().calculate(
+        "INV_001_punto_reposicion",
+        [
+            FormulaInput(name="average_sales", value=20),
+            FormulaInput(name="lead_time", value=5),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: safety_stock"
+
+
 def test_engine_calculates_pyme011_dso():
     result = FormulaEngineService().calculate(
         "PYME_011_dso",

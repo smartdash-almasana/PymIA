@@ -140,6 +140,34 @@ def test_calculates_inv002_formula_without_confirmed_finding():
     assert result.findings[0].status == "CANDIDATE"
 
 
+def test_calculates_inv001_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-6b",
+            tenant_id="tenant-1",
+            hypothesis_codes=["INV_001"],
+            formula_ids=["INV_001_punto_reposicion"],
+            variables={"average_sales": 20, "lead_time": 5, "safety_stock": 30},
+            evidence_refs={
+                "average_sales": ["sheet:avg_sales"],
+                "lead_time": ["sheet:lead_time"],
+                "safety_stock": ["sheet:safety_stock"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 130.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:avg_sales",
+        "sheet:lead_time",
+        "sheet:safety_stock",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"
+
+
 def test_calculates_pyme011_formula_without_confirmed_finding():
     result = DiagnosticCoreV1().run(
         DiagnosticCoreInput(

@@ -61,6 +61,17 @@ class FormulaEngineService:
         if formula_id == "INV_002_rotacion_stock":
             return self._calculate_inv_002_rotacion_stock(values, source_refs)
 
+        if formula_id == "INV_001_punto_reposicion":
+            average_sales = values["average_sales"]
+            lead_time = values["lead_time"]
+            safety_stock = values["safety_stock"]
+            return self._ok(
+                formula_id,
+                (average_sales * lead_time) + safety_stock,
+                values,
+                source_refs,
+            )
+
         if formula_id == "PYME_011_dso":
             return self._calculate_pyme_011_dso(values, source_refs)
 
