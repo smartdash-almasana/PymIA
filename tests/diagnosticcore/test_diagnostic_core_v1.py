@@ -166,3 +166,29 @@ def test_calculates_pyme011_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme013_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-8",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_013"],
+            formula_ids=["PYME_013_dso_dpo_gap"],
+            variables={"dso": 45, "dpo": 30},
+            evidence_refs={
+                "dso": ["sheet:dso"],
+                "dpo": ["sheet:dpo"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 15.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:dso",
+        "sheet:dpo",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

@@ -215,3 +215,55 @@ def test_engine_blocks_pyme011_division_by_zero():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "DIVISION_BY_ZERO: sales"
+
+
+def test_engine_calculates_pyme013_dso_dpo_gap():
+    result = FormulaEngineService().calculate(
+        "PYME_013_dso_dpo_gap",
+        [
+            FormulaInput(name="dso", value=45, source_refs=["dso:1"]),
+            FormulaInput(name="dpo", value=30, source_refs=["dpo:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 15.0
+    assert result.source_refs == ["dso:1", "dpo:1"]
+
+
+def test_engine_allows_pyme013_zero_result():
+    result = FormulaEngineService().calculate(
+        "PYME_013_dso_dpo_gap",
+        [
+            FormulaInput(name="dso", value=30),
+            FormulaInput(name="dpo", value=30),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0
+
+
+def test_engine_allows_pyme013_negative_result():
+    result = FormulaEngineService().calculate(
+        "PYME_013_dso_dpo_gap",
+        [
+            FormulaInput(name="dso", value=25),
+            FormulaInput(name="dpo", value=40),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == -15.0
+
+
+def test_engine_blocks_pyme013_when_dpo_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_013_dso_dpo_gap",
+        [
+            FormulaInput(name="dso", value=45),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: dpo"

@@ -64,6 +64,11 @@ class FormulaEngineService:
         if formula_id == "PYME_011_dso":
             return self._calculate_pyme_011_dso(values, source_refs)
 
+        if formula_id == "PYME_013_dso_dpo_gap":
+            dso = values["dso"]
+            dpo = values["dpo"]
+            return self._ok(formula_id, dso - dpo, values, source_refs)
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

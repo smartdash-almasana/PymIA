@@ -64,6 +64,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["accounts_receivable", "sales", "days"],
         description="accounts_receivable / sales * days",
     ),
+    "PYME_013_dso_dpo_gap": FormulaDefinition(
+        formula_id="PYME_013_dso_dpo_gap",
+        required_inputs=["dso", "dpo"],
+        description="dso - dpo",
+    ),
 }
 
 
