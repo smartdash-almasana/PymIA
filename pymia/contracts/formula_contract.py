@@ -44,6 +44,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["ventas", "costos"],
         description="ventas - costos",
     ),
+    "REN_001_margen_neto_real": FormulaDefinition(
+        formula_id="REN_001_margen_neto_real",
+        required_inputs=["sale_price", "costs", "taxes"],
+        description="((sale_price - costs - taxes) / sale_price) * 100",
+    ),
 }
 
 

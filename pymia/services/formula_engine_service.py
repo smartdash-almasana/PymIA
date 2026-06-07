@@ -40,14 +40,18 @@ class FormulaEngineService:
                 blocking_reason=f"MISSING_INPUTS: {','.join(missing)}",
             )
 
-        ventas = values["ventas"]
-        costos = values["costos"]
-
         if formula_id == "margen_bruto":
+            ventas = values["ventas"]
+            costos = values["costos"]
             return self._calculate_margen_bruto(ventas, costos, values, source_refs)
 
         if formula_id == "ganancia_bruta":
+            ventas = values["ventas"]
+            costos = values["costos"]
             return self._ok(formula_id, ventas - costos, values, source_refs)
+
+        if formula_id == "REN_001_margen_neto_real":
+            return self._calculate_ren_001_margen_neto_real(values, source_refs)
 
         return FormulaResult(
             formula_id=formula_id,
@@ -92,6 +96,29 @@ class FormulaEngineService:
             inputs=inputs,
             source_refs=source_refs,
         )
+
+    def _calculate_ren_001_margen_neto_real(
+        self,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        formula_id = "REN_001_margen_neto_real"
+        sale_price = inputs["sale_price"]
+        costs = inputs["costs"]
+        taxes = inputs["taxes"]
+
+        if sale_price == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: sale_price",
+            )
+
+        value = ((sale_price - costs - taxes) / sale_price) * 100
+        return self._ok(formula_id, value, inputs, source_refs)
 
     def _collect_source_refs(self, inputs: list[FormulaInput]) -> list[str]:
         refs: list[str] = []

@@ -53,3 +53,32 @@ def test_contract_compatibility_wrapper():
 
     assert result.status == FormulaStatus.OK
     assert result.value == 250.0
+
+
+def test_engine_calculates_ren001_margen_neto_real():
+    result = FormulaEngineService().calculate(
+        "REN_001_margen_neto_real",
+        [
+            FormulaInput(name="sale_price", value=1000, source_refs=["ventas:1"]),
+            FormulaInput(name="costs", value=700, source_refs=["costos:1"]),
+            FormulaInput(name="taxes", value=50, source_refs=["impuestos:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 25.0
+    assert result.source_refs == ["ventas:1", "costos:1", "impuestos:1"]
+
+
+def test_engine_blocks_ren001_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "REN_001_margen_neto_real",
+        [
+            FormulaInput(name="sale_price", value=0),
+            FormulaInput(name="costs", value=700),
+            FormulaInput(name="taxes", value=50),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: sale_price"
