@@ -95,3 +95,42 @@ def test_engine_blocks_ren001_when_taxes_input_is_missing():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "MISSING_INPUTS: taxes"
+
+
+def test_engine_calculates_liq001_vendido_cobrado():
+    result = FormulaEngineService().calculate(
+        "LIQ_001_vendido_cobrado",
+        [
+            FormulaInput(name="sold_amount", value=1000, source_refs=["ventas:1"]),
+            FormulaInput(name="collected_amount", value=650, source_refs=["cobranzas:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 350.0
+    assert result.source_refs == ["ventas:1", "cobranzas:1"]
+
+
+def test_engine_blocks_liq001_when_collected_amount_is_missing():
+    result = FormulaEngineService().calculate(
+        "LIQ_001_vendido_cobrado",
+        [
+            FormulaInput(name="sold_amount", value=1000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: collected_amount"
+
+
+def test_engine_allows_liq001_zero_result():
+    result = FormulaEngineService().calculate(
+        "LIQ_001_vendido_cobrado",
+        [
+            FormulaInput(name="sold_amount", value=1000),
+            FormulaInput(name="collected_amount", value=1000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0

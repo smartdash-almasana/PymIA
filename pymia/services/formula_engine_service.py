@@ -53,6 +53,11 @@ class FormulaEngineService:
         if formula_id == "REN_001_margen_neto_real":
             return self._calculate_ren_001_margen_neto_real(values, source_refs)
 
+        if formula_id == "LIQ_001_vendido_cobrado":
+            sold_amount = values["sold_amount"]
+            collected_amount = values["collected_amount"]
+            return self._ok(formula_id, sold_amount - collected_amount, values, source_refs)
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

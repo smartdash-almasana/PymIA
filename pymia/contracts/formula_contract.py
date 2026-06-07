@@ -49,6 +49,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["sale_price", "costs", "taxes"],
         description="((sale_price - costs - taxes) / sale_price) * 100",
     ),
+    "LIQ_001_vendido_cobrado": FormulaDefinition(
+        formula_id="LIQ_001_vendido_cobrado",
+        required_inputs=["sold_amount", "collected_amount"],
+        description="sold_amount - collected_amount",
+    ),
 }
 
 

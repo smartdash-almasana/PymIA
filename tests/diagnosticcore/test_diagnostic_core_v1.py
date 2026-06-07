@@ -85,3 +85,30 @@ def test_result_is_serializable_to_json():
     payload = result.model_dump()
     dumped = json.dumps(payload, sort_keys=True)
     assert "ganancia_bruta" in dumped
+
+
+def test_calculates_liq001_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-5",
+            tenant_id="tenant-1",
+            hypothesis_codes=["LIQ_001"],
+            formula_ids=["LIQ_001_vendido_cobrado"],
+            variables={"sold_amount": 1000, "collected_amount": 650},
+            evidence_refs={
+                "sold_amount": ["sheet:ventas"],
+                "collected_amount": ["sheet:cobranzas"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 350.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:ventas",
+        "sheet:cobranzas",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.diagnostic_results[0].formula_id == "LIQ_001_vendido_cobrado"
+    assert result.findings[0].status == "CANDIDATE"
