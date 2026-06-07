@@ -250,3 +250,29 @@ def test_calculates_pyme024_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme017_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-11",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_017"],
+            formula_ids=["PYME_017_pricing_drift"],
+            variables={"own_price": 120, "market_price": 100},
+            evidence_refs={
+                "own_price": ["sheet:own"],
+                "market_price": ["sheet:market"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 20.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:own",
+        "sheet:market",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

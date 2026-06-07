@@ -79,6 +79,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["current_assets", "current_liabilities"],
         description="current_assets / current_liabilities",
     ),
+    "PYME_017_pricing_drift": FormulaDefinition(
+        formula_id="PYME_017_pricing_drift",
+        required_inputs=["own_price", "market_price"],
+        description="(own_price - market_price) / market_price * 100",
+    ),
 }
 
 

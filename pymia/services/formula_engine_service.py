@@ -83,6 +83,9 @@ class FormulaEngineService:
         if formula_id == "PYME_024_liquidez_corriente":
             return self._calculate_pyme_024_liquidez_corriente(values, source_refs)
 
+        if formula_id == "PYME_017_pricing_drift":
+            return self._calculate_pyme_017_pricing_drift(values, source_refs)
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,
@@ -213,6 +216,27 @@ class FormulaEngineService:
             )
 
         return self._ok(formula_id, current_assets / current_liabilities, inputs, source_refs)
+
+    def _calculate_pyme_017_pricing_drift(
+        self,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        formula_id = "PYME_017_pricing_drift"
+        own_price = inputs["own_price"]
+        market_price = inputs["market_price"]
+
+        if market_price == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: market_price",
+            )
+
+        return self._ok(formula_id, ((own_price - market_price) / market_price) * 100, inputs, source_refs)
 
     def _collect_source_refs(self, inputs: list[FormulaInput]) -> list[str]:
         refs: list[str] = []

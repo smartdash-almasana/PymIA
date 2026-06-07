@@ -362,3 +362,68 @@ def test_engine_blocks_pyme024_division_by_zero():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "DIVISION_BY_ZERO: current_liabilities"
+
+
+def test_engine_calculates_pyme017_pricing_drift_positive():
+    result = FormulaEngineService().calculate(
+        "PYME_017_pricing_drift",
+        [
+            FormulaInput(name="own_price", value=120, source_refs=["own:1"]),
+            FormulaInput(name="market_price", value=100, source_refs=["market:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 20.0
+    assert result.source_refs == ["own:1", "market:1"]
+
+
+def test_engine_allows_pyme017_zero_result():
+    result = FormulaEngineService().calculate(
+        "PYME_017_pricing_drift",
+        [
+            FormulaInput(name="own_price", value=100),
+            FormulaInput(name="market_price", value=100),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0
+
+
+def test_engine_allows_pyme017_negative_result():
+    result = FormulaEngineService().calculate(
+        "PYME_017_pricing_drift",
+        [
+            FormulaInput(name="own_price", value=90),
+            FormulaInput(name="market_price", value=100),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == -10.0
+
+
+def test_engine_blocks_pyme017_when_market_price_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_017_pricing_drift",
+        [
+            FormulaInput(name="own_price", value=120),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: market_price"
+
+
+def test_engine_blocks_pyme017_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "PYME_017_pricing_drift",
+        [
+            FormulaInput(name="own_price", value=120),
+            FormulaInput(name="market_price", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: market_price"
