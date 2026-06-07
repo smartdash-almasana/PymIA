@@ -58,6 +58,9 @@ class FormulaEngineService:
             collected_amount = values["collected_amount"]
             return self._ok(formula_id, sold_amount - collected_amount, values, source_refs)
 
+        if formula_id == "INV_002_rotacion_stock":
+            return self._calculate_inv_002_rotacion_stock(values, source_refs)
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,
@@ -124,6 +127,27 @@ class FormulaEngineService:
 
         value = ((sale_price - costs - taxes) / sale_price) * 100
         return self._ok(formula_id, value, inputs, source_refs)
+
+    def _calculate_inv_002_rotacion_stock(
+        self,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        formula_id = "INV_002_rotacion_stock"
+        cost_of_goods_sold = inputs["cost_of_goods_sold"]
+        average_stock = inputs["average_stock"]
+
+        if average_stock == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: average_stock",
+            )
+
+        return self._ok(formula_id, cost_of_goods_sold / average_stock, inputs, source_refs)
 
     def _collect_source_refs(self, inputs: list[FormulaInput]) -> list[str]:
         refs: list[str] = []

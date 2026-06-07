@@ -134,3 +134,42 @@ def test_engine_allows_liq001_zero_result():
 
     assert result.status == FormulaStatus.OK
     assert result.value == 0.0
+
+
+def test_engine_calculates_inv002_rotacion_stock():
+    result = FormulaEngineService().calculate(
+        "INV_002_rotacion_stock",
+        [
+            FormulaInput(name="cost_of_goods_sold", value=12000, source_refs=["cogs:1"]),
+            FormulaInput(name="average_stock", value=3000, source_refs=["stock:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 4.0
+    assert result.source_refs == ["cogs:1", "stock:1"]
+
+
+def test_engine_blocks_inv002_when_average_stock_is_missing():
+    result = FormulaEngineService().calculate(
+        "INV_002_rotacion_stock",
+        [
+            FormulaInput(name="cost_of_goods_sold", value=12000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: average_stock"
+
+
+def test_engine_blocks_inv002_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "INV_002_rotacion_stock",
+        [
+            FormulaInput(name="cost_of_goods_sold", value=12000),
+            FormulaInput(name="average_stock", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: average_stock"

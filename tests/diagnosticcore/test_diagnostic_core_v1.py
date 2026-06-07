@@ -112,3 +112,29 @@ def test_calculates_liq001_formula_without_confirmed_finding():
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.diagnostic_results[0].formula_id == "LIQ_001_vendido_cobrado"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_inv002_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-6",
+            tenant_id="tenant-1",
+            hypothesis_codes=["INV_002"],
+            formula_ids=["INV_002_rotacion_stock"],
+            variables={"cost_of_goods_sold": 12000, "average_stock": 3000},
+            evidence_refs={
+                "cost_of_goods_sold": ["sheet:cogs"],
+                "average_stock": ["sheet:stock"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 4.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:cogs",
+        "sheet:stock",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"
