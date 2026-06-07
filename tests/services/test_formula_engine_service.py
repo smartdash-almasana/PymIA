@@ -203,6 +203,34 @@ def test_engine_blocks_inv001_when_safety_stock_is_missing():
     assert result.blocking_reason == "MISSING_INPUTS: safety_stock"
 
 
+def test_engine_allows_inv001_zero_result():
+    result = FormulaEngineService().calculate(
+        "INV_001_punto_reposicion",
+        [
+            FormulaInput(name="average_sales", value=0),
+            FormulaInput(name="lead_time", value=5),
+            FormulaInput(name="safety_stock", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0
+
+
+def test_engine_allows_inv001_decimal_input():
+    result = FormulaEngineService().calculate(
+        "INV_001_punto_reposicion",
+        [
+            FormulaInput(name="average_sales", value=12.5),
+            FormulaInput(name="lead_time", value=4),
+            FormulaInput(name="safety_stock", value=10),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 60.0
+
+
 def test_engine_calculates_pyme011_dso():
     result = FormulaEngineService().calculate(
         "PYME_011_dso",
