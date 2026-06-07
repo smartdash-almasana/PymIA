@@ -304,3 +304,29 @@ def test_calculates_pyme017_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_punto_equilibrio_ventas_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-12",
+            tenant_id="tenant-1",
+            hypothesis_codes=["REN_002"],
+            formula_ids=["punto_equilibrio_ventas"],
+            variables={"fixed_costs": 5000, "contribution_margin_rate": 0.25},
+            evidence_refs={
+                "fixed_costs": ["sheet:fixed_costs"],
+                "contribution_margin_rate": ["sheet:cmr"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 20000.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:fixed_costs",
+        "sheet:cmr",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

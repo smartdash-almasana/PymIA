@@ -483,3 +483,42 @@ def test_engine_blocks_pyme017_division_by_zero():
 
     assert result.status == FormulaStatus.BLOCKED
     assert result.blocking_reason == "DIVISION_BY_ZERO: market_price"
+
+
+def test_engine_calculates_punto_equilibrio_ventas():
+    result = FormulaEngineService().calculate(
+        "punto_equilibrio_ventas",
+        [
+            FormulaInput(name="fixed_costs", value=5000, source_refs=["fixed:1"]),
+            FormulaInput(name="contribution_margin_rate", value=0.25, source_refs=["cmr:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 20000.0
+    assert result.source_refs == ["fixed:1", "cmr:1"]
+
+
+def test_engine_blocks_punto_equilibrio_ventas_when_contribution_margin_rate_is_missing():
+    result = FormulaEngineService().calculate(
+        "punto_equilibrio_ventas",
+        [
+            FormulaInput(name="fixed_costs", value=5000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: contribution_margin_rate"
+
+
+def test_engine_blocks_punto_equilibrio_ventas_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "punto_equilibrio_ventas",
+        [
+            FormulaInput(name="fixed_costs", value=5000),
+            FormulaInput(name="contribution_margin_rate", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: contribution_margin_rate"

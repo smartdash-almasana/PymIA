@@ -89,6 +89,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["own_price", "market_price"],
         description="(own_price - market_price) / market_price * 100",
     ),
+    "punto_equilibrio_ventas": FormulaDefinition(
+        formula_id="punto_equilibrio_ventas",
+        required_inputs=["fixed_costs", "contribution_margin_rate"],
+        description="fixed_costs / contribution_margin_rate",
+    ),
 }
 
 

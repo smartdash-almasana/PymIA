@@ -97,6 +97,25 @@ class FormulaEngineService:
         if formula_id == "PYME_017_pricing_drift":
             return self._calculate_pyme_017_pricing_drift(values, source_refs)
 
+        if formula_id == "punto_equilibrio_ventas":
+            fixed_costs = values["fixed_costs"]
+            contribution_margin_rate = values["contribution_margin_rate"]
+            if contribution_margin_rate == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: contribution_margin_rate",
+                )
+            return self._ok(
+                formula_id,
+                fixed_costs / contribution_margin_rate,
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,
