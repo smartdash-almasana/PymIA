@@ -66,7 +66,9 @@ def test_executes_three_formulas_from_structured_evidence_fixture() -> None:
     assert set(core_input.evidence_refs["collected_amount"]) == {"sheet:cobranzas"}
     assert set(core_input.evidence_refs["cost_of_goods_sold"]) == {"sheet:cogs"}
     assert set(core_input.evidence_refs["average_stock"]) == {"sheet:stock"}
-    assert all(set(formula.source_refs) == expected_refs for formula in result.formula_results)
+    assert result.formula_results[0].source_refs == ["sheet:ventas", "sheet:costos", "sheet:impuestos"]
+    assert result.formula_results[1].source_refs == ["sheet:ventas_emitidas", "sheet:cobranzas"]
+    assert result.formula_results[2].source_refs == ["sheet:cogs", "sheet:stock"]
 
 
 def test_partial_execution_blocks_only_incomplete_formula() -> None:
@@ -138,13 +140,6 @@ def test_executes_supported_aliases_from_parser_like_variables() -> None:
     assert result.status == "PARTIAL"
     assert [formula.value for formula in result.formula_results] == [20.0, 350.0, 700 / 3000]
     assert [formula.status for formula in result.formula_results] == ["OK", "OK", "OK"]
-    expected_refs = {
-        "sheet:ventas_total",
-        "sheet:costos_total",
-        "sheet:impuestos_total",
-        "sheet:cobranzas_total",
-        "sheet:stock_promedio",
-    }
     assert set(core_input.evidence_refs["sale_price"]) == {"sheet:ventas_total"}
     assert set(core_input.evidence_refs["costs"]) == {"sheet:costos_total"}
     assert set(core_input.evidence_refs["taxes"]) == {"sheet:impuestos_total"}
@@ -152,4 +147,16 @@ def test_executes_supported_aliases_from_parser_like_variables() -> None:
     assert set(core_input.evidence_refs["collected_amount"]) == {"sheet:cobranzas_total"}
     assert set(core_input.evidence_refs["cost_of_goods_sold"]) == {"sheet:costos_total"}
     assert set(core_input.evidence_refs["average_stock"]) == {"sheet:stock_promedio"}
-    assert all(set(formula.source_refs) == expected_refs for formula in result.formula_results)
+    assert result.formula_results[0].source_refs == [
+        "sheet:ventas_total",
+        "sheet:costos_total",
+        "sheet:impuestos_total",
+    ]
+    assert result.formula_results[1].source_refs == [
+        "sheet:ventas_total",
+        "sheet:cobranzas_total",
+    ]
+    assert result.formula_results[2].source_refs == [
+        "sheet:costos_total",
+        "sheet:stock_promedio",
+    ]

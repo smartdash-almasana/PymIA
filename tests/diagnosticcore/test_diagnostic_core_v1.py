@@ -140,6 +140,43 @@ def test_calculates_inv002_formula_without_confirmed_finding():
     assert result.findings[0].status == "CANDIDATE"
 
 
+def test_scopes_source_refs_per_formula_when_multiple_formulas_share_input_pool():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-6c",
+            tenant_id="tenant-1",
+            hypothesis_codes=["REN_001", "LIQ_001", "INV_002"],
+            formula_ids=[
+                "REN_001_margen_neto_real",
+                "LIQ_001_vendido_cobrado",
+                "INV_002_rotacion_stock",
+            ],
+            variables={
+                "sale_price": 1000,
+                "costs": 700,
+                "taxes": 100,
+                "sold_amount": 1000,
+                "collected_amount": 650,
+                "cost_of_goods_sold": 12000,
+                "average_stock": 3000,
+            },
+            evidence_refs={
+                "sale_price": ["sheet:ventas"],
+                "costs": ["sheet:costos"],
+                "taxes": ["sheet:impuestos"],
+                "sold_amount": ["sheet:ventas_emitidas"],
+                "collected_amount": ["sheet:cobranzas"],
+                "cost_of_goods_sold": ["sheet:cogs"],
+                "average_stock": ["sheet:stock"],
+            },
+        )
+    )
+
+    assert result.formula_results[0].source_refs == ["sheet:ventas", "sheet:costos", "sheet:impuestos"]
+    assert result.formula_results[1].source_refs == ["sheet:ventas_emitidas", "sheet:cobranzas"]
+    assert result.formula_results[2].source_refs == ["sheet:cogs", "sheet:stock"]
+
+
 def test_calculates_inv001_formula_without_confirmed_finding():
     result = DiagnosticCoreV1().run(
         DiagnosticCoreInput(

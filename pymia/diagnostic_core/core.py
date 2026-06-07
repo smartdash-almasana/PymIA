@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pymia.contracts.formula_contract import FormulaInput, FormulaStatus
+from pymia.contracts.formula_contract import SUPPORTED_FORMULAS, FormulaInput, FormulaStatus
 from pymia.services.formula_engine_service import FormulaEngineService
 
 from .models import (
@@ -25,8 +25,8 @@ class DiagnosticCoreV1:
         blocked_reasons: list[str] = []
         missing_evidence: list[str] = []
 
-        formula_inputs = self._build_formula_inputs(core_input)
         for formula_id in core_input.formula_ids:
+            formula_inputs = self._build_formula_inputs(core_input, formula_id)
             result = self._formula_engine.calculate(formula_id, formula_inputs)
             core_formula = CoreFormulaResult(
                 formula_id=result.formula_id,
@@ -85,14 +85,20 @@ class DiagnosticCoreV1:
             blocked_reasons=blocked_reasons,
         )
 
-    def _build_formula_inputs(self, core_input: DiagnosticCoreInput) -> list[FormulaInput]:
+    def _build_formula_inputs(
+        self,
+        core_input: DiagnosticCoreInput,
+        formula_id: str,
+    ) -> list[FormulaInput]:
+        required_names = SUPPORTED_FORMULAS.get(formula_id).required_inputs if formula_id in SUPPORTED_FORMULAS else None
+        names = required_names or list(core_input.variables.keys())
         return [
             FormulaInput(
                 name=name,
-                value=value,
+                value=core_input.variables.get(name),
                 source_refs=core_input.evidence_refs.get(name, []),
             )
-            for name, value in core_input.variables.items()
+            for name in names
         ]
 
     def _pathology_for_formula(self, core_input: DiagnosticCoreInput, formula_id: str) -> str:
