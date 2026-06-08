@@ -94,6 +94,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["fixed_costs", "contribution_margin_rate"],
         description="fixed_costs / contribution_margin_rate",
     ),
+    "PYME_026_flujo_operativo": FormulaDefinition(
+        formula_id="PYME_026_flujo_operativo",
+        required_inputs=["net_income", "depreciation", "amortization", "working_capital_change"],
+        description="net_income + depreciation + amortization - working_capital_change",
+    ),
 }
 
 

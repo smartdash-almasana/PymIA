@@ -125,6 +125,18 @@ class FormulaEngineService:
                 source_refs,
             )
 
+        if formula_id == "PYME_026_flujo_operativo":
+            net_income = values["net_income"]
+            depreciation = values["depreciation"]
+            amortization = values["amortization"]
+            working_capital_change = values["working_capital_change"]
+            return self._ok(
+                formula_id,
+                net_income + depreciation + amortization - working_capital_change,
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

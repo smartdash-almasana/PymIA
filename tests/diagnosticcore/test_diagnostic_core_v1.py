@@ -367,3 +367,38 @@ def test_calculates_punto_equilibrio_ventas_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme026_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-13",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_026"],
+            formula_ids=["PYME_026_flujo_operativo"],
+            variables={
+                "net_income": 1000,
+                "depreciation": 200,
+                "amortization": 50,
+                "working_capital_change": 150,
+            },
+            evidence_refs={
+                "net_income": ["sheet:ni"],
+                "depreciation": ["sheet:dep"],
+                "amortization": ["sheet:amort"],
+                "working_capital_change": ["sheet:wcc"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 1100.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:ni",
+        "sheet:dep",
+        "sheet:amort",
+        "sheet:wcc",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

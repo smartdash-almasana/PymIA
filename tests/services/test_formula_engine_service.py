@@ -548,3 +548,48 @@ def test_engine_allows_punto_equilibrio_ventas_zero_fixed_costs():
 
     assert result.status == FormulaStatus.OK
     assert result.value == 0.0
+
+
+def test_engine_calculates_pyme026_flujo_operativo():
+    result = FormulaEngineService().calculate(
+        "PYME_026_flujo_operativo",
+        [
+            FormulaInput(name="net_income", value=1000, source_refs=["ni:1"]),
+            FormulaInput(name="depreciation", value=200, source_refs=["dep:1"]),
+            FormulaInput(name="amortization", value=50, source_refs=["amort:1"]),
+            FormulaInput(name="working_capital_change", value=150, source_refs=["wcc:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 1100.0
+    assert result.source_refs == ["ni:1", "dep:1", "amort:1", "wcc:1"]
+
+
+def test_engine_blocks_pyme026_when_working_capital_change_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_026_flujo_operativo",
+        [
+            FormulaInput(name="net_income", value=1000),
+            FormulaInput(name="depreciation", value=200),
+            FormulaInput(name="amortization", value=50),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: working_capital_change"
+
+
+def test_engine_allows_pyme026_negative_result():
+    result = FormulaEngineService().calculate(
+        "PYME_026_flujo_operativo",
+        [
+            FormulaInput(name="net_income", value=-500),
+            FormulaInput(name="depreciation", value=100),
+            FormulaInput(name="amortization", value=50),
+            FormulaInput(name="working_capital_change", value=200),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == -550.0
