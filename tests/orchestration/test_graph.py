@@ -652,6 +652,138 @@ def test_decision_trail_includes_dispatch_gate_delivery(tmp_path: Path) -> None:
     assert "Delivery package built" in joined
 
 
+def test_execute_static_capability_consumes_core_delivery_bridge_and_updates_state(tmp_path: Path) -> None:
+    doc_path = tmp_path / "core_bridge.xlsx"
+    doc_path.write_bytes(b"fake excel bridge")
+
+    state = PymIAState(
+        tenant_id="tenant_bridge",
+        chat_id="chat_bridge",
+        conversation_id="conv_bridge",
+        phase="READY_TO_EXECUTE",
+        intake_id="intake_bridge",
+        evidence_ids=["ev_bridge"],
+        latest_evidence_path=doc_path,
+        progressive_context={
+            "core_delivery_bridge_payload": {
+                "case_id": "case_bridge",
+                "intake_id": "intake_bridge",
+                "structured_evidence": {
+                    "tenant_id": "tenant_bridge",
+                    "document_type": "xlsx_operational_evidence",
+                    "source": "xlsx_upload",
+                    "file_name": "core_bridge.xlsx",
+                    "computed_variables": {
+                        "ventas_total": 120000.0,
+                        "costos_total": 60000.0,
+                    },
+                    "metadata": {},
+                },
+                "formula_gate_results": [
+                    {
+                        "formula_id": "PYME_026_rotacion_inventario",
+                        "required_variables": ["ventas_total", "costos_total"],
+                        "available_variables": ["costos_total", "ventas_total"],
+                        "missing_variables": [],
+                        "status": "READY",
+                    }
+                ],
+                "evidence_gate_decisions": [
+                    {
+                        "formula_id": "PYME_026_rotacion_inventario",
+                        "decision": "ALLOW_EXECUTION",
+                        "missing_variables": [],
+                    }
+                ],
+                "diagnostic_core_result": {
+                    "case_id": "case_bridge",
+                    "tenant_id": "tenant_bridge",
+                    "status": "READY",
+                    "formula_results": [
+                        {
+                            "formula_id": "PYME_026_rotacion_inventario",
+                            "status": "READY",
+                            "value": 2.5,
+                            "source_refs": ["sheet://ventas", "sheet://costos"],
+                            "blocking_reason": None,
+                        }
+                    ],
+                    "diagnostic_results": [
+                        {
+                            "pathology_code": "INV_001",
+                            "status": "CANDIDATE",
+                            "formula_id": "PYME_026_rotacion_inventario",
+                            "reason": "Low inventory rotation signal.",
+                            "evidence_refs": ["sheet://ventas", "sheet://costos"],
+                        }
+                    ],
+                    "findings": [
+                        {
+                            "finding_id": "finding-bridge-1",
+                            "pathology_code": "INV_001",
+                            "formula_id": "PYME_026_rotacion_inventario",
+                            "status": "CANDIDATE",
+                            "summary": "Inventory rotation below threshold.",
+                            "evidence_refs": ["sheet://ventas", "sheet://costos"],
+                        }
+                    ],
+                    "missing_evidence": [],
+                    "blocked_reasons": [],
+                },
+            }
+        },
+    )
+    event = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_bridge",
+        chat_id="chat_bridge",
+        conversation_id="conv_bridge",
+        text="diagnosticalo",
+    )
+
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_bridge",
+                "intake_id": "intake_bridge",
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    deps = {
+        "load_intake_record_by_id": lambda *args, **kwargs: {"intake_id": "intake_bridge"},
+        "load_evidence_records_by_intake_id": lambda *args, **kwargs: [{"evidence_id": "ev_bridge"}],
+        "evaluate_evidence_sufficiency": lambda *args, **kwargs: type("S", (), {"status": "READY"})(),
+        "evaluate_analysis_readiness": lambda *args, **kwargs: type("R", (), {"status": "READY"})(),
+        "prepare_runtime_execution": lambda *args, **kwargs: _Candidate(),
+        "dispatch_candidate": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy dispatch should not run when core delivery bridge payload exists")
+        ),
+        "validate_execution_result": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy execution gate should not run when core delivery bridge payload exists")
+        ),
+        "build_delivery_package": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy delivery package should not run when core delivery bridge payload exists")
+        ),
+    }
+
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        new_state = execute_static_capability(state, event, base_dir=tmp_path)
+
+    assert new_state.phase == "DELIVERED"
+    assert new_state.gate_verdict == "PASS"
+    assert new_state.delivery_status == "READY_TO_DELIVER"
+    assert len(new_state.output_refs) >= 3
+    assert new_state.findings_count == 1
+    assert any("Core delivery bridge consumed" in d for d in new_state.decision_trail)
+    assert all(Path(ref).exists() for ref in new_state.output_refs)
+
+
 def test_state_serializable_runtime_fields() -> None:
     state = PymIAState(
         tenant_id="tenant_s",

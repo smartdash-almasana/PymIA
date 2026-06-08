@@ -55,6 +55,91 @@ def _smartpyme_deps() -> dict[str, Any]:
     }
 
 
+def _core_delivery_bridge_deps() -> dict[str, Any]:
+    """Carga lazy del bridge M37 para evitar acoplamiento de import en módulo."""
+    evidence_contract = import_module("pymia.contracts.evidence_v1")
+    diagnostic_models = import_module("pymia.diagnostic_core.models")
+    bridge = import_module("pymia.audit_result.core_delivery_bridge")
+    return {
+        "StructuredEvidence": evidence_contract.StructuredEvidence,
+        "FormulaInputGateResult": diagnostic_models.FormulaInputGateResult,
+        "EvidenceGateDecision": diagnostic_models.EvidenceGateDecision,
+        "DiagnosticCoreResult": diagnostic_models.DiagnosticCoreResult,
+        "build_core_audit_delivery_bundle": bridge.build_core_audit_delivery_bundle,
+        "project_bridge_result_to_state": bridge.project_bridge_result_to_state,
+    }
+
+
+def _consume_core_delivery_bridge_if_available(
+    state: PymIAState,
+    *,
+    base_dir: Path,
+) -> Optional[PymIAState]:
+    """Consume M37 bridge only when progressive_context provides a serialized payload.
+
+    This keeps graph integration minimal and fail-closed:
+    - if payload is absent, graph falls back to the existing legacy path;
+    - if payload is invalid, graph raises and the caller handles the failure.
+    """
+    payload = state.progressive_context.get("core_delivery_bridge_payload")
+    if not isinstance(payload, dict):
+        return None
+
+    deps = _core_delivery_bridge_deps()
+    structured_evidence_raw = payload.get("structured_evidence")
+    formula_gate_results_raw = payload.get("formula_gate_results") or []
+    evidence_gate_decisions_raw = payload.get("evidence_gate_decisions") or []
+    core_result_raw = payload.get("diagnostic_core_result")
+
+    if not isinstance(structured_evidence_raw, dict):
+        raise ValueError("core_delivery_bridge_payload.structured_evidence must be a mapping")
+    if not isinstance(core_result_raw, dict):
+        raise ValueError("core_delivery_bridge_payload.diagnostic_core_result must be a mapping")
+    if not isinstance(formula_gate_results_raw, list):
+        raise ValueError("core_delivery_bridge_payload.formula_gate_results must be a list")
+    if not isinstance(evidence_gate_decisions_raw, list):
+        raise ValueError("core_delivery_bridge_payload.evidence_gate_decisions must be a list")
+
+    structured_evidence = deps["StructuredEvidence"].model_validate(structured_evidence_raw)
+    formula_gate_results = [
+        deps["FormulaInputGateResult"].model_validate(item)
+        for item in formula_gate_results_raw
+    ]
+    evidence_gate_decisions = [
+        deps["EvidenceGateDecision"].model_validate(item)
+        for item in evidence_gate_decisions_raw
+    ]
+    core_result = deps["DiagnosticCoreResult"].model_validate(core_result_raw)
+
+    case_id = str(payload.get("case_id") or state.conversation_id)
+    intake_id = str(payload.get("intake_id") or state.intake_id or "")
+    if not intake_id:
+        raise ValueError("core_delivery_bridge_payload requires intake_id or state.intake_id")
+
+    out_dir = base_dir / state.tenant_id / "core_delivery_bridge" / state.conversation_id
+    bundle = deps["build_core_audit_delivery_bundle"](
+        evidence=structured_evidence,
+        case_id=case_id,
+        intake_id=intake_id,
+        formula_gate_results=formula_gate_results,
+        evidence_gate_decisions=evidence_gate_decisions,
+        core_result=core_result,
+        output_dir=out_dir,
+    )
+    new_state = deps["project_bridge_result_to_state"](state, bundle)
+    new_state.add_decision("Core delivery bridge consumed")
+
+    if new_state.phase == "BLOCKED":
+        blocked_message = str(bundle.render_contract.get("blocked_message") or "").strip()
+        next_questions = bundle.render_contract.get("next_questions") or []
+        if blocked_message:
+            new_state.pending_question = blocked_message
+        elif next_questions:
+            new_state.pending_question = str(next_questions[0])
+
+    return new_state
+
+
 def normalize_event(state: PymIAState, event: PymIAEvent) -> PymIAState:
     """Nodo 1: Normaliza el evento y actualiza estado inicial.
     
@@ -239,6 +324,13 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
                 new_state.pending_question = "No hay evidencia disponible para ejecutar el diagnóstico."
                 new_state.add_decision("Blocked: no evidence path for dispatch")
                 return new_state
+
+            bridge_state = _consume_core_delivery_bridge_if_available(
+                new_state,
+                base_dir=base_dir,
+            )
+            if bridge_state is not None:
+                return bridge_state
 
             out_dir = base_dir / new_state.tenant_id / "dispatch" / new_state.conversation_id
             dispatch_result = deps["dispatch_candidate"](
