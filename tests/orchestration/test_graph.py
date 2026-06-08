@@ -25,6 +25,8 @@ from pymia.smartpyme.storage import (
 )
 from pymia.orchestration.state_storage import load_state
 
+TEXTILE_FIXTURE = Path(__file__).resolve().parents[2] / "prueba_excels" / "la_textil_cosida_srl_mar_abr_may_2026.xlsx"
+
 
 def test_normalize_event_updates_last_message() -> None:
     """normalize_event actualiza last_user_message."""
@@ -1137,6 +1139,106 @@ def test_graph_does_not_collapse_when_structured_evidence_population_fails(tmp_p
     assert new_state.delivery_status == "READY_TO_DELIVER"
     assert new_state.output_refs == [str(legacy_report)]
     assert any("Structured evidence context population failed" in d for d in new_state.decision_trail)
+
+
+def test_run_pymia_graph_real_fixture_replays_core_delivery_bridge_end_to_end(tmp_path: Path) -> None:
+    assert TEXTILE_FIXTURE.exists()
+
+    event_doc = PymIAEvent(
+        event_type="document_received",
+        tenant_id="tenant_m41",
+        chat_id="chat_m41",
+        conversation_id="conv_m41",
+        document_path=TEXTILE_FIXTURE,
+        document_name=TEXTILE_FIXTURE.name,
+        text="Necesito analizar margen, cobranzas y stock de este Excel.",
+    )
+    response_doc = run_pymia_graph(event_doc, base_dir=tmp_path)
+    assert SENTINEL in response_doc
+
+    state_after_doc = load_state("tenant_m41", "chat_m41", tmp_path)
+    assert state_after_doc is not None
+    assert state_after_doc.intake_id is not None
+    assert state_after_doc.evidence_ids
+
+    real_deps = __import__("pymia.orchestration.graph", fromlist=["_smartpyme_deps"])._smartpyme_deps()
+
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_m41",
+                "intake_id": state_after_doc.intake_id,
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    deps = dict(real_deps)
+    deps["evaluate_evidence_sufficiency"] = lambda *args, **kwargs: type("S", (), {"status": "READY"})()
+    deps["evaluate_analysis_readiness"] = lambda *args, **kwargs: type("R", (), {"status": "READY"})()
+    deps["prepare_runtime_execution"] = lambda *args, **kwargs: _Candidate()
+    deps["dispatch_candidate"] = lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("legacy dispatch should not run when M40+M39+M38 path is available")
+    )
+    deps["validate_execution_result"] = lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("legacy execution gate should not run when M40+M39+M38 path is available")
+    )
+    deps["build_delivery_package"] = lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("legacy delivery package should not run when M40+M39+M38 path is available")
+    )
+
+    event_diag = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_m41",
+        chat_id="chat_m41",
+        conversation_id="conv_m41",
+        text="diagnosticalo",
+    )
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        response_diag = run_pymia_graph(event_diag, base_dir=tmp_path)
+
+    assert SENTINEL in response_diag
+    final_state = load_state("tenant_m41", "chat_m41", tmp_path)
+    assert final_state is not None
+
+    structured_evidence = final_state.progressive_context.get("structured_evidence")
+    formula_ids = final_state.progressive_context.get("formula_ids")
+    bridge_payload = final_state.progressive_context.get("core_delivery_bridge_payload")
+
+    assert isinstance(structured_evidence, dict)
+    assert structured_evidence["file_name"] == TEXTILE_FIXTURE.name
+    assert structured_evidence["computed_variables"]
+    assert isinstance(formula_ids, list)
+    assert formula_ids
+    assert isinstance(bridge_payload, dict)
+
+    gate_results = bridge_payload["formula_gate_results"]
+    diagnostic_core_result = bridge_payload["diagnostic_core_result"]
+    executed_formula_ids = [
+        item["formula_id"] for item in diagnostic_core_result["formula_results"]
+    ]
+    blocked_formula_ids = [
+        item["formula_id"]
+        for item in gate_results
+        if item["status"] == "MISSING_INPUTS"
+    ]
+
+    for formula_id in blocked_formula_ids:
+        assert formula_id not in executed_formula_ids
+
+    assert final_state.phase in {"DELIVERED", "BLOCKED"}
+    assert final_state.gate_verdict in {"PASS", "BLOCKED"}
+    assert final_state.delivery_status in {"READY_TO_DELIVER", "BLOCKED"}
+    assert isinstance(final_state.output_refs, list)
+    assert all(Path(ref).exists() for ref in final_state.output_refs)
+    assert isinstance(final_state.findings_count, int)
+    assert any("Structured evidence context populated" in d for d in final_state.decision_trail)
+    assert any("Core delivery bridge payload produced" in d for d in final_state.decision_trail)
+    assert any("Core delivery bridge consumed" in d for d in final_state.decision_trail)
 
 
 def test_state_serializable_runtime_fields() -> None:
