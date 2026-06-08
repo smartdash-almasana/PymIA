@@ -167,6 +167,25 @@ class FormulaEngineService:
                 source_refs,
             )
 
+        if formula_id == "PYME_033_concentracion_sku":
+            main_sku_sales = values["main_sku_sales"]
+            total_sales = values["total_sales"]
+            if total_sales == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: total_sales",
+                )
+            return self._ok(
+                formula_id,
+                (main_sku_sales / total_sales) * 100,
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

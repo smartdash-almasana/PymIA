@@ -109,6 +109,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["client_revenue", "client_direct_costs", "client_service_costs"],
         description="client_revenue - client_direct_costs - client_service_costs",
     ),
+    "PYME_033_concentracion_sku": FormulaDefinition(
+        formula_id="PYME_033_concentracion_sku",
+        required_inputs=["main_sku_sales", "total_sales"],
+        description="main_sku_sales / total_sales * 100",
+    ),
 }
 
 

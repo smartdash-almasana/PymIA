@@ -463,3 +463,32 @@ def test_calculates_pyme044_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme033_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-16",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_033"],
+            formula_ids=["PYME_033_concentracion_sku"],
+            variables={
+                "main_sku_sales": 4000,
+                "total_sales": 10000,
+            },
+            evidence_refs={
+                "main_sku_sales": ["sheet:main"],
+                "total_sales": ["sheet:total"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 40.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:main",
+        "sheet:total",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

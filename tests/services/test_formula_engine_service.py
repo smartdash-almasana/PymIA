@@ -687,3 +687,55 @@ def test_engine_allows_pyme044_negative_result():
 
     assert result.status == FormulaStatus.OK
     assert result.value == -300.0
+
+
+def test_engine_calculates_pyme033_concentracion_sku():
+    result = FormulaEngineService().calculate(
+        "PYME_033_concentracion_sku",
+        [
+            FormulaInput(name="main_sku_sales", value=4000, source_refs=["main:1"]),
+            FormulaInput(name="total_sales", value=10000, source_refs=["total:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 40.0
+    assert result.source_refs == ["main:1", "total:1"]
+
+
+def test_engine_blocks_pyme033_when_total_sales_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_033_concentracion_sku",
+        [
+            FormulaInput(name="main_sku_sales", value=4000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: total_sales"
+
+
+def test_engine_blocks_pyme033_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "PYME_033_concentracion_sku",
+        [
+            FormulaInput(name="main_sku_sales", value=4000),
+            FormulaInput(name="total_sales", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: total_sales"
+
+
+def test_engine_allows_pyme033_zero_result():
+    result = FormulaEngineService().calculate(
+        "PYME_033_concentracion_sku",
+        [
+            FormulaInput(name="main_sku_sales", value=0),
+            FormulaInput(name="total_sales", value=10000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0
