@@ -137,6 +137,25 @@ class FormulaEngineService:
                 source_refs,
             )
 
+        if formula_id == "PYME_027_intereses_ebitda":
+            interest_expense = values["interest_expense"]
+            ebitda = values["ebitda"]
+            if ebitda == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: ebitda",
+                )
+            return self._ok(
+                formula_id,
+                interest_expense / ebitda,
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

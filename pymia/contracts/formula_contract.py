@@ -99,6 +99,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["net_income", "depreciation", "amortization", "working_capital_change"],
         description="net_income + depreciation + amortization - working_capital_change",
     ),
+    "PYME_027_intereses_ebitda": FormulaDefinition(
+        formula_id="PYME_027_intereses_ebitda",
+        required_inputs=["interest_expense", "ebitda"],
+        description="interest_expense / ebitda",
+    ),
 }
 
 

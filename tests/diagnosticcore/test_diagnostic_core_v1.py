@@ -402,3 +402,32 @@ def test_calculates_pyme026_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme027_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-14",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_027"],
+            formula_ids=["PYME_027_intereses_ebitda"],
+            variables={
+                "interest_expense": 500,
+                "ebitda": 2500,
+            },
+            evidence_refs={
+                "interest_expense": ["sheet:interest"],
+                "ebitda": ["sheet:ebitda"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 0.2
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:interest",
+        "sheet:ebitda",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

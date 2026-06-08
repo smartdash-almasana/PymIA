@@ -593,3 +593,55 @@ def test_engine_allows_pyme026_negative_result():
 
     assert result.status == FormulaStatus.OK
     assert result.value == -550.0
+
+
+def test_engine_calculates_pyme027_intereses_ebitda():
+    result = FormulaEngineService().calculate(
+        "PYME_027_intereses_ebitda",
+        [
+            FormulaInput(name="interest_expense", value=500, source_refs=["interest:1"]),
+            FormulaInput(name="ebitda", value=2500, source_refs=["ebitda:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.2
+    assert result.source_refs == ["interest:1", "ebitda:1"]
+
+
+def test_engine_blocks_pyme027_when_ebitda_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_027_intereses_ebitda",
+        [
+            FormulaInput(name="interest_expense", value=500),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: ebitda"
+
+
+def test_engine_blocks_pyme027_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "PYME_027_intereses_ebitda",
+        [
+            FormulaInput(name="interest_expense", value=500),
+            FormulaInput(name="ebitda", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: ebitda"
+
+
+def test_engine_allows_pyme027_zero_interest_expense():
+    result = FormulaEngineService().calculate(
+        "PYME_027_intereses_ebitda",
+        [
+            FormulaInput(name="interest_expense", value=0),
+            FormulaInput(name="ebitda", value=2500),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0
