@@ -739,3 +739,55 @@ def test_engine_allows_pyme033_zero_result():
 
     assert result.status == FormulaStatus.OK
     assert result.value == 0.0
+
+
+def test_engine_calculates_ren002_coeficiente_reposicion():
+    result = FormulaEngineService().calculate(
+        "REN_002_coeficiente_reposicion",
+        [
+            FormulaInput(name="closing_index", value=130, source_refs=["closing:1"]),
+            FormulaInput(name="origin_index", value=100, source_refs=["origin:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 1.3
+    assert result.source_refs == ["closing:1", "origin:1"]
+
+
+def test_engine_blocks_ren002_when_origin_index_is_missing():
+    result = FormulaEngineService().calculate(
+        "REN_002_coeficiente_reposicion",
+        [
+            FormulaInput(name="closing_index", value=130),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: origin_index"
+
+
+def test_engine_blocks_ren002_division_by_zero():
+    result = FormulaEngineService().calculate(
+        "REN_002_coeficiente_reposicion",
+        [
+            FormulaInput(name="closing_index", value=130),
+            FormulaInput(name="origin_index", value=0),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "DIVISION_BY_ZERO: origin_index"
+
+
+def test_engine_allows_ren002_zero_result():
+    result = FormulaEngineService().calculate(
+        "REN_002_coeficiente_reposicion",
+        [
+            FormulaInput(name="closing_index", value=0),
+            FormulaInput(name="origin_index", value=100),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.0

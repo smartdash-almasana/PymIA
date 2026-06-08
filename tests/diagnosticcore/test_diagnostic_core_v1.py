@@ -492,3 +492,32 @@ def test_calculates_pyme033_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_ren002_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-17",
+            tenant_id="tenant-1",
+            hypothesis_codes=["REN_002"],
+            formula_ids=["REN_002_coeficiente_reposicion"],
+            variables={
+                "closing_index": 130,
+                "origin_index": 100,
+            },
+            evidence_refs={
+                "closing_index": ["sheet:closing"],
+                "origin_index": ["sheet:origin"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 1.3
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:closing",
+        "sheet:origin",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"

@@ -186,6 +186,25 @@ class FormulaEngineService:
                 source_refs,
             )
 
+        if formula_id == "REN_002_coeficiente_reposicion":
+            closing_index = values["closing_index"]
+            origin_index = values["origin_index"]
+            if origin_index == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: origin_index",
+                )
+            return self._ok(
+                formula_id,
+                closing_index / origin_index,
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

@@ -114,6 +114,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["main_sku_sales", "total_sales"],
         description="main_sku_sales / total_sales * 100",
     ),
+    "REN_002_coeficiente_reposicion": FormulaDefinition(
+        formula_id="REN_002_coeficiente_reposicion",
+        required_inputs=["closing_index", "origin_index"],
+        description="closing_index / origin_index",
+    ),
 }
 
 
