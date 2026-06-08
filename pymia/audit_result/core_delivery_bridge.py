@@ -11,10 +11,18 @@ from pymia.contracts.evidence_v1 import StructuredEvidence
 from pymia.contracts.scn_output_gateway import (
     build_render_contract_from_operational_audit_result,
 )
+from pymia.diagnostic_core import (
+    DiagnosticCoreV1,
+    build_diagnostic_core_input_from_structured_evidence,
+    build_evidence_gate_decisions_from_formula_input_results,
+    build_formula_input_gate_results_from_structured_evidence,
+)
 from pymia.diagnostic_core.models import (
     DiagnosticCoreResult,
+    DiagnosticCoreInput,
     DiagnosticCoreStatus,
     EvidenceGateDecision,
+    FormulaInputGateStatus,
     EvidenceGateDecisionStatus,
     FormulaInputGateResult,
 )
@@ -38,6 +46,24 @@ class CoreAuditDeliveryBundle:
     gate_verdict: ExecutionResultGateVerdict
     delivery_package: DeliveryPackage
     output_refs: list[str]
+
+
+def _empty_core_result(
+    *,
+    case_id: str,
+    tenant_id: str,
+    missing_evidence: list[str],
+) -> DiagnosticCoreResult:
+    return DiagnosticCoreResult(
+        case_id=case_id,
+        tenant_id=tenant_id,
+        status=DiagnosticCoreStatus.INSUFFICIENT,
+        formula_results=[],
+        diagnostic_results=[],
+        findings=[],
+        missing_evidence=list(missing_evidence),
+        blocked_reasons=[],
+    )
 
 
 def _utc_now_iso() -> str:
@@ -171,6 +197,93 @@ def build_scn_operational_audit_result_from_core(
             "mark_value": result_id,
         },
         "created_at": _utc_now_iso(),
+    }
+
+
+def _filter_formula_ids_for_execution(
+    formula_gate_results: list[FormulaInputGateResult],
+) -> list[str]:
+    return [
+        item.formula_id
+        for item in formula_gate_results
+        if item.status == FormulaInputGateStatus.READY
+    ]
+
+
+def _filter_hypothesis_codes_for_execution(
+    formula_ids: list[str],
+    hypothesis_codes: list[str],
+) -> list[str]:
+    if not hypothesis_codes:
+        return []
+    if len(hypothesis_codes) == len(formula_ids):
+        return list(hypothesis_codes)
+    return list(hypothesis_codes)
+
+
+def build_core_delivery_bridge_payload_from_structured_evidence(
+    *,
+    evidence: StructuredEvidence,
+    case_id: str,
+    intake_id: str,
+    formula_ids: list[str],
+    hypothesis_codes: list[str] | None = None,
+    core: DiagnosticCoreV1 | None = None,
+) -> dict[str, Any]:
+    formula_gate_results = build_formula_input_gate_results_from_structured_evidence(
+        evidence,
+        case_id=case_id,
+        tenant_id=evidence.tenant_id,
+        formula_ids=formula_ids,
+    )
+    evidence_gate_decisions = build_evidence_gate_decisions_from_formula_input_results(
+        formula_gate_results
+    )
+
+    executable_formula_ids = _filter_formula_ids_for_execution(formula_gate_results)
+    executable_hypothesis_codes = _filter_hypothesis_codes_for_execution(
+        executable_formula_ids,
+        list(hypothesis_codes or []),
+    )
+
+    if executable_formula_ids:
+        core_input: DiagnosticCoreInput = build_diagnostic_core_input_from_structured_evidence(
+            evidence,
+            case_id=case_id,
+            tenant_id=evidence.tenant_id,
+            formula_ids=executable_formula_ids,
+            hypothesis_codes=executable_hypothesis_codes,
+        )
+        core_result = (core or DiagnosticCoreV1()).run(core_input)
+    else:
+        missing_evidence = _collect_missing_evidence(
+            formula_gate_results,
+            evidence_gate_decisions,
+            _empty_core_result(
+                case_id=case_id,
+                tenant_id=evidence.tenant_id,
+                missing_evidence=[],
+            ),
+        )
+        core_result = _empty_core_result(
+            case_id=case_id,
+            tenant_id=evidence.tenant_id,
+            missing_evidence=missing_evidence,
+        )
+
+    return {
+        "case_id": case_id,
+        "intake_id": intake_id,
+        "structured_evidence": evidence.model_dump(mode="json"),
+        "formula_ids": list(formula_ids),
+        "hypothesis_codes": list(hypothesis_codes or []),
+        "formula_gate_results": [
+            item.model_dump(mode="json") for item in formula_gate_results
+        ],
+        "evidence_gate_decisions": [
+            item.model_dump(mode="json") for item in evidence_gate_decisions
+        ],
+        "diagnostic_core_result": core_result.model_dump(mode="json"),
     }
 
 

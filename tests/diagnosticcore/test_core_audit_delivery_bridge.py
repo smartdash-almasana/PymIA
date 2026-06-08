@@ -202,3 +202,24 @@ def test_bridge_module_does_not_import_telegram_or_runtime_ast():
         if isinstance(node, ast.ImportFrom):
             module = node.module or ""
             assert not module.startswith(forbidden_prefixes)
+
+
+def test_payload_producer_does_not_execute_blocked_formulas_and_keeps_missing_inputs():
+    from pymia.audit_result.core_delivery_bridge import (
+        build_core_delivery_bridge_payload_from_structured_evidence,
+    )
+
+    payload = build_core_delivery_bridge_payload_from_structured_evidence(
+        evidence=_sample_evidence(),
+        case_id="case-payload-blocked",
+        intake_id="intake-payload-blocked",
+        formula_ids=["REN_001_margen_neto_real"],
+        hypothesis_codes=["REN_001"],
+    )
+
+    assert payload["formula_ids"] == ["REN_001_margen_neto_real"]
+    assert payload["formula_gate_results"][0]["status"] == "MISSING_INPUTS"
+    assert payload["formula_gate_results"][0]["missing_variables"] == ["taxes"]
+    assert payload["evidence_gate_decisions"][0]["decision"] == "BLOCK_MISSING_INPUTS"
+    assert payload["diagnostic_core_result"]["formula_results"] == []
+    assert payload["diagnostic_core_result"]["missing_evidence"] == ["taxes"]

@@ -784,6 +784,175 @@ def test_execute_static_capability_consumes_core_delivery_bridge_and_updates_sta
     assert all(Path(ref).exists() for ref in new_state.output_refs)
 
 
+def test_execute_static_capability_produces_and_consumes_core_delivery_bridge_payload(tmp_path: Path) -> None:
+    doc_path = tmp_path / "core_bridge_auto.xlsx"
+    doc_path.write_bytes(b"fake excel bridge auto")
+
+    state = PymIAState(
+        tenant_id="tenant_bridge_auto",
+        chat_id="chat_bridge_auto",
+        conversation_id="conv_bridge_auto",
+        phase="READY_TO_EXECUTE",
+        intake_id="intake_bridge_auto",
+        evidence_ids=["ev_bridge_auto"],
+        latest_evidence_path=doc_path,
+        progressive_context={
+            "structured_evidence": {
+                "tenant_id": "tenant_bridge_auto",
+                "document_type": "xlsx_operational_evidence",
+                "source": "xlsx_upload",
+                "file_name": "core_bridge_auto.xlsx",
+                "computed_variables": {
+                    "main_sku_sales": 80000.0,
+                    "total_sales": 120000.0,
+                },
+                "metadata": {
+                    "variable_source_refs": {
+                        "main_sku_sales": ["sheet://ventas!A:A"],
+                        "total_sales": ["sheet://ventas!B:B"],
+                    }
+                },
+            },
+            "formula_ids": ["PYME_033_concentracion_sku"],
+            "hypothesis_codes": ["PYME_033"],
+        },
+    )
+    event = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_bridge_auto",
+        chat_id="chat_bridge_auto",
+        conversation_id="conv_bridge_auto",
+        text="diagnosticalo",
+    )
+
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_bridge_auto",
+                "intake_id": "intake_bridge_auto",
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    deps = {
+        "load_intake_record_by_id": lambda *args, **kwargs: {"intake_id": "intake_bridge_auto"},
+        "load_evidence_records_by_intake_id": lambda *args, **kwargs: [{"evidence_id": "ev_bridge_auto"}],
+        "evaluate_evidence_sufficiency": lambda *args, **kwargs: type("S", (), {"status": "READY"})(),
+        "evaluate_analysis_readiness": lambda *args, **kwargs: type("R", (), {"status": "READY"})(),
+        "prepare_runtime_execution": lambda *args, **kwargs: _Candidate(),
+        "dispatch_candidate": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy dispatch should not run when M39 produces bridge payload")
+        ),
+        "validate_execution_result": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy execution gate should not run when M39 produces bridge payload")
+        ),
+        "build_delivery_package": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy delivery package should not run when M39 produces bridge payload")
+        ),
+    }
+
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        new_state = execute_static_capability(state, event, base_dir=tmp_path)
+
+    payload = new_state.progressive_context.get("core_delivery_bridge_payload")
+    assert isinstance(payload, dict)
+    assert payload["formula_gate_results"][0]["status"] == "READY"
+    assert new_state.phase == "DELIVERED"
+    assert new_state.gate_verdict == "PASS"
+    assert new_state.delivery_status == "READY_TO_DELIVER"
+    assert new_state.output_refs
+    assert new_state.findings_count == 1
+    assert all(Path(ref).exists() for ref in new_state.output_refs)
+
+
+def test_execute_static_capability_produces_blocking_bridge_payload_when_evidence_is_insufficient(tmp_path: Path) -> None:
+    doc_path = tmp_path / "core_bridge_blocked.xlsx"
+    doc_path.write_bytes(b"fake excel bridge blocked")
+
+    state = PymIAState(
+        tenant_id="tenant_bridge_blocked",
+        chat_id="chat_bridge_blocked",
+        conversation_id="conv_bridge_blocked",
+        phase="READY_TO_EXECUTE",
+        intake_id="intake_bridge_blocked",
+        evidence_ids=["ev_bridge_blocked"],
+        latest_evidence_path=doc_path,
+        progressive_context={
+            "structured_evidence": {
+                "tenant_id": "tenant_bridge_blocked",
+                "document_type": "xlsx_operational_evidence",
+                "source": "xlsx_upload",
+                "file_name": "core_bridge_blocked.xlsx",
+                "computed_variables": {
+                    "sale_price": 1000.0,
+                    "costs": 700.0,
+                },
+                "metadata": {},
+            },
+            "formula_ids": ["REN_001_margen_neto_real"],
+            "hypothesis_codes": ["REN_001"],
+        },
+    )
+    event = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_bridge_blocked",
+        chat_id="chat_bridge_blocked",
+        conversation_id="conv_bridge_blocked",
+        text="diagnosticalo",
+    )
+
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_bridge_blocked",
+                "intake_id": "intake_bridge_blocked",
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    deps = {
+        "load_intake_record_by_id": lambda *args, **kwargs: {"intake_id": "intake_bridge_blocked"},
+        "load_evidence_records_by_intake_id": lambda *args, **kwargs: [{"evidence_id": "ev_bridge_blocked"}],
+        "evaluate_evidence_sufficiency": lambda *args, **kwargs: type("S", (), {"status": "READY"})(),
+        "evaluate_analysis_readiness": lambda *args, **kwargs: type("R", (), {"status": "READY"})(),
+        "prepare_runtime_execution": lambda *args, **kwargs: _Candidate(),
+        "dispatch_candidate": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy dispatch should not run when M39 produces blocking bridge payload")
+        ),
+        "validate_execution_result": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy execution gate should not run when M39 produces blocking bridge payload")
+        ),
+        "build_delivery_package": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy delivery package should not run when M39 produces blocking bridge payload")
+        ),
+    }
+
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        new_state = execute_static_capability(state, event, base_dir=tmp_path)
+
+    payload = new_state.progressive_context.get("core_delivery_bridge_payload")
+    assert isinstance(payload, dict)
+    assert payload["formula_gate_results"][0]["status"] == "MISSING_INPUTS"
+    assert payload["formula_gate_results"][0]["missing_variables"] == ["taxes"]
+    assert payload["diagnostic_core_result"]["formula_results"] == []
+    assert payload["diagnostic_core_result"]["missing_evidence"] == ["taxes"]
+    assert new_state.phase == "BLOCKED"
+    assert new_state.gate_verdict == "BLOCKED"
+    assert new_state.delivery_status == "BLOCKED"
+    assert new_state.findings_count == 0
+    assert new_state.output_refs
+
+
 def test_state_serializable_runtime_fields() -> None:
     state = PymIAState(
         tenant_id="tenant_s",

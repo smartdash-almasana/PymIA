@@ -58,16 +58,54 @@ def _smartpyme_deps() -> dict[str, Any]:
 def _core_delivery_bridge_deps() -> dict[str, Any]:
     """Carga lazy del bridge M37 para evitar acoplamiento de import en módulo."""
     evidence_contract = import_module("pymia.contracts.evidence_v1")
-    diagnostic_models = import_module("pymia.diagnostic_core.models")
     bridge = import_module("pymia.audit_result.core_delivery_bridge")
     return {
         "StructuredEvidence": evidence_contract.StructuredEvidence,
-        "FormulaInputGateResult": diagnostic_models.FormulaInputGateResult,
-        "EvidenceGateDecision": diagnostic_models.EvidenceGateDecision,
-        "DiagnosticCoreResult": diagnostic_models.DiagnosticCoreResult,
+        "build_core_delivery_bridge_payload_from_structured_evidence": (
+            bridge.build_core_delivery_bridge_payload_from_structured_evidence
+        ),
         "build_core_audit_delivery_bundle": bridge.build_core_audit_delivery_bundle,
         "project_bridge_result_to_state": bridge.project_bridge_result_to_state,
     }
+
+
+def _produce_core_delivery_bridge_payload_if_available(
+    state: PymIAState,
+) -> PymIAState:
+    """Produce M39 payload when structured evidence and formula_ids exist in context."""
+    payload = state.progressive_context.get("core_delivery_bridge_payload")
+    if isinstance(payload, dict):
+        return state
+
+    structured_evidence_raw = state.progressive_context.get("structured_evidence")
+    formula_ids_raw = state.progressive_context.get("formula_ids")
+    hypothesis_codes_raw = state.progressive_context.get("hypothesis_codes") or []
+
+    if not isinstance(structured_evidence_raw, dict):
+        return state
+    if not isinstance(formula_ids_raw, list) or not formula_ids_raw:
+        return state
+    if not isinstance(hypothesis_codes_raw, list):
+        return state
+
+    deps = _core_delivery_bridge_deps()
+    structured_evidence = deps["StructuredEvidence"].model_validate(structured_evidence_raw)
+    formula_ids = [str(item) for item in formula_ids_raw if str(item).strip()]
+    hypothesis_codes = [str(item) for item in hypothesis_codes_raw if str(item).strip()]
+    if not formula_ids:
+        return state
+
+    new_state = deepcopy(state)
+    bridge_payload = deps["build_core_delivery_bridge_payload_from_structured_evidence"](
+        evidence=structured_evidence,
+        case_id=new_state.conversation_id,
+        intake_id=str(new_state.intake_id or ""),
+        formula_ids=formula_ids,
+        hypothesis_codes=hypothesis_codes,
+    )
+    new_state.progressive_context["core_delivery_bridge_payload"] = bridge_payload
+    new_state.add_decision("Core delivery bridge payload produced")
+    return new_state
 
 
 def _consume_core_delivery_bridge_if_available(
@@ -86,6 +124,7 @@ def _consume_core_delivery_bridge_if_available(
         return None
 
     deps = _core_delivery_bridge_deps()
+    diagnostic_models = import_module("pymia.diagnostic_core.models")
     structured_evidence_raw = payload.get("structured_evidence")
     formula_gate_results_raw = payload.get("formula_gate_results") or []
     evidence_gate_decisions_raw = payload.get("evidence_gate_decisions") or []
@@ -102,14 +141,14 @@ def _consume_core_delivery_bridge_if_available(
 
     structured_evidence = deps["StructuredEvidence"].model_validate(structured_evidence_raw)
     formula_gate_results = [
-        deps["FormulaInputGateResult"].model_validate(item)
+        diagnostic_models.FormulaInputGateResult.model_validate(item)
         for item in formula_gate_results_raw
     ]
     evidence_gate_decisions = [
-        deps["EvidenceGateDecision"].model_validate(item)
+        diagnostic_models.EvidenceGateDecision.model_validate(item)
         for item in evidence_gate_decisions_raw
     ]
-    core_result = deps["DiagnosticCoreResult"].model_validate(core_result_raw)
+    core_result = diagnostic_models.DiagnosticCoreResult.model_validate(core_result_raw)
 
     case_id = str(payload.get("case_id") or state.conversation_id)
     intake_id = str(payload.get("intake_id") or state.intake_id or "")
@@ -325,6 +364,7 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
                 new_state.add_decision("Blocked: no evidence path for dispatch")
                 return new_state
 
+            new_state = _produce_core_delivery_bridge_payload_if_available(new_state)
             bridge_state = _consume_core_delivery_bridge_if_available(
                 new_state,
                 base_dir=base_dir,
