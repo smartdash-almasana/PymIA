@@ -953,6 +953,192 @@ def test_execute_static_capability_produces_blocking_bridge_payload_when_evidenc
     assert new_state.output_refs
 
 
+def test_graph_populates_progressive_context_with_structured_evidence_and_formula_ids(tmp_path: Path) -> None:
+    doc_path = tmp_path / "structured_context.xlsx"
+    doc_path.write_bytes(b"fake excel context")
+
+    state = PymIAState(
+        tenant_id="tenant_m40",
+        chat_id="chat_m40",
+        conversation_id="conv_m40",
+        phase="READY_TO_EXECUTE",
+        intake_id="intake_m40",
+        evidence_ids=["ev_m40"],
+        latest_evidence_path=doc_path,
+    )
+    event = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_m40",
+        chat_id="chat_m40",
+        conversation_id="conv_m40",
+        text="diagnosticalo",
+    )
+
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_m40",
+                "intake_id": "intake_m40",
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    deps = {
+        "load_intake_record_by_id": lambda *args, **kwargs: {
+            "intake_id": "intake_m40",
+            "evidence_requests": [
+                {"formula_ids": ["PYME_033_concentracion_sku"]},
+            ],
+        },
+        "load_evidence_records_by_intake_id": lambda *args, **kwargs: [{"evidence_id": "ev_m40"}],
+        "evaluate_evidence_sufficiency": lambda *args, **kwargs: type("S", (), {"status": "READY"})(),
+        "evaluate_analysis_readiness": lambda *args, **kwargs: type("R", (), {"status": "READY"})(),
+        "prepare_runtime_execution": lambda *args, **kwargs: _Candidate(),
+        "dispatch_candidate": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy dispatch should not run when M40+M39 path is available")
+        ),
+        "validate_execution_result": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy execution gate should not run when M40+M39 path is available")
+        ),
+        "build_delivery_package": lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy delivery package should not run when M40+M39 path is available")
+        ),
+    }
+
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        with patch("pymia.orchestration.graph._structured_evidence_builder_deps") as builder_deps:
+            builder_deps.return_value = {
+                "build_structured_evidence_context": lambda **kwargs: {
+                    "structured_evidence": {
+                        "tenant_id": "tenant_m40",
+                        "document_type": "xlsx_operational_evidence",
+                        "source": "xlsx_upload",
+                        "file_name": "structured_context.xlsx",
+                        "computed_variables": {
+                            "main_sku_sales": 80000.0,
+                            "total_sales": 120000.0,
+                        },
+                        "metadata": {},
+                    },
+                    "formula_ids": ["PYME_033_concentracion_sku"],
+                }
+            }
+            new_state = execute_static_capability(state, event, base_dir=tmp_path)
+
+    assert isinstance(new_state.progressive_context.get("structured_evidence"), dict)
+    assert new_state.progressive_context.get("formula_ids") == ["PYME_033_concentracion_sku"]
+    assert new_state.phase == "DELIVERED"
+    assert new_state.gate_verdict == "PASS"
+    assert new_state.delivery_status == "READY_TO_DELIVER"
+    assert new_state.output_refs
+    assert new_state.findings_count == 1
+
+
+def test_graph_does_not_collapse_when_structured_evidence_population_fails(tmp_path: Path) -> None:
+    doc_path = tmp_path / "structured_context_fail.xlsx"
+    doc_path.write_bytes(b"fake excel context fail")
+    legacy_report = tmp_path / "diagnostic_report.md"
+    legacy_report.write_text("legacy ok", encoding="utf-8")
+
+    state = PymIAState(
+        tenant_id="tenant_m40_fail",
+        chat_id="chat_m40_fail",
+        conversation_id="conv_m40_fail",
+        phase="READY_TO_EXECUTE",
+        intake_id="intake_m40_fail",
+        evidence_ids=["ev_m40_fail"],
+        latest_evidence_path=doc_path,
+    )
+    event = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_m40_fail",
+        chat_id="chat_m40_fail",
+        conversation_id="conv_m40_fail",
+        text="diagnosticalo",
+    )
+
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_m40_fail",
+                "intake_id": "intake_m40_fail",
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    class _DispatchResult:
+        status = "EXECUTED"
+        findings_count = 2
+        output_refs = [str(legacy_report)]
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_m40_fail",
+                "intake_id": "intake_m40_fail",
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "EXECUTED",
+                "output_refs": self.output_refs,
+                "findings_count": self.findings_count,
+                "raw_result": {"ok": True},
+                "warnings": [],
+            }
+
+    class _Gate:
+        verdict = "PASS"
+        reasons = ["ok"]
+        warnings = []
+
+        def to_dict(self):
+            return {"verdict": self.verdict, "reasons": self.reasons, "warnings": self.warnings}
+
+    class _Delivery:
+        status = "READY_TO_DELIVER"
+        summary = "Execution validated and ready to deliver."
+        output_refs = [str(legacy_report)]
+
+    deps = {
+        "load_intake_record_by_id": lambda *args, **kwargs: {
+            "intake_id": "intake_m40_fail",
+            "evidence_requests": [{"formula_ids": ["PYME_033_concentracion_sku"]}],
+        },
+        "load_evidence_records_by_intake_id": lambda *args, **kwargs: [{"evidence_id": "ev_m40_fail"}],
+        "evaluate_evidence_sufficiency": lambda *args, **kwargs: type("S", (), {"status": "READY"})(),
+        "evaluate_analysis_readiness": lambda *args, **kwargs: type("R", (), {"status": "READY"})(),
+        "prepare_runtime_execution": lambda *args, **kwargs: _Candidate(),
+        "dispatch_candidate": lambda *args, **kwargs: _DispatchResult(),
+        "validate_execution_result": lambda *args, **kwargs: _Gate(),
+        "build_delivery_package": lambda *args, **kwargs: _Delivery(),
+    }
+
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        with patch("pymia.orchestration.graph._structured_evidence_builder_deps") as builder_deps:
+            builder_deps.return_value = {
+                "build_structured_evidence_context": lambda **kwargs: (_ for _ in ()).throw(
+                    RuntimeError("parse failed")
+                )
+            }
+            new_state = execute_static_capability(state, event, base_dir=tmp_path)
+
+    assert "structured_evidence" not in new_state.progressive_context
+    assert "formula_ids" not in new_state.progressive_context
+    assert new_state.phase == "DELIVERED"
+    assert new_state.gate_verdict == "PASS"
+    assert new_state.delivery_status == "READY_TO_DELIVER"
+    assert new_state.output_refs == [str(legacy_report)]
+    assert any("Structured evidence context population failed" in d for d in new_state.decision_trail)
+
+
 def test_state_serializable_runtime_fields() -> None:
     state = PymIAState(
         tenant_id="tenant_s",

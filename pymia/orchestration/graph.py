@@ -69,6 +69,56 @@ def _core_delivery_bridge_deps() -> dict[str, Any]:
     }
 
 
+def _structured_evidence_builder_deps() -> dict[str, Any]:
+    builder = import_module("pymia.smartpyme.structured_evidence_builder")
+    return {
+        "build_structured_evidence_context": builder.build_structured_evidence_context,
+    }
+
+
+def _populate_progressive_context_with_structured_evidence_if_available(
+    state: PymIAState,
+    *,
+    intake_record: dict[str, Any],
+) -> PymIAState:
+    """Populate structured_evidence + formula_ids for M39 when possible.
+
+    Fail-closed: if ingestion fails, record the decision and preserve the legacy flow.
+    """
+    if "structured_evidence" in state.progressive_context and "formula_ids" in state.progressive_context:
+        return state
+    if not state.latest_evidence_path or not state.latest_evidence_path.exists():
+        return state
+
+    new_state = deepcopy(state)
+    try:
+        deps = _structured_evidence_builder_deps()
+        payload = deps["build_structured_evidence_context"](
+            excel_path=new_state.latest_evidence_path,
+            tenant_id=new_state.tenant_id,
+            intake_record=intake_record,
+        )
+    except Exception as exc:
+        new_state.add_decision(f"Structured evidence context population failed: {exc}")
+        return new_state
+
+    structured_evidence = payload.get("structured_evidence")
+    formula_ids = payload.get("formula_ids")
+    if not isinstance(structured_evidence, dict):
+        new_state.add_decision("Structured evidence context skipped: invalid structured_evidence payload")
+        return new_state
+    if not isinstance(formula_ids, list):
+        new_state.add_decision("Structured evidence context skipped: invalid formula_ids payload")
+        return new_state
+
+    new_state.progressive_context["structured_evidence"] = structured_evidence
+    new_state.progressive_context["formula_ids"] = [str(item) for item in formula_ids if str(item).strip()]
+    new_state.add_decision(
+        f"Structured evidence context populated: formula_ids={len(new_state.progressive_context['formula_ids'])}"
+    )
+    return new_state
+
+
 def _produce_core_delivery_bridge_payload_if_available(
     state: PymIAState,
 ) -> PymIAState:
@@ -332,6 +382,11 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
             
             evidence_dicts = deps["load_evidence_records_by_intake_id"](
                 new_state.tenant_id, new_state.intake_id, base_dir=base_dir
+            )
+
+            new_state = _populate_progressive_context_with_structured_evidence_if_available(
+                new_state,
+                intake_record=intake_dict,
             )
             
             # 2. Evaluar sufficiency
