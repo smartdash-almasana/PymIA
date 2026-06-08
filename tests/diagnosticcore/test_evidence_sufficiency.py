@@ -4,6 +4,8 @@ import pytest
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
 from pymia.diagnostic_core.evidence_sufficiency import (
+    build_evidence_gate_decisions_from_formula_input_results,
+    build_formula_input_gate_results_from_structured_evidence,
     build_evidence_sufficiency_report_from_structured_evidence,
 )
 
@@ -156,3 +158,66 @@ def test_does_not_invoke_diagnostic_core_v1(monkeypatch: pytest.MonkeyPatch) -> 
     )
 
     assert report[0].status == "READY"
+
+
+def test_formula_input_gate_returns_contractual_statuses() -> None:
+    evidence = StructuredEvidence(
+        tenant_id="tenant-1",
+        document_type="xlsx_operational_evidence",
+        computed_variables={
+            "sale_price": 1000,
+            "costs": 700,
+            "sold_amount": 1500,
+            "collected_amount": 800,
+        },
+    )
+
+    gate_results = build_formula_input_gate_results_from_structured_evidence(
+        evidence,
+        case_id="case-gate",
+        tenant_id="tenant-1",
+        formula_ids=["REN_001_margen_neto_real", "LIQ_001_vendido_cobrado"],
+    )
+
+    assert [item.formula_id for item in gate_results] == [
+        "REN_001_margen_neto_real",
+        "LIQ_001_vendido_cobrado",
+    ]
+    assert gate_results[0].required_variables == ["sale_price", "costs", "taxes"]
+    assert gate_results[0].available_variables == ["sale_price", "costs"]
+    assert gate_results[0].missing_variables == ["taxes"]
+    assert gate_results[0].status == "MISSING_INPUTS"
+    assert gate_results[1].required_variables == ["sold_amount", "collected_amount"]
+    assert gate_results[1].available_variables == ["sold_amount", "collected_amount"]
+    assert gate_results[1].missing_variables == []
+    assert gate_results[1].status == "READY"
+
+
+def test_evidence_sufficiency_gate_projects_allow_and_block_decisions() -> None:
+    evidence = StructuredEvidence(
+        tenant_id="tenant-1",
+        document_type="xlsx_operational_evidence",
+        computed_variables={
+            "sale_price": 1000,
+            "costs": 700,
+            "taxes": 100,
+            "sold_amount": 1500,
+        },
+    )
+
+    gate_results = build_formula_input_gate_results_from_structured_evidence(
+        evidence,
+        case_id="case-decisions",
+        tenant_id="tenant-1",
+        formula_ids=["REN_001_margen_neto_real", "LIQ_001_vendido_cobrado"],
+    )
+    decisions = build_evidence_gate_decisions_from_formula_input_results(gate_results)
+
+    assert [item.formula_id for item in decisions] == [
+        "REN_001_margen_neto_real",
+        "LIQ_001_vendido_cobrado",
+    ]
+    assert decisions[0].decision == "ALLOW_EXECUTION"
+    assert decisions[0].missing_variables == []
+    assert decisions[1].decision == "BLOCK_MISSING_INPUTS"
+    assert decisions[1].missing_variables == ["collected_amount"]

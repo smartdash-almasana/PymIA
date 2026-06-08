@@ -21,6 +21,16 @@ class CoreDiagnosticStatus(StrEnum):
     BLOCKED = "BLOCKED"
 
 
+class FormulaInputGateStatus(StrEnum):
+    READY = "READY"
+    MISSING_INPUTS = "MISSING_INPUTS"
+
+
+class EvidenceGateDecisionStatus(StrEnum):
+    ALLOW_EXECUTION = "ALLOW_EXECUTION"
+    BLOCK_MISSING_INPUTS = "BLOCK_MISSING_INPUTS"
+
+
 class DiagnosticCoreInput(BaseModel):
     case_id: str
     tenant_id: str
@@ -30,6 +40,20 @@ class DiagnosticCoreInput(BaseModel):
     evidence_refs: dict[str, list[str]] = Field(default_factory=dict)
     evidence_status: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class FormulaInputGateResult(BaseModel):
+    formula_id: str
+    required_variables: list[str] = Field(default_factory=list)
+    available_variables: list[str] = Field(default_factory=list)
+    missing_variables: list[str] = Field(default_factory=list)
+    status: FormulaInputGateStatus
+
+
+class EvidenceGateDecision(BaseModel):
+    formula_id: str
+    decision: EvidenceGateDecisionStatus
+    missing_variables: list[str] = Field(default_factory=list)
 
 
 class CoreFormulaResult(BaseModel):
