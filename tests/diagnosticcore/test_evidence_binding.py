@@ -120,3 +120,115 @@ def test_binding_integrates_with_diagnostic_core_v1() -> None:
     assert result.formula_results[0].value == 20.0
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_binding_maps_pyme044_client_margin() -> None:
+    evidence = StructuredEvidence(
+        tenant_id="tenant-1",
+        document_type="xlsx_operational_evidence",
+        computed_variables={
+            "client_revenue": 1000,
+            "client_direct_costs": 600,
+            "client_service_costs": 150,
+        },
+    )
+
+    core_input = build_diagnostic_core_input_from_structured_evidence(
+        evidence,
+        case_id="case-p044",
+        tenant_id="tenant-1",
+        formula_ids=["PYME_044_margen_cliente"],
+        hypothesis_codes=["PYME_044"],
+    )
+
+    assert core_input.variables == {
+        "client_revenue": 1000,
+        "client_direct_costs": 600,
+        "client_service_costs": 150,
+    }
+
+
+def test_binding_maps_pyme033_sku_concentration() -> None:
+    evidence = StructuredEvidence(
+        tenant_id="tenant-1",
+        document_type="xlsx_operational_evidence",
+        computed_variables={
+            "main_sku_sales": 400,
+            "total_sales": 1000,
+        },
+    )
+
+    core_input = build_diagnostic_core_input_from_structured_evidence(
+        evidence,
+        case_id="case-p033",
+        tenant_id="tenant-1",
+        formula_ids=["PYME_033_concentracion_sku"],
+        hypothesis_codes=["PYME_033"],
+    )
+
+    assert core_input.variables == {
+        "main_sku_sales": 400,
+        "total_sales": 1000,
+    }
+
+
+def test_binding_maps_ren002_replacement_coefficient() -> None:
+    evidence = StructuredEvidence(
+        tenant_id="tenant-1",
+        document_type="xlsx_operational_evidence",
+        computed_variables={
+            "closing_index": 150,
+            "origin_index": 100,
+        },
+    )
+
+    core_input = build_diagnostic_core_input_from_structured_evidence(
+        evidence,
+        case_id="case-r002",
+        tenant_id="tenant-1",
+        formula_ids=["REN_002_coeficiente_reposicion"],
+        hypothesis_codes=["REN_002"],
+    )
+
+    assert core_input.variables == {
+        "closing_index": 150,
+        "origin_index": 100,
+    }
+
+
+def test_binding_aliases_for_new_formulas() -> None:
+    evidence = StructuredEvidence(
+        tenant_id="tenant-1",
+        document_type="xlsx_operational_evidence",
+        computed_variables={
+            "ingresos_cliente": 1000,
+            "costos_directos_cliente": 600,
+            "costos_servicio_cliente": 150,
+            "ventas_sku_principal": 400,
+            "ventas_total": 1000,
+            "indice_cierre": 150,
+            "indice_origen": 100,
+        },
+    )
+
+    core_input = build_diagnostic_core_input_from_structured_evidence(
+        evidence,
+        case_id="case-alias-new",
+        tenant_id="tenant-1",
+        formula_ids=[
+            "PYME_044_margen_cliente",
+            "PYME_033_concentracion_sku",
+            "REN_002_coeficiente_reposicion",
+        ],
+        hypothesis_codes=["PYME_044", "PYME_033", "REN_002"],
+    )
+
+    assert core_input.variables == {
+        "client_revenue": 1000,
+        "client_direct_costs": 600,
+        "client_service_costs": 150,
+        "main_sku_sales": 400,
+        "total_sales": 1000,
+        "closing_index": 150,
+        "origin_index": 100,
+    }

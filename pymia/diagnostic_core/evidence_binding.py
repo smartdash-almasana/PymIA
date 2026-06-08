@@ -18,6 +18,19 @@ _FORMULA_VARIABLE_ALIASES: dict[str, dict[str, list[str]]] = {
         "cost_of_goods_sold": ["cost_of_goods_sold", "costos_total"],
         "average_stock": ["average_stock", "stock_promedio"],
     },
+    "PYME_044_margen_cliente": {
+        "client_revenue": ["client_revenue", "ingresos_cliente"],
+        "client_direct_costs": ["client_direct_costs", "costos_directos_cliente"],
+        "client_service_costs": ["client_service_costs", "costos_servicio_cliente"],
+    },
+    "PYME_033_concentracion_sku": {
+        "main_sku_sales": ["main_sku_sales", "ventas_sku_principal"],
+        "total_sales": ["total_sales", "ventas_total"],
+    },
+    "REN_002_coeficiente_reposicion": {
+        "closing_index": ["closing_index", "indice_cierre"],
+        "origin_index": ["origin_index", "indice_origen"],
+    },
 }
 
 

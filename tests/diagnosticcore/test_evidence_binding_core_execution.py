@@ -160,3 +160,62 @@ def test_executes_supported_aliases_from_parser_like_variables() -> None:
         "sheet:costos_total",
         "sheet:stock_promedio",
     ]
+
+
+def test_binding_new_formulas_integrate_with_core() -> None:
+    evidence = StructuredEvidence(
+        tenant_id="tenant-1",
+        document_type="xlsx_operational_evidence",
+        computed_variables={
+            "client_revenue": 1000,
+            "client_direct_costs": 600,
+            "client_service_costs": 150,
+            "main_sku_sales": 400,
+            "total_sales": 1000,
+            "closing_index": 150,
+            "origin_index": 100,
+        },
+        metadata={
+            "variable_source_refs": {
+                "client_revenue": ["sheet:client_revenue"],
+                "client_direct_costs": ["sheet:client_direct_costs"],
+                "client_service_costs": ["sheet:client_service_costs"],
+                "main_sku_sales": ["sheet:main_sku_sales"],
+                "total_sales": ["sheet:total_sales"],
+                "closing_index": ["sheet:closing_index"],
+                "origin_index": ["sheet:origin_index"],
+            }
+        },
+    )
+
+    core_input = build_diagnostic_core_input_from_structured_evidence(
+        evidence,
+        case_id="case-new-formulas",
+        tenant_id="tenant-1",
+        formula_ids=[
+            "PYME_044_margen_cliente",
+            "PYME_033_concentracion_sku",
+            "REN_002_coeficiente_reposicion",
+        ],
+        hypothesis_codes=["PYME_044", "PYME_033", "REN_002"],
+    )
+    result = DiagnosticCoreV1().run(core_input)
+
+    assert result.status == "PARTIAL"
+    assert [formula.value for formula in result.formula_results] == [250.0, 40.0, 1.5]
+    assert [formula.status for formula in result.formula_results] == ["OK", "OK", "OK"]
+    assert all(item.status == "CANDIDATE" for item in result.diagnostic_results)
+    assert all(finding.status == "CANDIDATE" for finding in result.findings)
+    assert result.formula_results[0].source_refs == [
+        "sheet:client_revenue",
+        "sheet:client_direct_costs",
+        "sheet:client_service_costs",
+    ]
+    assert result.formula_results[1].source_refs == [
+        "sheet:main_sku_sales",
+        "sheet:total_sales",
+    ]
+    assert result.formula_results[2].source_refs == [
+        "sheet:closing_index",
+        "sheet:origin_index",
+    ]
