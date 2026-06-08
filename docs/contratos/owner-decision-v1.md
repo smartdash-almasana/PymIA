@@ -8,6 +8,7 @@ NORMALIZACION: sección 7 "CAMBIOS FUTUROS" — removida referencia a "flujo sob
 
 **Fecha de congelación:** 2026‑05‑05  
 **Límite de validez:** Hasta que se modifique el flujo de decisiones de dueño en SmartPyme.  
+**Alineación de identidad:** ADR-017  
 **Propósito:** Formalizar el contrato OwnerDecision/DecisionRecord v1 como documento de producto, estableciendo invariantes y estructura JSON para registros de decisión dentro de SmartPyme.
 
 ---
@@ -27,6 +28,7 @@ Este contrato define el formato mínimo y los invariantes del registro de decisi
 {
   "decision_id": "string",
   "cliente_id": "string",
+  "tenant_id": "string|null",
   "owner_id": "string",
   "actor_role": "owner|admin|auditor|operator|guest",
   "linked_case_id": "string|null",
@@ -62,9 +64,13 @@ Este contrato define el formato mínimo y los invariantes del registro de decisi
 - Formato libre, pero debe ser único dentro del `cliente_id`.
 
 ### 3.2. cliente_id (obligatorio)
-- Identificador del cliente al que pertenece la decisión.
-- **No confundir con `tenant_id`**, que está prohibido en este contexto.
-- Proporciona contexto de negocio y aislamiento multi‑cliente.
+- Identificador de negocio del cliente al que pertenece la decisión.
+- Proporciona contexto de negocio y trazabilidad para decisiones del dueño.
+
+### 3.2.1. tenant_id (opcional)
+- Identificador técnico de scope/aislamiento cuando la decisión deba circular por componentes tenant-scoped del sistema.
+- Si existe, no reemplaza a `cliente_id`.
+- `tenant_id` y `cliente_id` pueden coincidir en implementaciones simples, pero no se consideran sinónimos obligatorios.
 
 ### 3.3. owner_id / actor_id
 - Identificador del dueño o actor que emite la decisión.
@@ -149,8 +155,8 @@ Este contrato define el formato mínimo y los invariantes del registro de decisi
 5. **Aclaración no equivale a aprobación.**  
    Una decisión de tipo REQUEST_CLARIFICATION no autoriza ninguna acción; solo solicita información adicional.
 
-6. **`tenant_id` prohibido.**  
-   El campo `tenant_id` no debe aparecer en el DecisionRecord; el aislamiento multi‑tenant se gestiona mediante `cliente_id`.
+6. **`cliente_id` y `tenant_id` no son sinónimos.**  
+   `cliente_id` conserva la identidad de negocio obligatoria. `tenant_id`, si aparece, sólo expresa scope técnico de aislamiento.
 
 7. **`cliente_id` obligatorio.**  
    Todas las decisiones deben estar asociadas a un cliente identificable.
@@ -175,6 +181,7 @@ La presencia de un DecisionRecord con `decision_type: APPROVE` o `AUTHORIZE_ACTI
 {
   "decision_id": "DEC_20260505120000_ABC123",
   "cliente_id": "cliente_empresa_x",
+  "tenant_id": "tenant_empresa_x",
   "owner_id": "usuario_admin_001",
   "actor_role": "admin",
   "linked_case_id": "CASE_456",
@@ -208,4 +215,4 @@ La presencia de un DecisionRecord con `decision_type: APPROVE` o `AUTHORIZE_ACTI
 
 ---
 
-**Última revisión de coherencia:** 2026‑05‑05
+**Última revisión de coherencia:** 2026‑06‑08

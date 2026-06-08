@@ -3,13 +3,13 @@
 > Documento relacionado: `docs/pymia/PORTS_AND_GATES_CONTRACT_REGISTRY.md` define los puertos, gates, entradas y salidas que deben ordenar este inventario antes de nuevas implementaciones.
 
 Fecha de creación: 2026-06-07 08:42 America/Argentina/Buenos_Aires
-Última ampliación: 2026-06-07 08:42 America/Argentina/Buenos_Aires
+Última reconciliación: 2026-06-08 America/Argentina/Buenos_Aires
 
 ## Veredicto
 
-`CORE_PARCIAL_CON_INFRAESTRUCTURA_AVANZADA`
+`KERNEL_BROADER_PARTIAL_CON_DIAGNOSTIC_CORE_V1_Y_M35_CERRADOS`
 
-PymIA tiene infraestructura conversacional, evidencia, Telegram, catálogos y un núcleo mínimo real. El núcleo diagnóstico amplio todavía no está completo. SmartPyme conserva código heredado relevante que no debe perderse.
+PymIA tiene infraestructura conversacional, evidencia, Telegram, catálogos y un núcleo diagnóstico real ya materializado en `DiagnosticCoreV1` con binding de evidencia y reporte de suficiencia. El kernel amplio del proyecto sigue siendo parcial fuera de ese frente. SmartPyme conserva código heredado relevante que no debe perderse.
 
 ## Nivel de lectura usado en este inventario
 
@@ -24,12 +24,16 @@ Este inventario distingue existencia de comprensión. Los elementos `IDENTIFICAD
 
 ---
 
-## 1. Núcleo diagnóstico mínimo en PymIA
+## 1. Núcleo diagnóstico en PymIA
 
 | Componente | Ruta | Para qué sirve | Estado |
 |---|---|---|---|
-| Motor de fórmulas | `pymia/services/formula_engine_service.py` | Calcula fórmulas determinísticas o bloquea si faltan datos. | Ejecutable mínimo |
+| Motor de fórmulas | `pymia/services/formula_engine_service.py` | Calcula fórmulas determinísticas o bloquea si faltan datos. | Ejecutable |
 | Contrato de fórmulas | `pymia/contracts/formula_contract.py` | Define `FormulaInput`, `FormulaResult`, estados y fórmulas soportadas. | Ejecutable |
+| DiagnosticCoreV1 | `pymia/diagnostic_core/core.py` | Coordina inputs, ejecución de fórmulas, bloqueos y resultados estructurados. | Ejecutable |
+| Modelos del core | `pymia/diagnostic_core/models.py` | Define inputs y outputs serializables del núcleo diagnóstico. | Ejecutable |
+| Evidence binding | `pymia/diagnostic_core/evidence_binding.py` | Mapea `StructuredEvidence` a `DiagnosticCoreInput` sin inventar variables. | Ejecutable |
+| Evidence sufficiency | `pymia/diagnostic_core/evidence_sufficiency.py` | Reporta disponibilidad/faltantes por fórmula sin ejecutar el core. | Ejecutable |
 | Motor de patologías | `pymia/services/pathology_engine_service.py` | Evalúa una patología contra resultado de fórmula. | Ejecutable mínimo |
 | Tanque de patologías local | `pymia/services/pathology_knowledge_tank.py` | Contiene patologías ejecutables locales. Hoy sólo se verificó `margen_bruto_negativo`. | Muy parcial |
 | Reporte diagnóstico | `pymia/services/diagnostic_report_service.py` | Construye reporte diagnóstico mínimo y bloquea si falta evidencia, impacto o hallazgos. | Ejecutable parcial |
@@ -275,17 +279,20 @@ Este inventario distingue existencia de comprensión. Los elementos `IDENTIFICAD
 - Semántica de campos.
 - Catálogo documental de 50 patologías.
 - Catálogo documental de fórmulas.
-- Motor mínimo de fórmulas.
+- Motor de fórmulas ejecutable.
+- DiagnosticCoreV1 implementado.
+- Binding determinístico de evidencia implementado.
+- Reporte de suficiencia de evidencia implementado.
 - Motor mínimo de patologías.
 - Reporte diagnóstico mínimo.
 - Narrativa/reporte mínimo.
 - Muchos tests de flujo.
 - En SmartPyme hay material heredado relevante: más contratos, repositorios, catálogos, servicios clínico-operacionales, tests de fórmula/patología, laboratorio tabular y symptom catalog.
 
-## 14. Qué falta
+## 17. Qué falta
 
 - Convertir el catálogo de 50 patologías en código ejecutable.
-- Ampliar fórmulas reales.
+- Seguir ampliando cobertura ejecutable fuera del frente M35 ya cerrado.
 - Unir Excel heterogéneo → variables normalizadas → fórmula → patología.
 - Crear tests multi-caso por patología.
 - Medir impacto económico real.
@@ -293,25 +300,26 @@ Este inventario distingue existencia de comprensión. Los elementos `IDENTIFICAD
 - Validar robustez con varios Excel y varias PyMEs.
 - Decidir qué partes heredadas de SmartPyme migrar formalmente a PymIA y cuáles dejar como arqueología.
 
-## 15. Qué no volver a redescubrir
+## 18. Qué no volver a redescubrir
 
-- Ya existe un kernel mínimo: fórmula + patología + reporte.
+- Ya existe un núcleo diagnóstico implementado: fórmula + core + binding + sufficiency report.
 - Ya existe catálogo amplio documental de patologías.
 - Ya existe catálogo documental de fórmulas.
 - Ya existe infraestructura de evidencia y post-ficha.
 - Ya existe Telegram con ficha y upload.
 - SmartPyme conserva material heredado útil, especialmente `symptom_pathology_catalog.py`, servicios de diagnóstico/fórmula/patología, catálogos JSON y tests.
-- La brecha central no es recepción ni conversación: es núcleo diagnóstico amplio ejecutable.
+- La brecha central ya no es crear `DiagnosticCoreV1`: la brecha es ampliar y reconciliar el kernel amplio encima de una base ya existente.
 
-## 16. Próximo foco lógico
+## 19. Estado metodológico para el frente siguiente
 
-Construir `DiagnosticCoreV1` encima de lo existente, sin rehacer todo:
+No existe autorización canónica suficiente para abrir `M36` sólo a partir de este inventario.
+
+Este documento no reemplaza:
 
 ```text
-ficha + Excel
-→ variables normalizadas
-→ patologías candidatas
-→ fórmulas ejecutables
-→ hallazgos cuantificados
-→ reporte clínico operativo
+- CapabilitySpec
+- ModuleContract
+- TaskSpec
 ```
+
+Por lo tanto, el próximo frente técnico no debe abrirse por inercia de roadmap ni por extrapolación de este inventario.

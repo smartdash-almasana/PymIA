@@ -1,15 +1,16 @@
 # M34 — DiagnosticCoreV1 Closure
 
-Fecha: 2026-06-07
-Estado: CERRADO EN CÓDIGO / pendiente commit documental de cierre
-HEAD verificado por usuario: `b05c368`
-Remote: `main...origin/main`
+Fecha original de cierre: 2026-06-07
+Fecha de reconciliación: 2026-06-08
+Estado: CERRADO / RECONCILIADO
+HEAD local de reconciliación: `c6d1131`
+Alcance: cierre histórico de M34 reconciliado contra el estado real posterior de M35
 
 ---
 
 ## Resultado del ciclo
 
-M34 deja creado y validado el primer núcleo calculador determinístico de PymIA.
+M34 dejó creado y validado el primer núcleo calculador determinístico de PymIA.
 
 El ciclo no integra canales, runtime externo ni evidencia documental real. Su alcance fue estrictamente:
 
@@ -47,7 +48,7 @@ b05c368 fix(diagnostic-core): guard break even invalid margin inputs
 
 ---
 
-## Fórmulas cerradas
+## Fórmulas cerradas en M34
 
 | # | formula_id | Eje | Fórmula |
 |---|---|---|---|
@@ -82,9 +83,9 @@ Durante M34 se sostuvo:
 
 ---
 
-## Tests focales acumulados
+## Evidencia focal acumulada en M34
 
-Último estado informado por usuario para M34-S11:
+Último estado informado por usuario durante el ciclo M34:
 
 ```text
 tests/services/test_formula_engine_service.py: 41 passed
@@ -115,47 +116,38 @@ tests/diagnosticcore/test_diagnostic_core_v1.py
 
 ## No resuelto en M34
 
-M34 no resuelve todavía:
+M34 no resolvió por diseño:
 
 ```text
-- lectura real de Excel hacia variables del core;
-- mapeo semántico automático columna → variable;
-- evidence refs generados desde documentos reales;
-- confirmación diagnóstica final;
-- thresholds clínico-operativos;
-- reporte final al dueño;
-- integración de resultados con entrega de caso completo.
+- binding de evidencia estructurada hacia `DiagnosticCoreInput`;
+- cobertura extendida de fórmulas adicionales ya soportadas por el core;
+- reporte puro de suficiencia de evidencia por fórmula;
+- cualquier integración conversacional, runtime o Telegram.
 ```
 
 ---
 
-## Próximo ciclo recomendado
+## Relación con el estado posterior del repositorio
+
+Los puntos no resueltos en M34 fueron abordados después en M35.
+
+Al momento de esta reconciliación documental, el repositorio ya contiene:
 
 ```text
-M35 — Evidence-to-Core Binding
+- DiagnosticCoreV1 implementado;
+- evidence binding implementado;
+- source_refs scoped por fórmula;
+- extensión del binding a más fórmulas;
+- evidence sufficiency report implementado.
 ```
 
-Objetivo:
+Por lo tanto, M34 debe leerse como cierre histórico del núcleo base, no como fotografía actual del proyecto.
+
+## Estado reconciliado
 
 ```text
-Excel / StructuredEvidence / semantic fields
-→ variables normalizadas del DiagnosticCoreInput
-→ fórmulas ejecutables
-→ blocked/missing explícito cuando falte evidencia
-```
-
-Primer slice sugerido:
-
-```text
-M35-S1 — mapear StructuredEvidence/computed_variables a DiagnosticCoreInput para REN_001, LIQ_001 e INV_002.
-```
-
----
-
-## Estado de cierre
-
-```text
-M34 = CERRADO EN CÓDIGO
-M34 closure doc = pendiente de commit
-M35 = NO INICIADO
+M34 = CERRADO
+M34 conserva valor como cierre histórico del núcleo base
+La continuación metodológica efectiva ocurrió en M35
+Este documento ya no debe usarse para afirmar "M35 = no iniciado"
 ```

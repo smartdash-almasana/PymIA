@@ -9,6 +9,7 @@ NORMALIZACION: removida sección 10 "Conformidad con Fact Factory" — contiene 
 **Estado:** HITO_08_EVIDENCE_CHAIN_CONTRACT_V1  
 **Capa:** PRODUCT_CONTRACTS  
 **Fecha de establecimiento:** 2026-05-05  
+**Alineación de identidad:** ADR-017
 **Objeto:** Establecer los invariantes y estructura de una cadena de evidencia dentro del sistema SmartPyme, para garantizar trazabilidad completa, fuentes verificables y separación clara entre observación, inferencia y decisión.
 
 ---
@@ -20,7 +21,8 @@ Cada Evidence Chain V1 debe ser un objeto JSON con los siguientes campos obligat
 | Campo | Tipo | Descripción | Ejemplo |
 |-------|------|-------------|---------|
 | `evidence_chain_id` | string (UUID v4) | Identificador único de la cadena, generado por el sistema en el momento de creación. | `"ec_550e8400-e29b-41d4-a716-446655440000"` |
-| `cliente_id` | string (no vacío) | Identificador del cliente (organización, empresa, persona) al que pertenece la evidencia. **Obligatorio**; no puede ser nulo ni vacío. | `"cliente_acme_sa"` |
+| `cliente_id` | string (no vacío) | Identificador de negocio del cliente (organización, empresa, persona) al que pertenece la evidencia. **Obligatorio**; no puede ser nulo ni vacío. | `"cliente_acme_sa"` |
+| `tenant_id` | string (opcional) | Identificador técnico de scope/aislamiento cuando la cadena circule por componentes tenant-scoped del sistema. Si existe, **no reemplaza** a `cliente_id`. | `"tenant_acme_sa"` |
 | `source_payload_id` | string (UUID v4) | Referencia al payload crudo (Capa 0) que originó la cadena. Vincula cada elemento de evidencia a la fuente primaria. | `"pay_550e8400-e29b-41d4-a716-446655440000"` |
 | `primary_evidence` | array de objetos | Lista de evidencias primarias extraídas del payload. Cada elemento tiene `type`, `content`, `extracted_at`, `extracted_by`, `confidence`. | Ver sección 2. |
 | `extracted_facts` | array de objetos | Hechos estructurados derivados de la evidencia primaria. Cada hecho tiene `fact_id`, `description`, `source_evidence_index`, `validated`. | Ver sección 3. |
@@ -138,8 +140,10 @@ Confianza: producto de las confianzas de los hechos de entrada, ajustado por la 
 ### 7.1. *Ningún dato sin fuente*
 Cada `fact_id` debe tener al menos un `source_evidence_index`. No se permite crear hechos de la nada.
 
-### 7.2. *tenant_id prohibido*
-El campo `tenant_id` no debe existir en la cadena. La segregación de clientes se realiza mediante `cliente_id`. El sistema no maneja multi‑tenant a nivel de infraestructura.
+### 7.2. *cliente_id obligatorio; tenant_id técnico opcional*
+`cliente_id` identifica al cliente en sentido de negocio y sigue siendo obligatorio.
+
+`tenant_id`, cuando exista, identifica el scope técnico de aislamiento de componentes tenant-scoped. No reemplaza a `cliente_id` y no debe interpretarse como sinónimo perfecto.
 
 ### 7.3. *Evidencia no es decisión*
 La cadena de evidencia nunca debe contener un campo `decision` ni `owner_decision`. La decisión pertenece a la capa Owner (DecisionRecord) y se vincula mediante `owner_decision_link` (opcional).
@@ -158,6 +162,7 @@ Si la cadena produce una salida que implica una acción operativa (crear job, en
 {
   "evidence_chain_id": "ec_550e8400-e29b-41d4-a716-446655440000",
   "cliente_id": "cliente_acme_sa",
+  "tenant_id": "tenant_acme_sa",
   "source_payload_id": "pay_550e8400-e29b-41d4-a716-446655440000",
   "primary_evidence": [...],
   "extracted_facts": [...],

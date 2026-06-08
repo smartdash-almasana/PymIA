@@ -11,6 +11,8 @@ ESTADO: copiado_sin_modificaciones
 
 Documento de contratos conceptuales base para SmartPyme.
 
+Alineación de identidad: `ADR-017`.
+
 Regla rectora del sistema:
 
 **IA interpreta. Deterministico decide. Evidencia gobierna. Dueno confirma.**
@@ -43,6 +45,13 @@ Bloqueo transversal fail-closed:
 
 - Sin evidencia trazable -> no se avanza a hallazgo.
 - Sin contrato completo -> estado `BLOCKED`.
+
+### Regla de identidad
+
+- `tenant_id` = identidad tecnica de scope y aislamiento.
+- `cliente_id` = identidad de negocio del cliente.
+- No son sinonimos obligatorios.
+- Un contrato puede requerir uno o ambos, segun la frontera que modele.
 
 ---
 
