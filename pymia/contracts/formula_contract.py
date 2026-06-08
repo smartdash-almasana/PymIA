@@ -104,6 +104,11 @@ SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = {
         required_inputs=["interest_expense", "ebitda"],
         description="interest_expense / ebitda",
     ),
+    "PYME_044_margen_cliente": FormulaDefinition(
+        formula_id="PYME_044_margen_cliente",
+        required_inputs=["client_revenue", "client_direct_costs", "client_service_costs"],
+        description="client_revenue - client_direct_costs - client_service_costs",
+    ),
 }
 
 

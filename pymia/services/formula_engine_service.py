@@ -156,6 +156,17 @@ class FormulaEngineService:
                 source_refs,
             )
 
+        if formula_id == "PYME_044_margen_cliente":
+            client_revenue = values["client_revenue"]
+            client_direct_costs = values["client_direct_costs"]
+            client_service_costs = values["client_service_costs"]
+            return self._ok(
+                formula_id,
+                client_revenue - client_direct_costs - client_service_costs,
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,

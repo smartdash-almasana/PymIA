@@ -645,3 +645,45 @@ def test_engine_allows_pyme027_zero_interest_expense():
 
     assert result.status == FormulaStatus.OK
     assert result.value == 0.0
+
+
+def test_engine_calculates_pyme044_margen_cliente():
+    result = FormulaEngineService().calculate(
+        "PYME_044_margen_cliente",
+        [
+            FormulaInput(name="client_revenue", value=5000, source_refs=["rev:1"]),
+            FormulaInput(name="client_direct_costs", value=3000, source_refs=["direct:1"]),
+            FormulaInput(name="client_service_costs", value=500, source_refs=["service:1"]),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == 1500.0
+    assert result.source_refs == ["rev:1", "direct:1", "service:1"]
+
+
+def test_engine_blocks_pyme044_when_client_service_costs_is_missing():
+    result = FormulaEngineService().calculate(
+        "PYME_044_margen_cliente",
+        [
+            FormulaInput(name="client_revenue", value=5000),
+            FormulaInput(name="client_direct_costs", value=3000),
+        ],
+    )
+
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.blocking_reason == "MISSING_INPUTS: client_service_costs"
+
+
+def test_engine_allows_pyme044_negative_result():
+    result = FormulaEngineService().calculate(
+        "PYME_044_margen_cliente",
+        [
+            FormulaInput(name="client_revenue", value=2000),
+            FormulaInput(name="client_direct_costs", value=1800),
+            FormulaInput(name="client_service_costs", value=500),
+        ],
+    )
+
+    assert result.status == FormulaStatus.OK
+    assert result.value == -300.0

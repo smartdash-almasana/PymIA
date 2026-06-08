@@ -431,3 +431,35 @@ def test_calculates_pyme027_formula_without_confirmed_finding():
     }
     assert result.diagnostic_results[0].status == "CANDIDATE"
     assert result.findings[0].status == "CANDIDATE"
+
+
+def test_calculates_pyme044_formula_without_confirmed_finding():
+    result = DiagnosticCoreV1().run(
+        DiagnosticCoreInput(
+            case_id="case-15",
+            tenant_id="tenant-1",
+            hypothesis_codes=["PYME_044"],
+            formula_ids=["PYME_044_margen_cliente"],
+            variables={
+                "client_revenue": 5000,
+                "client_direct_costs": 3000,
+                "client_service_costs": 500,
+            },
+            evidence_refs={
+                "client_revenue": ["sheet:revenue"],
+                "client_direct_costs": ["sheet:direct"],
+                "client_service_costs": ["sheet:service"],
+            },
+        )
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.formula_results[0].status == "OK"
+    assert result.formula_results[0].value == 1500.0
+    assert set(result.formula_results[0].source_refs) == {
+        "sheet:revenue",
+        "sheet:direct",
+        "sheet:service",
+    }
+    assert result.diagnostic_results[0].status == "CANDIDATE"
+    assert result.findings[0].status == "CANDIDATE"
