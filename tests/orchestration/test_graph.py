@@ -1236,6 +1236,32 @@ def test_run_pymia_graph_real_fixture_replays_core_delivery_bridge_end_to_end(tm
     assert isinstance(final_state.delivery_summary, str) and final_state.delivery_summary
     assert isinstance(final_state.output_refs, list)
     assert all(Path(ref).exists() for ref in final_state.output_refs)
+    owner_questions_ref = next(
+        ref for ref in final_state.output_refs if ref.endswith("owner_questions_bundle.json")
+    )
+    render_contract_ref = next(
+        ref for ref in final_state.output_refs if ref.endswith("render_contract.json")
+    )
+    owner_questions_payload = json.loads(Path(owner_questions_ref).read_text(encoding="utf-8"))
+    render_contract_payload = json.loads(Path(render_contract_ref).read_text(encoding="utf-8"))
+    assert isinstance(owner_questions_payload.get("questions"), list)
+    assert owner_questions_payload["questions"]
+    assert all(
+        isinstance(item.get("question_text"), str) and item["question_text"].strip()
+        for item in owner_questions_payload["questions"]
+    )
+    assert any(
+        item.get("missing_key") in {"taxes", "dias_periodo"}
+        or item.get("metadata", {}).get("blocked_message")
+        for item in owner_questions_payload["questions"]
+    )
+    owner_question_texts = [
+        str(item.get("question_text") or "").strip()
+        for item in owner_questions_payload["questions"]
+        if str(item.get("question_text") or "").strip()
+    ]
+    assert render_contract_payload["next_questions"] == owner_question_texts
+    assert render_contract_payload["blocked_message"] == owner_question_texts[0]
     assert isinstance(final_state.findings_count, int)
     assert any("Structured evidence context populated" in d for d in final_state.decision_trail)
     assert any("Core delivery bridge payload produced" in d for d in final_state.decision_trail)
@@ -1245,6 +1271,7 @@ def test_run_pymia_graph_real_fixture_replays_core_delivery_bridge_end_to_end(tm
     if final_state.phase == "BLOCKED":
         assert final_state.pending_question
         assert final_state.pending_question in response_diag
+        assert final_state.pending_question == owner_question_texts[0]
 
 
 def test_state_serializable_runtime_fields() -> None:
