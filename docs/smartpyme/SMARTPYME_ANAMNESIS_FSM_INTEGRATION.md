@@ -21,6 +21,29 @@ Proveer una capa de integración que:
 
 ## Contratos
 
+## Semántica de taxonomía
+
+Desde el commit `938c1f7`, este wrapper distingue explícitamente entre:
+
+- `has_taxonomy`: significa taxonomía confirmada;
+- `has_confirmed_taxonomy`: alias explícito de taxonomía confirmada;
+- `has_preliminary_taxonomy`: indica que el primer mensaje natural tuvo señales fuertes;
+- `preliminary_taxonomy`: señal auxiliar no confirmada derivada del `raw_first_message`.
+
+Reglas:
+
+1. `preliminary_taxonomy` no habilita hipótesis investigables.
+2. `preliminary_taxonomy` no habilita `evidence_requests`.
+3. `preliminary_taxonomy` no habilita diagnóstico.
+4. `preliminary_taxonomy` no habilita ejecución.
+5. `preliminary_taxonomy` no habilita salto de ficha.
+6. La ficha inicial sigue siendo obligatoria:
+   - `phase == FICHA_PYME_INICIAL`
+   - `profile_step == ASK_CONTACT_NAME`
+   - `raw_first_message` preservado
+7. La taxonomía confirmada sólo nace después, usando `profile_data` confirmado.
+8. `preliminary_taxonomy` puede servir como señal auxiliar, nunca como verdad soberana.
+
 ### AnamnesisTurnInput
 
 ```python
@@ -127,7 +150,7 @@ output = run_anamnesis_turn(input_data)
 **Prohibido:** "Tu problema es margen bajo"  
 **Permitido:** "Para poder ayudarte necesito entender tu negocio..."
 
-### Caso 3: Flujo productivo → taxonomía progresiva
+### Caso 3: Primer contacto con señales fuertes → taxonomía preliminar sin confirmar
 
 ```python
 input_data = AnamnesisTurnInput(
@@ -137,10 +160,14 @@ input_data = AnamnesisTurnInput(
     previous_progressive_context=None,
 )
 output = run_anamnesis_turn(input_data)
-# output.updated_progressive_context["has_taxonomy"] == True
-# fsm_state["taxonomy"]["organism_type"] == "textil"
-# fsm_state["taxonomy"]["sales_channels"] == ["mayorista", "mercado_libre"]
-# fsm_state["taxonomy"]["areas_present"] == ["produccion", "ventas", "compras"]
+# output.updated_progressive_context["has_taxonomy"] == False
+# output.updated_progressive_context["has_confirmed_taxonomy"] == False
+# output.updated_progressive_context["has_preliminary_taxonomy"] == True
+# fsm_state["profile_step"] == "ASK_CONTACT_NAME"
+# fsm_state["taxonomy"] is None
+# fsm_state["preliminary_taxonomy"]["status"] == "PRELIMINARY"
+# fsm_state["preliminary_taxonomy"]["organism_type"] in ["textil", "produccion_fabrica"]
+# fsm_state["preliminary_taxonomy"]["sales_channels"] incluye "wholesale"
 ```
 
 ### Caso 4: Preservación de estado entre turnos
@@ -270,6 +297,9 @@ output = run_anamnesis_turn(input_data)
   "tenant_id": "T001",
   "phase": "MENU_INICIAL",
   "has_taxonomy": false,
+  "has_confirmed_taxonomy": false,
+  "has_preliminary_taxonomy": false,
+  "preliminary_taxonomy": null,
   "has_hypotheses": false,
   "has_evidence_requests": false,
   "readiness_status": null

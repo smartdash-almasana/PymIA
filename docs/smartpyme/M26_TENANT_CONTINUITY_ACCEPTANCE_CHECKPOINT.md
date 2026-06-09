@@ -106,7 +106,16 @@ Causa reportada:
 assert has_taxonomy is True
 ```
 
-Interpretación: el FSM offline requiere múltiples respuestas para completar perfil antes de tener taxonomía; un solo mensaje no la produce. No fue introducido por M26.
+Interpretación histórica al momento de M26: el smoke asumía que un solo mensaje natural producía taxonomía confirmada.
+
+Semántica corregida posteriormente:
+
+- `has_taxonomy` significa taxonomía confirmada;
+- un solo mensaje natural con señales fuertes puede producir sólo `has_preliminary_taxonomy == True`;
+- la ficha sigue obligatoria;
+- `has_confirmed_taxonomy` permanece `False` hasta completar `profile_data` confirmado.
+
+Por lo tanto, esa falla no implicaba regresión de continuidad tenant, sino una ambigüedad contractual sobre taxonomía preliminar versus confirmada.
 
 Suite SmartPyme:
 
