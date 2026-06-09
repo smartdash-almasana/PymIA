@@ -104,6 +104,7 @@ def test_bridge_blocks_when_missing_inputs_and_projects_state(tmp_path):
     assert updated.phase == "BLOCKED"
     assert updated.gate_verdict == "BLOCKED"
     assert updated.delivery_status == "BLOCKED"
+    assert updated.delivery_summary == bundle.owner_facing_report["summary"]
     assert updated.findings_count == 0
     assert updated.output_refs
 
@@ -198,8 +199,71 @@ def test_bridge_builds_sovereign_audit_render_delivery_and_state_when_ready(tmp_
     assert updated.phase == "DELIVERED"
     assert updated.gate_verdict == "PASS"
     assert updated.delivery_status == "READY_TO_DELIVER"
+    assert updated.delivery_summary == bundle.owner_facing_report["summary"]
     assert updated.findings_count == 1
     assert updated.output_refs == bundle.delivery_package.output_refs
+
+
+def test_project_bridge_result_to_state_falls_back_to_delivery_package_summary_when_owner_summary_is_empty(
+    tmp_path,
+):
+    from pymia.audit_result.core_delivery_bridge import (
+        CoreAuditDeliveryBundle,
+        build_core_audit_delivery_bundle,
+        project_bridge_result_to_state,
+    )
+
+    bundle = build_core_audit_delivery_bundle(
+        evidence=_sample_evidence(),
+        case_id="case-m44-fallback",
+        intake_id="intake-m44-fallback",
+        formula_gate_results=[
+            FormulaInputGateResult(
+                formula_id="PYME_026_rotacion_inventario",
+                required_variables=["ventas_total", "costos_total"],
+                available_variables=["costos_total", "ventas_total"],
+                missing_variables=[],
+                status=FormulaInputGateStatus.READY,
+            )
+        ],
+        evidence_gate_decisions=[
+            EvidenceGateDecision(
+                formula_id="PYME_026_rotacion_inventario",
+                decision=EvidenceGateDecisionStatus.ALLOW_EXECUTION,
+                missing_variables=[],
+            )
+        ],
+        core_result=DiagnosticCoreResult(
+            case_id="case-m44-fallback",
+            tenant_id="tenant-m37",
+            status=DiagnosticCoreStatus.READY,
+            formula_results=[],
+            diagnostic_results=[],
+            findings=[],
+            missing_evidence=[],
+            blocked_reasons=[],
+        ),
+        output_dir=tmp_path,
+    )
+
+    bundle_with_empty_owner_summary = CoreAuditDeliveryBundle(
+        operational_audit_result=bundle.operational_audit_result,
+        render_contract=bundle.render_contract,
+        owner_facing_report={**bundle.owner_facing_report, "summary": ""},
+        execution_result=bundle.execution_result,
+        gate_verdict=bundle.gate_verdict,
+        delivery_package=bundle.delivery_package,
+        output_refs=bundle.output_refs,
+    )
+
+    state = PymIAState(
+        tenant_id="tenant-m37",
+        chat_id="chat-fallback",
+        conversation_id="conv-fallback",
+    )
+    updated = project_bridge_result_to_state(state, bundle_with_empty_owner_summary)
+
+    assert updated.delivery_summary == bundle.delivery_package.summary
 
 
 def test_bridge_module_does_not_import_telegram_or_runtime_ast():

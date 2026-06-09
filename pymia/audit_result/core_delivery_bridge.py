@@ -440,10 +440,11 @@ def project_bridge_result_to_state(
     bundle: CoreAuditDeliveryBundle,
 ) -> PymIAState:
     new_state = deepcopy(state)
+    owner_summary = str(bundle.owner_facing_report.get("summary") or "").strip()
     new_state.execution_status = str(bundle.execution_result.get("status") or "")
     new_state.gate_verdict = bundle.gate_verdict.verdict
     new_state.delivery_status = bundle.delivery_package.status
-    new_state.delivery_summary = bundle.delivery_package.summary
+    new_state.delivery_summary = owner_summary or bundle.delivery_package.summary
     new_state.output_refs = list(bundle.delivery_package.output_refs)
     new_state.findings_count = int(bundle.execution_result.get("findings_count") or 0)
 

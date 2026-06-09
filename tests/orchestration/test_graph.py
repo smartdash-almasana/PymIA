@@ -1233,12 +1233,15 @@ def test_run_pymia_graph_real_fixture_replays_core_delivery_bridge_end_to_end(tm
     assert final_state.phase in {"DELIVERED", "BLOCKED"}
     assert final_state.gate_verdict in {"PASS", "BLOCKED"}
     assert final_state.delivery_status in {"READY_TO_DELIVER", "BLOCKED"}
+    assert isinstance(final_state.delivery_summary, str) and final_state.delivery_summary
     assert isinstance(final_state.output_refs, list)
     assert all(Path(ref).exists() for ref in final_state.output_refs)
     assert isinstance(final_state.findings_count, int)
     assert any("Structured evidence context populated" in d for d in final_state.decision_trail)
     assert any("Core delivery bridge payload produced" in d for d in final_state.decision_trail)
     assert any("Core delivery bridge consumed" in d for d in final_state.decision_trail)
+    if final_state.phase == "DELIVERED":
+        assert final_state.delivery_summary in response_diag
 
 
 def test_state_serializable_runtime_fields() -> None:
