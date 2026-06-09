@@ -33,6 +33,7 @@ from pymia.smartpyme.execution_result_gate import (
     validate_execution_result,
 )
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
+from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
 
 
 RUNTIME_CLASSIFICATION_DIAGNOSTIC_CORE = "diagnostic_core_v1"
@@ -44,6 +45,7 @@ class CoreAuditDeliveryBundle:
     operational_audit_result: dict[str, Any]
     render_contract: dict[str, Any]
     owner_facing_report: dict[str, Any]
+    owner_questions_bundle: dict[str, Any]
     execution_result: dict[str, Any]
     gate_verdict: ExecutionResultGateVerdict
     delivery_package: DeliveryPackage
@@ -376,6 +378,7 @@ def build_core_audit_delivery_bundle(
     render_path = target_dir / "render_contract.json"
     summary_path = target_dir / "delivery_summary.md"
     owner_report_path = target_dir / "owner_facing_report.json"
+    owner_questions_path = target_dir / "owner_questions_bundle.json"
 
     operational_audit_result = build_scn_operational_audit_result_from_core(
         evidence=evidence,
@@ -404,6 +407,7 @@ def build_core_audit_delivery_bundle(
     gate_verdict = validate_execution_result(execution_result)
     delivery_package = build_delivery_package(execution_result, gate_verdict)
     output_refs = _with_output_ref(output_refs, str(owner_report_path))
+    output_refs = _with_output_ref(output_refs, str(owner_questions_path))
     execution_result["output_refs"] = list(output_refs)
     delivery_package = DeliveryPackage(
         tenant_id=delivery_package.tenant_id,
@@ -422,12 +426,24 @@ def build_core_audit_delivery_bundle(
         render_contract=render_contract,
         delivery_package=delivery_package,
     ).to_dict()
+    owner_questions_bundle = build_owner_questions_bundle(
+        source_ref=str(audit_path),
+        missing_evidence=list(operational_audit_result.get("missing_evidence") or []),
+        next_questions=list(render_contract.get("next_questions") or []),
+        blocked_message=str(render_contract.get("blocked_message") or ""),
+        metadata={
+            "operational_audit_result_ref": str(audit_path),
+            "render_contract_ref": str(render_path),
+        },
+    ).model_dump(mode="json")
     _write_json(owner_report_path, owner_facing_report)
+    _write_json(owner_questions_path, owner_questions_bundle)
 
     return CoreAuditDeliveryBundle(
         operational_audit_result=operational_audit_result,
         render_contract=render_contract,
         owner_facing_report=owner_facing_report,
+        owner_questions_bundle=owner_questions_bundle,
         execution_result=execution_result,
         gate_verdict=gate_verdict,
         delivery_package=delivery_package,

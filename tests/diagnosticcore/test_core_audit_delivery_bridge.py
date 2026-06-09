@@ -82,17 +82,37 @@ def test_bridge_blocks_when_missing_inputs_and_projects_state(tmp_path):
     assert bundle.gate_verdict.verdict == "BLOCKED"
     assert bundle.delivery_package.status == "BLOCKED"
     assert bundle.owner_facing_report["status"] == "BLOCKED"
+    assert bundle.owner_questions_bundle["questions"]
+    assert any(
+        item["reason"] == "missing_evidence" and item["missing_key"] == "dias_periodo"
+        for item in bundle.owner_questions_bundle["questions"]
+    )
+    assert any(
+        item["reason"] == "next_question" and item["question_text"] == "dias_periodo"
+        for item in bundle.owner_questions_bundle["questions"]
+    )
+    assert any(
+        item["reason"] == "blocked_message"
+        and item["metadata"]["blocked_message"]
+        == "Falta evidencia para avanzar al resultado operativo entregable."
+        for item in bundle.owner_questions_bundle["questions"]
+    )
     assert bundle.owner_facing_report["missing_evidence"] == ["dias_periodo"]
     assert bundle.owner_facing_report["next_questions"] == ["dias_periodo"]
     assert bundle.owner_facing_report["blocked_message"] == (
         "Falta evidencia para avanzar al resultado operativo entregable."
     )
     assert str(tmp_path / "owner_facing_report.json") in bundle.delivery_package.output_refs
+    assert str(tmp_path / "owner_questions_bundle.json") in bundle.delivery_package.output_refs
     assert Path(bundle.output_refs[0]).exists()
     assert (tmp_path / "owner_facing_report.json").exists()
+    assert (tmp_path / "owner_questions_bundle.json").exists()
     assert json.loads((tmp_path / "owner_facing_report.json").read_text(encoding="utf-8")) == (
         bundle.owner_facing_report
     )
+    assert json.loads(
+        (tmp_path / "owner_questions_bundle.json").read_text(encoding="utf-8")
+    ) == bundle.owner_questions_bundle
 
     state = PymIAState(
         tenant_id="tenant-m37",
@@ -180,12 +200,14 @@ def test_bridge_builds_sovereign_audit_render_delivery_and_state_when_ready(tmp_
     assert bundle.gate_verdict.verdict == "PASS"
     assert bundle.delivery_package.status == "READY_TO_DELIVER"
     assert bundle.owner_facing_report["status"] == "DELIVERED_CANDIDATE"
+    assert bundle.owner_questions_bundle["questions"] == []
     assert "confirm" not in bundle.owner_facing_report["summary"].lower()
     assert bundle.owner_facing_report["limit_warnings"][-1] == (
         "Estado candidato: el resultado sigue siendo no confirmado."
     )
     assert str(tmp_path / "owner_facing_report.json") in bundle.delivery_package.output_refs
-    assert len(bundle.output_refs) >= 4
+    assert str(tmp_path / "owner_questions_bundle.json") in bundle.delivery_package.output_refs
+    assert len(bundle.output_refs) >= 5
     for ref in bundle.output_refs:
         assert Path(ref).exists()
 
@@ -250,6 +272,7 @@ def test_project_bridge_result_to_state_falls_back_to_delivery_package_summary_w
         operational_audit_result=bundle.operational_audit_result,
         render_contract=bundle.render_contract,
         owner_facing_report={**bundle.owner_facing_report, "summary": ""},
+        owner_questions_bundle=bundle.owner_questions_bundle,
         execution_result=bundle.execution_result,
         gate_verdict=bundle.gate_verdict,
         delivery_package=bundle.delivery_package,
@@ -314,6 +337,7 @@ def test_project_bridge_result_to_state_falls_back_to_delivery_package_summary_w
         operational_audit_result=bundle.operational_audit_result,
         render_contract=bundle.render_contract,
         owner_facing_report=owner_report_without_summary,
+        owner_questions_bundle=bundle.owner_questions_bundle,
         execution_result=bundle.execution_result,
         gate_verdict=bundle.gate_verdict,
         delivery_package=bundle.delivery_package,
