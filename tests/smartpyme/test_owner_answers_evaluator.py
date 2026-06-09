@@ -3,6 +3,102 @@ from __future__ import annotations
 from pathlib import Path
 
 from pymia.contracts.owner_answers import OwnerAnswer, OwnerAnswersBundle
+from pymia.contracts.owner_evaluation import OwnerAnswerEvaluationBundle
+
+
+def test_evaluate_owner_answers_replay_bundle_certifies_minimal_flow() -> None:
+    from pymia.smartpyme.owner_answers_evaluator import evaluate_owner_answers
+
+    empty_answer = OwnerAnswer.model_construct(
+        answer_id="a-replay-3",
+        question_id="q-replay-3",
+        question_text="¿Qué significa esta columna?",
+        answer_text=None,
+        structured_answer={},
+        answer_type="text",
+        capture_status="provided",
+        source_ref="owner_reply://replay/3",
+        metadata={},
+    )
+    replay_bundle = OwnerAnswersBundle.model_construct(
+        bundle_id="answers-replay",
+        captured_at="2026-06-09T00:00:00+00:00",
+        answers=[
+            OwnerAnswer(
+                answer_id="a-replay-1",
+                question_id="q-replay-1",
+                question_text="¿Cuánto pagaste de impuestos?",
+                answer_text="1250",
+                answer_type="number",
+                source_ref="owner_reply://replay/1",
+                metadata={"missing_key": "taxes"},
+            ),
+            OwnerAnswer(
+                answer_id="a-replay-2",
+                question_id="q-replay-2",
+                question_text="¿Cuántos días tiene el período?",
+                answer_text="30",
+                answer_type="number",
+                source_ref="owner_reply://replay/2",
+                metadata={"missing_key": "dias_periodo"},
+            ),
+            empty_answer,
+            OwnerAnswer(
+                answer_id="a-replay-4",
+                question_id="q-replay-4",
+                question_text="¿Cuál es el monto declarado?",
+                answer_text="treinta",
+                answer_type="number",
+                source_ref="owner_reply://replay/4",
+            ),
+            OwnerAnswer(
+                answer_id="a-replay-5",
+                question_id="q-replay-5",
+                question_text="¿Podés confirmar este dato?",
+                answer_text="Prefiero no responder.",
+                answer_type="text",
+                capture_status="declined",
+                source_ref="owner_reply://replay/5",
+            ),
+        ],
+        metadata={"scenario": "m54_replay"},
+    )
+
+    result = evaluate_owner_answers(replay_bundle)
+    payload = result.model_dump(mode="json")
+
+    assert isinstance(result, OwnerAnswerEvaluationBundle)
+    assert [item.source_answer_id for item in result.evaluations] == [
+        "a-replay-1",
+        "a-replay-2",
+        "a-replay-3",
+        "a-replay-4",
+        "a-replay-5",
+    ]
+    assert [item.linked_question_id for item in result.evaluations] == [
+        "q-replay-1",
+        "q-replay-2",
+        "q-replay-3",
+        "q-replay-4",
+        "q-replay-5",
+    ]
+    assert [item.verdict for item in result.evaluations] == [
+        "accepted_as_declared",
+        "accepted_as_declared",
+        "needs_clarification",
+        "rejected",
+        "rejected",
+    ]
+    assert result.evaluations[0].normalized_value == 1250
+    assert result.evaluations[1].normalized_value == 30
+    assert result.evaluations[0].mapped_key == "taxes"
+    assert result.evaluations[1].mapped_key == "dias_periodo"
+    assert "empty_answer" in result.evaluations[2].validation_errors
+    assert "number_not_parseable" in result.evaluations[3].validation_errors
+    assert "capture_status=declined" in result.evaluations[4].validation_errors
+    assert all(item.verdict != "verified" for item in result.evaluations)
+    assert "evidence_candidate" not in str(payload)
+    assert result.metadata["evaluator"] == "minimal_owner_answer_flow_v1"
 
 
 def test_evaluate_owner_answers_accepts_valid_number() -> None:
