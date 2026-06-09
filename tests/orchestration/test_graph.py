@@ -94,6 +94,39 @@ def _build_blocked_bridge_state(tmp_path: Path):
     return state, bundle
 
 
+def _bridge_ready_smartpyme_deps(state_after_doc):
+    real_deps = __import__("pymia.orchestration.graph", fromlist=["_smartpyme_deps"])._smartpyme_deps()
+
+    class _Candidate:
+        status = "READY_TO_EXECUTE"
+        blocking_reasons: list[str] = []
+
+        def to_dict(self):
+            return {
+                "tenant_id": "tenant_continuous",
+                "intake_id": state_after_doc.intake_id,
+                "runtime_classification": "excel_diagnostic",
+                "microservice_name": "excel_diagnostic_worker",
+                "status": "READY_TO_EXECUTE",
+                "can_dispatch": True,
+            }
+
+    deps = dict(real_deps)
+    deps["evaluate_evidence_sufficiency"] = lambda *args, **kwargs: type("S", (), {"status": "READY"})()
+    deps["evaluate_analysis_readiness"] = lambda *args, **kwargs: type("R", (), {"status": "READY"})()
+    deps["prepare_runtime_execution"] = lambda *args, **kwargs: _Candidate()
+    deps["dispatch_candidate"] = lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("legacy dispatch should not run when bridge path is available")
+    )
+    deps["validate_execution_result"] = lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("legacy execution gate should not run when bridge path is available")
+    )
+    deps["build_delivery_package"] = lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("legacy delivery package should not run when bridge path is available")
+    )
+    return deps
+
+
 def test_normalize_event_updates_last_message() -> None:
     """normalize_event actualiza last_user_message."""
     state = PymIAState(
@@ -274,6 +307,195 @@ def test_graph_text_message_phase_hint_mapping() -> None:
         )
         blocked_state = decide_route(state, event)
     assert blocked_state.phase == "BLOCKED"
+
+
+def test_graph_continuous_owner_journey_f1_f2_f3(tmp_path: Path) -> None:
+    assert TEXTILE_FIXTURE.exists()
+
+    from pymia.orchestration.conversation_adapter import ConversationAdapterResult
+
+    event_f1 = PymIAEvent(
+        event_type="text_message",
+        tenant_id="tenant_continuous",
+        chat_id="chat_continuous",
+        conversation_id="conv_continuous",
+        text="Tengo una textil y no me cierra la caja",
+    )
+    with patch("pymia.orchestration.graph.adapt_text_message") as adapter_mock:
+        adapter_mock.return_value = ConversationAdapterResult(
+            reply_text="Contame un poco más o subime el Excel para revisar la caja.",
+            updated_progressive_context={"anamnesis_started": True},
+            phase_hint="CONVERSATIONAL",
+            decision_trail_entry="adapter-f1-ok",
+        )
+        response_f1 = run_pymia_graph(event_f1, base_dir=tmp_path)
+
+    assert SENTINEL in response_f1
+    state_f1 = load_state("tenant_continuous", "chat_continuous", tmp_path)
+    assert state_f1 is not None
+    assert state_f1.pending_question == "Contame un poco más o subime el Excel para revisar la caja."
+    assert state_f1.progressive_context == {"anamnesis_started": True}
+
+    event_doc = PymIAEvent(
+        event_type="document_received",
+        tenant_id="tenant_continuous",
+        chat_id="chat_continuous",
+        conversation_id="conv_continuous",
+        document_path=TEXTILE_FIXTURE,
+        document_name=TEXTILE_FIXTURE.name,
+        text="Subo el Excel para que revises caja y cobranzas.",
+    )
+    response_doc = run_pymia_graph(event_doc, base_dir=tmp_path)
+    assert SENTINEL in response_doc
+
+    state_after_doc = load_state("tenant_continuous", "chat_continuous", tmp_path)
+    assert state_after_doc is not None
+    assert state_after_doc.intake_id is not None
+    assert state_after_doc.evidence_ids
+
+    event_diag = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_continuous",
+        chat_id="chat_continuous",
+        conversation_id="conv_continuous",
+        text="diagnosticalo",
+    )
+    deps = _bridge_ready_smartpyme_deps(state_after_doc)
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        with patch("pymia.orchestration.graph._structured_evidence_builder_deps") as builder_deps:
+            builder_deps.return_value = {
+                "build_structured_evidence_context": lambda **kwargs: {
+                    "structured_evidence": {
+                        "tenant_id": "tenant_continuous",
+                        "document_type": "xlsx_operational_evidence",
+                        "source": "xlsx_upload",
+                        "file_name": TEXTILE_FIXTURE.name,
+                        "computed_variables": {
+                            "sale_price": 1000.0,
+                            "costs": 700.0,
+                        },
+                        "metadata": {},
+                    },
+                    "formula_ids": ["REN_001_margen_neto_real"],
+                }
+            }
+            response_diag = run_pymia_graph(event_diag, base_dir=tmp_path)
+
+    assert SENTINEL in response_diag
+    state_f2 = load_state("tenant_continuous", "chat_continuous", tmp_path)
+    assert state_f2 is not None
+    assert state_f2.phase == "BLOCKED"
+    assert isinstance(state_f2.progressive_context.get("core_delivery_bridge_payload"), dict)
+    assert any(ref.endswith("owner_questions_bundle.json") for ref in state_f2.output_refs)
+    assert any(ref.endswith("owner_facing_report.json") for ref in state_f2.output_refs)
+    assert state_f2.pending_question
+    findings_before = state_f2.findings_count
+    owner_report_ref_before = next(
+        ref for ref in state_f2.output_refs if ref.endswith("owner_facing_report.json")
+    )
+    owner_report_before = json.loads(Path(owner_report_ref_before).read_text(encoding="utf-8"))
+
+    event_f3 = PymIAEvent(
+        event_type="text_message",
+        tenant_id="tenant_continuous",
+        chat_id="chat_continuous",
+        conversation_id="conv_continuous",
+        text="El plazo promedio de cobro es 30 días",
+    )
+    with patch(
+        "pymia.orchestration.graph.adapt_text_message",
+        side_effect=AssertionError("adapter should not run on owner-answer bridge reentry"),
+    ):
+        response_f3 = run_pymia_graph(event_f3, base_dir=tmp_path)
+
+    assert SENTINEL in response_f3
+    state_f3 = load_state("tenant_continuous", "chat_continuous", tmp_path)
+    assert state_f3 is not None
+    assert state_f3.findings_count == findings_before
+    assert state_f3.output_refs == state_f2.output_refs
+    assert any("Owner answer bridge reentry consumed" in d for d in state_f3.decision_trail)
+
+    owner_report_ref_after = next(
+        ref for ref in state_f3.output_refs if ref.endswith("owner_facing_report.json")
+    )
+    owner_report_after = json.loads(Path(owner_report_ref_after).read_text(encoding="utf-8"))
+    assert owner_report_after != owner_report_before
+    assert owner_report_after["summary"] == state_f3.delivery_summary
+    assert owner_report_after["blocked_message"] == state_f3.pending_question
+    assert "No puedo usar esa respuesta sin una aclaración o respaldo adicional." in response_f3
+
+
+def test_graph_continuous_owner_journey_fails_closed_if_bridge_artifacts_missing(
+    tmp_path: Path,
+) -> None:
+    assert TEXTILE_FIXTURE.exists()
+
+    event_doc = PymIAEvent(
+        event_type="document_received",
+        tenant_id="tenant_continuous_fail",
+        chat_id="chat_continuous_fail",
+        conversation_id="conv_continuous_fail",
+        document_path=TEXTILE_FIXTURE,
+        document_name=TEXTILE_FIXTURE.name,
+        text="Subo el Excel para análisis.",
+    )
+    run_pymia_graph(event_doc, base_dir=tmp_path)
+    state_after_doc = load_state("tenant_continuous_fail", "chat_continuous_fail", tmp_path)
+    assert state_after_doc is not None
+
+    deps = _bridge_ready_smartpyme_deps(state_after_doc)
+    event_diag = PymIAEvent(
+        event_type="diagnostic_request",
+        tenant_id="tenant_continuous_fail",
+        chat_id="chat_continuous_fail",
+        conversation_id="conv_continuous_fail",
+        text="diagnosticalo",
+    )
+    with patch("pymia.orchestration.graph._smartpyme_deps", return_value=deps):
+        with patch("pymia.orchestration.graph._structured_evidence_builder_deps") as builder_deps:
+            builder_deps.return_value = {
+                "build_structured_evidence_context": lambda **kwargs: {
+                    "structured_evidence": {
+                        "tenant_id": "tenant_continuous_fail",
+                        "document_type": "xlsx_operational_evidence",
+                        "source": "xlsx_upload",
+                        "file_name": TEXTILE_FIXTURE.name,
+                        "computed_variables": {
+                            "sale_price": 1000.0,
+                            "costs": 700.0,
+                        },
+                        "metadata": {},
+                    },
+                    "formula_ids": ["REN_001_margen_neto_real"],
+                }
+            }
+            run_pymia_graph(event_diag, base_dir=tmp_path)
+
+    blocked_state = load_state("tenant_continuous_fail", "chat_continuous_fail", tmp_path)
+    assert blocked_state is not None
+    owner_questions_ref = next(
+        ref for ref in blocked_state.output_refs if ref.endswith("owner_questions_bundle.json")
+    )
+    Path(owner_questions_ref).unlink()
+
+    event_f3 = PymIAEvent(
+        event_type="text_message",
+        tenant_id="tenant_continuous_fail",
+        chat_id="chat_continuous_fail",
+        conversation_id="conv_continuous_fail",
+        text="El plazo promedio de cobro es 30 días",
+    )
+    with patch(
+        "pymia.orchestration.graph.adapt_text_message",
+        side_effect=AssertionError("adapter should not run on owner-answer bridge reentry"),
+    ):
+        response_f3 = run_pymia_graph(event_f3, base_dir=tmp_path)
+
+    failed_closed_state = load_state("tenant_continuous_fail", "chat_continuous_fail", tmp_path)
+    assert failed_closed_state is not None
+    assert failed_closed_state.phase == "BLOCKED"
+    assert any("Owner answer bridge reentry failed" in err for err in failed_closed_state.errors)
+    assert "Bloqueado:" in response_f3
 
 
 def test_graph_blocked_owner_answer_reentry_projects_bridge_without_rerunning_core(
