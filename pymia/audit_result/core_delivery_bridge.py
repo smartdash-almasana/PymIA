@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
+from pymia.contracts.owner_questions import OwnerQuestionsBundle
 from pymia.contracts.scn_output_gateway import (
     build_render_contract_from_operational_audit_result,
 )
@@ -26,13 +27,13 @@ from pymia.diagnostic_core.models import (
     EvidenceGateDecisionStatus,
     FormulaInputGateResult,
 )
-from pymia.orchestration.state import PymIAState
 from pymia.smartpyme.delivery_package import DeliveryPackage, build_delivery_package
 from pymia.smartpyme.execution_result_gate import (
     ExecutionResultGateVerdict,
     validate_execution_result,
 )
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
+from pymia.smartpyme.owner_answers_composer import compose_owner_answers_to_actions
 from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
 
 
@@ -485,6 +486,61 @@ def build_core_audit_delivery_bundle(
     )
 
 
+def project_owner_answers_into_delivery_bundle(
+    *,
+    delivery_bundle: CoreAuditDeliveryBundle,
+    questions_bundle: OwnerQuestionsBundle,
+    answers_payload: list[dict[str, Any]],
+    source_ref: str,
+    tenant_id: str | None = None,
+) -> CoreAuditDeliveryBundle:
+    bundle_tenant_id = str(delivery_bundle.delivery_package.tenant_id or "").strip()
+    if tenant_id is not None and str(tenant_id).strip() != bundle_tenant_id:
+        raise ValueError("tenant_id mismatch for delivery bundle reentry")
+
+    composed = compose_owner_answers_to_actions(
+        questions_bundle=questions_bundle,
+        answers_payload=deepcopy(answers_payload),
+        source_ref=source_ref,
+        render_contract=deepcopy(delivery_bundle.render_contract),
+        tenant_id=tenant_id or bundle_tenant_id,
+    )
+    projected_render_contract = deepcopy(composed.projected_render_contract)
+    delivery_package = DeliveryPackage(
+        tenant_id=delivery_bundle.delivery_package.tenant_id,
+        intake_id=delivery_bundle.delivery_package.intake_id,
+        runtime_classification=delivery_bundle.delivery_package.runtime_classification,
+        output_refs=list(delivery_bundle.delivery_package.output_refs),
+        summary=delivery_bundle.delivery_package.summary,
+        warnings=list(delivery_bundle.delivery_package.warnings),
+        reasons=list(delivery_bundle.delivery_package.reasons),
+        gate_verdict=delivery_bundle.delivery_package.gate_verdict,
+        status=delivery_bundle.delivery_package.status,
+        created_at=delivery_bundle.delivery_package.created_at,
+    )
+    execution_result = deepcopy(delivery_bundle.execution_result)
+    raw_result = dict(execution_result.get("raw_result") or {})
+    raw_result["render_contract"] = deepcopy(projected_render_contract)
+    execution_result["raw_result"] = raw_result
+
+    owner_facing_report = build_owner_facing_report(
+        operational_audit_result=deepcopy(delivery_bundle.operational_audit_result),
+        render_contract=projected_render_contract,
+        delivery_package=delivery_package,
+    ).to_dict()
+
+    return CoreAuditDeliveryBundle(
+        operational_audit_result=deepcopy(delivery_bundle.operational_audit_result),
+        render_contract=projected_render_contract,
+        owner_facing_report=owner_facing_report,
+        owner_questions_bundle=questions_bundle.model_dump(mode="json"),
+        execution_result=execution_result,
+        gate_verdict=delivery_bundle.gate_verdict,
+        delivery_package=delivery_package,
+        output_refs=list(delivery_bundle.output_refs),
+    )
+
+
 def project_bridge_result_to_state(
     state: PymIAState,
     bundle: CoreAuditDeliveryBundle,
@@ -523,5 +579,6 @@ __all__ = [
     "MICROSERVICE_NAME_DIAGNOSTIC_CORE_BRIDGE",
     "build_scn_operational_audit_result_from_core",
     "build_core_audit_delivery_bundle",
+    "project_owner_answers_into_delivery_bundle",
     "project_bridge_result_to_state",
 ]
