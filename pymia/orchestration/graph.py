@@ -14,6 +14,7 @@ SIN integración Telegram todavía.
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from importlib import import_module
 from pathlib import Path
@@ -58,13 +59,24 @@ def _smartpyme_deps() -> dict[str, Any]:
 def _core_delivery_bridge_deps() -> dict[str, Any]:
     """Carga lazy del bridge M37 para evitar acoplamiento de import en módulo."""
     evidence_contract = import_module("pymia.contracts.evidence_v1")
+    owner_questions_contract = import_module("pymia.contracts.owner_questions")
+    delivery = import_module("pymia.smartpyme.delivery_package")
+    exec_gate = import_module("pymia.smartpyme.execution_result_gate")
     bridge = import_module("pymia.audit_result.core_delivery_bridge")
     return {
         "StructuredEvidence": evidence_contract.StructuredEvidence,
+        "OwnerQuestionsBundle": owner_questions_contract.OwnerQuestionsBundle,
+        "DeliveryPackage": delivery.DeliveryPackage,
+        "ExecutionResultGateVerdict": exec_gate.ExecutionResultGateVerdict,
+        "CoreAuditDeliveryBundle": bridge.CoreAuditDeliveryBundle,
+        "RUNTIME_CLASSIFICATION_DIAGNOSTIC_CORE": bridge.RUNTIME_CLASSIFICATION_DIAGNOSTIC_CORE,
         "build_core_delivery_bridge_payload_from_structured_evidence": (
             bridge.build_core_delivery_bridge_payload_from_structured_evidence
         ),
         "build_core_audit_delivery_bundle": bridge.build_core_audit_delivery_bundle,
+        "project_owner_answers_into_delivery_bundle": (
+            bridge.project_owner_answers_into_delivery_bundle
+        ),
         "project_bridge_result_to_state": bridge.project_bridge_result_to_state,
     }
 
@@ -229,6 +241,215 @@ def _consume_core_delivery_bridge_if_available(
     return new_state
 
 
+def _is_owner_answer_reentry_candidate(state: PymIAState, event: PymIAEvent) -> bool:
+    if event.event_type != "text_message":
+        return False
+    if state.phase != "BLOCKED":
+        return False
+    if not isinstance(state.progressive_context.get("core_delivery_bridge_payload"), dict):
+        return False
+    return any(str(ref).endswith("owner_questions_bundle.json") for ref in state.output_refs)
+
+
+def _find_output_ref(output_refs: list[str], suffix: str) -> str:
+    for ref in output_refs:
+        ref_text = str(ref or "").strip()
+        if ref_text.endswith(suffix):
+            return ref_text
+    raise ValueError(f"missing required output ref: {suffix}")
+
+
+def _load_json_artifact(path_str: str) -> dict[str, Any]:
+    path = Path(path_str)
+    if not path.exists():
+        raise ValueError(f"artifact not found: {path_str}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"artifact must be a mapping: {path_str}")
+    return payload
+
+
+def _write_json_artifact(path_str: str, payload: dict[str, Any]) -> None:
+    Path(path_str).write_text(
+        json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _write_delivery_summary_artifact(path_str: str, render_contract: dict[str, Any]) -> None:
+    references = render_contract.get("references") or []
+    next_questions = render_contract.get("next_questions") or []
+    blocked_message = str(render_contract.get("blocked_message") or "")
+    lines = [
+        "# PymIA Delivery Summary",
+        "",
+        f"Summary: {render_contract.get('summary', '')}",
+        f"Blocked message: {blocked_message or 'N/A'}",
+        "",
+        "Next questions:",
+    ]
+    if next_questions:
+        lines.extend(f"- {item}" for item in next_questions)
+    else:
+        lines.append("- None")
+    lines.extend(["", "References:"])
+    if references:
+        lines.extend(f"- {item}" for item in references)
+    else:
+        lines.append("- None")
+    Path(path_str).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _rebuild_core_delivery_bundle_from_state(
+    state: PymIAState,
+) -> tuple[Any, Any]:
+    deps = _core_delivery_bridge_deps()
+    payload = state.progressive_context.get("core_delivery_bridge_payload")
+    if not isinstance(payload, dict):
+        raise ValueError("missing core_delivery_bridge_payload")
+
+    owner_questions_ref = _find_output_ref(state.output_refs, "owner_questions_bundle.json")
+    owner_report_ref = _find_output_ref(state.output_refs, "owner_facing_report.json")
+    render_contract_ref = _find_output_ref(state.output_refs, "render_contract.json")
+    operational_ref = _find_output_ref(state.output_refs, "operational_audit_result.json")
+
+    owner_questions_payload = _load_json_artifact(owner_questions_ref)
+    owner_facing_report = _load_json_artifact(owner_report_ref)
+    render_contract = _load_json_artifact(render_contract_ref)
+    operational_audit_result = _load_json_artifact(operational_ref)
+    questions_bundle = deps["OwnerQuestionsBundle"].model_validate(owner_questions_payload)
+
+    diagnostic_core_result = payload.get("diagnostic_core_result")
+    if not isinstance(diagnostic_core_result, dict):
+        raise ValueError("missing diagnostic_core_result in core_delivery_bridge_payload")
+
+    intake_id = str(payload.get("intake_id") or state.intake_id or "").strip()
+    if not intake_id:
+        raise ValueError("missing intake_id for bridge reentry")
+
+    runtime_classification = deps["RUNTIME_CLASSIFICATION_DIAGNOSTIC_CORE"]
+    execution_result = {
+        "tenant_id": state.tenant_id,
+        "intake_id": intake_id,
+        "runtime_classification": runtime_classification,
+        "microservice_name": "diagnostic_core_bridge",
+        "status": str(state.execution_status or "BLOCKED"),
+        "output_refs": list(state.output_refs),
+        "findings_count": int(state.findings_count),
+        "raw_result": {
+            "diagnostic_core_result": diagnostic_core_result,
+            "operational_audit_result": deepcopy(operational_audit_result),
+            "render_contract": deepcopy(render_contract),
+        },
+        "warnings": [],
+        "executed_at": "",
+        "summary": str(render_contract.get("summary") or ""),
+    }
+    delivery_package = deps["DeliveryPackage"](
+        tenant_id=state.tenant_id,
+        intake_id=intake_id,
+        runtime_classification=runtime_classification,
+        output_refs=list(state.output_refs),
+        summary=str(state.delivery_summary or owner_facing_report.get("summary") or ""),
+        warnings=[],
+        reasons=[],
+        gate_verdict=str(state.gate_verdict or ""),
+        status=str(state.delivery_status or "BLOCKED"),
+    )
+    gate_verdict = deps["ExecutionResultGateVerdict"](
+        verdict=str(state.gate_verdict or "BLOCKED"),
+        reasons=[],
+        warnings=[],
+    )
+
+    bundle = deps["CoreAuditDeliveryBundle"](
+        operational_audit_result=operational_audit_result,
+        render_contract=render_contract,
+        owner_facing_report=owner_facing_report,
+        owner_questions_bundle=owner_questions_payload,
+        execution_result=execution_result,
+        gate_verdict=gate_verdict,
+        delivery_package=delivery_package,
+        output_refs=list(state.output_refs),
+    )
+    return bundle, questions_bundle
+
+
+def _resolve_reentry_question_id(
+    *,
+    questions_bundle: Any,
+    pending_question: str | None,
+) -> str:
+    question_text = str(pending_question or "").strip()
+    if not question_text:
+        raise ValueError("missing pending_question for owner answer reentry")
+
+    for question in questions_bundle.questions:
+        if str(question.question_text).strip() == question_text:
+            return str(question.question_id)
+    raise ValueError("could not resolve question_id from pending_question")
+
+
+def _consume_owner_answer_reentry_if_available(
+    state: PymIAState,
+) -> Optional[PymIAState]:
+    reentry_payload = state.progressive_context.get("owner_answer_reentry")
+    if not isinstance(reentry_payload, dict):
+        return None
+
+    new_state = deepcopy(state)
+    try:
+        base_bundle, questions_bundle = _rebuild_core_delivery_bundle_from_state(new_state)
+        question_id = _resolve_reentry_question_id(
+            questions_bundle=questions_bundle,
+            pending_question=new_state.pending_question,
+        )
+        answer_text = str(reentry_payload.get("answer_text") or "").strip()
+        source_ref = str(reentry_payload.get("source_ref") or "").strip()
+        if not answer_text:
+            raise ValueError("owner answer reentry requires non-empty answer_text")
+        if not source_ref:
+            raise ValueError("owner answer reentry requires source_ref")
+
+        deps = _core_delivery_bridge_deps()
+        projected_bundle = deps["project_owner_answers_into_delivery_bundle"](
+            delivery_bundle=base_bundle,
+            questions_bundle=questions_bundle,
+            answers_payload=[{"question_id": question_id, "answer_text": answer_text}],
+            source_ref=source_ref,
+            tenant_id=new_state.tenant_id,
+        )
+
+        render_contract_ref = _find_output_ref(projected_bundle.output_refs, "render_contract.json")
+        owner_report_ref = _find_output_ref(projected_bundle.output_refs, "owner_facing_report.json")
+        owner_questions_ref = _find_output_ref(projected_bundle.output_refs, "owner_questions_bundle.json")
+        summary_ref = _find_output_ref(projected_bundle.output_refs, "delivery_summary.md")
+        _write_json_artifact(render_contract_ref, projected_bundle.render_contract)
+        _write_json_artifact(owner_report_ref, projected_bundle.owner_facing_report)
+        _write_json_artifact(owner_questions_ref, projected_bundle.owner_questions_bundle)
+        _write_delivery_summary_artifact(summary_ref, projected_bundle.render_contract)
+
+        projected_state = deps["project_bridge_result_to_state"](new_state, projected_bundle)
+        blocked_message = str(projected_bundle.owner_facing_report.get("blocked_message") or "").strip()
+        next_questions = projected_bundle.owner_facing_report.get("next_questions") or []
+        if projected_state.phase == "BLOCKED":
+            if blocked_message:
+                projected_state.pending_question = blocked_message
+            elif next_questions:
+                projected_state.pending_question = str(next_questions[0])
+        else:
+            projected_state.pending_question = None
+        projected_state.progressive_context.pop("owner_answer_reentry", None)
+        projected_state.add_decision("Owner answer bridge reentry consumed")
+        return projected_state
+    except Exception as exc:
+        new_state.progressive_context.pop("owner_answer_reentry", None)
+        new_state.phase = "BLOCKED"
+        new_state.add_error(f"Owner answer bridge reentry failed: {exc}")
+        new_state.add_decision(f"Owner answer bridge reentry failed: {exc}")
+        return new_state
+
+
 def normalize_event(state: PymIAState, event: PymIAEvent) -> PymIAState:
     """Nodo 1: Normaliza el evento y actualiza estado inicial.
     
@@ -286,6 +507,15 @@ def decide_route(state: PymIAState, event: PymIAEvent) -> PymIAState:
             new_state.pending_question = "Necesito un Excel para analizar. ¿Podés subirlo?"
     
     elif event.event_type == "text_message":
+        if _is_owner_answer_reentry_candidate(state, event):
+            new_state.progressive_context = dict(new_state.progressive_context)
+            new_state.progressive_context["owner_answer_reentry"] = {
+                "answer_text": event.text or "",
+                "source_ref": f"graph://owner_answer_reentry/{event.conversation_id}",
+            }
+            new_state.add_decision("Route: owner_answer_reentry")
+            new_state.phase = "BLOCKED"
+            return new_state
         adapter_result = adapt_text_message(
             text=event.text or "",
             tenant_id=new_state.tenant_id,
@@ -320,6 +550,10 @@ def execute_static_capability(state: PymIAState, event: PymIAEvent, base_dir: Pa
     
     """
     new_state = deepcopy(state)
+
+    owner_answer_reentry_state = _consume_owner_answer_reentry_if_available(new_state)
+    if owner_answer_reentry_state is not None:
+        return owner_answer_reentry_state
     
     if new_state.phase == "EVIDENCE_RECEIVED":
         deps = _smartpyme_deps()

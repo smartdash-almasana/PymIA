@@ -28,6 +28,72 @@ from pymia.orchestration.state_storage import load_state
 TEXTILE_FIXTURE = Path(__file__).resolve().parents[2] / "prueba_excels" / "la_textil_cosida_srl_mar_abr_may_2026.xlsx"
 
 
+def _build_blocked_bridge_state(tmp_path: Path):
+    from pymia.audit_result.core_delivery_bridge import (
+        build_core_audit_delivery_bundle,
+        build_core_delivery_bridge_payload_from_structured_evidence,
+    )
+    from pymia.contracts.evidence_v1 import StructuredEvidence
+    from pymia.diagnostic_core.models import (
+        DiagnosticCoreResult,
+        EvidenceGateDecision,
+        FormulaInputGateResult,
+    )
+
+    doc_path = tmp_path / "owner_answer_reentry.xlsx"
+    doc_path.write_bytes(b"fake excel owner answer reentry")
+    evidence = StructuredEvidence(
+        tenant_id="tenant_owner_reentry",
+        document_type="xlsx_operational_evidence",
+        source="xlsx_upload",
+        file_name=doc_path.name,
+        computed_variables={
+            "sale_price": 1000.0,
+            "costs": 700.0,
+        },
+        metadata={},
+    )
+    payload = build_core_delivery_bridge_payload_from_structured_evidence(
+        evidence=evidence,
+        case_id="case_owner_reentry",
+        intake_id="intake_owner_reentry",
+        formula_ids=["REN_001_margen_neto_real"],
+        hypothesis_codes=["REN_001"],
+    )
+    bundle = build_core_audit_delivery_bundle(
+        evidence=evidence,
+        case_id="case_owner_reentry",
+        intake_id="intake_owner_reentry",
+        formula_gate_results=[
+            FormulaInputGateResult.model_validate(item)
+            for item in payload["formula_gate_results"]
+        ],
+        evidence_gate_decisions=[
+            EvidenceGateDecision.model_validate(item)
+            for item in payload["evidence_gate_decisions"]
+        ],
+        core_result=DiagnosticCoreResult.model_validate(payload["diagnostic_core_result"]),
+        output_dir=tmp_path / "blocked_bridge_bundle",
+    )
+    state = PymIAState(
+        tenant_id="tenant_owner_reentry",
+        chat_id="chat_owner_reentry",
+        conversation_id="conv_owner_reentry",
+        phase="BLOCKED",
+        pending_question=bundle.owner_facing_report["blocked_message"],
+        progressive_context={"core_delivery_bridge_payload": payload},
+        intake_id="intake_owner_reentry",
+        execution_status=bundle.execution_result["status"],
+        delivery_status=bundle.delivery_package.status,
+        gate_verdict=bundle.gate_verdict.verdict,
+        delivery_summary=bundle.owner_facing_report["summary"],
+        output_refs=list(bundle.output_refs),
+        findings_count=bundle.execution_result["findings_count"],
+        latest_evidence_path=doc_path,
+    )
+    return state, bundle
+
+
 def test_normalize_event_updates_last_message() -> None:
     """normalize_event actualiza last_user_message."""
     state = PymIAState(
@@ -208,6 +274,87 @@ def test_graph_text_message_phase_hint_mapping() -> None:
         )
         blocked_state = decide_route(state, event)
     assert blocked_state.phase == "BLOCKED"
+
+
+def test_graph_blocked_owner_answer_reentry_projects_bridge_without_rerunning_core(
+    tmp_path: Path,
+) -> None:
+    state, original_bundle = _build_blocked_bridge_state(tmp_path)
+    event = PymIAEvent(
+        event_type="text_message",
+        tenant_id=state.tenant_id,
+        chat_id=state.chat_id,
+        conversation_id=state.conversation_id,
+        text="30",
+    )
+
+    with patch(
+        "pymia.orchestration.graph.adapt_text_message",
+        side_effect=AssertionError("adapter should not run on blocked owner-answer reentry"),
+    ):
+        routed_state = decide_route(state, event)
+
+    assert routed_state.phase == "BLOCKED"
+    assert "owner_answer_reentry" in routed_state.progressive_context
+    assert any("Route: owner_answer_reentry" in d for d in routed_state.decision_trail)
+
+    with patch(
+        "pymia.orchestration.graph._smartpyme_deps",
+        side_effect=AssertionError("legacy smartpyme deps should not run on bridge reentry"),
+    ):
+        new_state = execute_static_capability(routed_state, event, base_dir=tmp_path)
+
+    assert new_state.phase == "BLOCKED"
+    assert new_state.gate_verdict == original_bundle.gate_verdict.verdict
+    assert new_state.delivery_status == original_bundle.delivery_package.status
+    assert new_state.findings_count == original_bundle.execution_result["findings_count"]
+    assert new_state.output_refs == original_bundle.output_refs
+    assert any("Owner answer bridge reentry consumed" in d for d in new_state.decision_trail)
+
+    owner_report_ref = next(
+        ref for ref in new_state.output_refs if ref.endswith("owner_facing_report.json")
+    )
+    render_contract_ref = next(
+        ref for ref in new_state.output_refs if ref.endswith("render_contract.json")
+    )
+    owner_report_payload = json.loads(Path(owner_report_ref).read_text(encoding="utf-8"))
+    render_contract_payload = json.loads(Path(render_contract_ref).read_text(encoding="utf-8"))
+
+    assert owner_report_payload["blocked_message"] == new_state.pending_question
+    assert render_contract_payload["next_steps"]
+    assert any("declaración del dueño" in step for step in render_contract_payload["next_steps"])
+    assert original_bundle.operational_audit_result["findings"] == []
+
+
+def test_graph_blocked_owner_answer_reentry_fail_closed_without_question_mapping(
+    tmp_path: Path,
+) -> None:
+    state, _ = _build_blocked_bridge_state(tmp_path)
+    state.pending_question = "Pregunta sin mapping contractual"
+    event = PymIAEvent(
+        event_type="text_message",
+        tenant_id=state.tenant_id,
+        chat_id=state.chat_id,
+        conversation_id=state.conversation_id,
+        text="30",
+    )
+
+    with patch(
+        "pymia.orchestration.graph.adapt_text_message",
+        side_effect=AssertionError("adapter should not run on blocked owner-answer reentry"),
+    ):
+        routed_state = decide_route(state, event)
+
+    with patch(
+        "pymia.orchestration.graph._smartpyme_deps",
+        side_effect=AssertionError("legacy smartpyme deps should not run on bridge reentry"),
+    ):
+        new_state = execute_static_capability(routed_state, event, base_dir=tmp_path)
+
+    assert new_state.phase == "BLOCKED"
+    assert any("Owner answer bridge reentry failed" in err for err in new_state.errors)
+    assert any("Owner answer bridge reentry failed" in d for d in new_state.decision_trail)
+    assert "owner_answer_reentry" not in new_state.progressive_context
 
 
 # ---------------------------------------------------------------------------
