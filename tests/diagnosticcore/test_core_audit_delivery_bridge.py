@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
@@ -80,7 +81,18 @@ def test_bridge_blocks_when_missing_inputs_and_projects_state(tmp_path):
     assert bundle.execution_result["status"] == "BLOCKED"
     assert bundle.gate_verdict.verdict == "BLOCKED"
     assert bundle.delivery_package.status == "BLOCKED"
+    assert bundle.owner_facing_report["status"] == "BLOCKED"
+    assert bundle.owner_facing_report["missing_evidence"] == ["dias_periodo"]
+    assert bundle.owner_facing_report["next_questions"] == ["dias_periodo"]
+    assert bundle.owner_facing_report["blocked_message"] == (
+        "Falta evidencia para avanzar al resultado operativo entregable."
+    )
+    assert str(tmp_path / "owner_facing_report.json") in bundle.delivery_package.output_refs
     assert Path(bundle.output_refs[0]).exists()
+    assert (tmp_path / "owner_facing_report.json").exists()
+    assert json.loads((tmp_path / "owner_facing_report.json").read_text(encoding="utf-8")) == (
+        bundle.owner_facing_report
+    )
 
     state = PymIAState(
         tenant_id="tenant-m37",
@@ -125,7 +137,7 @@ def test_bridge_builds_sovereign_audit_render_delivery_and_state_when_ready(tmp_
         core_result=DiagnosticCoreResult(
             case_id="case-m37-ready",
             tenant_id="tenant-m37",
-            status=DiagnosticCoreStatus.READY,
+            status=DiagnosticCoreStatus.PARTIAL,
             formula_results=[
                 CoreFormulaResult(
                     formula_id="PYME_026_rotacion_inventario",
@@ -159,14 +171,20 @@ def test_bridge_builds_sovereign_audit_render_delivery_and_state_when_ready(tmp_
         output_dir=tmp_path,
     )
 
-    assert bundle.operational_audit_result["status"] == "ok"
+    assert bundle.operational_audit_result["status"] == "candidate"
     assert bundle.operational_audit_result["findings"]
     assert bundle.operational_audit_result["allowed_rendering"]["references"]
     assert bundle.render_contract["result_ref"] == bundle.operational_audit_result["result_id"]
     assert bundle.execution_result["status"] == "EXECUTED"
     assert bundle.gate_verdict.verdict == "PASS"
     assert bundle.delivery_package.status == "READY_TO_DELIVER"
-    assert len(bundle.output_refs) >= 3
+    assert bundle.owner_facing_report["status"] == "DELIVERED_CANDIDATE"
+    assert "confirm" not in bundle.owner_facing_report["summary"].lower()
+    assert bundle.owner_facing_report["limit_warnings"][-1] == (
+        "Estado candidato: el resultado sigue siendo no confirmado."
+    )
+    assert str(tmp_path / "owner_facing_report.json") in bundle.delivery_package.output_refs
+    assert len(bundle.output_refs) >= 4
     for ref in bundle.output_refs:
         assert Path(ref).exists()
 

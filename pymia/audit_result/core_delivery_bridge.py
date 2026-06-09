@@ -32,6 +32,7 @@ from pymia.smartpyme.execution_result_gate import (
     ExecutionResultGateVerdict,
     validate_execution_result,
 )
+from pymia.smartpyme.owner_facing_report import build_owner_facing_report
 
 
 RUNTIME_CLASSIFICATION_DIAGNOSTIC_CORE = "diagnostic_core_v1"
@@ -42,6 +43,7 @@ MICROSERVICE_NAME_DIAGNOSTIC_CORE_BRIDGE = "diagnostic_core_bridge"
 class CoreAuditDeliveryBundle:
     operational_audit_result: dict[str, Any]
     render_contract: dict[str, Any]
+    owner_facing_report: dict[str, Any]
     execution_result: dict[str, Any]
     gate_verdict: ExecutionResultGateVerdict
     delivery_package: DeliveryPackage
@@ -318,6 +320,13 @@ def _write_delivery_summary(path: Path, render_contract: dict[str, Any]) -> None
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _with_output_ref(output_refs: list[str], new_ref: str) -> list[str]:
+    refs = list(output_refs)
+    if new_ref not in refs:
+        refs.append(new_ref)
+    return refs
+
+
 def _build_execution_result(
     *,
     intake_id: str,
@@ -366,6 +375,7 @@ def build_core_audit_delivery_bundle(
     audit_path = target_dir / "operational_audit_result.json"
     render_path = target_dir / "render_contract.json"
     summary_path = target_dir / "delivery_summary.md"
+    owner_report_path = target_dir / "owner_facing_report.json"
 
     operational_audit_result = build_scn_operational_audit_result_from_core(
         evidence=evidence,
@@ -393,10 +403,31 @@ def build_core_audit_delivery_bundle(
     )
     gate_verdict = validate_execution_result(execution_result)
     delivery_package = build_delivery_package(execution_result, gate_verdict)
+    output_refs = _with_output_ref(output_refs, str(owner_report_path))
+    execution_result["output_refs"] = list(output_refs)
+    delivery_package = DeliveryPackage(
+        tenant_id=delivery_package.tenant_id,
+        intake_id=delivery_package.intake_id,
+        runtime_classification=delivery_package.runtime_classification,
+        output_refs=list(output_refs),
+        summary=delivery_package.summary,
+        warnings=list(delivery_package.warnings),
+        reasons=list(delivery_package.reasons),
+        gate_verdict=delivery_package.gate_verdict,
+        status=delivery_package.status,
+        created_at=delivery_package.created_at,
+    )
+    owner_facing_report = build_owner_facing_report(
+        operational_audit_result=operational_audit_result,
+        render_contract=render_contract,
+        delivery_package=delivery_package,
+    ).to_dict()
+    _write_json(owner_report_path, owner_facing_report)
 
     return CoreAuditDeliveryBundle(
         operational_audit_result=operational_audit_result,
         render_contract=render_contract,
+        owner_facing_report=owner_facing_report,
         execution_result=execution_result,
         gate_verdict=gate_verdict,
         delivery_package=delivery_package,
