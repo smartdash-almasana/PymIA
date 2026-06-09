@@ -295,6 +295,7 @@ def _reconstruct_state_from_context(
             tenant_id=tenant_id,
             user_text=fsm_state_dict.get("user_text", ""),
             taxonomy=taxonomy,
+            preliminary_taxonomy=fsm_state_dict.get("preliminary_taxonomy"),
             contract=contract,
             hypotheses=hypotheses,
             evidence_requests=evidence_requests,
@@ -472,8 +473,11 @@ def _serialize_state_to_context(state: AnamnesisFSMState) -> dict[str, Any]:
         "tenant_id": state.tenant_id,
         "phase": state.phase.value if isinstance(state.phase, FSMPhase) else state.phase,
         "has_taxonomy": state.taxonomy is not None,
+        "has_preliminary_taxonomy": isinstance(state.preliminary_taxonomy, dict),
+        "has_confirmed_taxonomy": state.taxonomy is not None,
         "has_hypotheses": len(state.hypotheses) > 0,
         "has_evidence_requests": len(state.evidence_requests) > 0,
+        "preliminary_taxonomy": dict(state.preliminary_taxonomy) if isinstance(state.preliminary_taxonomy, dict) else None,
         "readiness_status": (
             state.readiness.status.value
             if state.readiness and hasattr(state.readiness.status, "value")

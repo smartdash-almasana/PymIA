@@ -173,6 +173,7 @@ class AnamnesisFSMState:
     tenant_id: str
     user_text: str
     taxonomy: BusinessTaxonomySnapshot | None = None
+    preliminary_taxonomy: dict[str, Any] | None = None
     contract: ConversationContract | None = None
     hypotheses: tuple[OperationalHypothesis, ...] = ()
     evidence_requests: tuple[EvidenceRequirement, ...] = ()
@@ -189,6 +190,7 @@ class AnamnesisFSMState:
             "tenant_id": self.tenant_id,
             "user_text": self.user_text,
             "taxonomy": self.taxonomy.to_dict() if self.taxonomy else None,
+            "preliminary_taxonomy": dict(self.preliminary_taxonomy) if self.preliminary_taxonomy else None,
             "contract": self.contract.to_dict() if self.contract else None,
             "hypotheses": [h.to_dict() for h in self.hypotheses],
             "evidence_requests": [e.to_dict() for e in self.evidence_requests],
@@ -513,6 +515,11 @@ def _advance_profile(previous_state: AnamnesisFSMState | None, text: str) -> tup
 def _profile_state(tenant_id: str, text: str, now: str, previous_state: AnamnesisFSMState | None) -> tuple[AnamnesisFSMState, str]:
     profile, next_step = _advance_profile(previous_state, text)
     message = _first_profile_message() if previous_state is None or not previous_state.profile_data else _next_prompt(next_step, profile)
+    preliminary_taxonomy = (
+        _build_preliminary_taxonomy_signal(text, tenant_id)
+        if previous_state is None or not previous_state.profile_data
+        else previous_state.preliminary_taxonomy
+    )
     return (
         AnamnesisFSMState(
             phase=FSMPhase.FICHA_PYME_INICIAL,
@@ -524,6 +531,7 @@ def _profile_state(tenant_id: str, text: str, now: str, previous_state: Anamnesi
             profile_step=next_step,
             profile_data=profile,
             taxonomy=previous_state.taxonomy if previous_state else None,
+            preliminary_taxonomy=preliminary_taxonomy,
         ),
         message,
     )
@@ -650,6 +658,41 @@ def _taxonomy_from_text(text: str, tenant_id: str, previous: BusinessTaxonomySna
         currency="ARS",
         confidence=confidence,
     )
+
+
+def _build_preliminary_taxonomy_signal(text: str, tenant_id: str) -> dict[str, Any] | None:
+    organism_type = _detect_organism_type(text)
+    preliminary_channel_map = {
+        "mayorista": "wholesale",
+        "minorista": "retail",
+        "mercado_libre": "marketplace",
+        "online": "online",
+    }
+    sales_channels = [
+        preliminary_channel_map.get(channel, channel)
+        for channel in _detect_sales_channels(text)
+    ]
+    if organism_type is None and not sales_channels:
+        return None
+
+    snapshot = create_taxonomy_snapshot(
+        tenant_id=tenant_id,
+        organism_type=organism_type or TaxonomyType.mixto,
+        industry=(organism_type.value if organism_type is not None else "pendiente_confirmacion"),
+        size="pendiente_confirmacion",
+        complexity="simple",
+        sales_channels=sales_channels,
+        operational_flow_stages=[],
+        areas_present=[],
+        systems_available=["pendiente_confirmacion"],
+        jurisdiction="AR",
+        currency="ARS",
+        confidence=0.65 if organism_type is not None and sales_channels else 0.45,
+        source="raw_first_message",
+    ).to_dict()
+    snapshot["status"] = "PRELIMINARY"
+    snapshot["source"] = "raw_first_message"
+    return snapshot
 
 
 def _readiness_for(tenant_id: str, taxonomy: BusinessTaxonomySnapshot | None, symptoms: list[str]) -> AnamnesisReadiness:
@@ -783,6 +826,7 @@ def process_message(user_text: str, tenant_id: str, previous_state: AnamnesisFSM
             tenant_id=tenant_id,
             user_text=text,
             taxonomy=taxonomy,
+            preliminary_taxonomy=previous_state.preliminary_taxonomy if previous_state else None,
             contract=_base_contract(tenant_id),
             hypotheses=hypotheses,
             evidence_requests=tuple(evidence_requests),

@@ -88,6 +88,8 @@ def test_primer_turno_inicia_ficha_obligatoria_y_conserva_mensaje():
     assert output.updated_progressive_context["fsm_state"]["profile_step"] == "ASK_CONTACT_NAME"
     assert output.updated_progressive_context["fsm_state"]["profile_data"]["raw_first_message"] == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
     assert output.updated_progressive_context["has_taxonomy"] is False
+    assert output.updated_progressive_context["has_preliminary_taxonomy"] is False
+    assert output.updated_progressive_context["has_confirmed_taxonomy"] is False
     assert output.updated_progressive_context["has_hypotheses"] is False
     assert output.updated_progressive_context["has_evidence_requests"] is False
 
@@ -113,8 +115,51 @@ def test_no_hay_taxonomia_ni_hipotesis_antes_de_ficha_completa():
 
     for out in (output1, output2):
         assert out.updated_progressive_context["has_taxonomy"] is False
+        assert out.updated_progressive_context["has_confirmed_taxonomy"] is False
         assert out.updated_progressive_context["has_hypotheses"] is False
         assert out.updated_progressive_context["has_evidence_requests"] is False
+
+
+def test_primer_turno_con_senales_fuertes_guarda_taxonomia_preliminar_sin_confirmarla():
+    output = run_anamnesis_turn(
+        AnamnesisTurnInput(
+            tenant_id="T003B",
+            session_id="S003B",
+            message_text="fabrico ropa y vendo por mayor",
+            previous_progressive_context=None,
+        )
+    )
+
+    assert output.phase == FSMPhase.FICHA_PYME_INICIAL.value
+    assert output.updated_progressive_context["fsm_state"]["profile_step"] == "ASK_CONTACT_NAME"
+    assert output.updated_progressive_context["has_taxonomy"] is False
+    assert output.updated_progressive_context["has_preliminary_taxonomy"] is True
+    assert output.updated_progressive_context["has_confirmed_taxonomy"] is False
+    assert output.updated_progressive_context["has_hypotheses"] is False
+    assert output.updated_progressive_context["has_evidence_requests"] is False
+
+    preliminary = output.updated_progressive_context["fsm_state"]["preliminary_taxonomy"]
+    assert preliminary is not None
+    assert preliminary["status"] == "PRELIMINARY"
+    assert preliminary["source"] == "raw_first_message"
+    assert preliminary["organism_type"] in {"textil", "produccion_fabrica"}
+    assert "wholesale" in preliminary["sales_channels"]
+    assert float(preliminary["confidence"]) < 1.0
+
+
+def test_primer_turno_ambiguo_no_guarda_taxonomia_preliminar():
+    output = run_anamnesis_turn(
+        AnamnesisTurnInput(
+            tenant_id="T003C",
+            session_id="S003C",
+            message_text="hola",
+            previous_progressive_context=None,
+        )
+    )
+
+    assert output.updated_progressive_context["has_preliminary_taxonomy"] is False
+    assert output.updated_progressive_context["has_taxonomy"] is False
+    assert output.updated_progressive_context["fsm_state"]["preliminary_taxonomy"] is None
 
 
 def test_taxonomia_aparece_despues_de_ficha_completa():
