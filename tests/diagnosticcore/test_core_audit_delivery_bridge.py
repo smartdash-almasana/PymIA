@@ -98,10 +98,16 @@ def test_bridge_blocks_when_missing_inputs_and_projects_state(tmp_path):
         for item in bundle.owner_questions_bundle["questions"]
     )
     assert bundle.owner_facing_report["missing_evidence"] == ["dias_periodo"]
-    assert bundle.owner_facing_report["next_questions"] == ["dias_periodo"]
-    assert bundle.owner_facing_report["blocked_message"] == (
-        "Falta evidencia para avanzar al resultado operativo entregable."
+    assert bundle.render_contract["next_questions"] == [
+        "¿Cuál es la cantidad de días del período analizado?",
+        "dias_periodo",
+        "El caso está bloqueado. ¿Podés aportar la evidencia o aclaración necesaria para destrabarlo?",
+    ]
+    assert bundle.render_contract["blocked_message"] == (
+        "¿Cuál es la cantidad de días del período analizado?"
     )
+    assert bundle.owner_facing_report["next_questions"] == bundle.render_contract["next_questions"]
+    assert bundle.owner_facing_report["blocked_message"] == bundle.render_contract["blocked_message"]
     assert str(tmp_path / "owner_facing_report.json") in bundle.delivery_package.output_refs
     assert str(tmp_path / "owner_questions_bundle.json") in bundle.delivery_package.output_refs
     assert Path(bundle.output_refs[0]).exists()
@@ -125,6 +131,7 @@ def test_bridge_blocks_when_missing_inputs_and_projects_state(tmp_path):
     assert updated.gate_verdict == "BLOCKED"
     assert updated.delivery_status == "BLOCKED"
     assert updated.delivery_summary == bundle.owner_facing_report["summary"]
+    assert updated.delivery_summary == "¿Cuál es la cantidad de días del período analizado?"
     assert updated.findings_count == 0
     assert updated.output_refs
 

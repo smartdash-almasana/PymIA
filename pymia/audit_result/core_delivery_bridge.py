@@ -329,6 +329,24 @@ def _with_output_ref(output_refs: list[str], new_ref: str) -> list[str]:
     return refs
 
 
+def _question_texts_from_owner_questions_bundle(bundle: dict[str, Any]) -> list[str]:
+    questions_raw = bundle.get("questions") or []
+    if not isinstance(questions_raw, list):
+        return []
+
+    texts: list[str] = []
+    seen: set[str] = set()
+    for item in questions_raw:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("question_text") or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        texts.append(text)
+    return texts
+
+
 def _build_execution_result(
     *,
     intake_id: str,
@@ -393,10 +411,26 @@ def build_core_audit_delivery_bundle(
     )
 
     _write_json(audit_path, operational_audit_result)
+    owner_questions_bundle = build_owner_questions_bundle(
+        source_ref=str(audit_path),
+        missing_evidence=list(operational_audit_result.get("missing_evidence") or []),
+        next_questions=list(render_contract.get("next_questions") or []),
+        blocked_message=str(render_contract.get("blocked_message") or ""),
+        metadata={
+            "operational_audit_result_ref": str(audit_path),
+            "render_contract_ref": str(render_path),
+        },
+    ).model_dump(mode="json")
+    owner_question_texts = _question_texts_from_owner_questions_bundle(owner_questions_bundle)
+    render_contract["next_questions"] = list(owner_question_texts)
+    render_contract["blocked_message"] = owner_question_texts[0] if owner_question_texts else ""
+
     _write_json(render_path, render_contract)
     _write_delivery_summary(summary_path, render_contract)
+    _write_json(owner_questions_path, owner_questions_bundle)
 
     output_refs = [str(summary_path), str(audit_path), str(render_path)]
+    output_refs = _with_output_ref(output_refs, str(owner_questions_path))
     execution_result = _build_execution_result(
         intake_id=intake_id,
         core_result=core_result,
@@ -406,9 +440,6 @@ def build_core_audit_delivery_bundle(
     )
     gate_verdict = validate_execution_result(execution_result)
     delivery_package = build_delivery_package(execution_result, gate_verdict)
-    output_refs = _with_output_ref(output_refs, str(owner_report_path))
-    output_refs = _with_output_ref(output_refs, str(owner_questions_path))
-    execution_result["output_refs"] = list(output_refs)
     delivery_package = DeliveryPackage(
         tenant_id=delivery_package.tenant_id,
         intake_id=delivery_package.intake_id,
@@ -426,18 +457,21 @@ def build_core_audit_delivery_bundle(
         render_contract=render_contract,
         delivery_package=delivery_package,
     ).to_dict()
-    owner_questions_bundle = build_owner_questions_bundle(
-        source_ref=str(audit_path),
-        missing_evidence=list(operational_audit_result.get("missing_evidence") or []),
-        next_questions=list(render_contract.get("next_questions") or []),
-        blocked_message=str(render_contract.get("blocked_message") or ""),
-        metadata={
-            "operational_audit_result_ref": str(audit_path),
-            "render_contract_ref": str(render_path),
-        },
-    ).model_dump(mode="json")
     _write_json(owner_report_path, owner_facing_report)
-    _write_json(owner_questions_path, owner_questions_bundle)
+    output_refs = _with_output_ref(output_refs, str(owner_report_path))
+    execution_result["output_refs"] = list(output_refs)
+    delivery_package = DeliveryPackage(
+        tenant_id=delivery_package.tenant_id,
+        intake_id=delivery_package.intake_id,
+        runtime_classification=delivery_package.runtime_classification,
+        output_refs=list(output_refs),
+        summary=delivery_package.summary,
+        warnings=list(delivery_package.warnings),
+        reasons=list(delivery_package.reasons),
+        gate_verdict=delivery_package.gate_verdict,
+        status=delivery_package.status,
+        created_at=delivery_package.created_at,
+    )
 
     return CoreAuditDeliveryBundle(
         operational_audit_result=operational_audit_result,

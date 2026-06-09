@@ -1242,6 +1242,9 @@ def test_run_pymia_graph_real_fixture_replays_core_delivery_bridge_end_to_end(tm
     assert any("Core delivery bridge consumed" in d for d in final_state.decision_trail)
     if final_state.phase == "DELIVERED":
         assert final_state.delivery_summary in response_diag
+    if final_state.phase == "BLOCKED":
+        assert final_state.pending_question
+        assert final_state.pending_question in response_diag
 
 
 def test_state_serializable_runtime_fields() -> None:
