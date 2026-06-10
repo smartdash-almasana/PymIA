@@ -104,6 +104,7 @@ def _build_missing_evidence_question(
         question_text=question_text,
         reason="missing_evidence",
         missing_key=missing_key,
+        missing_input_type=MISSING_INPUT_TYPE_STRUCTURAL,
         source_ref=source_ref,
         expected_answer_type=expected_answer_type,
         required=True,

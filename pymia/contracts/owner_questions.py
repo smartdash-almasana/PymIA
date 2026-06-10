@@ -22,6 +22,12 @@ OwnerQuestionAnswerType = Literal[
     "unknown",
 ]
 
+OwnerQuestionMissingInputType = Literal[
+    "STRUCTURAL_INPUT",
+    "OWNER_SEMANTIC_CLARIFICATION",
+    "MIXED",
+]
+
 
 class OwnerQuestion(BaseModel):
     """Pregunta explícita al dueño PyME derivada de artefactos ya trazados.
@@ -38,6 +44,10 @@ class OwnerQuestion(BaseModel):
     missing_key: str | None = Field(
         default=None,
         description="Clave faltante asociada, si existe.",
+    )
+    missing_input_type: OwnerQuestionMissingInputType | None = Field(
+        default=None,
+        description="Clasificación contractual del faltante asociado, si existe.",
     )
     source_ref: str = Field(..., description="Referencia trazable al artefacto fuente.")
     expected_answer_type: OwnerQuestionAnswerType = Field(default="unknown")

@@ -17,6 +17,10 @@ def test_known_missing_variables_build_explicit_questions() -> None:
         "number",
         "number",
     ]
+    assert [question.missing_input_type for question in bundle.questions] == [
+        "STRUCTURAL_INPUT",
+        "STRUCTURAL_INPUT",
+    ]
     assert [question.metadata["missing_input_type"] for question in bundle.questions] == [
         "STRUCTURAL_INPUT",
         "STRUCTURAL_INPUT",
@@ -37,6 +41,7 @@ def test_unknown_missing_variable_builds_safe_fallback_question() -> None:
     )
     assert "saldo_ajustado" not in bundle.questions[0].question_text
     assert bundle.questions[0].missing_key == "saldo_ajustado"
+    assert bundle.questions[0].missing_input_type == "STRUCTURAL_INPUT"
     assert bundle.questions[0].metadata["missing_input_type"] == "STRUCTURAL_INPUT"
     assert bundle.questions[0].expected_answer_type == "unknown"
 
