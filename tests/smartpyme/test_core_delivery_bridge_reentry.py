@@ -226,6 +226,70 @@ def test_project_owner_answers_into_delivery_bundle_acknowledges_declared_answer
     assert "evidence_candidate" not in str(projected.execution_result)
 
 
+def test_project_owner_answers_into_delivery_bundle_projects_explicit_semantic_confirmation(
+    tmp_path,
+) -> None:
+    from pymia.audit_result.core_delivery_bridge import (
+        project_owner_answers_into_delivery_bundle,
+    )
+
+    delivery_bundle = _build_delivery_bundle(tmp_path)
+    delivery_bundle.operational_audit_result["missing_evidence"] = [
+        "own_price",
+        "average_stock",
+        "dso",
+        "taxes",
+    ]
+    delivery_bundle.owner_facing_report["missing_evidence"] = [
+        "own_price",
+        "average_stock",
+        "dso",
+        "taxes",
+    ]
+    questions_bundle = _build_questions_bundle()
+
+    projected = project_owner_answers_into_delivery_bundle(
+        delivery_bundle=delivery_bundle,
+        questions_bundle=questions_bundle,
+        answers_payload=[
+            {
+                "question_id": "q_evidencia_ventas",
+                "answer_text": "Sí, primero margen y precios.",
+                "metadata": {
+                    "semantic_confirmation_status": "CONFIRMED_BY_OWNER",
+                    "proposed_interpretation": "revisar margen/precios por suba de tela",
+                    "related_missing_keys": ["own_price", "average_stock", "dso"],
+                },
+            }
+        ],
+        source_ref="sandbox://semantic-reentry",
+        tenant_id="tenant-reentry",
+    )
+
+    assert projected.operational_audit_result["findings"] == delivery_bundle.operational_audit_result["findings"]
+    assert projected.owner_facing_report["status"] == delivery_bundle.owner_facing_report["status"]
+    assert projected.owner_facing_report["missing_evidence"] == delivery_bundle.owner_facing_report["missing_evidence"]
+    assert projected.owner_facing_report["evidence_used"] == delivery_bundle.owner_facing_report["evidence_used"]
+    assert "findings" not in projected.owner_facing_report
+
+    reentry_projection = projected.owner_facing_report["semantic_confirmation_reentry_projection"]
+    assert reentry_projection["applied"] is True
+    assert reentry_projection["confirmation_status"] == "CONFIRMED_BY_OWNER"
+    assert reentry_projection["flow_status"] == "BLOCKED_ACTIONABLE"
+    assert reentry_projection["requests_count"] == 3
+    assert reentry_projection["does_resolve_structural_input"] is False
+    assert reentry_projection["produces_findings"] is False
+
+    semantic_projection = projected.owner_facing_report["semantic_request_projection"]
+    assert semantic_projection["flow_status"] == "BLOCKED_ACTIONABLE"
+    assert semantic_projection["requests_count"] == 3
+
+    questions = "\n".join(projected.owner_facing_report["next_questions"])
+    assert "precios de venta por producto/SKU" in questions
+    assert "stock inicial y stock final" in questions
+    assert "cliente, importe, fecha de factura o venta" in questions
+
+
 def test_project_owner_answers_into_delivery_bundle_fail_closed(tmp_path) -> None:
     from pymia.audit_result.core_delivery_bridge import (
         project_owner_answers_into_delivery_bundle,
