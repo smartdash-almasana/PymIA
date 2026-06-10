@@ -1,7 +1,7 @@
 # Owner Semantic Gate Builder CapabilitySpec
 
 Fecha: 2026-06-10
-Estado: DRAFT_FOR_REVIEW
+Estado: VIGENTE
 Frente: `OWNER_SEMANTIC_GATE_BUILDER`
 
 ---
@@ -178,6 +178,6 @@ Dueño narra en lenguaje propio
 
 ## 11. Veredicto
 
-`CAPABILITY_DRAFTED_FOR_REVIEW`
+`CAPABILITY_AUTHORIZED`
 
 La capacidad queda propuesta documentalmente. No habilita código hasta que exista autorización explícita posterior con ModuleContract/TaskSpec o decisión metodológica equivalente.
