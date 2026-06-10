@@ -29,8 +29,10 @@ def test_unknown_missing_variable_builds_safe_fallback_question() -> None:
 
     assert len(bundle.questions) == 1
     assert bundle.questions[0].question_text == (
-        "¿Podés aportar el dato o documento faltante para 'saldo_ajustado'?"
+        "¿Podés aportar el dato, archivo o aclaración que falta para poder avanzar con el análisis?"
     )
+    assert "saldo_ajustado" not in bundle.questions[0].question_text
+    assert bundle.questions[0].missing_key == "saldo_ajustado"
     assert bundle.questions[0].expected_answer_type == "unknown"
 
 
@@ -114,6 +116,24 @@ def test_next_questions_are_integrated_without_free_narrative() -> None:
         "¿Qué período cubre esta planilla?",
         "¿Qué significa la columna ajuste?",
     ]
+
+
+def test_technical_next_questions_are_humanized_but_traceable() -> None:
+    from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
+
+    bundle = build_owner_questions_bundle(
+        source_ref="render_contract://next_questions",
+        next_questions=["dso", "own_price"],
+    )
+
+    visible_texts = [question.question_text for question in bundle.questions]
+
+    assert visible_texts == [
+        "¿Podés aportar el dato, archivo o aclaración que falta para poder avanzar con el análisis?"
+    ]
+    assert "dso" not in visible_texts[0]
+    assert "own_price" not in visible_texts[0]
+    assert bundle.questions[0].metadata["source_next_question"] == "dso"
 
 
 def test_owner_questions_bundle_serialization_is_valid() -> None:

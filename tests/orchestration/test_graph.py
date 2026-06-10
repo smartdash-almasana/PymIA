@@ -1629,8 +1629,13 @@ def test_run_pymia_graph_real_fixture_replays_core_delivery_bridge_end_to_end(tm
         for item in owner_questions_payload["questions"]
         if str(item.get("question_text") or "").strip()
     ]
-    assert render_contract_payload["next_questions"] == owner_question_texts
-    assert render_contract_payload["blocked_message"] == owner_question_texts[0]
+    visible_owner_question_texts = list(dict.fromkeys(owner_question_texts))
+    assert render_contract_payload["next_questions"] == visible_owner_question_texts
+    assert render_contract_payload["blocked_message"] == visible_owner_question_texts[0]
+    visible_questions_blob = "\n".join(render_contract_payload["next_questions"])
+    assert "amortization" not in visible_questions_blob
+    assert "dso" not in visible_questions_blob
+    assert "own_price" not in visible_questions_blob
     assert isinstance(final_state.findings_count, int)
     assert any("Structured evidence context populated" in d for d in final_state.decision_trail)
     assert any("Core delivery bridge payload produced" in d for d in final_state.decision_trail)
@@ -1640,7 +1645,7 @@ def test_run_pymia_graph_real_fixture_replays_core_delivery_bridge_end_to_end(tm
     if final_state.phase == "BLOCKED":
         assert final_state.pending_question
         assert final_state.pending_question in response_diag
-        assert final_state.pending_question == owner_question_texts[0]
+        assert final_state.pending_question == visible_owner_question_texts[0]
 
 
 def test_state_serializable_runtime_fields() -> None:

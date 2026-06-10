@@ -32,6 +32,10 @@ from pymia.smartpyme.operational_hypothesis import (
     OperationalHypothesis,
     create_hypothesis,
 )
+from pymia.smartpyme.preliminary_taxonomy import (
+    PreliminaryTaxonomySignal,
+    PreliminaryTaxonomyStatus,
+)
 from pymia.smartpyme.taxonomy import (
     BusinessTaxonomySnapshot,
     TaxonomyType,
@@ -675,23 +679,32 @@ def _build_preliminary_taxonomy_signal(text: str, tenant_id: str) -> dict[str, A
     if organism_type is None and not sales_channels:
         return None
 
+    confidence = 0.65 if organism_type is not None and sales_channels else 0.45
+    signal = PreliminaryTaxonomySignal(
+        tenant_id=tenant_id,
+        source="raw_first_message",
+        status=PreliminaryTaxonomyStatus.PRELIMINARY,
+        organism_type=organism_type.value if organism_type is not None else None,
+        sales_channels=tuple(sales_channels),
+        confidence=confidence,
+        created_from=text,
+    )
     snapshot = create_taxonomy_snapshot(
         tenant_id=tenant_id,
         organism_type=organism_type or TaxonomyType.mixto,
         industry=(organism_type.value if organism_type is not None else "pendiente_confirmacion"),
         size="pendiente_confirmacion",
         complexity="simple",
-        sales_channels=sales_channels,
+        sales_channels=list(signal.sales_channels),
         operational_flow_stages=[],
         areas_present=[],
         systems_available=["pendiente_confirmacion"],
         jurisdiction="AR",
         currency="ARS",
-        confidence=0.65 if organism_type is not None and sales_channels else 0.45,
+        confidence=signal.confidence,
         source="raw_first_message",
     ).to_dict()
-    snapshot["status"] = "PRELIMINARY"
-    snapshot["source"] = "raw_first_message"
+    snapshot.update(signal.to_dict())
     return snapshot
 
 

@@ -23,6 +23,13 @@ TERM_ALLOWED_PATH_PREFIXES = {
         "pymia/telegram_bot_runtime.py",
         "pymia/llm_operator/smoke_openrouter.py",
         "tests/llm_operator/test_operator_offline.py",
+        "tests/diagnosticcore/test_core_audit_delivery_bridge.py",
+        "tests/smartpyme/test_core_delivery_bridge_reentry.py",
+        "tests/smartpyme/test_depth_e2e_textile_owner_excel_flow.py",
+        "tests/smartpyme/test_owner_facing_report.py",
+        "tests/telegram_runtime/test_telegram_bot_runtime_e2e_sequence.py",
+        "tests/telegram_runtime/test_telegram_bot_runtime_evidence_bridge.py",
+        "tests/telegram_runtime/test_telegram_bot_runtime_fsm_integration.py",
     ],
     "authorization": [
         "pymia/llm_operator/providers_openrouter.py",
