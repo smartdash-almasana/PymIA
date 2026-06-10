@@ -542,9 +542,24 @@ def test_graph_blocked_owner_answer_reentry_projects_bridge_without_rerunning_co
     owner_report_payload = json.loads(Path(owner_report_ref).read_text(encoding="utf-8"))
     render_contract_payload = json.loads(Path(render_contract_ref).read_text(encoding="utf-8"))
 
+    acknowledgement = (
+        "La respuesta queda registrada como declaración del dueño, no como evidencia validada."
+    )
+    warning = (
+        "Advertencia trazable: la respuesta queda como declaración del dueño y no como evidencia validada."
+    )
+
     assert owner_report_payload["blocked_message"] == new_state.pending_question
     assert render_contract_payload["next_steps"]
-    assert any("declaración del dueño" in step for step in render_contract_payload["next_steps"])
+    assert acknowledgement in render_contract_payload["next_steps"]
+    assert acknowledgement in owner_report_payload["next_steps"]
+    render_warnings = (
+        render_contract_payload.get("limit_warnings")
+        or render_contract_payload.get("forbidden_inferences")
+        or []
+    )
+    assert warning in render_warnings
+    assert warning in owner_report_payload["limit_warnings"]
     assert original_bundle.operational_audit_result["findings"] == []
 
 

@@ -177,6 +177,42 @@ def test_project_owner_answers_into_delivery_bundle_happy_path(tmp_path) -> None
     assert delivery_bundle.execution_result == original_execution_result
 
 
+def test_project_owner_answers_into_delivery_bundle_acknowledges_declared_answer_without_evidence_promotion(
+    tmp_path,
+) -> None:
+    from pymia.audit_result.core_delivery_bridge import (
+        project_owner_answers_into_delivery_bundle,
+    )
+
+    delivery_bundle = _build_delivery_bundle(tmp_path)
+    questions_bundle = _build_questions_bundle()
+
+    projected = project_owner_answers_into_delivery_bundle(
+        delivery_bundle=delivery_bundle,
+        questions_bundle=questions_bundle,
+        answers_payload=[{"question_id": "q_dias_periodo", "answer_text": "30"}],
+        source_ref="sandbox://reentry",
+        tenant_id="tenant-reentry",
+    )
+
+    acknowledgement = (
+        "La respuesta queda registrada como declaración del dueño, no como evidencia validada."
+    )
+    warning = (
+        "Advertencia trazable: la respuesta queda como declaración del dueño y no como evidencia validada."
+    )
+
+    assert acknowledgement in projected.render_contract["next_steps"]
+    assert acknowledgement in projected.owner_facing_report["next_steps"]
+    render_warnings = projected.render_contract.get("limit_warnings") or projected.render_contract.get("forbidden_inferences") or []
+    assert warning in render_warnings
+    assert warning in projected.owner_facing_report["limit_warnings"]
+    assert projected.delivery_package.status == delivery_bundle.delivery_package.status
+    assert projected.operational_audit_result == delivery_bundle.operational_audit_result
+    assert projected.operational_audit_result["findings"] == delivery_bundle.operational_audit_result["findings"]
+    assert "evidence_candidate" not in str(projected.execution_result)
+
+
 def test_project_owner_answers_into_delivery_bundle_fail_closed(tmp_path) -> None:
     from pymia.audit_result.core_delivery_bridge import (
         project_owner_answers_into_delivery_bundle,
