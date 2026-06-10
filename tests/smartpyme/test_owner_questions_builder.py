@@ -146,6 +146,52 @@ def test_technical_next_questions_are_humanized_but_traceable() -> None:
     assert bundle.questions[0].metadata["source_next_question"] == "dso"
 
 
+def test_builder_can_mark_question_as_semantic_confirmation_source() -> None:
+    from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
+
+    bundle = build_owner_questions_bundle(
+        source_ref="owner_semantic_confirmation://proposed_interpretation/0",
+        next_questions=["¿Confirmás que el primer eje a revisar es margen/precios por suba de insumos?"],
+        metadata={
+            "expects_semantic_confirmation": True,
+            "proposed_interpretation": "revisar margen/precios por suba de insumos",
+            "related_missing_keys": ["own_price", "average_stock", "dso"],
+        },
+    )
+
+    assert len(bundle.questions) == 1
+    question = bundle.questions[0]
+    assert question.reason == "next_question"
+    assert question.missing_key is None
+    assert question.missing_input_type is None
+    assert question.metadata["expects_semantic_confirmation"] is True
+    assert (
+        question.metadata["proposed_interpretation"]
+        == "revisar margen/precios por suba de insumos"
+    )
+    assert question.metadata["related_missing_keys"] == ["own_price", "average_stock", "dso"]
+
+
+def test_semantic_confirmation_question_metadata_does_not_become_structural_input() -> None:
+    from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
+
+    bundle = build_owner_questions_bundle(
+        source_ref="owner_semantic_confirmation://proposed_interpretation/0",
+        next_questions=["¿Confirmás esta interpretación operativa?"],
+        metadata={
+            "expects_semantic_confirmation": True,
+            "proposed_interpretation": "revisar precios propios",
+        },
+    )
+
+    question = bundle.questions[0]
+    assert question.expected_answer_type == "unknown"
+    assert question.metadata["expects_semantic_confirmation"] is True
+    assert "missing_input_type" not in question.metadata
+    assert "evidence_candidate" not in question.metadata
+    assert "computed_variables" not in question.metadata
+
+
 def test_owner_questions_bundle_serialization_is_valid() -> None:
     from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
 
