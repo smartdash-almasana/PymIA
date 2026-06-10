@@ -563,6 +563,58 @@ def test_graph_blocked_owner_answer_reentry_projects_bridge_without_rerunning_co
     assert original_bundle.operational_audit_result["findings"] == []
 
 
+def test_graph_blocked_owner_answer_reentry_propagates_projected_owner_facing_report(
+    tmp_path: Path,
+) -> None:
+    """Graph persists and exposes the owner_facing_report returned by bridge reentry."""
+    import pymia.audit_result.core_delivery_bridge as bridge
+
+    real_project_owner_answers = bridge.project_owner_answers_into_delivery_bundle
+    state, _original_bundle = _build_blocked_bridge_state(tmp_path)
+    event = PymIAEvent(
+        event_type="text_message",
+        tenant_id=state.tenant_id,
+        chat_id=state.chat_id,
+        conversation_id=state.conversation_id,
+        text="Respuesta del dueño",
+    )
+    projected_question = "Pregunta concreta proyectada desde owner_facing_report"
+
+    def _project_with_owner_facing_marker(*args, **kwargs):
+        projected_bundle = real_project_owner_answers(*args, **kwargs)
+        projected_bundle.owner_facing_report["blocked_message"] = ""
+        projected_bundle.owner_facing_report["next_questions"] = [projected_question]
+        projected_bundle.owner_facing_report["semantic_confirmation_reentry_projection"] = {
+            "applied": True,
+            "source": "test_marker",
+        }
+        return projected_bundle
+
+    routed_state = decide_route(state, event)
+    with patch.object(
+        bridge,
+        "project_owner_answers_into_delivery_bundle",
+        side_effect=_project_with_owner_facing_marker,
+    ) as project_mock:
+        new_state = execute_static_capability(routed_state, event, base_dir=tmp_path)
+
+    project_mock.assert_called_once()
+    assert any("Owner answer bridge reentry consumed" in d for d in new_state.decision_trail)
+    assert new_state.pending_question == projected_question
+
+    owner_report_ref = next(
+        ref for ref in new_state.output_refs if ref.endswith("owner_facing_report.json")
+    )
+    owner_report_payload = json.loads(Path(owner_report_ref).read_text(encoding="utf-8"))
+    assert owner_report_payload["semantic_confirmation_reentry_projection"] == {
+        "applied": True,
+        "source": "test_marker",
+    }
+    assert owner_report_payload["next_questions"] == [projected_question]
+    assert owner_report_payload["next_questions"][0] == new_state.pending_question
+
+
+
 def test_graph_blocked_owner_answer_reentry_fail_closed_without_question_mapping(
     tmp_path: Path,
 ) -> None:
