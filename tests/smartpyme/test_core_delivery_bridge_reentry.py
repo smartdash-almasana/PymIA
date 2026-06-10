@@ -108,6 +108,7 @@ def _build_questions_bundle() -> OwnerQuestionsBundle:
                 missing_key="dias_periodo",
                 source_ref="operational_audit_result://missing_evidence/0",
                 expected_answer_type="number",
+                metadata={"missing_input_type": "STRUCTURAL_INPUT"},
             ),
             OwnerQuestion(
                 question_id="q_evidencia_ventas",
@@ -201,12 +202,24 @@ def test_project_owner_answers_into_delivery_bundle_acknowledges_declared_answer
     warning = (
         "Advertencia trazable: la respuesta queda como declaración del dueño y no como evidencia validada."
     )
+    structural_message = (
+        "Tu respuesta fue considerada, pero todavía falta evidencia o dato estructurado "
+        "para resolver este punto."
+    )
+    structural_warning = (
+        "Advertencia trazable: la respuesta del dueño fue considerada, pero no reemplaza "
+        "evidencia estructurada faltante."
+    )
 
     assert acknowledgement in projected.render_contract["next_steps"]
     assert acknowledgement in projected.owner_facing_report["next_steps"]
+    assert structural_message in projected.render_contract["next_steps"]
+    assert structural_message in projected.owner_facing_report["next_steps"]
     render_warnings = projected.render_contract.get("limit_warnings") or projected.render_contract.get("forbidden_inferences") or []
     assert warning in render_warnings
+    assert structural_warning in render_warnings
     assert warning in projected.owner_facing_report["limit_warnings"]
+    assert structural_warning in projected.owner_facing_report["limit_warnings"]
     assert projected.delivery_package.status == delivery_bundle.delivery_package.status
     assert projected.operational_audit_result == delivery_bundle.operational_audit_result
     assert projected.operational_audit_result["findings"] == delivery_bundle.operational_audit_result["findings"]

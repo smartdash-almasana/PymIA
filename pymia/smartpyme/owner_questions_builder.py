@@ -29,6 +29,7 @@ _KNOWN_MISSING_EVIDENCE_QUESTIONS: dict[str, tuple[str, str]] = {
 _GENERIC_MISSING_EVIDENCE_QUESTION = (
     "¿Podés aportar el dato, archivo o aclaración que falta para poder avanzar con el análisis?"
 )
+MISSING_INPUT_TYPE_STRUCTURAL = "STRUCTURAL_INPUT"
 
 
 def _normalize_text(value: Any) -> str:
@@ -90,6 +91,9 @@ def _build_missing_evidence_question(
         question_text = _GENERIC_MISSING_EVIDENCE_QUESTION
         expected_answer_type = "unknown"
 
+    question_metadata = dict(metadata)
+    question_metadata["missing_input_type"] = MISSING_INPUT_TYPE_STRUCTURAL
+
     return OwnerQuestion(
         question_id=_build_question_id(
             reason="missing_evidence",
@@ -103,7 +107,7 @@ def _build_missing_evidence_question(
         source_ref=source_ref,
         expected_answer_type=expected_answer_type,
         required=True,
-        metadata=dict(metadata),
+        metadata=question_metadata,
     )
 
 

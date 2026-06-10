@@ -85,6 +85,12 @@ def _capture_answer(
 
     answer_type = _resolve_answer_type(payload=payload, question=question)
     question_id = question.question_id
+    answer_metadata = dict(payload.get("metadata") or {})
+    if question.missing_key:
+        answer_metadata["missing_key"] = question.missing_key
+    missing_input_type = question.metadata.get("missing_input_type")
+    if missing_input_type:
+        answer_metadata["missing_input_type"] = missing_input_type
     return OwnerAnswer(
         answer_id=f"{questions_bundle.bundle_id}:answer:{index}:{question_id}",
         question_id=question_id,
@@ -93,7 +99,7 @@ def _capture_answer(
         structured_answer=structured_answer,
         answer_type=answer_type,
         source_ref=source_ref,
-        metadata=dict(payload.get("metadata") or {}),
+        metadata=answer_metadata,
     )
 
 

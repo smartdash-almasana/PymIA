@@ -114,7 +114,10 @@ def test_evaluate_owner_answers_accepts_valid_number() -> None:
                 answer_text="30",
                 answer_type="number",
                 source_ref="owner_reply://1",
-                metadata={"missing_key": "dias_periodo"},
+                metadata={
+                    "missing_key": "dias_periodo",
+                    "missing_input_type": "STRUCTURAL_INPUT",
+                },
             )
         ],
     )
@@ -125,6 +128,44 @@ def test_evaluate_owner_answers_accepts_valid_number() -> None:
     assert result.evaluations[0].verdict == "accepted_as_declared"
     assert result.evaluations[0].mapped_key == "dias_periodo"
     assert result.evaluations[0].normalized_value == 30
+    assert result.evaluations[0].metadata["missing_input_type"] == "STRUCTURAL_INPUT"
+    assert result.evaluations[0].metadata["missing_input_resolution_status"] == (
+        "still_blocked_requires_structured_evidence"
+    )
+
+
+def test_structural_input_owner_narrative_does_not_resolve_missing_input() -> None:
+    from pymia.smartpyme.owner_answers_evaluator import evaluate_owner_answers
+
+    bundle = OwnerAnswersBundle(
+        bundle_id="answers-structural",
+        answers=[
+            OwnerAnswer(
+                answer_id="a-structural",
+                question_id="q-structural",
+                question_text="¿Podés aportar el dato, archivo o aclaración que falta?",
+                answer_text="Eso lo maneja mi contador.",
+                answer_type="text",
+                source_ref="owner_reply://structural",
+                metadata={
+                    "missing_key": "saldo_ajustado",
+                    "missing_input_type": "STRUCTURAL_INPUT",
+                },
+            )
+        ],
+    )
+
+    result = evaluate_owner_answers(bundle)
+
+    assert result.evaluations[0].source_answer_id == "a-structural"
+    assert result.evaluations[0].mapped_key == "saldo_ajustado"
+    assert result.evaluations[0].metadata["missing_input_type"] == "STRUCTURAL_INPUT"
+    assert result.evaluations[0].metadata["missing_input_resolution_status"] == (
+        "still_blocked_requires_structured_evidence"
+    )
+    assert result.evaluations[0].metadata["missing_input_resolution_status"] != (
+        "resolved_by_owner_answer"
+    )
 
 
 def test_evaluate_owner_answers_rejects_non_parseable_number() -> None:

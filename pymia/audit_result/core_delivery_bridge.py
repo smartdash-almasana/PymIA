@@ -39,6 +39,15 @@ from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
 
 RUNTIME_CLASSIFICATION_DIAGNOSTIC_CORE = "diagnostic_core_v1"
 MICROSERVICE_NAME_DIAGNOSTIC_CORE_BRIDGE = "diagnostic_core_bridge"
+STILL_BLOCKED_REQUIRES_STRUCTURED_EVIDENCE = "still_blocked_requires_structured_evidence"
+STRUCTURAL_INPUT_OWNER_MESSAGE = (
+    "Tu respuesta fue considerada, pero todavía falta evidencia o dato estructurado "
+    "para resolver este punto."
+)
+STRUCTURAL_INPUT_OWNER_WARNING = (
+    "Advertencia trazable: la respuesta del dueño fue considerada, pero no reemplaza "
+    "evidencia estructurada faltante."
+)
 
 
 @dataclass(frozen=True)
@@ -85,6 +94,36 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
         seen.add(text)
         out.append(text)
     return out
+
+
+def _append_unique_text(container: dict[str, Any], key: str, value: str) -> None:
+    items = list(container.get(key) or [])
+    if value not in items:
+        items.append(value)
+    container[key] = items
+
+
+def _apply_missing_input_resolution_trace(
+    *,
+    render_contract: dict[str, Any],
+    evaluation_bundle: Any,
+) -> None:
+    evaluations = list(getattr(evaluation_bundle, "evaluations", []) or [])
+    has_structural_gap = any(
+        getattr(evaluation, "metadata", {}).get("missing_input_resolution_status")
+        == STILL_BLOCKED_REQUIRES_STRUCTURED_EVIDENCE
+        for evaluation in evaluations
+    )
+    if not has_structural_gap:
+        return
+
+    _append_unique_text(render_contract, "next_steps", STRUCTURAL_INPUT_OWNER_MESSAGE)
+    warning_key = (
+        "forbidden_inferences"
+        if isinstance(render_contract.get("forbidden_inferences"), list)
+        else "limit_warnings"
+    )
+    _append_unique_text(render_contract, warning_key, STRUCTURAL_INPUT_OWNER_WARNING)
 
 
 def _collect_missing_evidence(
@@ -506,6 +545,10 @@ def project_owner_answers_into_delivery_bundle(
         tenant_id=tenant_id or bundle_tenant_id,
     )
     projected_render_contract = deepcopy(composed.projected_render_contract)
+    _apply_missing_input_resolution_trace(
+        render_contract=projected_render_contract,
+        evaluation_bundle=composed.evaluation_bundle,
+    )
     delivery_package = DeliveryPackage(
         tenant_id=delivery_bundle.delivery_package.tenant_id,
         intake_id=delivery_bundle.delivery_package.intake_id,
