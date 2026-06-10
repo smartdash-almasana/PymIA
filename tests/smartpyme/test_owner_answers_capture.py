@@ -253,6 +253,63 @@ def test_capture_owner_answers_from_structured_payload_does_not_mutate_inputs() 
     assert bundle.answers[0].source_ref == "param_source"
 
 
+def test_capture_owner_answers_from_structured_payload_preserves_semantic_confirmation_metadata() -> None:
+    from pymia.smartpyme.owner_answers_capture import (
+        capture_owner_answers_from_structured_payload,
+    )
+
+    bundle = capture_owner_answers_from_structured_payload(
+        questions_bundle=_build_questions_bundle(),
+        answers_payload=[
+            {
+                "question_id": "q-1",
+                "answer_text": "Sí, revisemos margen y precios primero.",
+                "metadata": {
+                    "semantic_confirmation_status": "CONFIRMED_BY_OWNER",
+                    "proposed_interpretation": "revisar margen/precios por suba de insumos",
+                    "related_missing_keys": ["own_price", "average_stock", "dso"],
+                },
+            }
+        ],
+        source_ref="operator_assisted_capture",
+    )
+
+    answer_metadata = bundle.answers[0].metadata
+    assert answer_metadata["semantic_confirmation_status"] == "CONFIRMED_BY_OWNER"
+    assert (
+        answer_metadata["proposed_interpretation"]
+        == "revisar margen/precios por suba de insumos"
+    )
+    assert answer_metadata["related_missing_keys"] == ["own_price", "average_stock", "dso"]
+
+
+def test_capture_owner_answers_from_structured_payload_keeps_semantic_confirmation_as_metadata_only() -> None:
+    from pymia.smartpyme.owner_answers_capture import (
+        capture_owner_answers_from_structured_payload,
+    )
+
+    bundle = capture_owner_answers_from_structured_payload(
+        questions_bundle=_build_questions_bundle(),
+        answers_payload=[
+            {
+                "question_id": "q-1",
+                "answer_text": "Sí, confirmo esa lectura.",
+                "metadata": {
+                    "semantic_confirmation_status": "CONFIRMED_BY_OWNER",
+                    "proposed_interpretation": "revisar precios propios",
+                },
+            }
+        ],
+        source_ref="operator_assisted_capture",
+    )
+
+    answer = bundle.answers[0]
+    assert answer.structured_answer == {}
+    assert "evidence" not in answer.metadata
+    assert "evidence_candidate" not in answer.metadata
+    assert "computed_variables" not in answer.metadata
+
+
 def test_owner_answers_capture_has_no_prohibited_imports() -> None:
     source = Path("pymia/smartpyme/owner_answers_capture.py").read_text(encoding="utf-8")
     lowered = source.lower()
