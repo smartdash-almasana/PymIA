@@ -35,6 +35,9 @@ from pymia.smartpyme.execution_result_gate import (
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
 from pymia.smartpyme.owner_answers_composer import compose_owner_answers_to_actions
 from pymia.smartpyme.owner_questions_builder import build_owner_questions_bundle
+from pymia.smartpyme.owner_semantic_confirmation_reentry_projection import (
+    project_semantic_confirmation_reentry_to_owner_facing,
+)
 
 
 RUNTIME_CLASSIFICATION_DIAGNOSTIC_CORE = "diagnostic_core_v1"
@@ -124,6 +127,27 @@ def _apply_missing_input_resolution_trace(
         else "limit_warnings"
     )
     _append_unique_text(render_contract, warning_key, STRUCTURAL_INPUT_OWNER_WARNING)
+
+
+def _apply_semantic_confirmation_reentry_projection(
+    *,
+    owner_facing_report: dict[str, Any],
+    composed: Any,
+    missing_keys: list[str],
+    source_ref: str,
+) -> dict[str, Any]:
+    projected = deepcopy(owner_facing_report)
+    for owner_answer in getattr(composed.owner_answers_bundle, "answers", []) or []:
+        metadata = getattr(owner_answer, "metadata", {}) or {}
+        if not isinstance(metadata, dict) or not metadata.get("semantic_confirmation_status"):
+            continue
+        projected = project_semantic_confirmation_reentry_to_owner_facing(
+            owner_answer=owner_answer,
+            owner_facing_report=projected,
+            missing_keys=list(missing_keys),
+            source_ref=source_ref,
+        )
+    return projected
 
 
 def _collect_missing_evidence(
@@ -575,7 +599,12 @@ def project_owner_answers_into_delivery_bundle(
     return CoreAuditDeliveryBundle(
         operational_audit_result=deepcopy(delivery_bundle.operational_audit_result),
         render_contract=projected_render_contract,
-        owner_facing_report=owner_facing_report,
+        owner_facing_report=_apply_semantic_confirmation_reentry_projection(
+            owner_facing_report=owner_facing_report,
+            composed=composed,
+            missing_keys=list(deepcopy(delivery_bundle.operational_audit_result.get("missing_evidence") or [])),
+            source_ref=source_ref,
+        ),
         owner_questions_bundle=questions_bundle.model_dump(mode="json"),
         execution_result=execution_result,
         gate_verdict=delivery_bundle.gate_verdict,
