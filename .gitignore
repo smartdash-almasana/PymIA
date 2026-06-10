@@ -15,3 +15,6 @@ Pymia-memoria/
 conversa-engine/.conversation_state/
 
 docs/mermaid/
+
+# pytest temp artifacts
+.tmp_pytest_*
