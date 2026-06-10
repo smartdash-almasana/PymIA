@@ -143,3 +143,72 @@ def test_model_dump_preserves_traceable_confirmation_fields() -> None:
     assert payload["related_pathology_candidates"] == ["REN_001"]
     assert payload["related_formula_candidates"] == ["PYME_017_pricing_drift"]
     assert payload["source_ref"] == "owner_semantic_request://case-001/request-001"
+
+
+def test_gate_projects_question_metadata_for_explicit_semantic_confirmation() -> None:
+    gate = OwnerSemanticConfirmationGate(**_base_payload())
+
+    metadata = gate.to_owner_question_metadata()
+
+    assert metadata["expects_semantic_confirmation"] is True
+    assert metadata["semantic_confirmation_gate_id"] == "semantic_confirmation_gate_001"
+    assert metadata["semantic_confirmation_target_type"] == "SEMANTIC_INTERPRETATION"
+    assert metadata["proposed_interpretation"] == (
+        "Estoy entendiendo que el eje a revisar es variación de precios por suba de tela."
+    )
+    assert metadata["related_missing_keys"] == ["own_price"]
+    assert metadata["related_pathology_candidates"] == ["REN_001"]
+    assert metadata["related_formula_candidates"] == ["PYME_017_pricing_drift"]
+    assert metadata["semantic_confirmation_source_ref"] == (
+        "owner_semantic_request://case-001/request-001"
+    )
+    assert "semantic_confirmation_status" not in metadata
+    assert "missing_input_type" not in metadata
+    assert "evidence_candidate" not in metadata
+
+
+def test_terminal_gate_projects_answer_metadata_for_bridge_reentry() -> None:
+    payload = _base_payload()
+    payload["status"] = "CONFIRMED_BY_OWNER"
+    payload["owner_response_text"] = "Sí, ese es el problema principal."
+    gate = OwnerSemanticConfirmationGate(**payload)
+
+    metadata = gate.to_owner_answer_metadata()
+
+    assert metadata["semantic_confirmation_status"] == "CONFIRMED_BY_OWNER"
+    assert metadata["semantic_confirmation_gate_id"] == "semantic_confirmation_gate_001"
+    assert metadata["semantic_confirmation_target_type"] == "SEMANTIC_INTERPRETATION"
+    assert metadata["proposed_interpretation"] == (
+        "Estoy entendiendo que el eje a revisar es variación de precios por suba de tela."
+    )
+    assert metadata["owner_response_text"] == "Sí, ese es el problema principal."
+    assert metadata["related_missing_keys"] == ["own_price"]
+    assert metadata["semantic_confirmation_source_ref"] == (
+        "owner_semantic_request://case-001/request-001"
+    )
+    assert "evidence_candidate" not in metadata
+    assert "computed_variables" not in metadata
+
+
+def test_corrected_gate_answer_metadata_preserves_correction() -> None:
+    payload = _base_payload()
+    payload["status"] = "CORRECTED_BY_OWNER"
+    payload["owner_response_text"] = "No, es cobranzas."
+    payload["corrected_interpretation"] = "El eje confirmado por el dueño es atraso de cobranzas."
+    gate = OwnerSemanticConfirmationGate(**payload)
+
+    metadata = gate.to_owner_answer_metadata()
+
+    assert metadata["semantic_confirmation_status"] == "CORRECTED_BY_OWNER"
+    assert metadata["corrected_interpretation"] == (
+        "El eje confirmado por el dueño es atraso de cobranzas."
+    )
+
+
+def test_pending_gate_cannot_project_answer_metadata() -> None:
+    gate = OwnerSemanticConfirmationGate(**_base_payload())
+
+    with pytest.raises(ValueError) as exc:
+        gate.to_owner_answer_metadata()
+
+    assert "terminal semantic confirmation gate is required" in str(exc.value)

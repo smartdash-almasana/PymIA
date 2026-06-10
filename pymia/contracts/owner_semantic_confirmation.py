@@ -101,3 +101,44 @@ class OwnerSemanticConfirmationGate(BaseModel):
     @property
     def is_terminal(self) -> bool:
         return self.status in {"CONFIRMED_BY_OWNER", "REJECTED_BY_OWNER", "CORRECTED_BY_OWNER"}
+
+    def to_owner_question_metadata(self) -> dict[str, Any]:
+        """Project a pending semantic confirmation gate into OwnerQuestion metadata.
+
+        This metadata asks for explicit owner confirmation. It does not carry a
+        terminal confirmation status and must not be treated as structural evidence.
+        """
+        return {
+            "expects_semantic_confirmation": True,
+            "semantic_confirmation_gate_id": self.gate_id,
+            "semantic_confirmation_target_type": self.target_type,
+            "proposed_interpretation": self.proposed_interpretation,
+            "related_missing_keys": list(self.related_missing_keys),
+            "related_pathology_candidates": list(self.related_pathology_candidates),
+            "related_formula_candidates": list(self.related_formula_candidates),
+            "semantic_confirmation_source_ref": self.source_ref,
+        }
+
+    def to_owner_answer_metadata(self) -> dict[str, Any]:
+        """Project a terminal semantic confirmation gate into OwnerAnswer metadata.
+
+        The bridge reentry consumes this explicit status. Free text alone is not
+        interpreted as confirmation.
+        """
+        if not self.is_terminal:
+            raise ValueError("terminal semantic confirmation gate is required")
+
+        metadata: dict[str, Any] = {
+            "semantic_confirmation_status": self.status,
+            "semantic_confirmation_gate_id": self.gate_id,
+            "semantic_confirmation_target_type": self.target_type,
+            "proposed_interpretation": self.proposed_interpretation,
+            "owner_response_text": self.owner_response_text,
+            "related_missing_keys": list(self.related_missing_keys),
+            "related_pathology_candidates": list(self.related_pathology_candidates),
+            "related_formula_candidates": list(self.related_formula_candidates),
+            "semantic_confirmation_source_ref": self.source_ref,
+        }
+        if self.corrected_interpretation is not None:
+            metadata["corrected_interpretation"] = self.corrected_interpretation
+        return metadata
