@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -32,6 +33,39 @@ def has_operational_columns(headers: list[str]) -> bool:
     return any(term in joined for term in OPERATIONAL_TERMS)
 
 
+def calculate_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def register_evidence_record(path: Path, tenant_id: str, intake_id: str, storage_dir: Path) -> dict:
+    from pymia.smartpyme.evidence import (
+        EVIDENCE_STATUS_REGISTERED,
+        SOURCE_KIND_UPLOADED_FILE,
+        create_evidence_record,
+    )
+    from pymia.smartpyme.storage import save_evidence_record
+
+    record = create_evidence_record(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        evidence_type="xlsx_upload",
+        source_kind=SOURCE_KIND_UPLOADED_FILE,
+        source_ref=str(path),
+        original_filename=path.name,
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        size_bytes=path.stat().st_size,
+        content_hash=calculate_sha256(path),
+        status=EVIDENCE_STATUS_REGISTERED,
+        metadata={"registered_by": "vertical_slice_cli"},
+    )
+    save_evidence_record(tenant_id, record, base_dir=storage_dir)
+    return record.to_dict()
+
+
 def build_structured_summary(
     path: Path,
     tenant_id: str,
@@ -57,7 +91,7 @@ def build_structured_summary(
             "tables_count": len(tables),
             "case_id": intake_id,
             "sufficiency": [],
-        "unsupported_formula_ids": [],
+            "unsupported_formula_ids": [],
         }
         if formula_ids:
             from pymia.contracts.evidence_v1 import StructuredEvidence
@@ -91,9 +125,16 @@ def build_report(
     tenant_id: str = "tenant_cli_local",
     intake_id: str = "intake_cli_local",
     formula_ids: list[str] | None = None,
+    storage_dir: Path | None = None,
 ) -> dict:
     has_rows = profile["rows"] > 1 and profile["columns"] > 0
     has_columns = has_operational_columns(profile["headers"])
+    evidence_record = register_evidence_record(
+        path,
+        tenant_id,
+        intake_id,
+        storage_dir or Path(".tmp/vertical_slice_storage"),
+    )
     structured_summary = build_structured_summary(
         path,
         tenant_id,
@@ -115,6 +156,7 @@ def build_report(
         render_contract={"tenant_id": tenant_id, "summary": summary, "blocked_message": summary if blocked else "", "next_questions": questions, "next_steps": ["Revisar con el dueño antes de diagnosticar."], "references": [str(path)], "forbidden_inferences": ["No inferir diagnóstico desde nombres de columnas."]},
         delivery_package={"tenant_id": tenant_id, "intake_id": intake_id, "status": "BLOCKED" if blocked else "DELIVERED", "summary": summary, "output_refs": ["stdout"], "warnings": ["Slice local; no es canal productivo."]},
     ).to_dict()
+    report["evidence_record"] = evidence_record
     report["structured_evidence_summary"] = structured_summary
     return report
 
@@ -127,8 +169,17 @@ def build_markdown(
     tenant_id: str = "tenant_cli_local",
     intake_id: str = "intake_cli_local",
     formula_ids: list[str] | None = None,
+    storage_dir: Path | None = None,
 ) -> str:
-    report = build_report(path, message, profile, tenant_id=tenant_id, intake_id=intake_id, formula_ids=formula_ids)
+    report = build_report(
+        path,
+        message,
+        profile,
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        formula_ids=formula_ids,
+        storage_dir=storage_dir,
+    )
     lines = [
         "# Reporte owner-facing local",
         f"Estado: {report['status']}",
@@ -136,6 +187,8 @@ def build_markdown(
         f"Mensaje: {message}",
         f"Tenant: {report['tenant_id']}",
         f"Intake: {report['intake_id']}",
+        f"Evidence ID: {report['evidence_record']['evidence_id']}",
+        f"Evidence SHA-256: {report['evidence_record']['content_hash']}",
         f"Hoja: {profile['sheet']}",
         f"Filas: {profile['rows']}",
         f"Columnas: {profile['columns']}",
@@ -194,6 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tenant-id", default="tenant_cli_local")
     parser.add_argument("--intake-id", default="intake_cli_local")
     parser.add_argument("--formula-id", action="append", default=[])
+    parser.add_argument("--storage-dir", default=".tmp/vertical_slice_storage")
     args = parser.parse_args(argv)
     path = Path(args.excel)
     if not path.exists():
@@ -205,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
         tenant_id=args.tenant_id,
         intake_id=args.intake_id,
         formula_ids=args.formula_id,
+        storage_dir=Path(args.storage_dir),
     )
     if args.output:
         output_path = Path(args.output)
