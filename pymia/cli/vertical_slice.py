@@ -50,18 +50,24 @@ def build_structured_summary(path: Path, tenant_id: str, formula_ids: list[str] 
             "computed_variables_count": len(computed),
             "tables_count": len(tables),
             "sufficiency": [],
+        "unsupported_formula_ids": [],
         }
         if formula_ids:
             from pymia.contracts.evidence_v1 import StructuredEvidence
+            from pymia.contracts.formula_contract import SUPPORTED_FORMULAS
             from pymia.diagnostic_core.evidence_sufficiency import build_evidence_sufficiency_report_from_structured_evidence
 
-            sufficiency = build_evidence_sufficiency_report_from_structured_evidence(
-                StructuredEvidence.model_validate(evidence),
-                case_id="intake_cli_local",
-                tenant_id=tenant_id,
-                formula_ids=formula_ids,
-            )
-            summary["sufficiency"] = [item.model_dump(mode="json") for item in sufficiency]
+            supported_formula_ids = [formula_id for formula_id in formula_ids if formula_id in SUPPORTED_FORMULAS]
+            unsupported_formula_ids = [formula_id for formula_id in formula_ids if formula_id not in SUPPORTED_FORMULAS]
+            summary["unsupported_formula_ids"] = unsupported_formula_ids
+            if supported_formula_ids:
+                sufficiency = build_evidence_sufficiency_report_from_structured_evidence(
+                    StructuredEvidence.model_validate(evidence),
+                    case_id="intake_cli_local",
+                    tenant_id=tenant_id,
+                    formula_ids=supported_formula_ids,
+                )
+                summary["sufficiency"] = [item.model_dump(mode="json") for item in sufficiency]
         return summary
     except Exception as exc:
         return {
@@ -141,13 +147,15 @@ def build_markdown(
     if structured_summary["status"] == "available":
         lines.append(f"- Variables computables: {structured_summary['computed_variables_count']}")
         lines.append(f"- Tablas estructuradas: {structured_summary['tables_count']}")
-        if structured_summary["sufficiency"]:
+        if structured_summary["sufficiency"] or structured_summary["unsupported_formula_ids"]:
             lines.append("")
             lines.append("## Suficiencia de evidencia")
             for item in structured_summary["sufficiency"]:
                 lines.append(f"- {item['formula_id']}: {item['status']}")
                 if item["missing_variables"]:
                     lines.append(f"  - Faltan: {', '.join(item['missing_variables'])}")
+            for formula_id in structured_summary["unsupported_formula_ids"]:
+                lines.append(f"- {formula_id}: UNSUPPORTED_FORMULA")
     else:
         lines.append(f"- Motivo: {structured_summary['reason']}")
     lines.append("")
