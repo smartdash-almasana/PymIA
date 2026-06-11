@@ -69,6 +69,8 @@ def test_vertical_slice_cli_uses_real_textile_fixture(capsys):
     assert "la_textil_cosida_srl_mar_abr_may_2026.xlsx" in out
     assert "Filas:" in out
     assert "Columnas:" in out
+    assert "## Evidencia estructurada" in out
+    assert "Variables computables:" in out
     assert "no diagnostica" in out.lower()
 
 

@@ -32,6 +32,30 @@ def has_operational_columns(headers: list[str]) -> bool:
     return any(term in joined for term in OPERATIONAL_TERMS)
 
 
+def build_structured_summary(path: Path, tenant_id: str) -> dict:
+    try:
+        from pymia.smartpyme.structured_evidence_builder import build_structured_evidence_context
+
+        payload = build_structured_evidence_context(
+            excel_path=path,
+            tenant_id=tenant_id,
+            intake_record={"evidence_requests": []},
+        )
+        evidence = payload["structured_evidence"]
+        computed = evidence.get("computed_variables") or {}
+        tables = evidence.get("tables") or []
+        return {
+            "status": "available",
+            "computed_variables_count": len(computed),
+            "tables_count": len(tables),
+        }
+    except Exception as exc:
+        return {
+            "status": "unavailable",
+            "reason": exc.__class__.__name__,
+        }
+
+
 def build_report(
     path: Path,
     message: str,
@@ -42,6 +66,7 @@ def build_report(
 ) -> dict:
     has_rows = profile["rows"] > 1 and profile["columns"] > 0
     has_columns = has_operational_columns(profile["headers"])
+    structured_summary = build_structured_summary(path, tenant_id)
     missing = []
     questions = []
     if not has_rows:
@@ -52,11 +77,13 @@ def build_report(
         questions.append("Necesito columnas como fecha, producto, ventas, precio, costo, cantidad o sku.")
     blocked = bool(missing)
     summary = "Falta evidencia mínima para avanzar." if blocked else "Planilla legible con señales operativas mínimas; resultado candidato, no diagnóstico final."
-    return build_owner_facing_report(
+    report = build_owner_facing_report(
         operational_audit_result={"tenant_id": tenant_id, "status": "blocked" if blocked else "candidate", "evidence_used": ["excel_file_readable"], "missing_evidence": missing},
         render_contract={"tenant_id": tenant_id, "summary": summary, "blocked_message": summary if blocked else "", "next_questions": questions, "next_steps": ["Revisar con el dueño antes de diagnosticar."], "references": [str(path)], "forbidden_inferences": ["No inferir diagnóstico desde nombres de columnas."]},
         delivery_package={"tenant_id": tenant_id, "intake_id": intake_id, "status": "BLOCKED" if blocked else "DELIVERED", "summary": summary, "output_refs": ["stdout"], "warnings": ["Slice local; no es canal productivo."]},
     ).to_dict()
+    report["structured_evidence_summary"] = structured_summary
+    return report
 
 
 def build_markdown(
@@ -91,6 +118,15 @@ def build_markdown(
             lines.append(f"- {item}")
     else:
         lines.append("- Sin faltantes mínimos detectados en este slice.")
+    lines.append("")
+    lines.append("## Evidencia estructurada")
+    structured_summary = report["structured_evidence_summary"]
+    lines.append(f"- Estado: {structured_summary['status']}")
+    if structured_summary["status"] == "available":
+        lines.append(f"- Variables computables: {structured_summary['computed_variables_count']}")
+        lines.append(f"- Tablas estructuradas: {structured_summary['tables_count']}")
+    else:
+        lines.append(f"- Motivo: {structured_summary['reason']}")
     lines.append("")
     lines.append("## Próxima pregunta")
     if report["next_questions"]:
