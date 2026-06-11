@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from pymia.faithful_operator import OperatorPhase, run_local_operator_flow
+from pymia.faithful_operator_next_action import build_operator_next_action
 
 
 DEFAULT_OWNER_MESSAGE = "Vendo más pero no me queda plata."
@@ -40,6 +46,7 @@ def render_local_operator_demo(
     )
     states = result["states"]
     final_state = result["state"]
+    next_action = build_operator_next_action(final_state)
 
     lines = [
         "PYMIA FAITHFUL OPERATOR — DEMO LOCAL ASISTIDA",
@@ -70,6 +77,12 @@ def render_local_operator_demo(
             "",
             "SALIDA PARA OPERADOR ASISTIDO",
             str(result["response"]),
+            "",
+            "NEXT_ACTION",
+            f"owner_question: {next_action.owner_question}",
+            f"required_evidence: {next_action.required_evidence}",
+            f"operator_decision: {next_action.operator_decision}",
+            f"stop_condition: {next_action.stop_condition}",
         ]
     )
 
