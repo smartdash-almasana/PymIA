@@ -12,6 +12,7 @@ DEFAULT_EXCEL_CANDIDATES = (
     Path("prueba_excels/Cafeteria ABC.xlsx"),
     Path("prueba_excels/Cafetería ABC.xlsx"),
 )
+DEFAULT_REPORT_PATH = Path(".tmp/faithful_operator_demo_report.md")
 
 
 def _resolve_default_excel() -> Path | None:
@@ -87,6 +88,39 @@ def render_local_operator_demo(
     return "\n".join(lines)
 
 
+def render_operator_assisted_packet(demo_text: str) -> str:
+    return "\n".join(
+        [
+            "# Paquete local para operador asistido",
+            "",
+            "Uso: entregar esta lectura como base de trabajo humano. No es producto, canal ni diagnóstico final automático.",
+            "",
+            "## Demo ejecutada",
+            "",
+            "```text",
+            demo_text,
+            "```",
+            "",
+            "## Control operativo",
+            "",
+            "- Verificar con el dueño que la evidencia corresponde al período correcto.",
+            "- Confirmar que las columnas usadas representan ventas, costos y productos reales.",
+            "- Registrar cualquier corrección antes de sostener una recomendación operativa.",
+            "",
+            "## Límite",
+            "",
+            "Este paquete no declara causa definitiva ni automatiza decisiones. Sirve para operación asistida trazable.",
+        ]
+    )
+
+
+def write_operator_assisted_packet(demo_text: str, output_path: Path | str = DEFAULT_REPORT_PATH) -> Path:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_operator_assisted_packet(demo_text), encoding="utf-8")
+    return path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Demo local mínima del PymIA Faithful Operator.")
     parser.add_argument("--excel", type=Path, default=None, help="Ruta al Excel real de evidencia.")
@@ -94,17 +128,23 @@ def main() -> None:
     parser.add_argument("--confirmation", default=DEFAULT_OWNER_CONFIRMATION, help="Confirmación/corrección del dueño.")
     parser.add_argument("--tenant-id", default="demo_cafeteria_abc", help="Tenant técnico de demo.")
     parser.add_argument("--storage-dir", type=Path, default=Path(".tmp/faithful_operator_demo_storage"))
+    parser.add_argument("--write-report", action="store_true", help="Escribe un paquete markdown local para operador asistido.")
+    parser.add_argument("--report-path", type=Path, default=DEFAULT_REPORT_PATH, help="Ruta de salida del paquete markdown.")
     args = parser.parse_args()
 
-    print(
-        render_local_operator_demo(
-            owner_message=args.message,
-            excel_path=args.excel,
-            owner_confirmation=args.confirmation,
-            tenant_id=args.tenant_id,
-            storage_dir=args.storage_dir,
-        )
+    demo_text = render_local_operator_demo(
+        owner_message=args.message,
+        excel_path=args.excel,
+        owner_confirmation=args.confirmation,
+        tenant_id=args.tenant_id,
+        storage_dir=args.storage_dir,
     )
+    print(demo_text)
+
+    if args.write_report:
+        report_path = write_operator_assisted_packet(demo_text, args.report_path)
+        print("\nREPORTE_LOCAL_ESCRITO")
+        print(report_path)
 
 
 if __name__ == "__main__":
