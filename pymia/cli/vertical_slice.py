@@ -122,7 +122,10 @@ def build_structured_summary(
 ) -> dict:
     try:
         from pymia.smartpyme.structured_evidence_builder import build_structured_evidence_context
+        from pymia.contracts.evidence_v1 import StructuredEvidence
+        from pymia.audit_result.evidence_requirement_matcher import match_evidence_requirements
 
+        original_formula_ids = formula_ids
         formula_ids = formula_ids or []
         payload = build_structured_evidence_context(
             excel_path=path,
@@ -139,9 +142,33 @@ def build_structured_summary(
             "case_id": intake_id,
             "sufficiency": [],
             "unsupported_formula_ids": [],
+            "catalog_reconciliation": [],
         }
+
+        # Run catalog reconciliation
+        structured_ev = StructuredEvidence.model_validate(evidence)
+        matches = match_evidence_requirements(structured_ev)
+        reconciliation_list = []
+        for m in matches:
+            reconciliation_list.append({
+                "formula_id": m.formula_id,
+                "pathology_code": m.pathology_code,
+                "status": m.status,
+                "available_evidence": m.available_evidence,
+                "missing_evidence": m.missing_evidence,
+                "matched_sources": m.matched_sources,
+                "required_evidence": m.required_evidence,
+                "required_variables": m.required_variables,
+                "next_audit_questions": m.next_audit_questions,
+            })
+
+        if original_formula_ids:
+            reconciliation_list = [
+                d for d in reconciliation_list if d["formula_id"] in original_formula_ids
+            ]
+        summary["catalog_reconciliation"] = reconciliation_list
+
         if formula_ids:
-            from pymia.contracts.evidence_v1 import StructuredEvidence
             from pymia.contracts.formula_contract import SUPPORTED_FORMULAS
             from pymia.diagnostic_core.evidence_sufficiency import build_evidence_sufficiency_report_from_structured_evidence
 
@@ -150,7 +177,7 @@ def build_structured_summary(
             summary["unsupported_formula_ids"] = unsupported_formula_ids
             if supported_formula_ids:
                 sufficiency = build_evidence_sufficiency_report_from_structured_evidence(
-                    StructuredEvidence.model_validate(evidence),
+                    structured_ev,
                     case_id=intake_id,
                     tenant_id=tenant_id,
                     formula_ids=supported_formula_ids,
@@ -324,6 +351,8 @@ def build_pipeline(
     markdown = render_markdown_from_report(path, message, profile, report)
     evidence_record = report["evidence_record"]
     pipeline_run_record = report["pipeline_run_record"]
+    structured_summary = report.get("structured_evidence_summary") or {}
+    catalog_reconciliation = structured_summary.get("catalog_reconciliation") or []
     return {
         "status": report["status"],
         "profile": profile,
@@ -336,6 +365,7 @@ def build_pipeline(
         "missing_evidence": report["missing_evidence"],
         "next_questions": report["next_questions"],
         "structured_summary": report["structured_evidence_summary"],
+        "catalog_reconciliation": catalog_reconciliation,
     }
 
 

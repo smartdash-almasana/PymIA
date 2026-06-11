@@ -36,6 +36,7 @@ class OperatorState(BaseModel):
     limit: str | None = None
     owner_confirmation_status: str | None = None
     owner_confirmation_message: str | None = None
+    catalog_reconciliation: list[dict] = Field(default_factory=list)
 
 
 def _build_intake_id(tenant_id: str, owner_message: str) -> str:
@@ -115,7 +116,7 @@ def receive_excel_and_build_candidate(
         )
 
     from pymia.cli.vertical_slice import build_pipeline
-
+ 
     pipeline = build_pipeline(
         path,
         state.owner_message,
@@ -123,6 +124,9 @@ def receive_excel_and_build_candidate(
         intake_id=state.intake_id,
         storage_dir=Path(storage_dir) if storage_dir is not None else None,
     )
+    catalog_reconciliation = pipeline.get("catalog_reconciliation", [])
+    reconciled_count = len(catalog_reconciliation)
+
     limit = "Resultado candidato: no declara verdad final sin confirmación del dueño."
     next_question = "¿Estas columnas representan realmente ventas, costos, productos y período del proceso que querés revisar?"
     candidate_response = (
@@ -131,6 +135,7 @@ def receive_excel_and_build_candidate(
         f"Evidence SHA-256: {pipeline['evidence_hash']}\n"
         f"Run ID: {pipeline['run_id']}\n"
         f"Output hash: {pipeline['output_hash']}\n"
+        f"Reconciliación de catálogos: {reconciled_count} fórmulas\n"
         f"Límite: {limit}\n"
         f"Próxima pregunta: {next_question}"
     )
@@ -149,6 +154,7 @@ def receive_excel_and_build_candidate(
             "next_question": next_question,
             "blocked_reason": None,
             "owner_confirmation_status": "pending",
+            "catalog_reconciliation": catalog_reconciliation,
         }
     )
 
