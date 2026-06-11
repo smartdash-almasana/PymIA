@@ -32,7 +32,13 @@ def has_operational_columns(headers: list[str]) -> bool:
     return any(term in joined for term in OPERATIONAL_TERMS)
 
 
-def build_structured_summary(path: Path, tenant_id: str, formula_ids: list[str] | None = None) -> dict:
+def build_structured_summary(
+    path: Path,
+    tenant_id: str,
+    *,
+    intake_id: str = "intake_cli_local",
+    formula_ids: list[str] | None = None,
+) -> dict:
     try:
         from pymia.smartpyme.structured_evidence_builder import build_structured_evidence_context
 
@@ -49,6 +55,7 @@ def build_structured_summary(path: Path, tenant_id: str, formula_ids: list[str] 
             "status": "available",
             "computed_variables_count": len(computed),
             "tables_count": len(tables),
+            "case_id": intake_id,
             "sufficiency": [],
         "unsupported_formula_ids": [],
         }
@@ -63,7 +70,7 @@ def build_structured_summary(path: Path, tenant_id: str, formula_ids: list[str] 
             if supported_formula_ids:
                 sufficiency = build_evidence_sufficiency_report_from_structured_evidence(
                     StructuredEvidence.model_validate(evidence),
-                    case_id="intake_cli_local",
+                    case_id=intake_id,
                     tenant_id=tenant_id,
                     formula_ids=supported_formula_ids,
                 )
@@ -87,7 +94,12 @@ def build_report(
 ) -> dict:
     has_rows = profile["rows"] > 1 and profile["columns"] > 0
     has_columns = has_operational_columns(profile["headers"])
-    structured_summary = build_structured_summary(path, tenant_id, formula_ids=formula_ids)
+    structured_summary = build_structured_summary(
+        path,
+        tenant_id,
+        intake_id=intake_id,
+        formula_ids=formula_ids,
+    )
     missing = []
     questions = []
     if not has_rows:
@@ -147,6 +159,7 @@ def build_markdown(
     if structured_summary["status"] == "available":
         lines.append(f"- Variables computables: {structured_summary['computed_variables_count']}")
         lines.append(f"- Tablas estructuradas: {structured_summary['tables_count']}")
+        lines.append(f"- Case ID: {structured_summary['case_id']}")
         if structured_summary["sufficiency"] or structured_summary["unsupported_formula_ids"]:
             lines.append("")
             lines.append("## Suficiencia de evidencia")

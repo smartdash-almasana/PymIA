@@ -88,6 +88,7 @@ def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(c
     out = capsys.readouterr().out
     assert rc == 0
     assert "## Suficiencia de evidencia" in out
+    assert "Case ID: intake_cli_local" in out
     assert "PYME_033_concentracion_sku" in out
     assert "READY" in out or "MISSING_INPUTS" in out
     assert "no diagnostica" in out.lower()
@@ -135,6 +136,7 @@ def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
     assert "## Evidencia usada" in text
     assert "Tenant: tenant_demo_001" in text
     assert "Intake: intake_demo_001" in text
+    assert "Case ID: intake_demo_001" in text
 
 
 def test_vertical_slice_cli_rejects_missing_excel(tmp_path: Path):
