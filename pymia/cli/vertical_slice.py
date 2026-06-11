@@ -41,6 +41,15 @@ def calculate_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _write_jsonl_line(target: Path, payload: dict) -> Path:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    import json
+
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n")
+    return target
+
+
 def register_evidence_record(path: Path, tenant_id: str, intake_id: str, storage_dir: Path) -> dict:
     from pymia.smartpyme.evidence import (
         EVIDENCE_STATUS_REGISTERED,
@@ -64,6 +73,44 @@ def register_evidence_record(path: Path, tenant_id: str, intake_id: str, storage
     )
     save_evidence_record(tenant_id, record, base_dir=storage_dir)
     return record.to_dict()
+
+
+def register_pipeline_run_record(
+    *,
+    tenant_id: str,
+    intake_id: str,
+    message: str,
+    evidence_record: dict,
+    structured_summary: dict,
+    blocked: bool,
+    storage_dir: Path,
+) -> dict:
+    from pymia.contracts.pipeline_run_v1 import build_pipeline_run_record
+
+    output_payload = {
+        "tenant_id": tenant_id,
+        "intake_id": intake_id,
+        "evidence_id": evidence_record["evidence_id"],
+        "structured_evidence_status": structured_summary["status"],
+        "blocked": blocked,
+    }
+    record = build_pipeline_run_record(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        message=message,
+        evidence_ids=[evidence_record["evidence_id"]],
+        status="BLOCKED" if blocked else "COMPLETED",
+        output_payload=output_payload,
+        steps_executed=[
+            "evidence_record_registered",
+            "structured_evidence_built",
+            "evidence_sufficiency_checked",
+            "owner_facing_report_built",
+        ],
+    )
+    payload = record.model_dump(mode="json")
+    _write_jsonl_line(storage_dir / tenant_id / "pipeline_runs.jsonl", payload)
+    return payload
 
 
 def build_structured_summary(
@@ -129,11 +176,12 @@ def build_report(
 ) -> dict:
     has_rows = profile["rows"] > 1 and profile["columns"] > 0
     has_columns = has_operational_columns(profile["headers"])
+    actual_storage_dir = storage_dir or Path(".tmp/vertical_slice_storage")
     evidence_record = register_evidence_record(
         path,
         tenant_id,
         intake_id,
-        storage_dir or Path(".tmp/vertical_slice_storage"),
+        actual_storage_dir,
     )
     structured_summary = build_structured_summary(
         path,
@@ -156,7 +204,17 @@ def build_report(
         render_contract={"tenant_id": tenant_id, "summary": summary, "blocked_message": summary if blocked else "", "next_questions": questions, "next_steps": ["Revisar con el dueño antes de diagnosticar."], "references": [str(path)], "forbidden_inferences": ["No inferir diagnóstico desde nombres de columnas."]},
         delivery_package={"tenant_id": tenant_id, "intake_id": intake_id, "status": "BLOCKED" if blocked else "DELIVERED", "summary": summary, "output_refs": ["stdout"], "warnings": ["Slice local; no es canal productivo."]},
     ).to_dict()
+    pipeline_run_record = register_pipeline_run_record(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        message=message,
+        evidence_record=evidence_record,
+        structured_summary=structured_summary,
+        blocked=blocked,
+        storage_dir=actual_storage_dir,
+    )
     report["evidence_record"] = evidence_record
+    report["pipeline_run_record"] = pipeline_run_record
     report["structured_evidence_summary"] = structured_summary
     return report
 
@@ -189,6 +247,7 @@ def build_markdown(
         f"Intake: {report['intake_id']}",
         f"Evidence ID: {report['evidence_record']['evidence_id']}",
         f"Evidence SHA-256: {report['evidence_record']['content_hash']}",
+        f"Run ID: {report['pipeline_run_record']['run_id']}",
         f"Hoja: {profile['sheet']}",
         f"Filas: {profile['rows']}",
         f"Columnas: {profile['columns']}",
