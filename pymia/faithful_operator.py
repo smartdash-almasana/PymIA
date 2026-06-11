@@ -89,6 +89,129 @@ def handle_owner_message(
     )
 
 
+def _load_pathology_names() -> dict[str, str]:
+    import json
+    catalog_path = Path(__file__).resolve().parent.parent / "docs" / "pathology_catalog.v1.json"
+    if catalog_path.exists():
+        try:
+            data = json.loads(catalog_path.read_text(encoding="utf-8"))
+            return {
+                p["pathology_code"]: p["name"]
+                for p in data.get("pathologies", [])
+                if isinstance(p, dict) and "pathology_code" in p and "name" in p
+            }
+        except Exception:
+            pass
+    return {}
+
+
+def _humanize_variable(var_name: str) -> str:
+    if var_name == "impuestos_y_comisiones":
+        return "impuestos y comisiones"
+    if var_name == "ventas_por_sku":
+        return "ventas por producto/SKU"
+    return var_name.replace("_", " ")
+
+
+def _humanize_question(question_text: str, pathology_code: str, pathology_name: str, missing_vars: list[str]) -> str:
+    human_q = question_text.replace(pathology_code, pathology_name)
+    for var in missing_vars:
+        human_q = human_q.replace(var, _humanize_variable(var))
+    return human_q
+
+
+def build_owner_facing_catalog_reconciliation_summary(catalog_reconciliation: list[dict]) -> str:
+    if not catalog_reconciliation:
+        return "¿Estas columnas representan realmente ventas, costos, productos y período del proceso que querés revisar?"
+
+    pathology_names = _load_pathology_names()
+    status_priority = ["blocked", "pending_data", "candidate", "calculable", "not_applicable"]
+
+    def _sort_key(entry: dict) -> int:
+        status = entry.get("status", "not_applicable")
+        try:
+            return status_priority.index(status)
+        except ValueError:
+            return len(status_priority)
+
+    sorted_entries = sorted(catalog_reconciliation, key=_sort_key)
+
+    # General status determined by the highest priority non-not_applicable status
+    general_entry = None
+    for entry in sorted_entries:
+        if entry.get("status") != "not_applicable":
+            general_entry = entry
+            break
+    if not general_entry:
+        general_entry = sorted_entries[0]
+
+    general_status = general_entry.get("status", "not_applicable")
+    status_messages = {
+        "blocked": "No conviene avanzar sin resolver un bloqueo de evidencia.",
+        "pending_data": "Hay señales parciales, pero falta evidencia para evaluar bien.",
+        "candidate": "Hay una hipótesis posible, todavía no calculable.",
+        "calculable": "Hay datos suficientes para calcular un indicador candidato, pero requiere confirmación del dueño.",
+        "not_applicable": "No mostrar salvo que no haya otras entradas."
+    }
+
+    general_status_text = status_messages.get(general_status, "Estado de reconciliación no disponible.")
+
+    # Limit to maximum 3 entries, preferring non-not_applicable ones
+    visible_entries = [e for e in sorted_entries if e.get("status") != "not_applicable"]
+    if not visible_entries:
+        visible_entries = sorted_entries
+    visible_entries = visible_entries[:3]
+
+    lines = []
+    lines.append(f"Estado general: {general_status_text}")
+    lines.append("")
+    lines.append("Temas a revisar:")
+
+    all_missing_evidence = []
+    final_question = None
+
+    for entry in visible_entries:
+        p_code = entry.get("pathology_code", "unknown")
+        p_name = pathology_names.get(p_code, p_code.replace("_", " ").title())
+        entry_status = entry.get("status", "not_applicable")
+        entry_status_text = status_messages.get(entry_status, "Estado no disponible")
+        
+        # Don't expose pathology_code or formula_id in theme lines
+        lines.append(f"- {p_name}: {entry_status_text}")
+
+        # Gather missing evidence and humanize them
+        missing_ev = entry.get("missing_evidence", [])
+        for ev in missing_ev:
+            human_ev = _humanize_variable(ev)
+            if human_ev not in all_missing_evidence:
+                all_missing_evidence.append(human_ev)
+
+        # Get next audit question if we don't have one yet
+        if not final_question:
+            next_qs = entry.get("next_audit_questions", [])
+            if next_qs and isinstance(next_qs, list):
+                q_dict = next_qs[0]
+                if isinstance(q_dict, dict) and "question" in q_dict:
+                    raw_q = q_dict["question"]
+                    final_question = _humanize_question(raw_q, p_code, p_name, missing_ev)
+
+    lines.append("")
+    if all_missing_evidence:
+        lines.append(f"Evidencia faltante prioritaria: {', '.join(all_missing_evidence)}.")
+        lines.append("")
+
+    if not final_question:
+        if general_status == "calculable":
+            final_question = "¿Confirmás que los valores calculados son correctos para avanzar al diagnóstico final?"
+        else:
+            final_question = "¿Podés compartir la información faltante para continuar con la evaluación?"
+
+    lines.append(f"Próxima pregunta: {final_question}")
+    lines.append("Límite: Este reporte es una síntesis de reconciliación inicial. No representa un diagnóstico operativo definitivo ni una verdad final sin confirmación.")
+
+    return "\n".join(lines)
+
+
 def receive_excel_and_build_candidate(
     state: OperatorState,
     excel_path: Path | str,
@@ -128,7 +251,12 @@ def receive_excel_and_build_candidate(
     reconciled_count = len(catalog_reconciliation)
 
     limit = "Resultado candidato: no declara verdad final sin confirmación del dueño."
-    next_question = "¿Estas columnas representan realmente ventas, costos, productos y período del proceso que querés revisar?"
+    
+    if catalog_reconciliation:
+        next_question = build_owner_facing_catalog_reconciliation_summary(catalog_reconciliation)
+    else:
+        next_question = "¿Estas columnas representan realmente ventas, costos, productos y período del proceso que querés revisar?"
+
     candidate_response = (
         f"Estado: {pipeline['status']}\n"
         f"Evidence ID: {pipeline['evidence_id']}\n"
