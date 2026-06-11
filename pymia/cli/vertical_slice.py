@@ -238,6 +238,10 @@ def build_markdown(
         formula_ids=formula_ids,
         storage_dir=storage_dir,
     )
+    return render_markdown_from_report(path, message, profile, report)
+
+
+def render_markdown_from_report(path: Path, message: str, profile: dict, report: dict) -> str:
     lines = [
         "# Reporte owner-facing local",
         f"Estado: {report['status']}",
@@ -298,6 +302,43 @@ def build_markdown(
     return "\n".join(lines) + "\n"
 
 
+def build_pipeline(
+    path: Path,
+    message: str,
+    *,
+    tenant_id: str = "tenant_cli_local",
+    intake_id: str = "intake_cli_local",
+    formula_ids: list[str] | None = None,
+    storage_dir: Path | None = None,
+) -> dict:
+    profile = inspect_excel(path)
+    report = build_report(
+        path,
+        message,
+        profile,
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        formula_ids=formula_ids,
+        storage_dir=storage_dir,
+    )
+    markdown = render_markdown_from_report(path, message, profile, report)
+    evidence_record = report["evidence_record"]
+    pipeline_run_record = report["pipeline_run_record"]
+    return {
+        "status": report["status"],
+        "profile": profile,
+        "report": report,
+        "markdown": markdown,
+        "evidence_id": evidence_record["evidence_id"],
+        "evidence_hash": evidence_record["content_hash"],
+        "run_id": pipeline_run_record["run_id"],
+        "output_hash": pipeline_run_record["output_hash"],
+        "missing_evidence": report["missing_evidence"],
+        "next_questions": report["next_questions"],
+        "structured_summary": report["structured_evidence_summary"],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--excel", required=True)
@@ -311,15 +352,15 @@ def main(argv: list[str] | None = None) -> int:
     path = Path(args.excel)
     if not path.exists():
         raise FileNotFoundError(path)
-    markdown = build_markdown(
+    pipeline = build_pipeline(
         path,
         args.message,
-        inspect_excel(path),
         tenant_id=args.tenant_id,
         intake_id=args.intake_id,
         formula_ids=args.formula_id,
         storage_dir=Path(args.storage_dir),
     )
+    markdown = pipeline["markdown"]
     if args.output:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
