@@ -74,6 +74,25 @@ def test_vertical_slice_cli_uses_real_textile_fixture(capsys):
     assert "no diagnostica" in out.lower()
 
 
+def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(capsys):
+    fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
+    assert fixture.exists()
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil y no me cierra la caja",
+        "--formula-id",
+        "PYME_033_concentracion_sku",
+    ])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "## Suficiencia de evidencia" in out
+    assert "PYME_033_concentracion_sku" in out
+    assert "READY" in out or "MISSING_INPUTS" in out
+    assert "no diagnostica" in out.lower()
+
+
 def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
     excel = tmp_path / "caso.xlsx"
     output = tmp_path / "salida" / "reporte.md"

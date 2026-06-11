@@ -32,23 +32,37 @@ def has_operational_columns(headers: list[str]) -> bool:
     return any(term in joined for term in OPERATIONAL_TERMS)
 
 
-def build_structured_summary(path: Path, tenant_id: str) -> dict:
+def build_structured_summary(path: Path, tenant_id: str, formula_ids: list[str] | None = None) -> dict:
     try:
         from pymia.smartpyme.structured_evidence_builder import build_structured_evidence_context
 
+        formula_ids = formula_ids or []
         payload = build_structured_evidence_context(
             excel_path=path,
             tenant_id=tenant_id,
-            intake_record={"evidence_requests": []},
+            intake_record={"evidence_requests": [{"formula_ids": formula_ids}]},
         )
         evidence = payload["structured_evidence"]
         computed = evidence.get("computed_variables") or {}
         tables = evidence.get("tables") or []
-        return {
+        summary = {
             "status": "available",
             "computed_variables_count": len(computed),
             "tables_count": len(tables),
+            "sufficiency": [],
         }
+        if formula_ids:
+            from pymia.contracts.evidence_v1 import StructuredEvidence
+            from pymia.diagnostic_core.evidence_sufficiency import build_evidence_sufficiency_report_from_structured_evidence
+
+            sufficiency = build_evidence_sufficiency_report_from_structured_evidence(
+                StructuredEvidence.model_validate(evidence),
+                case_id="intake_cli_local",
+                tenant_id=tenant_id,
+                formula_ids=formula_ids,
+            )
+            summary["sufficiency"] = [item.model_dump(mode="json") for item in sufficiency]
+        return summary
     except Exception as exc:
         return {
             "status": "unavailable",
@@ -63,10 +77,11 @@ def build_report(
     *,
     tenant_id: str = "tenant_cli_local",
     intake_id: str = "intake_cli_local",
+    formula_ids: list[str] | None = None,
 ) -> dict:
     has_rows = profile["rows"] > 1 and profile["columns"] > 0
     has_columns = has_operational_columns(profile["headers"])
-    structured_summary = build_structured_summary(path, tenant_id)
+    structured_summary = build_structured_summary(path, tenant_id, formula_ids=formula_ids)
     missing = []
     questions = []
     if not has_rows:
@@ -93,8 +108,9 @@ def build_markdown(
     *,
     tenant_id: str = "tenant_cli_local",
     intake_id: str = "intake_cli_local",
+    formula_ids: list[str] | None = None,
 ) -> str:
-    report = build_report(path, message, profile, tenant_id=tenant_id, intake_id=intake_id)
+    report = build_report(path, message, profile, tenant_id=tenant_id, intake_id=intake_id, formula_ids=formula_ids)
     lines = [
         "# Reporte owner-facing local",
         f"Estado: {report['status']}",
@@ -125,6 +141,13 @@ def build_markdown(
     if structured_summary["status"] == "available":
         lines.append(f"- Variables computables: {structured_summary['computed_variables_count']}")
         lines.append(f"- Tablas estructuradas: {structured_summary['tables_count']}")
+        if structured_summary["sufficiency"]:
+            lines.append("")
+            lines.append("## Suficiencia de evidencia")
+            for item in structured_summary["sufficiency"]:
+                lines.append(f"- {item['formula_id']}: {item['status']}")
+                if item["missing_variables"]:
+                    lines.append(f"  - Faltan: {', '.join(item['missing_variables'])}")
     else:
         lines.append(f"- Motivo: {structured_summary['reason']}")
     lines.append("")
@@ -149,6 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output")
     parser.add_argument("--tenant-id", default="tenant_cli_local")
     parser.add_argument("--intake-id", default="intake_cli_local")
+    parser.add_argument("--formula-id", action="append", default=[])
     args = parser.parse_args(argv)
     path = Path(args.excel)
     if not path.exists():
@@ -159,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         inspect_excel(path),
         tenant_id=args.tenant_id,
         intake_id=args.intake_id,
+        formula_ids=args.formula_id,
     )
     if args.output:
         output_path = Path(args.output)
