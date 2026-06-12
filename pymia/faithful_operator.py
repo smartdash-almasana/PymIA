@@ -311,6 +311,81 @@ def handle_owner_confirmation(
 
     base_update = {"owner_confirmation_message": owner_reply}
 
+    # Handle C3 behavior when catalog_reconciliation is present
+    if state.catalog_reconciliation:
+        if new_evidence_path is not None:
+            return state.model_copy(
+                update={
+                    **base_update,
+                    "current_state": OperatorPhase.EVIDENCE_REQUESTED,
+                    "owner_confirmation_status": "catalog_summary_correction_requested",
+                    "evidence_path": str(new_evidence_path),
+                    "next_question": "Recibí nueva evidencia. Necesito reprocesarla antes de sostener el resultado candidato.",
+                    "blocked_reason": None,
+                }
+            )
+
+        # C3 Markers
+        confirmation_markers = ["sí", "si", "correcto", "representa", "confirmo", "está bien", "esta bien", "ok"]
+        
+        # Combined correction and new evidence markers for C3
+        correction_markers = [
+            "está mal", "esta mal", "no representa", "corregir", "mezcla", "faltan datos", 
+            "eso no es así", "eso no es asi", "faltó", "falto", "te paso otro archivo", 
+            "nueva evidencia", "hay otra planilla", "falta cargar"
+        ]
+        
+        uncertainty_markers = ["no sé", "no se", "no estoy seguro", "no estoy segura", "ni idea", "dudo"]
+
+        # Check uncertainty
+        if any(marker in reply for marker in uncertainty_markers):
+            return state.model_copy(
+                update={
+                    **base_update,
+                    "current_state": OperatorPhase.BLOCKED,
+                    "owner_confirmation_status": "catalog_summary_owner_uncertain",
+                    "blocked_reason": "owner_uncertain_about_catalog_summary",
+                    "next_question": "No cierro el resultado como confirmado. Necesito validación del dueño o evidencia adicional.",
+                }
+            )
+
+        # Check correction / new evidence
+        if any(marker in reply for marker in correction_markers):
+            return state.model_copy(
+                update={
+                    **base_update,
+                    "current_state": OperatorPhase.EVIDENCE_REQUESTED,
+                    "owner_confirmation_status": "catalog_summary_correction_requested",
+                    "evidence_requested": ["ventas", "costos", "productos", "periodo", "correccion_semantica"],
+                    "next_question": "Entendido. No cierro el resultado. Necesito la corrección concreta o nueva evidencia.",
+                    "blocked_reason": None,
+                }
+            )
+
+        # Check confirmation
+        if any(marker in reply for marker in confirmation_markers):
+            return state.model_copy(
+                update={
+                    **base_update,
+                    "current_state": OperatorPhase.CLOSED,
+                    "owner_confirmation_status": "catalog_summary_confirmed",
+                    "next_question": "Síntesis de reconciliación confirmada por el dueño. No se declara diagnóstico final automático.",
+                    "blocked_reason": None,
+                }
+            )
+
+        # Unclear fallback
+        return state.model_copy(
+            update={
+                **base_update,
+                "current_state": OperatorPhase.BLOCKED,
+                "owner_confirmation_status": "catalog_summary_unclear_confirmation",
+                "blocked_reason": "unclear_catalog_summary_confirmation",
+                "next_question": "Necesito una confirmación clara, una corrección concreta o nueva evidencia para continuar.",
+            }
+        )
+
+    # Standard (C1/C2) behavior when catalog_reconciliation is empty or missing
     if new_evidence_path is not None:
         return state.model_copy(
             update={
