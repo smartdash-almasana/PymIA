@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints
+
+# pytest / temporales
+.pytest_cache/
+.tmp/
+vertical_slice_storage/
+
+# Entornos virtuales
+.venv/
+venv/
+ENV/
+
+# Construcción
+build/
+dist/
+*.egg-info/

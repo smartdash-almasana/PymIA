@@ -1,0 +1,132 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+
+def _safe_join(base_dir: Path, tenant_id: str) -> Path:
+    if not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+    if ".." in tenant_id or "/" in tenant_id or "\\" in tenant_id:
+        raise ValueError("tenant_id contains invalid path traversal markers")
+    target = (base_dir / tenant_id).resolve()
+    base = base_dir.resolve()
+    if base not in target.parents and target != base:
+        raise ValueError("resolved path escapes base_dir")
+    return target
+
+
+def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Path]:
+    base = Path(base_dir).resolve()
+    tenant_root = _safe_join(base, tenant_id)
+    evidence_dir = tenant_root / "evidence"
+    reports_dir = tenant_root / "reports"
+    results_dir = tenant_root / "results"
+    receptions_jsonl = tenant_root / "receptions.jsonl"
+    intakes_jsonl = tenant_root / "intakes.jsonl"
+    evidences_jsonl = tenant_root / "evidences.jsonl"
+    for d in (tenant_root, evidence_dir, reports_dir, results_dir):
+        d.mkdir(parents=True, exist_ok=True)
+    for jsonl in (receptions_jsonl, intakes_jsonl, evidences_jsonl):
+        if not jsonl.exists():
+            jsonl.write_text("", encoding="utf-8")
+    return {
+        "tenant_root": tenant_root,
+        "evidence_dir": evidence_dir,
+        "reports_dir": reports_dir,
+        "results_dir": results_dir,
+        "receptions_jsonl": receptions_jsonl,
+        "intakes_jsonl": intakes_jsonl,
+        "evidences_jsonl": evidences_jsonl,
+    }
+
+
+def _write_jsonl_line(target: Path, payload: dict[str, Any]) -> Path:
+    line = json.dumps(payload, ensure_ascii=False)
+    with target.open("a", encoding="utf-8") as fh:
+        fh.write(line + "\n")
+    return target
+
+
+def save_evidence_record(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    """Persiste un EvidenceRecord o dict en <base_dir>/<tenant_id>/evidences.jsonl.
+
+    Contrato aprobado:
+        save_evidence_record(tenant_id, record, *, base_dir=None) -> Path
+    """
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+
+    if base_dir is None:
+        raise ValueError("base_dir is required")
+
+    # Convertir record a dict
+    if hasattr(record, "to_dict") and callable(record.to_dict):
+        record_dict = record.to_dict()
+    elif isinstance(record, dict):
+        record_dict = record.copy()
+    else:
+        raise ValueError("record must be EvidenceRecord or dict")
+
+    # Validar tenant_id en record
+    if "tenant_id" not in record_dict:
+        raise ValueError("record missing tenant_id field")
+    if record_dict["tenant_id"] != tenant_id:
+        raise ValueError(
+            f"record tenant_id ({record_dict['tenant_id']}) does not match "
+            f"argument tenant_id ({tenant_id})"
+        )
+
+    # Validar campos core requeridos
+    required_fields = [
+        "evidence_id",
+        "tenant_id",
+        "intake_id",
+        "request_id",
+        "evidence_type",
+        "source_kind",
+        "source_ref",
+        "original_filename",
+        "mime_type",
+        "size_bytes",
+        "content_hash",
+        "status",
+        "received_at",
+        "notes",
+        "metadata",
+    ]
+    for field in required_fields:
+        if field not in record_dict:
+            raise ValueError(f"record missing required field: {field}")
+
+    # Validar tipos de campos core
+    if not isinstance(record_dict["notes"], list):
+        raise ValueError("field notes must be list")
+    if not isinstance(record_dict["metadata"], dict):
+        raise ValueError("field metadata must be dict")
+
+    if record_dict["size_bytes"] is not None:
+        if not isinstance(record_dict["size_bytes"], int) or isinstance(
+            record_dict["size_bytes"], bool
+        ):
+            raise ValueError("field size_bytes must be int or None")
+
+    nullable_str_fields = [
+        "request_id",
+        "original_filename",
+        "mime_type",
+        "content_hash",
+    ]
+    for field in nullable_str_fields:
+        if record_dict[field] is not None and not isinstance(record_dict[field], str):
+            raise ValueError(f"field {field} must be str or None")
+
+    # Escribir JSONL
+    paths = ensure_tenant_storage(base_dir, tenant_id)
+    return _write_jsonl_line(paths["evidences_jsonl"], record_dict)
