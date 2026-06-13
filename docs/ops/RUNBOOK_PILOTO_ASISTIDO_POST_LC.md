@@ -95,6 +95,22 @@ El piloto se considera PASS si el output markdown contiene:
 - Tomar nota de correcciones del dueño (columnas malinterpretadas, datos faltantes, etc.)
 - Ejecutar el comando nuevamente si el dueño corrige el Excel
 
+### Regla transitoria de reconducción humana
+
+Si la próxima pregunta automática no mantiene alineación directa con el síntoma dominante declarado por el dueño, el operador debe reencuadrar la conversación al eje principal antes de seguir el faltante sugerido por catálogo.
+
+Ejemplo operativo:
+
+- Síntoma dominante: caja / liquidez
+- Pregunta automática: reposición de stock
+- Acción del operador: reconocer la pregunta automática como dato útil, pero volver primero a caja, cobranzas, pagos, saldo disponible o brecha de liquidez
+
+Esta regla es transitoria y operativa.
+
+No invalida el resultado técnico del vertical slice.
+
+Debe registrarse como gap futuro de priorización conversacional.
+
 ### Qué NO debe hacer el operador
 
 - Decir "el diagnóstico es..." o "el problema es..."
