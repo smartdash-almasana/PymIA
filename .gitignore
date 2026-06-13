@@ -18,3 +18,4 @@ docs/mermaid/
 
 # pytest temp artifacts
 .tmp_pytest_*
+docs/pymia/infografia_pymia.html
