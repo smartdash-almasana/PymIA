@@ -43,7 +43,7 @@ def test_text_message_still_passes_through():
     )
 
     assert exit_code == 0
-    assert stdout == RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
+    assert stdout == "vendo mucho pero no se si gano plata"
     assert stderr is None
 
 

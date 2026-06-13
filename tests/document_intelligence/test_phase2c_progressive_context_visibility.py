@@ -3,7 +3,7 @@
 from pymia.document_intelligence import BusinessIdentity, TenantClinicalContext
 from pymia.interfaces.conversational_port import ClinicalConversationalPort, ConversationalInput
 from pymia.services.initial_laboratory_anamnesis_service import InitialLaboratoryAnamnesisService
-from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY
+from tests.fixtures.owner_claims import RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY, RAW_OWNER_CLAIM_STOCK_MISMATCH
 
 
 def _explicit_tenant_context() -> TenantClinicalContext:

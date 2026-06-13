@@ -86,20 +86,22 @@ def test_canonical_case_message_is_present(canonical_output: ConversationalOutpu
 
 
 def test_canonical_case_message_contains_symptom(canonical_output: ConversationalOutput):
-    """El mensaje debe registrar el síntoma declarado por el dueño."""
-    assert "Lectura operativa preliminar" in canonical_output.message
+    """El mensaje debe registrar la señal económico-operacional del dueño."""
+    assert "Señal económico-operacional registrada" in canonical_output.message
     assert "Registré este síntoma operacional" not in canonical_output.message
     assert "Entiendo la señal" not in canonical_output.message
 
 
 def test_canonical_case_message_contains_primary_hypothesis(canonical_output: ConversationalOutput):
-    """El mensaje debe contener la hipótesis prioritaria."""
-    assert "Hipótesis inicial prioritaria" in canonical_output.message
+    """El mensaje debe declarar hipótesis abierta sin diagnóstico confirmado."""
+    assert "hipótesis abierta" in canonical_output.message
+    assert "sin diagnóstico confirmado" in canonical_output.message
 
 
 def test_canonical_case_message_contains_evidence_request(canonical_output: ConversationalOutput):
-    """El mensaje debe solicitar evidencia para validar las hipótesis."""
-    assert "Para confirmar o refutar estas hipótesis necesito" in canonical_output.message
+    """El mensaje debe enunciar el objetivo del contraste y la evidencia requerida."""
+    assert "Objetivo del contraste" in canonical_output.message
+    assert "evidencia requerida" in canonical_output.message
 
 
 # ---------------------------------------------------------------------------

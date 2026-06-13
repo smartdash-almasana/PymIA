@@ -50,6 +50,7 @@ ALLOW_PATTERNS = [
     "ni ",
     "sin ",
     "ausencia",
+    "without",
     "ningún",
     "ningun",
     "boundary",

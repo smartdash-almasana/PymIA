@@ -88,7 +88,8 @@ def test_bridge_blocks_when_missing_inputs_and_projects_state(tmp_path):
         for item in bundle.owner_questions_bundle["questions"]
     )
     assert any(
-        item["reason"] == "next_question" and item["question_text"] == "dias_periodo"
+        item["reason"] == "missing_evidence"
+        and item["question_text"] == "¿Cuál es la cantidad de días del período analizado?"
         for item in bundle.owner_questions_bundle["questions"]
     )
     assert any(
@@ -100,7 +101,6 @@ def test_bridge_blocks_when_missing_inputs_and_projects_state(tmp_path):
     assert bundle.owner_facing_report["missing_evidence"] == ["dias_periodo"]
     assert bundle.render_contract["next_questions"] == [
         "¿Cuál es la cantidad de días del período analizado?",
-        "dias_periodo",
         "El caso está bloqueado. ¿Podés aportar la evidencia o aclaración necesaria para destrabarlo?",
     ]
     assert bundle.render_contract["blocked_message"] == (

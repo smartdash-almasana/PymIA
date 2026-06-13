@@ -96,20 +96,22 @@ def test_canonical_reply_text_is_present(canonical_output: HermesOutput):
 
 
 def test_canonical_reply_text_contains_symptom(canonical_output: HermesOutput):
-    """reply_text debe registrar el síntoma declarado por el dueño."""
-    assert "Lectura operativa preliminar" in canonical_output.reply_text
+    """reply_text debe registrar la señal económico-operacional del dueño."""
+    assert "Señal económico-operacional registrada" in canonical_output.reply_text
     assert "Registré este síntoma operacional" not in canonical_output.reply_text
     assert "Entiendo la señal" not in canonical_output.reply_text
 
 
 def test_canonical_reply_text_contains_hypothesis(canonical_output: HermesOutput):
-    """reply_text debe contener la hipótesis prioritaria."""
-    assert "Hipótesis inicial prioritaria" in canonical_output.reply_text
+    """reply_text debe declarar hipótesis abierta sin diagnóstico confirmado."""
+    assert "hipótesis abierta" in canonical_output.reply_text
+    assert "sin diagnóstico confirmado" in canonical_output.reply_text
 
 
 def test_canonical_reply_text_contains_evidence_request(canonical_output: HermesOutput):
-    """reply_text debe solicitar evidencia para validar las hipótesis."""
-    assert "Para confirmar o refutar estas hipótesis necesito" in canonical_output.reply_text
+    """reply_text debe enunciar el objetivo del contraste y la evidencia requerida."""
+    assert "Objetivo del contraste" in canonical_output.reply_text
+    assert "evidencia requerida" in canonical_output.reply_text
 
 
 # ---------------------------------------------------------------------------
