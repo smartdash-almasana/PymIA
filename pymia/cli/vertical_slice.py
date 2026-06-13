@@ -6,10 +6,160 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+from pymia.contracts.language_corpus_v1 import load_language_corpus_seed, owner_label_for_variable_id
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
 
 
 OPERATIONAL_TERMS = ("venta", "precio", "costo", "producto", "sku", "cantidad", "fecha")
+
+# Presentation-layer mappings for owner-friendly language (not core business logic)
+_PATHOLOGY_LABELS: dict[str, str] = {
+    "LIQ_001": "cobranza de ventas",
+    "LIQ_002": "saldo de caja proyectado",
+    "INV_001": "reposición de stock",
+    "INV_002": "rotación de stock",
+    "REN_001": "margen neto",
+    "REN_002": "reposición de precios",
+    "OPE_001": "centralización de decisiones",
+    "PYME_004": "ajuste por inflación",
+    "PYME_007": "deriva de reputación",
+    "PYME_008": "control de stock",
+    "PYME_009": "discrepancias en ARCA",
+    "PYME_011": "plazo de cobranza",
+    "PYME_012": "retraso en impuestos",
+    "PYME_013": "brecha de pagos",
+    "PYME_014": "composición del margen",
+    "PYME_015": "conciliación bancaria",
+    "PYME_017": "desviación de precios",
+    "PYME_018": "actualización de datos",
+    "PYME_019": "visibilidad de decisiones",
+    "PYME_020": "carga operativa",
+    "PYME_021": "seguridad de procesos",
+    "PYME_022": "dispersión de datos",
+    "PYME_023": "costos logísticos",
+    "PYME_024": "liquidez corriente",
+    "PYME_025": "dependencia de crédito",
+    "PYME_026": "flujo operativo",
+    "PYME_027": "carga financiera",
+    "PYME_028": "fondo de emergencia",
+    "PYME_029": "gestión de ventas",
+    "PYME_030": "ventana de despacho",
+    "PYME_031": "comunicación con clientes",
+    "PYME_032": "reclamos de clientes",
+    "PYME_033": "concentración de productos",
+    "PYME_034": "cancelaciones",
+    "PYME_035": "consistencia fiscal",
+    "PYME_036": "conexión con sistemas",
+    "PYME_037": "clasificación en IVA",
+    "PYME_038": "control de versiones",
+    "PYME_039": "recategorización",
+    "PYME_040": "gestión de tareas",
+    "PYME_041": "liquidación de sueldos",
+    "PYME_042": "conexión e-commerce",
+    "PYME_043": "carga laboral",
+    "PYME_044": "margen por cliente",
+    "PYME_045": "uso de IVA",
+    "PYME_046": "separación de finanzas",
+    "PYME_047": "automatización de procesos",
+    "PYME_048": "actualización de precios",
+    "PYME_049": "rentabilidad real",
+    "PYME_050": "organización general",
+}
+
+_FIELD_LABELS: dict[str, str] = {
+    "historial_ventas_sku": "historial de ventas por producto",
+    "lead_time_proveedor": "tiempos de reposición de proveedores",
+    "politica_stock_seguridad": "política de stock de seguridad",
+    "ventas_del_periodo": "ventas del período",
+    "cobranzas_del_periodo": "cobranzas del período",
+    "cuentas_corrientes_clientes": "estado de cuentas corrientes",
+    "costos_directos": "costos directos",
+    "impuestos_y_comisiones": "impuestos y comisiones",
+    "indice_origen": "índice de origen",
+    "indice_cierre": "índice de cierre",
+    "fecha_origen": "fecha de origen",
+    "fecha_cierre": "fecha de cierre",
+    "saldo_inicial_caja_banco": "saldo inicial de caja y banco",
+    "cobranzas_esperadas": "cobranzas esperadas",
+    "pagos_esperados": "pagos esperados",
+    "cmv_periodo": "costo de mercadería vendida",
+    "inventario_inicial": "inventario inicial",
+    "inventario_final": "inventario final",
+    "registro_decisiones": "registro de decisiones",
+    "workflow_aprobaciones": "flujo de aprobaciones",
+    "entrevista_dueño": "entrevista con el dueño",
+    "cuentas_por_cobrar": "cuentas por cobrar",
+    "ventas_periodo": "ventas del período",
+    "periodo_dias": "días del período",
+    "dso_calculado": "días de cobranza calculados",
+    "dpo_calculado": "días de pago calculados",
+    "lista_precios_propia": "lista de precios propia",
+    "benchmark_precios_mercado": "precios de referencia del mercado",
+    "balance_general": "balance general",
+    "saldos_activo_corriente": "saldos de activo corriente",
+    "saldos_pasivo_corriente": "saldos de pasivo corriente",
+    "estado_resultados": "estado de resultados",
+    "balance_dos_periodos": "balance de dos períodos",
+    "detalle_intereses": "detalle de intereses",
+    "calculo_ebitda": "cálculo de EBITDA",
+    "ventas_por_sku": "ventas por producto",
+    "ventas_totales": "ventas totales",
+    "ventas_por_cliente": "ventas por cliente",
+    "costos_por_cliente": "costos por cliente",
+    "horas_atencion_cliente": "horas de atención al cliente",
+    "medicion_tiempos_proceso": "medición de tiempos de proceso",
+    "flujo_actual": "flujo de trabajo actual",
+    "flujo_automatizado_estimado": "flujo automatizado estimado",
+    "horas_manual_actuales": "horas manuales actuales",
+    "costo_hora": "costo por hora",
+    "cotizacion_automatizacion": "cotización de automatización",
+    "costo_operacion_anual": "costo de operación anual",
+    "valor_origen": "valor de origen",
+    "cuentas_por_pagar": "cuentas por pagar",
+}
+
+
+def _humanize_field(name: str) -> str:
+    if name in _FIELD_LABELS:
+        return _FIELD_LABELS[name]
+    return name.replace("_", " ").lower()
+
+
+def _owner_label_for_variable(name: str) -> str:
+    corpus = load_language_corpus_seed()
+    label = owner_label_for_variable_id(name, corpus)
+    if label == name:
+        return name
+    return f"{label} ({name})"
+
+
+def _build_owner_question(entry: dict) -> tuple[str | None, str | None]:
+    """Build (owner_question, technical_reference) from a catalog reconciliation entry."""
+    qs = entry.get("next_audit_questions", [])
+    if not qs:
+        return None, None
+    pathology_code = entry.get("pathology_code", "")
+    formula_id = entry.get("formula_id", "")
+    missing = entry.get("missing_evidence", [])
+    pathology_label = _PATHOLOGY_LABELS.get(pathology_code)
+    if not pathology_label:
+        pathology_label = pathology_code.replace("_", " ").lower()
+    humanized_fields = [_humanize_field(f) for f in missing]
+    if humanized_fields:
+        if len(humanized_fields) == 1:
+            field_text = humanized_fields[0]
+        elif len(humanized_fields) == 2:
+            field_text = f"{humanized_fields[0]} y {humanized_fields[1]}"
+        else:
+            field_text = ", ".join(humanized_fields[:-1]) + f" y {humanized_fields[-1]}"
+        owner_q = f"Falta información sobre {pathology_label}. ¿Podés compartir {field_text}?"
+    else:
+        owner_q = f"Falta información sobre {pathology_label} para continuar el análisis."
+    tech_parts = [f"Referencia técnica: {formula_id}"]
+    if missing:
+        tech_parts.append(f"inputs faltantes: {', '.join(missing)}")
+    tech_ref = "; ".join(tech_parts)
+    return owner_q, tech_ref
 
 
 def inspect_excel(path: Path) -> dict:
@@ -138,7 +288,12 @@ def build_structured_summary(
         summary = {
             "status": "available",
             "computed_variables_count": len(computed),
+            "computed_variable_names": sorted(computed.keys()),
             "tables_count": len(tables),
+            "table_sheets": [
+                {"name": t.get("sheet_name", "?"), "columns": len(t.get("columns", [])), "rows": len(t.get("rows", []))}
+                for t in tables
+            ],
             "case_id": intake_id,
             "sufficiency": [],
             "unsupported_formula_ids": [],
@@ -300,8 +455,15 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
     structured_summary = report["structured_evidence_summary"]
     lines.append(f"- Estado: {structured_summary['status']}")
     if structured_summary["status"] == "available":
-        lines.append(f"- Variables computables: {structured_summary['computed_variables_count']}")
+        var_count = structured_summary["computed_variables_count"]
+        var_names = structured_summary.get("computed_variable_names", [])
+        lines.append(f"- Variables computables: {var_count}")
+        for name in var_names:
+            lines.append(f"  - {_owner_label_for_variable(name)}")
+        table_sheets = structured_summary.get("table_sheets", [])
         lines.append(f"- Tablas estructuradas: {structured_summary['tables_count']}")
+        for t in table_sheets:
+            lines.append(f"  - {t['name']} ({t['rows']} filas, {t['columns']} columnas)")
         lines.append(f"- Case ID: {structured_summary['case_id']}")
         if structured_summary["sufficiency"] or structured_summary["unsupported_formula_ids"]:
             lines.append("")
@@ -316,7 +478,21 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         lines.append(f"- Motivo: {structured_summary['reason']}")
     lines.append("")
     lines.append("## Próxima pregunta")
-    if report["next_questions"]:
+    reconciliation = structured_summary.get("catalog_reconciliation") if structured_summary.get("status") == "available" else None
+    owner_question = None
+    tech_reference = None
+    if reconciliation:
+        for entry in reconciliation:
+            owner_q, tech_ref = _build_owner_question(entry)
+            if owner_q:
+                owner_question = owner_q
+                tech_reference = tech_ref
+                break
+    if owner_question:
+        lines.append(f"- {owner_question}")
+        if tech_reference:
+            lines.append(f"  - {tech_reference}")
+    elif report["next_questions"]:
         for question in report["next_questions"]:
             lines.append(f"- {question}")
     else:
