@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any
 
@@ -107,9 +107,41 @@ def create_investigation_record(
     )
 
 
+def derive_investigation_status_from_evidence_request(
+    investigation: InvestigationRecord,
+    evidence_request: dict[str, Any],
+) -> InvestigationRecord:
+    if not isinstance(investigation, InvestigationRecord):
+        raise ValueError("investigation must be an InvestigationRecord")
+    if not isinstance(evidence_request, dict):
+        raise ValueError("evidence_request must be a dict")
+    if evidence_request.get("tenant_id") != investigation.tenant_id:
+        raise ValueError("evidence_request tenant_id does not match investigation")
+    if evidence_request.get("intake_id") != investigation.intake_id:
+        raise ValueError("evidence_request intake_id does not match investigation")
+    if evidence_request.get("investigation_id") != investigation.investigation_id:
+        raise ValueError("evidence_request investigation_id does not match investigation")
+
+    request_status = evidence_request.get("status")
+    if request_status == "FULFILLED":
+        next_status = INVESTIGATION_STATUS_READY_FOR_CONTRAST
+    elif request_status in {"OPEN", "WAITING_UPLOAD"}:
+        next_status = INVESTIGATION_STATUS_WAITING_EVIDENCE
+    elif request_status in {"CANCELLED", "BLOCKED"}:
+        next_status = INVESTIGATION_STATUS_BLOCKED
+    else:
+        raise ValueError("evidence_request status is not supported")
+
+    metadata = dict(investigation.metadata)
+    metadata["evidence_request_id"] = evidence_request.get("request_id")
+    metadata["evidence_request_status"] = request_status
+    return replace(investigation, status=next_status, metadata=metadata)
+
+
 __all__ = [
     "InvestigationRecord",
     "create_investigation_record",
+    "derive_investigation_status_from_evidence_request",
     "INVESTIGATION_STATUS_OPEN",
     "INVESTIGATION_STATUS_WAITING_EVIDENCE",
     "INVESTIGATION_STATUS_READY_FOR_CONTRAST",
