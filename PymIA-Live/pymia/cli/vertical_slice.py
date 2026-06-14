@@ -176,6 +176,64 @@ def _requested_evidence_from_report(report: dict) -> list[str]:
     return requested
 
 
+def _serializable_diagnostic_pipeline_result(result) -> dict:
+    return {
+        "core_input": result.core_input.model_dump(mode="json"),
+        "gate_decisions": [item.model_dump(mode="json") for item in result.gate_decisions],
+        "formula_results": [item.model_dump(mode="json") for item in result.formula_results],
+        "pathology_findings": [item.model_dump(mode="json") for item in result.pathology_findings],
+        "finding_records": [item.model_dump(mode="json") for item in result.finding_records],
+        "report": result.report.model_dump(mode="json") if result.report else None,
+    }
+
+
+def _diagnostic_pipeline_result_for_report(
+    *,
+    path: Path,
+    tenant_id: str,
+    intake_id: str,
+    cliente_id: str,
+    structured_summary: dict,
+) -> dict | None:
+    reconciliation = structured_summary.get("catalog_reconciliation") or []
+    calculable_reconciliation = [
+        entry for entry in reconciliation
+        if isinstance(entry, dict) and str(entry.get("status") or "").lower() == "calculable"
+    ]
+    if not calculable_reconciliation:
+        return None
+
+    from pymia.contracts.evidence_v1 import StructuredEvidence
+    from pymia.contracts.formula_contract import SUPPORTED_FORMULAS
+    from pymia.services.diagnostic_pipeline import (
+        formula_pathology_map_from_catalog_reconciliation,
+        run_diagnostic_pipeline_from_structured_evidence,
+    )
+    from pymia.smartpyme.structured_evidence_builder import build_structured_evidence_context
+
+    formula_to_pathology = {
+        formula_id: pathology_code
+        for formula_id, pathology_code in formula_pathology_map_from_catalog_reconciliation(calculable_reconciliation).items()
+        if formula_id in SUPPORTED_FORMULAS
+    }
+    if not formula_to_pathology:
+        return None
+
+    payload = build_structured_evidence_context(
+        excel_path=path,
+        tenant_id=tenant_id,
+        intake_record={"evidence_requests": [{"formula_ids": list(formula_to_pathology.keys())}]},
+    )
+    evidence = StructuredEvidence.model_validate(payload["structured_evidence"])
+    result = run_diagnostic_pipeline_from_structured_evidence(
+        evidence,
+        case_id=intake_id,
+        cliente_id=cliente_id,
+        formula_to_pathology=formula_to_pathology,
+    )
+    return _serializable_diagnostic_pipeline_result(result)
+
+
 def inspect_excel(path: Path) -> dict:
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
@@ -570,6 +628,13 @@ def build_report(
     report["evidence_request_record"] = evidence_request_record
     report["evidence_record"] = evidence_record
     report["pipeline_run_record"] = pipeline_run_record
+    report["diagnostic_pipeline_result"] = _diagnostic_pipeline_result_for_report(
+        path=path,
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        cliente_id=tenant_id,
+        structured_summary=structured_summary,
+    )
     return report
 
 

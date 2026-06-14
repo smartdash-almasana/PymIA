@@ -430,6 +430,85 @@ def test_vertical_slice_build_report_contains_variable_names(tmp_path):
     assert isinstance(summary["table_sheets"], list)
 
 
+def test_build_report_injects_serialized_diagnostic_result(tmp_path: Path, monkeypatch):
+    excel = tmp_path / "diagnostic.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo", "impuestos"], ["2026-06-01", "A", 1000, 900, 200]])
+
+    def mock_build_summary(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 3,
+            "computed_variable_names": ["costos_total", "impuestos_total", "ventas_total"],
+            "tables_count": 1,
+            "table_sheets": [{"name": "Sheet", "columns": 5, "rows": 1}],
+            "case_id": "case-1",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [{
+                "formula_id": "REN_001_margen_neto_real",
+                "pathology_code": "REN_001",
+                "status": "calculable",
+                "available_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
+                "missing_evidence": [],
+                "matched_sources": ["sheet:ventas", "sheet:costos", "sheet:impuestos"],
+                "required_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
+                "required_variables": ["sale_price", "costs", "taxes"],
+                "next_audit_questions": [],
+            }],
+        }
+
+    def mock_context(*args, **kwargs):
+        return {
+            "structured_evidence": {
+                "tenant_id": "tenant_textil_001",
+                "document_type": "xlsx_operational_evidence",
+                "source": "xlsx_upload",
+                "file_name": "diagnostic.xlsx",
+                "tables": [],
+                "computed_variables": {
+                    "ventas_total": 1000.0,
+                    "costos_total": 900.0,
+                    "impuestos_total": 200.0,
+                },
+                "metadata": {
+                    "variable_source_refs": {
+                        "ventas_total": ["sheet:ventas"],
+                        "costos_total": ["sheet:costos"],
+                        "impuestos_total": ["sheet:impuestos"],
+                    }
+                },
+            },
+            "formula_ids": ["REN_001_margen_neto_real"],
+        }
+
+    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build_summary)
+    monkeypatch.setattr(
+        "pymia.smartpyme.structured_evidence_builder.build_structured_evidence_context",
+        mock_context,
+    )
+
+    profile = vertical_slice.inspect_excel(excel)
+    report = vertical_slice.build_report(
+        excel,
+        "test diagnóstico interno",
+        profile,
+        tenant_id="tenant_textil_001",
+        intake_id="case-1",
+        storage_dir=Path(tmp_path / "storage"),
+    )
+
+    diagnostic = report["diagnostic_pipeline_result"]
+    assert diagnostic is not None
+    assert isinstance(diagnostic, dict)
+    assert diagnostic["report"]["diagnosis_status"] == "CONFIRMED"
+    assert diagnostic["report"]["kernel_state"] == "PASS"
+    assert diagnostic["pathology_findings"][0]["pathology_id"] == "REN_001"
+    assert diagnostic["formula_results"][0]["formula_id"] == "REN_001_margen_neto_real"
+    assert diagnostic["report"]["evidence_used"] == ["sheet:ventas", "sheet:costos", "sheet:impuestos"]
+    assert "diagnostic_pipeline_result" not in report["pipeline_run_record"]
+    assert "diagnostic_pipeline_result" not in report["pipeline_run_record"].get("metadata", {})
+
+
 def test_vertical_slice_next_question_specific_not_diagnosing(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
