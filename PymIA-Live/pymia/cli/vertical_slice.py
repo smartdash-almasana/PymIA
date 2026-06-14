@@ -223,6 +223,21 @@ def register_anamnesis_record(
     return record.to_dict()
 
 
+def register_investigation_record(message: str, tenant_id: str, intake_id: str, anamnesis_id: str, storage_dir: Path) -> dict:
+    from pymia.smartpyme.investigation import create_investigation_record
+    from pymia.smartpyme.storage import save_investigation_record
+
+    record = create_investigation_record(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        anamnesis_id=anamnesis_id,
+        owner_prompt=message,
+        metadata={"registered_by": "vertical_slice_cli"},
+    )
+    save_investigation_record(tenant_id, record, base_dir=storage_dir)
+    return record.to_dict()
+
+
 def register_evidence_record(path: Path, tenant_id: str, intake_id: str, storage_dir: Path) -> dict:
     from pymia.smartpyme.evidence import (
         EVIDENCE_STATUS_REGISTERED,
@@ -254,6 +269,7 @@ def register_pipeline_run_record(
     intake_id: str,
     message: str,
     anamnesis_record: dict,
+    investigation_record: dict,
     evidence_record: dict,
     structured_summary: dict,
     blocked: bool,
@@ -265,6 +281,7 @@ def register_pipeline_run_record(
         "tenant_id": tenant_id,
         "intake_id": intake_id,
         "anamnesis_id": anamnesis_record["anamnesis_id"],
+        "investigation_id": investigation_record["investigation_id"],
         "evidence_id": evidence_record["evidence_id"],
         "structured_evidence_status": structured_summary["status"],
         "blocked": blocked,
@@ -285,6 +302,7 @@ def register_pipeline_run_record(
     )
     payload = record.model_dump(mode="json")
     payload["metadata"]["anamnesis_id"] = anamnesis_record["anamnesis_id"]
+    payload["metadata"]["investigation_id"] = investigation_record["investigation_id"]
     _write_jsonl_line(storage_dir / tenant_id / "pipeline_runs.jsonl", payload)
     return payload
 
@@ -390,6 +408,13 @@ def build_report(
         actual_storage_dir,
         business_taxonomy=business_taxonomy,
     )
+    investigation_record = register_investigation_record(
+        message,
+        tenant_id,
+        intake_id,
+        anamnesis_record["anamnesis_id"],
+        actual_storage_dir,
+    )
     evidence_record = register_evidence_record(
         path,
         tenant_id,
@@ -422,12 +447,14 @@ def build_report(
         intake_id=intake_id,
         message=message,
         anamnesis_record=anamnesis_record,
+        investigation_record=investigation_record,
         evidence_record=evidence_record,
         structured_summary=structured_summary,
         blocked=blocked,
         storage_dir=actual_storage_dir,
     )
     report["anamnesis_record"] = anamnesis_record
+    report["investigation_record"] = investigation_record
     report["evidence_record"] = evidence_record
     report["pipeline_run_record"] = pipeline_run_record
     report["structured_evidence_summary"] = structured_summary
@@ -467,6 +494,7 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         f"Tenant: {report['tenant_id']}",
         f"Intake: {report['intake_id']}",
         f"Anamnesis ID: {report['anamnesis_record']['anamnesis_id']}",
+        f"Investigation ID: {report['investigation_record']['investigation_id']}",
         f"Evidence ID: {report['evidence_record']['evidence_id']}",
         f"Evidence SHA-256: {report['evidence_record']['content_hash']}",
         f"Run ID: {report['pipeline_run_record']['run_id']}",

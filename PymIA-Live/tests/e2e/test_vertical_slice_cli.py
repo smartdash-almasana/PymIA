@@ -54,7 +54,10 @@ def test_vertical_slice_build_report_returns_owner_facing_contract_dict(tmp_path
     assert report["anamnesis_record"]["tenant_id"] == "tenant_textil_001"
     assert report["anamnesis_record"]["raw_owner_message"] == "vendo mas pero no me queda plata"
     assert report["pipeline_run_record"]["metadata"]["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
+    assert report["investigation_record"]["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
+    assert report["pipeline_run_record"]["metadata"]["investigation_id"] == report["investigation_record"]["investigation_id"]
     assert (storage_dir / "tenant_textil_001" / "anamnesis.jsonl").exists()
+    assert (storage_dir / "tenant_textil_001" / "investigations.jsonl").exists()
     assert report["evidence_used"] == ["excel_file_readable"]
     assert report["missing_evidence"] == []
     assert any("No inferir diagnóstico" in warning for warning in report["limit_warnings"])
@@ -180,6 +183,7 @@ def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
     assert "Tenant: tenant_demo_001" in text
     assert "Intake: intake_demo_001" in text
     assert "Anamnesis ID: anamnesis_" in text
+    assert "Investigation ID: investigation_" in text
     assert "## Anamnesis" in text
     assert "Empresa tipo: comercio" in text
     assert "Industria: retail" in text
