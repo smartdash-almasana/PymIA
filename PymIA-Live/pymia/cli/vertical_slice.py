@@ -238,6 +238,32 @@ def register_investigation_record(message: str, tenant_id: str, intake_id: str, 
     return record.to_dict()
 
 
+def register_owner_answer_record(
+    *,
+    tenant_id: str,
+    intake_id: str,
+    anamnesis_id: str,
+    investigation_id: str,
+    question_ref: str,
+    raw_owner_answer: str,
+    storage_dir: Path,
+) -> dict:
+    from pymia.smartpyme.owner_answer import create_owner_answer_record
+    from pymia.smartpyme.storage import save_owner_answer_record
+
+    record = create_owner_answer_record(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        anamnesis_id=anamnesis_id,
+        investigation_id=investigation_id,
+        question_ref=question_ref,
+        raw_owner_answer=raw_owner_answer,
+        metadata={"registered_by": "vertical_slice_cli"},
+    )
+    save_owner_answer_record(tenant_id, record, base_dir=storage_dir)
+    return record.to_dict()
+
+
 def register_evidence_record(path: Path, tenant_id: str, intake_id: str, storage_dir: Path) -> dict:
     from pymia.smartpyme.evidence import (
         EVIDENCE_STATUS_REGISTERED,
@@ -270,6 +296,7 @@ def register_pipeline_run_record(
     message: str,
     anamnesis_record: dict,
     investigation_record: dict,
+    owner_answer_record: dict | None,
     evidence_record: dict,
     structured_summary: dict,
     blocked: bool,
@@ -286,6 +313,8 @@ def register_pipeline_run_record(
         "structured_evidence_status": structured_summary["status"],
         "blocked": blocked,
     }
+    if owner_answer_record:
+        output_payload["owner_answer_id"] = owner_answer_record["answer_id"]
     record = build_pipeline_run_record(
         tenant_id=tenant_id,
         intake_id=intake_id,
@@ -303,6 +332,8 @@ def register_pipeline_run_record(
     payload = record.model_dump(mode="json")
     payload["metadata"]["anamnesis_id"] = anamnesis_record["anamnesis_id"]
     payload["metadata"]["investigation_id"] = investigation_record["investigation_id"]
+    if owner_answer_record:
+        payload["metadata"]["owner_answer_id"] = owner_answer_record["answer_id"]
     _write_jsonl_line(storage_dir / tenant_id / "pipeline_runs.jsonl", payload)
     return payload
 
@@ -344,7 +375,6 @@ def build_structured_summary(
             "catalog_reconciliation": [],
         }
 
-        # Run catalog reconciliation
         structured_ev = StructuredEvidence.model_validate(evidence)
         matches = match_evidence_requirements(structured_ev)
         reconciliation_list = []
@@ -397,6 +427,8 @@ def build_report(
     formula_ids: list[str] | None = None,
     storage_dir: Path | None = None,
     business_taxonomy: dict | None = None,
+    owner_answer: str | None = None,
+    owner_answer_question_ref: str | None = None,
 ) -> dict:
     has_rows = profile["rows"] > 1 and profile["columns"] > 0
     has_columns = has_operational_columns(profile["headers"])
@@ -415,6 +447,17 @@ def build_report(
         anamnesis_record["anamnesis_id"],
         actual_storage_dir,
     )
+    owner_answer_record = None
+    if owner_answer:
+        owner_answer_record = register_owner_answer_record(
+            tenant_id=tenant_id,
+            intake_id=intake_id,
+            anamnesis_id=anamnesis_record["anamnesis_id"],
+            investigation_id=investigation_record["investigation_id"],
+            question_ref=owner_answer_question_ref or "owner_answer:unspecified_question_ref",
+            raw_owner_answer=owner_answer,
+            storage_dir=actual_storage_dir,
+        )
     evidence_record = register_evidence_record(
         path,
         tenant_id,
@@ -448,6 +491,7 @@ def build_report(
         message=message,
         anamnesis_record=anamnesis_record,
         investigation_record=investigation_record,
+        owner_answer_record=owner_answer_record,
         evidence_record=evidence_record,
         structured_summary=structured_summary,
         blocked=blocked,
@@ -455,6 +499,7 @@ def build_report(
     )
     report["anamnesis_record"] = anamnesis_record
     report["investigation_record"] = investigation_record
+    report["owner_answer_record"] = owner_answer_record
     report["evidence_record"] = evidence_record
     report["pipeline_run_record"] = pipeline_run_record
     report["structured_evidence_summary"] = structured_summary
@@ -471,6 +516,8 @@ def build_markdown(
     formula_ids: list[str] | None = None,
     storage_dir: Path | None = None,
     business_taxonomy: dict | None = None,
+    owner_answer: str | None = None,
+    owner_answer_question_ref: str | None = None,
 ) -> str:
     report = build_report(
         path,
@@ -481,6 +528,8 @@ def build_markdown(
         formula_ids=formula_ids,
         storage_dir=storage_dir,
         business_taxonomy=business_taxonomy,
+        owner_answer=owner_answer,
+        owner_answer_question_ref=owner_answer_question_ref,
     )
     return render_markdown_from_report(path, message, profile, report)
 
@@ -505,6 +554,10 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         "",
         "## Anamnesis",
     ]
+    owner_answer_record = report.get("owner_answer_record")
+    if owner_answer_record:
+        insert_at = 10
+        lines.insert(insert_at, f"Owner Answer ID: {owner_answer_record['answer_id']}")
     taxonomy = report["anamnesis_record"].get("business_taxonomy", {})
     lines.append(f"- Empresa tipo: {taxonomy.get('empresa_tipo', 'desconocido')}")
     lines.append(f"- Industria: {taxonomy.get('industria', 'desconocido')}")
@@ -513,6 +566,13 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         lines.append(f"- Canales de venta: {', '.join(taxonomy['canales_venta'])}")
     if taxonomy.get("areas_criticas"):
         lines.append(f"- Áreas críticas: {', '.join(taxonomy['areas_criticas'])}")
+    if owner_answer_record:
+        lines.extend([
+            "",
+            "## Respuesta del dueño",
+            f"- Pregunta referida: {owner_answer_record['question_ref']}",
+            f"- Tipo: {owner_answer_record['answer_kind']}",
+        ])
     lines.extend([
         "",
         "## Evidencia usada",
@@ -596,6 +656,8 @@ def build_pipeline(
     formula_ids: list[str] | None = None,
     storage_dir: Path | None = None,
     business_taxonomy: dict | None = None,
+    owner_answer: str | None = None,
+    owner_answer_question_ref: str | None = None,
 ) -> dict:
     profile = inspect_excel(path)
     report = build_report(
@@ -607,6 +669,8 @@ def build_pipeline(
         formula_ids=formula_ids,
         storage_dir=storage_dir,
         business_taxonomy=business_taxonomy,
+        owner_answer=owner_answer,
+        owner_answer_question_ref=owner_answer_question_ref,
     )
     markdown = render_markdown_from_report(path, message, profile, report)
     evidence_record = report["evidence_record"]
@@ -643,6 +707,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--modelo-comercial", default=None)
     parser.add_argument("--canal-venta", action="append", default=[])
     parser.add_argument("--area-critica", action="append", default=[])
+    parser.add_argument("--owner-answer", default=None)
+    parser.add_argument("--owner-answer-question-ref", default=None)
     args = parser.parse_args(argv)
     path = Path(args.excel)
     if not path.exists():
@@ -666,6 +732,8 @@ def main(argv: list[str] | None = None) -> int:
         formula_ids=args.formula_id,
         storage_dir=Path(args.storage_dir),
         business_taxonomy=business_taxonomy or None,
+        owner_answer=args.owner_answer,
+        owner_answer_question_ref=args.owner_answer_question_ref,
     )
     markdown = pipeline["markdown"]
     if args.output:

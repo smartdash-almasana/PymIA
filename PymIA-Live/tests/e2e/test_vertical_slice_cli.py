@@ -56,11 +56,63 @@ def test_vertical_slice_build_report_returns_owner_facing_contract_dict(tmp_path
     assert report["pipeline_run_record"]["metadata"]["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
     assert report["investigation_record"]["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
     assert report["pipeline_run_record"]["metadata"]["investigation_id"] == report["investigation_record"]["investigation_id"]
+    assert report["owner_answer_record"] is None
     assert (storage_dir / "tenant_textil_001" / "anamnesis.jsonl").exists()
     assert (storage_dir / "tenant_textil_001" / "investigations.jsonl").exists()
+    assert (storage_dir / "tenant_textil_001" / "owner_answers.jsonl").exists()
     assert report["evidence_used"] == ["excel_file_readable"]
     assert report["missing_evidence"] == []
     assert any("No inferir diagnóstico" in warning for warning in report["limit_warnings"])
+
+
+def test_vertical_slice_build_report_binds_owner_answer_when_provided(tmp_path: Path):
+    excel = tmp_path / "caso.xlsx"
+    storage_dir = tmp_path / "storage"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+    profile = vertical_slice.inspect_excel(excel)
+
+    report = vertical_slice.build_report(
+        excel,
+        "vendo mas pero no me queda plata",
+        profile,
+        tenant_id="tenant_textil_001",
+        intake_id="intake_textil_001",
+        storage_dir=storage_dir,
+        owner_answer="Las ventas están en la hoja Ventas.",
+        owner_answer_question_ref="missing_input:ventas",
+    )
+
+    answer = report["owner_answer_record"]
+    assert answer["answer_id"].startswith("answer_")
+    assert answer["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
+    assert answer["investigation_id"] == report["investigation_record"]["investigation_id"]
+    assert answer["question_ref"] == "missing_input:ventas"
+    assert answer["raw_owner_answer"] == "Las ventas están en la hoja Ventas."
+    assert report["pipeline_run_record"]["metadata"]["owner_answer_id"] == answer["answer_id"]
+    assert (storage_dir / "tenant_textil_001" / "owner_answers.jsonl").read_text(encoding="utf-8")
+
+
+def test_vertical_slice_cli_renders_owner_answer_when_provided(tmp_path: Path, capsys):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas"], ["2026-06-01", "A", 100]])
+    rc = vertical_slice.main([
+        "--excel",
+        str(excel),
+        "--message",
+        "vendo mas pero no me queda plata",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+        "--owner-answer",
+        "Las ventas están en la hoja Ventas.",
+        "--owner-answer-question-ref",
+        "missing_input:ventas",
+    ])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "Owner Answer ID: answer_" in out
+    assert "## Respuesta del dueño" in out
+    assert "Pregunta referida: missing_input:ventas" in out
 
 
 def test_vertical_slice_cli_outputs_blocked_actionable_without_operational_columns(tmp_path: Path, capsys):
@@ -360,12 +412,9 @@ def test_vertical_slice_next_question_uses_owner_language(tmp_path: Path, capsys
         line = lines[j]
         if line.startswith("- ") and not line.startswith("  - "):
             q = line[2:].strip()
-            # Owner language: starts with "Falta información" not "Falta evidencia"
             assert "información sobre" in q, f"Expected owner language, got: {q}"
-            # No raw formula IDs
             assert "INV_" not in q.split(" ")[0] if q.startswith("Falta") else True
             assert "PYME_" not in q, f"Question should not contain formula IDs: {q}"
-            # No snake_case in owner question
             assert "_" not in q.replace("¿", "").replace("?", ""), f"Question has snake_case: {q}"
             break
 
@@ -384,9 +433,7 @@ def test_vertical_slice_next_question_keeps_technical_reference_for_operator(tmp
     out = capsys.readouterr().out
     assert rc == 0
     assert "  - Referencia técnica:" in out
-    # Should contain formula_id
     assert "INV_" in out or "PYME_" in out or "LIQ_" in out
-    # Should contain original snake_case field names
     assert "_" in out.split("  - Referencia técnica:")[1] if "  - Referencia técnica:" in out else False
 
 
@@ -413,7 +460,6 @@ def test_vertical_slice_next_question_does_not_expose_formula_id_as_primary_owne
         line = lines[j]
         if line.startswith("- ") and not line.startswith("  - "):
             q = line[2:].strip()
-            # The primary question line must not contain internal codes
             for code in ["INV_001", "LIQ_001", "REN_001", "PYME_033", "PYME_011"]:
                 assert code not in q, f"Owner question exposes internal code {code}: {q}"
             break
@@ -444,7 +490,6 @@ def test_vertical_slice_next_question_does_not_diagnose_or_prescribe(tmp_path: P
             q = line[2:].strip()
             for bad in ["tu margen", "estás ganando", "deberías", "tienes que", "diagnóstico"]:
                 assert bad not in q.lower(), f"Question contains diagnostic: {q}"
-            # Should not prescribe concrete actions
             for action in ["subí", "aumentá", "reducí", "comprá", "vende", "contratá"]:
                 assert action not in q.lower(), f"Question prescribes action: {q}"
             break
@@ -473,7 +518,7 @@ def test_vertical_slice_report_preserves_candidate_status_and_warnings(tmp_path:
 def test_vertical_slice_cli_aligns_owner_question_when_misaligned(tmp_path: Path, monkeypatch, capsys):
     excel = tmp_path / "caso.xlsx"
     _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
-    
+
     def mock_build(*args, **kwargs):
         return {
             "status": "available",
@@ -497,7 +542,7 @@ def test_vertical_slice_cli_aligns_owner_question_when_misaligned(tmp_path: Path
             }]
         }
     monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
-    
+
     rc = vertical_slice.main([
         "--excel",
         str(excel),
