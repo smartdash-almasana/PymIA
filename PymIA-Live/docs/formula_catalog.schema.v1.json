@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PymIA Formula Catalog V1",
+  "type": "object",
+  "required": [
+    "catalog_version",
+    "formulas"
+  ],
+  "properties": {
+    "catalog_version": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "source_documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string"
+    },
+    "knowledge_tank": {
+      "type": "string"
+    },
+    "families": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/family"
+      }
+    },
+    "formulas": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/formula"
+      }
+    },
+    "governance_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "definitions": {
+    "family": {
+      "type": "object",
+      "required": [
+        "family_id",
+        "name",
+        "scope"
+      ],
+      "properties": {
+        "family_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        }
+      }
+    },
+    "formula": {
+      "type": "object",
+      "required": [
+        "formula_id",
+        "pathology_code",
+        "name",
+        "family_id",
+        "category",
+        "expression",
+        "display_expression",
+        "required_variables",
+        "required_evidence",
+        "output_unit",
+        "calculation_state",
+        "priority_mvp",
+        "interpretation"
+      ],
+      "properties": {
+        "formula_id": {
+          "type": "string"
+        },
+        "canonical_formula_id": {
+          "type": "string"
+        },
+        "pathology_code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "family_id": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        },
+        "display_expression": {
+          "type": "string"
+        },
+        "required_variables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "output_unit": {
+          "type": "string"
+        },
+        "calculation_state": {
+          "type": "string",
+          "enum": [
+            "CALCULABLE",
+            "CALCULABLE_CON_SUPUESTOS",
+            "NO_CALCULABLE_POR_EVIDENCIA_INSUFICIENTE"
+          ]
+        },
+        "priority_mvp": {
+          "type": "string",
+          "enum": [
+            "alta",
+            "media",
+            "baja"
+          ]
+        },
+        "interpretation": {
+          "type": "string"
+        },
+        "priority_robustez": {
+          "type": "string",
+          "enum": [
+            "alta",
+            "media",
+            "baja"
+          ]
+        }
+      }
+    }
+  }
+}
