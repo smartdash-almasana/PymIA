@@ -60,6 +60,7 @@ def test_vertical_slice_build_report_returns_owner_facing_contract_dict(tmp_path
     assert (storage_dir / "tenant_textil_001" / "anamnesis.jsonl").exists()
     assert (storage_dir / "tenant_textil_001" / "investigations.jsonl").exists()
     assert (storage_dir / "tenant_textil_001" / "owner_answers.jsonl").exists()
+    assert (storage_dir / "tenant_textil_001" / "evidence_requests.jsonl").exists()
     assert report["evidence_used"] == ["excel_file_readable"]
     assert report["missing_evidence"] == []
     assert any("No inferir diagnóstico" in warning for warning in report["limit_warnings"])
@@ -92,6 +93,55 @@ def test_vertical_slice_build_report_binds_owner_answer_when_provided(tmp_path: 
     assert (storage_dir / "tenant_textil_001" / "owner_answers.jsonl").read_text(encoding="utf-8")
 
 
+def test_vertical_slice_build_report_binds_evidence_request_when_missing_inputs(tmp_path: Path, monkeypatch):
+    excel = tmp_path / "caso.xlsx"
+    storage_dir = tmp_path / "storage"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+
+    def mock_build(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 0,
+            "computed_variable_names": [],
+            "tables_count": 0,
+            "table_sheets": [],
+            "case_id": "test",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [{
+                "formula_id": "LIQ_001",
+                "pathology_code": "LIQ_001",
+                "status": "MISSING_INPUTS",
+                "available_evidence": [],
+                "missing_evidence": ["cobranzas_del_periodo"],
+                "matched_sources": [],
+                "required_evidence": [],
+                "required_variables": [],
+                "next_audit_questions": ["¿Podés compartir cobranzas del período?"]
+            }]
+        }
+
+    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
+    profile = vertical_slice.inspect_excel(excel)
+    report = vertical_slice.build_report(
+        excel,
+        "no me cierra la caja",
+        profile,
+        tenant_id="tenant_textil_001",
+        intake_id="intake_textil_001",
+        storage_dir=storage_dir,
+    )
+
+    request = report["evidence_request_record"]
+    assert request["request_id"].startswith("evidence_request_")
+    assert request["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
+    assert request["investigation_id"] == report["investigation_record"]["investigation_id"]
+    assert request["requested_evidence"] == ["cobranzas_del_periodo"]
+    assert report["evidence_record"]["request_id"] == request["request_id"]
+    assert report["pipeline_run_record"]["metadata"]["evidence_request_id"] == request["request_id"]
+    assert (storage_dir / "tenant_textil_001" / "evidence_requests.jsonl").read_text(encoding="utf-8")
+
+
 def test_vertical_slice_cli_renders_owner_answer_when_provided(tmp_path: Path, capsys):
     excel = tmp_path / "caso.xlsx"
     _write_excel(excel, [["fecha", "producto", "ventas"], ["2026-06-01", "A", 100]])
@@ -113,6 +163,50 @@ def test_vertical_slice_cli_renders_owner_answer_when_provided(tmp_path: Path, c
     assert "Owner Answer ID: answer_" in out
     assert "## Respuesta del dueño" in out
     assert "Pregunta referida: missing_input:ventas" in out
+
+
+def test_vertical_slice_cli_renders_evidence_request_when_missing_inputs(tmp_path: Path, monkeypatch, capsys):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+
+    def mock_build(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 0,
+            "computed_variable_names": [],
+            "tables_count": 0,
+            "table_sheets": [],
+            "case_id": "test",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [{
+                "formula_id": "LIQ_001",
+                "pathology_code": "LIQ_001",
+                "status": "MISSING_INPUTS",
+                "available_evidence": [],
+                "missing_evidence": ["cobranzas_del_periodo"],
+                "matched_sources": [],
+                "required_evidence": [],
+                "required_variables": [],
+                "next_audit_questions": ["¿Podés compartir cobranzas del período?"]
+            }]
+        }
+
+    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
+    rc = vertical_slice.main([
+        "--excel",
+        str(excel),
+        "--message",
+        "no me cierra la caja",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "Evidence Request ID: evidence_request_" in out
+    assert "## Solicitud de evidencia" in out
+    assert "cobranzas del período" in out
 
 
 def test_vertical_slice_cli_outputs_blocked_actionable_without_operational_columns(tmp_path: Path, capsys):
@@ -271,9 +365,6 @@ def test_vertical_slice_module_does_not_import_forbidden_runtime_layers():
         assert token not in source
 
 
-# --- Audit gap: variable/table names in report ---
-
-
 def test_vertical_slice_report_shows_computed_variable_names(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
@@ -383,9 +474,6 @@ def test_vertical_slice_graceful_with_minimal_excel(tmp_path, capsys):
     assert rc == 0
     assert "Variables computables:" in out
     assert "no diagnostica" in out.lower()
-
-
-# --- Owner-facing language for next question ---
 
 
 def test_vertical_slice_next_question_uses_owner_language(tmp_path: Path, capsys):
