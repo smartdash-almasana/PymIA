@@ -234,6 +234,30 @@ def _diagnostic_pipeline_result_for_report(
     return _serializable_diagnostic_pipeline_result(result)
 
 
+def _diagnostic_operator_summary_from_report(report: dict) -> dict | None:
+    diagnostic = report.get("diagnostic_pipeline_result")
+    if not isinstance(diagnostic, dict):
+        return None
+
+    diagnostic_report = diagnostic.get("report")
+    if not isinstance(diagnostic_report, dict):
+        return None
+
+    return {
+        "status": "available",
+        "diagnosis_status": diagnostic_report.get("diagnosis_status"),
+        "kernel_state": diagnostic_report.get("kernel_state"),
+        "blocking_reason": diagnostic_report.get("blocking_reason"),
+        "finding_types": [
+            finding.get("finding_type")
+            for finding in diagnostic_report.get("findings", [])
+            if isinstance(finding, dict) and finding.get("finding_type")
+        ],
+        "formulas_used": list(diagnostic_report.get("formulas_used") or []),
+        "evidence_used": list(diagnostic_report.get("evidence_used") or []),
+    }
+
+
 def inspect_excel(path: Path) -> dict:
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
@@ -830,11 +854,13 @@ def build_pipeline(
     pipeline_run_record = report["pipeline_run_record"]
     structured_summary = report.get("structured_evidence_summary") or {}
     catalog_reconciliation = structured_summary.get("catalog_reconciliation") or []
+    diagnostic_operator_summary = _diagnostic_operator_summary_from_report(report)
     return {
         "status": report["status"],
         "profile": profile,
         "report": report,
         "markdown": markdown,
+        "diagnostic_operator_summary": diagnostic_operator_summary,
         "evidence_id": evidence_record["evidence_id"],
         "evidence_hash": evidence_record["content_hash"],
         "run_id": pipeline_run_record["run_id"],
