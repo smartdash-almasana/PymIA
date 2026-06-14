@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
 from pymia.contracts.formula_contract import SUPPORTED_FORMULAS
+from pymia.smartpyme.investigation import INVESTIGATION_STATUS_READY_FOR_CONTRAST, InvestigationRecord
 
 from .evidence_binding import build_diagnostic_core_input_from_structured_evidence
 from .models import (
@@ -88,6 +89,33 @@ def build_evidence_gate_decisions_from_structured_evidence(
         formula_ids=formula_ids,
     )
     return build_evidence_gate_decisions_from_formula_input_results(formula_input_results)
+
+
+def build_evidence_gate_decisions_for_investigation(
+    investigation: InvestigationRecord,
+    evidence: StructuredEvidence,
+    *,
+    formula_ids: list[str],
+) -> list[EvidenceGateDecision]:
+    if not isinstance(investigation, InvestigationRecord):
+        raise ValueError("investigation must be an InvestigationRecord")
+
+    if investigation.status != INVESTIGATION_STATUS_READY_FOR_CONTRAST:
+        return [
+            EvidenceGateDecision(
+                formula_id=formula_id,
+                decision=EvidenceGateDecisionStatus.BLOCK_MISSING_INPUTS,
+                missing_variables=[f"investigation_status:{investigation.status}"],
+            )
+            for formula_id in formula_ids
+        ]
+
+    return build_evidence_gate_decisions_from_structured_evidence(
+        evidence,
+        case_id=investigation.intake_id,
+        tenant_id=investigation.tenant_id,
+        formula_ids=formula_ids,
+    )
 
 
 def build_evidence_sufficiency_report_from_structured_evidence(
