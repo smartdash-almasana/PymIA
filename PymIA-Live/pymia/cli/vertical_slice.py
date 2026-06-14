@@ -480,12 +480,13 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
     owner_question = None
     tech_reference = None
     if reconciliation:
-        alignment = align_next_question(message, reconciliation)
+        question_candidates = [e for e in reconciliation if e.get("next_audit_questions")]
+        alignment = align_next_question(message, question_candidates)
         if alignment["status"] == "MISALIGNED":
             owner_question = "Entiendo que tu preocupación principal parece ser caja/liquidez. Antes de avanzar con una pregunta técnica sobre stock, ¿querés que enfoquemos el análisis en caja, banco, cobros o pagos?"
             tech_reference = f"Referencia técnica: reconducción_axis_{alignment['declared_axis']}"
         else:
-            for entry in reconciliation:
+            for entry in question_candidates:
                 owner_q, tech_ref = _build_owner_question(entry)
                 if owner_q:
                     owner_question = owner_q
