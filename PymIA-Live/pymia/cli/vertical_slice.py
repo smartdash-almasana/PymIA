@@ -8,6 +8,7 @@ from openpyxl import load_workbook
 
 from pymia.contracts.language_corpus_v1 import load_language_corpus_seed, owner_label_for_variable_id
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
+from pymia.smartpyme.question_alignment_gate import align_next_question
 
 
 OPERATIONAL_TERMS = ("venta", "precio", "costo", "producto", "sku", "cantidad", "fecha")
@@ -340,10 +341,7 @@ def build_structured_summary(
                 summary["sufficiency"] = [item.model_dump(mode="json") for item in sufficiency]
         return summary
     except Exception as exc:
-        return {
-            "status": "unavailable",
-            "reason": exc.__class__.__name__,
-        }
+        raise exc
 
 
 def build_report(
@@ -482,12 +480,17 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
     owner_question = None
     tech_reference = None
     if reconciliation:
-        for entry in reconciliation:
-            owner_q, tech_ref = _build_owner_question(entry)
-            if owner_q:
-                owner_question = owner_q
-                tech_reference = tech_ref
-                break
+        alignment = align_next_question(message, reconciliation)
+        if alignment["status"] == "MISALIGNED":
+            owner_question = "Entiendo que tu preocupación principal parece ser caja/liquidez. Antes de avanzar con una pregunta técnica sobre stock, ¿querés que enfoquemos el análisis en caja, banco, cobros o pagos?"
+            tech_reference = f"Referencia técnica: reconducción_axis_{alignment['declared_axis']}"
+        else:
+            for entry in reconciliation:
+                owner_q, tech_ref = _build_owner_question(entry)
+                if owner_q:
+                    owner_question = owner_q
+                    tech_reference = tech_ref
+                    break
     if owner_question:
         lines.append(f"- {owner_question}")
         if tech_reference:

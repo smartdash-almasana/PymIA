@@ -337,3 +337,40 @@ def test_vertical_slice_report_preserves_candidate_status_and_warnings(capsys):
     assert "no diagnostica sin evidencia" in out.lower()
     assert "No es canal productivo" in out or "no es canal productivo" in out.lower()
     assert "resultado candidato" in out.lower()
+
+
+def test_vertical_slice_cli_aligns_owner_question_when_misaligned(tmp_path: Path, monkeypatch, capsys):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+    
+    def mock_build(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 0,
+            "computed_variable_names": [],
+            "tables_count": 0,
+            "table_sheets": [],
+            "case_id": "test",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [{
+                "formula_id": "INV_001",
+                "pathology_code": "INV_001",
+                "status": "MISSING_INPUTS",
+                "available_evidence": [],
+                "missing_evidence": ["lead_time_proveedor"],
+                "matched_sources": [],
+                "required_evidence": [],
+                "required_variables": [],
+                "next_audit_questions": ["¿Podés compartir los tiempos de reposición de proveedores?"]
+            }]
+        }
+    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
+    
+    rc = vertical_slice.main(["--excel", str(excel), "--message", "no me cierra la caja, me falta plata"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Entiendo que tu preocupación principal parece ser caja/liquidez" in out
+    assert "Antes de avanzar con una pregunta técnica sobre stock" in out
+    assert "reconducción_axis_caja_liquidez" in out
+    assert "tiempos de reposición" not in out
