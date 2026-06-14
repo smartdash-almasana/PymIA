@@ -201,6 +201,28 @@ def _write_jsonl_line(target: Path, payload: dict) -> Path:
     return target
 
 
+def register_anamnesis_record(
+    message: str,
+    tenant_id: str,
+    intake_id: str,
+    storage_dir: Path,
+    *,
+    business_taxonomy: dict | None = None,
+) -> dict:
+    from pymia.smartpyme.anamnesis import create_anamnesis_record
+    from pymia.smartpyme.storage import save_anamnesis_record
+
+    record = create_anamnesis_record(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        raw_owner_message=message,
+        business_taxonomy=business_taxonomy,
+        metadata={"registered_by": "vertical_slice_cli"},
+    )
+    save_anamnesis_record(tenant_id, record, base_dir=storage_dir)
+    return record.to_dict()
+
+
 def register_evidence_record(path: Path, tenant_id: str, intake_id: str, storage_dir: Path) -> dict:
     from pymia.smartpyme.evidence import (
         EVIDENCE_STATUS_REGISTERED,
@@ -231,6 +253,7 @@ def register_pipeline_run_record(
     tenant_id: str,
     intake_id: str,
     message: str,
+    anamnesis_record: dict,
     evidence_record: dict,
     structured_summary: dict,
     blocked: bool,
@@ -241,6 +264,7 @@ def register_pipeline_run_record(
     output_payload = {
         "tenant_id": tenant_id,
         "intake_id": intake_id,
+        "anamnesis_id": anamnesis_record["anamnesis_id"],
         "evidence_id": evidence_record["evidence_id"],
         "structured_evidence_status": structured_summary["status"],
         "blocked": blocked,
@@ -260,6 +284,7 @@ def register_pipeline_run_record(
         ],
     )
     payload = record.model_dump(mode="json")
+    payload["metadata"]["anamnesis_id"] = anamnesis_record["anamnesis_id"]
     _write_jsonl_line(storage_dir / tenant_id / "pipeline_runs.jsonl", payload)
     return payload
 
@@ -353,10 +378,18 @@ def build_report(
     intake_id: str = "intake_cli_local",
     formula_ids: list[str] | None = None,
     storage_dir: Path | None = None,
+    business_taxonomy: dict | None = None,
 ) -> dict:
     has_rows = profile["rows"] > 1 and profile["columns"] > 0
     has_columns = has_operational_columns(profile["headers"])
     actual_storage_dir = storage_dir or Path(".tmp/vertical_slice_storage")
+    anamnesis_record = register_anamnesis_record(
+        message,
+        tenant_id,
+        intake_id,
+        actual_storage_dir,
+        business_taxonomy=business_taxonomy,
+    )
     evidence_record = register_evidence_record(
         path,
         tenant_id,
@@ -388,11 +421,13 @@ def build_report(
         tenant_id=tenant_id,
         intake_id=intake_id,
         message=message,
+        anamnesis_record=anamnesis_record,
         evidence_record=evidence_record,
         structured_summary=structured_summary,
         blocked=blocked,
         storage_dir=actual_storage_dir,
     )
+    report["anamnesis_record"] = anamnesis_record
     report["evidence_record"] = evidence_record
     report["pipeline_run_record"] = pipeline_run_record
     report["structured_evidence_summary"] = structured_summary
@@ -408,6 +443,7 @@ def build_markdown(
     intake_id: str = "intake_cli_local",
     formula_ids: list[str] | None = None,
     storage_dir: Path | None = None,
+    business_taxonomy: dict | None = None,
 ) -> str:
     report = build_report(
         path,
@@ -417,6 +453,7 @@ def build_markdown(
         intake_id=intake_id,
         formula_ids=formula_ids,
         storage_dir=storage_dir,
+        business_taxonomy=business_taxonomy,
     )
     return render_markdown_from_report(path, message, profile, report)
 
@@ -429,6 +466,7 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         f"Mensaje: {message}",
         f"Tenant: {report['tenant_id']}",
         f"Intake: {report['intake_id']}",
+        f"Anamnesis ID: {report['anamnesis_record']['anamnesis_id']}",
         f"Evidence ID: {report['evidence_record']['evidence_id']}",
         f"Evidence SHA-256: {report['evidence_record']['content_hash']}",
         f"Run ID: {report['pipeline_run_record']['run_id']}",
@@ -437,8 +475,20 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         f"Columnas: {profile['columns']}",
         f"Resumen: {report['summary']}",
         "",
-        "## Evidencia usada",
+        "## Anamnesis",
     ]
+    taxonomy = report["anamnesis_record"].get("business_taxonomy", {})
+    lines.append(f"- Empresa tipo: {taxonomy.get('empresa_tipo', 'desconocido')}")
+    lines.append(f"- Industria: {taxonomy.get('industria', 'desconocido')}")
+    lines.append(f"- Modelo comercial: {taxonomy.get('modelo_comercial', 'desconocido')}")
+    if taxonomy.get("canales_venta"):
+        lines.append(f"- Canales de venta: {', '.join(taxonomy['canales_venta'])}")
+    if taxonomy.get("areas_criticas"):
+        lines.append(f"- Áreas críticas: {', '.join(taxonomy['areas_criticas'])}")
+    lines.extend([
+        "",
+        "## Evidencia usada",
+    ])
     for item in report["evidence_used"]:
         lines.append(f"- {item}")
     lines.append("")
@@ -517,6 +567,7 @@ def build_pipeline(
     intake_id: str = "intake_cli_local",
     formula_ids: list[str] | None = None,
     storage_dir: Path | None = None,
+    business_taxonomy: dict | None = None,
 ) -> dict:
     profile = inspect_excel(path)
     report = build_report(
@@ -527,6 +578,7 @@ def build_pipeline(
         intake_id=intake_id,
         formula_ids=formula_ids,
         storage_dir=storage_dir,
+        business_taxonomy=business_taxonomy,
     )
     markdown = render_markdown_from_report(path, message, profile, report)
     evidence_record = report["evidence_record"]
@@ -558,10 +610,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--intake-id", default="intake_cli_local")
     parser.add_argument("--formula-id", action="append", default=[])
     parser.add_argument("--storage-dir", default=".tmp/vertical_slice_storage")
+    parser.add_argument("--empresa-tipo", default=None)
+    parser.add_argument("--industria", default=None)
+    parser.add_argument("--modelo-comercial", default=None)
+    parser.add_argument("--canal-venta", action="append", default=[])
+    parser.add_argument("--area-critica", action="append", default=[])
     args = parser.parse_args(argv)
     path = Path(args.excel)
     if not path.exists():
         raise FileNotFoundError(path)
+    business_taxonomy = {
+        key: value
+        for key, value in {
+            "empresa_tipo": args.empresa_tipo,
+            "industria": args.industria,
+            "modelo_comercial": args.modelo_comercial,
+            "canales_venta": args.canal_venta,
+            "areas_criticas": args.area_critica,
+        }.items()
+        if value not in (None, [])
+    }
     pipeline = build_pipeline(
         path,
         args.message,
@@ -569,6 +637,7 @@ def main(argv: list[str] | None = None) -> int:
         intake_id=args.intake_id,
         formula_ids=args.formula_id,
         storage_dir=Path(args.storage_dir),
+        business_taxonomy=business_taxonomy or None,
     )
     markdown = pipeline["markdown"]
     if args.output:

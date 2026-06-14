@@ -17,7 +17,14 @@ def _write_excel(path: Path, rows: list[list[object]]) -> None:
 def test_vertical_slice_cli_outputs_delivered_candidate_for_operational_excel(tmp_path: Path, capsys):
     excel = tmp_path / "caso.xlsx"
     _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
-    rc = vertical_slice.main(["--excel", str(excel), "--message", "vendo mas pero no me queda plata"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(excel),
+        "--message",
+        "vendo mas pero no me queda plata",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "Reporte owner-facing local" in out
@@ -30,6 +37,7 @@ def test_vertical_slice_cli_outputs_delivered_candidate_for_operational_excel(tm
 
 def test_vertical_slice_build_report_returns_owner_facing_contract_dict(tmp_path: Path):
     excel = tmp_path / "caso.xlsx"
+    storage_dir = tmp_path / "storage"
     _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
     profile = vertical_slice.inspect_excel(excel)
     report = vertical_slice.build_report(
@@ -38,10 +46,15 @@ def test_vertical_slice_build_report_returns_owner_facing_contract_dict(tmp_path
         profile,
         tenant_id="tenant_textil_001",
         intake_id="intake_textil_001",
+        storage_dir=storage_dir,
     )
     assert report["status"] == "DELIVERED_CANDIDATE"
     assert report["tenant_id"] == "tenant_textil_001"
     assert report["intake_id"] == "intake_textil_001"
+    assert report["anamnesis_record"]["tenant_id"] == "tenant_textil_001"
+    assert report["anamnesis_record"]["raw_owner_message"] == "vendo mas pero no me queda plata"
+    assert report["pipeline_run_record"]["metadata"]["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
+    assert (storage_dir / "tenant_textil_001" / "anamnesis.jsonl").exists()
     assert report["evidence_used"] == ["excel_file_readable"]
     assert report["missing_evidence"] == []
     assert any("No inferir diagnóstico" in warning for warning in report["limit_warnings"])
@@ -50,7 +63,14 @@ def test_vertical_slice_build_report_returns_owner_facing_contract_dict(tmp_path
 def test_vertical_slice_cli_outputs_blocked_actionable_without_operational_columns(tmp_path: Path, capsys):
     excel = tmp_path / "caso.xlsx"
     _write_excel(excel, [["columna_a"], ["dato"]])
-    rc = vertical_slice.main(["--excel", str(excel), "--message", "hola"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(excel),
+        "--message",
+        "hola",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "BLOCKED" in out
@@ -59,10 +79,17 @@ def test_vertical_slice_cli_outputs_blocked_actionable_without_operational_colum
     assert "## Próxima pregunta" in out
 
 
-def test_vertical_slice_cli_uses_real_textile_fixture(capsys):
+def test_vertical_slice_cli_uses_real_textile_fixture(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil y no me cierra la caja"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil y no me cierra la caja",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "Reporte owner-facing local" in out
@@ -74,7 +101,7 @@ def test_vertical_slice_cli_uses_real_textile_fixture(capsys):
     assert "no diagnostica" in out.lower()
 
 
-def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(capsys):
+def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
     rc = vertical_slice.main([
@@ -82,6 +109,8 @@ def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(c
         str(fixture),
         "--message",
         "tengo una textil y no me cierra la caja",
+        "--storage-dir",
+        str(tmp_path / "storage"),
         "--formula-id",
         "PYME_033_concentracion_sku",
     ])
@@ -94,7 +123,7 @@ def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(c
     assert "no diagnostica" in out.lower()
 
 
-def test_vertical_slice_cli_reports_unsupported_formula_without_crashing(capsys):
+def test_vertical_slice_cli_reports_unsupported_formula_without_crashing(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
     rc = vertical_slice.main([
@@ -102,6 +131,8 @@ def test_vertical_slice_cli_reports_unsupported_formula_without_crashing(capsys)
         str(fixture),
         "--message",
         "tengo una textil y no me cierra la caja",
+        "--storage-dir",
+        str(tmp_path / "storage"),
         "--formula-id",
         "FORMULA_INEXISTENTE",
     ])
@@ -125,6 +156,18 @@ def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
         "tenant_demo_001",
         "--intake-id",
         "intake_demo_001",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+        "--empresa-tipo",
+        "comercio",
+        "--industria",
+        "retail",
+        "--modelo-comercial",
+        "b2c",
+        "--canal-venta",
+        "local",
+        "--area-critica",
+        "margen",
         "--output",
         str(output),
     ])
@@ -136,12 +179,26 @@ def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
     assert "## Evidencia usada" in text
     assert "Tenant: tenant_demo_001" in text
     assert "Intake: intake_demo_001" in text
+    assert "Anamnesis ID: anamnesis_" in text
+    assert "## Anamnesis" in text
+    assert "Empresa tipo: comercio" in text
+    assert "Industria: retail" in text
+    assert "Modelo comercial: b2c" in text
+    assert "Canales de venta: local" in text
+    assert "Áreas críticas: margen" in text
     assert "Case ID: intake_demo_001" in text
 
 
 def test_vertical_slice_cli_rejects_missing_excel(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
-        vertical_slice.main(["--excel", str(tmp_path / "faltante.xlsx"), "--message", "hola"])
+        vertical_slice.main([
+            "--excel",
+            str(tmp_path / "faltante.xlsx"),
+            "--message",
+            "hola",
+            "--storage-dir",
+            str(tmp_path / "storage"),
+        ])
 
 
 def test_vertical_slice_module_does_not_import_forbidden_runtime_layers():
@@ -161,10 +218,17 @@ def test_vertical_slice_module_does_not_import_forbidden_runtime_layers():
 # --- Audit gap: variable/table names in report ---
 
 
-def test_vertical_slice_report_shows_computed_variable_names(capsys):
+def test_vertical_slice_report_shows_computed_variable_names(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "Variables computables:" in out
@@ -172,20 +236,34 @@ def test_vertical_slice_report_shows_computed_variable_names(capsys):
     assert len(indented) > 0, "Variable names should be listed as indented items"
 
 
-def test_vertical_slice_report_uses_language_corpus_for_known_variable_labels(capsys):
+def test_vertical_slice_report_uses_language_corpus_for_known_variable_labels(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "ventas brutas (ventas_total)" in out
     assert "costo de mercaderia vendida (costos_total)" in out
 
 
-def test_vertical_slice_report_shows_table_sheet_names(capsys):
+def test_vertical_slice_report_shows_table_sheet_names(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "Tablas estructuradas:" in out
@@ -205,10 +283,17 @@ def test_vertical_slice_build_report_contains_variable_names(tmp_path):
     assert isinstance(summary["table_sheets"], list)
 
 
-def test_vertical_slice_next_question_specific_not_diagnosing(capsys):
+def test_vertical_slice_next_question_specific_not_diagnosing(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     lines = out.splitlines()
@@ -230,7 +315,14 @@ def test_vertical_slice_next_question_specific_not_diagnosing(capsys):
 def test_vertical_slice_graceful_with_minimal_excel(tmp_path, capsys):
     excel = tmp_path / "minimal.xlsx"
     _write_excel(excel, [["a", "b"], ["1", "2"]])
-    rc = vertical_slice.main(["--excel", str(excel), "--message", "test"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(excel),
+        "--message",
+        "test",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "Variables computables:" in out
@@ -240,10 +332,17 @@ def test_vertical_slice_graceful_with_minimal_excel(tmp_path, capsys):
 # --- Owner-facing language for next question ---
 
 
-def test_vertical_slice_next_question_uses_owner_language(capsys):
+def test_vertical_slice_next_question_uses_owner_language(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     lines = out.splitlines()
@@ -267,10 +366,17 @@ def test_vertical_slice_next_question_uses_owner_language(capsys):
             break
 
 
-def test_vertical_slice_next_question_keeps_technical_reference_for_operator(capsys):
+def test_vertical_slice_next_question_keeps_technical_reference_for_operator(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "  - Referencia técnica:" in out
@@ -280,10 +386,17 @@ def test_vertical_slice_next_question_keeps_technical_reference_for_operator(cap
     assert "_" in out.split("  - Referencia técnica:")[1] if "  - Referencia técnica:" in out else False
 
 
-def test_vertical_slice_next_question_does_not_expose_formula_id_as_primary_owner_text(capsys):
+def test_vertical_slice_next_question_does_not_expose_formula_id_as_primary_owner_text(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     lines = out.splitlines()
     idx = None
@@ -302,10 +415,17 @@ def test_vertical_slice_next_question_does_not_expose_formula_id_as_primary_owne
             break
 
 
-def test_vertical_slice_next_question_does_not_diagnose_or_prescribe(capsys):
+def test_vertical_slice_next_question_does_not_diagnose_or_prescribe(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     lines = out.splitlines()
     idx = None
@@ -326,10 +446,17 @@ def test_vertical_slice_next_question_does_not_diagnose_or_prescribe(capsys):
             break
 
 
-def test_vertical_slice_report_preserves_candidate_status_and_warnings(capsys):
+def test_vertical_slice_report_preserves_candidate_status_and_warnings(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(fixture),
+        "--message",
+        "tengo una textil",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "DELIVERED_CANDIDATE" in out
@@ -367,7 +494,14 @@ def test_vertical_slice_cli_aligns_owner_question_when_misaligned(tmp_path: Path
         }
     monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
     
-    rc = vertical_slice.main(["--excel", str(excel), "--message", "no me cierra la caja, me falta plata"])
+    rc = vertical_slice.main([
+        "--excel",
+        str(excel),
+        "--message",
+        "no me cierra la caja, me falta plata",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
     out = capsys.readouterr().out
     assert rc == 0
     assert "Entiendo que tu preocupación principal parece ser caja/liquidez" in out
