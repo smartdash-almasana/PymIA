@@ -374,26 +374,27 @@ PymIA (histórico)
 PymIA-Live (núcleo operativo)
 ```
 
-### Gap vivo conocido
+### Gap principal cerrado: Priorización por mensaje del dueño (QuestionAlignmentGate)
 
-El sistema ya funciona. El principal gap funcional restante es:
+El gap vivo del `owner_message` ha sido cerrado funcionalmente en `PymIA-Live` mediante la integración del `QuestionAlignmentGate` en el reporte final renderizado.
 
-```
-owner_message no participa todavía
-en la priorización de la próxima pregunta.
-```
+#### Funcionamiento corregido:
+El sistema ahora filtra de forma correcta las conciliaciones de catálogo (`reconciliation`) a aquellas que tengan preguntas activas (`next_audit_questions`) antes de pasarlas por el gate de alineación. Esto evita que el alineador evalúe erróneamente fórmulas ya calculadas sin preguntas (como `LIQ_001`) y permite interceptar y desviar de forma efectiva la próxima pregunta técnica que realmente se iba a mostrar en el markdown (p. ej., reconduciendo de `INV_001_punto_reposicion` a caja/liquidez si el dueño declaró tensiones de caja).
 
-Consecuencia: puede aparecer una pregunta de stock cuando el síntoma dominante del dueño es caja/liquidez.
+#### Evidencia de validación:
+- **Suite focal:** `35 passed` (incluyendo validación unitaria de gate y tests E2E del CLI con simulación de desalineación en el markdown final).
+- **Smoke test real (con textil fixture):** **PASS**. El reporte generado reconduce correctamente al eje de caja/liquidez y no deriva directamente a la pregunta de stock.
 
-Mitigación actual: reconducción humana vía runbook.
+### Commits relevantes:
+- `1327e10` feat(pymia-live): add isolated question alignment gate
+- `740c63d` feat(pymia-live): integrate question alignment gate into vertical slice owner message
+- `7ac16a6` fix(pymia-live): include runtime catalog dependencies
+- `c1afe56` fix(pymia-live): apply question alignment to rendered owner question
 
 ### Decisiones vigentes
-
-- No usar GPT como implementador principal. GPT queda para auditoría, síntesis, prompts, detección de deriva.
-- No abrir features nuevas sin auditoría.
-- No volver a mezclar museo con núcleo vivo.
-- No eliminar archivos marcados como UNUSED hasta tener validación adicional.
+- **No abrir features inmediatamente:** Se mantiene congelado el desarrollo de nuevas capacidades operativas.
+- **Mantener PymIA-Live autónomo:** Los catálogos JSON se incluyeron en el repositorio local de forma que es 100% independiente del repositorio histórico.
+- **No volver a convertir gaps claros en cadenas infinitas de specs/auditorías/checkpoints:** Una vez validados con tests y smoke, los cambios se cierran y se pasa al siguiente hito.
 
 ### Próximo frente probable
-
-Auditoría externa post-migración de PymIA-Live. Certificar que el baseline limpio quedó sano antes de abrir cualquier evolución funcional.
+Ejecutar un piloto real owner-facing con otro Excel/caso y recolectar feedback de uso de la reconducción de preguntas, sin modificar código runtime ni estructurado.
