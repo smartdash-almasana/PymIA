@@ -29,30 +29,27 @@ class PathologyKnowledgeTank(Protocol):
 
 
 class LocalPathologyKnowledgeTank:
-    """Tanque local mínimo para Chip 1.
-
-    Solo incluye patologías con fórmula/evaluador ejecutable en este chip.
-    """
+    """Tanque local mínimo alineado con los catálogos vivos."""
 
     def __init__(self) -> None:
         self._definitions: dict[str, PathologyDefinition] = {
-            "margen_bruto_negativo": PathologyDefinition(
-                pathology_id="margen_bruto_negativo",
-                formula_id="margen_bruto",
-                description="Detecta margen bruto negativo sobre ventas y costos declarados.",
+            "REN_001": PathologyDefinition(
+                pathology_id="REN_001",
+                formula_id="REN_001_margen_neto_real",
+                description="Detecta margen neto real negativo sobre ventas, costos e impuestos.",
                 severity=PathologySeverity.HIGH,
-                suggested_action="Revisar costos o precios de venta.",
+                suggested_action="Revisar costos, impuestos o precios de venta.",
             ),
         }
         self._metadata: dict[str, dict] = {
-            "margen_bruto_negativo": {
+            "REN_001": {
                 "category": "rentabilidad",
                 "requires_formula": True,
                 "source": "local_chip1",
             }
         }
         self._evaluators: dict[str, PathologyEvaluator] = {
-            "margen_bruto_negativo": self._evaluate_margen_bruto_negativo,
+            "REN_001": self._evaluate_ren_001_margen_neto_real,
         }
 
     def get_definition(self, pathology_id: str) -> PathologyDefinition | None:
@@ -64,12 +61,12 @@ class LocalPathologyKnowledgeTank:
     def get_evaluator(self, pathology_id: str) -> PathologyEvaluator | None:
         return self._evaluators.get(pathology_id)
 
-    def _evaluate_margen_bruto_negativo(self, payload: PathologyEvaluationInput) -> PathologyFinding:
-        definition = self.get_definition("margen_bruto_negativo")
+    def _evaluate_ren_001_margen_neto_real(self, payload: PathologyEvaluationInput) -> PathologyFinding:
+        definition = self.get_definition("REN_001")
         if definition is None:
             return PathologyFinding(
                 cliente_id=payload.cliente_id,
-                pathology_id="margen_bruto_negativo",
+                pathology_id="REN_001",
                 formula_result_id=payload.formula_result_id,
                 formula_id=payload.formula_result.formula_id,
                 status=PathologyStatus.PENDING_DATA,
@@ -79,7 +76,7 @@ class LocalPathologyKnowledgeTank:
             )
 
         result = payload.formula_result
-        metadata = {"catalog": self.get_metadata("margen_bruto_negativo")}
+        metadata = {"catalog": self.get_metadata("REN_001")}
 
         if result.value is not None and result.value < 0:
             return PathologyFinding(
@@ -91,7 +88,7 @@ class LocalPathologyKnowledgeTank:
                 severity=definition.severity,
                 suggested_action=definition.suggested_action,
                 source_refs=result.source_refs,
-                explanation=f"El margen bruto calculado es {result.value}, lo cual indica pérdida.",
+                explanation=f"El margen neto real calculado es {result.value}, lo cual indica pérdida.",
                 metadata=metadata,
             )
 
