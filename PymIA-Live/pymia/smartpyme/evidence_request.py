@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any
 
@@ -105,9 +105,41 @@ def create_evidence_request_record(
     )
 
 
+def derive_evidence_request_status(
+    request: EvidenceRequestRecord,
+    evidence_records: list[dict[str, Any]],
+) -> EvidenceRequestRecord:
+    if not isinstance(request, EvidenceRequestRecord):
+        raise ValueError("request must be an EvidenceRequestRecord")
+    if not isinstance(evidence_records, list):
+        raise ValueError("evidence_records must be a list")
+
+    linked_evidence_ids: list[str] = []
+    for record in evidence_records:
+        if not isinstance(record, dict):
+            raise ValueError("evidence_records items must be dicts")
+        if record.get("request_id") != request.request_id:
+            continue
+        if record.get("status") == "REJECTED":
+            continue
+        evidence_id = record.get("evidence_id")
+        if isinstance(evidence_id, str) and evidence_id.strip():
+            linked_evidence_ids.append(evidence_id.strip())
+
+    metadata = dict(request.metadata)
+    metadata["linked_evidence_ids"] = linked_evidence_ids
+    next_status = (
+        EVIDENCE_REQUEST_STATUS_FULFILLED
+        if linked_evidence_ids
+        else EVIDENCE_REQUEST_STATUS_WAITING_UPLOAD
+    )
+    return replace(request, status=next_status, metadata=metadata)
+
+
 __all__ = [
     "EvidenceRequestRecord",
     "create_evidence_request_record",
+    "derive_evidence_request_status",
     "EVIDENCE_REQUEST_STATUS_OPEN",
     "EVIDENCE_REQUEST_STATUS_WAITING_UPLOAD",
     "EVIDENCE_REQUEST_STATUS_FULFILLED",
