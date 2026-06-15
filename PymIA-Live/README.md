@@ -36,7 +36,25 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-### 2. Ejecutar los Smoke Tests
+### 2. Ejecutar tests
+`PymIA-Live` tiene `pyproject.toml` propio y debe testearse desde la raíz de `PymIA-Live/`.
+
+Comando canónico:
+
+```bash
+cd PymIA-Live
+python -m pytest -q
+```
+
+Desde el repo padre `PymIA/`, no usar como comando canónico:
+
+```bash
+python -m pytest PymIA-Live -q
+```
+
+Motivo: el repo padre y `PymIA-Live` contienen paquete `pymia*`; ejecutar pytest con path directo desde el padre puede resolver imports contra el árbol raíz en vez del subproyecto vivo.
+
+### 3. Ejecutar los Smoke Tests
 El pipeline lee un archivo de planilla de PyME y un mensaje del dueño, produciendo un reporte en formato Markdown local en la carpeta `.tmp/`.
 
 #### Smoke Textil (Caso: La Textil Cosida SRL)
