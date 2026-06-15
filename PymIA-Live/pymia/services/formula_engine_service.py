@@ -6,19 +6,75 @@ from pymia.contracts.formula_contract import (
     FormulaResult,
     FormulaStatus,
 )
+from pymia.contracts.formula_rules_v1 import load_formula_rules
 
 
 class FormulaEngineService:
     """Motor determinístico mínimo de fórmulas.
 
-    No interpreta. No conversa. Solo calcula o bloquea con causa explícita.
+    El runtime consume formula_rules_v1.json como fuente primaria.
+    SUPPORTED_FORMULAS permanece como compatibilidad temporal.
     """
+
+    def _load_rule(self, formula_id: str) -> dict | None:
+        rules = load_formula_rules()
+        return (rules.get("rules_by_formula") or {}).get(formula_id)
+
+    def _required_inputs(self, formula_id: str) -> list[str]:
+        rule = self._load_rule(formula_id)
+        if rule is not None:
+            return list(rule.get("required_inputs") or [])
+        definition = SUPPORTED_FORMULAS.get(formula_id)
+        if definition is not None:
+            return list(definition.required_inputs)
+        return []
+
+    def _apply_blocking_rules(self, formula_id: str, values: dict, source_refs: list[str]) -> FormulaResult | None:
+        rule = self._load_rule(formula_id)
+        if rule is None:
+            return None
+        for br in rule.get("blocking_rules") or []:
+            field = br.get("field")
+            operator = br.get("operator")
+            threshold = br.get("value")
+            blocking_reason = br.get("blocking_reason")
+            if field and operator == "eq" and values.get(field) == threshold:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason=str(blocking_reason),
+                )
+        return None
+
+    def _apply_invalid_input_rules(self, formula_id: str, values: dict, source_refs: list[str]) -> FormulaResult | None:
+        rule = self._load_rule(formula_id)
+        if rule is None:
+            return None
+        for iir in rule.get("invalid_input_rules") or []:
+            field = iir.get("field")
+            operator = iir.get("operator")
+            threshold = iir.get("value")
+            blocking_reason = iir.get("blocking_reason")
+            if field and operator == "lt" and values.get(field) is not None and values[field] < threshold:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason=str(blocking_reason),
+                )
+        return None
 
     def calculate(self, formula_id: str, inputs: list[FormulaInput]) -> FormulaResult:
         values = {input_item.name: input_item.value for input_item in inputs}
         source_refs = self._collect_source_refs(inputs)
 
-        if formula_id not in SUPPORTED_FORMULAS:
+        rule = self._load_rule(formula_id)
+        if rule is None and formula_id not in SUPPORTED_FORMULAS:
             return FormulaResult(
                 formula_id=formula_id,
                 status=FormulaStatus.BLOCKED,
@@ -28,8 +84,8 @@ class FormulaEngineService:
                 blocking_reason="FORMULA_NOT_SUPPORTED",
             )
 
-        definition = SUPPORTED_FORMULAS[formula_id]
-        missing = [name for name in definition.required_inputs if values.get(name) is None]
+        required = self._required_inputs(formula_id)
+        missing = [name for name in required if values.get(name) is None]
         if missing:
             return FormulaResult(
                 formula_id=formula_id,
@@ -39,6 +95,14 @@ class FormulaEngineService:
                 source_refs=source_refs,
                 blocking_reason=f"MISSING_INPUTS: {','.join(missing)}",
             )
+
+        blocked = self._apply_blocking_rules(formula_id, values, source_refs)
+        if blocked is not None:
+            return blocked
+
+        invalid = self._apply_invalid_input_rules(formula_id, values, source_refs)
+        if invalid is not None:
+            return invalid
 
         if formula_id == "margen_bruto":
             ventas = values["ventas"]
