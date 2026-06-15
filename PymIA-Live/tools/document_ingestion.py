@@ -452,14 +452,15 @@ class StructuredEvidenceExporter:
             )
             for table in curated.raw_tables
         ]
-        computed_variables = self._compute_variables(
-            [
-                record
-                for table in curated.normalized_tables
-                if table.context != "senales_operativas"
-                for record in table.records
-            ]
-        )
+        semantic_rows = []
+        for table in curated.normalized_tables:
+            if table.context == "senales_operativas":
+                continue
+            for idx, record in enumerate(table.records, start=table.header_row + 1):
+                enriched = dict(record)
+                enriched["document_ref"] = f"{table.sheet_name}:row:{idx}"
+                semantic_rows.append(enriched)
+        computed_variables = self._compute_variables(semantic_rows)
         signals = [
             dict(record)
             for table in curated.normalized_tables

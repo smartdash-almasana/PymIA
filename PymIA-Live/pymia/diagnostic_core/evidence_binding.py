@@ -96,6 +96,9 @@ def _source_refs_for(
         for key in (canonical_name, matched_alias):
             refs = variable_refs.get(key)
             if isinstance(refs, list):
-                return [str(ref) for ref in refs if str(ref).strip()]
+                clean_refs = [str(ref) for ref in refs if str(ref).strip()]
+                if clean_refs:
+                    return clean_refs
 
-    return []
+    file_name = evidence.file_name or "structured_evidence"
+    return [f"{file_name}:{matched_alias}"]
