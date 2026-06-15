@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pymia.smartpyme.question_alignment_gate import (
     AXIS_CAJA_LIQUIDEZ,
     AXIS_COSTOS_PROVEEDORES,
@@ -7,6 +9,7 @@ from pymia.smartpyme.question_alignment_gate import (
     align_next_question,
     detect_owner_axis,
     detect_question_axis,
+    load_question_alignment_rules,
 )
 
 
@@ -52,6 +55,22 @@ def test_owner_axis_returns_unknown_for_ambiguous():
     assert detect_owner_axis("quiero analizar mi negocio") == AXIS_DESCONOCIDO
 
 
+def test_question_alignment_rules_json_loads_valid_contract():
+    contract_path = Path(__file__).resolve().parents[2] / "pymia" / "contracts" / "question_alignment_v1.json"
+    assert contract_path.exists()
+
+    rules = load_question_alignment_rules()
+    assert rules["schema_version"] == "1.0"
+    assert AXIS_CAJA_LIQUIDEZ in rules["owner_keywords"]
+    assert rules["formula_prefix_axis"]["LIQ"] == AXIS_CAJA_LIQUIDEZ
+    assert rules["pathology_axis"]["INV_001"] == AXIS_STOCK_REPOSICION
+    assert {
+        "owner_axis": AXIS_CAJA_LIQUIDEZ,
+        "question_axis": AXIS_STOCK_REPOSICION,
+        "status": "MISALIGNED",
+    } in rules["misalignment_rules"]
+
+
 # --- detect_question_axis ---
 
 def test_question_axis_from_formula_prefix():
@@ -65,6 +84,41 @@ def test_question_axis_from_pathology_code():
 
 def test_question_axis_unknown_for_unmapped():
     assert detect_question_axis({"formula_id": "OPE_001"}) == AXIS_DESCONOCIDO
+
+
+def test_question_alignment_uses_declarative_rules(monkeypatch):
+    monkeypatch.setattr(
+        "pymia.smartpyme.question_alignment_gate.load_question_alignment_rules",
+        lambda: {
+            "owner_keywords": {
+                AXIS_CAJA_LIQUIDEZ: ["tesoreria urgente"],
+            },
+            "formula_prefix_axis": {
+                "TES": AXIS_STOCK_REPOSICION,
+            },
+            "pathology_axis": {},
+            "misalignment_rules": [
+                {
+                    "owner_axis": AXIS_CAJA_LIQUIDEZ,
+                    "question_axis": AXIS_STOCK_REPOSICION,
+                    "status": "MISALIGNED",
+                }
+            ],
+        },
+    )
+
+    result = align_next_question(
+        "tesoreria urgente",
+        [{
+            "formula_id": "TES_001",
+            "pathology_code": "",
+            "next_audit_questions": ["¿Podés compartir el dato técnico?"],
+        }],
+    )
+
+    assert detect_owner_axis("tesoreria urgente") == AXIS_CAJA_LIQUIDEZ
+    assert detect_question_axis({"formula_id": "TES_001"}) == AXIS_STOCK_REPOSICION
+    assert result["status"] == "MISALIGNED"
 
 
 # --- align_next_question ---

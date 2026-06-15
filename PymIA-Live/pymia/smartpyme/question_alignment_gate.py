@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 AXIS_CAJA_LIQUIDEZ = "caja_liquidez"
@@ -11,68 +14,35 @@ AXIS_RRHH = "rrhh"
 AXIS_AUTOMATIZACION_MANUAL = "automatizacion_manual"
 AXIS_DESCONOCIDO = "desconocido"
 
-_OWNER_KEYWORDS: dict[str, list[str]] = {
-    AXIS_CAJA_LIQUIDEZ: [
-        "no me cierra la caja",
-        "no tengo plata",
-        "no me alcanza",
-        "sin plata",
-        "sin efectivo",
-        "caja", "banco", "plata", "efectivo", "cobro", "cobranza",
-        "pago", "pagar", "saldo", "liquidez", "disponible",
-        "flujo", "descubierto", "cheque",
-    ],
-    AXIS_VENTAS_MARGEN: [
-        "vendo pero no me queda",
-        "vendo mucho",
-        "vendo un monton",
-        "no me queda margen",
-        "vendo", "venta", "margen", "facturacion", "rentabilidad",
-        "ganancia", "facturo", "precio",
-    ],
-    AXIS_STOCK_REPOSICION: [
-        "stock", "inventario", "reposicion", "faltante",
-        "merma", "rotura", "deposito",
-    ],
-    AXIS_COSTOS_PROVEEDORES: [
-        "costo", "proveedor", "compra", "insumo", "materia prima",
-        "cuenta por pagar", "proveedore",
-    ],
-    AXIS_PRODUCCION: [
-        "produccion", "elaboracion", "fabrica", "planta",
-        "proceso", "producir",
-    ],
-    AXIS_RRHH: [
-        "sueldo", "empleado", "personal", "dotacion",
-        "hora extra", "trabajador", "nomina",
-    ],
-    AXIS_AUTOMATIZACION_MANUAL: [
-        "automatizacion", "planilla", "proceso manual",
-        "carga manual", "automatizar",
-    ],
-}
+@lru_cache(maxsize=1)
+def load_question_alignment_rules() -> dict[str, Any]:
+    contract_path = Path(__file__).resolve().parent.parent / "contracts" / "question_alignment_v1.json"
+    if not contract_path.exists():
+        return {}
+    return json.loads(contract_path.read_text(encoding="utf-8"))
 
-_FORMULA_PREFIX_AXIS: dict[str, str] = {
-    "LIQ": AXIS_CAJA_LIQUIDEZ,
-    "INV": AXIS_STOCK_REPOSICION,
-    "REN": AXIS_VENTAS_MARGEN,
-}
 
-_PATHOLOGY_AXIS: dict[str, str] = {
-    "LIQ_001": AXIS_CAJA_LIQUIDEZ,
-    "LIQ_002": AXIS_CAJA_LIQUIDEZ,
-    "INV_001": AXIS_STOCK_REPOSICION,
-    "INV_002": AXIS_STOCK_REPOSICION,
-    "REN_001": AXIS_VENTAS_MARGEN,
-    "REN_002": AXIS_VENTAS_MARGEN,
-}
+def _owner_keywords() -> dict[str, list[str]]:
+    return load_question_alignment_rules().get("owner_keywords", {})
+
+
+def _formula_prefix_axis() -> dict[str, str]:
+    return load_question_alignment_rules().get("formula_prefix_axis", {})
+
+
+def _pathology_axis() -> dict[str, str]:
+    return load_question_alignment_rules().get("pathology_axis", {})
+
+
+def _misalignment_rules() -> list[dict[str, str]]:
+    return load_question_alignment_rules().get("misalignment_rules", [])
 
 
 def detect_owner_axis(message: str) -> str:
     if not message or not message.strip():
         return AXIS_DESCONOCIDO
     msg_lower = message.lower()
-    for axis, keywords in _OWNER_KEYWORDS.items():
+    for axis, keywords in _owner_keywords().items():
         for keyword in keywords:
             if keyword in msg_lower:
                 return axis
@@ -82,13 +52,25 @@ def detect_owner_axis(message: str) -> str:
 def detect_question_axis(entry: dict[str, Any]) -> str:
     formula_id = entry.get("formula_id", "") or ""
     pathology_code = entry.get("pathology_code", "") or ""
-    if pathology_code in _PATHOLOGY_AXIS:
-        return _PATHOLOGY_AXIS[pathology_code]
+    pathology_axis = _pathology_axis()
+    if pathology_code in pathology_axis:
+        return pathology_axis[pathology_code]
     if "_" in formula_id:
         prefix = formula_id.split("_")[0]
-        if prefix in _FORMULA_PREFIX_AXIS:
-            return _FORMULA_PREFIX_AXIS[prefix]
+        formula_prefix_axis = _formula_prefix_axis()
+        if prefix in formula_prefix_axis:
+            return formula_prefix_axis[prefix]
     return AXIS_DESCONOCIDO
+
+
+def _alignment_status(owner_axis: str, question_axis: str) -> str:
+    for rule in _misalignment_rules():
+        if (
+            owner_axis == rule.get("owner_axis")
+            and question_axis == rule.get("question_axis")
+        ):
+            return str(rule.get("status", "MISALIGNED"))
+    return "ALIGNED"
 
 
 def _get_question_text(entry: dict[str, Any]) -> str:
@@ -117,10 +99,8 @@ def align_next_question(
         status = "UNKNOWN"
     elif owner_axis == AXIS_DESCONOCIDO:
         status = "UNKNOWN"
-    elif owner_axis == AXIS_CAJA_LIQUIDEZ and question_axis == AXIS_STOCK_REPOSICION:
-        status = "MISALIGNED"
     else:
-        status = "ALIGNED"
+        status = _alignment_status(owner_axis, question_axis)
     return {
         "status": status,
         "declared_axis": owner_axis,
@@ -139,6 +119,7 @@ __all__ = [
     "AXIS_RRHH",
     "AXIS_AUTOMATIZACION_MANUAL",
     "AXIS_DESCONOCIDO",
+    "load_question_alignment_rules",
     "detect_owner_axis",
     "detect_question_axis",
     "align_next_question",

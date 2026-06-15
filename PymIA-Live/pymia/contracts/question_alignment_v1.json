@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "owner_keywords": {
+    "caja_liquidez": [
+      "no me cierra la caja",
+      "no tengo plata",
+      "no me alcanza",
+      "sin plata",
+      "sin efectivo",
+      "caja",
+      "banco",
+      "plata",
+      "efectivo",
+      "cobro",
+      "cobranza",
+      "pago",
+      "pagar",
+      "saldo",
+      "liquidez",
+      "disponible",
+      "flujo",
+      "descubierto",
+      "cheque"
+    ],
+    "ventas_margen": [
+      "vendo pero no me queda",
+      "vendo mucho",
+      "vendo un monton",
+      "no me queda margen",
+      "vendo",
+      "venta",
+      "margen",
+      "facturacion",
+      "rentabilidad",
+      "ganancia",
+      "facturo",
+      "precio"
+    ],
+    "stock_reposicion": [
+      "stock",
+      "inventario",
+      "reposicion",
+      "faltante",
+      "merma",
+      "rotura",
+      "deposito"
+    ],
+    "costos_proveedores": [
+      "costo",
+      "proveedor",
+      "compra",
+      "insumo",
+      "materia prima",
+      "cuenta por pagar",
+      "proveedore"
+    ],
+    "produccion": [
+      "produccion",
+      "elaboracion",
+      "fabrica",
+      "planta",
+      "proceso",
+      "producir"
+    ],
+    "rrhh": [
+      "sueldo",
+      "empleado",
+      "personal",
+      "dotacion",
+      "hora extra",
+      "trabajador",
+      "nomina"
+    ],
+    "automatizacion_manual": [
+      "automatizacion",
+      "planilla",
+      "proceso manual",
+      "carga manual",
+      "automatizar"
+    ]
+  },
+  "formula_prefix_axis": {
+    "LIQ": "caja_liquidez",
+    "INV": "stock_reposicion",
+    "REN": "ventas_margen"
+  },
+  "pathology_axis": {
+    "LIQ_001": "caja_liquidez",
+    "LIQ_002": "caja_liquidez",
+    "INV_001": "stock_reposicion",
+    "INV_002": "stock_reposicion",
+    "REN_001": "ventas_margen",
+    "REN_002": "ventas_margen"
+  },
+  "misalignment_rules": [
+    {
+      "owner_axis": "caja_liquidez",
+      "question_axis": "stock_reposicion",
+      "status": "MISALIGNED"
+    }
+  ]
+}
