@@ -5,7 +5,8 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
-from pymia.contracts.formula_contract import SUPPORTED_FORMULAS, FormulaInput, FormulaResult, FormulaStatus
+from pymia.contracts.formula_contract import FormulaInput, FormulaResult, FormulaStatus
+from pymia.contracts.formula_rules_v1 import load_formula_rules
 from pymia.services.formula_engine_service import FormulaEngineService
 from pymia.smartpyme.investigation import INVESTIGATION_STATUS_READY_FOR_CONTRAST, InvestigationRecord
 
@@ -147,8 +148,10 @@ def execute_allowed_formulas_from_gate_decisions(
             )
             continue
 
-        definition = SUPPORTED_FORMULAS.get(decision.formula_id)
-        if definition is None:
+        rules = load_formula_rules()
+        rules_by_formula = rules.get("rules_by_formula", {})
+        rule = rules_by_formula.get(decision.formula_id)
+        if rule is None:
             results.append(
                 FormulaResult(
                     formula_id=decision.formula_id,
@@ -167,7 +170,7 @@ def execute_allowed_formulas_from_gate_decisions(
                 value=core_input.variables.get(name),
                 source_refs=core_input.evidence_refs.get(name, []),
             )
-            for name in definition.required_inputs
+            for name in rule["required_inputs"]
         ]
         results.append(service.calculate(decision.formula_id, inputs))
     return results
@@ -190,10 +193,12 @@ def build_evidence_sufficiency_report_from_structured_evidence(
 
     report: list[FormulaEvidenceSufficiency] = []
     for formula_id in formula_ids:
-        if formula_id not in SUPPORTED_FORMULAS:
+        rules = load_formula_rules()
+        rules_by_formula = rules.get("rules_by_formula", {})
+        if formula_id not in rules_by_formula:
             raise KeyError(f"Unsupported formula_id: {formula_id}")
 
-        required_variables = list(SUPPORTED_FORMULAS[formula_id].required_inputs)
+        required_variables = list(rules_by_formula[formula_id]["required_inputs"])
         available_variables = [name for name in required_variables if name in core_input.variables]
         missing_variables = [name for name in required_variables if name not in core_input.variables]
         source_refs = _collect_formula_source_refs(core_input.evidence_refs, available_variables)

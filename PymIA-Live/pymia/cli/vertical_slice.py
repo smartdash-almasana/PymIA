@@ -204,17 +204,19 @@ def _diagnostic_pipeline_result_for_report(
         return None
 
     from pymia.contracts.evidence_v1 import StructuredEvidence
-    from pymia.contracts.formula_contract import SUPPORTED_FORMULAS
+    from pymia.contracts.formula_rules_v1 import load_formula_rules
     from pymia.services.diagnostic_pipeline import (
         formula_pathology_map_from_catalog_reconciliation,
         run_diagnostic_pipeline_from_structured_evidence,
     )
     from pymia.smartpyme.structured_evidence_builder import build_structured_evidence_context
 
+    rules = load_formula_rules()
+    rules_by_formula = rules.get("rules_by_formula", {})
     formula_to_pathology = {
         formula_id: pathology_code
         for formula_id, pathology_code in formula_pathology_map_from_catalog_reconciliation(relevant_reconciliation).items()
-        if formula_id in SUPPORTED_FORMULAS
+        if formula_id in rules_by_formula
     }
     if not formula_to_pathology:
         return None
@@ -587,11 +589,13 @@ def build_structured_summary(
         summary["catalog_reconciliation"] = reconciliation_list
 
         if formula_ids:
-            from pymia.contracts.formula_contract import SUPPORTED_FORMULAS
+            from pymia.contracts.formula_rules_v1 import load_formula_rules
             from pymia.diagnostic_core.evidence_sufficiency import build_evidence_sufficiency_report_from_structured_evidence
 
-            supported_formula_ids = [formula_id for formula_id in formula_ids if formula_id in SUPPORTED_FORMULAS]
-            unsupported_formula_ids = [formula_id for formula_id in formula_ids if formula_id not in SUPPORTED_FORMULAS]
+            rules = load_formula_rules()
+            rules_by_formula = rules.get("rules_by_formula", {})
+            supported_formula_ids = [formula_id for formula_id in formula_ids if formula_id in rules_by_formula]
+            unsupported_formula_ids = [formula_id for formula_id in formula_ids if formula_id not in rules_by_formula]
             summary["unsupported_formula_ids"] = unsupported_formula_ids
             if supported_formula_ids:
                 sufficiency = build_evidence_sufficiency_report_from_structured_evidence(
