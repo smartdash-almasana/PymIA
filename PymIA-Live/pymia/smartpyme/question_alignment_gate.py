@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
+
+from pymia.contracts.question_alignment_v1 import load_question_alignment_contract
 
 AXIS_CAJA_LIQUIDEZ = "caja_liquidez"
 AXIS_VENTAS_MARGEN = "ventas_margen"
@@ -14,12 +13,10 @@ AXIS_RRHH = "rrhh"
 AXIS_AUTOMATIZACION_MANUAL = "automatizacion_manual"
 AXIS_DESCONOCIDO = "desconocido"
 
-@lru_cache(maxsize=1)
+
 def load_question_alignment_rules() -> dict[str, Any]:
-    contract_path = Path(__file__).resolve().parent.parent / "contracts" / "question_alignment_v1.json"
-    if not contract_path.exists():
-        return {}
-    return json.loads(contract_path.read_text(encoding="utf-8"))
+    """Backward-compatible alias for the declarative contract loader."""
+    return load_question_alignment_contract()
 
 
 def _owner_keywords() -> dict[str, list[str]]:
@@ -36,6 +33,10 @@ def _pathology_axis() -> dict[str, str]:
 
 def _misalignment_rules() -> list[dict[str, str]]:
     return load_question_alignment_rules().get("misalignment_rules", [])
+
+
+def _copy_templates() -> dict[str, str]:
+    return load_question_alignment_rules().get("copy_templates", {})
 
 
 def detect_owner_axis(message: str) -> str:
@@ -78,6 +79,16 @@ def _get_question_text(entry: dict[str, Any]) -> str:
     return str(questions[0]) if questions else ""
 
 
+def _misaligned_reconduction_text(declared_axis: str, question_axis: str) -> str:
+    template = _copy_templates().get("misaligned_reconduction", "")
+    return template.format(declared_axis=declared_axis, question_axis=question_axis)
+
+
+def _misaligned_technical_reference(declared_axis: str, question_axis: str) -> str:
+    template = _copy_templates().get("misaligned_technical_reference", "")
+    return template.format(declared_axis=declared_axis, question_axis=question_axis)
+
+
 def align_next_question(
     owner_message: str,
     candidates: list[dict[str, Any]],
@@ -88,7 +99,7 @@ def align_next_question(
             "declared_axis": detect_owner_axis(owner_message),
             "question_axis": AXIS_DESCONOCIDO,
             "final_question_text": "",
-            "technical_reference": "sin candidatos para evaluar",
+            "technical_reference": _copy_templates().get("no_candidates_reference", "sin candidatos para evaluar"),
         }
     owner_axis = detect_owner_axis(owner_message)
     target_entry = candidates[0]
@@ -101,12 +112,17 @@ def align_next_question(
         status = "UNKNOWN"
     else:
         status = _alignment_status(owner_axis, question_axis)
+    if status == "MISALIGNED":
+        question_text = _misaligned_reconduction_text(owner_axis, question_axis)
+        technical_reference = _misaligned_technical_reference(owner_axis, question_axis)
+    else:
+        technical_reference = formula_id if formula_id else ""
     return {
         "status": status,
         "declared_axis": owner_axis,
         "question_axis": question_axis,
         "final_question_text": question_text,
-        "technical_reference": formula_id if formula_id else "",
+        "technical_reference": technical_reference,
     }
 
 
