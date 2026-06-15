@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0",
   "status": "ACTIVE",
+  "operational_terms": ["venta", "precio", "costo", "producto", "sku", "cantidad", "fecha"],
   "pathology_labels": {
     "LIQ_001": "cobranza de ventas",
     "LIQ_002": "saldo de caja proyectado",

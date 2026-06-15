@@ -7,123 +7,17 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 from pymia.contracts.language_corpus_v1 import load_language_corpus_seed, owner_label_for_variable_id
+from pymia.contracts.presentation_labels_v1 import (
+    label_for_field,
+    label_for_pathology,
+    load_operational_terms,
+)
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
 from pymia.smartpyme.question_alignment_gate import align_next_question
 
 
-OPERATIONAL_TERMS = ("venta", "precio", "costo", "producto", "sku", "cantidad", "fecha")
-
-# Presentation-layer mappings for owner-friendly language (not core business logic)
-_PATHOLOGY_LABELS: dict[str, str] = {
-    "LIQ_001": "cobranza de ventas",
-    "LIQ_002": "saldo de caja proyectado",
-    "INV_001": "reposición de stock",
-    "INV_002": "rotación de stock",
-    "REN_001": "margen neto",
-    "REN_002": "reposición de precios",
-    "OPE_001": "centralización de decisiones",
-    "PYME_004": "ajuste por inflación",
-    "PYME_007": "deriva de reputación",
-    "PYME_008": "control de stock",
-    "PYME_009": "discrepancias en ARCA",
-    "PYME_011": "plazo de cobranza",
-    "PYME_012": "retraso en impuestos",
-    "PYME_013": "brecha de pagos",
-    "PYME_014": "composición del margen",
-    "PYME_015": "conciliación bancaria",
-    "PYME_017": "desviación de precios",
-    "PYME_018": "actualización de datos",
-    "PYME_019": "visibilidad de decisiones",
-    "PYME_020": "carga operativa",
-    "PYME_021": "seguridad de procesos",
-    "PYME_022": "dispersión de datos",
-    "PYME_023": "costos logísticos",
-    "PYME_024": "liquidez corriente",
-    "PYME_025": "dependencia de crédito",
-    "PYME_026": "flujo operativo",
-    "PYME_027": "carga financiera",
-    "PYME_028": "fondo de emergencia",
-    "PYME_029": "gestión de ventas",
-    "PYME_030": "ventana de despacho",
-    "PYME_031": "comunicación con clientes",
-    "PYME_032": "reclamos de clientes",
-    "PYME_033": "concentración de productos",
-    "PYME_034": "cancelaciones",
-    "PYME_035": "consistencia fiscal",
-    "PYME_036": "conexión con sistemas",
-    "PYME_037": "clasificación en IVA",
-    "PYME_038": "control de versiones",
-    "PYME_039": "recategorización",
-    "PYME_040": "gestión de tareas",
-    "PYME_041": "liquidación de sueldos",
-    "PYME_042": "conexión e-commerce",
-    "PYME_043": "carga laboral",
-    "PYME_044": "margen por cliente",
-    "PYME_045": "uso de IVA",
-    "PYME_046": "separación de finanzas",
-    "PYME_047": "automatización de procesos",
-    "PYME_048": "actualización de precios",
-    "PYME_049": "rentabilidad real",
-    "PYME_050": "organización general",
-}
-
-_FIELD_LABELS: dict[str, str] = {
-    "historial_ventas_sku": "historial de ventas por producto",
-    "lead_time_proveedor": "tiempos de reposición de proveedores",
-    "politica_stock_seguridad": "política de stock de seguridad",
-    "ventas_del_periodo": "ventas del período",
-    "cobranzas_del_periodo": "cobranzas del período",
-    "cuentas_corrientes_clientes": "estado de cuentas corrientes",
-    "costos_directos": "costos directos",
-    "impuestos_y_comisiones": "impuestos y comisiones",
-    "indice_origen": "índice de origen",
-    "indice_cierre": "índice de cierre",
-    "fecha_origen": "fecha de origen",
-    "fecha_cierre": "fecha de cierre",
-    "saldo_inicial_caja_banco": "saldo inicial de caja y banco",
-    "cobranzas_esperadas": "cobranzas esperadas",
-    "pagos_esperados": "pagos esperados",
-    "cmv_periodo": "costo de mercadería vendida",
-    "inventario_inicial": "inventario inicial",
-    "inventario_final": "inventario final",
-    "registro_decisiones": "registro de decisiones",
-    "workflow_aprobaciones": "flujo de aprobaciones",
-    "entrevista_dueño": "entrevista con el dueño",
-    "cuentas_por_cobrar": "cuentas por cobrar",
-    "ventas_periodo": "ventas del período",
-    "periodo_dias": "días del período",
-    "dso_calculado": "días de cobranza calculados",
-    "dpo_calculado": "días de pago calculados",
-    "lista_precios_propia": "lista de precios propia",
-    "benchmark_precios_mercado": "precios de referencia del mercado",
-    "balance_general": "balance general",
-    "saldos_activo_corriente": "saldos de activo corriente",
-    "saldos_pasivo_corriente": "saldos de pasivo corriente",
-    "estado_resultados": "estado de resultados",
-    "balance_dos_periodos": "balance de dos períodos",
-    "detalle_intereses": "detalle de intereses",
-    "calculo_ebitda": "cálculo de EBITDA",
-    "ventas_por_sku": "ventas por producto",
-    "ventas_totales": "ventas totales",
-    "ventas_por_cliente": "ventas por cliente",
-    "costos_por_cliente": "costos por cliente",
-    "horas_atencion_cliente": "horas de atención al cliente",
-    "medicion_tiempos_proceso": "medición de tiempos de proceso",
-    "flujo_actual": "flujo de trabajo actual",
-    "flujo_automatizado_estimado": "flujo automatizado estimado",
-    "horas_manual_actuales": "horas manuales actuales",
-    "costo_hora": "costo por hora",
-    "cotizacion_automatizacion": "cotización de automatización",
-    "costo_operacion_anual": "costo de operación anual",
-    "valor_origen": "valor de origen",
-    "cuentas_por_pagar": "cuentas por pagar",
-}
-
-
 def _humanize_field(name: str) -> str:
-    if name in _FIELD_LABELS:
-        return _FIELD_LABELS[name]
-    return name.replace("_", " ").lower()
+    return label_for_field(name)
 
 
 def _owner_label_for_variable(name: str) -> str:
@@ -141,9 +35,7 @@ def _build_owner_question(entry: dict) -> tuple[str | None, str | None]:
     pathology_code = entry.get("pathology_code", "")
     formula_id = entry.get("formula_id", "")
     missing = entry.get("missing_evidence", [])
-    pathology_label = _PATHOLOGY_LABELS.get(pathology_code)
-    if not pathology_label:
-        pathology_label = pathology_code.replace("_", " ").lower()
+    pathology_label = label_for_pathology(pathology_code)
     humanized_fields = [_humanize_field(f) for f in missing]
     if humanized_fields:
         if len(humanized_fields) == 1:
@@ -334,7 +226,7 @@ def inspect_excel(path: Path) -> dict:
 
 def has_operational_columns(headers: list[str]) -> bool:
     joined = " ".join(headers)
-    return any(term in joined for term in OPERATIONAL_TERMS)
+    return any(term in joined for term in load_operational_terms())
 
 
 def calculate_sha256(path: Path) -> str:
