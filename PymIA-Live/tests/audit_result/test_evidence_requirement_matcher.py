@@ -5,6 +5,7 @@ from pymia.contracts.evidence_v1 import StructuredEvidence
 from pymia.audit_result.evidence_requirement_matcher import (
     match_evidence_requirements,
     _load_evidence_requirement_aliases,
+    _compute_key_aliases,
 )
 
 
@@ -29,6 +30,13 @@ def test_evidence_requirement_matcher_match_logic():
         metadata={"signals": [{"signal_id": "sig1", "signal_type": "margen_bajo"}]},
     )
 
+    available, sources = _compute_key_aliases(evidence)
+    assert "ventas_del_periodo" in available
+    assert "sales" in available
+    assert "ventas_totales" in available
+    assert "costos_directos" in available
+    assert "costs" in available
+
     matches = match_evidence_requirements(evidence)
     assert isinstance(matches, list)
     assert len(matches) > 0
@@ -38,8 +46,7 @@ def test_evidence_requirement_matcher_match_logic():
     assert ren_match is not None
     # "ventas_total" in computed triggers the alias resolving for sales/ventas keys
     assert "ventas_del_periodo" in ren_match.available_evidence
-    assert "sales" in ren_match.available_evidence
-    assert "ventas_totales" in ren_match.available_evidence
+    assert "costos_directos" in ren_match.available_evidence
 
     # "margen_bajo" signal is classified as candidate for REN_001
     # Check that it matched or has candidate status if variables were missing
