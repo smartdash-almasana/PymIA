@@ -156,7 +156,7 @@
         "calculation_state": "CALCULABLE",
         "priority_mvp": "alta",
         "priority_robustez": "alta",
-        "category": "liquidez",
+        "category": "cobranzas",
         "family_id": "E"
       }
     },
@@ -239,9 +239,9 @@
       ],
       "invalid_input_rules": [],
       "metadata": {
-        "calculation_state": "CALCULABLE",
-        "priority_mvp": "alta",
-        "priority_robustez": "alta",
+        "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+        "priority_mvp": "media",
+        "priority_robustez": "media",
         "category": "pricing",
         "family_id": "C"
       }
@@ -289,7 +289,7 @@
       "blocking_rules": [],
       "invalid_input_rules": [],
       "metadata": {
-        "calculation_state": "CALCULABLE",
+        "calculation_state": "CALCULABLE_CON_SUPUESTOS",
         "priority_mvp": "alta",
         "priority_robustez": "alta",
         "category": "liquidez",
@@ -315,9 +315,9 @@
       "invalid_input_rules": [],
       "metadata": {
         "calculation_state": "CALCULABLE",
-        "priority_mvp": "alta",
-        "priority_robustez": "alta",
-        "category": "cobertura",
+        "priority_mvp": "media",
+        "priority_robustez": "media",
+        "category": "finanzas",
         "family_id": "F"
       }
     },
@@ -361,7 +361,7 @@
         "priority_mvp": "alta",
         "priority_robustez": "alta",
         "category": "ventas",
-        "family_id": "D"
+        "family_id": "N"
       }
     },
     "REN_002_coeficiente_reposicion": {

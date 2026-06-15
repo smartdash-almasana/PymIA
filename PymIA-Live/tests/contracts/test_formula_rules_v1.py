@@ -105,3 +105,29 @@ def test_formula_rules_mark_engine_only_formulas():
         rule = rules_by_formula[fid]
         assert rule.get("source_catalog_ref") is None
         assert rule.get("source_status") == "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG"
+
+
+def test_formula_rules_catalog_metadata_matches_formula_catalog_for_catalog_matches():
+    rules_path = Path(__file__).resolve().parents[2] / "pymia" / "contracts" / "formula_rules_v1.json"
+    catalog_path = Path(__file__).resolve().parents[2] / "docs" / "formula_catalog.v1.json"
+
+    rules_data = json.loads(rules_path.read_text(encoding="utf-8"))
+    catalog_data = json.loads(catalog_path.read_text(encoding="utf-8"))
+
+    rules_by_formula = rules_data["rules_by_formula"]
+    catalog_by_formula = {item["formula_id"]: item for item in catalog_data["formulas"]}
+
+    for formula_id, rule in rules_by_formula.items():
+        if rule.get("source_status") != "CATALOG_MATCH":
+            continue
+
+        catalog_formula = catalog_by_formula[formula_id]
+        metadata = rule["metadata"]
+
+        assert rule["output_unit"] == catalog_formula["output_unit"]
+        assert rule["pathology_code"] == catalog_formula["pathology_code"]
+        assert metadata["calculation_state"] == catalog_formula["calculation_state"]
+        assert metadata["priority_mvp"] == catalog_formula["priority_mvp"]
+        assert metadata["priority_robustez"] == catalog_formula["priority_robustez"]
+        assert metadata["category"] == catalog_formula["category"]
+        assert metadata["family_id"] == catalog_formula["family_id"]
