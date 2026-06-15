@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "signal_to_pathology": {
+    "margen_bajo": "REN_001",
+    "margen_negativo": "REN_001",
+    "precio_desactualizado": "REN_001",
+    "caja_tensionada": "LIQ_001",
+    "sobrestock": "INV_002",
+    "stock_bajo": "INV_001"
+  },
+  "sheet_evidence_aliases": {
+    "ventas": {
+      "trigger_computed": "ventas_total",
+      "aliases": ["ventas_del_periodo", "sales", "ventas_totales"]
+    },
+    "compras": {
+      "trigger_computed": "costos_total",
+      "aliases": ["costos_directos", "costs", "cmv_periodo"]
+    },
+    "stock": {
+      "aliases": ["inventario_inicial", "inventario_final", "average_stock"]
+    },
+    "caja_banco": {
+      "aliases": ["cobranzas_del_periodo", "cuentas_corrientes_clientes", "collected_amount"]
+    },
+    "costos_fijos": {
+      "aliases": ["impuestos_y_comisiones", "taxes"]
+    }
+  },
+  "computed_variable_aliases": {
+    "ventas_total": ["sold_amount", "sale_price"],
+    "costos_total": ["costs", "cost_of_goods_sold"]
+  }
+}
