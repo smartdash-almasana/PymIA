@@ -1,0 +1,393 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "runtime_engine": "pymia/services/formula_engine_service.py",
+    "catalog": "docs/formula_catalog.v1.json",
+    "mother_catalog": "docs/ingenieria_conversacional.CATALOGO_FORMULAS_MATEMATICAS_PYME_v1.md"
+  },
+  "rules_by_formula": {
+    "margen_bruto": {
+      "formula_id": "margen_bruto",
+      "required_inputs": ["ventas", "costos"],
+      "expression": "(ventas - costos) / ventas",
+      "output_unit": "ratio",
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [
+        {
+          "field": "ventas",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: ventas"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": null,
+        "priority_mvp": null,
+        "priority_robustez": null,
+        "category": null,
+        "family_id": null
+      }
+    },
+    "ganancia_bruta": {
+      "formula_id": "ganancia_bruta",
+      "required_inputs": ["ventas", "costos"],
+      "expression": "ventas - costos",
+      "output_unit": null,
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": null,
+        "priority_mvp": null,
+        "priority_robustez": null,
+        "category": null,
+        "family_id": null
+      }
+    },
+    "REN_001_margen_neto_real": {
+      "formula_id": "REN_001_margen_neto_real",
+      "required_inputs": ["sale_price", "costs", "taxes"],
+      "expression": "((sale_price - costs - taxes) / sale_price) * 100",
+      "output_unit": "percentage",
+      "pathology_code": "REN_001",
+      "source_catalog_ref": "REN_001_margen_neto_real",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "sale_price",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: sale_price"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "rentabilidad",
+        "family_id": "A"
+      }
+    },
+    "LIQ_001_vendido_cobrado": {
+      "formula_id": "LIQ_001_vendido_cobrado",
+      "required_inputs": ["sold_amount", "collected_amount"],
+      "expression": "sold_amount - collected_amount",
+      "output_unit": "currency",
+      "pathology_code": "LIQ_001",
+      "source_catalog_ref": "LIQ_001_vendido_cobrado",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "liquidez",
+        "family_id": "E"
+      }
+    },
+    "INV_002_rotacion_stock": {
+      "formula_id": "INV_002_rotacion_stock",
+      "required_inputs": ["cost_of_goods_sold", "average_stock"],
+      "expression": "cost_of_goods_sold / average_stock",
+      "output_unit": "ratio",
+      "pathology_code": "INV_002",
+      "source_catalog_ref": "INV_002_rotacion_stock",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "average_stock",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: average_stock"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "inventario",
+        "family_id": "G"
+      }
+    },
+    "INV_001_punto_reposicion": {
+      "formula_id": "INV_001_punto_reposicion",
+      "required_inputs": ["average_sales", "lead_time", "safety_stock"],
+      "expression": "(average_sales * lead_time) + safety_stock",
+      "output_unit": "units",
+      "pathology_code": "INV_001",
+      "source_catalog_ref": "INV_001_punto_reposicion",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "inventario",
+        "family_id": "G"
+      }
+    },
+    "PYME_011_dso": {
+      "formula_id": "PYME_011_dso",
+      "required_inputs": ["accounts_receivable", "sales", "days"],
+      "expression": "(accounts_receivable / sales) * days",
+      "output_unit": "days",
+      "pathology_code": "PYME_011",
+      "source_catalog_ref": "PYME_011_dso",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "sales",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: sales"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "liquidez",
+        "family_id": "E"
+      }
+    },
+    "PYME_013_dso_dpo_gap": {
+      "formula_id": "PYME_013_dso_dpo_gap",
+      "required_inputs": ["dso", "dpo"],
+      "expression": "dso - dpo",
+      "output_unit": "days",
+      "pathology_code": "PYME_013",
+      "source_catalog_ref": "PYME_013_dso_dpo_gap",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "liquidez",
+        "family_id": "E"
+      }
+    },
+    "LIQ_002_saldo_final_proyectado": {
+      "formula_id": "LIQ_002_saldo_final_proyectado",
+      "required_inputs": ["initial_balance", "expected_collections", "expected_payments"],
+      "expression": "initial_balance + expected_collections - expected_payments",
+      "output_unit": "currency",
+      "pathology_code": "LIQ_002",
+      "source_catalog_ref": "LIQ_002_saldo_final_proyectado",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "liquidez",
+        "family_id": "E"
+      }
+    },
+    "PYME_024_liquidez_corriente": {
+      "formula_id": "PYME_024_liquidez_corriente",
+      "required_inputs": ["current_assets", "current_liabilities"],
+      "expression": "current_assets / current_liabilities",
+      "output_unit": "ratio",
+      "pathology_code": "PYME_024",
+      "source_catalog_ref": "PYME_024_liquidez_corriente",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "current_liabilities",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: current_liabilities"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "liquidez",
+        "family_id": "E"
+      }
+    },
+    "PYME_017_pricing_drift": {
+      "formula_id": "PYME_017_pricing_drift",
+      "required_inputs": ["own_price", "market_price"],
+      "expression": "((own_price - market_price) / market_price) * 100",
+      "output_unit": "percentage",
+      "pathology_code": "PYME_017",
+      "source_catalog_ref": "PYME_017_pricing_drift",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "market_price",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: market_price"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "pricing",
+        "family_id": "C"
+      }
+    },
+    "punto_equilibrio_ventas": {
+      "formula_id": "punto_equilibrio_ventas",
+      "required_inputs": ["fixed_costs", "contribution_margin_rate"],
+      "expression": "fixed_costs / contribution_margin_rate",
+      "output_unit": "currency",
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [
+        {
+          "field": "contribution_margin_rate",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: contribution_margin_rate"
+        }
+      ],
+      "invalid_input_rules": [
+        {
+          "field": "contribution_margin_rate",
+          "operator": "lt",
+          "value": 0,
+          "blocking_reason": "INVALID_INPUT: contribution_margin_rate"
+        }
+      ],
+      "metadata": {
+        "calculation_state": null,
+        "priority_mvp": null,
+        "priority_robustez": null,
+        "category": null,
+        "family_id": null
+      }
+    },
+    "PYME_026_flujo_operativo": {
+      "formula_id": "PYME_026_flujo_operativo",
+      "required_inputs": ["net_income", "depreciation", "amortization", "working_capital_change"],
+      "expression": "net_income + depreciation + amortization - working_capital_change",
+      "output_unit": "currency",
+      "pathology_code": "PYME_026",
+      "source_catalog_ref": "PYME_026_flujo_operativo",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "liquidez",
+        "family_id": "E"
+      }
+    },
+    "PYME_027_intereses_ebitda": {
+      "formula_id": "PYME_027_intereses_ebitda",
+      "required_inputs": ["interest_expense", "ebitda"],
+      "expression": "interest_expense / ebitda",
+      "output_unit": "ratio",
+      "pathology_code": "PYME_027",
+      "source_catalog_ref": "PYME_027_intereses_ebitda",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "ebitda",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: ebitda"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "cobertura",
+        "family_id": "F"
+      }
+    },
+    "PYME_044_margen_cliente": {
+      "formula_id": "PYME_044_margen_cliente",
+      "required_inputs": ["client_revenue", "client_direct_costs", "client_service_costs"],
+      "expression": "client_revenue - client_direct_costs - client_service_costs",
+      "output_unit": "currency",
+      "pathology_code": "PYME_044",
+      "source_catalog_ref": "PYME_044_margen_cliente",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE_CON_SUPUESTOS",
+        "priority_mvp": "media",
+        "priority_robustez": "media",
+        "category": "rentabilidad",
+        "family_id": "A"
+      }
+    },
+    "PYME_033_concentracion_sku": {
+      "formula_id": "PYME_033_concentracion_sku",
+      "required_inputs": ["main_sku_sales", "total_sales"],
+      "expression": "(main_sku_sales / total_sales) * 100",
+      "output_unit": "percentage",
+      "pathology_code": "PYME_033",
+      "source_catalog_ref": "PYME_033_concentracion_sku",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "total_sales",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: total_sales"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "alta",
+        "priority_robustez": "alta",
+        "category": "ventas",
+        "family_id": "D"
+      }
+    },
+    "REN_002_coeficiente_reposicion": {
+      "formula_id": "REN_002_coeficiente_reposicion",
+      "required_inputs": ["closing_index", "origin_index"],
+      "expression": "closing_index / origin_index",
+      "output_unit": "ratio",
+      "pathology_code": "REN_002",
+      "source_catalog_ref": "REN_002_coeficiente_reposicion",
+      "source_status": "CATALOG_MATCH",
+      "blocking_rules": [
+        {
+          "field": "origin_index",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: origin_index"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "media",
+        "priority_robustez": "media",
+        "category": "rentabilidad",
+        "family_id": "A"
+      }
+    }
+  }
+}
