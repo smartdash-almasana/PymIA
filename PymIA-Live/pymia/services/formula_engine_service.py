@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pymia.contracts.formula_contract import (
-    SUPPORTED_FORMULAS,
     FormulaInput,
     FormulaResult,
     FormulaStatus,
@@ -12,8 +11,7 @@ from pymia.contracts.formula_rules_v1 import load_formula_rules
 class FormulaEngineService:
     """Motor determinístico mínimo de fórmulas.
 
-    El runtime consume formula_rules_v1.json como fuente primaria.
-    SUPPORTED_FORMULAS permanece como compatibilidad temporal.
+    Fuente primaria: formula_rules_v1.json.
     """
 
     def _load_rule(self, formula_id: str) -> dict | None:
@@ -24,9 +22,6 @@ class FormulaEngineService:
         rule = self._load_rule(formula_id)
         if rule is not None:
             return list(rule.get("required_inputs") or [])
-        definition = SUPPORTED_FORMULAS.get(formula_id)
-        if definition is not None:
-            return list(definition.required_inputs)
         return []
 
     def _apply_blocking_rules(self, formula_id: str, values: dict, source_refs: list[str]) -> FormulaResult | None:
@@ -74,7 +69,7 @@ class FormulaEngineService:
         source_refs = self._collect_source_refs(inputs)
 
         rule = self._load_rule(formula_id)
-        if rule is None and formula_id not in SUPPORTED_FORMULAS:
+        if rule is None:
             return FormulaResult(
                 formula_id=formula_id,
                 status=FormulaStatus.BLOCKED,

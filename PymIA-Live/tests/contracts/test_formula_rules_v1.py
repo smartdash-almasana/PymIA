@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from pymia.contracts.formula_contract import SUPPORTED_FORMULAS
 from pymia.contracts.formula_rules_v1 import load_formula_rules
 
 
@@ -15,29 +14,29 @@ def test_formula_rules_v1_loads_valid_json():
     assert len(rules_data["rules_by_formula"]) > 0
 
 
-def test_formula_rules_cover_supported_formulas():
+def test_formula_rules_all_have_required_inputs():
     rules_data = load_formula_rules()
     rules_by_formula = rules_data["rules_by_formula"]
-    for formula_id in SUPPORTED_FORMULAS:
-        assert formula_id in rules_by_formula
-
-
-def test_formula_rules_required_inputs_match_supported_formulas():
-    rules_data = load_formula_rules()
-    rules_by_formula = rules_data["rules_by_formula"]
-    for formula_id in SUPPORTED_FORMULAS:
-        rule = rules_by_formula[formula_id]
-        assert set(rule["required_inputs"]) == set(SUPPORTED_FORMULAS[formula_id].required_inputs)
+    for formula_id, rule in rules_by_formula.items():
+        assert "required_inputs" in rule, f"{formula_id} missing required_inputs"
+        assert isinstance(rule["required_inputs"], list), f"{formula_id} required_inputs is not a list"
+        assert len(rule["required_inputs"]) > 0, f"{formula_id} has empty required_inputs"
 
 
 def test_formula_rules_have_expression():
     rules_data = load_formula_rules()
     rules_by_formula = rules_data["rules_by_formula"]
-    for formula_id in SUPPORTED_FORMULAS:
-        rule = rules_by_formula[formula_id]
-        assert "expression" in rule
+    for formula_id, rule in rules_by_formula.items():
+        assert "expression" in rule, f"{formula_id} missing expression"
         assert isinstance(rule["expression"], str)
         assert len(rule["expression"].strip()) > 0
+
+
+def test_formula_rules_have_unique_ids():
+    rules_data = load_formula_rules()
+    rules_by_formula = rules_data["rules_by_formula"]
+    ids = list(rules_by_formula.keys())
+    assert len(ids) == len(set(ids)), "Duplicate formula IDs in rules_by_formula"
 
 
 def test_formula_rules_have_blocking_metadata_for_known_divisions():
@@ -91,7 +90,6 @@ def test_formula_rules_do_not_include_unimplemented_catalog_formulas():
 
     for fid in unimplemented_expected:
         assert fid in catalog_formula_ids, f"Expected {fid} to be in the catalog JSON"
-        assert fid not in SUPPORTED_FORMULAS
         assert fid not in rules_by_formula
 
 
