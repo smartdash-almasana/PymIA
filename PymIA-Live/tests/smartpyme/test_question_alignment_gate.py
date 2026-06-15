@@ -2,7 +2,6 @@ from pathlib import Path
 
 from pymia.smartpyme.question_alignment_gate import (
     AXIS_CAJA_LIQUIDEZ,
-    AXIS_COSTOS_PROVEEDORES,
     AXIS_DESCONOCIDO,
     AXIS_STOCK_REPOSICION,
     AXIS_VENTAS_MARGEN,
@@ -61,6 +60,7 @@ def test_question_alignment_rules_json_loads_valid_contract():
 
     rules = load_question_alignment_rules()
     assert rules["schema_version"] == "1.0"
+    assert rules["status"] == "ACTIVE"
     assert AXIS_CAJA_LIQUIDEZ in rules["owner_keywords"]
     assert rules["formula_prefix_axis"]["LIQ"] == AXIS_CAJA_LIQUIDEZ
     assert rules["pathology_axis"]["INV_001"] == AXIS_STOCK_REPOSICION
@@ -69,6 +69,8 @@ def test_question_alignment_rules_json_loads_valid_contract():
         "question_axis": AXIS_STOCK_REPOSICION,
         "status": "MISALIGNED",
     } in rules["misalignment_rules"]
+    assert "misaligned_reconduction" in rules["copy_templates"]
+    assert "misaligned_technical_reference" in rules["copy_templates"]
 
 
 # --- detect_question_axis ---
@@ -104,6 +106,11 @@ def test_question_alignment_uses_declarative_rules(monkeypatch):
                     "status": "MISALIGNED",
                 }
             ],
+            "copy_templates": {
+                "misaligned_reconduction": "Reconducir {declared_axis} antes de {question_axis}.",
+                "misaligned_technical_reference": "Referencia {declared_axis}/{question_axis}",
+                "no_candidates_reference": "sin candidatos para evaluar",
+            },
         },
     )
 
@@ -119,6 +126,8 @@ def test_question_alignment_uses_declarative_rules(monkeypatch):
     assert detect_owner_axis("tesoreria urgente") == AXIS_CAJA_LIQUIDEZ
     assert detect_question_axis({"formula_id": "TES_001"}) == AXIS_STOCK_REPOSICION
     assert result["status"] == "MISALIGNED"
+    assert result["final_question_text"] == "Reconducir caja_liquidez antes de stock_reposicion."
+    assert result["technical_reference"] == "Referencia caja_liquidez/stock_reposicion"
 
 
 # --- align_next_question ---
@@ -158,7 +167,8 @@ def test_no_candidates_returns_unknown():
     assert result["question_axis"] == AXIS_DESCONOCIDO
 
 
-def test_caja_message_carries_question_text():
+def test_caja_message_uses_declarative_reconduction_copy():
     result = align_next_question("no me cierra la caja", [_stock_candidate()])
-    assert "reposición" in result["final_question_text"]
-    assert result["technical_reference"] == "INV_001"
+    assert "caja/liquidez" in result["final_question_text"]
+    assert "pregunta técnica sobre stock" in result["final_question_text"]
+    assert result["technical_reference"] == "Referencia técnica: reconducción_axis_caja_liquidez"
