@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "rules_by_pathology": {
+    "REN_001": {
+      "formula_id": "REN_001_margen_neto_real",
+      "description": "Detecta margen neto real negativo sobre ventas, costos e impuestos.",
+      "severity": "HIGH",
+      "suggested_action": "Revisar costos, impuestos o precios de venta.",
+      "metadata": {
+        "category": "rentabilidad",
+        "requires_formula": true,
+        "source": "local_chip1"
+      },
+      "activation_rule": {
+        "field": "value",
+        "operator": "lt",
+        "threshold": 0
+      },
+      "active_explanation_template": "El margen neto real calculado es {value}, lo cual indica p\u00e9rdida.",
+      "not_detected_explanation": "No se detect\u00f3 la patolog\u00eda con el resultado calculado."
+    }
+  }
+}
