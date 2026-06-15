@@ -583,6 +583,13 @@ def test_build_pipeline_exposes_operator_diagnostic_summary_without_markdown(tmp
         "finding_types": ["REN_001"],
         "formulas_used": ["REN_001_margen_neto_real"],
         "evidence_used": ["sheet:ventas", "sheet:costos", "sheet:impuestos"],
+        "gate_status": "ready",
+        "blocked_formulas": [],
+        "missing_variables": {},
+        "pending_pathologies": [],
+        "unsupported_pathologies": [],
+        "owner_safe_question_candidates": [],
+        "suggested_operator_next_step": "Solicitar evidencia faltante antes de reintentar diagnóstico.",
     }
     assert "diagnostic_operator_summary" not in pipeline["markdown"]
     assert "REN_001" not in pipeline["markdown"]
@@ -804,3 +811,124 @@ def test_vertical_slice_cli_aligns_owner_question_when_misaligned(tmp_path: Path
     assert "Antes de avanzar con una pregunta técnica sobre stock" in out
     assert "reconducción_axis_caja_liquidez" in out
     assert "tiempos de reposición" not in out
+
+
+def test_operator_summary_explains_gate_blocked_missing_inputs(tmp_path: Path, monkeypatch):
+    excel = tmp_path / "caso_bloqueado.xlsx"
+    _write_excel(excel, [["fecha", "ventas", "costo"], ["2026-06-01", "1000", "600"]])
+
+    def mock_build_summary(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 2,
+            "computed_variable_names": ["costos_total", "ventas_total"],
+            "tables_count": 1,
+            "table_sheets": [{"name": "Sheet", "columns": 3, "rows": 1}],
+            "case_id": "intake_textil_001",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [
+                {
+                    "formula_id": "LIQ_001_vendido_cobrado",
+                    "pathology_code": "LIQ_001",
+                    "status": "pending_data",
+                    "available_evidence": ["ventas_del_periodo"],
+                    "missing_evidence": ["cobranzas_del_periodo"],
+                    "matched_sources": [],
+                    "required_evidence": ["ventas_del_periodo", "cobranzas_del_periodo"],
+                    "required_variables": ["sold_amount", "collected_amount"],
+                    "next_audit_questions": ["¿Cuánto cobraste en el período?"],
+                },
+                {
+                    "formula_id": "REN_001_margen_neto_real",
+                    "pathology_code": "REN_001",
+                    "status": "pending_data",
+                    "available_evidence": ["ventas_del_periodo", "costos_directos"],
+                    "missing_evidence": ["impuestos_y_comisiones"],
+                    "matched_sources": [],
+                    "required_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
+                    "required_variables": ["sale_price", "costs", "taxes"],
+                    "next_audit_questions": ["¿Cuánto pagaste en impuestos?"],
+                },
+                {
+                    "formula_id": "INV_002_rotacion_stock",
+                    "pathology_code": "INV_002",
+                    "status": "pending_data",
+                    "available_evidence": ["costos_directos"],
+                    "missing_evidence": ["stock_promedio"],
+                    "matched_sources": [],
+                    "required_evidence": ["costos_directos", "stock_promedio"],
+                    "required_variables": ["cost_of_goods_sold", "average_stock"],
+                    "next_audit_questions": ["¿Cuál es tu stock promedio?"],
+                },
+            ],
+        }
+
+    def mock_context(*args, **kwargs):
+        return {
+            "structured_evidence": {
+                "tenant_id": "tenant_textil_001",
+                "document_type": "xlsx_operational_evidence",
+                "source": "xlsx_upload",
+                "file_name": "caso_bloqueado.xlsx",
+                "tables": [],
+                "computed_variables": {
+                    "ventas_total": 1000.0,
+                    "costos_total": 600.0,
+                },
+                "metadata": {
+                    "variable_source_refs": {
+                        "ventas_total": ["sheet:ventas"],
+                        "costos_total": ["sheet:costos"],
+                    }
+                },
+            },
+            "formula_ids": ["LIQ_001_vendido_cobrado", "REN_001_margen_neto_real", "INV_002_rotacion_stock"],
+        }
+
+    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build_summary)
+    monkeypatch.setattr(
+        "pymia.smartpyme.structured_evidence_builder.build_structured_evidence_context",
+        mock_context,
+    )
+
+    pipeline = vertical_slice.build_pipeline(
+        excel,
+        "tengo una textil y no me cierra la caja",
+        tenant_id="tenant_textil_001",
+        intake_id="intake_textil_001",
+        storage_dir=tmp_path / "storage",
+    )
+
+    summary = pipeline.get("diagnostic_operator_summary")
+    assert summary is not None
+    assert summary["status"] == "available"
+    assert summary["diagnosis_status"] == "INSUFFICIENT_EVIDENCE"
+    assert summary["kernel_state"] == "BLOCKED"
+    assert summary["blocking_reason"] == "EVIDENCE_USED_REQUIRED"
+    assert summary["gate_status"] == "blocked"
+
+    assert "LIQ_001_vendido_cobrado" in summary["blocked_formulas"]
+    assert "REN_001_margen_neto_real" in summary["blocked_formulas"]
+    assert "INV_002_rotacion_stock" in summary["blocked_formulas"]
+
+    assert "collected_amount" in summary["missing_variables"]["LIQ_001_vendido_cobrado"]
+    assert "taxes" in summary["missing_variables"]["REN_001_margen_neto_real"]
+    assert "average_stock" in summary["missing_variables"]["INV_002_rotacion_stock"]
+
+    assert "LIQ_001" in summary["pending_pathologies"]
+    assert "REN_001" in summary["pending_pathologies"]
+    assert "INV_002" in summary["pending_pathologies"]
+
+    assert "LIQ_001" in summary["unsupported_pathologies"]
+    assert "REN_001" not in summary["unsupported_pathologies"]
+    assert "INV_002" in summary["unsupported_pathologies"]
+
+    assert len(summary["owner_safe_question_candidates"]) > 0
+
+    markdown = pipeline["markdown"]
+    assert "REN_001" not in markdown
+    assert "unsupported_pathologies" not in markdown
+    assert "BLOCK_MISSING_INPUTS" not in markdown
+    assert "diagnostic_operator_summary" not in markdown
+    assert "EVIDENCE_USED_REQUIRED" not in markdown

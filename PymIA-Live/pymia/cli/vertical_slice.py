@@ -196,11 +196,11 @@ def _diagnostic_pipeline_result_for_report(
     structured_summary: dict,
 ) -> dict | None:
     reconciliation = structured_summary.get("catalog_reconciliation") or []
-    calculable_reconciliation = [
+    relevant_reconciliation = [
         entry for entry in reconciliation
-        if isinstance(entry, dict) and str(entry.get("status") or "").lower() == "calculable"
+        if isinstance(entry, dict) and str(entry.get("status") or "").lower() in ("calculable", "pending_data", "blocked")
     ]
-    if not calculable_reconciliation:
+    if not relevant_reconciliation:
         return None
 
     from pymia.contracts.evidence_v1 import StructuredEvidence
@@ -213,7 +213,7 @@ def _diagnostic_pipeline_result_for_report(
 
     formula_to_pathology = {
         formula_id: pathology_code
-        for formula_id, pathology_code in formula_pathology_map_from_catalog_reconciliation(calculable_reconciliation).items()
+        for formula_id, pathology_code in formula_pathology_map_from_catalog_reconciliation(relevant_reconciliation).items()
         if formula_id in SUPPORTED_FORMULAS
     }
     if not formula_to_pathology:
@@ -243,6 +243,55 @@ def _diagnostic_operator_summary_from_report(report: dict) -> dict | None:
     if not isinstance(diagnostic_report, dict):
         return None
 
+    gate_decisions = diagnostic.get("gate_decisions") or []
+    pathology_findings = diagnostic.get("pathology_findings") or []
+    structured_summary = report.get("structured_evidence_summary") or {}
+    reconciliation = structured_summary.get("catalog_reconciliation") or []
+
+    has_gate_block = any(
+        isinstance(d, dict) and d.get("decision") == "BLOCK_MISSING_INPUTS"
+        for d in gate_decisions
+    )
+    gate_status = "blocked" if has_gate_block else "ready"
+
+    blocked_formulas = [
+        str(d.get("formula_id"))
+        for d in gate_decisions
+        if isinstance(d, dict) and d.get("decision") == "BLOCK_MISSING_INPUTS"
+    ]
+
+    missing_variables = {}
+    for d in gate_decisions:
+        if isinstance(d, dict) and d.get("decision") == "BLOCK_MISSING_INPUTS":
+            f_id = str(d.get("formula_id"))
+            missing_vars = d.get("missing_variables") or []
+            missing_variables[f_id] = list(missing_vars)
+
+    pending_pathologies = []
+    for f in pathology_findings:
+        if isinstance(f, dict) and f.get("status") == "PENDING_DATA":
+            p_id = f.get("pathology_id")
+            if p_id and p_id not in pending_pathologies:
+                pending_pathologies.append(p_id)
+
+    unsupported_pathologies = []
+    for f in pathology_findings:
+        if isinstance(f, dict) and f.get("status") == "PENDING_DATA":
+            meta = f.get("metadata") or {}
+            if meta.get("blocking_reason") == "PATHOLOGY_NOT_SUPPORTED":
+                p_id = f.get("pathology_id")
+                if p_id and p_id not in unsupported_pathologies:
+                    unsupported_pathologies.append(p_id)
+
+    owner_safe_question_candidates = []
+    for entry in reconciliation:
+        if isinstance(entry, dict):
+            owner_q, _ = _build_owner_question(entry)
+            if owner_q and owner_q not in owner_safe_question_candidates:
+                owner_safe_question_candidates.append(owner_q)
+
+    suggested_operator_next_step = "Solicitar evidencia faltante antes de reintentar diagnóstico."
+
     return {
         "status": "available",
         "diagnosis_status": diagnostic_report.get("diagnosis_status"),
@@ -255,6 +304,13 @@ def _diagnostic_operator_summary_from_report(report: dict) -> dict | None:
         ],
         "formulas_used": list(diagnostic_report.get("formulas_used") or []),
         "evidence_used": list(diagnostic_report.get("evidence_used") or []),
+        "gate_status": gate_status,
+        "blocked_formulas": blocked_formulas,
+        "missing_variables": missing_variables,
+        "pending_pathologies": pending_pathologies,
+        "unsupported_pathologies": unsupported_pathologies,
+        "owner_safe_question_candidates": owner_safe_question_candidates,
+        "suggested_operator_next_step": suggested_operator_next_step,
     }
 
 
