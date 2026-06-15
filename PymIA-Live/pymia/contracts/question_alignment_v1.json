@@ -1,5 +1,6 @@
 {
   "schema_version": "1.0",
+  "status": "ACTIVE",
   "owner_keywords": {
     "caja_liquidez": [
       "no me cierra la caja",
@@ -98,5 +99,10 @@
       "question_axis": "stock_reposicion",
       "status": "MISALIGNED"
     }
-  ]
+  ],
+  "copy_templates": {
+    "misaligned_reconduction": "Entiendo que tu preocupación principal parece ser caja/liquidez. Antes de avanzar con una pregunta técnica sobre stock, ¿querés que enfoquemos el análisis en caja, banco, cobros o pagos?",
+    "misaligned_technical_reference": "Referencia técnica: reconducción_axis_{declared_axis}",
+    "no_candidates_reference": "sin candidatos para evaluar"
+  }
 }
