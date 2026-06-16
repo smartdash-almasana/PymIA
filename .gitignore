@@ -22,3 +22,6 @@ docs/pymia/infografia_pymia.html
 
 .tmp/
 _local_quarantine/
+
+PymIA-Live/.tmp_smoke_owner_alignment/
+PymIA-Live/docs/pymia/ROLE_PLAYING_ONBOARDING_FINDINGS.md
