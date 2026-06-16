@@ -13,6 +13,10 @@ def calculate_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _trace_metadata() -> dict:
+    return {"registered_by": "vertical_pipeline", "channel": "cli"}
+
+
 def _write_jsonl_line(target: Path, payload: dict) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("a", encoding="utf-8") as handle:
@@ -36,7 +40,7 @@ def register_anamnesis_record(
         intake_id=intake_id,
         raw_owner_message=message,
         business_taxonomy=business_taxonomy,
-        metadata={"registered_by": "vertical_slice_cli"},
+        metadata=_trace_metadata(),
     )
     save_anamnesis_record(tenant_id, record, base_dir=storage_dir)
     return record.to_dict()
@@ -51,7 +55,7 @@ def register_investigation_record(message: str, tenant_id: str, intake_id: str, 
         intake_id=intake_id,
         anamnesis_id=anamnesis_id,
         owner_prompt=message,
-        metadata={"registered_by": "vertical_slice_cli"},
+        metadata=_trace_metadata(),
     )
     save_investigation_record(tenant_id, record, base_dir=storage_dir)
     return record.to_dict()
@@ -77,7 +81,7 @@ def register_owner_answer_record(
         investigation_id=investigation_id,
         question_ref=question_ref,
         raw_owner_answer=raw_owner_answer,
-        metadata={"registered_by": "vertical_slice_cli"},
+        metadata=_trace_metadata(),
     )
     save_owner_answer_record(tenant_id, record, base_dir=storage_dir)
     return record.to_dict()
@@ -109,7 +113,7 @@ def register_evidence_request_record(
         requested_evidence=requested_evidence,
         request_reason=request_reason,
         status=EVIDENCE_REQUEST_STATUS_WAITING_UPLOAD,
-        metadata={"registered_by": "vertical_slice_cli"},
+        metadata=_trace_metadata(),
     )
     save_evidence_request_record(tenant_id, record, base_dir=storage_dir)
     return record.to_dict()
@@ -135,7 +139,7 @@ def register_evidence_record(path: Path, tenant_id: str, intake_id: str, storage
         size_bytes=path.stat().st_size,
         content_hash=calculate_sha256(path),
         status=EVIDENCE_STATUS_REGISTERED,
-        metadata={"registered_by": "vertical_slice_cli"},
+        metadata=_trace_metadata(),
     )
     save_evidence_record(tenant_id, record, base_dir=storage_dir)
     return record.to_dict()
