@@ -1,9 +1,40 @@
 {
   "schema_version": "1.0",
   "status": "ACTIVE",
+  "owner_simple_understanding_by_axis": {
+    "caja_liquidez": "Tu preocupación principal parece estar relacionada con caja y liquidez.",
+    "ventas_margen": "Tu preocupación principal parece estar relacionada con ventas y margen.",
+    "stock_reposicion": "Tu preocupación principal parece estar relacionada con stock y reposición.",
+    "costos_proveedores": "Tu preocupación principal parece estar relacionada con costos y proveedores.",
+    "produccion": "Tu preocupación principal parece estar relacionada con producción y operación.",
+    "rrhh": "Tu preocupación principal parece estar relacionada con equipo y carga laboral.",
+    "automatizacion_manual": "Tu preocupación principal parece estar relacionada con tareas manuales y automatización.",
+    "desconocido": "Todavía no pudimos identificar con claridad la preocupación principal."
+  },
+  "owner_simple_readable_areas": {
+    "ventas": {
+      "keywords": ["venta", "ventas", "factur", "precio"]
+    },
+    "compras": {
+      "keywords": ["compra", "compras", "proveedor", "insumo"]
+    },
+    "stock": {
+      "keywords": ["stock", "inventario", "sku", "producto"]
+    },
+    "caja/banco": {
+      "keywords": ["caja", "banco", "saldo", "cobran", "pago"]
+    },
+    "resumen mensual": {
+      "keywords": ["mes", "mensual", "fecha"]
+    }
+  },
   "copy_by_key": {
     "owner_question_missing_field": "Falta información sobre {pathology_label}. ¿Podés compartir {field_text}?",
     "owner_question_missing_generic": "Falta información sobre {pathology_label} para continuar el análisis.",
+    "owner_simple_readable_summary_template": "La planilla contiene información de {area_text}.",
+    "owner_simple_minimal_signals": "La planilla contiene señales operativas mínimas para un primer contraste.",
+    "owner_simple_unreadable": "Todavía no pudimos leer señales operativas mínimas de la planilla.",
+    "owner_simple_unknown_assertion": "Todavía no hay evidencia suficiente para identificar una causa raíz.",
     "missing_data_rows_question": "Necesito al menos una fila de datos además de los encabezados.",
     "missing_operational_columns_question": "Necesito columnas como fecha, producto, ventas, precio, costo, cantidad o sku.",
     "blocked_summary": "Falta evidencia mínima para avanzar.",

@@ -66,6 +66,59 @@ def test_vertical_slice_build_report_returns_owner_facing_contract_dict(tmp_path
     assert any("No inferir diagnóstico" in warning for warning in report["limit_warnings"])
 
 
+def test_vertical_slice_build_report_includes_owner_simple_view(tmp_path: Path):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+    profile = vertical_slice.inspect_excel(excel)
+
+    report = vertical_slice.build_report(
+        excel,
+        "no me cierra la caja, me falta plata",
+        profile,
+        storage_dir=tmp_path / "storage",
+    )
+
+    owner_simple = report["owner_simple"]
+    assert set(owner_simple) == {
+        "que_entendimos",
+        "que_pudimos_leer",
+        "que_todavia_no_podemos_afirmar",
+        "proxima_pregunta",
+        "limites",
+    }
+    assert "caja y liquidez" in owner_simple["que_entendimos"].lower()
+    assert "La planilla contiene información de" in owner_simple["que_pudimos_leer"]
+    assert owner_simple["que_todavia_no_podemos_afirmar"] == "Todavía no hay evidencia suficiente para identificar una causa raíz."
+    assert owner_simple["proxima_pregunta"] in report["next_questions"] or owner_simple["proxima_pregunta"]
+    assert owner_simple["limites"][-1] == "No diagnostica sin evidencia suficiente ni confirmación del dueño."
+    assert "diagnóstico confirmado" not in owner_simple["que_todavia_no_podemos_afirmar"].lower()
+
+
+def test_vertical_slice_cli_renders_owner_simple_sections(tmp_path: Path, capsys):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+
+    rc = vertical_slice.main([
+        "--excel",
+        str(excel),
+        "--message",
+        "no me cierra la caja, me falta plata",
+        "--storage-dir",
+        str(tmp_path / "storage"),
+    ])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "Qué entendimos:" in out
+    assert "Qué pudimos leer:" in out
+    assert "Qué todavía no podemos afirmar:" in out
+    assert "Próxima pregunta:" in out
+    assert "Límites:" in out
+    assert "Todavía no hay evidencia suficiente para identificar una causa raíz." in out
+    assert "No inferir diagnóstico" in out
+    assert "diagnóstico confirmado" not in out.lower()
+
+
 def test_vertical_slice_build_report_binds_owner_answer_when_provided(tmp_path: Path):
     excel = tmp_path / "caso.xlsx"
     storage_dir = tmp_path / "storage"

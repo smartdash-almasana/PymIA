@@ -11,12 +11,18 @@ VERTICAL_SLICE_COPY_CONTRACT_PATH = Path(__file__).resolve().with_name("vertical
 _REQUIRED_TOP_LEVEL_KEYS = (
     "schema_version",
     "status",
+    "owner_simple_understanding_by_axis",
+    "owner_simple_readable_areas",
     "copy_by_key",
 )
 
 _REQUIRED_COPY_KEYS = (
     "owner_question_missing_field",
     "owner_question_missing_generic",
+    "owner_simple_readable_summary_template",
+    "owner_simple_minimal_signals",
+    "owner_simple_unreadable",
+    "owner_simple_unknown_assertion",
     "missing_data_rows_question",
     "missing_operational_columns_question",
     "blocked_summary",
@@ -43,6 +49,12 @@ def validate_vertical_slice_copy_contract(data: dict[str, Any]) -> dict[str, Any
 
     if data["status"] != "ACTIVE":
         raise VerticalSliceCopyContractError("vertical slice copy contract status must be ACTIVE")
+
+    if not isinstance(data["owner_simple_understanding_by_axis"], dict):
+        raise VerticalSliceCopyContractError("owner_simple_understanding_by_axis must be an object")
+
+    if not isinstance(data["owner_simple_readable_areas"], dict):
+        raise VerticalSliceCopyContractError("owner_simple_readable_areas must be an object")
 
     copy_by_key = data["copy_by_key"]
     if not isinstance(copy_by_key, dict):
@@ -71,10 +83,30 @@ def vertical_slice_copy_for(key: str) -> str:
     return str(copy_by_key[key])
 
 
+def owner_simple_understanding_by_axis() -> dict[str, str]:
+    data = load_vertical_slice_copy_contract()
+    return {
+        str(key): str(value)
+        for key, value in (data.get("owner_simple_understanding_by_axis") or {}).items()
+    }
+
+
+def owner_simple_readable_areas() -> dict[str, dict[str, list[str]]]:
+    data = load_vertical_slice_copy_contract()
+    raw = data.get("owner_simple_readable_areas") or {}
+    normalized: dict[str, dict[str, list[str]]] = {}
+    for label, payload in raw.items():
+        keywords = payload.get("keywords") if isinstance(payload, dict) else []
+        normalized[str(label)] = {"keywords": [str(item) for item in keywords]}
+    return normalized
+
+
 __all__ = [
     "VERTICAL_SLICE_COPY_CONTRACT_PATH",
     "VerticalSliceCopyContractError",
     "load_vertical_slice_copy_contract",
+    "owner_simple_readable_areas",
+    "owner_simple_understanding_by_axis",
     "validate_vertical_slice_copy_contract",
     "vertical_slice_copy_for",
 ]

@@ -13,8 +13,23 @@ from pymia.contracts.presentation_labels_v1 import (
     load_operational_terms,
 )
 from pymia.contracts.vertical_slice_copy_v1 import vertical_slice_copy_for
+from pymia.contracts.vertical_slice_copy_v1 import (
+    owner_simple_readable_areas,
+    owner_simple_understanding_by_axis,
+)
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
-from pymia.smartpyme.question_alignment_gate import align_next_question
+from pymia.smartpyme.question_alignment_gate import (
+    AXIS_AUTOMATIZACION_MANUAL,
+    AXIS_CAJA_LIQUIDEZ,
+    AXIS_COSTOS_PROVEEDORES,
+    AXIS_DESCONOCIDO,
+    AXIS_PRODUCCION,
+    AXIS_RRHH,
+    AXIS_STOCK_REPOSICION,
+    AXIS_VENTAS_MARGEN,
+    align_next_question,
+    detect_owner_axis,
+)
 
 
 def _humanize_field(name: str) -> str:
@@ -72,6 +87,71 @@ def _requested_evidence_from_report(report: dict) -> list[str]:
         if item not in requested:
             requested.append(item)
     return requested
+
+
+def _resolve_owner_question_and_reference(report: dict, message: str) -> tuple[str | None, str | None]:
+    structured_summary = report.get("structured_evidence_summary") or {}
+    reconciliation = structured_summary.get("catalog_reconciliation") if structured_summary.get("status") == "available" else None
+    owner_question = None
+    tech_reference = None
+    if reconciliation:
+        question_candidates = [e for e in reconciliation if e.get("next_audit_questions")]
+        alignment = align_next_question(message, question_candidates)
+        if alignment["status"] == "MISALIGNED":
+            owner_question = alignment["final_question_text"]
+            tech_reference = alignment["technical_reference"]
+        else:
+            for entry in question_candidates:
+                owner_q, tech_ref = _build_owner_question(entry)
+                if owner_q:
+                    owner_question = owner_q
+                    tech_reference = tech_ref
+                    break
+    if not owner_question and report.get("next_questions"):
+        owner_question = str(report["next_questions"][0])
+    return owner_question, tech_reference
+
+
+def _owner_understanding_text(message: str) -> str:
+    owner_axis = detect_owner_axis(message)
+    axis_messages = owner_simple_understanding_by_axis()
+    return axis_messages[owner_axis]
+
+
+def _owner_readable_summary(profile: dict) -> str:
+    headers = [str(item).lower() for item in profile.get("headers", [])]
+    joined = " ".join(headers)
+    readable_areas: list[str] = []
+
+    for label, payload in owner_simple_readable_areas().items():
+        keywords = payload.get("keywords") or []
+        if any(keyword in joined for keyword in keywords):
+            readable_areas.append(label)
+
+    if readable_areas:
+        if len(readable_areas) == 1:
+            area_text = readable_areas[0]
+        elif len(readable_areas) == 2:
+            area_text = f"{readable_areas[0]} y {readable_areas[1]}"
+        else:
+            area_text = ", ".join(readable_areas[:-1]) + f" y {readable_areas[-1]}"
+        return vertical_slice_copy_for("owner_simple_readable_summary_template").format(area_text=area_text)
+
+    if profile.get("rows", 0) > 1 and profile.get("columns", 0) > 0:
+        return vertical_slice_copy_for("owner_simple_minimal_signals")
+
+    return vertical_slice_copy_for("owner_simple_unreadable")
+
+
+def _build_owner_simple_view(report: dict, message: str, profile: dict) -> dict[str, Any]:
+    owner_question, _ = _resolve_owner_question_and_reference(report, message)
+    return {
+        "que_entendimos": _owner_understanding_text(message),
+        "que_pudimos_leer": _owner_readable_summary(profile),
+        "que_todavia_no_podemos_afirmar": vertical_slice_copy_for("owner_simple_unknown_assertion"),
+        "proxima_pregunta": owner_question or vertical_slice_copy_for("next_question_fallback"),
+        "limites": list(report.get("limit_warnings") or []) + [vertical_slice_copy_for("final_limit_warning")],
+    }
 
 
 def _serializable_diagnostic_pipeline_result(result) -> dict:
@@ -629,6 +709,7 @@ def build_report(
         cliente_id=tenant_id,
         structured_summary=structured_summary,
     )
+    report["owner_simple"] = _build_owner_simple_view(report, message, profile)
     return report
 
 
@@ -661,6 +742,7 @@ def build_markdown(
 
 
 def render_markdown_from_report(path: Path, message: str, profile: dict, report: dict) -> str:
+    owner_simple = report.get("owner_simple") or _build_owner_simple_view(report, message, profile)
     lines = [
         "# Reporte owner-facing local",
         f"Estado: {report['status']}",
@@ -678,8 +760,24 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         f"Columnas: {profile['columns']}",
         f"Resumen: {report['summary']}",
         "",
-        "## Anamnesis",
+        "Qué entendimos:",
+        owner_simple["que_entendimos"],
+        "",
+        "Qué pudimos leer:",
+        owner_simple["que_pudimos_leer"],
+        "",
+        "Qué todavía no podemos afirmar:",
+        owner_simple["que_todavia_no_podemos_afirmar"],
+        "",
+        "Próxima pregunta:",
+        owner_simple["proxima_pregunta"],
+        "",
+        "Límites:",
+        "",
     ]
+    for item in owner_simple["limites"]:
+        lines.append(f"- {item}")
+    lines.extend(["", "## Anamnesis"])
     owner_answer_record = report.get("owner_answer_record")
     evidence_request_record = report.get("evidence_request_record")
     if owner_answer_record:
@@ -761,29 +859,11 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         lines.append(f"- Motivo: {structured_summary['reason']}")
     lines.append("")
     lines.append("## Próxima pregunta")
-    reconciliation = structured_summary.get("catalog_reconciliation") if structured_summary.get("status") == "available" else None
-    owner_question = None
-    tech_reference = None
-    if reconciliation:
-        question_candidates = [e for e in reconciliation if e.get("next_audit_questions")]
-        alignment = align_next_question(message, question_candidates)
-        if alignment["status"] == "MISALIGNED":
-            owner_question = alignment["final_question_text"]
-            tech_reference = alignment["technical_reference"]
-        else:
-            for entry in question_candidates:
-                owner_q, tech_ref = _build_owner_question(entry)
-                if owner_q:
-                    owner_question = owner_q
-                    tech_reference = tech_ref
-                    break
+    owner_question, tech_reference = _resolve_owner_question_and_reference(report, message)
     if owner_question:
         lines.append(f"- {owner_question}")
         if tech_reference:
             lines.append(f"  - {tech_reference}")
-    elif report["next_questions"]:
-        for question in report["next_questions"]:
-            lines.append(f"- {question}")
     else:
         lines.append(f"- {vertical_slice_copy_for('next_question_fallback')}")
     lines.append("")
