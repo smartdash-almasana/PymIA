@@ -25,12 +25,14 @@ smartdash-almasana/PymIA
 HEAD validado por MCP:
 
 ```text
-629fd85 docs(pymia): catalog museum boundary
+e736a3b feat(pymia-live): add owner simple presentation layer
 ```
+
 
 Commits recientes relevantes:
 
 ```text
+e736a3b feat(pymia-live): add owner simple presentation layer
 629fd85 docs(pymia): catalog museum boundary
 222e096 refactor(pymia-live): externalize vertical slice owner questions
 92d5381 refactor(pymia-live): externalize vertical slice owner copy
@@ -54,6 +56,7 @@ OWNER_FACING_REPORT_WARNINGS_EXTERNALIZATION_V1 = CLOSED en 731e580
 VERTICAL_SLICE_MINIMAL_COPY_EXTERNALIZATION_V1 = CLOSED en 92d5381
 VERTICAL_SLICE_OWNER_QUESTION_COPY_EXTERNALIZATION_V1 = CLOSED en 222e096
 HARD_CODE_RESCAN_AFTER_OWNER_COPY_V1 = CLOSED por auditoría
+OWNER_SIMPLE_PRESENTATION_CONTRACT_SPLIT_HYPOTHESIS_V1 = CLOSED (Veredicto: NO SPLIT NOW)
 ```
 
 ## Resultado arquitectónico vigente
@@ -84,7 +87,7 @@ presentation_labels_v1.json gobierna labels owner-facing.
 question_alignment_v1.json gobierna copy de reconducción QAG.
 evidence_requirement_copy_v1.json gobierna pregunta owner-facing mínima del matcher.
 owner_facing_report_copy_v1.json gobierna warnings owner-facing por status operativo.
-vertical_slice_copy_v1.json gobierna copy mínimo y fallback owner-facing de vertical_slice.py.
+vertical_slice_copy_v1.json gobierna copy mínimo, fallback owner-facing de vertical_slice.py y presentación de owner_simple.
 language_corpus_seed.json sigue gobernando labels dueñas/variables del corpus.
 vertical_slice.py consume final_question_text y technical_reference desde QAG.
 El copy visible principal owner-facing fue movido a contratos declarativos.
@@ -122,6 +125,24 @@ diagnostic reasoning fallback = otro frente futuro.
 pathology engine fallback = técnico, no owner-facing primario.
 ```
 
+## Situación de owner_simple y Decisión de Split
+
+```text
+owner_simple existe y fue agregado en e736a3b.
+El copy owner-facing principal sigue externalizado.
+vertical_slice_copy_v1 creció para incluir owner_simple.
+Las auditorías externas divergieron sobre la conveniencia del split (KEEP_AS_IS vs SPLIT_NOW).
+Decisión final vigente: NO SPLIT NOW. owner_simple queda aceptado funcionalmente en vertical_slice_copy_v1 por ahora.
+OWNER_SIMPLE_BUILDER_EXTRACTION_V1 aplicado sin cambiar contrato ni output: la construcción de owner_simple vive ahora en PymIA-Live/pymia/smartpyme/owner_output.py y vertical_slice.py lo consume como builder externo.
+```
+
+Criterios para habilitar un split futuro de owner_simple:
+- owner_simple se consume fuera de vertical_slice.
+- Crece sustancialmente como canal o dominio propio.
+- Bloquea el desarrollo o despliegue del MVP.
+- Genera fallas reales de mantenimiento o tests.
+- Se requiere salida multicanal diferenciada.
+
 ## Próximo foco recomendado
 
 ```text
@@ -132,7 +153,7 @@ Objetivo:
 
 ```text
 No seguir picando micro-copy owner-facing.
-Elegir próximo frente sólo si aporta capacidad operativa real.
+Elegir próximo frente sólo si aporta capacidad operativa real o resuelve una deuda técnica material.
 ```
 
 ## Regla de avance

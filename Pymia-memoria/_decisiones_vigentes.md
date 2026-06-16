@@ -151,3 +151,21 @@ No mezclar memoria, museo, smoke y runtime en un mismo commit.
 ```text
 PymIA-Live debe quedar pequeño, trazable y gobernado por contratos declarativos.
 ```
+
+## ARCHITECTURE MEMORY GATE
+
+Reglas y controles de frontera para evitar derivas metodológicas en la IA:
+
+- **Lectura obligatoria:** Antes de proponer cualquier slice, el asistente de IA (Gemini, ChatGPT, Claude, etc.) debe leer la memoria vigente (`_estado_actual.md`, `_task_actual.md`, `_decisiones_vigentes.md`).
+- **Respeto a los frenos:** Si la memoria documental explícitamente dice parar un frente, este no puede reabrirse o proponerse bajo nuevas hipótesis de refactorización o saneamiento estético salvo que se demuestre una deuda técnica material bloqueante para la ejecución.
+- **Clasificación obligatoria de frentes de trabajo:** Todo frente de trabajo propuesto debe clasificarse explícitamente en una de las siguientes categorías:
+  - **A. CAPACIDAD OPERATIVA** (Agrega funcionalidad, valor real de negocio o interfaces ejecutables para el usuario/pyme).
+  - **B. DEUDA TÉCNICA MATERIAL** (Resuelve un bug demostrado, un bloqueo de tests en runtime, o fallas en el pipeline real).
+  - **C. SANEAMIENTO MENOR** (Refactorización de copy, embellecimiento estético, renombrado de variables cosmético o micro-split cosmético de contratos).
+  - **D. DOCUMENTACIÓN / MEMORIA** (Actualización de checkpoints, memoria documental o reglas de gobernanza).
+  - **E. EXPERIMENTO** (Pruebas aisladas sin tocar el runtime productivo).
+  - **F. MUSEO / HISTÓRICO** (Movimiento de archivos en desuso al archivo histórico).
+- **Control de avance:** Sólo las categorías **A**, **B** o **D** pueden avanzar de forma ordinaria. La categoría **C** (Saneamiento Menor) requiere autorización e instrucción explícita del usuario y no puede iniciarse de manera automática por la IA.
+- **Dirección arquitectónica:** No usar la IA ni Codex como sustituto de la dirección arquitectónica explícita dada por el Owner del repositorio.
+- **Calidad profesional sobre pragmatismo de demo:** No priorizar un "funciona" rápido sobre la coherencia de la arquitectura de la solución cuando el usuario o los contratos exijan calidad profesional y adherencia estricta a los patrones data-driven definidos.
+

@@ -1,11 +1,11 @@
 # PymIA Memoria — Task actual
 
-Fecha: 2026-06-15
+Fecha: 2026-06-16
 
 ## Task actual
 
 ```text
-MEMORY_CHECKPOINT_AFTER_COPY_EXTERNALIZATION_V1
+OWNER_SIMPLE_BUILDER_EXTRACTION_V1
 ```
 
 ## Estado
@@ -17,73 +17,103 @@ APPLIED_NOT_COMMITTED
 ## Objetivo
 
 ```text
-Registrar el cierre del saneamiento owner-facing copy en PymIA-Live y dejar asentado que no se continúa con micro-slices de copy por ahora.
+Reducir responsabilidad de vertical_slice.py moviendo la construcción de owner_simple a un builder externo en smartpyme, sin cambiar contrato, output, JSON ni comportamiento esperado.
 ```
 
 ## Último HEAD validado por MCP
 
 ```text
-629fd85 docs(pymia): catalog museum boundary
+e736a3b feat(pymia-live): add owner simple presentation layer
 ```
 
-## Última tarea cerrada
+## Tarea documental previa incorporada
 
 ```text
-HARD_CODE_RESCAN_AFTER_OWNER_COPY_V1
+RECOVERY_CHECKPOINT_AFTER_OWNER_SIMPLE_DERIVA_V1
+OWNER_SIMPLE_PRESENTATION_V1.md
 ```
 
-## Veredicto
+## Veredicto operativo
 
 ```text
-PARAR SANEAMIENTO OWNER-FACING COPY ACÁ.
+FREEZE_AND_DOCUMENT + MINIMAL_EXTRACTION
 ```
 
-## Cambios aplicados en memoria
+## Cambios aplicados
 
 ```text
-_estado_actual.md actualizado con worktree limpio, contratos owner-facing relevantes y deuda residual de baja prioridad.
-_task_actual.md actualizado para cerrar el frente de micro-copy y frenar nuevas aperturas de saneamiento menor.
-_decisiones_vigentes.md actualizado con la decisión de cierre temporal del saneamiento owner-facing.
+- Creado PymIA-Live/docs/pymia/OWNER_SIMPLE_PRESENTATION_V1.md.
+- Creado PymIA-Live/pymia/smartpyme/owner_output.py.
+- Movida la lógica owner_simple fuera de vertical_slice.py:
+  - _owner_understanding_text()
+  - _owner_readable_summary()
+  - build_owner_simple_view()
+- vertical_slice.py ahora consume build_owner_simple_view() como builder externo.
+- Creado tests/smartpyme/test_owner_output_boundary.py para impedir dependencia inversa hacia vertical_slice.py o argparse.
+- Actualizada memoria para registrar la extracción mínima.
 ```
 
-## Runtime
+## Runtime / Contratos / Tests
 
 ```text
-No modificado.
-No tocar PymIA-Live/pymia/ en este frente.
+Runtime modificado de forma limitada.
+Contratos JSON no modificados.
+vertical_slice_copy_v1 se mantiene como contrato declarativo temporal.
+No se creó owner_output_v1.
+No se creó dataclass.
+No se cambió el shape de owner_simple.
 ```
 
-## Tests
+## Tests de validación
 
 ```text
-No ejecutados.
-No requeridos para memoria documental.
+Intento 1: run_pytest sobre smartbridge/PymIA/PymIA-Live falló porque PymIA-Live no es repo git independiente.
+Intento 2: run_pytest sobre smartbridge/PymIA quedó en timeout.
+Resultado: VALIDACIÓN AUTOMATIZADA NO CONCLUIDA por limitación/timeout de herramienta.
+Requiere ejecución local canónica:
+cd E:\BuenosPasos\smartbridge\PymIA\PymIA-Live
+python -m pytest -q
 ```
 
 ## Commit
 
 ```text
 No realizado.
-Requiere autorización explícita.
+Requiere autorización explícita del usuario.
 ```
 
 ## Worktree esperado posterior
 
 ```text
+M PymIA-Live/pymia/cli/vertical_slice.py
 M Pymia-memoria/_decisiones_vigentes.md
 M Pymia-memoria/_estado_actual.md
 M Pymia-memoria/_task_actual.md
+?? PymIA-Live/docs/pymia/OWNER_SIMPLE_PRESENTATION_V1.md
+?? PymIA-Live/pymia/smartpyme/owner_output.py
+?? PymIA-Live/tests/smartpyme/test_owner_output_boundary.py
 ```
 
-## Próximo foco recomendado después de cerrar memoria
+## Próximo foco recomendado
 
 ```text
-No seguir abriendo micro-copy.
+VALIDAR_OWNER_SIMPLE_BUILDER_EXTRACTION_V1
 ```
 
 ## Objetivo del próximo foco
 
 ```text
-El próximo trabajo debe elegirse sólo si agrega capacidad operativa real o cierra deuda técnica material.
-No continuar el saneamiento owner-facing por fragmentos menores.
+Ejecutar pytest canónico local en PymIA-Live y auditar diff antes de commit.
+```
+
+## Prohibiciones vigentes
+
+```text
+- No crear owner_output_v1 todavía.
+- No crear JSON nuevo.
+- No crear dataclass todavía.
+- No cambiar copy.
+- No cambiar output.
+- No abrir multicanal.
+- No abrir producto/piloto antes de validar extracción.
 ```
