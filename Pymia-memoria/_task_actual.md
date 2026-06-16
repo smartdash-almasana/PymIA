@@ -5,7 +5,7 @@ Fecha: 2026-06-16
 ## Task actual
 
 ```text
-PIPELINE_RUN_TRACE_IDENTITY_CLOSEOUT
+OWNER_MARKDOWN_RENDERER_DECISION_FREE_CLOSEOUT
 ```
 
 ## Categoría
@@ -23,7 +23,7 @@ APPLIED_NOT_COMMITTED
 ## Objetivo
 
 ```text
-Cerrar documentalmente la realineación de identidad de trazabilidad del pipeline vertical después de faf9008.
+Cerrar documentalmente OWNER_MARKDOWN_RENDERER_DECISION_FREE_V1 después del commit técnico f179267.
 ```
 
 ---
@@ -31,7 +31,7 @@ Cerrar documentalmente la realineación de identidad de trazabilidad del pipelin
 ## HEAD validado antes del cierre documental
 
 ```text
-faf9008 refactor(pymia-live): realign pipeline trace identity
+f179267 refactor(pymia-live): make owner markdown renderer decision-free
 ```
 
 Worktree antes del cierre documental:
@@ -51,18 +51,26 @@ Tests reportados al cierre técnico:
 ## Cambio técnico ya cerrado
 
 ```text
-PIPELINE_RUN_TRACE_IDENTITY_REALIGNMENT_V1 = CLOSED
+OWNER_MARKDOWN_RENDERER_DECISION_FREE_V1 = CLOSED
 ```
 
 Resultado:
 
 ```text
-pipeline_name   -> vertical_pipeline_evidence_spine
-pipeline_module -> pymia.application.vertical_pipeline
-entrypoint      -> build_pipeline
-service_name    -> vertical_pipeline
-channel         -> cli
-registered_by   -> vertical_pipeline
+owner_markdown_renderer.py ya no decide QAG.
+owner_markdown_renderer.py ya no reconstruye owner_simple.
+owner_markdown_renderer.py ya no importa owner_output, question_alignment_gate ni question_resolution.
+vertical_pipeline.py pre-resuelve los datos de presentación necesarios para el renderer.
+boundary test protege la frontera presentation/application.
+```
+
+Campos pre-resueltos por application:
+
+```text
+report["owner_question"]
+report["owner_question_technical_reference"]
+report["owner_simple"]
+report["evidence_request_alignment"]
 ```
 
 ---
@@ -70,10 +78,10 @@ registered_by   -> vertical_pipeline
 ## Estado resultante
 
 ```text
-vertical_slice.py sigue siendo adaptador CLI.
-vertical_pipeline.py gobierna el caso de uso.
-La traza ya no declara al CLI como dueño del pipeline.
-El canal CLI queda preservado explícitamente como metadata.
+CLI = canal.
+vertical_pipeline.py = caso de uso / decisiones.
+owner_markdown_renderer.py = presentación.
+smartpyme/question_resolution.py = dominio reutilizable.
 ```
 
 ---
@@ -103,9 +111,10 @@ No tocar:
 ## Deuda viva posterior
 
 ```text
-Renderer markdown todavía contiene deuda conceptual: decide QAG y recompone owner_simple.
 vertical_slice.py conserva imports de compatibilidad temporal.
 build_structured_summary vive dentro de application/vertical_pipeline.py y puede extraerse luego si hay deuda material.
+Language corpus sigue limitado; puede producir snake_case owner-facing si faltan labels.
+Runbook/checklist operativo debe actualizar flags y protocolo de piloto.
 No abrir owner_output_v1 sin señal material.
 No abrir canales nuevos por inercia.
 ```
@@ -116,12 +125,13 @@ No abrir canales nuevos por inercia.
 
 ```text
 Commit documental focal del cierre de memoria.
+Después, avanzar a PILOT_OPERATOR_CHECKLIST_V1 antes de más runtime.
 ```
 
 Commit sugerido:
 
 ```text
-docs(pymia-memoria): close pipeline trace identity realignment
+docs(pymia-memoria): close owner markdown renderer decision-free
 ```
 
 ---

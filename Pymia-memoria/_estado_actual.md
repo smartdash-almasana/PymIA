@@ -25,7 +25,7 @@ smartdash-almasana/PymIA
 HEAD validado por MCP:
 
 ```text
-faf9008 refactor(pymia-live): realign pipeline trace identity
+f179267 refactor(pymia-live): make owner markdown renderer decision-free
 ```
 
 Worktree validado por MCP:
@@ -45,14 +45,14 @@ Tests reportados al cierre:
 ## Commits recientes relevantes
 
 ```text
+f179267 refactor(pymia-live): make owner markdown renderer decision-free
+e23286b docs(pymia-memoria): close pipeline trace identity realignment
 faf9008 refactor(pymia-live): realign pipeline trace identity
 f33bf00 docs(pymia-memoria): close vertical pipeline application boundary
 80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
 5bdc864 refactor(pymia-live): extract owner markdown renderer from CLI
 6a01eb3 refactor(pymia-live): extract diagnostic operator adapter from CLI
 3816fb0 refactor(pymia-live): extract question resolution from CLI
-e1877e8 docs(pymia-live): define target multichannel architecture
-5fb7947 refactor(pymia-live): extract pipeline registration from CLI
 ```
 
 ---
@@ -64,9 +64,10 @@ PymIA-Live ya no concentra el caso de uso completo en vertical_slice.py.
 vertical_slice.py quedó reducido a adaptador CLI con imports de compatibilidad temporal.
 La frontera de aplicación vive en pymia/application/vertical_pipeline.py.
 La identidad de trazabilidad ya fue realineada al pipeline de aplicación.
+El renderer markdown ya no decide QAG ni reconstruye owner_simple.
 ```
 
-Responsabilidades extraídas de `vertical_slice.py`:
+Responsabilidades vigentes:
 
 ```text
 owner_simple                -> pymia/smartpyme/owner_output.py
@@ -75,6 +76,19 @@ question resolution         -> pymia/smartpyme/question_resolution.py
 diagnostic operator adapter -> pymia/smartpyme/diagnostic_operator_adapter.py
 owner markdown renderer     -> pymia/rendering/owner_markdown_renderer.py
 vertical pipeline           -> pymia/application/vertical_pipeline.py
+```
+
+Frontera presentation/application vigente:
+
+```text
+pymia/application/vertical_pipeline.py pre-resuelve:
+- report["owner_question"]
+- report["owner_question_technical_reference"]
+- report["owner_simple"]
+- report["evidence_request_alignment"]
+
+pymia/rendering/owner_markdown_renderer.py sólo renderiza esos datos.
+No importa owner_output, question_alignment_gate ni question_resolution.
 ```
 
 Identidad de traza vigente:
@@ -151,6 +165,8 @@ OWNER_MARKDOWN_RENDERER_EXTRACTION_V1 = CLOSED
 VERTICAL_PIPELINE_APPLICATION_BOUNDARY_V1 = CLOSED
 PYMIA_LIVE_APPLICATION_BOUNDARY_CLOSEOUT = CLOSED
 PIPELINE_RUN_TRACE_IDENTITY_REALIGNMENT_V1 = CLOSED
+PIPELINE_RUN_TRACE_IDENTITY_CLOSEOUT = CLOSED
+OWNER_MARKDOWN_RENDERER_DECISION_FREE_V1 = CLOSED
 ```
 
 ---
@@ -158,10 +174,10 @@ PIPELINE_RUN_TRACE_IDENTITY_REALIGNMENT_V1 = CLOSED
 ## Deuda viva conocida
 
 ```text
-Renderer markdown todavía decide QAG y recompone owner_simple como deuda preexistente aceptada.
 vertical_slice.py conserva imports de compatibilidad temporal.
 build_structured_summary vive dentro de application/vertical_pipeline.py; puede extraerse luego si existe deuda material.
-Memoria/documentación debe mantenerse alineada después de cambios mayores.
+Language corpus sigue limitado; puede producir snake_case owner-facing si faltan labels.
+Runbook/checklist operativo debe actualizar flags y protocolo de piloto.
 No crear owner_output_v1 hasta señal material.
 No abrir canales nuevos sin autorización explícita.
 ```
@@ -172,6 +188,9 @@ Deuda cerrada:
 La traza ya no declara al CLI como dueño del caso de uso.
 La identidad de pipeline apunta a pymia.application.vertical_pipeline.
 El canal CLI queda preservado como metadata channel=cli.
+El renderer markdown ya no decide QAG.
+El renderer markdown ya no reconstruye owner_simple.
+El renderer markdown ya no importa servicios de dominio smartpyme.
 ```
 
 ---
@@ -180,7 +199,7 @@ El canal CLI queda preservado como metadata channel=cli.
 
 ```text
 No abrir runtime inmediatamente.
-Auditar capacidad operativa concreta o deuda viva real antes de proponer otro slice.
+Avanzar hacia PILOT_OPERATOR_CHECKLIST_V1 o auditar capacidad operativa concreta antes de proponer otro slice.
 ```
 
 Categoría del foco actual:

@@ -41,7 +41,7 @@ Orden de autoridad:
 HEAD técnico vigente:
 
 ```text
-faf9008 refactor(pymia-live): realign pipeline trace identity
+f179267 refactor(pymia-live): make owner markdown renderer decision-free
 ```
 
 Tests reportados:
@@ -89,6 +89,39 @@ Compatibilidad temporal aceptada:
 ```text
 vertical_slice.py puede re-exponer imports desde pymia.application.vertical_pipeline para preservar consumidores/tests históricos.
 No debe conservar cuerpos de las funciones movidas.
+```
+
+---
+
+## Frontera application/rendering vigente
+
+Regla:
+
+```text
+El renderer markdown no decide dominio.
+El renderer markdown no resuelve QAG.
+El renderer markdown no reconstruye owner_simple.
+El renderer markdown sólo presenta datos ya resueltos por el caso de uso.
+```
+
+Campos pre-resueltos por `pymia/application/vertical_pipeline.py`:
+
+```text
+report["owner_question"]
+report["owner_question_technical_reference"]
+report["owner_simple"]
+report["evidence_request_alignment"]
+```
+
+Prohibición vigente para `pymia/rendering/owner_markdown_renderer.py`:
+
+```text
+No importar pymia.smartpyme.owner_output.
+No importar pymia.smartpyme.question_alignment_gate.
+No importar pymia.smartpyme.question_resolution.
+No llamar build_owner_simple_view.
+No llamar align_next_question.
+No llamar _resolve_owner_question_and_reference.
 ```
 
 ---
@@ -180,10 +213,11 @@ Criterios para habilitar un split futuro:
 ## Deuda viva reconocida
 
 ```text
-Renderer markdown todavía decide QAG y recompone owner_simple.
 vertical_slice.py conserva imports de compatibilidad temporal.
 build_structured_summary vive dentro de application/vertical_pipeline.py.
 operator next step copy hardcodeado sigue siendo baja prioridad.
+Language corpus sigue limitado y puede exponer snake_case owner-facing si faltan labels.
+Runbook/checklist operativo debe actualizar flags y protocolo de piloto.
 ```
 
 Deuda cerrada:
@@ -191,6 +225,9 @@ Deuda cerrada:
 ```text
 La identidad de trazabilidad ya no apunta a pymia.cli.vertical_slice como dueño del caso de uso.
 vertical_slice_cli ya no gobierna la identidad del pipeline.
+owner_markdown_renderer.py ya no decide QAG.
+owner_markdown_renderer.py ya no reconstruye owner_simple.
+owner_markdown_renderer.py ya no importa servicios smartpyme de dominio.
 ```
 
 Estas deudas no autorizan refactor automático. Requieren auditoría focal y clasificación previa.
