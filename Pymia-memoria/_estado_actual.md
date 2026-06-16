@@ -1,6 +1,6 @@
 # PymIA Memoria — Estado actual
 
-Fecha: 2026-06-15
+Fecha: 2026-06-16
 
 ## Estado operativo actual
 
@@ -25,41 +25,73 @@ smartdash-almasana/PymIA
 HEAD validado por MCP:
 
 ```text
-e736a3b feat(pymia-live): add owner simple presentation layer
+80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
 ```
 
-
-Commits recientes relevantes:
+Worktree validado por MCP:
 
 ```text
-e736a3b feat(pymia-live): add owner simple presentation layer
-629fd85 docs(pymia): catalog museum boundary
-222e096 refactor(pymia-live): externalize vertical slice owner questions
-92d5381 refactor(pymia-live): externalize vertical slice owner copy
-731e580 refactor(pymia-live): externalize owner report warnings
-c552c27 refactor(pymia-live): externalize evidence requirement owner copy
-42d19bc chore(repo): ignore local temp and quarantine artifacts
-5da7f43 refactor(pymia): replace formula engine branches with dispatch table
+limpio
 ```
 
-## Estado de saneamiento genético
+Tests reportados al cierre:
 
 ```text
-PASS / CERRADO hasta FORMULA_ENGINE_DISPATCH_TABLE_V1
+241/241 PASS
 ```
 
-Cierres posteriores al dispatch table:
+---
+
+## Commits recientes relevantes
 
 ```text
-FORMULA_CATALOG_RECONCILIATION_V1 = CLOSED_BY_AUDITORIA
-OWNER_FACING_REPORT_WARNINGS_EXTERNALIZATION_V1 = CLOSED en 731e580
-VERTICAL_SLICE_MINIMAL_COPY_EXTERNALIZATION_V1 = CLOSED en 92d5381
-VERTICAL_SLICE_OWNER_QUESTION_COPY_EXTERNALIZATION_V1 = CLOSED en 222e096
-HARD_CODE_RESCAN_AFTER_OWNER_COPY_V1 = CLOSED por auditoría
-OWNER_SIMPLE_PRESENTATION_CONTRACT_SPLIT_HYPOTHESIS_V1 = CLOSED (Veredicto: NO SPLIT NOW)
+80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
+5bdc864 refactor(pymia-live): extract owner markdown renderer from CLI
+6a01eb3 refactor(pymia-live): extract diagnostic operator adapter from CLI
+3816fb0 refactor(pymia-live): extract question resolution from CLI
+e1877e8 docs(pymia-live): define target multichannel architecture
+5fb7947 refactor(pymia-live): extract pipeline registration from CLI
+b426099 docs(pymia-memoria): close owner simple extraction
+eca07e8 refactor(pymia-live): extract owner simple output builder
 ```
 
-## Resultado arquitectónico vigente
+---
+
+## Estado arquitectónico vigente
+
+```text
+PymIA-Live ya no concentra el caso de uso completo en vertical_slice.py.
+vertical_slice.py quedó reducido a adaptador CLI con imports de compatibilidad temporal.
+La frontera de aplicación vive en pymia/application/vertical_pipeline.py.
+```
+
+Responsabilidades extraídas de `vertical_slice.py`:
+
+```text
+owner_simple                -> pymia/smartpyme/owner_output.py
+registration                -> pymia/smartpyme/pipeline_registration.py
+question resolution         -> pymia/smartpyme/question_resolution.py
+diagnostic operator adapter -> pymia/smartpyme/diagnostic_operator_adapter.py
+owner markdown renderer     -> pymia/rendering/owner_markdown_renderer.py
+vertical pipeline           -> pymia/application/vertical_pipeline.py
+```
+
+Estado del CLI:
+
+```text
+PymIA-Live/pymia/cli/vertical_slice.py conserva main(), argparse, validación local de path, construcción de business_taxonomy, llamada al pipeline y escritura local de markdown.
+```
+
+Estado de compatibilidad temporal:
+
+```text
+vertical_slice.py re-expone imports desde pymia.application.vertical_pipeline para no romper tests y consumidores internos históricos.
+No conserva los cuerpos de build_report, build_markdown, build_pipeline, build_structured_summary, inspect_excel ni has_operational_columns.
+```
+
+---
+
+## Resultado arquitectónico rector
 
 ```text
 El conocimiento de dominio es enchufable.
@@ -69,98 +101,79 @@ JSON/contratos gobiernan conocimiento declarativo.
 Python runtime carga, valida, calcula, orquesta, renderiza y falla cerrado.
 ```
 
-Estado específico de fórmulas:
+La arquitectura objetivo vigente está documentada en:
 
 ```text
-formula_rules_v1.json gobierna reglas declarativas.
-formula_engine_service.py carga reglas, valida inputs, aplica bloqueos y despacha cálculo por registry.
-formula_contract.py conserva tipos vivos: FormulaInput, FormulaResult, FormulaStatus.
-SUPPORTED_FORMULAS está retirado.
-FormulaDefinition está retirado.
-calculate_formula está retirado.
+PymIA-Live/docs/pymia/PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md
 ```
 
-Estado específico de presentación/QAG:
+---
+
+## Estado de contratos y conocimiento declarativo
 
 ```text
+formula_rules_v1.json gobierna reglas declarativas de fórmulas.
 presentation_labels_v1.json gobierna labels owner-facing.
-question_alignment_v1.json gobierna copy de reconducción QAG.
-evidence_requirement_copy_v1.json gobierna pregunta owner-facing mínima del matcher.
+question_alignment_v1.json gobierna QAG.
+pathology_rules_v1.json gobierna reglas de patologías.
+evidence_requirement_aliases_v1.json gobierna aliases de evidence requirements.
+formula_aliases_v1.json gobierna aliases de evidencia hacia fórmulas.
+evidence_requirement_copy_v1.json gobierna el template owner-facing mínimo del matcher.
 owner_facing_report_copy_v1.json gobierna warnings owner-facing por status operativo.
-vertical_slice_copy_v1.json gobierna copy mínimo, fallback owner-facing de vertical_slice.py y presentación de owner_simple.
-language_corpus_seed.json sigue gobernando labels dueñas/variables del corpus.
-vertical_slice.py consume final_question_text y technical_reference desde QAG.
-El copy visible principal owner-facing fue movido a contratos declarativos.
+vertical_slice_copy_v1.json gobierna copy mínimo, fallback owner-facing y copy local vigente.
+language_corpus_seed.json gobierna labels declarativos del corpus dueño-variable.
 ```
 
-## Worktree restante conocido
+---
+
+## Frentes cerrados en esta secuencia
 
 ```text
-M Pymia-memoria/_decisiones_vigentes.md
-M Pymia-memoria/_estado_actual.md
-M Pymia-memoria/_task_actual.md
+OWNER_SIMPLE_BUILDER_EXTRACTION_V1 = CLOSED
+PIPELINE_REGISTRATION_SERVICE_EXTRACTION_V1 = CLOSED
+PYMIA_LIVE_TARGET_ARCHITECTURE_V1 = CLOSED
+QUESTION_RESOLUTION_SERVICE_EXTRACTION_V1 = CLOSED
+DIAGNOSTIC_OPERATOR_ADAPTER_EXTRACTION_V1 = CLOSED
+OWNER_MARKDOWN_RENDERER_EXTRACTION_V1 = CLOSED
+VERTICAL_PIPELINE_APPLICATION_BOUNDARY_V1 = CLOSED
 ```
 
-## Ruido local ya saneado
+---
+
+## Deuda viva conocida
 
 ```text
-.tmp/ ignorado por .gitignore root.
-_local_quarantine/ ignorado por .gitignore root.
+Renderer markdown todavía decide QAG y recompone owner_simple como deuda preexistente aceptada.
+vertical_slice.py conserva imports de compatibilidad temporal.
+build_structured_summary vive dentro de application/vertical_pipeline.py; puede extraerse luego si existe deuda material.
+Memoria/documentación debe mantenerse alineada después de cambios mayores.
+No crear owner_output_v1 hasta señal material.
+No abrir canales nuevos sin autorización explícita.
 ```
 
-## Runtime
-
-```text
-PymIA-Live mantiene worktree limpio al cierre del saneamiento owner-facing copy.
-No tocar PymIA-Live/pymia/ desde memoria documental.
-```
-
-## Deuda viva inmediata
-
-```text
-No queda deuda owner-facing grande sin externalizar.
-operator next step copy = baja prioridad.
-headings/render markdown = no tocar ahora.
-diagnostic reasoning fallback = otro frente futuro.
-pathology engine fallback = técnico, no owner-facing primario.
-```
-
-## Situación de owner_simple y Decisión de Split
-
-```text
-owner_simple existe y fue agregado en e736a3b.
-El copy owner-facing principal sigue externalizado.
-vertical_slice_copy_v1 creció para incluir owner_simple.
-Las auditorías externas divergieron sobre la conveniencia del split (KEEP_AS_IS vs SPLIT_NOW).
-Decisión final vigente: NO SPLIT NOW. owner_simple queda aceptado funcionalmente en vertical_slice_copy_v1 por ahora.
-OWNER_SIMPLE_BUILDER_EXTRACTION_V1 aplicado sin cambiar contrato ni output: la construcción de owner_simple vive ahora en PymIA-Live/pymia/smartpyme/owner_output.py y vertical_slice.py lo consume como builder externo.
-```
-
-Criterios para habilitar un split futuro de owner_simple:
-- owner_simple se consume fuera de vertical_slice.
-- Crece sustancialmente como canal o dominio propio.
-- Bloquea el desarrollo o despliegue del MVP.
-- Genera fallas reales de mantenimiento o tests.
-- Se requiere salida multicanal diferenciada.
+---
 
 ## Próximo foco recomendado
 
 ```text
-PARAR SANEAMIENTO OWNER-FACING COPY ACÁ
+No abrir runtime inmediatamente.
+Cerrar este checkpoint documental y luego auditar deuda viva real antes de proponer nuevo slice.
 ```
 
-Objetivo:
+Categoría del foco actual:
 
 ```text
-No seguir picando micro-copy owner-facing.
-Elegir próximo frente sólo si aporta capacidad operativa real o resuelve una deuda técnica material.
+D. DOCUMENTACIÓN / MEMORIA
 ```
+
+---
 
 ## Regla de avance
 
 ```text
-No abrir features nuevas hasta listar deuda viva real.
-No volver a refactorizar por estética.
-El saneamiento owner-facing copy se considera completo para esta fase.
-Sólo intervenir si el próximo slice agrega capacidad operativa real o cierra deuda técnica material.
+No abrir features nuevas por inercia.
+No volver a micro-slices cosméticos.
+No crear contratos nuevos sin necesidad funcional clara.
+No mezclar memoria, docs y runtime en un mismo commit.
+El próximo frente debe clasificarse explícitamente como A, B, D, E o F según ARCHITECTURE MEMORY GATE.
 ```

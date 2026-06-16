@@ -1,6 +1,6 @@
 # PymIA Memoria — Decisiones vigentes
 
-Fecha: 2026-06-15
+Fecha: 2026-06-16
 
 ## Decisión rectora
 
@@ -16,6 +16,8 @@ JSON/contratos = fuente declarativa de conocimiento.
 Python runtime = carga, valida, calcula, orquesta, renderiza, falla cerrado.
 ```
 
+---
+
 ## Autoridad operativa vigente
 
 ```text
@@ -27,41 +29,69 @@ No tratar PymIA-Live como repo git independiente.
 Orden de autoridad:
 
 ```text
-1. PymIA-Live ejecutable y smoke/evidencia validada.
+1. PymIA-Live ejecutable y tests validados.
 2. PymIA-Live/README.md.
-3. Contratos JSON vivos bajo PymIA-Live/pymia/contracts/.
-4. Código runtime vivo bajo PymIA-Live/pymia/.
-5. Documentos vivos explícitamente promovidos.
-6. Museo histórico catalogado, sólo como contexto.
+3. PymIA-Live/docs/pymia/PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md.
+4. Contratos JSON vivos bajo PymIA-Live/pymia/contracts/.
+5. Código runtime vivo bajo PymIA-Live/pymia/.
+6. Documentos vivos explícitamente promovidos.
+7. Museo histórico catalogado, sólo como contexto.
 ```
 
-## Estado de saneamiento genético
+HEAD técnico vigente:
 
 ```text
-CERRADO hasta FORMULA_ENGINE_DISPATCH_TABLE_V1
+80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
 ```
 
-Commits relevantes:
+Tests reportados:
 
 ```text
-2d70470 Evidence binding -> formula_aliases_v1.json
-90fe961 Evidence requirement matcher -> evidence_requirement_aliases_v1.json
-85d5bd2 Pathology knowledge tank -> pathology_rules_v1.json
-926d2ff Question alignment gate -> question_alignment_v1.json
-2dd8a1c Formula engine wired to formula_rules_v1.json
-10126c8 Runtime consumers migrated from SUPPORTED_FORMULAS
-b29e06b FORMULA_CONTRACT_RETIREMENT_V1
-b61cbbb FORMULA_ENGINE_RESULT_COVERAGE_V1
-e4e1844 PRESENTATION_LABELS_V1 wiring
-5da7f43 FORMULA_ENGINE_DISPATCH_TABLE_V1
-bc4e1b5 QAG reconduction copy dedup
-c958ff3 canonical test command documented
-42d19bc local temp/quarantine artifacts ignored
-c552c27 evidence requirement owner copy externalized
-731e580 owner-facing report warnings externalized
-92d5381 vertical slice owner copy externalized
-222e096 vertical slice owner questions externalized
+241/241 PASS
 ```
+
+---
+
+## Decisiones arquitectónicas vigentes
+
+```text
+vertical_slice.py no debe crecer.
+vertical_slice.py debe permanecer como adaptador CLI.
+Los futuros canales no deben copiar lógica desde vertical_slice.py.
+Los futuros canales deben invocar una frontera de aplicación común.
+```
+
+Frontera de aplicación vigente:
+
+```text
+PymIA-Live/pymia/application/vertical_pipeline.py
+```
+
+CLI vigente:
+
+```text
+PymIA-Live/pymia/cli/vertical_slice.py
+```
+
+Distribución vigente de responsabilidades:
+
+```text
+owner_simple                -> pymia/smartpyme/owner_output.py
+registration                -> pymia/smartpyme/pipeline_registration.py
+question resolution         -> pymia/smartpyme/question_resolution.py
+diagnostic operator adapter -> pymia/smartpyme/diagnostic_operator_adapter.py
+owner markdown renderer     -> pymia/rendering/owner_markdown_renderer.py
+vertical pipeline           -> pymia/application/vertical_pipeline.py
+```
+
+Compatibilidad temporal aceptada:
+
+```text
+vertical_slice.py puede re-exponer imports desde pymia.application.vertical_pipeline para preservar consumidores/tests históricos.
+No debe conservar cuerpos de las funciones movidas.
+```
+
+---
 
 ## Decisiones técnicas vigentes
 
@@ -78,9 +108,11 @@ evidence_requirement_aliases_v1.json gobierna aliases de evidence requirements.
 formula_aliases_v1.json gobierna aliases de evidencia hacia fórmulas.
 evidence_requirement_copy_v1.json gobierna el template owner-facing mínimo del matcher.
 owner_facing_report_copy_v1.json gobierna warnings owner-facing por status operativo.
-vertical_slice_copy_v1.json gobierna copy mínimo y preguntas owner-facing de vertical_slice.py.
-language_corpus_seed.json sigue gobernando labels declarativos del corpus dueño-variable.
+vertical_slice_copy_v1.json gobierna copy mínimo y fallback owner-facing local.
+language_corpus_seed.json gobierna labels declarativos del corpus dueño-variable.
 ```
+
+---
 
 ## Decisiones de higiene vigentes
 
@@ -93,37 +125,40 @@ MUSEUM_CATALOG.md no gobierna runtime; sólo puede catalogar frontera museo/vivo
 ROLE_PLAYING_ONBOARDING_FINDINGS.md es hallazgo experimental hasta promoción explícita.
 ```
 
-## Decisión vigente de cierre owner-facing
+---
+
+## Decisión vigente sobre owner_simple
 
 ```text
-El saneamiento de copy owner-facing queda cerrado por ahora.
-No externalizar headings markdown ni diagnostic fallbacks en esta fase.
-No abrir nuevos contratos de copy salvo necesidad funcional clara.
-Mantener principio: JSON/contratos declarativos; runtime carga/valida/usa; no hardcodear conocimiento o copy sensible en kernel cuando afecte owner-facing.
+No crear owner_output_v1 todavía.
+owner_simple vive como protocolo local congelado en pymia/smartpyme/owner_output.py.
+Su estado sigue siendo FROZEN_LOCAL_PRESENTATION_CONTRACT.
 ```
 
-## Próximo foco recomendado
+Criterios para habilitar un split futuro:
 
 ```text
-Elegir próximo frente sólo si aporta capacidad operativa real.
+- segundo canal consumidor;
+- necesidad de schema tipado formal;
+- drift real entre tests, salida y contrato implícito;
+- owner_simple se vuelve salida base del MVP;
+- separación necesaria entre renderer técnico y renderer humano.
 ```
 
-Objetivo:
+---
+
+## Deuda viva reconocida
 
 ```text
-No seguir picando micro-slices de copy.
-Evitar abrir contratos nuevos sin necesidad funcional material.
+Renderer markdown todavía decide QAG y recompone owner_simple.
+vertical_slice.py conserva imports de compatibilidad temporal.
+build_structured_summary vive dentro de application/vertical_pipeline.py.
+operator next step copy hardcodeado sigue siendo baja prioridad.
 ```
 
-Salida esperada:
+Estas deudas no autorizan refactor automático. Requieren auditoría focal y clasificación previa.
 
-```text
-DEUDA BLOQUEANTE
-DEUDA NO BLOQUEANTE
-DEUDA MUSEO / HISTÓRICA
-PRÓXIMO SLICE CANDIDATO
-VEREDICTO
-```
+---
 
 ## Reglas de trabajo
 
@@ -136,6 +171,8 @@ Si pide ejecutar -> pedir AUTH si modifica repo, tests, commit o push.
 Lectura/auditoría puede hacerse sólo cuando el usuario la autoriza o el frente lo requiere explícitamente.
 ```
 
+---
+
 ## Reglas de limpieza
 
 ```text
@@ -144,28 +181,32 @@ No agregar PymIA-Live/.tmp_smoke_owner_alignment/
 No agregar _local_quarantine/
 No commitear museo ni documentación no intencional.
 No mezclar memoria, museo, smoke y runtime en un mismo commit.
+No mezclar memoria documental con runtime en el mismo commit.
 ```
 
-## Frase rectora actual
-
-```text
-PymIA-Live debe quedar pequeño, trazable y gobernado por contratos declarativos.
-```
+---
 
 ## ARCHITECTURE MEMORY GATE
 
 Reglas y controles de frontera para evitar derivas metodológicas en la IA:
 
-- **Lectura obligatoria:** Antes de proponer cualquier slice, el asistente de IA (Gemini, ChatGPT, Claude, etc.) debe leer la memoria vigente (`_estado_actual.md`, `_task_actual.md`, `_decisiones_vigentes.md`).
+- **Lectura obligatoria:** Antes de proponer cualquier slice, el asistente de IA debe leer la memoria vigente (`_estado_actual.md`, `_task_actual.md`, `_decisiones_vigentes.md`).
 - **Respeto a los frenos:** Si la memoria documental explícitamente dice parar un frente, este no puede reabrirse o proponerse bajo nuevas hipótesis de refactorización o saneamiento estético salvo que se demuestre una deuda técnica material bloqueante para la ejecución.
 - **Clasificación obligatoria de frentes de trabajo:** Todo frente de trabajo propuesto debe clasificarse explícitamente en una de las siguientes categorías:
-  - **A. CAPACIDAD OPERATIVA** (Agrega funcionalidad, valor real de negocio o interfaces ejecutables para el usuario/pyme).
-  - **B. DEUDA TÉCNICA MATERIAL** (Resuelve un bug demostrado, un bloqueo de tests en runtime, o fallas en el pipeline real).
-  - **C. SANEAMIENTO MENOR** (Refactorización de copy, embellecimiento estético, renombrado de variables cosmético o micro-split cosmético de contratos).
-  - **D. DOCUMENTACIÓN / MEMORIA** (Actualización de checkpoints, memoria documental o reglas de gobernanza).
-  - **E. EXPERIMENTO** (Pruebas aisladas sin tocar el runtime productivo).
-  - **F. MUSEO / HISTÓRICO** (Movimiento de archivos en desuso al archivo histórico).
-- **Control de avance:** Sólo las categorías **A**, **B** o **D** pueden avanzar de forma ordinaria. La categoría **C** (Saneamiento Menor) requiere autorización e instrucción explícita del usuario y no puede iniciarse de manera automática por la IA.
-- **Dirección arquitectónica:** No usar la IA ni Codex como sustituto de la dirección arquitectónica explícita dada por el Owner del repositorio.
-- **Calidad profesional sobre pragmatismo de demo:** No priorizar un "funciona" rápido sobre la coherencia de la arquitectura de la solución cuando el usuario o los contratos exijan calidad profesional y adherencia estricta a los patrones data-driven definidos.
+  - **A. CAPACIDAD OPERATIVA**: agrega funcionalidad, valor real de negocio o interfaces ejecutables para la pyme.
+  - **B. DEUDA TÉCNICA MATERIAL**: resuelve bug demostrado, bloqueo de tests en runtime o falla real del pipeline.
+  - **C. SANEAMIENTO MENOR**: refactorización cosmética, renombrado, micro-split o embellecimiento sin deuda material.
+  - **D. DOCUMENTACIÓN / MEMORIA**: actualización de checkpoints, memoria documental o reglas de gobernanza.
+  - **E. EXPERIMENTO**: pruebas aisladas sin tocar runtime productivo.
+  - **F. MUSEO / HISTÓRICO**: movimiento de archivos en desuso al archivo histórico.
+- **Control de avance:** Sólo A, B o D pueden avanzar de forma ordinaria. C requiere autorización explícita del usuario y no puede iniciarse automáticamente.
+- **Dirección arquitectónica:** No usar la IA ni Codex como sustituto de la dirección arquitectónica explícita del Owner.
+- **Calidad profesional:** No priorizar un funciona rápido sobre coherencia arquitectónica cuando los contratos exijan adherencia estricta a patrones data-driven.
 
+---
+
+## Frase rectora actual
+
+```text
+PymIA-Live debe quedar pequeño, trazable, multicanal-ready y gobernado por contratos declarativos.
+```
