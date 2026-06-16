@@ -52,3 +52,24 @@ def test_evidence_requirement_matcher_match_logic():
     # Check that it matched or has candidate status if variables were missing
     # In this case we provided sales & costs, let's verify match status
     assert ren_match.status in ("calculable", "pending_data", "candidate")
+
+
+def test_evidence_requirement_matcher_uses_declarative_question_template():
+    evidence = StructuredEvidence(
+        tenant_id="test-tenant",
+        intake_id="test-intake",
+        document_type="xlsx",
+        file_name="test.xlsx",
+        sheet_reports={"ventas": "OK"},
+        computed_variables={"ventas_total": 1000.0},
+        metadata={"signals": [{"signal_id": "sig1", "signal_type": "margen_bajo"}]},
+    )
+
+    matches = match_evidence_requirements(evidence)
+    ren_match = next((m for m in matches if m.pathology_code == "REN_001"), None)
+    assert ren_match is not None
+    assert ren_match.next_audit_questions
+    assert (
+        ren_match.next_audit_questions[0]["question"]
+        == "Falta evidencia para evaluar REN_001. ¿Podés compartir costos_directos, impuestos_y_comisiones?"
+    )

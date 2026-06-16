@@ -6,6 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from pymia.contracts.evidence_requirement_copy_v1 import build_missing_evidence_question
 from pymia.contracts.evidence_v1 import StructuredEvidence
 
 
@@ -194,7 +195,7 @@ def match_evidence_requirements(
         if status in {"candidate", "pending_data", "blocked"}:
             next_q.append(
                 {
-                    "question": f"Falta evidencia para evaluar {pathology_code}. ¿Podés compartir {', '.join(missing_evidence[:2])}?",
+                    "question": build_missing_evidence_question(pathology_code, missing_evidence),
                     "requires_data": missing_evidence,
                     "priority": "high" if status in {"blocked", "pending_data"} else "medium",
                 }

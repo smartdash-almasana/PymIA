@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "status": "ACTIVE",
+  "copy_templates": {
+    "missing_evidence_question": "Falta evidencia para evaluar {pathology_code}. ¿Podés compartir {missing_evidence}?"
+  },
+  "fallbacks": {
+    "missing_evidence": "más detalle operativo"
+  }
+}
