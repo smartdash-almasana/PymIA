@@ -11,4 +11,5 @@ def test_owner_markdown_renderer_boundary() -> None:
     assert "def render_markdown_from_report(" not in vertical_slice_source
     assert "def _humanize_field(" not in vertical_slice_source
     assert "def _owner_label_for_variable(" not in vertical_slice_source
-    assert "from pymia.rendering.owner_markdown_renderer import render_markdown_from_report" in vertical_slice_source
+    vertical_pipeline_source = (repo_root / "pymia" / "application" / "vertical_pipeline.py").read_text(encoding="utf-8")
+    assert "from pymia.rendering.owner_markdown_renderer import render_markdown_from_report" in vertical_pipeline_source

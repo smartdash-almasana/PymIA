@@ -174,7 +174,7 @@ def test_vertical_slice_build_report_binds_evidence_request_when_missing_inputs(
             }]
         }
 
-    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build)
     profile = vertical_slice.inspect_excel(excel)
     report = vertical_slice.build_report(
         excel,
@@ -245,7 +245,7 @@ def test_vertical_slice_cli_renders_evidence_request_when_missing_inputs(tmp_pat
             }]
         }
 
-    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build)
     rc = vertical_slice.main([
         "--excel",
         str(excel),
@@ -534,7 +534,7 @@ def test_build_report_injects_serialized_diagnostic_result(tmp_path: Path, monke
             "formula_ids": ["REN_001_margen_neto_real"],
         }
 
-    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build_summary)
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build_summary)
     monkeypatch.setattr(
         "pymia.smartpyme.structured_evidence_builder.build_structured_evidence_context",
         mock_context,
@@ -613,7 +613,7 @@ def test_build_pipeline_exposes_operator_diagnostic_summary_without_markdown(tmp
             "formula_ids": ["REN_001_margen_neto_real"],
         }
 
-    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build_summary)
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build_summary)
     monkeypatch.setattr(
         "pymia.smartpyme.structured_evidence_builder.build_structured_evidence_context",
         mock_context,
@@ -848,7 +848,7 @@ def test_vertical_slice_cli_aligns_owner_question_when_misaligned(tmp_path: Path
                 "next_audit_questions": ["¿Podés compartir los tiempos de reposición de proveedores?"]
             }]
         }
-    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build)
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build)
 
     rc = vertical_slice.main([
         "--excel",
@@ -939,7 +939,7 @@ def test_operator_summary_explains_gate_blocked_missing_inputs(tmp_path: Path, m
             "formula_ids": ["LIQ_001_vendido_cobrado", "REN_001_margen_neto_real", "INV_002_rotacion_stock"],
         }
 
-    monkeypatch.setattr(vertical_slice, "build_structured_summary", mock_build_summary)
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build_summary)
     monkeypatch.setattr(
         "pymia.smartpyme.structured_evidence_builder.build_structured_evidence_context",
         mock_context,
