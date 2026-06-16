@@ -5,9 +5,6 @@ from pathlib import Path
 from pymia.contracts.language_corpus_v1 import load_language_corpus_seed, owner_label_for_variable_id
 from pymia.contracts.presentation_labels_v1 import label_for_field
 from pymia.contracts.vertical_slice_copy_v1 import vertical_slice_copy_for
-from pymia.smartpyme.owner_output import build_owner_simple_view
-from pymia.smartpyme.question_alignment_gate import align_next_question
-from pymia.smartpyme.question_resolution import _resolve_owner_question_and_reference
 
 
 def _humanize_field(name: str) -> str:
@@ -23,13 +20,7 @@ def _owner_label_for_variable(name: str) -> str:
 
 
 def render_markdown_from_report(path: Path, message: str, profile: dict, report: dict) -> str:
-    owner_question, _ = _resolve_owner_question_and_reference(report, message)
-    owner_simple = report.get("owner_simple") or build_owner_simple_view(
-        report=report,
-        message=message,
-        profile=profile,
-        owner_question=owner_question,
-    )
+    owner_simple = report["owner_simple"]
     lines = [
         "# Reporte owner-facing local",
         f"Estado: {report['status']}",
@@ -93,13 +84,7 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
             f"- Estado: {evidence_request_record['status']}",
             f"- Motivo: {evidence_request_record['request_reason']}",
         ])
-        request_reconciliation = report.get("structured_evidence_summary", {}).get("catalog_reconciliation") or []
-        request_question_candidates = [e for e in request_reconciliation if e.get("next_audit_questions")]
-        request_alignment = (
-            align_next_question(message, request_question_candidates)
-            if request_question_candidates
-            else {"status": "ALIGNED"}
-        )
+        request_alignment = report.get("evidence_request_alignment", {"status": "ALIGNED"})
         if request_alignment["status"] == "MISALIGNED":
             lines.append("- Pendiente: reconducir con el dueño antes de solicitar evidencia.")
         else:
@@ -146,7 +131,8 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         lines.append(f"- Motivo: {structured_summary['reason']}")
     lines.append("")
     lines.append("## Próxima pregunta")
-    owner_question, tech_reference = _resolve_owner_question_and_reference(report, message)
+    owner_question = report.get("owner_question", "")
+    tech_reference = report.get("owner_question_technical_reference", "")
     if owner_question:
         lines.append(f"- {owner_question}")
         if tech_reference:

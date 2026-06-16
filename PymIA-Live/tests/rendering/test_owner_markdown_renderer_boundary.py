@@ -8,6 +8,12 @@ def test_owner_markdown_renderer_boundary() -> None:
 
     assert "from pymia.cli.vertical_slice" not in owner_markdown_renderer_source
     assert "import argparse" not in owner_markdown_renderer_source
+    assert "pymia.smartpyme.owner_output" not in owner_markdown_renderer_source
+    assert "pymia.smartpyme.question_alignment_gate" not in owner_markdown_renderer_source
+    assert "pymia.smartpyme.question_resolution" not in owner_markdown_renderer_source
+    assert "build_owner_simple_view" not in owner_markdown_renderer_source
+    assert "align_next_question" not in owner_markdown_renderer_source
+    assert "_resolve_owner_question_and_reference" not in owner_markdown_renderer_source
     assert "def render_markdown_from_report(" not in vertical_slice_source
     assert "def _humanize_field(" not in vertical_slice_source
     assert "def _owner_label_for_variable(" not in vertical_slice_source

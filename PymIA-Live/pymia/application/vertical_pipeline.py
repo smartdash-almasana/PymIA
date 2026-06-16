@@ -17,6 +17,7 @@ from pymia.smartpyme.pipeline_registration import (
     register_owner_answer_record,
     register_pipeline_run_record,
 )
+from pymia.smartpyme.question_alignment_gate import align_next_question
 from pymia.smartpyme.question_resolution import (
     _requested_evidence_from_report,
     _resolve_owner_question_and_reference,
@@ -251,12 +252,21 @@ def build_report(
         cliente_id=tenant_id,
         structured_summary=structured_summary,
     )
-    owner_question, _ = _resolve_owner_question_and_reference(report, message)
+    owner_question, tech_reference = _resolve_owner_question_and_reference(report, message)
+    report["owner_question"] = owner_question
+    report["owner_question_technical_reference"] = tech_reference
     report["owner_simple"] = build_owner_simple_view(
         report=report,
         message=message,
         profile=profile,
         owner_question=owner_question,
+    )
+    request_reconciliation = report.get("structured_evidence_summary", {}).get("catalog_reconciliation") or []
+    request_question_candidates = [e for e in request_reconciliation if e.get("next_audit_questions")]
+    report["evidence_request_alignment"] = (
+        align_next_question(message, request_question_candidates)
+        if request_question_candidates
+        else {"status": "ALIGNED"}
     )
     return report
 
