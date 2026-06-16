@@ -1,0 +1,161 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from pymia.contracts.language_corpus_v1 import load_language_corpus_seed, owner_label_for_variable_id
+from pymia.contracts.presentation_labels_v1 import label_for_field
+from pymia.contracts.vertical_slice_copy_v1 import vertical_slice_copy_for
+from pymia.smartpyme.owner_output import build_owner_simple_view
+from pymia.smartpyme.question_alignment_gate import align_next_question
+from pymia.smartpyme.question_resolution import _resolve_owner_question_and_reference
+
+
+def _humanize_field(name: str) -> str:
+    return label_for_field(name)
+
+
+def _owner_label_for_variable(name: str) -> str:
+    corpus = load_language_corpus_seed()
+    label = owner_label_for_variable_id(name, corpus)
+    if label == name:
+        return name
+    return f"{label} ({name})"
+
+
+def render_markdown_from_report(path: Path, message: str, profile: dict, report: dict) -> str:
+    owner_question, _ = _resolve_owner_question_and_reference(report, message)
+    owner_simple = report.get("owner_simple") or build_owner_simple_view(
+        report=report,
+        message=message,
+        profile=profile,
+        owner_question=owner_question,
+    )
+    lines = [
+        "# Reporte owner-facing local",
+        f"Estado: {report['status']}",
+        f"Archivo: {path.name}",
+        f"Mensaje: {message}",
+        f"Tenant: {report['tenant_id']}",
+        f"Intake: {report['intake_id']}",
+        f"Anamnesis ID: {report['anamnesis_record']['anamnesis_id']}",
+        f"Investigation ID: {report['investigation_record']['investigation_id']}",
+        f"Evidence ID: {report['evidence_record']['evidence_id']}",
+        f"Evidence SHA-256: {report['evidence_record']['content_hash']}",
+        f"Run ID: {report['pipeline_run_record']['run_id']}",
+        f"Hoja: {profile['sheet']}",
+        f"Filas: {profile['rows']}",
+        f"Columnas: {profile['columns']}",
+        f"Resumen: {report['summary']}",
+        "",
+        "Qué entendimos:",
+        owner_simple["que_entendimos"],
+        "",
+        "Qué pudimos leer:",
+        owner_simple["que_pudimos_leer"],
+        "",
+        "Qué todavía no podemos afirmar:",
+        owner_simple["que_todavia_no_podemos_afirmar"],
+        "",
+        "Próxima pregunta:",
+        owner_simple["proxima_pregunta"],
+        "",
+        "Límites:",
+        "",
+    ]
+    for item in owner_simple["limites"]:
+        lines.append(f"- {item}")
+    lines.extend(["", "## Anamnesis"])
+    owner_answer_record = report.get("owner_answer_record")
+    evidence_request_record = report.get("evidence_request_record")
+    if owner_answer_record:
+        lines.insert(10, f"Owner Answer ID: {owner_answer_record['answer_id']}")
+    if evidence_request_record:
+        lines.insert(11, f"Evidence Request ID: {evidence_request_record['request_id']}")
+    taxonomy = report["anamnesis_record"].get("business_taxonomy", {})
+    lines.append(f"- Empresa tipo: {taxonomy.get('empresa_tipo', 'desconocido')}")
+    lines.append(f"- Industria: {taxonomy.get('industria', 'desconocido')}")
+    lines.append(f"- Modelo comercial: {taxonomy.get('modelo_comercial', 'desconocido')}")
+    if taxonomy.get("canales_venta"):
+        lines.append(f"- Canales de venta: {', '.join(taxonomy['canales_venta'])}")
+    if taxonomy.get("areas_criticas"):
+        lines.append(f"- Áreas críticas: {', '.join(taxonomy['areas_criticas'])}")
+    if owner_answer_record:
+        lines.extend([
+            "",
+            "## Respuesta del dueño",
+            f"- Pregunta referida: {owner_answer_record['question_ref']}",
+            f"- Tipo: {owner_answer_record['answer_kind']}",
+        ])
+    if evidence_request_record:
+        lines.extend([
+            "",
+            "## Solicitud de evidencia",
+            f"- Estado: {evidence_request_record['status']}",
+            f"- Motivo: {evidence_request_record['request_reason']}",
+        ])
+        request_reconciliation = report.get("structured_evidence_summary", {}).get("catalog_reconciliation") or []
+        request_question_candidates = [e for e in request_reconciliation if e.get("next_audit_questions")]
+        request_alignment = (
+            align_next_question(message, request_question_candidates)
+            if request_question_candidates
+            else {"status": "ALIGNED"}
+        )
+        if request_alignment["status"] == "MISALIGNED":
+            lines.append("- Pendiente: reconducir con el dueño antes de solicitar evidencia.")
+        else:
+            for item in evidence_request_record["requested_evidence"]:
+                lines.append(f"- {_humanize_field(item)}")
+    lines.extend([
+        "",
+        "## Evidencia usada",
+    ])
+    for item in report["evidence_used"]:
+        lines.append(f"- {item}")
+    lines.append("")
+    lines.append("## Evidencia faltante")
+    if report["missing_evidence"]:
+        for item in report["missing_evidence"]:
+            lines.append(f"- {item}")
+    else:
+        lines.append("- Sin faltantes mínimos detectados en este slice.")
+    lines.append("")
+    lines.append("## Evidencia estructurada")
+    structured_summary = report["structured_evidence_summary"]
+    lines.append(f"- Estado: {structured_summary['status']}")
+    if structured_summary["status"] == "available":
+        var_count = structured_summary["computed_variables_count"]
+        var_names = structured_summary.get("computed_variable_names", [])
+        lines.append(f"- Variables computables: {var_count}")
+        for name in var_names:
+            lines.append(f"  - {_owner_label_for_variable(name)}")
+        table_sheets = structured_summary.get("table_sheets", [])
+        lines.append(f"- Tablas estructuradas: {structured_summary['tables_count']}")
+        for t in table_sheets:
+            lines.append(f"  - {t['name']} ({t['rows']} filas, {t['columns']} columnas)")
+        lines.append(f"- Case ID: {structured_summary['case_id']}")
+        if structured_summary["sufficiency"] or structured_summary["unsupported_formula_ids"]:
+            lines.append("")
+            lines.append("## Suficiencia de evidencia")
+            for item in structured_summary["sufficiency"]:
+                lines.append(f"- {item['formula_id']}: {item['status']}")
+                if item["missing_variables"]:
+                    lines.append(f"  - Faltan: {', '.join(item['missing_variables'])}")
+            for formula_id in structured_summary["unsupported_formula_ids"]:
+                lines.append(f"- {formula_id}: UNSUPPORTED_FORMULA")
+    else:
+        lines.append(f"- Motivo: {structured_summary['reason']}")
+    lines.append("")
+    lines.append("## Próxima pregunta")
+    owner_question, tech_reference = _resolve_owner_question_and_reference(report, message)
+    if owner_question:
+        lines.append(f"- {owner_question}")
+        if tech_reference:
+            lines.append(f"  - {tech_reference}")
+    else:
+        lines.append(f"- {vertical_slice_copy_for('next_question_fallback')}")
+    lines.append("")
+    lines.append("## Límites")
+    for warning in report["limit_warnings"]:
+        lines.append(f"- {warning}")
+    lines.append(f"- {vertical_slice_copy_for('final_limit_warning')}")
+    return "\n".join(lines) + "\n"
