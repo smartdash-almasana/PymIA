@@ -2,6 +2,8 @@
   "schema_version": "1.0",
   "status": "ACTIVE",
   "copy_by_key": {
+    "owner_question_missing_field": "Falta información sobre {pathology_label}. ¿Podés compartir {field_text}?",
+    "owner_question_missing_generic": "Falta información sobre {pathology_label} para continuar el análisis.",
     "missing_data_rows_question": "Necesito al menos una fila de datos además de los encabezados.",
     "missing_operational_columns_question": "Necesito columnas como fecha, producto, ventas, precio, costo, cantidad o sku.",
     "blocked_summary": "Falta evidencia mínima para avanzar.",

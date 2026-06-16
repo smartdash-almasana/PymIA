@@ -45,9 +45,14 @@ def _build_owner_question(entry: dict) -> tuple[str | None, str | None]:
             field_text = f"{humanized_fields[0]} y {humanized_fields[1]}"
         else:
             field_text = ", ".join(humanized_fields[:-1]) + f" y {humanized_fields[-1]}"
-        owner_q = f"Falta información sobre {pathology_label}. ¿Podés compartir {field_text}?"
+        owner_q = vertical_slice_copy_for("owner_question_missing_field").format(
+            pathology_label=pathology_label,
+            field_text=field_text,
+        )
     else:
-        owner_q = f"Falta información sobre {pathology_label} para continuar el análisis."
+        owner_q = vertical_slice_copy_for("owner_question_missing_generic").format(
+            pathology_label=pathology_label,
+        )
     tech_parts = [f"Referencia técnica: {formula_id}"]
     if missing:
         tech_parts.append(f"inputs faltantes: {', '.join(missing)}")

@@ -15,6 +15,8 @@ _REQUIRED_TOP_LEVEL_KEYS = (
 )
 
 _REQUIRED_COPY_KEYS = (
+    "owner_question_missing_field",
+    "owner_question_missing_generic",
     "missing_data_rows_question",
     "missing_operational_columns_question",
     "blocked_summary",

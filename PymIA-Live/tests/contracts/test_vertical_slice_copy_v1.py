@@ -21,6 +21,8 @@ def test_vertical_slice_copy_contract_loads_valid_json():
 
 
 def test_vertical_slice_copy_contract_exposes_all_required_keys():
+    assert vertical_slice_copy_for("owner_question_missing_field") == "Falta información sobre {pathology_label}. ¿Podés compartir {field_text}?"
+    assert vertical_slice_copy_for("owner_question_missing_generic") == "Falta información sobre {pathology_label} para continuar el análisis."
     assert vertical_slice_copy_for("missing_data_rows_question") == "Necesito al menos una fila de datos además de los encabezados."
     assert vertical_slice_copy_for("missing_operational_columns_question") == "Necesito columnas como fecha, producto, ventas, precio, costo, cantidad o sku."
     assert vertical_slice_copy_for("blocked_summary") == "Falta evidencia mínima para avanzar."
