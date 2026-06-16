@@ -13,11 +13,8 @@ from pymia.contracts.presentation_labels_v1 import (
     load_operational_terms,
 )
 from pymia.contracts.vertical_slice_copy_v1 import vertical_slice_copy_for
-from pymia.contracts.vertical_slice_copy_v1 import (
-    owner_simple_readable_areas,
-    owner_simple_understanding_by_axis,
-)
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
+from pymia.smartpyme.owner_output import build_owner_simple_view
 from pymia.smartpyme.question_alignment_gate import (
     AXIS_AUTOMATIZACION_MANUAL,
     AXIS_CAJA_LIQUIDEZ,
@@ -28,7 +25,6 @@ from pymia.smartpyme.question_alignment_gate import (
     AXIS_STOCK_REPOSICION,
     AXIS_VENTAS_MARGEN,
     align_next_question,
-    detect_owner_axis,
 )
 
 
@@ -111,47 +107,6 @@ def _resolve_owner_question_and_reference(report: dict, message: str) -> tuple[s
         owner_question = str(report["next_questions"][0])
     return owner_question, tech_reference
 
-
-def _owner_understanding_text(message: str) -> str:
-    owner_axis = detect_owner_axis(message)
-    axis_messages = owner_simple_understanding_by_axis()
-    return axis_messages[owner_axis]
-
-
-def _owner_readable_summary(profile: dict) -> str:
-    headers = [str(item).lower() for item in profile.get("headers", [])]
-    joined = " ".join(headers)
-    readable_areas: list[str] = []
-
-    for label, payload in owner_simple_readable_areas().items():
-        keywords = payload.get("keywords") or []
-        if any(keyword in joined for keyword in keywords):
-            readable_areas.append(label)
-
-    if readable_areas:
-        if len(readable_areas) == 1:
-            area_text = readable_areas[0]
-        elif len(readable_areas) == 2:
-            area_text = f"{readable_areas[0]} y {readable_areas[1]}"
-        else:
-            area_text = ", ".join(readable_areas[:-1]) + f" y {readable_areas[-1]}"
-        return vertical_slice_copy_for("owner_simple_readable_summary_template").format(area_text=area_text)
-
-    if profile.get("rows", 0) > 1 and profile.get("columns", 0) > 0:
-        return vertical_slice_copy_for("owner_simple_minimal_signals")
-
-    return vertical_slice_copy_for("owner_simple_unreadable")
-
-
-def _build_owner_simple_view(report: dict, message: str, profile: dict) -> dict[str, Any]:
-    owner_question, _ = _resolve_owner_question_and_reference(report, message)
-    return {
-        "que_entendimos": _owner_understanding_text(message),
-        "que_pudimos_leer": _owner_readable_summary(profile),
-        "que_todavia_no_podemos_afirmar": vertical_slice_copy_for("owner_simple_unknown_assertion"),
-        "proxima_pregunta": owner_question or vertical_slice_copy_for("next_question_fallback"),
-        "limites": list(report.get("limit_warnings") or []) + [vertical_slice_copy_for("final_limit_warning")],
-    }
 
 
 def _serializable_diagnostic_pipeline_result(result) -> dict:
@@ -709,7 +664,13 @@ def build_report(
         cliente_id=tenant_id,
         structured_summary=structured_summary,
     )
-    report["owner_simple"] = _build_owner_simple_view(report, message, profile)
+    owner_question, _ = _resolve_owner_question_and_reference(report, message)
+    report["owner_simple"] = build_owner_simple_view(
+        report=report,
+        message=message,
+        profile=profile,
+        owner_question=owner_question,
+    )
     return report
 
 
@@ -742,7 +703,13 @@ def build_markdown(
 
 
 def render_markdown_from_report(path: Path, message: str, profile: dict, report: dict) -> str:
-    owner_simple = report.get("owner_simple") or _build_owner_simple_view(report, message, profile)
+    owner_question, _ = _resolve_owner_question_and_reference(report, message)
+    owner_simple = report.get("owner_simple") or build_owner_simple_view(
+        report=report,
+        message=message,
+        profile=profile,
+        owner_question=owner_question,
+    )
     lines = [
         "# Reporte owner-facing local",
         f"Estado: {report['status']}",
