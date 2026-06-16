@@ -5,7 +5,7 @@ Fecha: 2026-06-16
 ## Task actual
 
 ```text
-PYMIA_LIVE_APPLICATION_BOUNDARY_CLOSEOUT
+PIPELINE_RUN_TRACE_IDENTITY_CLOSEOUT
 ```
 
 ## Categoría
@@ -23,7 +23,7 @@ APPLIED_NOT_COMMITTED
 ## Objetivo
 
 ```text
-Cerrar documentalmente la secuencia de reducción de vertical_slice.py y dejar registrada la nueva frontera de aplicación de PymIA-Live.
+Cerrar documentalmente la realineación de identidad de trazabilidad del pipeline vertical después de faf9008.
 ```
 
 ---
@@ -31,7 +31,7 @@ Cerrar documentalmente la secuencia de reducción de vertical_slice.py y dejar r
 ## HEAD validado antes del cierre documental
 
 ```text
-80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
+faf9008 refactor(pymia-live): realign pipeline trace identity
 ```
 
 Worktree antes del cierre documental:
@@ -43,21 +43,26 @@ limpio
 Tests reportados al cierre técnico:
 
 ```text
-241/241 PASS
+243/243 PASS
 ```
 
 ---
 
-## Cambios arquitectónicos ya cerrados
+## Cambio técnico ya cerrado
 
 ```text
-OWNER_SIMPLE_BUILDER_EXTRACTION_V1 = CLOSED
-PIPELINE_REGISTRATION_SERVICE_EXTRACTION_V1 = CLOSED
-PYMIA_LIVE_TARGET_ARCHITECTURE_V1 = CLOSED
-QUESTION_RESOLUTION_SERVICE_EXTRACTION_V1 = CLOSED
-DIAGNOSTIC_OPERATOR_ADAPTER_EXTRACTION_V1 = CLOSED
-OWNER_MARKDOWN_RENDERER_EXTRACTION_V1 = CLOSED
-VERTICAL_PIPELINE_APPLICATION_BOUNDARY_V1 = CLOSED
+PIPELINE_RUN_TRACE_IDENTITY_REALIGNMENT_V1 = CLOSED
+```
+
+Resultado:
+
+```text
+pipeline_name   -> vertical_pipeline_evidence_spine
+pipeline_module -> pymia.application.vertical_pipeline
+entrypoint      -> build_pipeline
+service_name    -> vertical_pipeline
+channel         -> cli
+registered_by   -> vertical_pipeline
 ```
 
 ---
@@ -65,20 +70,10 @@ VERTICAL_PIPELINE_APPLICATION_BOUNDARY_V1 = CLOSED
 ## Estado resultante
 
 ```text
-vertical_slice.py ya no gobierna el caso de uso completo.
-vertical_slice.py quedó como adaptador CLI.
-pymia/application/vertical_pipeline.py gobierna el pipeline vertical de aplicación.
-```
-
-Distribución vigente:
-
-```text
-owner_simple                -> pymia/smartpyme/owner_output.py
-registration                -> pymia/smartpyme/pipeline_registration.py
-question resolution         -> pymia/smartpyme/question_resolution.py
-diagnostic operator adapter -> pymia/smartpyme/diagnostic_operator_adapter.py
-owner markdown renderer     -> pymia/rendering/owner_markdown_renderer.py
-vertical pipeline           -> pymia/application/vertical_pipeline.py
+vertical_slice.py sigue siendo adaptador CLI.
+vertical_pipeline.py gobierna el caso de uso.
+La traza ya no declara al CLI como dueño del pipeline.
+El canal CLI queda preservado explícitamente como metadata.
 ```
 
 ---
@@ -126,7 +121,7 @@ Commit documental focal del cierre de memoria.
 Commit sugerido:
 
 ```text
-docs(pymia-memoria): close vertical pipeline application boundary
+docs(pymia-memoria): close pipeline trace identity realignment
 ```
 
 ---

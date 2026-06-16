@@ -41,13 +41,13 @@ Orden de autoridad:
 HEAD técnico vigente:
 
 ```text
-80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
+faf9008 refactor(pymia-live): realign pipeline trace identity
 ```
 
 Tests reportados:
 
 ```text
-241/241 PASS
+243/243 PASS
 ```
 
 ---
@@ -93,6 +93,35 @@ No debe conservar cuerpos de las funciones movidas.
 
 ---
 
+## Identidad de trazabilidad vigente
+
+La traza distingue caso de uso y canal.
+
+Caso de uso:
+
+```text
+pipeline_name   -> vertical_pipeline_evidence_spine
+pipeline_module -> pymia.application.vertical_pipeline
+entrypoint      -> build_pipeline
+service_name    -> vertical_pipeline
+registered_by   -> vertical_pipeline
+```
+
+Canal:
+
+```text
+channel -> cli
+```
+
+Regla:
+
+```text
+El CLI no debe figurar como dueño del caso de uso.
+El canal CLI sí puede figurar como canal de entrada en metadata.
+```
+
+---
+
 ## Decisiones técnicas vigentes
 
 ```text
@@ -110,6 +139,7 @@ evidence_requirement_copy_v1.json gobierna el template owner-facing mínimo del 
 owner_facing_report_copy_v1.json gobierna warnings owner-facing por status operativo.
 vertical_slice_copy_v1.json gobierna copy mínimo y fallback owner-facing local.
 language_corpus_seed.json gobierna labels declarativos del corpus dueño-variable.
+pipeline_run_v1.py gobierna la identidad de ejecución del pipeline vertical.
 ```
 
 ---
@@ -154,6 +184,13 @@ Renderer markdown todavía decide QAG y recompone owner_simple.
 vertical_slice.py conserva imports de compatibilidad temporal.
 build_structured_summary vive dentro de application/vertical_pipeline.py.
 operator next step copy hardcodeado sigue siendo baja prioridad.
+```
+
+Deuda cerrada:
+
+```text
+La identidad de trazabilidad ya no apunta a pymia.cli.vertical_slice como dueño del caso de uso.
+vertical_slice_cli ya no gobierna la identidad del pipeline.
 ```
 
 Estas deudas no autorizan refactor automático. Requieren auditoría focal y clasificación previa.

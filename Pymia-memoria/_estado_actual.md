@@ -25,7 +25,7 @@ smartdash-almasana/PymIA
 HEAD validado por MCP:
 
 ```text
-80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
+faf9008 refactor(pymia-live): realign pipeline trace identity
 ```
 
 Worktree validado por MCP:
@@ -37,7 +37,7 @@ limpio
 Tests reportados al cierre:
 
 ```text
-241/241 PASS
+243/243 PASS
 ```
 
 ---
@@ -45,14 +45,14 @@ Tests reportados al cierre:
 ## Commits recientes relevantes
 
 ```text
+faf9008 refactor(pymia-live): realign pipeline trace identity
+f33bf00 docs(pymia-memoria): close vertical pipeline application boundary
 80c6c9a refactor(pymia-live): introduce vertical pipeline application boundary
 5bdc864 refactor(pymia-live): extract owner markdown renderer from CLI
 6a01eb3 refactor(pymia-live): extract diagnostic operator adapter from CLI
 3816fb0 refactor(pymia-live): extract question resolution from CLI
 e1877e8 docs(pymia-live): define target multichannel architecture
 5fb7947 refactor(pymia-live): extract pipeline registration from CLI
-b426099 docs(pymia-memoria): close owner simple extraction
-eca07e8 refactor(pymia-live): extract owner simple output builder
 ```
 
 ---
@@ -63,6 +63,7 @@ eca07e8 refactor(pymia-live): extract owner simple output builder
 PymIA-Live ya no concentra el caso de uso completo en vertical_slice.py.
 vertical_slice.py quedó reducido a adaptador CLI con imports de compatibilidad temporal.
 La frontera de aplicación vive en pymia/application/vertical_pipeline.py.
+La identidad de trazabilidad ya fue realineada al pipeline de aplicación.
 ```
 
 Responsabilidades extraídas de `vertical_slice.py`:
@@ -74,6 +75,17 @@ question resolution         -> pymia/smartpyme/question_resolution.py
 diagnostic operator adapter -> pymia/smartpyme/diagnostic_operator_adapter.py
 owner markdown renderer     -> pymia/rendering/owner_markdown_renderer.py
 vertical pipeline           -> pymia/application/vertical_pipeline.py
+```
+
+Identidad de traza vigente:
+
+```text
+pipeline_name   -> vertical_pipeline_evidence_spine
+pipeline_module -> pymia.application.vertical_pipeline
+entrypoint      -> build_pipeline
+service_name    -> vertical_pipeline
+channel         -> cli
+registered_by   -> vertical_pipeline
 ```
 
 Estado del CLI:
@@ -122,6 +134,7 @@ evidence_requirement_copy_v1.json gobierna el template owner-facing mínimo del 
 owner_facing_report_copy_v1.json gobierna warnings owner-facing por status operativo.
 vertical_slice_copy_v1.json gobierna copy mínimo, fallback owner-facing y copy local vigente.
 language_corpus_seed.json gobierna labels declarativos del corpus dueño-variable.
+pipeline_run_v1.py gobierna la identidad de ejecución del pipeline vertical.
 ```
 
 ---
@@ -136,6 +149,8 @@ QUESTION_RESOLUTION_SERVICE_EXTRACTION_V1 = CLOSED
 DIAGNOSTIC_OPERATOR_ADAPTER_EXTRACTION_V1 = CLOSED
 OWNER_MARKDOWN_RENDERER_EXTRACTION_V1 = CLOSED
 VERTICAL_PIPELINE_APPLICATION_BOUNDARY_V1 = CLOSED
+PYMIA_LIVE_APPLICATION_BOUNDARY_CLOSEOUT = CLOSED
+PIPELINE_RUN_TRACE_IDENTITY_REALIGNMENT_V1 = CLOSED
 ```
 
 ---
@@ -151,13 +166,21 @@ No crear owner_output_v1 hasta señal material.
 No abrir canales nuevos sin autorización explícita.
 ```
 
+Deuda cerrada:
+
+```text
+La traza ya no declara al CLI como dueño del caso de uso.
+La identidad de pipeline apunta a pymia.application.vertical_pipeline.
+El canal CLI queda preservado como metadata channel=cli.
+```
+
 ---
 
 ## Próximo foco recomendado
 
 ```text
 No abrir runtime inmediatamente.
-Cerrar este checkpoint documental y luego auditar deuda viva real antes de proponer nuevo slice.
+Auditar capacidad operativa concreta o deuda viva real antes de proponer otro slice.
 ```
 
 Categoría del foco actual:
