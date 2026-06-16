@@ -57,6 +57,10 @@ e4e1844 PRESENTATION_LABELS_V1 wiring
 bc4e1b5 QAG reconduction copy dedup
 c958ff3 canonical test command documented
 42d19bc local temp/quarantine artifacts ignored
+c552c27 evidence requirement owner copy externalized
+731e580 owner-facing report warnings externalized
+92d5381 vertical slice owner copy externalized
+222e096 vertical slice owner questions externalized
 ```
 
 ## Decisiones técnicas vigentes
@@ -72,6 +76,10 @@ question_alignment_v1.json gobierna QAG.
 pathology_rules_v1.json gobierna reglas de patologías.
 evidence_requirement_aliases_v1.json gobierna aliases de evidence requirements.
 formula_aliases_v1.json gobierna aliases de evidencia hacia fórmulas.
+evidence_requirement_copy_v1.json gobierna el template owner-facing mínimo del matcher.
+owner_facing_report_copy_v1.json gobierna warnings owner-facing por status operativo.
+vertical_slice_copy_v1.json gobierna copy mínimo y preguntas owner-facing de vertical_slice.py.
+language_corpus_seed.json sigue gobernando labels declarativos del corpus dueño-variable.
 ```
 
 ## Decisiones de higiene vigentes
@@ -85,20 +93,26 @@ MUSEUM_CATALOG.md no gobierna runtime; sólo puede catalogar frontera museo/vivo
 ROLE_PLAYING_ONBOARDING_FINDINGS.md es hallazgo experimental hasta promoción explícita.
 ```
 
+## Decisión vigente de cierre owner-facing
+
+```text
+El saneamiento de copy owner-facing queda cerrado por ahora.
+No externalizar headings markdown ni diagnostic fallbacks en esta fase.
+No abrir nuevos contratos de copy salvo necesidad funcional clara.
+Mantener principio: JSON/contratos declarativos; runtime carga/valida/usa; no hardcodear conocimiento o copy sensible en kernel cuando afecte owner-facing.
+```
+
 ## Próximo foco recomendado
 
 ```text
-HARD_CODE_INVENTORY_OUTSIDE_FORMULAS_V1
+Elegir próximo frente sólo si aporta capacidad operativa real.
 ```
 
 Objetivo:
 
 ```text
-Listar deuda viva real posterior al saneamiento genético.
-No implementar código runtime.
-No crear contratos nuevos.
-No abrir features.
-No tocar fórmulas, QAG, pathology, evidence, presentation ni storage.
+No seguir picando micro-slices de copy.
+Evitar abrir contratos nuevos sin necesidad funcional material.
 ```
 
 Salida esperada:

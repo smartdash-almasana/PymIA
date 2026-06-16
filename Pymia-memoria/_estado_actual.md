@@ -25,20 +25,19 @@ smartdash-almasana/PymIA
 HEAD validado por MCP:
 
 ```text
-42d19bc chore(repo): ignore local temp and quarantine artifacts
+629fd85 docs(pymia): catalog museum boundary
 ```
 
 Commits recientes relevantes:
 
 ```text
+629fd85 docs(pymia): catalog museum boundary
+222e096 refactor(pymia-live): externalize vertical slice owner questions
+92d5381 refactor(pymia-live): externalize vertical slice owner copy
+731e580 refactor(pymia-live): externalize owner report warnings
+c552c27 refactor(pymia-live): externalize evidence requirement owner copy
 42d19bc chore(repo): ignore local temp and quarantine artifacts
-c958ff3 docs(pymia-live): document canonical test command
-bc4e1b5 refactor(pymia): reuse qag reconduction copy from contract
 5da7f43 refactor(pymia): replace formula engine branches with dispatch table
-e4e1844 feat(pymia): wire presentation labels v1
-b61cbbb test(pymia-live): cover formula engine calculation results
-b29e06b refactor(pymia-live): retire supported formulas contract
-10126c8 refactor(pymia-live): replace SUPPORTED_FORMULAS with load_formula_rules in runtime
 ```
 
 ## Estado de saneamiento genético
@@ -51,9 +50,10 @@ Cierres posteriores al dispatch table:
 
 ```text
 FORMULA_CATALOG_RECONCILIATION_V1 = CLOSED_BY_AUDITORIA
-QAG_RECONDUCTION_COPY_DEDUP_V1 = CLOSED en bc4e1b5
-ROOT_TEST_COMMAND_RECONCILIATION_V1 = CLOSED en c958ff3
-COMMIT_GITIGNORE_HYGIENE_V1 = CLOSED en 42d19bc
+OWNER_FACING_REPORT_WARNINGS_EXTERNALIZATION_V1 = CLOSED en 731e580
+VERTICAL_SLICE_MINIMAL_COPY_EXTERNALIZATION_V1 = CLOSED en 92d5381
+VERTICAL_SLICE_OWNER_QUESTION_COPY_EXTERNALIZATION_V1 = CLOSED en 222e096
+HARD_CODE_RESCAN_AFTER_OWNER_COPY_V1 = CLOSED por auditoría
 ```
 
 ## Resultado arquitectónico vigente
@@ -82,7 +82,12 @@ Estado específico de presentación/QAG:
 ```text
 presentation_labels_v1.json gobierna labels owner-facing.
 question_alignment_v1.json gobierna copy de reconducción QAG.
+evidence_requirement_copy_v1.json gobierna pregunta owner-facing mínima del matcher.
+owner_facing_report_copy_v1.json gobierna warnings owner-facing por status operativo.
+vertical_slice_copy_v1.json gobierna copy mínimo y fallback owner-facing de vertical_slice.py.
+language_corpus_seed.json sigue gobernando labels dueñas/variables del corpus.
 vertical_slice.py consume final_question_text y technical_reference desde QAG.
+El copy visible principal owner-facing fue movido a contratos declarativos.
 ```
 
 ## Worktree restante conocido
@@ -91,9 +96,6 @@ vertical_slice.py consume final_question_text y technical_reference desde QAG.
 M Pymia-memoria/_decisiones_vigentes.md
 M Pymia-memoria/_estado_actual.md
 M Pymia-memoria/_task_actual.md
-?? PymIA-Live/.tmp_smoke_owner_alignment/
-?? PymIA-Live/docs/pymia/ROLE_PLAYING_ONBOARDING_FINDINGS.md
-?? docs/MUSEUM_CATALOG.md
 ```
 
 ## Ruido local ya saneado
@@ -106,33 +108,31 @@ _local_quarantine/ ignorado por .gitignore root.
 ## Runtime
 
 ```text
-LIMPIO en status actual.
-No tocar PymIA-Live/pymia/ durante higiene de memoria/museo.
+PymIA-Live mantiene worktree limpio al cierre del saneamiento owner-facing copy.
+No tocar PymIA-Live/pymia/ desde memoria documental.
 ```
 
 ## Deuda viva inmediata
 
 ```text
-1. Decidir destino de PymIA-Live/.tmp_smoke_owner_alignment/ como artefacto smoke no versionable.
-2. Decidir destino de PymIA-Live/docs/pymia/ROLE_PLAYING_ONBOARDING_FINDINGS.md como hallazgo experimental.
-3. Decidir destino de docs/MUSEUM_CATALOG.md como documento de museo.
-4. Auditar hardcodes remanentes de conocimiento owner-facing o dominio fuera de JSON/contratos.
+No queda deuda owner-facing grande sin externalizar.
+operator next step copy = baja prioridad.
+headings/render markdown = no tocar ahora.
+diagnostic reasoning fallback = otro frente futuro.
+pathology engine fallback = técnico, no owner-facing primario.
 ```
 
 ## Próximo foco recomendado
 
 ```text
-HARD_CODE_INVENTORY_OUTSIDE_FORMULAS_V1
+PARAR SANEAMIENTO OWNER-FACING COPY ACÁ
 ```
 
 Objetivo:
 
 ```text
-Sólo lectura/auditoría.
-Listar hardcodes vivos remanentes fuera de fórmulas, QAG y presentation labels.
-No implementar runtime.
-No crear contratos nuevos.
-No tocar fórmulas, QAG, pathology, evidence, presentation ni storage.
+No seguir picando micro-copy owner-facing.
+Elegir próximo frente sólo si aporta capacidad operativa real.
 ```
 
 ## Regla de avance
@@ -140,5 +140,6 @@ No tocar fórmulas, QAG, pathology, evidence, presentation ni storage.
 ```text
 No abrir features nuevas hasta listar deuda viva real.
 No volver a refactorizar por estética.
-Sólo intervenir si la deuda detectada afecta kernel estable, conocimiento enchufable o entrega owner-facing real.
+El saneamiento owner-facing copy se considera completo para esta fase.
+Sólo intervenir si el próximo slice agrega capacidad operativa real o cierra deuda técnica material.
 ```
