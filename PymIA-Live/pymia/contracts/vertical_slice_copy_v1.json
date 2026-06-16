@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "status": "ACTIVE",
+  "copy_by_key": {
+    "missing_data_rows_question": "Necesito al menos una fila de datos además de los encabezados.",
+    "missing_operational_columns_question": "Necesito columnas como fecha, producto, ventas, precio, costo, cantidad o sku.",
+    "blocked_summary": "Falta evidencia mínima para avanzar.",
+    "candidate_summary": "Planilla legible con señales operativas mínimas; resultado candidato, no diagnóstico final.",
+    "next_step_review_with_owner": "Revisar con el dueño antes de diagnosticar.",
+    "forbidden_inference_from_column_names": "No inferir diagnóstico desde nombres de columnas.",
+    "evidence_request_reason": "Faltan datos para continuar el contraste owner-facing.",
+    "next_question_fallback": "Confirmar con el dueño si las columnas representan el proceso real.",
+    "final_limit_warning": "No diagnostica sin evidencia suficiente ni confirmación del dueño."
+  }
+}

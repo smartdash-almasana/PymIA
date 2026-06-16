@@ -12,6 +12,7 @@ from pymia.contracts.presentation_labels_v1 import (
     label_for_pathology,
     load_operational_terms,
 )
+from pymia.contracts.vertical_slice_copy_v1 import vertical_slice_copy_for
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
 from pymia.smartpyme.question_alignment_gate import align_next_question
 
@@ -553,15 +554,27 @@ def build_report(
     questions = []
     if not has_rows:
         missing.append("filas_de_datos")
-        questions.append("Necesito al menos una fila de datos además de los encabezados.")
+        questions.append(vertical_slice_copy_for("missing_data_rows_question"))
     if not has_columns:
         missing.append("columnas_operativas")
-        questions.append("Necesito columnas como fecha, producto, ventas, precio, costo, cantidad o sku.")
+        questions.append(vertical_slice_copy_for("missing_operational_columns_question"))
     blocked = bool(missing)
-    summary = "Falta evidencia mínima para avanzar." if blocked else "Planilla legible con señales operativas mínimas; resultado candidato, no diagnóstico final."
+    summary = (
+        vertical_slice_copy_for("blocked_summary")
+        if blocked
+        else vertical_slice_copy_for("candidate_summary")
+    )
     report = build_owner_facing_report(
         operational_audit_result={"tenant_id": tenant_id, "status": "blocked" if blocked else "candidate", "evidence_used": ["excel_file_readable"], "missing_evidence": missing},
-        render_contract={"tenant_id": tenant_id, "summary": summary, "blocked_message": summary if blocked else "", "next_questions": questions, "next_steps": ["Revisar con el dueño antes de diagnosticar."], "references": [str(path)], "forbidden_inferences": ["No inferir diagnóstico desde nombres de columnas."]},
+        render_contract={
+            "tenant_id": tenant_id,
+            "summary": summary,
+            "blocked_message": summary if blocked else "",
+            "next_questions": questions,
+            "next_steps": [vertical_slice_copy_for("next_step_review_with_owner")],
+            "references": [str(path)],
+            "forbidden_inferences": [vertical_slice_copy_for("forbidden_inference_from_column_names")],
+        },
         delivery_package={"tenant_id": tenant_id, "intake_id": intake_id, "status": "BLOCKED" if blocked else "DELIVERED", "summary": summary, "output_refs": ["stdout"], "warnings": ["Slice local; no es canal productivo."]},
     ).to_dict()
     report["structured_evidence_summary"] = structured_summary
@@ -575,7 +588,7 @@ def build_report(
             investigation_id=investigation_record["investigation_id"],
             owner_answer_id=owner_answer_record["answer_id"] if owner_answer_record else None,
             requested_evidence=requested_evidence,
-            request_reason="Faltan datos para continuar el contraste owner-facing.",
+            request_reason=vertical_slice_copy_for("evidence_request_reason"),
             storage_dir=actual_storage_dir,
         )
     evidence_record = register_evidence_record(
@@ -767,12 +780,12 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         for question in report["next_questions"]:
             lines.append(f"- {question}")
     else:
-        lines.append("- Confirmar con el dueño si las columnas representan el proceso real.")
+        lines.append(f"- {vertical_slice_copy_for('next_question_fallback')}")
     lines.append("")
     lines.append("## Límites")
     for warning in report["limit_warnings"]:
         lines.append(f"- {warning}")
-    lines.append("- No diagnostica sin evidencia suficiente ni confirmación del dueño.")
+    lines.append(f"- {vertical_slice_copy_for('final_limit_warning')}")
     return "\n".join(lines) + "\n"
 
 
