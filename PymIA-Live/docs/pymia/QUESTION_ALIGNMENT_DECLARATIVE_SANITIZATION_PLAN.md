@@ -2,7 +2,13 @@
 
 ## Estado
 
-`PLAN_DOCUMENTAL`
+`CLOSED — IMPLEMENTADO`
+
+Cierre documental registrado en:
+
+```text
+PymIA-Live/docs/pymia/QUESTION_ALIGNMENT_DECLARATIVE_SANITIZATION_CLOSED.md
+```
 
 ## Fecha
 
