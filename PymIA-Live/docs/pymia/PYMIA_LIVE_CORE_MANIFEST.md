@@ -131,71 +131,64 @@ Lo histórico conserva verdad, pero no autoridad operativa vigente.
 
 ---
 
-## 7. Gap vivo principal
+## 7. Estado de alineación de preguntas
 
 ```text
-El mensaje del dueño entra al reporte y a la traza, pero todavía no gobierna la priorización de la próxima pregunta.
+QuestionAlignmentGate = EXISTS_CONTRACT
+Estado = CLOSED
+Riesgo residual = LOW
 ```
 
-Forma observada:
+El gap histórico de priorización de la próxima pregunta ya no debe presentarse como mejora futura abierta desde este manifiesto.
+
+Evidencia documental:
 
 ```text
-Dueño declara: caja / liquidez.
-Reconciliación sugiere: stock / reposición.
-Salida actual: pregunta automática puede seguir el primer faltante técnico disponible.
+docs/pymia/QUESTION_ALIGNMENT_GATE_SPEC.md
+docs/pymia/QUESTION_ALIGNMENT_DECLARATIVE_SANITIZATION_CLOSED.md
 ```
 
-Mitigación vigente:
+Evidencia técnica:
 
 ```text
-Regla transitoria de reconducción humana en runbook post-LC.
+pymia/contracts/question_alignment_v1.json
+pymia/contracts/question_alignment_v1.py
+pymia/smartpyme/question_alignment_gate.py
+pymia/smartpyme/question_resolution.py
+pymia/application/vertical_pipeline.py
+tests/contracts/test_question_alignment_v1.py
+tests/smartpyme/test_question_alignment_gate.py
+```
+
+Prohibición:
+
+```text
+No reabrir QuestionAlignmentGate sin nuevo hallazgo verificable.
 ```
 
 ---
 
-## 8. Próxima mejora inteligente
-
-Nombre operativo:
+## 8. Gaps vivos no bloqueantes
 
 ```text
-QuestionAlignmentGate
+FORMAL_COMPANY_FILE_PENDING
+OWNER_OPERATOR_VIEW_SPLIT_FUTURE
+CASE_REPLAY_FROM_JSONL_FUTURE
 ```
 
-Propósito:
+Lectura operacional:
 
 ```text
-Alinear la próxima pregunta con el eje declarado por el dueño y la evidencia detectada.
+La secuencia empresa/narrativa/datos/traza está clara para piloto asistido.
+No requiere implementación inmediata.
 ```
 
-Contrato conceptual mínimo:
+Checkpoints relacionados:
 
 ```text
-OwnerDeclaredAxis
-EvidenceDetectedAxis
-CandidateQuestionAxis
-QuestionAlignmentGateResult
-```
-
-Resultados esperados:
-
-```text
-ALIGNED      → emitir pregunta automática
-MISALIGNED   → pedir confirmación/reconducción
-UNKNOWN      → pregunta neutra de aclaración
-```
-
-Ubicación probable:
-
-```text
-después de catalog_reconciliation
-antes de _build_owner_question
-```
-
-Advertencia metodológica:
-
-```text
-QuestionAlignmentGate no puede implementarse desde este manifiesto.
-Antes de escribir código requiere contrato propio, test de aceptación y cierre metodológico.
+docs/pymia/PRESENTATION_LABELS_V1_COVERAGE_TASKSPEC.md
+docs/pymia/CASE_TRACE_CONTINUITY_AUDIT.md
+docs/pymia/COMPANY_CASE_FILE_SEQUENCE_AUDIT.md
 ```
 
 ---
