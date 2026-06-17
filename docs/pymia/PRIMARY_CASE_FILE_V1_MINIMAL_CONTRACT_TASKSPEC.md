@@ -3,9 +3,9 @@
 ## Estado
 
 ```text
-DRAFT_TASKSPEC
-DOCUMENTATION_ONLY
-NO_CODE_IN_THIS_COMMIT
+IMPLEMENTED
+DOCUMENTATION_CLOSEOUT
+NO_CODE_IN_THIS_CLOSEOUT
 NO_RUNTIME_AUTHORIZATION
 NO_PYMIA_LIVE_CHANGE
 NO_VERTICAL_SLICE_CHANGE
@@ -233,6 +233,15 @@ no se toca evidence extraction.
 no se toca owner questions.
 no se implementan piezas epistémicas posteriores.
 docs/contratos/primary-case-file-v1.md documenta contrato y límites.
+```
+
+## Cierre documental
+
+```text
+PRIMARY_CASE_FILE_V1_MINIMAL_CONTRACT_TASKSPEC: IMPLEMENTED
+Auditoría externa post-commit ff70e34: PASS
+Riesgo residual: LOW
+Próximo paso auditado: CLOSE
 ```
 
 ## Criterio PASS de este TaskSpec
