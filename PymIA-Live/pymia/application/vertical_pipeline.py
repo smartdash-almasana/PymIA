@@ -217,6 +217,74 @@ def _build_owner_report_base(
     return {"report": report, "blocked": blocked}
 
 
+def _register_pipeline_outputs(
+    path: Path,
+    report: dict,
+    *,
+    tenant_id: str,
+    intake_id: str,
+    message: str,
+    anamnesis_record: dict,
+    investigation_record: dict,
+    owner_answer_record: dict | None,
+    structured_summary: dict,
+    blocked: bool,
+    actual_storage_dir: Path,
+) -> dict:
+    """Registra evidence_request, evidence y pipeline_run, y los asigna al report.
+
+    Encapsula:
+    - _requested_evidence_from_report()
+    - register_evidence_request_record()
+    - register_evidence_record()
+    - register_pipeline_run_record()
+    - asignaciones de los seis records al report
+
+    Returns:
+        El report actualizado (mutado in-place).
+    """
+    requested_evidence = _requested_evidence_from_report(report)
+    evidence_request_record = None
+    if requested_evidence:
+        evidence_request_record = register_evidence_request_record(
+            tenant_id=tenant_id,
+            intake_id=intake_id,
+            anamnesis_id=anamnesis_record["anamnesis_id"],
+            investigation_id=investigation_record["investigation_id"],
+            owner_answer_id=owner_answer_record["answer_id"] if owner_answer_record else None,
+            requested_evidence=requested_evidence,
+            request_reason=vertical_slice_copy_for("evidence_request_reason"),
+            storage_dir=actual_storage_dir,
+        )
+    evidence_record = register_evidence_record(
+        path,
+        tenant_id,
+        intake_id,
+        actual_storage_dir,
+        request_id=evidence_request_record["request_id"] if evidence_request_record else None,
+    )
+    pipeline_run_record = register_pipeline_run_record(
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        message=message,
+        anamnesis_record=anamnesis_record,
+        investigation_record=investigation_record,
+        owner_answer_record=owner_answer_record,
+        evidence_request_record=evidence_request_record,
+        evidence_record=evidence_record,
+        structured_summary=structured_summary,
+        blocked=blocked,
+        storage_dir=actual_storage_dir,
+    )
+    report["anamnesis_record"] = anamnesis_record
+    report["investigation_record"] = investigation_record
+    report["owner_answer_record"] = owner_answer_record
+    report["evidence_request_record"] = evidence_request_record
+    report["evidence_record"] = evidence_record
+    report["pipeline_run_record"] = pipeline_run_record
+    return report
+
+
 def _register_initial_case_records(
     message: str,
     tenant_id: str,
@@ -296,45 +364,19 @@ def build_report(
     report = owner_report_base["report"]
     blocked = owner_report_base["blocked"]
     structured_summary = report["structured_evidence_summary"]
-    requested_evidence = _requested_evidence_from_report(report)
-    evidence_request_record = None
-    if requested_evidence:
-        evidence_request_record = register_evidence_request_record(
-            tenant_id=tenant_id,
-            intake_id=intake_id,
-            anamnesis_id=anamnesis_record["anamnesis_id"],
-            investigation_id=investigation_record["investigation_id"],
-            owner_answer_id=owner_answer_record["answer_id"] if owner_answer_record else None,
-            requested_evidence=requested_evidence,
-            request_reason=vertical_slice_copy_for("evidence_request_reason"),
-            storage_dir=actual_storage_dir,
-        )
-    evidence_record = register_evidence_record(
+    report = _register_pipeline_outputs(
         path,
-        tenant_id,
-        intake_id,
-        actual_storage_dir,
-        request_id=evidence_request_record["request_id"] if evidence_request_record else None,
-    )
-    pipeline_run_record = register_pipeline_run_record(
+        report,
         tenant_id=tenant_id,
         intake_id=intake_id,
         message=message,
         anamnesis_record=anamnesis_record,
         investigation_record=investigation_record,
         owner_answer_record=owner_answer_record,
-        evidence_request_record=evidence_request_record,
-        evidence_record=evidence_record,
         structured_summary=structured_summary,
         blocked=blocked,
-        storage_dir=actual_storage_dir,
+        actual_storage_dir=actual_storage_dir,
     )
-    report["anamnesis_record"] = anamnesis_record
-    report["investigation_record"] = investigation_record
-    report["owner_answer_record"] = owner_answer_record
-    report["evidence_request_record"] = evidence_request_record
-    report["evidence_record"] = evidence_record
-    report["pipeline_run_record"] = pipeline_run_record
     report["diagnostic_pipeline_result"] = _diagnostic_pipeline_result_for_report(
         path=path,
         tenant_id=tenant_id,
