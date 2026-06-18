@@ -89,6 +89,7 @@ def _seed_full_trace(
             "received_at": "2026-06-01T10:04:00",
             "request_id": request_id,
             "evidence_type": "xlsx_upload",
+            "content_hash": "content_hash_001",
             "source_kind": "uploaded_file",
             "source_ref": str(root / "caso.xlsx"),
             "status": "REGISTERED",
@@ -204,9 +205,11 @@ class TestSnapshotReady:
         ref = snapshot.evidence_refs[0]
         assert "evidence_id" in ref
         assert "evidence_type" in ref
+        assert "content_hash" in ref
         assert "source_kind" in ref
         assert "status" in ref
         assert "trace_ref" in ref
+        assert ref["content_hash"] == "content_hash_001"
         assert ref["trace_ref"].startswith("evidences.jsonl:")
 
     def test_includes_run_refs_with_run_id_and_output_hash(self, tmp_path: Path) -> None:
@@ -222,7 +225,11 @@ class TestSnapshotReady:
         ref = snapshot.run_refs[0]
         assert "run_id" in ref
         assert "pipeline_name" in ref
+        assert "output_hash" in ref
+        assert "output_artifact_id" in ref
         assert "status" in ref
+        assert ref["output_hash"] == "abc123"
+        assert ref["output_artifact_id"] == "owner_facing_markdown"
         assert ref["trace_ref"].startswith("pipeline_runs.jsonl:")
 
     def test_extracts_available_variables_only_when_present(self, tmp_path: Path) -> None:
@@ -317,7 +324,7 @@ class TestErrors:
 
 
 class TestCoverage:
-    def test_keeps_heuristic_ratio_at_or_below_20_percent(self, tmp_path: Path) -> None:
+    def test_keeps_heuristic_ratio_at_zero(self, tmp_path: Path) -> None:
         storage_dir = tmp_path / "storage"
         _seed_full_trace(storage_dir)
 
@@ -326,7 +333,7 @@ class TestCoverage:
             tenant_id="tenant_demo",
             intake_id="intake_demo",
         )
-        assert snapshot.coverage["heuristic_ratio"] <= 0.20
+        assert snapshot.coverage["heuristic_ratio"] == 0.0
         assert snapshot.coverage["coverage_from_replay"] > 0.0
         assert snapshot.coverage["total_fields"] > 0
         assert snapshot.coverage["inferred_or_heuristic"] == 0

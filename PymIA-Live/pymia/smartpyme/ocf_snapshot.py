@@ -98,6 +98,7 @@ def _build_evidence_refs(evidence_records: list[dict[str, Any]]) -> list[dict[st
         refs.append({
             "evidence_id": record.get("evidence_id", ""),
             "evidence_type": record.get("evidence_type", ""),
+            "content_hash": record.get("content_hash"),
             "source_kind": record.get("source_kind", ""),
             "status": record.get("status", ""),
             "trace_ref": f"evidences.jsonl:{record.get('evidence_id', 'unknown')}",
@@ -111,6 +112,8 @@ def _build_run_refs(pipeline_run_records: list[dict[str, Any]]) -> list[dict[str
         refs.append({
             "run_id": record.get("run_id", ""),
             "pipeline_name": record.get("pipeline_name", ""),
+            "output_hash": record.get("output_hash"),
+            "output_artifact_id": record.get("output_artifact_id"),
             "status": record.get("status", ""),
             "trace_ref": f"pipeline_runs.jsonl:{record.get('run_id', 'unknown')}",
         })
