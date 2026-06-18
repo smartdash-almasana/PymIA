@@ -146,6 +146,77 @@ def _build_structured_evidence_summary(
     )
 
 
+def _build_owner_report_base(
+    path: Path,
+    profile: dict,
+    tenant_id: str,
+    intake_id: str,
+    formula_ids: list[str] | None,
+    storage_dir: Path | None,
+) -> dict:
+    """Construye el reporte owner-facing base y determina si el caso está bloqueado.
+
+    Encapsula:
+    - evaluación de filas/columnas
+    - construcción de missing y questions
+    - construcción de summary y blocked
+    - build_owner_facing_report().to_dict()
+    - asignación de structured_evidence_summary al report
+
+    Returns:
+        {"report": dict, "blocked": bool}
+    """
+    has_rows = profile["rows"] > 1 and profile["columns"] > 0
+    has_columns = has_operational_columns(profile["headers"])
+    structured_summary = _build_structured_evidence_summary(
+        path,
+        tenant_id,
+        intake_id,
+        formula_ids,
+    )
+    missing = []
+    questions = []
+    if not has_rows:
+        missing.append("filas_de_datos")
+        questions.append(vertical_slice_copy_for("missing_data_rows_question"))
+    if not has_columns:
+        missing.append("columnas_operativas")
+        questions.append(vertical_slice_copy_for("missing_operational_columns_question"))
+    blocked = bool(missing)
+    summary = (
+        vertical_slice_copy_for("blocked_summary")
+        if blocked
+        else vertical_slice_copy_for("candidate_summary")
+    )
+    report = build_owner_facing_report(
+        operational_audit_result={
+            "tenant_id": tenant_id,
+            "status": "blocked" if blocked else "candidate",
+            "evidence_used": ["excel_file_readable"],
+            "missing_evidence": missing,
+        },
+        render_contract={
+            "tenant_id": tenant_id,
+            "summary": summary,
+            "blocked_message": summary if blocked else "",
+            "next_questions": questions,
+            "next_steps": [vertical_slice_copy_for("next_step_review_with_owner")],
+            "references": [str(path)],
+            "forbidden_inferences": [vertical_slice_copy_for("forbidden_inference_from_column_names")],
+        },
+        delivery_package={
+            "tenant_id": tenant_id,
+            "intake_id": intake_id,
+            "status": "BLOCKED" if blocked else "DELIVERED",
+            "summary": summary,
+            "output_refs": ["stdout"],
+            "warnings": ["Slice local; no es canal productivo."],
+        },
+    ).to_dict()
+    report["structured_evidence_summary"] = structured_summary
+    return {"report": report, "blocked": blocked}
+
+
 def _register_initial_case_records(
     message: str,
     tenant_id: str,
@@ -201,8 +272,6 @@ def build_report(
     owner_answer: str | None = None,
     owner_answer_question_ref: str | None = None,
 ) -> dict:
-    has_rows = profile["rows"] > 1 and profile["columns"] > 0
-    has_columns = has_operational_columns(profile["headers"])
     actual_storage_dir = storage_dir or Path(".tmp/vertical_slice_storage")
     initial_records = _register_initial_case_records(
         message,
@@ -216,40 +285,17 @@ def build_report(
     anamnesis_record = initial_records["anamnesis_record"]
     investigation_record = initial_records["investigation_record"]
     owner_answer_record = initial_records["owner_answer_record"]
-    structured_summary = _build_structured_evidence_summary(
+    owner_report_base = _build_owner_report_base(
         path,
+        profile,
         tenant_id,
         intake_id,
         formula_ids,
+        storage_dir,
     )
-    missing = []
-    questions = []
-    if not has_rows:
-        missing.append("filas_de_datos")
-        questions.append(vertical_slice_copy_for("missing_data_rows_question"))
-    if not has_columns:
-        missing.append("columnas_operativas")
-        questions.append(vertical_slice_copy_for("missing_operational_columns_question"))
-    blocked = bool(missing)
-    summary = (
-        vertical_slice_copy_for("blocked_summary")
-        if blocked
-        else vertical_slice_copy_for("candidate_summary")
-    )
-    report = build_owner_facing_report(
-        operational_audit_result={"tenant_id": tenant_id, "status": "blocked" if blocked else "candidate", "evidence_used": ["excel_file_readable"], "missing_evidence": missing},
-        render_contract={
-            "tenant_id": tenant_id,
-            "summary": summary,
-            "blocked_message": summary if blocked else "",
-            "next_questions": questions,
-            "next_steps": [vertical_slice_copy_for("next_step_review_with_owner")],
-            "references": [str(path)],
-            "forbidden_inferences": [vertical_slice_copy_for("forbidden_inference_from_column_names")],
-        },
-        delivery_package={"tenant_id": tenant_id, "intake_id": intake_id, "status": "BLOCKED" if blocked else "DELIVERED", "summary": summary, "output_refs": ["stdout"], "warnings": ["Slice local; no es canal productivo."]},
-    ).to_dict()
-    report["structured_evidence_summary"] = structured_summary
+    report = owner_report_base["report"]
+    blocked = owner_report_base["blocked"]
+    structured_summary = report["structured_evidence_summary"]
     requested_evidence = _requested_evidence_from_report(report)
     evidence_request_record = None
     if requested_evidence:
