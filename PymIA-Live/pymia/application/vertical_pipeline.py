@@ -364,6 +364,41 @@ def _register_initial_case_records(
     }
 
 
+def _build_owner_resolution_context(
+    report: dict,
+    message: str,
+    profile: dict,
+) -> dict:
+    """Encapsula el bloque final de salida semántica para el dueño.
+
+    Encapsula:
+    - _resolve_owner_question_and_reference()
+    - build_owner_simple_view()
+    - align_next_question()
+    - asignaciones al report
+
+    Returns:
+        El report actualizado (mutado in-place).
+    """
+    owner_question, tech_reference = _resolve_owner_question_and_reference(report, message)
+    report["owner_question"] = owner_question
+    report["owner_question_technical_reference"] = tech_reference
+    report["owner_simple"] = build_owner_simple_view(
+        report=report,
+        message=message,
+        profile=profile,
+        owner_question=owner_question,
+    )
+    request_reconciliation = report.get("structured_evidence_summary", {}).get("catalog_reconciliation") or []
+    request_question_candidates = [e for e in request_reconciliation if e.get("next_audit_questions")]
+    report["evidence_request_alignment"] = (
+        align_next_question(message, request_question_candidates)
+        if request_question_candidates
+        else {"status": "ALIGNED"}
+    )
+    return report
+
+
 def build_report(
     path: Path,
     message: str,
@@ -422,22 +457,7 @@ def build_report(
         structured_summary=structured_summary,
     )
     report = diagnostic_context["report"]
-    owner_question, tech_reference = _resolve_owner_question_and_reference(report, message)
-    report["owner_question"] = owner_question
-    report["owner_question_technical_reference"] = tech_reference
-    report["owner_simple"] = build_owner_simple_view(
-        report=report,
-        message=message,
-        profile=profile,
-        owner_question=owner_question,
-    )
-    request_reconciliation = report.get("structured_evidence_summary", {}).get("catalog_reconciliation") or []
-    request_question_candidates = [e for e in request_reconciliation if e.get("next_audit_questions")]
-    report["evidence_request_alignment"] = (
-        align_next_question(message, request_question_candidates)
-        if request_question_candidates
-        else {"status": "ALIGNED"}
-    )
+    report = _build_owner_resolution_context(report, message, profile)
     return report
 
 
