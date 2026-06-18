@@ -681,6 +681,43 @@ def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
     assert "Áreas críticas: margen" in text
 
 
+def test_vertical_slice_flow_preserves_taxonomic_intake_into_anamnesis_and_replay(tmp_path: Path):
+    excel = tmp_path / "caso.xlsx"
+    storage_dir = tmp_path / "storage"
+    _write_excel(excel, [["fecha", "producto", "ventas"], ["2026-06-01", "A", 100]])
+
+    report = vertical_slice.build_report(
+        excel,
+        "quiero entender si gano",
+        vertical_slice.inspect_excel(excel),
+        tenant_id="tenant_demo_001",
+        intake_id="intake_demo_001",
+        storage_dir=storage_dir,
+        business_taxonomy={
+            "empresa_tipo": "comercio",
+            "industria": "retail",
+            "modelo_comercial": "b2c",
+            "canales_venta": ["local"],
+            "areas_criticas": ["margen"],
+        },
+    )
+
+    from pymia.smartpyme.case_replay import replay_case_from_jsonl
+
+    replay = replay_case_from_jsonl(
+        storage_dir=storage_dir,
+        tenant_id="tenant_demo_001",
+        intake_id="intake_demo_001",
+    )
+
+    assert report["anamnesis_record"]["business_taxonomy"]["empresa_tipo"] == "comercio"
+    assert replay["taxonomic_intake"]["empresa_tipo"] == "comercio"
+    assert replay["taxonomic_intake"]["industria"] == "retail"
+    assert replay["taxonomic_intake"]["modelo_comercial"] == "b2c"
+    assert replay["taxonomic_intake"]["canales_venta"] == ["local"]
+    assert replay["taxonomic_intake"]["areas_criticas"] == ["margen"]
+
+
 def test_vertical_slice_cli_rejects_missing_excel(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         vertical_slice.main([

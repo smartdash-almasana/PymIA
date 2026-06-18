@@ -42,6 +42,7 @@ def _seed_basic_case(
     requested_evidence: list[str] | None = None,
     question_ref: str | None = None,
     raw_owner_answer: str | None = None,
+    business_taxonomy: dict | None = None,
 ) -> dict:
     evidence_path = tmp_path / f"{tenant_id}_{intake_id}.xlsx"
     if not evidence_path.exists():
@@ -52,6 +53,7 @@ def _seed_basic_case(
         tenant_id,
         intake_id,
         storage_dir,
+        business_taxonomy=business_taxonomy,
     )
     investigation_record = register_investigation_record(
         "Necesito entender mi flujo de caja.",
@@ -518,3 +520,68 @@ def test_compose_ocf_snapshot_returns_dict(tmp_path: Path) -> None:
     assert snapshot_dict["intake_id"] == intake_id
     assert "coverage" in snapshot_dict
     assert isinstance(snapshot_dict["coverage"], dict)
+
+
+def test_snapshot_includes_taxonomic_intake_as_explicit_field(tmp_path: Path) -> None:
+    storage_dir = tmp_path / "storage"
+    _seed_basic_case(
+        storage_dir=storage_dir,
+        tmp_path=tmp_path,
+        business_taxonomy={
+            "empresa_tipo": "comercio",
+            "industria": "retail",
+            "modelo_comercial": "b2c",
+            "canales_venta": ["local"],
+            "maneja_stock": True,
+            "produce": False,
+            "presta_servicios": False,
+            "areas_criticas": ["margen"],
+            "dolores_declarados": ["no se si gano"],
+            "documentos_disponibles": ["ventas.xlsx"],
+        },
+    )
+
+    snapshot = build_snapshot_from_replay(
+        storage_dir=storage_dir,
+        tenant_id="tenant_test",
+        intake_id="intake_test",
+    )
+
+    assert snapshot.taxonomic_intake is not None
+    assert snapshot.taxonomic_intake["empresa_tipo"] == "comercio"
+    assert snapshot.taxonomic_intake["dolores_declarados"] == ["no se si gano"]
+
+
+def test_snapshot_marks_taxonomic_intake_as_populated_from_replay(tmp_path: Path) -> None:
+    storage_dir = tmp_path / "storage"
+    _seed_basic_case(
+        storage_dir=storage_dir,
+        tmp_path=tmp_path,
+        business_taxonomy={
+            "empresa_tipo": "comercio",
+            "dolores_declarados": ["no se si gano"],
+        },
+    )
+
+    snapshot = build_snapshot_from_replay(
+        storage_dir=storage_dir,
+        tenant_id="tenant_test",
+        intake_id="intake_test",
+    )
+
+    assert snapshot.coverage["field_provenance"]["taxonomic_intake"] == "populated_from_replay"
+
+
+def test_snapshot_keeps_taxonomic_intake_empty_with_warning_when_missing(tmp_path: Path) -> None:
+    storage_dir = tmp_path / "storage"
+    _seed_basic_case(storage_dir=storage_dir, tmp_path=tmp_path)
+
+    snapshot = build_snapshot_from_replay(
+        storage_dir=storage_dir,
+        tenant_id="tenant_test",
+        intake_id="intake_test",
+    )
+
+    assert snapshot.taxonomic_intake is None
+    assert snapshot.coverage["field_provenance"]["taxonomic_intake"] == "empty_with_warning"
+    assert any("taxonomic_intake" in warning for warning in snapshot.warnings)

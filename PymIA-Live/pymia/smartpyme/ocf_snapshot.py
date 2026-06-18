@@ -23,6 +23,7 @@ class OrganizationalCaseFileSnapshot:
     tenant_id: str
     intake_id: str
     case_status: SnapshotStatus
+    taxonomic_intake: dict[str, Any] | None = None
     evidence_refs: list[dict[str, Any]] = field(default_factory=list)
     run_refs: list[dict[str, Any]] = field(default_factory=list)
     owner_answer_refs: list[dict[str, Any]] = field(default_factory=list)
@@ -87,6 +88,9 @@ def build_snapshot_from_replay(
         )
 
     warnings = list(replay.get("warnings") or [])
+    taxonomic_intake = replay.get("taxonomic_intake")
+    if taxonomic_intake is None and replay.get("anamnesis_record") is not None:
+        warnings.append("taxonomic_intake missing from replay")
     available_variables_has_derived_entries = False
     missing_variables_is_derived = False
     open_unknowns_has_heuristic_entries = False
@@ -385,12 +389,13 @@ def build_snapshot_from_replay(
     }
 
     # Coverage metrics calculation
-    total_fields = 14
+    total_fields = 15
     field_provenance = {
         "case_id": "derived_from_replay" if intake_id else "empty_with_warning",
         "tenant_id": "populated_from_replay" if tenant_id else "empty_with_warning",
         "intake_id": "populated_from_replay" if intake_id else "empty_with_warning",
         "case_status": "populated_from_replay" if case_status else "empty_with_warning",
+        "taxonomic_intake": "populated_from_replay" if taxonomic_intake is not None else "empty_with_warning",
         "evidence_refs": "populated_from_replay" if evidence_refs else "empty_with_warning",
         "run_refs": "populated_from_replay" if run_refs else "empty_with_warning",
         "owner_answer_refs": "populated_from_replay" if owner_answer_refs else "empty_with_warning",
@@ -437,6 +442,7 @@ def build_snapshot_from_replay(
         tenant_id=tenant_id,
         intake_id=intake_id,
         case_status=case_status,
+        taxonomic_intake=taxonomic_intake,
         evidence_refs=evidence_refs,
         run_refs=run_refs,
         owner_answer_refs=owner_answer_refs,

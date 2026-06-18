@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pymia.smartpyme.anamnesis import normalize_business_taxonomy
 from pymia.smartpyme.storage import _safe_join
 
 
@@ -15,6 +16,60 @@ _JSONL_SPECS = {
     "evidences": ("evidences.jsonl", "received_at", "evidence_id"),
     "pipeline_runs": ("pipeline_runs.jsonl", "started_at", "run_id"),
 }
+
+
+def _minimal_taxonomic_signal_present(taxonomic_intake: dict[str, Any]) -> bool:
+    has_declared_pains = bool(taxonomic_intake.get("dolores_declarados"))
+    has_business_anchor = any(
+        [
+            taxonomic_intake.get("empresa_tipo") != "desconocido",
+            taxonomic_intake.get("industria") != "desconocido",
+            taxonomic_intake.get("modelo_comercial") != "desconocido",
+            bool(taxonomic_intake.get("areas_criticas")),
+        ]
+    )
+    return has_declared_pains and has_business_anchor
+
+
+def _has_any_taxonomic_content(taxonomic_intake: dict[str, Any]) -> bool:
+    return any(
+        [
+            taxonomic_intake.get("empresa_tipo") != "desconocido",
+            taxonomic_intake.get("industria") != "desconocido",
+            taxonomic_intake.get("modelo_comercial") != "desconocido",
+            bool(taxonomic_intake.get("canales_venta")),
+            bool(taxonomic_intake.get("areas_criticas")),
+            taxonomic_intake.get("maneja_stock") is not None,
+            taxonomic_intake.get("produce") is not None,
+            taxonomic_intake.get("presta_servicios") is not None,
+            bool(taxonomic_intake.get("dolores_declarados")),
+            bool(taxonomic_intake.get("documentos_disponibles")),
+        ]
+    )
+
+
+def _extract_taxonomic_intake(
+    anamnesis_record: dict[str, Any] | None,
+    warnings: list[str],
+) -> dict[str, Any] | None:
+    if not anamnesis_record:
+        return None
+    raw_taxonomy = anamnesis_record.get("business_taxonomy")
+    if not raw_taxonomy:
+        warnings.append("taxonomic_intake missing in anamnesis_record")
+        return None
+
+    normalized = normalize_business_taxonomy(
+        raw_taxonomy,
+        declared_pains=anamnesis_record.get("declared_pains"),
+        declared_documents=anamnesis_record.get("declared_documents"),
+    ).to_dict()
+    if not _has_any_taxonomic_content(normalized):
+        warnings.append("taxonomic_intake missing or empty in anamnesis_record")
+        return None
+    if not _minimal_taxonomic_signal_present(normalized):
+        warnings.append("taxonomic_intake present but poor: missing declared pains or business anchor")
+    return normalized
 
 
 def _sort_records(records: list[dict[str, Any]], *, timestamp_key: str, id_key: str) -> list[dict[str, Any]]:
@@ -140,6 +195,7 @@ def replay_case_from_jsonl(
             "status": "NOT_FOUND",
             "anamnesis_record": None,
             "investigation_record": None,
+            "taxonomic_intake": None,
             "owner_answer_records": [],
             "evidence_request_records": [],
             "evidence_records": [],
@@ -225,6 +281,7 @@ def replay_case_from_jsonl(
             "status": "NOT_FOUND",
             "anamnesis_record": None,
             "investigation_record": None,
+            "taxonomic_intake": None,
             "owner_answer_records": [],
             "evidence_request_records": [],
             "evidence_records": [],
@@ -245,6 +302,7 @@ def replay_case_from_jsonl(
         evidence_records=evidence_records,
         pipeline_run_records=pipeline_run_records,
     )
+    taxonomic_intake = _extract_taxonomic_intake(anamnesis_record, warnings)
     required_ready = (
         anamnesis_record is not None
         and investigation_record is not None
@@ -258,6 +316,7 @@ def replay_case_from_jsonl(
         "status": status,
         "anamnesis_record": anamnesis_record,
         "investigation_record": investigation_record,
+        "taxonomic_intake": taxonomic_intake,
         "owner_answer_records": owner_answer_records,
         "evidence_request_records": evidence_request_records,
         "evidence_records": evidence_records,

@@ -53,6 +53,7 @@ def _seed_case_trace(
     with_owner_answer: bool = True,
     with_evidence_request: bool = True,
     with_pipeline_run: bool = True,
+    business_taxonomy: dict | None = None,
 ) -> dict:
     evidence_path = tmp_path / f"{tenant_id}_{intake_id}.xlsx"
     evidence_path.write_bytes(b"fake-xlsx-content")
@@ -62,6 +63,7 @@ def _seed_case_trace(
         tenant_id,
         intake_id,
         storage_dir,
+        business_taxonomy=business_taxonomy,
     )
     investigation_record = register_investigation_record(
         "Necesito entender si tengo problema de caja.",
@@ -349,3 +351,87 @@ def test_replay_tenant_id_traversal_rejected(tmp_path: Path) -> None:
             tenant_id="../tenant_demo",
             intake_id="intake_demo",
         )
+
+
+def test_replay_returns_taxonomic_intake_from_anamnesis(tmp_path: Path) -> None:
+    storage_dir = tmp_path / "storage"
+    _seed_case_trace(
+        storage_dir=storage_dir,
+        tmp_path=tmp_path,
+        business_taxonomy={
+            "empresa_tipo": "comercio",
+            "industria": "retail",
+            "modelo_comercial": "b2c",
+            "canales_venta": ["local"],
+            "maneja_stock": True,
+            "produce": False,
+            "presta_servicios": False,
+            "areas_criticas": ["margen"],
+            "dolores_declarados": ["no se si gano"],
+            "documentos_disponibles": ["ventas.xlsx"],
+        },
+    )
+
+    replay = replay_case_from_jsonl(
+        storage_dir=storage_dir,
+        tenant_id="tenant_demo",
+        intake_id="intake_demo",
+    )
+
+    assert replay["taxonomic_intake"]["empresa_tipo"] == "comercio"
+    assert replay["taxonomic_intake"]["dolores_declarados"] == ["no se si gano"]
+    assert replay["taxonomic_intake"]["documentos_disponibles"] == ["ventas.xlsx"]
+
+
+def test_replay_does_not_mix_taxonomic_intake_between_tenants(tmp_path: Path) -> None:
+    storage_dir = tmp_path / "storage"
+    _seed_case_trace(
+        storage_dir=storage_dir,
+        tmp_path=tmp_path,
+        tenant_id="tenant_a",
+        intake_id="case_1",
+        business_taxonomy={"empresa_tipo": "comercio", "dolores_declarados": ["margen"]},
+    )
+    _seed_case_trace(
+        storage_dir=storage_dir,
+        tmp_path=tmp_path,
+        tenant_id="tenant_b",
+        intake_id="case_1",
+        business_taxonomy={"empresa_tipo": "servicios", "dolores_declarados": ["tiempo"]},
+    )
+
+    replay = replay_case_from_jsonl(
+        storage_dir=storage_dir,
+        tenant_id="tenant_a",
+        intake_id="case_1",
+    )
+
+    assert replay["taxonomic_intake"]["empresa_tipo"] == "comercio"
+    assert replay["taxonomic_intake"]["dolores_declarados"] == ["margen"]
+
+
+def test_replay_does_not_mix_taxonomic_intake_between_intakes(tmp_path: Path) -> None:
+    storage_dir = tmp_path / "storage"
+    _seed_case_trace(
+        storage_dir=storage_dir,
+        tmp_path=tmp_path,
+        tenant_id="tenant_demo",
+        intake_id="case_1",
+        business_taxonomy={"empresa_tipo": "comercio", "dolores_declarados": ["margen"]},
+    )
+    _seed_case_trace(
+        storage_dir=storage_dir,
+        tmp_path=tmp_path,
+        tenant_id="tenant_demo",
+        intake_id="case_2",
+        business_taxonomy={"empresa_tipo": "servicios", "dolores_declarados": ["tiempo"]},
+    )
+
+    replay = replay_case_from_jsonl(
+        storage_dir=storage_dir,
+        tenant_id="tenant_demo",
+        intake_id="case_1",
+    )
+
+    assert replay["taxonomic_intake"]["empresa_tipo"] == "comercio"
+    assert replay["taxonomic_intake"]["dolores_declarados"] == ["margen"]
