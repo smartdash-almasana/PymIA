@@ -131,6 +131,21 @@ def build_structured_summary(
         raise exc
 
 
+def _build_structured_evidence_summary(
+    path: Path,
+    tenant_id: str,
+    intake_id: str,
+    formula_ids: list[str] | None,
+) -> dict:
+    """Encapsula la construcción de structured_summary como step discreto de build_report."""
+    return build_structured_summary(
+        path,
+        tenant_id,
+        intake_id=intake_id,
+        formula_ids=formula_ids,
+    )
+
+
 def _register_initial_case_records(
     message: str,
     tenant_id: str,
@@ -201,11 +216,11 @@ def build_report(
     anamnesis_record = initial_records["anamnesis_record"]
     investigation_record = initial_records["investigation_record"]
     owner_answer_record = initial_records["owner_answer_record"]
-    structured_summary = build_structured_summary(
+    structured_summary = _build_structured_evidence_summary(
         path,
         tenant_id,
-        intake_id=intake_id,
-        formula_ids=formula_ids,
+        intake_id,
+        formula_ids,
     )
     missing = []
     questions = []
