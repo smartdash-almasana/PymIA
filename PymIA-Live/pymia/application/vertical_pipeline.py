@@ -131,22 +131,16 @@ def build_structured_summary(
         raise exc
 
 
-def build_report(
-    path: Path,
+def _register_initial_case_records(
     message: str,
-    profile: dict,
+    tenant_id: str,
+    intake_id: str,
+    actual_storage_dir: Path,
     *,
-    tenant_id: str = "tenant_cli_local",
-    intake_id: str = "intake_cli_local",
-    formula_ids: list[str] | None = None,
-    storage_dir: Path | None = None,
     business_taxonomy: dict | None = None,
     owner_answer: str | None = None,
     owner_answer_question_ref: str | None = None,
 ) -> dict:
-    has_rows = profile["rows"] > 1 and profile["columns"] > 0
-    has_columns = has_operational_columns(profile["headers"])
-    actual_storage_dir = storage_dir or Path(".tmp/vertical_slice_storage")
     anamnesis_record = register_anamnesis_record(
         message,
         tenant_id,
@@ -172,6 +166,41 @@ def build_report(
             raw_owner_answer=owner_answer,
             storage_dir=actual_storage_dir,
         )
+    return {
+        "anamnesis_record": anamnesis_record,
+        "investigation_record": investigation_record,
+        "owner_answer_record": owner_answer_record,
+    }
+
+
+def build_report(
+    path: Path,
+    message: str,
+    profile: dict,
+    *,
+    tenant_id: str = "tenant_cli_local",
+    intake_id: str = "intake_cli_local",
+    formula_ids: list[str] | None = None,
+    storage_dir: Path | None = None,
+    business_taxonomy: dict | None = None,
+    owner_answer: str | None = None,
+    owner_answer_question_ref: str | None = None,
+) -> dict:
+    has_rows = profile["rows"] > 1 and profile["columns"] > 0
+    has_columns = has_operational_columns(profile["headers"])
+    actual_storage_dir = storage_dir or Path(".tmp/vertical_slice_storage")
+    initial_records = _register_initial_case_records(
+        message,
+        tenant_id,
+        intake_id,
+        actual_storage_dir,
+        business_taxonomy=business_taxonomy,
+        owner_answer=owner_answer,
+        owner_answer_question_ref=owner_answer_question_ref,
+    )
+    anamnesis_record = initial_records["anamnesis_record"]
+    investigation_record = initial_records["investigation_record"]
+    owner_answer_record = initial_records["owner_answer_record"]
     structured_summary = build_structured_summary(
         path,
         tenant_id,
