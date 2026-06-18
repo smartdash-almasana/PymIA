@@ -217,6 +217,43 @@ def _build_owner_report_base(
     return {"report": report, "blocked": blocked}
 
 
+def _build_diagnostic_context(
+    report: dict,
+    *,
+    path: Path,
+    tenant_id: str,
+    intake_id: str,
+    structured_summary: dict,
+) -> dict:
+    """Encapsula el bloque diagnóstico posterior al registro de outputs.
+
+    Encapsula:
+    - _diagnostic_pipeline_result_for_report()
+    - _diagnostic_operator_summary_from_report()
+    - asignaciones al report
+
+    Returns:
+        {"report": report,
+         "diagnostic_pipeline_result": ...,
+         "diagnostic_operator_summary": ...}
+    """
+    diagnostic_pipeline_result = _diagnostic_pipeline_result_for_report(
+        path=path,
+        tenant_id=tenant_id,
+        intake_id=intake_id,
+        cliente_id=tenant_id,
+        structured_summary=structured_summary,
+    )
+    report["diagnostic_pipeline_result"] = diagnostic_pipeline_result
+    diagnostic_operator_summary = _diagnostic_operator_summary_from_report(report)
+    report["diagnostic_operator_summary"] = diagnostic_operator_summary
+    return {
+        "report": report,
+        "diagnostic_pipeline_result": diagnostic_pipeline_result,
+        "diagnostic_operator_summary": diagnostic_operator_summary,
+    }
+
+
 def _register_pipeline_outputs(
     path: Path,
     report: dict,
@@ -377,13 +414,14 @@ def build_report(
         blocked=blocked,
         actual_storage_dir=actual_storage_dir,
     )
-    report["diagnostic_pipeline_result"] = _diagnostic_pipeline_result_for_report(
+    diagnostic_context = _build_diagnostic_context(
+        report,
         path=path,
         tenant_id=tenant_id,
         intake_id=intake_id,
-        cliente_id=tenant_id,
         structured_summary=structured_summary,
     )
+    report = diagnostic_context["report"]
     owner_question, tech_reference = _resolve_owner_question_and_reference(report, message)
     report["owner_question"] = owner_question
     report["owner_question_technical_reference"] = tech_reference
@@ -429,7 +467,7 @@ def build_markdown(
         owner_answer=owner_answer,
         owner_answer_question_ref=owner_answer_question_ref,
     )
-    diagnostic_operator_summary = _diagnostic_operator_summary_from_report(report)
+    diagnostic_operator_summary = report.get("diagnostic_operator_summary")
     return render_markdown_from_report(
         path,
         message,
