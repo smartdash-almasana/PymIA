@@ -50,7 +50,13 @@ La pregunta del spike:
 
 ### Timebox
 
-2 días máximo desde el inicio de la implementación. Si en 2 días no se produce un snapshot útil con un caso real, el spike se detiene y se reportan los hallazgos.
+El spike tiene timebox máximo:
+
+- 4 horas de implementación;
+- 2 horas de tests/revisión;
+- total máximo: 6 horas.
+
+Si el timebox se excede, detener y reportar qué campo, fuente o ambigüedad hizo crecer la complejidad.
 
 ## No objetivos
 
@@ -239,6 +245,63 @@ No debe leer:
 - El snapshot NO escribe JSONL, NO persiste, NO modifica registros existentes.
 - Si no hay variables disponibles, `available_variables` es `[]` (no miente, no inventa).
 
+## Missing Data Policy
+
+- Campo opcional faltante: `None`, lista vacía o warning explícito.
+- Campo requerido faltante: levantar `SnapshotBuildError`.
+- `SnapshotBuildError` debe incluir como mínimo:
+  - `tenant_id`;
+  - `intake_id`;
+  - `missing_field`;
+  - `reason`.
+
+No debe haber crash genérico.
+No debe haber silent failure.
+No debe haber inferencia silenciosa.
+
+Campos mínimos requeridos para snapshot:
+
+- `tenant_id`;
+- `intake_id`;
+- `case_status`.
+
+Campos que pueden estar vacíos con warning:
+
+- `evidence_refs`;
+- `run_refs`;
+- `owner_answer_refs`;
+- `evidence_request_refs`;
+- `available_variables`;
+- `missing_variables`;
+- `open_unknowns`;
+- `next_questions`;
+- `trace_refs`.
+
+## Snapshot Coverage Metric
+
+El spike debe calcular o reportar conceptualmente:
+
+- `total_fields`;
+- `populated_from_replay`;
+- `empty_with_warning`;
+- `inferred_or_heuristic`.
+
+Fórmulas:
+
+```text
+coverage_from_replay = populated_from_replay / total_fields
+heuristic_ratio = inferred_or_heuristic / total_fields
+```
+
+Stop condition:
+
+```text
+heuristic_ratio > 0.20 => STOP
+```
+
+Para V1 del spike, el objetivo no es producir una ficha "bonita".
+El objetivo es medir cuánto puede leerse directamente desde replay sin fabricar semántica.
+
 ## Criterios de éxito
 
 El spike se considera exitoso cuando:
@@ -257,6 +320,8 @@ El spike se considera exitoso cuando:
 3. **No modifica ningún archivo** fuera de `pymia/smartpyme/ocf_snapshot.py` y `tests/smartpyme/test_ocf_snapshot.py`.
 
 4. **La salida es inspeccionable** por un operador humano sin recurrir a código fuente.
+
+5. **Reconstrucción de casos históricos reales**: el snapshot debe intentar reconstruir al menos 3 casos históricos reales disponibles vía replay, si existen fixtures o JSONL reales en el entorno local. Si no existen 3 casos reales disponibles, debe reportarlo como limitación del spike, no inventar fixtures para cumplir el número.
 
 ## Criterios de fracaso
 
@@ -342,18 +407,20 @@ def compose_ocf_snapshot(
 ```text
 1.   LEER este SpikeSpec
 2.   CREAR ocf_snapshot.py con compose_ocf_snapshot()
-3.   CREAR test_ocf_snapshot.py
-       - test_snapshot_not_found
-       - test_snapshot_partial
-       - test_snapshot_ready
-       - test_snapshot_evidence_refs_traced
-       - test_snapshot_run_refs_traced
-       - test_snapshot_owner_answer_refs_traced
-       - test_snapshot_evidence_request_refs_traced
-       - test_snapshot_available_variables_from_pipeline_metadata
-       - test_snapshot_missing_variables_from_evidence_requests
-       - test_snapshot_open_unknowns_from_investigation
-       - test_snapshot_is_read_only
+3. CREAR test_ocf_snapshot.py
+       - test_returns_not_found_for_missing_case
+       - test_returns_partial_snapshot_when_replay_has_evidence_without_pipeline_run
+       - test_returns_snapshot_ready_for_completed_replay
+       - test_includes_evidence_refs_with_trace_fields
+       - test_includes_run_refs_with_run_id_and_output_hash_when_available
+       - test_extracts_available_variables_only_when_present_in_replay_outputs
+       - test_extracts_missing_variables_only_when_present_in_replay_outputs
+       - test_propagates_replay_warnings
+       - test_does_not_write_jsonl_or_storage
+       - test_does_not_import_or_call_vertical_pipeline
+       - test_does_not_import_diagnostic_core
+       - test_raises_snapshot_build_error_for_missing_required_identity_fields
+       - test_keeps_heuristic_ratio_at_or_below_20_percent
 4.   EJECUTAR pytest contra test_ocf_snapshot.py
        → TODOS GREEN (evidencia de que el spike funciona)
 5.   EVALUAR el snapshot contra un caso real (si existe JSONL de prueba)
@@ -381,9 +448,49 @@ STOP si el spike crea storage nuevo (base de datos, JSONL, archivos de estado).
 
 STOP si el spike ejecuta diagnóstico, recalcula variables o escribe JSONL.
 
-STOP si el spike excede 2 días sin producir snapshot útil.
+STOP si se requiere crear EvidenceArtifact o EpistemicState para completar el snapshot.
 
-STOP si el spike depende de un contrato fundacional que no existe (EvidenceArtifact, EpistemicState, MicroserviceResult, etc.).
+STOP si se requiere inferir más del 20% de los campos (inferencia excesiva).
+
+STOP si el snapshot necesita ejecutar vertical_pipeline.
+
+STOP si el snapshot necesita recalcular diagnóstico.
+
+STOP si el snapshot empieza a convertirse en renderer owner-facing.
+
+STOP si el replay no contiene campos necesarios para armar el snapshot mínimo sin adivinar.
+
+STOP si excede 6 horas totales de implementación + tests.
+```
+
+### Regla de inferencia excesiva
+
+```text
+Abortar la implementación si más del 20% de los campos del snapshot requieren
+inferencia, heurística o reconstrucción indirecta en lugar de mapeo directo
+desde `replay_case_from_jsonl(...)`.
+
+El spike puede componer, pero no puede adivinar.
+
+Si un dato no está en replay, debe quedar como `None`, lista vacía o warning explícito.
+
+No se permite hardcodear ni fabricar datos.
+```
+
+### Manejo de JSONL incompleto o corrupto
+
+```text
+Si `replay_case_from_jsonl(...)` devuelve warnings por JSONL malformado,
+el snapshot debe propagarlos en `warnings`.
+
+El snapshot no debe ocultar warnings.
+El snapshot no debe intentar reparar JSONL.
+El snapshot no debe reordenar ni reescribir registros.
+El snapshot no debe modificar storage.
+
+Si el replay retorna `NOT_FOUND`, el snapshot debe representar `NOT_FOUND`
+o levantar excepción específica según lo definido por el spec.
+Nunca debe fallar con error genérico.
 ```
 
 ## Riesgos y mitigaciones
@@ -418,4 +525,12 @@ Validates hypothesis that case file can be born from existing
 traces without new contracts or storage.
 
 SPIKESPEC: PymIA-Live/docs/pymia/OCF_SNAPSHOT_FROM_REPLAY_SPIKE.md
+```
+
+## Readiness
+
+```text
+OCF_SNAPSHOT_FROM_REPLAY_SPIKE = READY_AFTER_PATCH
+IMPLEMENTATION = NOT_STARTED
+CODE_ALLOWED = NO_UNTIL_PATCH_COMMITTED_AND_REVIEWED
 ```
