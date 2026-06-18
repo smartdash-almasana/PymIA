@@ -283,6 +283,7 @@ def build_markdown(
     business_taxonomy: dict | None = None,
     owner_answer: str | None = None,
     owner_answer_question_ref: str | None = None,
+    audience: str = "owner",
 ) -> str:
     report = build_report(
         path,
@@ -296,7 +297,15 @@ def build_markdown(
         owner_answer=owner_answer,
         owner_answer_question_ref=owner_answer_question_ref,
     )
-    return render_markdown_from_report(path, message, profile, report)
+    diagnostic_operator_summary = _diagnostic_operator_summary_from_report(report)
+    return render_markdown_from_report(
+        path,
+        message,
+        profile,
+        report,
+        audience=audience,
+        diagnostic_operator_summary=diagnostic_operator_summary,
+    )
 
 
 def build_pipeline(
@@ -310,6 +319,7 @@ def build_pipeline(
     business_taxonomy: dict | None = None,
     owner_answer: str | None = None,
     owner_answer_question_ref: str | None = None,
+    audience: str = "owner",
 ) -> dict:
     profile = inspect_excel(path)
     report = build_report(
@@ -324,12 +334,19 @@ def build_pipeline(
         owner_answer=owner_answer,
         owner_answer_question_ref=owner_answer_question_ref,
     )
-    markdown = render_markdown_from_report(path, message, profile, report)
+    diagnostic_operator_summary = _diagnostic_operator_summary_from_report(report)
+    markdown = render_markdown_from_report(
+        path,
+        message,
+        profile,
+        report,
+        audience=audience,
+        diagnostic_operator_summary=diagnostic_operator_summary,
+    )
     evidence_record = report["evidence_record"]
     pipeline_run_record = report["pipeline_run_record"]
     structured_summary = report.get("structured_evidence_summary") or {}
     catalog_reconciliation = structured_summary.get("catalog_reconciliation") or []
-    diagnostic_operator_summary = _diagnostic_operator_summary_from_report(report)
     return {
         "status": report["status"],
         "profile": profile,

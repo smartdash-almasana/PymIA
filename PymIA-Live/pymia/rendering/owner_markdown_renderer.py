@@ -19,20 +19,29 @@ def _owner_label_for_variable(name: str) -> str:
     return f"{label} ({name})"
 
 
-def render_markdown_from_report(path: Path, message: str, profile: dict, report: dict) -> str:
+def _owner_sufficiency_summary_lines(structured_summary: dict) -> list[str]:
+    lines = ["## Suficiencia de evidencia"]
+    sufficiency = structured_summary.get("sufficiency") or []
+    unsupported_formula_ids = structured_summary.get("unsupported_formula_ids") or []
+
+    if sufficiency:
+        lines.append("- Hay chequeos técnicos con evidencia pendiente o en revisión.")
+    if unsupported_formula_ids:
+        lines.append("- Hay chequeos técnicos no disponibles en esta vista owner-facing.")
+    if not sufficiency and not unsupported_formula_ids:
+        lines.append("- Sin alertas técnicas adicionales visibles en esta vista.")
+    return lines
+
+
+def _owner_view_lines(path: Path, message: str, profile: dict, report: dict) -> list[str]:
     owner_simple = report["owner_simple"]
+    owner_answer_record = report.get("owner_answer_record")
+    evidence_request_record = report.get("evidence_request_record")
     lines = [
         "# Reporte owner-facing local",
         f"Estado: {report['status']}",
         f"Archivo: {path.name}",
         f"Mensaje: {message}",
-        f"Tenant: {report['tenant_id']}",
-        f"Intake: {report['intake_id']}",
-        f"Anamnesis ID: {report['anamnesis_record']['anamnesis_id']}",
-        f"Investigation ID: {report['investigation_record']['investigation_id']}",
-        f"Evidence ID: {report['evidence_record']['evidence_id']}",
-        f"Evidence SHA-256: {report['evidence_record']['content_hash']}",
-        f"Run ID: {report['pipeline_run_record']['run_id']}",
         f"Hoja: {profile['sheet']}",
         f"Filas: {profile['rows']}",
         f"Columnas: {profile['columns']}",
@@ -56,12 +65,6 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
     for item in owner_simple["limites"]:
         lines.append(f"- {item}")
     lines.extend(["", "## Anamnesis"])
-    owner_answer_record = report.get("owner_answer_record")
-    evidence_request_record = report.get("evidence_request_record")
-    if owner_answer_record:
-        lines.insert(10, f"Owner Answer ID: {owner_answer_record['answer_id']}")
-    if evidence_request_record:
-        lines.insert(11, f"Evidence Request ID: {evidence_request_record['request_id']}")
     taxonomy = report["anamnesis_record"].get("business_taxonomy", {})
     lines.append(f"- Empresa tipo: {taxonomy.get('empresa_tipo', 'desconocido')}")
     lines.append(f"- Industria: {taxonomy.get('industria', 'desconocido')}")
@@ -117,26 +120,16 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
         lines.append(f"- Tablas estructuradas: {structured_summary['tables_count']}")
         for t in table_sheets:
             lines.append(f"  - {t['name']} ({t['rows']} filas, {t['columns']} columnas)")
-        lines.append(f"- Case ID: {structured_summary['case_id']}")
         if structured_summary["sufficiency"] or structured_summary["unsupported_formula_ids"]:
             lines.append("")
-            lines.append("## Suficiencia de evidencia")
-            for item in structured_summary["sufficiency"]:
-                lines.append(f"- {item['formula_id']}: {item['status']}")
-                if item["missing_variables"]:
-                    lines.append(f"  - Faltan: {', '.join(item['missing_variables'])}")
-            for formula_id in structured_summary["unsupported_formula_ids"]:
-                lines.append(f"- {formula_id}: UNSUPPORTED_FORMULA")
+            lines.extend(_owner_sufficiency_summary_lines(structured_summary))
     else:
         lines.append(f"- Motivo: {structured_summary['reason']}")
     lines.append("")
     lines.append("## Próxima pregunta")
     owner_question = report.get("owner_question", "")
-    tech_reference = report.get("owner_question_technical_reference", "")
     if owner_question:
         lines.append(f"- {owner_question}")
-        if tech_reference:
-            lines.append(f"  - {tech_reference}")
     else:
         lines.append(f"- {vertical_slice_copy_for('next_question_fallback')}")
     lines.append("")
@@ -144,4 +137,89 @@ def render_markdown_from_report(path: Path, message: str, profile: dict, report:
     for warning in report["limit_warnings"]:
         lines.append(f"- {warning}")
     lines.append(f"- {vertical_slice_copy_for('final_limit_warning')}")
+    return lines
+
+
+def _operator_annex_lines(report: dict, diagnostic_operator_summary: dict | None) -> list[str]:
+    owner_answer_record = report.get("owner_answer_record")
+    evidence_request_record = report.get("evidence_request_record")
+    structured_summary = report["structured_evidence_summary"]
+    lines = [
+        "## Anexo técnico operador",
+        f"Tenant: {report['tenant_id']}",
+        f"Intake: {report['intake_id']}",
+        f"Anamnesis ID: {report['anamnesis_record']['anamnesis_id']}",
+        f"Investigation ID: {report['investigation_record']['investigation_id']}",
+        f"Evidence ID: {report['evidence_record']['evidence_id']}",
+        f"Evidence SHA-256: {report['evidence_record']['content_hash']}",
+        f"Run ID: {report['pipeline_run_record']['run_id']}",
+    ]
+    if owner_answer_record:
+        lines.append(f"Owner Answer ID: {owner_answer_record['answer_id']}")
+    if evidence_request_record:
+        lines.append(f"Evidence Request ID: {evidence_request_record['request_id']}")
+    if structured_summary["status"] == "available":
+        lines.append(f"Case ID: {structured_summary['case_id']}")
+        if structured_summary["sufficiency"] or structured_summary["unsupported_formula_ids"]:
+            lines.extend(["", "## Suficiencia de evidencia operador"])
+            for item in structured_summary["sufficiency"]:
+                lines.append(f"- {item['formula_id']}: {item['status']}")
+                if item["missing_variables"]:
+                    lines.append(f"  - Faltan: {', '.join(item['missing_variables'])}")
+            for formula_id in structured_summary["unsupported_formula_ids"]:
+                lines.append(f"- {formula_id}: UNSUPPORTED_FORMULA")
+
+    tech_reference = report.get("owner_question_technical_reference", "")
+    if tech_reference:
+        lines.extend([
+            "",
+            "## Referencia técnica operador",
+            f"- {tech_reference}",
+        ])
+
+    if diagnostic_operator_summary:
+        lines.extend([
+            "",
+            "## Resumen diagnóstico operador",
+            f"- Diagnosis status: {diagnostic_operator_summary['diagnosis_status']}",
+            f"- Kernel state: {diagnostic_operator_summary['kernel_state']}",
+            f"- Blocking reason: {diagnostic_operator_summary['blocking_reason']}",
+            f"- Gate status: {diagnostic_operator_summary['gate_status']}",
+        ])
+        finding_types = diagnostic_operator_summary.get("finding_types") or []
+        formulas_used = diagnostic_operator_summary.get("formulas_used") or []
+        evidence_used = diagnostic_operator_summary.get("evidence_used") or []
+        blocked_formulas = diagnostic_operator_summary.get("blocked_formulas") or []
+        if finding_types:
+            lines.append(f"- Finding types: {', '.join(finding_types)}")
+        if formulas_used:
+            lines.append(f"- Formulas used: {', '.join(formulas_used)}")
+        if evidence_used:
+            lines.append(f"- Evidence used: {', '.join(evidence_used)}")
+        if blocked_formulas:
+            lines.append(f"- Blocked formulas: {', '.join(blocked_formulas)}")
+    return lines
+
+
+def render_markdown_from_report(
+    path: Path,
+    message: str,
+    profile: dict,
+    report: dict,
+    *,
+    audience: str = "owner",
+    diagnostic_operator_summary: dict | None = None,
+) -> str:
+    if audience not in {"owner", "operator", "combined"}:
+        raise ValueError(f"Unsupported audience: {audience}")
+
+    owner_lines = _owner_view_lines(path, message, profile, report)
+
+    if audience == "owner":
+        lines = owner_lines
+    elif audience == "operator":
+        lines = owner_lines + [""] + _operator_annex_lines(report, diagnostic_operator_summary)
+    else:
+        lines = owner_lines + ["", "---", ""] + _operator_annex_lines(report, diagnostic_operator_summary)
+
     return "\n".join(lines) + "\n"

@@ -119,6 +119,297 @@ def test_vertical_slice_cli_renders_owner_simple_sections(tmp_path: Path, capsys
     assert "diagnóstico confirmado" not in out.lower()
 
 
+def test_owner_markdown_hides_technical_ids(tmp_path: Path):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+    profile = vertical_slice.inspect_excel(excel)
+
+    markdown = vertical_slice.build_markdown(
+        excel,
+        "vendo mas pero no me queda plata",
+        profile,
+        tenant_id="tenant_textil_001",
+        intake_id="intake_textil_001",
+        storage_dir=tmp_path / "storage",
+    )
+
+    assert "Tenant: tenant_textil_001" not in markdown
+    assert "Intake: intake_textil_001" not in markdown
+    assert "Anamnesis ID:" not in markdown
+    assert "Investigation ID:" not in markdown
+    assert "Evidence ID:" not in markdown
+    assert "Evidence SHA-256:" not in markdown
+    assert "Run ID:" not in markdown
+    assert "Owner Answer ID:" not in markdown
+    assert "Evidence Request ID:" not in markdown
+
+
+def test_owner_markdown_preserves_readable_sections(tmp_path: Path):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+    profile = vertical_slice.inspect_excel(excel)
+
+    markdown = vertical_slice.build_markdown(
+        excel,
+        "no me cierra la caja, me falta plata",
+        profile,
+        storage_dir=tmp_path / "storage",
+    )
+
+    assert "Reporte owner-facing local" in markdown
+    assert "Estado:" in markdown
+    assert "Archivo:" in markdown
+    assert "Mensaje:" in markdown
+    assert "Hoja:" in markdown
+    assert "Filas:" in markdown
+    assert "Columnas:" in markdown
+    assert "Resumen:" in markdown
+    assert "Qué entendimos:" in markdown
+    assert "Qué pudimos leer:" in markdown
+    assert "Qué todavía no podemos afirmar:" in markdown
+    assert "Próxima pregunta:" in markdown
+    assert "Límites:" in markdown
+    assert "## Anamnesis" in markdown
+    assert "## Evidencia usada" in markdown
+    assert "## Evidencia faltante" in markdown
+    assert "## Evidencia estructurada" in markdown
+
+
+def test_operator_markdown_includes_technical_ids(tmp_path: Path):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+    profile = vertical_slice.inspect_excel(excel)
+
+    markdown = vertical_slice.build_markdown(
+        excel,
+        "vendo mas pero no me queda plata",
+        profile,
+        tenant_id="tenant_textil_001",
+        intake_id="intake_textil_001",
+        storage_dir=tmp_path / "storage",
+        audience="operator",
+    )
+
+    assert "Tenant: tenant_textil_001" in markdown
+    assert "Intake: intake_textil_001" in markdown
+    assert "Anamnesis ID: anamnesis_" in markdown
+    assert "Investigation ID: investigation_" in markdown
+    assert "Evidence ID: evidence_" in markdown
+    assert "Evidence SHA-256:" in markdown
+    assert "Run ID: run_" in markdown
+
+
+def test_operator_markdown_includes_diagnostic_operator_summary(tmp_path: Path, monkeypatch):
+    excel = tmp_path / "diagnostic.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo", "impuestos"], ["2026-06-01", "A", 1000, 900, 200]])
+
+    def mock_build_summary(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 3,
+            "computed_variable_names": ["costos_total", "impuestos_total", "ventas_total"],
+            "tables_count": 1,
+            "table_sheets": [{"name": "Sheet", "columns": 5, "rows": 1}],
+            "case_id": "case-1",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [{
+                "formula_id": "REN_001_margen_neto_real",
+                "pathology_code": "REN_001",
+                "status": "calculable",
+                "available_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
+                "missing_evidence": [],
+                "matched_sources": ["sheet:ventas", "sheet:costos", "sheet:impuestos"],
+                "required_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
+                "required_variables": ["sale_price", "costs", "taxes"],
+                "next_audit_questions": [],
+            }],
+        }
+
+    def mock_context(*args, **kwargs):
+        return {
+            "structured_evidence": {
+                "tenant_id": "tenant_textil_001",
+                "document_type": "xlsx_operational_evidence",
+                "source": "xlsx_upload",
+                "file_name": "diagnostic.xlsx",
+                "tables": [],
+                "computed_variables": {
+                    "ventas_total": 1000.0,
+                    "costos_total": 900.0,
+                    "impuestos_total": 200.0,
+                },
+                "metadata": {
+                    "variable_source_refs": {
+                        "ventas_total": ["sheet:ventas"],
+                        "costos_total": ["sheet:costos"],
+                        "impuestos_total": ["sheet:impuestos"],
+                    }
+                },
+            },
+            "formula_ids": ["REN_001_margen_neto_real"],
+        }
+
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build_summary)
+    monkeypatch.setattr(
+        "pymia.smartpyme.structured_evidence_builder.build_structured_evidence_context",
+        mock_context,
+    )
+
+    pipeline = vertical_slice.build_pipeline(
+        excel,
+        "test diagnóstico interno",
+        tenant_id="tenant_textil_001",
+        intake_id="case-1",
+        storage_dir=Path(tmp_path / "storage"),
+        audience="operator",
+    )
+
+    markdown = pipeline["markdown"]
+    assert "## Resumen diagnóstico operador" in markdown
+    assert "Diagnosis status: CONFIRMED" in markdown
+    assert "Kernel state: PASS" in markdown
+    assert "Finding types: REN_001" in markdown
+    assert "Formulas used: REN_001_margen_neto_real" in markdown
+
+
+def test_operator_markdown_includes_technical_sufficiency_details(tmp_path: Path):
+    fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
+    assert fixture.exists()
+
+    pipeline = vertical_slice.build_pipeline(
+        fixture,
+        "tengo una textil y no me cierra la caja",
+        formula_ids=["PYME_033_concentracion_sku", "FORMULA_INEXISTENTE"],
+        storage_dir=tmp_path / "storage",
+        audience="operator",
+    )
+
+    markdown = pipeline["markdown"]
+    assert "## Suficiencia de evidencia operador" in markdown
+    assert "Case ID: intake_cli_local" in markdown
+    assert "PYME_033_concentracion_sku" in markdown
+    assert "FORMULA_INEXISTENTE: UNSUPPORTED_FORMULA" in markdown
+
+
+def test_owner_markdown_excludes_diagnostic_operator_summary(tmp_path: Path, monkeypatch):
+    excel = tmp_path / "diagnostic.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo", "impuestos"], ["2026-06-01", "A", 1000, 900, 200]])
+
+    def mock_build_summary(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 3,
+            "computed_variable_names": ["costos_total", "impuestos_total", "ventas_total"],
+            "tables_count": 1,
+            "table_sheets": [{"name": "Sheet", "columns": 5, "rows": 1}],
+            "case_id": "case-1",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [{
+                "formula_id": "REN_001_margen_neto_real",
+                "pathology_code": "REN_001",
+                "status": "calculable",
+                "available_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
+                "missing_evidence": [],
+                "matched_sources": ["sheet:ventas", "sheet:costos", "sheet:impuestos"],
+                "required_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
+                "required_variables": ["sale_price", "costs", "taxes"],
+                "next_audit_questions": [],
+            }],
+        }
+
+    def mock_context(*args, **kwargs):
+        return {
+            "structured_evidence": {
+                "tenant_id": "tenant_textil_001",
+                "document_type": "xlsx_operational_evidence",
+                "source": "xlsx_upload",
+                "file_name": "diagnostic.xlsx",
+                "tables": [],
+                "computed_variables": {
+                    "ventas_total": 1000.0,
+                    "costos_total": 900.0,
+                    "impuestos_total": 200.0,
+                },
+                "metadata": {
+                    "variable_source_refs": {
+                        "ventas_total": ["sheet:ventas"],
+                        "costos_total": ["sheet:costos"],
+                        "impuestos_total": ["sheet:impuestos"],
+                    }
+                },
+            },
+            "formula_ids": ["REN_001_margen_neto_real"],
+        }
+
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build_summary)
+    monkeypatch.setattr(
+        "pymia.smartpyme.structured_evidence_builder.build_structured_evidence_context",
+        mock_context,
+    )
+
+    pipeline = vertical_slice.build_pipeline(
+        excel,
+        "test diagnóstico interno",
+        tenant_id="tenant_textil_001",
+        intake_id="case-1",
+        storage_dir=Path(tmp_path / "storage"),
+    )
+
+    markdown = pipeline["markdown"]
+    assert "## Resumen diagnóstico operador" not in markdown
+    assert "Diagnosis status:" not in markdown
+    assert "Kernel state:" not in markdown
+    assert "Formulas used:" not in markdown
+
+
+def test_default_audience_is_owner(tmp_path: Path):
+    excel = tmp_path / "caso.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 100, 60]])
+    profile = vertical_slice.inspect_excel(excel)
+
+    default_markdown = vertical_slice.build_markdown(
+        excel,
+        "vendo mas pero no me queda plata",
+        profile,
+        storage_dir=tmp_path / "storage_default",
+    )
+    owner_markdown = vertical_slice.build_markdown(
+        excel,
+        "vendo mas pero no me queda plata",
+        profile,
+        storage_dir=tmp_path / "storage_owner",
+        audience="owner",
+    )
+
+    def _strip_ids(markdown: str) -> list[str]:
+        return [
+            line for line in markdown.splitlines()
+            if not line.startswith(("Anamnesis ID:", "Investigation ID:", "Evidence ID:", "Run ID:"))
+            and "Evidence SHA-256:" not in line
+        ]
+
+    assert _strip_ids(default_markdown) == _strip_ids(owner_markdown)
+
+
+def test_owner_markdown_excludes_internal_codes_as_primary_text(tmp_path: Path):
+    fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
+    assert fixture.exists()
+
+    pipeline = vertical_slice.build_pipeline(
+        fixture,
+        "tengo una textil",
+        storage_dir=tmp_path / "storage",
+    )
+
+    markdown = pipeline["markdown"]
+    assert "  - Referencia técnica:" not in markdown
+    assert "UNSUPPORTED_FORMULA" not in markdown
+    for code in ["INV_001", "LIQ_001", "REN_001", "PYME_033", "PYME_011"]:
+        assert code not in markdown
+
+
 def test_vertical_slice_build_report_binds_owner_answer_when_provided(tmp_path: Path):
     excel = tmp_path / "caso.xlsx"
     storage_dir = tmp_path / "storage"
@@ -213,9 +504,9 @@ def test_vertical_slice_cli_renders_owner_answer_when_provided(tmp_path: Path, c
     out = capsys.readouterr().out
 
     assert rc == 0
-    assert "Owner Answer ID: answer_" in out
     assert "## Respuesta del dueño" in out
     assert "Pregunta referida: missing_input:ventas" in out
+    assert "Owner Answer ID:" not in out
 
 
 def test_vertical_slice_cli_renders_evidence_request_when_missing_inputs(tmp_path: Path, monkeypatch, capsys):
@@ -257,9 +548,9 @@ def test_vertical_slice_cli_renders_evidence_request_when_missing_inputs(tmp_pat
     out = capsys.readouterr().out
 
     assert rc == 0
-    assert "Evidence Request ID: evidence_request_" in out
     assert "## Solicitud de evidencia" in out
     assert "cobranzas del período" in out
+    assert "Evidence Request ID:" not in out
 
 
 def test_vertical_slice_cli_outputs_blocked_actionable_without_operational_columns(tmp_path: Path, capsys):
@@ -319,9 +610,11 @@ def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(t
     out = capsys.readouterr().out
     assert rc == 0
     assert "## Suficiencia de evidencia" in out
-    assert "Case ID: intake_cli_local" in out
-    assert "PYME_033_concentracion_sku" in out
-    assert "READY" in out or "MISSING_INPUTS" in out
+    assert "PYME_033_concentracion_sku" not in out
+    assert "REN_" not in out
+    assert "LIQ_" not in out
+    assert "INV_" not in out
+    assert "UNSUPPORTED_FORMULA" not in out
     assert "no diagnostica" in out.lower()
 
 
@@ -341,7 +634,8 @@ def test_vertical_slice_cli_reports_unsupported_formula_without_crashing(tmp_pat
     out = capsys.readouterr().out
     assert rc == 0
     assert "## Suficiencia de evidencia" in out
-    assert "FORMULA_INEXISTENTE: UNSUPPORTED_FORMULA" in out
+    assert "FORMULA_INEXISTENTE" not in out
+    assert "UNSUPPORTED_FORMULA" not in out
     assert "no diagnostica" in out.lower()
 
 
@@ -379,17 +673,12 @@ def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
     assert "Reporte owner-facing local" in text
     assert "DELIVERED_CANDIDATE" in text
     assert "## Evidencia usada" in text
-    assert "Tenant: tenant_demo_001" in text
-    assert "Intake: intake_demo_001" in text
-    assert "Anamnesis ID: anamnesis_" in text
-    assert "Investigation ID: investigation_" in text
     assert "## Anamnesis" in text
     assert "Empresa tipo: comercio" in text
     assert "Industria: retail" in text
     assert "Modelo comercial: b2c" in text
     assert "Canales de venta: local" in text
     assert "Áreas críticas: margen" in text
-    assert "Case ID: intake_demo_001" in text
 
 
 def test_vertical_slice_cli_rejects_missing_excel(tmp_path: Path):
@@ -729,19 +1018,16 @@ def test_vertical_slice_next_question_uses_owner_language(tmp_path: Path, capsys
 def test_vertical_slice_next_question_keeps_technical_reference_for_operator(tmp_path: Path, capsys):
     fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
     assert fixture.exists()
-    rc = vertical_slice.main([
-        "--excel",
-        str(fixture),
-        "--message",
+    pipeline = vertical_slice.build_pipeline(
+        fixture,
         "tengo una textil",
-        "--storage-dir",
-        str(tmp_path / "storage"),
-    ])
-    out = capsys.readouterr().out
-    assert rc == 0
-    assert "  - Referencia técnica:" in out
-    assert "INV_" in out or "PYME_" in out or "LIQ_" in out
-    assert "_" in out.split("  - Referencia técnica:")[1] if "  - Referencia técnica:" in out else False
+        storage_dir=tmp_path / "storage",
+        audience="operator",
+    )
+    markdown = pipeline["markdown"]
+    assert "## Referencia técnica operador" in markdown
+    assert "INV_" in markdown or "PYME_" in markdown or "LIQ_" in markdown
+    assert "_" in markdown.split("## Referencia técnica operador", 1)[1]
 
 
 def test_vertical_slice_next_question_does_not_expose_formula_id_as_primary_owner_text(tmp_path: Path, capsys):
@@ -862,8 +1148,16 @@ def test_vertical_slice_cli_aligns_owner_question_when_misaligned(tmp_path: Path
     assert rc == 0
     assert "Entiendo que tu preocupación principal parece ser caja/liquidez" in out
     assert "Antes de avanzar con una pregunta técnica sobre stock" in out
-    assert "reconducción_axis_caja_liquidez" in out
     assert "tiempos de reposición" not in out
+    assert "reconducción_axis_caja_liquidez" not in out
+
+    operator_pipeline = vertical_slice.build_pipeline(
+        excel,
+        "no me cierra la caja, me falta plata",
+        storage_dir=tmp_path / "storage_operator",
+        audience="operator",
+    )
+    assert "reconducción_axis_caja_liquidez" in operator_pipeline["markdown"]
 
 
 def test_operator_summary_explains_gate_blocked_missing_inputs(tmp_path: Path, monkeypatch):
