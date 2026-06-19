@@ -87,6 +87,17 @@ Excel
 
 > “Una auditoría sólo cuenta como cerrada si queda registrada en este ledger o en un checkpoint versionado.”
 
+## Guardrail sobre untracked ajenos
+
+Los siguientes untracked ajenos al ledger **no deben tocarse, agregarse ni normalizarse** desde esta línea de auditoría:
+
+- `.agents/`
+- `.graphifyignore`
+- `.opencode/`
+- `graphify-out/`
+- docs no relacionados
+- `ORGANIZATIONAL_CASE_FILE_V1_CONCEPT.md` si ya existe como untracked
+
 ## Lectura correcta de este ledger
 
 - `FROZEN / PASS` significa frontera cerrada sin autorizar refactor abierto.
