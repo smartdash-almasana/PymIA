@@ -21,6 +21,11 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | Document ingestion | `PymIA-Live/tools/document_ingestion.py` | `FROZEN` | `PASS` | `2d0e53e` | checkpoint/piloto histórico |
 | Structured evidence builder | `PymIA-Live/pymia/smartpyme/structured_evidence_builder.py` | `FROZEN` | `PASS` | `f4494a3` | checkpoint histórico |
 | Vertical pipeline | `PymIA-Live/pymia/application/vertical_pipeline.py` | `FROZEN` | `PASS` | `2606841` | auditoría de frontera cerrada |
+| Owner-facing report | `PymIA-Live/pymia/smartpyme/owner_facing_report.py` | `FREEZE_OWNER_FACING_REPORTING` | `PASS` | `731e580` | auditoría de frontera cerrada |
+| Owner output | `PymIA-Live/pymia/smartpyme/owner_output.py` | `FREEZE_OWNER_FACING_REPORTING` | `PASS` | `eca07e8` | auditoría de frontera cerrada |
+| Owner markdown renderer | `PymIA-Live/pymia/rendering/owner_markdown_renderer.py` | `FREEZE_OWNER_FACING_REPORTING` | `PASS` | `1a9b58a` | auditoría de frontera cerrada |
+| Question resolution | `PymIA-Live/pymia/smartpyme/question_resolution.py` | `FREEZE_OWNER_FACING_REPORTING` | `PASS` | `3816fb0` | auditoría de frontera cerrada |
+| Question alignment gate | `PymIA-Live/pymia/smartpyme/question_alignment_gate.py` | `FREEZE_OWNER_FACING_REPORTING` | `PASS` | `af59465` | auditoría de frontera cerrada |
 | Pipeline registration | `PymIA-Live/pymia/smartpyme/pipeline_registration.py` | `FREEZE_REGISTRATION_STORAGE` | `PASS` | `faf9008` | auditoría de frontera cerrada |
 | Storage | `PymIA-Live/pymia/smartpyme/storage.py` | `FREEZE_REGISTRATION_STORAGE` | `PASS` | `35538b4` | auditoría de frontera cerrada |
 | Case replay | `PymIA-Live/pymia/smartpyme/case_replay.py` | `FREEZE_CASE_REPLAY` | `PASS` | `902b0dd` | auditoría de frontera cerrada |
@@ -64,7 +69,78 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | riesgos residuales | Sigue siendo el mayor concentrador de deriva funcional: lectura de Excel, evidencia, owner report, render, pipeline run, adapter diagnóstico y question alignment convergen ahí. |
 | regla de reapertura | Reabrir si cambian las claves públicas de `build_pipeline()`, la trazabilidad mínima de `build_report()`, los imports prohibidos o la delegación de `build_markdown()` al renderer. |
 
-### 4. `pipeline_registration.py`
+### 4. `owner_facing_report.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/owner_facing_report.py` |
+| decisión | `FREEZE_OWNER_FACING_REPORTING` |
+| veredicto | `PASS` |
+| commit relacionado | `731e580 refactor(pymia-live): externalize owner report warnings` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_owner_facing_report.py tests/smartpyme/test_owner_output_boundary.py tests/rendering/test_owner_markdown_renderer_boundary.py tests/smartpyme/test_question_resolution_boundary.py tests/smartpyme/test_question_alignment_gate.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py tests/smartpyme/test_ocf_snapshot.py -q` |
+| riesgos residuales | Posible discrepancia futura entre labels/copy declarativos y claves dinámicas de catálogo/reconciliación. Riesgo mitigado por fallbacks existentes. |
+| regla de reapertura | Reabrir sólo ante cambio en contratos de copy/labels, bug real de rendering owner-facing, nueva audiencia de reporte, cambio explícito de owner question flow, o integración futura con `service_depth` o packs que afecte presentación. |
+
+### 5. `owner_output.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/owner_output.py` |
+| decisión | `FREEZE_OWNER_FACING_REPORTING` |
+| veredicto | `PASS` |
+| commit relacionado | `eca07e8 refactor(pymia-live): extract owner simple output builder` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_owner_facing_report.py tests/smartpyme/test_owner_output_boundary.py tests/rendering/test_owner_markdown_renderer_boundary.py tests/smartpyme/test_question_resolution_boundary.py tests/smartpyme/test_question_alignment_gate.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py tests/smartpyme/test_ocf_snapshot.py -q` |
+| riesgos residuales | Posible discrepancia futura entre labels/copy declarativos y claves dinámicas de catálogo/reconciliación. Riesgo mitigado por fallbacks existentes. |
+| regla de reapertura | Reabrir sólo ante cambio en contratos de copy/labels, bug real de rendering owner-facing, nueva audiencia de reporte, cambio explícito de owner question flow, o integración futura con `service_depth` o packs que afecte presentación. |
+
+### 6. `owner_markdown_renderer.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/rendering/owner_markdown_renderer.py` |
+| decisión | `FREEZE_OWNER_FACING_REPORTING` |
+| veredicto | `PASS` |
+| commit relacionado | `1a9b58a feat(pymia-live): split owner and operator markdown views` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_owner_facing_report.py tests/smartpyme/test_owner_output_boundary.py tests/rendering/test_owner_markdown_renderer_boundary.py tests/smartpyme/test_question_resolution_boundary.py tests/smartpyme/test_question_alignment_gate.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py tests/smartpyme/test_ocf_snapshot.py -q` |
+| riesgos residuales | Posible discrepancia futura entre labels/copy declarativos y claves dinámicas de catálogo/reconciliación. Riesgo mitigado por fallbacks existentes. |
+| regla de reapertura | Reabrir sólo ante cambio en contratos de copy/labels, bug real de rendering owner-facing, nueva audiencia de reporte, cambio explícito de owner question flow, o integración futura con `service_depth` o packs que afecte presentación. |
+
+### 7. `question_resolution.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/question_resolution.py` |
+| decisión | `FREEZE_OWNER_FACING_REPORTING` |
+| veredicto | `PASS` |
+| commit relacionado | `3816fb0 refactor(pymia-live): extract question resolution from CLI` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_owner_facing_report.py tests/smartpyme/test_owner_output_boundary.py tests/rendering/test_owner_markdown_renderer_boundary.py tests/smartpyme/test_question_resolution_boundary.py tests/smartpyme/test_question_alignment_gate.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py tests/smartpyme/test_ocf_snapshot.py -q` |
+| riesgos residuales | Posible discrepancia futura entre labels/copy declarativos y claves dinámicas de catálogo/reconciliación. Riesgo mitigado por fallbacks existentes. |
+| regla de reapertura | Reabrir sólo ante cambio en contratos de copy/labels, bug real de rendering owner-facing, nueva audiencia de reporte, cambio explícito de owner question flow, o integración futura con `service_depth` o packs que afecte presentación. |
+
+### 8. `question_alignment_gate.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/question_alignment_gate.py` |
+| decisión | `FREEZE_OWNER_FACING_REPORTING` |
+| veredicto | `PASS` |
+| commit relacionado | `af59465 refactor(pymia-live): consume declarative question alignment contract` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_owner_facing_report.py tests/smartpyme/test_owner_output_boundary.py tests/rendering/test_owner_markdown_renderer_boundary.py tests/smartpyme/test_question_resolution_boundary.py tests/smartpyme/test_question_alignment_gate.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py tests/smartpyme/test_ocf_snapshot.py -q` |
+| riesgos residuales | Posible discrepancia futura entre labels/copy declarativos y claves dinámicas de catálogo/reconciliación. Riesgo mitigado por fallbacks existentes. |
+| regla de reapertura | Reabrir sólo ante cambio en contratos de copy/labels, bug real de rendering owner-facing, nueva audiencia de reporte, cambio explícito de owner question flow, o integración futura con `service_depth` o packs que afecte presentación. |
+
+Cobertura auditada:
+
+- `owner_facing_report.py` construye reporte owner-facing sin diagnóstico.
+- `owner_output.py` simplifica salida sin inventar hallazgos.
+- `owner_markdown_renderer.py` renderiza Markdown sin decidir estado de caso.
+- `question_resolution.py` traduce referencias y evidencia solicitada sin ejecutar diagnóstico.
+- `question_alignment_gate.py` alinea preguntas sin reescribir diagnóstico.
+- Ninguno escribe storage ni crea records.
+- Ninguno importa `vertical_pipeline.py`.
+- Frontera datos del caso ≠ presentación ≠ diagnóstico ≠ persistencia preservada.
+
+### 9. `pipeline_registration.py`
 
 | Campo | Valor |
 |---|---|
@@ -76,7 +152,7 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | riesgos residuales | `pipeline_registration.py` persiste `pipeline_runs.jsonl` directamente con helper local en vez de delegar en `storage.py`. No rompe comportamiento actual, pero debe reabrirse si se amplía persistencia, si aparece adapter DB, o si se formaliza `save_pipeline_run_record`. |
 | regla de reapertura | Reabrir sólo ante nuevo backend de persistencia, nuevo tipo de record operativo, cambio de schema JSONL, bug real de replay/OCF, o decisión explícita de extraer `save_pipeline_run_record`. |
 
-### 5. `storage.py`
+### 10. `storage.py`
 
 | Campo | Valor |
 |---|---|
@@ -88,7 +164,7 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | riesgos residuales | La frontera queda parcialmente asimétrica porque `pipeline_registration.py` persiste `pipeline_runs.jsonl` con helper local en vez de delegar en `storage.py`. No rompe comportamiento actual, pero debe reabrirse si se amplía persistencia, si aparece adapter DB, o si se formaliza `save_pipeline_run_record`. |
 | regla de reapertura | Reabrir sólo ante nuevo backend de persistencia, nuevo tipo de record operativo, cambio de schema JSONL, bug real de replay/OCF, o decisión explícita de extraer `save_pipeline_run_record`. |
 
-### 6. `case_replay.py`
+### 11. `case_replay.py`
 
 | Campo | Valor |
 |---|---|
@@ -112,7 +188,7 @@ Cobertura auditada:
 - reconstruye determinísticamente la historia del caso
 - expone datos suficientes para `ocf_snapshot.py`
 
-### 7. `ocf_snapshot.py`
+### 12. `ocf_snapshot.py`
 
 | Campo | Valor |
 |---|---|
