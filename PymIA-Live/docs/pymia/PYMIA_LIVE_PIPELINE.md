@@ -1,5 +1,19 @@
 # PYMIA LIVE PIPELINE
 
+## Authority Notice
+
+Status: PARTIALLY_SUPERSEDED
+
+Este documento conserva valor histórico sobre el pipeline Live V1, pero no debe usarse como autoridad única si contradice:
+
+- PYMIA_LIVE_CORE_MANIFEST.md
+- LIVE_CODE_FREEZE_LEDGER.md
+- PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md
+
+En particular, las referencias a QuestionAlignmentGate como capacidad futura están superadas por el cierre documentado en el manifest y el freeze ledger.
+
+---
+
 ## Estado
 
 `LIVE_PIPELINE_V1`

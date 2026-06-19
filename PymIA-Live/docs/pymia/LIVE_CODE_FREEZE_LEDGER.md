@@ -30,6 +30,7 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | Storage | `PymIA-Live/pymia/smartpyme/storage.py` | `FREEZE_REGISTRATION_STORAGE` | `PASS` | `35538b4` | auditoría de frontera cerrada |
 | Case replay | `PymIA-Live/pymia/smartpyme/case_replay.py` | `FREEZE_CASE_REPLAY` | `PASS` | `902b0dd` | auditoría de frontera cerrada |
 | OCF snapshot | `PymIA-Live/pymia/smartpyme/ocf_snapshot.py` | `FIXED` | `PASS` | `f372be5` | fix mínimo auditado |
+| Service depth routing | `PymIA-Live/pymia/smartpyme/service_depth.py` | `FROZEN` | `PASS` | `current HEAD` | auditoría de routing proporcional |
 
 ## Estado por módulo
 
@@ -199,6 +200,19 @@ Cobertura auditada:
 | tests ejecutados | `python -m pytest tests/smartpyme/test_ocf_snapshot.py -q`; `python -m pytest tests/smartpyme/test_ocf_snapshot.py tests/smartpyme/test_case_replay.py -q`; `python -m pytest tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py tests/smartpyme/test_ocf_snapshot.py -q` |
 | riesgos residuales | El snapshot puede quedar desalineado si el replay o los records JSONL agregan nuevos refs y nadie los copia explícitamente. |
 | regla de reapertura | Reabrir si cambian `run_refs`, `evidence_refs`, el contrato de replay, `heuristic_ratio`, o si el snapshot deja de ser read-only. |
+
+### 13. `service_depth.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/service_depth.py` |
+| decisión | `FROZEN` |
+| veredicto | `PASS` |
+| commit relacionado | `current HEAD` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_service_depth.py -q`; incluido además en baterías de frontera con `test_ocf_snapshot.py` y `test_vertical_pipeline_boundary.py`. |
+| cobertura auditada | Clasifica profundidad proporcional de servicio: `FIRST_AID`, `DETERMINISTIC_DIAGNOSIS`, `ORGANIZATIONAL_LAB`. No diagnostica, no calcula fórmulas, no persiste, no llama LLM, no importa `diagnostic_core`. |
+| riesgos residuales | Usa vocabulario V1 local limitado a routing. Este vocabulario no debe crecer hacia conocimiento sectorial ni reemplazar packs/contratos declarativos. |
+| regla de reapertura | Reabrir sólo si se externaliza a contract/pack, cambia el modelo de profundidad de servicio, cambia la integración con OCF snapshot, o aparece deriva real hacia diagnóstico, fórmulas, persistencia o conocimiento sectorial hardcodeado. |
 
 ## Cadena viva auditada
 

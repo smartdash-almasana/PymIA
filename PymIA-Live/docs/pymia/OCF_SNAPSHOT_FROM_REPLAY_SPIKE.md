@@ -1,5 +1,22 @@
 # OCF Snapshot from Replay Spike
 
+## Implementation Notice
+
+Status: IMPLEMENTED_AND_SUPERSEDED_BY_LEDGER
+
+Este spike conserva valor como especificación histórica, pero su estado operativo fue superado.
+
+Implementación vigente:
+
+- PymIA-Live/pymia/smartpyme/ocf_snapshot.py
+- PymIA-Live/tests/smartpyme/test_ocf_snapshot.py
+
+Autoridad vigente:
+
+- LIVE_CODE_FREEZE_LEDGER.md
+
+---
+
 ## Estado
 
 ```text
