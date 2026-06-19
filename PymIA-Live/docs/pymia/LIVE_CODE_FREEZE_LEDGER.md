@@ -21,6 +21,7 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | Document ingestion | `PymIA-Live/tools/document_ingestion.py` | `FROZEN` | `PASS` | `2d0e53e` | checkpoint/piloto histórico |
 | Structured evidence builder | `PymIA-Live/pymia/smartpyme/structured_evidence_builder.py` | `FROZEN` | `PASS` | `f4494a3` | checkpoint histórico |
 | Vertical pipeline | `PymIA-Live/pymia/application/vertical_pipeline.py` | `FROZEN` | `PASS` | `2606841` | auditoría de frontera cerrada |
+| Case replay | `PymIA-Live/pymia/smartpyme/case_replay.py` | `FREEZE_CASE_REPLAY` | `PASS` | `902b0dd` | auditoría de frontera cerrada |
 | OCF snapshot | `PymIA-Live/pymia/smartpyme/ocf_snapshot.py` | `FIXED` | `PASS` | `f372be5` | fix mínimo auditado |
 
 ## Estado por módulo
@@ -61,7 +62,31 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | riesgos residuales | Sigue siendo el mayor concentrador de deriva funcional: lectura de Excel, evidencia, owner report, render, pipeline run, adapter diagnóstico y question alignment convergen ahí. |
 | regla de reapertura | Reabrir si cambian las claves públicas de `build_pipeline()`, la trazabilidad mínima de `build_report()`, los imports prohibidos o la delegación de `build_markdown()` al renderer. |
 
-### 4. `ocf_snapshot.py`
+### 4. `case_replay.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/case_replay.py` |
+| decisión | `FREEZE_CASE_REPLAY` |
+| veredicto | `PASS` |
+| commit relacionado | `902b0dd feat(pymia-live): persist taxonomic intake through replay snapshot` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_case_replay.py tests/smartpyme/test_ocf_snapshot.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py -q` |
+| riesgos residuales | Dependencia directa de `_JSONL_SPECS`; si se agregan nuevos archivos JSONL operacionales o nuevos record types, debe actualizarse `case_replay.py` y sus tests. |
+| regla de reapertura | Reabrir sólo ante nuevo tipo de record JSONL, cambio de schema JSONL, bug real de replay, o incorporación explícita de eventos futuros. |
+
+Cobertura auditada:
+
+- read-only sobre JSONL
+- no escribe storage
+- no crea records
+- no importa `vertical_pipeline.py`
+- no importa `diagnostic_core`
+- no ejecuta diagnóstico
+- no infiere hallazgos no respaldados
+- reconstruye determinísticamente la historia del caso
+- expone datos suficientes para `ocf_snapshot.py`
+
+### 5. `ocf_snapshot.py`
 
 | Campo | Valor |
 |---|---|
@@ -80,6 +105,7 @@ Excel
 → document_ingestion.py
 → structured_evidence_builder.py
 → vertical_pipeline.py
+→ case_replay.py
 → ocf_snapshot.py
 ```
 
