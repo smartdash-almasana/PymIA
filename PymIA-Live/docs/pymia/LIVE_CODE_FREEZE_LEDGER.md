@@ -21,6 +21,8 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | Document ingestion | `PymIA-Live/tools/document_ingestion.py` | `FROZEN` | `PASS` | `2d0e53e` | checkpoint/piloto histórico |
 | Structured evidence builder | `PymIA-Live/pymia/smartpyme/structured_evidence_builder.py` | `FROZEN` | `PASS` | `f4494a3` | checkpoint histórico |
 | Vertical pipeline | `PymIA-Live/pymia/application/vertical_pipeline.py` | `FROZEN` | `PASS` | `2606841` | auditoría de frontera cerrada |
+| Pipeline registration | `PymIA-Live/pymia/smartpyme/pipeline_registration.py` | `FREEZE_REGISTRATION_STORAGE` | `PASS` | `faf9008` | auditoría de frontera cerrada |
+| Storage | `PymIA-Live/pymia/smartpyme/storage.py` | `FREEZE_REGISTRATION_STORAGE` | `PASS` | `35538b4` | auditoría de frontera cerrada |
 | Case replay | `PymIA-Live/pymia/smartpyme/case_replay.py` | `FREEZE_CASE_REPLAY` | `PASS` | `902b0dd` | auditoría de frontera cerrada |
 | OCF snapshot | `PymIA-Live/pymia/smartpyme/ocf_snapshot.py` | `FIXED` | `PASS` | `f372be5` | fix mínimo auditado |
 
@@ -62,7 +64,31 @@ Este ledger **no crea resultados nuevos**. Sólo consolida cierres ya existentes
 | riesgos residuales | Sigue siendo el mayor concentrador de deriva funcional: lectura de Excel, evidencia, owner report, render, pipeline run, adapter diagnóstico y question alignment convergen ahí. |
 | regla de reapertura | Reabrir si cambian las claves públicas de `build_pipeline()`, la trazabilidad mínima de `build_report()`, los imports prohibidos o la delegación de `build_markdown()` al renderer. |
 
-### 4. `case_replay.py`
+### 4. `pipeline_registration.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/pipeline_registration.py` |
+| decisión | `FREEZE_REGISTRATION_STORAGE` |
+| veredicto | `PASS` |
+| commit relacionado | `faf9008 refactor(pymia-live): realign pipeline trace identity` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_anamnesis_storage.py tests/smartpyme/test_evidence_request_storage.py tests/smartpyme/test_investigation_storage.py tests/smartpyme/test_owner_answer_storage.py tests/smartpyme/test_pipeline_registration_boundary.py tests/smartpyme/test_case_replay.py tests/smartpyme/test_ocf_snapshot.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py -q` |
+| riesgos residuales | `pipeline_registration.py` persiste `pipeline_runs.jsonl` directamente con helper local en vez de delegar en `storage.py`. No rompe comportamiento actual, pero debe reabrirse si se amplía persistencia, si aparece adapter DB, o si se formaliza `save_pipeline_run_record`. |
+| regla de reapertura | Reabrir sólo ante nuevo backend de persistencia, nuevo tipo de record operativo, cambio de schema JSONL, bug real de replay/OCF, o decisión explícita de extraer `save_pipeline_run_record`. |
+
+### 5. `storage.py`
+
+| Campo | Valor |
+|---|---|
+| archivo | `PymIA-Live/pymia/smartpyme/storage.py` |
+| decisión | `FREEZE_REGISTRATION_STORAGE` |
+| veredicto | `PASS` |
+| commit relacionado | `35538b4 feat(pymia-live): add evidence request record contract and storage` |
+| tests ejecutados | `python -m pytest tests/smartpyme/test_anamnesis_storage.py tests/smartpyme/test_evidence_request_storage.py tests/smartpyme/test_investigation_storage.py tests/smartpyme/test_owner_answer_storage.py tests/smartpyme/test_pipeline_registration_boundary.py tests/smartpyme/test_case_replay.py tests/smartpyme/test_ocf_snapshot.py tests/application/test_vertical_pipeline_boundary.py tests/smartpyme/test_service_depth.py -q` |
+| riesgos residuales | La frontera queda parcialmente asimétrica porque `pipeline_registration.py` persiste `pipeline_runs.jsonl` con helper local en vez de delegar en `storage.py`. No rompe comportamiento actual, pero debe reabrirse si se amplía persistencia, si aparece adapter DB, o si se formaliza `save_pipeline_run_record`. |
+| regla de reapertura | Reabrir sólo ante nuevo backend de persistencia, nuevo tipo de record operativo, cambio de schema JSONL, bug real de replay/OCF, o decisión explícita de extraer `save_pipeline_run_record`. |
+
+### 6. `case_replay.py`
 
 | Campo | Valor |
 |---|---|
@@ -86,7 +112,7 @@ Cobertura auditada:
 - reconstruye determinísticamente la historia del caso
 - expone datos suficientes para `ocf_snapshot.py`
 
-### 5. `ocf_snapshot.py`
+### 7. `ocf_snapshot.py`
 
 | Campo | Valor |
 |---|---|
@@ -105,6 +131,8 @@ Excel
 → document_ingestion.py
 → structured_evidence_builder.py
 → vertical_pipeline.py
+→ pipeline_registration.py
+→ storage.py
 → case_replay.py
 → ocf_snapshot.py
 ```
