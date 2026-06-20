@@ -21,6 +21,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from pymia.contracts.evidence_v1 import EvidenceTable, StructuredEvidence
+from pymia.smartpyme.evidence_value_normalizer import normalize_evidence_value
 from tools.bem_schema_builder.excel_profile_builder import ColumnSemanticClassifier, ExcelProfileBuilder
 
 
@@ -460,7 +461,7 @@ class StructuredEvidenceExporter:
                 enriched = dict(record)
                 enriched["document_ref"] = f"{table.sheet_name}:row:{idx}"
                 semantic_rows.append(enriched)
-        computed_variables = self._compute_variables(semantic_rows)
+        computed_variables, evidence_warnings = self._compute_variables(semantic_rows)
         signals = [
             dict(record)
             for table in curated.normalized_tables
@@ -486,28 +487,36 @@ class StructuredEvidenceExporter:
                 "sheet_reports": curated.report.sheet_reports,
                 "validation_issues_count": len(curated.report.validation_issues),
                 "owner_questions_required": bool(curated.report.unknown_fields or curated.report.ambiguous_fields),
+                "evidence_warnings": evidence_warnings,
                 "signals": signals,
             },
         )
 
-    def _compute_variables(self, rows: list[JsonObject]) -> dict[str, float]:
+    def _compute_variables(self, rows: list[JsonObject]) -> tuple[dict[str, float], list[JsonObject]]:
         ventas_total = 0.0
         costos_total = 0.0
         margen_total = 0.0
         cantidad_total = 0.0
+        has_quantity = False
         has_sales = False
         has_costs = False
         has_margin = False
+        evidence_warnings: list[JsonObject] = []
 
         for row in rows:
-            cantidad = _to_float(row.get("cantidad"))
-            venta_total = _to_float(row.get("venta_total"))
-            precio_venta = _to_float(row.get("precio_venta"))
-            costo_unitario = _to_float(row.get("costo_unitario"))
-            margen = _to_float(row.get("margen"))
+            normalized_row = self._normalize_compute_row(row)
+            evidence_warnings.extend(normalized_row["evidence_warnings"])
+            values = normalized_row["values"]
+
+            cantidad = values.get("cantidad")
+            venta_total = values.get("venta_total")
+            precio_venta = values.get("precio_venta")
+            costo_unitario = values.get("costo_unitario")
+            margen = values.get("margen")
 
             if cantidad is not None:
                 cantidad_total += cantidad
+                has_quantity = True
             if venta_total is None and precio_venta is not None and cantidad is not None:
                 venta_total = precio_venta * cantidad
             if venta_total is not None:
@@ -525,7 +534,7 @@ class StructuredEvidenceExporter:
             computed["ventas_total"] = round(ventas_total, 2)
         if has_costs:
             computed["costos_total"] = round(costos_total, 2)
-        if cantidad_total:
+        if has_quantity:
             computed["cantidad_total"] = round(cantidad_total, 2)
         if has_margin:
             computed["margen_bruto"] = round(margen_total, 2)
@@ -533,7 +542,55 @@ class StructuredEvidenceExporter:
             computed["margen_bruto"] = round(ventas_total - costos_total, 2)
         if "margen_bruto" in computed and has_sales and ventas_total:
             computed["margen_bruto_pct"] = round(computed["margen_bruto"] / ventas_total, 4)
-        return computed
+        return computed, evidence_warnings
+
+    def _normalize_compute_row(self, row: JsonObject) -> JsonObject:
+        values: dict[str, float] = {}
+        evidence_warnings: list[JsonObject] = []
+
+        for field_name in ("cantidad", "venta_total", "precio_venta", "costo_unitario", "margen"):
+            if field_name not in row:
+                continue
+
+            normalized = normalize_evidence_value(
+                raw_value=self._value_for_compute_normalizer(row.get(field_name)),
+                field_name=field_name,
+                expected_type="number",
+                required=False,
+            )
+            evidence_warnings.extend(self._dump_evidence_warning(warning) for warning in normalized.warnings)
+            if normalized.allows_calculation and normalized.normalized_value is not None:
+                values[field_name] = float(normalized.normalized_value)
+
+        return {
+            "values": values,
+            "evidence_warnings": evidence_warnings,
+        }
+
+    def _value_for_compute_normalizer(self, raw_value: Any) -> Any:
+        if isinstance(raw_value, str):
+            text = raw_value.strip().lower()
+            if text in {"nan", "none", "null", "-"}:
+                return None
+            parsed = _to_float(raw_value)
+            return parsed if parsed is not None else raw_value
+        if isinstance(raw_value, bool):
+            return raw_value
+        if isinstance(raw_value, int | float) and pd.isna(raw_value):
+            return None
+        return raw_value
+
+    def _dump_evidence_warning(self, warning: Any) -> JsonObject:
+        return {
+            "warning_id": warning.warning_id,
+            "severity": warning.severity,
+            "source_field": warning.source_field,
+            "reason_code": warning.reason_code,
+            "owner_message": warning.owner_message,
+            "operator_detail": warning.operator_detail,
+            "blocks_calculation": warning.blocks_calculation,
+            "suggested_next_evidence": warning.suggested_next_evidence,
+        }
 
 
 class XlsxCurationPipeline:
