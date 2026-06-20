@@ -287,6 +287,7 @@ El catálogo documental completo se clasifica y se mapea con respecto a su estad
 | `docs/ingenieria_conversacional.MAPA_INTEGRACION_v1.md` | **ARCHIVO** | Jerarquías provisionales antiguas | Arqueología | — | — | — | — | **Conservar histórica.** |
 | `docs/ingenieria_conversacional.PATOLOGIAS_PYME_Y_TANQUES_DE_CONOCIMIENTO_v1.md` | **ARCHIVO** | Patologías iniciales del sistema | Arqueología | — | — | — | — | **Conservar histórica.** |
 | `docs/ingenieria_conversacional.README.md` | **BORRAR_PROPUESTO** | Índice conversacional heredado redundante | Arqueología | — | — | `docs/DOCUMENTATION_INDEX.md` | — | **Proponer borrado en próximo cleanup.** |
+| `docs/pymia/PRIMEROS_AUXILIOS_GPT_V1_CHECKPOINT.md` | **CLOSED_CHECKPOINT** | Checkpoint de cierre operativo de Primeros Auxilios GPT V1 | PymIA-Live / SmartPyme / First Aid | ADR-007 | Bloques First Aid e ingestion normalizer cerrados en sesión | — | `PymIA-Live/tools/document_ingestion.py` y módulos First Aid | **Preservar como cierre. No autoriza diagnóstico, runtime nuevo ni features nuevas.** |
 
 ---
 
