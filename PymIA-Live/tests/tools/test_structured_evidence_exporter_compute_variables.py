@@ -146,6 +146,52 @@ def test_legacy_to_float_formats_remain_accepted_by_compute_boundary() -> None:
         assert evidence.metadata["evidence_warnings"] == []
 
 
+def test_semantic_field_mapper_legacy_formats_remain_accepted() -> None:
+    """All 6 legacy numeric formats survive SemanticFieldMapper._coerce_semantic_value → export."""
+    cases = [
+        ("1,200.50", 1200.5),
+        ("1.200,50", 1200.5),
+        ("$ 1.200,50", 1200.5),
+        ("10%", 10.0),
+        ("1200,50", 1200.5),
+        ("1200.50", 1200.5),
+    ]
+    for raw_value, expected in cases:
+        evidence = _export_mapped_evidence({"venta_total": raw_value})
+        assert evidence.computed_variables["ventas_total"] == expected, f"Failed for {raw_value}"
+        assert evidence.metadata["evidence_warnings"] == [], f"Unexpected warnings for {raw_value}"
+
+
+def test_semantic_field_mapper_boundary_values_handled_correctly() -> None:
+    """ZERO_REAL preserved, missing/ambiguous excluded via SemanticFieldMapper path."""
+    evidence = _export_mapped_evidence({"venta_total": "0"})
+    assert evidence.computed_variables["ventas_total"] == 0.0
+
+    evidence = _export_mapped_evidence({"venta_total": None})
+    assert "ventas_total" not in evidence.computed_variables
+
+    evidence = _export_mapped_evidence({"venta_total": ""})
+    assert "ventas_total" not in evidence.computed_variables
+
+    evidence = _export_mapped_evidence({"venta_total": "nan"})
+    assert "ventas_total" not in evidence.computed_variables
+
+    evidence = _export_mapped_evidence({"venta_total": "12,34,56"})
+    assert "ventas_total" not in evidence.computed_variables
+    # Note: SemanticFieldMapper._coerce_semantic_value drops unparseable strings
+    # to None before the normalizer sees them, so no AMBIGUOUS_FORMAT warning
+    # is emitted here. This is a known behavior gap compared to the direct path.
+
+
+def test_semantic_field_mapper_computed_variables_is_dict_str_float() -> None:
+    """computed_variables remains dict[str, float] after full SemanticFieldMapper → export."""
+    evidence = _export_mapped_evidence({"cantidad": 3, "precio_venta": 25})
+    assert isinstance(evidence.computed_variables, dict)
+    for k, v in evidence.computed_variables.items():
+        assert isinstance(k, str)
+        assert isinstance(v, float)
+
+
 def test_unavailable_number_tokens_are_excluded_from_computed_variables() -> None:
     for raw_value in ("nan", "null", "-"):
         evidence = _export_evidence({"venta_total": raw_value})
