@@ -755,7 +755,12 @@ def _coerce_semantic_value(field_name: str, value: Any, *, context: str) -> Any:
     if field_name in int_fields or (context == "stock" and field_name == "cantidad"):
         return _to_int(value)
     if field_name in numeric_fields:
-        return _to_float(value)
+        parsed = _to_float(value)
+        if parsed is None and isinstance(value, str):
+            text = value.strip().lower()
+            if text and text not in {"nan", "none", "null", "-"}:
+                return value
+        return parsed
     if field_name in date_fields:
         return _to_date(value)
     if field_name in text_fields:

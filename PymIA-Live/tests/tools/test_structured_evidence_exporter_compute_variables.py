@@ -96,12 +96,13 @@ def test_excludes_ambiguous_number_from_computed_variables() -> None:
 
 
 def test_zero_real_is_included_as_zero_not_missing() -> None:
-    evidence = _export_evidence({"cantidad": 0, "precio_venta": 10, "costo_unitario": 5})
+    for raw_zero in (0, 0.0, "0"):
+        evidence = _export_evidence({"cantidad": raw_zero, "precio_venta": 10, "costo_unitario": 5})
 
-    assert evidence.computed_variables["ventas_total"] == 0.0
-    assert evidence.computed_variables["costos_total"] == 0.0
-    assert evidence.computed_variables["cantidad_total"] == 0.0
-    assert evidence.metadata["evidence_warnings"] == []
+        assert evidence.computed_variables["ventas_total"] == 0.0
+        assert evidence.computed_variables["costos_total"] == 0.0
+        assert evidence.computed_variables["cantidad_total"] == 0.0
+        assert evidence.metadata["evidence_warnings"] == []
 
 
 def test_missing_field_is_excluded_from_computed_variables() -> None:
@@ -162,25 +163,31 @@ def test_semantic_field_mapper_legacy_formats_remain_accepted() -> None:
         assert evidence.metadata["evidence_warnings"] == [], f"Unexpected warnings for {raw_value}"
 
 
+def test_semantic_field_mapper_ambiguous_numeric_value_emits_warning() -> None:
+    evidence = _export_mapped_evidence({"venta_total": "12,34,56"})
+
+    assert "ventas_total" not in evidence.computed_variables
+    warnings = evidence.metadata["evidence_warnings"]
+    assert warnings[0]["source_field"] == "venta_total"
+    assert warnings[0]["reason_code"] == "AMBIGUOUS_FORMAT"
+    assert warnings[0]["blocks_calculation"] is True
+
+
+def test_semantic_field_mapper_missing_tokens_do_not_warn_as_ambiguous() -> None:
+    for raw_value in ("nan", "null", "-", "", None):
+        evidence = _export_mapped_evidence({"venta_total": raw_value})
+
+        assert "ventas_total" not in evidence.computed_variables
+        assert all(
+            warning["reason_code"] != "AMBIGUOUS_FORMAT"
+            for warning in evidence.metadata["evidence_warnings"]
+        )
+
+
 def test_semantic_field_mapper_boundary_values_handled_correctly() -> None:
-    """ZERO_REAL preserved, missing/ambiguous excluded via SemanticFieldMapper path."""
+    """ZERO_REAL preserved via SemanticFieldMapper path."""
     evidence = _export_mapped_evidence({"venta_total": "0"})
     assert evidence.computed_variables["ventas_total"] == 0.0
-
-    evidence = _export_mapped_evidence({"venta_total": None})
-    assert "ventas_total" not in evidence.computed_variables
-
-    evidence = _export_mapped_evidence({"venta_total": ""})
-    assert "ventas_total" not in evidence.computed_variables
-
-    evidence = _export_mapped_evidence({"venta_total": "nan"})
-    assert "ventas_total" not in evidence.computed_variables
-
-    evidence = _export_mapped_evidence({"venta_total": "12,34,56"})
-    assert "ventas_total" not in evidence.computed_variables
-    # Note: SemanticFieldMapper._coerce_semantic_value drops unparseable strings
-    # to None before the normalizer sees them, so no AMBIGUOUS_FORMAT warning
-    # is emitted here. This is a known behavior gap compared to the direct path.
 
 
 def test_semantic_field_mapper_computed_variables_is_dict_str_float() -> None:
