@@ -21,8 +21,16 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from pymia.contracts.evidence_v1 import EvidenceTable, StructuredEvidence
+from pymia.contracts.column_confirmation_v1 import (
+    CalculationRelevance,
+    ColumnConfirmationEntry,
+    ColumnConfirmationMatrix,
+    ConfirmationStatus,
+    infer_calculation_relevance,
+)
 from pymia.smartpyme.evidence_value_normalizer import normalize_evidence_value
 from tools.bem_schema_builder.excel_profile_builder import ColumnSemanticClassifier, ExcelProfileBuilder
+from tools.bem_schema_builder.owner_questions_builder import OwnerQuestionsBuilder
 
 
 JsonObject = dict[str, Any]
@@ -105,10 +113,13 @@ class DocumentCurationReport:
     ambiguous_fields: list[str] = field(default_factory=list)
     sheet_reports: dict[str, str] = field(default_factory=dict)
     validation_issues: list[CellValidationIssue] = field(default_factory=list)
+    column_confirmation_matrix: ColumnConfirmationMatrix | None = None
 
     def to_dict(self) -> JsonObject:
         payload = asdict(self)
         payload["validation_issues"] = [issue.to_dict() for issue in self.validation_issues]
+        if self.column_confirmation_matrix is not None:
+            payload["column_confirmation_matrix"] = self.column_confirmation_matrix.model_dump(mode="json")
         return payload
 
 
@@ -344,6 +355,9 @@ class SemanticFieldMapper:
 class DocumentCurator:
     """Build a deterministic curation report from raw and normalized tables."""
 
+    def __init__(self) -> None:
+        self._confirmation_builder = ColumnConfirmationBuilder()
+
     def build_report(self, *, file_name: str, raw_tables: list[RawTable], normalized_tables: list[NormalizedTable]) -> DocumentCurationReport:
         mapped_fields: dict[str, str] = {}
         unknown_fields: set[str] = set()
@@ -388,6 +402,12 @@ class DocumentCurator:
         if not normalized_tables or not any(table.records for table in normalized_tables):
             status = "BLOCKED"
 
+        matrix = self._confirmation_builder.build(
+            file_name=file_name,
+            normalized_tables=normalized_tables,
+            raw_tables=raw_tables,
+        )
+
         return DocumentCurationReport(
             file_name=file_name,
             status=status,
@@ -398,6 +418,7 @@ class DocumentCurator:
             ambiguous_fields=sorted(ambiguous_fields),
             sheet_reports=sheet_reports,
             validation_issues=issues,
+            column_confirmation_matrix=matrix,
         )
 
     def _validate_normalized_record(self, sheet_name: str, row_number: int, record: JsonObject, *, context: str) -> list[CellValidationIssue]:
@@ -441,6 +462,223 @@ class DocumentCurator:
         return issues
 
 
+class ColumnConfirmationBuilder:
+    """Build a column confirmation matrix from curated tables.
+
+    The mapper suggests. The owner confirms. Only confirmed columns feed calculations.
+    """
+
+    # Column-name negative patterns: when these tokens appear together, the column is NOT a monto/pago.
+    _NEGATIVE_TOKEN_PATTERNS: dict[str, set[str]] = {
+        "pago": {"metodo", "forma", "tipo", "modalidad", "medio"},
+        "precio": {"lista", "referencia", "sugerido", "mayorista"},
+        "costo": {"lista", "referencia"},
+        "venta": {"canal", "tipo", "forma", "metodo"},
+    }
+
+    # Expanded prompts for specific problematic columns
+    _SPECIFIC_PROMPTS: dict[str, str] = {
+        "preciounitario": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es el precio cobrado al cliente? ¿Antes o después de descuento?",
+        "precio": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es precio de lista, precio de venta real, costo o referencia?",
+        "metodopago": "En la hoja \"{sheet}\", ¿la columna \"{col}\" indica forma de pago (efectivo/tarjeta/transferencia) o contiene un importe?",
+        "formadepago": "En la hoja \"{sheet}\", ¿la columna \"{col}\" indica forma de pago (efectivo/tarjeta/transferencia) o contiene un importe?",
+        "modalidaddepago": "En la hoja \"{sheet}\", ¿la columna \"{col}\" indica forma de pago o contiene un importe?",
+        "mediodepago": "En la hoja \"{sheet}\", ¿la columna \"{col}\" indica forma de pago o contiene un importe?",
+        "tipodepago": "En la hoja \"{sheet}\", ¿la columna \"{col}\" indica forma de pago o contiene un importe?",
+        "canalventa": "En la hoja \"{sheet}\", ¿la columna \"{col}\" indica el canal comercial de la venta?",
+        "canal": "En la hoja \"{sheet}\", ¿la columna \"{col}\" indica el canal comercial o contiene datos adicionales?",
+        "sucursalid": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es identificador de sucursal o contiene datos numéricos?",
+        "ventaID": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es identificador de venta o contiene un importe?",
+        "hora": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es hora de la venta, de entrega, de pago o de registro?",
+        "empleado": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es nombre/ID del vendedor o contiene comisiones?",
+        "categoria": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es categoría de producto, de cliente o de venta?",
+        "ciudad": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es ciudad del cliente, de la sucursal o de entrega?",
+        "sucursal": "En la hoja \"{sheet}\", ¿la columna \"{col}\" es nombre de sucursal o contiene datos adicionales?",
+    }
+
+    def build(
+        self,
+        *,
+        file_name: str,
+        normalized_tables: list[NormalizedTable],
+        raw_tables: list[RawTable],
+    ) -> ColumnConfirmationMatrix:
+        entries: list[ColumnConfirmationEntry] = []
+        # Index raw tables by sheet to grab sample_values
+        raw_by_sheet = {t.sheet_name: t for t in raw_tables}
+
+        for table in normalized_tables:
+            raw = raw_by_sheet.get(table.sheet_name)
+            sample_by_column: dict[str, list[Any]] = {}
+            if raw is not None and raw.records:
+                for column in table.columns:
+                    values: list[Any] = []
+                    for record in raw.records[:5]:
+                        v = record.get(column)
+                        if v is not None:
+                            values.append(v)
+                    sample_by_column[column] = values
+
+            for mapping in table.mappings:
+                column = mapping.source_column
+                suggested_role = mapping.target_field
+                confidence = mapping.confidence
+                relevance = infer_calculation_relevance(suggested_role)
+                inferred_type = self._infer_type_from_samples(sample_by_column.get(column, []))
+                suggested_data_type = self._suggest_data_type(suggested_role, inferred_type)
+
+                # Determine status
+                is_ambiguous = confidence == "ambiguous"
+                is_unknown = confidence == "unknown"
+                has_negative_pattern = self._matches_negative_pattern(column, suggested_role)
+
+                # If a negative pattern fires, demote to unknown and mark relevance as INFORMATIONAL.
+                if has_negative_pattern:
+                    suggested_role = "unknown"
+                    relevance = CalculationRelevance.INFORMATIONAL
+                    is_unknown = True
+                    confidence = "unknown"
+
+                # Default status logic
+                if is_ambiguous and relevance != CalculationRelevance.INFORMATIONAL:
+                    status = ConfirmationStatus.BLOCKED_AMBIGUOUS
+                elif is_unknown and relevance != CalculationRelevance.INFORMATIONAL:
+                    status = ConfirmationStatus.PENDING_OWNER_CONFIRMATION
+                elif is_unknown or is_ambiguous:
+                    # Pure informational unknown/ambiguous: still pending if it might be hiding a calc field
+                    status = ConfirmationStatus.PENDING_OWNER_CONFIRMATION
+                else:
+                    # Mapped cleanly: ALL columns require confirmation, regardless of relevance.
+                    # IGNORED_NOT_RELEVANT only exists after explicit owner confirmation (not inferred by mapper).
+                    status = ConfirmationStatus.PENDING_OWNER_CONFIRMATION
+
+                owner_question = self._build_question(
+                    sheet_name=table.sheet_name,
+                    column=column,
+                    suggested_role=suggested_role,
+                    relevance=relevance,
+                    status=status,
+                )
+
+                entries.append(
+                    ColumnConfirmationEntry(
+                        original_column_name=column,
+                        sheet_name=table.sheet_name,
+                        sample_values=sample_by_column.get(column, [])[:5],
+                        inferred_type=inferred_type,
+                        suggested_semantic_role=suggested_role,
+                        suggested_data_type=suggested_data_type,
+                        calculation_relevance=relevance,
+                        confidence=confidence,
+                        owner_question=owner_question,
+                        owner_confirmed_role=None,
+                        confirmation_status=status,
+                    )
+                )
+
+        return ColumnConfirmationMatrix(file_name=file_name, entries=entries)
+
+    def _matches_negative_pattern(self, column_name: str, suggested_role: str) -> bool:
+        normalized = column_name.lower().replace(" ", "").replace("_", "").replace("-", "")
+        negative_tokens = self._NEGATIVE_TOKEN_PATTERNS.get(suggested_role, set())
+        if not negative_tokens:
+            return False
+        return any(token in normalized for token in negative_tokens)
+
+    def _infer_type_from_samples(self, samples: list[Any]) -> str:
+        if not samples:
+            return "empty"
+        numeric_count = 0
+        date_count = 0
+        text_count = 0
+        for v in samples:
+            if v is None:
+                continue
+            if isinstance(v, bool):
+                text_count += 1
+            elif isinstance(v, (int, float)):
+                numeric_count += 1
+            elif isinstance(v, str):
+                if _to_float(v) is not None:
+                    numeric_count += 1
+                elif _to_date(v) is not None:
+                    date_count += 1
+                else:
+                    text_count += 1
+            else:
+                text_count += 1
+        total = numeric_count + date_count + text_count
+        if total == 0:
+            return "empty"
+        if numeric_count / total >= 0.6:
+            return "number"
+        if date_count / total >= 0.6:
+            return "date"
+        if text_count / total >= 0.6:
+            return "text"
+        return "mixed"
+
+    def _suggest_data_type(self, semantic_role: str, inferred_type: str) -> str:
+        if inferred_type in {"number", "date", "text"}:
+            return inferred_type
+        if semantic_role in {"cantidad", "stock", "stock_final"}:
+            return "int"
+        if semantic_role in {
+            "precio_venta",
+            "costo_unitario",
+            "venta_total",
+            "costo_total",
+            "margen",
+            "pago",
+            "cobro",
+            "saldo",
+            "gasto",
+        }:
+            return "float"
+        if semantic_role == "fecha":
+            return "date"
+        return "text"
+
+    def _build_question(
+        self,
+        *,
+        sheet_name: str,
+        column: str,
+        suggested_role: str,
+        relevance: CalculationRelevance,
+        status: ConfirmationStatus,
+    ) -> str:
+        # ALL columns require owner confirmation. No early return.
+        # IGNORED_NOT_RELEVANT only exists after explicit owner confirmation (handled elsewhere).
+
+        normalized = column.lower().replace(" ", "").replace("_", "").replace("-", "")
+        # 1. Try specific prompt first
+        for key, prompt in self._SPECIFIC_PROMPTS.items():
+            if key in normalized:
+                return prompt.format(sheet=sheet_name, col=column)
+
+        # 2. Generic question based on relevance
+        if relevance == CalculationRelevance.VENTAS:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" representa un monto de venta o una cantidad?"
+        if relevance == CalculationRelevance.COSTOS:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" representa un costo unitario o un costo total?"
+        if relevance == CalculationRelevance.MARGEN:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" es margen bruto en pesos o porcentaje?"
+        if relevance == CalculationRelevance.STOCK:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" es cantidad de unidades en stock?"
+        if relevance == CalculationRelevance.PAGOS:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" es un pago/cobro en dinero o un método de pago?"
+        if relevance == CalculationRelevance.CANTIDADES:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" representa unidades vendidas, compradas o producidas?"
+        if relevance == CalculationRelevance.SEGMENTATION:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" se usa para agrupar/segmentar datos (ej: canal, sucursal) o contiene valores calculables?"
+        if relevance == CalculationRelevance.INFORMATIONAL:
+            return f"En la hoja \"{sheet_name}\", ¿la columna \"{column}\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?"
+
+        # 3. Fallback generic
+        return f"En la hoja \"{sheet_name}\", ¿qué significa la columna \"{column}\"? ¿Se usa para calcular ventas, costos, margen, stock, pagos o sólo describe información?"
+
+
 class StructuredEvidenceExporter:
     """Convert curated local tables into PymIA StructuredEvidence."""
 
@@ -461,13 +699,55 @@ class StructuredEvidenceExporter:
                 enriched = dict(record)
                 enriched["document_ref"] = f"{table.sheet_name}:row:{idx}"
                 semantic_rows.append(enriched)
-        computed_variables, evidence_warnings = self._compute_variables(semantic_rows)
+
+        matrix = curated.report.column_confirmation_matrix
+        confirmed_roles: set[str] = set()
+        if matrix is not None:
+            confirmed_roles = {
+                entry.suggested_semantic_role
+                for entry in matrix.confirmed_entries()
+            }
+            # If nothing has been confirmed yet, fall back to the set of roles
+            # whose confirmation_status is not actionable (i.e., IGNORED).
+            # But for calculation we strictly require CONFIRMED.
+
+        computed_variables, evidence_warnings = self._compute_variables(
+            semantic_rows,
+            column_confirmation_matrix=matrix,
+        )
         signals = [
             dict(record)
             for table in curated.normalized_tables
             if table.context == "senales_operativas"
             for record in table.records
         ]
+
+        owner_questions: list[dict[str, str]] = []
+        calculation_blocked = False
+        if matrix is not None:
+            owner_questions = matrix.owner_questions()
+            calculation_blocked = bool(matrix.actionable_for_calculation())
+
+        metadata: dict[str, Any] = {
+            "curation_status": curated.report.status,
+            "extraction_engine": "local_excel_evidence_v1",
+            "tables_count": curated.report.tables_count,
+            "rows_count": curated.report.rows_count,
+            "semantic_rows_count": sum(len(table.records) for table in curated.normalized_tables),
+            "field_map": curated.report.mapped_fields,
+            "fields_unknown": curated.report.unknown_fields,
+            "fields_ambiguous": curated.report.ambiguous_fields,
+            "sheet_reports": curated.report.sheet_reports,
+            "validation_issues_count": len(curated.report.validation_issues),
+            "owner_questions_required": bool(curated.report.unknown_fields or curated.report.ambiguous_fields),
+            "evidence_warnings": evidence_warnings,
+            "signals": signals,
+            "column_confirmation_matrix": matrix.model_dump(mode="json") if matrix is not None else None,
+            "owner_questions": owner_questions,
+            "calculation_blocked": calculation_blocked,
+            "confirmed_roles": sorted(confirmed_roles),
+        }
+
         return StructuredEvidence(
             tenant_id=tenant_id,
             document_type=curated.document_type,
@@ -475,24 +755,15 @@ class StructuredEvidenceExporter:
             file_name=curated.file_name,
             tables=evidence_tables,
             computed_variables=computed_variables,
-            metadata={
-                "curation_status": curated.report.status,
-                "extraction_engine": "local_excel_evidence_v1",
-                "tables_count": curated.report.tables_count,
-                "rows_count": curated.report.rows_count,
-                "semantic_rows_count": sum(len(table.records) for table in curated.normalized_tables),
-                "field_map": curated.report.mapped_fields,
-                "fields_unknown": curated.report.unknown_fields,
-                "fields_ambiguous": curated.report.ambiguous_fields,
-                "sheet_reports": curated.report.sheet_reports,
-                "validation_issues_count": len(curated.report.validation_issues),
-                "owner_questions_required": bool(curated.report.unknown_fields or curated.report.ambiguous_fields),
-                "evidence_warnings": evidence_warnings,
-                "signals": signals,
-            },
+            metadata=metadata,
         )
 
-    def _compute_variables(self, rows: list[JsonObject]) -> tuple[dict[str, float], list[JsonObject]]:
+    def _compute_variables(
+        self,
+        rows: list[JsonObject],
+        *,
+        column_confirmation_matrix: ColumnConfirmationMatrix | None = None,
+    ) -> tuple[dict[str, float], list[JsonObject]]:
         ventas_total = 0.0
         costos_total = 0.0
         margen_total = 0.0
@@ -502,6 +773,37 @@ class StructuredEvidenceExporter:
         has_costs = False
         has_margin = False
         evidence_warnings: list[JsonObject] = []
+
+        # Determine which variables can be safely computed based on column confirmation
+        can_compute = {
+            "ventas_total": True,
+            "costos_total": True,
+            "cantidad_total": True,
+            "margen_bruto": True,
+            "margen_bruto_pct": True,
+        }
+        if column_confirmation_matrix is not None:
+            for var_name in can_compute:
+                can_compute[var_name] = column_confirmation_matrix.can_compute_variable(var_name)
+
+            # Emit blocking warnings for variables that cannot be computed
+            for var_name, allowed in can_compute.items():
+                if not allowed:
+                    pending_cols = [
+                        e.original_column_name
+                        for e in column_confirmation_matrix.actionable_for_calculation()
+                        if e.suggested_semantic_role in _get_required_labels(var_name)
+                    ]
+                    evidence_warnings.append({
+                        "warning_id": f"{var_name}:COLUMN_CONFIRMATION_PENDING",
+                        "severity": "BLOCKING",
+                        "source_field": var_name,
+                        "reason_code": "COLUMN_CONFIRMATION_PENDING",
+                        "owner_message": f"No puedo calcular {var_name} hasta que confirmes las columnas: {', '.join(pending_cols[:3])}",
+                        "operator_detail": f"variable={var_name}; pending_columns={pending_cols}",
+                        "blocks_calculation": True,
+                        "suggested_next_evidence": "Confirmar el significado de las columnas pendientes.",
+                    })
 
         for row in rows:
             normalized_row = self._normalize_compute_row(row)
@@ -514,33 +816,33 @@ class StructuredEvidenceExporter:
             costo_unitario = values.get("costo_unitario")
             margen = values.get("margen")
 
-            if cantidad is not None:
+            if cantidad is not None and can_compute["cantidad_total"]:
                 cantidad_total += cantidad
                 has_quantity = True
             if venta_total is None and precio_venta is not None and cantidad is not None:
                 venta_total = precio_venta * cantidad
-            if venta_total is not None:
+            if venta_total is not None and can_compute["ventas_total"]:
                 ventas_total += venta_total
                 has_sales = True
-            if costo_unitario is not None and cantidad is not None:
+            if costo_unitario is not None and cantidad is not None and can_compute["costos_total"]:
                 costos_total += costo_unitario * cantidad
                 has_costs = True
-            if margen is not None:
+            if margen is not None and can_compute["margen_bruto"]:
                 margen_total += margen
                 has_margin = True
 
         computed: dict[str, float] = {}
-        if has_sales:
+        if has_sales and can_compute["ventas_total"]:
             computed["ventas_total"] = round(ventas_total, 2)
-        if has_costs:
+        if has_costs and can_compute["costos_total"]:
             computed["costos_total"] = round(costos_total, 2)
-        if has_quantity:
+        if has_quantity and can_compute["cantidad_total"]:
             computed["cantidad_total"] = round(cantidad_total, 2)
-        if has_margin:
+        if has_margin and can_compute["margen_bruto"]:
             computed["margen_bruto"] = round(margen_total, 2)
-        elif has_sales and has_costs:
+        elif has_sales and has_costs and can_compute["margen_bruto"]:
             computed["margen_bruto"] = round(ventas_total - costos_total, 2)
-        if "margen_bruto" in computed and has_sales and ventas_total:
+        if "margen_bruto" in computed and has_sales and ventas_total and can_compute["margen_bruto_pct"]:
             computed["margen_bruto_pct"] = round(computed["margen_bruto"] / ventas_total, 4)
         return computed, evidence_warnings
 
@@ -767,6 +1069,12 @@ def _coerce_semantic_value(field_name: str, value: Any, *, context: str) -> Any:
         text = str(value).strip()
         return text if text else None
     return value
+
+
+def _get_required_labels(variable_name: str) -> set[str]:
+    """Return the set of semantic labels required to compute a given variable."""
+    from pymia.contracts.column_confirmation_v1 import _VARIABLE_REQUIRED_LABELS
+    return _VARIABLE_REQUIRED_LABELS.get(variable_name, set())
 
 
 def json_dumps(payload: Any) -> str:
