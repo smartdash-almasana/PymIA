@@ -1,0 +1,68 @@
+source: smartcounter_core
+source_path: E:\BuenosPasos\smartbridge\smartcounter_core
+audit_title: SMARTCOUNTER_CORE AUDIT -> PYMIA VALUABLE ARTIFACTS SELECTION
+selection_status: DOCUMENTARY_EXTRACTION
+service_fit: DO_NOT_MIGRATE
+runtime_touched: false
+files_modified_outside_docs: false
+
+items:
+  - id: SMARTCOUNTER_CORE_DNM_001
+    name: ingestion_stub
+    source_file: ingestion.py
+    reason: Stub returns empty list and does not perform real Excel ingestion.
+    risk: HIGH
+    decision: DO_NOT_MIGRATE
+    allowed_rescue: Pipeline stage name only.
+
+  - id: SMARTCOUNTER_CORE_DNM_002
+    name: normalization_stub
+    source_file: normalization.py
+    reason: Stub returns rows unchanged and does not validate or normalize types.
+    risk: HIGH
+    decision: DO_NOT_MIGRATE
+    allowed_rescue: Pipeline stage name only.
+
+  - id: SMARTCOUNTER_CORE_DNM_003
+    name: hardcoded_product_name_quantity
+    source_file:
+      - entity_resolution.py
+      - comparison.py
+    reason: Hardcodes product_name and quantity, which would contaminate PymIA with a narrow schema assumption.
+    risk: MEDIUM
+    decision: DO_NOT_MIGRATE
+    allowed_rescue: Field mapping must be declarative and source-specific in PymIA.
+
+  - id: SMARTCOUNTER_CORE_DNM_004
+    name: empty_init
+    source_file: __init__.py
+    reason: Empty package marker with no reusable logic.
+    risk: NONE
+    decision: DO_NOT_MIGRATE
+    allowed_rescue: None.
+
+risk_register:
+  - risk: ingestion.py is a stub
+    severity: HIGH
+    mitigation: Reimplement ingestion through PymIA evidence adapters with tests.
+  - risk: normalization.py is a stub
+    severity: HIGH
+    mitigation: Reimplement normalization with type validation and Evidence Availability semantics.
+  - risk: hardcoded fields
+    severity: MEDIUM
+    mitigation: Use declarative field mapping; never assume product_name or quantity.
+  - risk: O(n^2) matching complexity
+    severity: MEDIUM
+    mitigation: Add size guardrails and optimization before large lists.
+  - risk: no error handling
+    severity: MEDIUM
+    mitigation: Add explicit file/data error contracts in PymIA implementation.
+  - risk: no formal tests
+    severity: MEDIUM
+    mitigation: Treat source as conceptual only; tests must be native PymIA.
+
+final_policy:
+  code_copy_allowed: false
+  pattern_rescue_allowed: true
+  runtime_integration_allowed: false
+  first_safe_implementation: contract_only_or_pure_service_with_tests

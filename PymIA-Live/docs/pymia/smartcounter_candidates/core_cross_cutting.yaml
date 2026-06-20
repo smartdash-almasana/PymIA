@@ -1,0 +1,124 @@
+source: smartcounter_core
+source_path: E:\BuenosPasos\smartbridge\smartcounter_core
+audit_title: SMARTCOUNTER_CORE AUDIT -> PYMIA VALUABLE ARTIFACTS SELECTION
+selection_status: DOCUMENTARY_EXTRACTION
+service_fit: CROSS_CUTTING_VALUE
+runtime_touched: false
+files_modified_outside_docs: false
+migration_policy: REIMPLEMENT_PATTERNS_DO_NOT_COPY_RUNTIME
+
+items:
+  - id: SMARTCOUNTER_CORE_CC_001
+    name: Entity
+    source_file: models.py
+    item_type: data_model
+    extracted_fields:
+      - entity_id
+      - canonical_name
+      - aliases
+      - source_a
+      - source_b
+      - confidence
+      - validated
+    suggested_pack_type: DataModelPack
+    why_valuable: Resolved entity model with source traceability and confidence.
+    migration_risk: LOW
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_CONTRACT_PATTERN
+
+  - id: SMARTCOUNTER_CORE_CC_002
+    name: Uncertainty
+    source_file: models.py
+    item_type: data_model
+    extracted_fields:
+      - value_a
+      - value_b
+      - similarity
+      - requires_validation
+    suggested_pack_type: DataModelPack
+    why_valuable: Explicit ambiguity model; anti-oracle boundary for uncertain matching.
+    migration_risk: NONE
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_CONTRACT_PATTERN
+
+  - id: SMARTCOUNTER_CORE_CC_003
+    name: Finding
+    source_file: models.py
+    item_type: data_model
+    extracted_fields:
+      - entity_name
+      - difference
+      - source_a
+      - source_b
+    suggested_pack_type: DataModelPack
+    why_valuable: Reconciliation finding model with evidence from both sources.
+    migration_risk: LOW
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_CONTRACT_PATTERN
+
+  - id: SMARTCOUNTER_CORE_CC_004
+    name: to_dict_serialization_pattern
+    source_file: models.py
+    item_type: serialization_pattern
+    suggested_pack_type: DataModelPack
+    why_valuable: Explicit serialization method for dataclass-like objects.
+    migration_risk: NONE
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_STYLE_PATTERN
+
+  - id: SMARTCOUNTER_CORE_CC_005
+    name: matched_b_indices_anti_duplication
+    source_file: entity_resolution.py
+    item_type: validation_rule
+    extracted_pattern: matched_b_indices = set()
+    suggested_pack_type: ValidationPack
+    why_valuable: Enforces 1:1 matching and prevents duplicate use of the same candidate.
+    migration_risk: NONE
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_CARDINALITY_RULE
+
+  - id: SMARTCOUNTER_CORE_CC_006
+    name: best_match_idx_greedy_tracking
+    source_file: entity_resolution.py
+    item_type: workflow
+    suggested_pack_type: WorkflowPack
+    why_valuable: Tracks best candidate per source row during fuzzy matching.
+    owner_facing_limit: O(n^2) complexity; optimize for large lists.
+    migration_risk: MEDIUM
+    confidence: MEDIUM
+    rescue_decision: RESCUE_AS_ALGORITHM_PATTERN_WITH_GUARDRAILS
+
+  - id: SMARTCOUNTER_CORE_CC_007
+    name: source_a_source_b_evidence_structure
+    source_file: entity_resolution.py
+    item_type: data_model
+    suggested_pack_type: DataModelPack
+    why_valuable: Stores source-specific evidence for each resolved entity.
+    migration_risk: LOW
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_SOURCE_TRACE_PATTERN
+
+  - id: SMARTCOUNTER_CORE_CC_008
+    name: explicit_pipeline_output_status
+    source_file: pipeline.py
+    item_type: data_model
+    extracted_statuses:
+      - blocked
+      - ok
+    suggested_pack_type: DataModelPack
+    why_valuable: Explicit output status makes tool result machine-checkable.
+    migration_risk: NONE
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_OUTPUT_CONTRACT_PATTERN
+
+recommended_future_contracts:
+  - TWO_SOURCE_RECONCILIATION_V1
+  - ENTITY_MATCHING_V1
+  - MATCHING_UNCERTAINTY_V1
+  - RECONCILIATION_FINDING_V1
+
+hard_boundaries:
+  - no_runtime_copy
+  - no_schema_hardcode
+  - no_diagnosis
+  - no_forced_match_when_uncertain

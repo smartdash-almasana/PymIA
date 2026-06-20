@@ -1,0 +1,115 @@
+source: smartcounter_core
+source_path: E:\BuenosPasos\smartbridge\smartcounter_core
+audit_title: SMARTCOUNTER_CORE AUDIT -> PYMIA VALUABLE ARTIFACTS SELECTION
+selection_status: DOCUMENTARY_EXTRACTION
+service_fit: FIRST_AID_VALUE
+runtime_touched: false
+files_modified_outside_docs: false
+migration_policy: REIMPLEMENT_PATTERNS_DO_NOT_COPY_RUNTIME
+
+items:
+  - id: SMARTCOUNTER_CORE_FA_001
+    name: AUTO_MATCH_THRESHOLD
+    source_file: entity_resolution.py
+    extracted_value: 0.90
+    item_type: formula_threshold
+    suggested_pack_type: FormulaPack
+    why_valuable: Automatic fuzzy matching threshold for two-source reconciliation.
+    required_evidence:
+      - two comparable string lists
+      - similarity score
+    owner_facing_limit: Matching support only; not diagnosis and not business truth confirmation.
+    migration_risk: LOW
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_DECLARATIVE_THRESHOLD
+
+  - id: SMARTCOUNTER_CORE_FA_002
+    name: UNCERTAINTY_THRESHOLD
+    source_file: entity_resolution.py
+    extracted_value: 0.75
+    item_type: formula_threshold
+    suggested_pack_type: FormulaPack
+    why_valuable: Below auto-match and above rejection zone, matching becomes uncertain and must request validation.
+    required_evidence:
+      - similarity score between 0.75 and 0.90
+    owner_facing_limit: Blocks reconciliation instead of guessing.
+    migration_risk: LOW
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_DECLARATIVE_THRESHOLD
+
+  - id: SMARTCOUNTER_CORE_FA_003
+    name: BLOCK_ON_UNCERTAINTIES
+    source_file: pipeline.py
+    extracted_pattern: 'if uncertainties: return {"status": "blocked", "uncertainties": [...]}'
+    item_type: workflow_guardrail
+    suggested_pack_type: WorkflowPack
+    why_valuable: Anti-oracle pattern; the flow stops when matching ambiguity exists.
+    required_evidence:
+      - non-empty uncertainty list
+    owner_facing_limit: Return uncertainties, not findings.
+    migration_risk: NONE
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_GUARDRAIL
+
+  - id: SMARTCOUNTER_CORE_FA_004
+    name: SEQUENCEMATCHER_SIMILARITY_RATIO
+    source_file: entity_resolution.py
+    extracted_pattern: SequenceMatcher(None, str_a, str_b).ratio()
+    item_type: formula
+    suggested_pack_type: FormulaPack
+    why_valuable: Standard-library string similarity for product/client/account matching.
+    required_evidence:
+      - two strings
+    owner_facing_limit: Similarity score only; does not prove identity.
+    migration_risk: LOW
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_REIMPLEMENTABLE_FORMULA
+
+  - id: SMARTCOUNTER_CORE_FA_005
+    name: FINDINGS_SORTED_BY_ABSOLUTE_DIFFERENCE
+    source_file: findings.py
+    extracted_pattern: 'findings.sort(key=lambda x: abs(x.difference), reverse=True)'
+    item_type: prioritization_rule
+    suggested_pack_type: WorkflowPack
+    why_valuable: Shows largest reconciliation discrepancies first.
+    required_evidence:
+      - findings with numeric difference
+    owner_facing_limit: Top discrepancies only; not root cause.
+    migration_risk: NONE
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_PRIORITIZATION_RULE
+
+  - id: SMARTCOUNTER_CORE_FA_006
+    name: TWO_SOURCE_RECONCILIATION_PIPELINE_5_STAGES
+    source_file: pipeline.py
+    extracted_pattern: ingest -> normalize -> resolve -> compare -> findings
+    item_type: workflow
+    suggested_pack_type: WorkflowPack
+    why_valuable: Minimal First Aid reconciliation flow for two files or two evidence sources.
+    required_evidence:
+      - source_a
+      - source_b
+      - comparable_fields
+    owner_facing_limit: Conciliation only; not diagnosis.
+    migration_risk: LOW
+    confidence: HIGH
+    rescue_decision: RESCUE_AS_WORKFLOW_PATTERN
+
+recommended_first_aid_tool_candidate:
+  id: two_source_reconciliation_basic
+  owner_title: Conciliar dos fuentes parecidas
+  owner_description: Comparar dos listados, detectar coincidencias probables, marcar dudas y ordenar diferencias visibles.
+  minimum_evidence:
+    - two structured or semi_structured sources
+    - comparable name field
+    - comparable numeric field when difference calculation is requested
+  hard_limits:
+    - does_not_confirm_business_truth
+    - does_not_confirm_physical_stock
+    - does_not_diagnose_root_cause
+    - blocks_on_uncertain_matching
+  proposed_statuses:
+    - RECONCILIATION_OK
+    - RECONCILIATION_BLOCKED_BY_UNCERTAINTY
+    - RECONCILIATION_NEEDS_FIELD_MAPPING
+    - RECONCILIATION_NOT_ENOUGH_EVIDENCE
