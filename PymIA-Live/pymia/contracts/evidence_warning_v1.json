@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "EVIDENCE_WARNING_V1",
+  "status": "CONTRACT_ONLY",
+  "runtime_impact": "NONE",
+  "implementation_authorized": false,
+  "purpose": "Declare structured evidence warning semantics so PymIA can represent owner-facing and operator-facing warnings without free-text ambiguity or premature diagnosis.",
+  "compatible_contracts": [
+    "EVIDENCE_AVAILABILITY_V1"
+  ],
+  "severities": {
+    "INFO": {
+      "meaning": "Contextual warning that does not block calculation.",
+      "blocks_calculation": false,
+      "requires_owner_disclosure": false,
+      "default_owner_prefix": "Nota"
+    },
+    "CAUTION": {
+      "meaning": "Relevant limitation or uncertainty that should be disclosed but does not necessarily block calculation.",
+      "blocks_calculation": false,
+      "requires_owner_disclosure": true,
+      "default_owner_prefix": "Atención"
+    },
+    "BLOCKING": {
+      "meaning": "Evidence problem that blocks calculation or safe use of the affected field.",
+      "blocks_calculation": true,
+      "requires_owner_disclosure": true,
+      "default_owner_prefix": "No determinable"
+    }
+  },
+  "warning_fields": [
+    "warning_id",
+    "severity",
+    "source_field",
+    "reason_code",
+    "owner_message",
+    "operator_detail",
+    "blocks_calculation",
+    "suggested_next_evidence"
+  ],
+  "reason_code_severity_defaults": {
+    "OBSERVED_VALUE": "INFO",
+    "OBSERVED_ZERO": "INFO",
+    "MISSING_FIELD": "BLOCKING",
+    "MISSING_SOURCE": "BLOCKING",
+    "PARTIAL_SOURCE": "CAUTION",
+    "COVERAGE_CAPPED": "CAUTION",
+    "AMBIGUOUS_FORMAT": "BLOCKING",
+    "AMBIGUOUS_MEANING": "BLOCKING",
+    "EXCLUDED_BY_RULE": "BLOCKING",
+    "EXCLUDED_LOW_CONFIDENCE": "BLOCKING"
+  },
+  "owner_message_policy": {
+    "forbidden_terms": [
+      "contract_id",
+      "schema_version",
+      "pipeline",
+      "runtime",
+      "OCF",
+      "diagnostic_core",
+      "formula_id",
+      "stacktrace",
+      "module_path"
+    ],
+    "must_be_plain_language": true,
+    "must_not_claim_diagnosis": true,
+    "must_not_claim_execution": true,
+    "must_not_claim_confirmation": true
+  },
+  "operator_detail_policy": {
+    "may_include_reason_code": true,
+    "may_include_source_field": true,
+    "may_include_internal_context": true,
+    "must_not_include_stacktrace": true
+  },
+  "calculation_policy": {
+    "blocking_severities": [
+      "BLOCKING"
+    ],
+    "non_blocking_severities": [
+      "INFO",
+      "CAUTION"
+    ],
+    "disclosure_severities": [
+      "CAUTION",
+      "BLOCKING"
+    ]
+  },
+  "expected_counts": {
+    "severities": 3,
+    "warning_fields": 8,
+    "reason_code_severity_defaults": 10,
+    "blocking_severities": 1,
+    "non_blocking_severities": 2,
+    "disclosure_severities": 2
+  }
+}
