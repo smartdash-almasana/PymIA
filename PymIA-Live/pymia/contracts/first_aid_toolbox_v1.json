@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "FIRST_AID_TOOLBOX_PACK_CONTRACT_V1",
+  "status": "CANDIDATE_CONTRACT",
+  "runtime_impact": "NONE",
+  "code_impact": "CONTRACT_ONLY",
+  "implementation_authorized": false,
+  "service": "FIRST_AID_PHASE_1",
+  "rules": {
+    "phase_1_rule": "Fase 1 calcula, ordena, valida, alerta y pide evidencia; no diagnostica.",
+    "required_sequence": [
+      "mother_question",
+      "selected_option",
+      "minimal_organizational_case_file_layer",
+      "evidence",
+      "proportional_tool",
+      "limited_output"
+    ],
+    "mother_question": "¿Qué necesitás resolver hoy?",
+    "selected_option": "Primeros Auxilios — Tengo algo puntual para ordenar o revisar ahora."
+  },
+  "allowed_decisions": [
+    "USE_IN_PHASE_1",
+    "USE_IN_PHASE_1_WITH_GUARDRAILS",
+    "NOT_FOR_PHASE_1_PHASE_2",
+    "REVIEW_REQUIRED",
+    "DO_NOT_MIGRATE"
+  ],
+  "allowed_component_types": [
+    "CalculationTool",
+    "ValidationPack",
+    "ChecklistPack",
+    "HeuristicPack",
+    "AlertRulePack",
+    "OwnerCopyPack",
+    "WorkflowPack",
+    "ReportPack",
+    "SimulationTool"
+  ],
+  "owner_language": {
+    "allowed_verbs": [
+      "ordena",
+      "calcula",
+      "muestra",
+      "marca faltantes",
+      "marca inconsistencias",
+      "alerta",
+      "requiere más evidencia",
+      "no se puede determinar con la evidencia actual"
+    ],
+    "forbidden_verbs": [
+      "diagnostica",
+      "confirma",
+      "certifica",
+      "revela",
+      "demuestra",
+      "garantiza"
+    ],
+    "forbidden_claims": [
+      "diagnóstico integral de la empresa",
+      "auditoría contable certificada",
+      "rentabilidad real confirmada",
+      "precio óptimo definitivo",
+      "caja final confirmada",
+      "stock físico confirmado sin conteo",
+      "causa raíz confirmada",
+      "fraude detectado",
+      "estrategia comercial completa"
+    ]
+  },
+  "components": [
+    {"id": "flujo_de_fondos", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1", "family": "cash_flow", "owner_limit": "Ordena ingresos, egresos y saldo acumulado; no confirma caja real."},
+    {"id": "proyeccion_ventas", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1", "family": "sales_projection", "owner_limit": "Calcula ingresos; no interpreta rentabilidad."},
+    {"id": "ExcelStructureValidationPack", "source": "SmartCounter", "component_type": "ValidationPack", "decision": "USE_IN_PHASE_1", "family": "intake_validation", "owner_limit": "Valida forma, headers y tipos; no valida verdad de negocio."},
+    {"id": "SimpleCashArqueoChecklist", "source": "SmartCounter", "component_type": "ChecklistPack", "decision": "USE_IN_PHASE_1", "family": "cash_flow", "owner_limit": "Arqueo manual; no verifica efectivo físico automáticamente."},
+    {"id": "OwnerSignalTemplate", "source": "SmartCounter", "component_type": "OwnerCopyPack", "decision": "USE_IN_PHASE_1", "family": "owner_alert", "owner_limit": "Entrega alerta; no resuelve causa raíz."},
+    {"id": "owner_facing_copy_templates", "source": "SmartD", "component_type": "OwnerCopyPack", "decision": "USE_IN_PHASE_1", "family": "owner_language", "owner_limit": "Templates owner-facing; no deben prometer diagnóstico."},
+    {"id": "partial_data_copy", "source": "SmartD", "component_type": "OwnerCopyPack", "decision": "USE_IN_PHASE_1", "family": "coverage_disclaimer", "owner_limit": "Declara análisis parcial."},
+    {"id": "not_calculable_na_copy", "source": "SmartD", "component_type": "OwnerCopyPack", "decision": "USE_IN_PHASE_1", "family": "coverage_disclaimer", "owner_limit": "Diferencia NA de cero real."},
+    {"id": "alert_severity_notification_mapping", "source": "SmartD", "component_type": "WorkflowPack", "decision": "USE_IN_PHASE_1", "family": "owner_alert", "owner_limit": "Mapea severidad a canal; no debe sobrealertar."},
+    {"id": "immediate_action_short_copy", "source": "SmartD", "component_type": "OwnerCopyPack", "decision": "USE_IN_PHASE_1", "family": "owner_alert", "owner_limit": "Una acción corta por alerta."},
+    {"id": "sla_breach_thresholds", "source": "SmartD", "component_type": "ValidationPack", "decision": "USE_IN_PHASE_1", "family": "operational_alert", "owner_limit": "Alerta por tiempo; no diagnostica causa."},
+    {"id": "backlog_risk_thresholds", "source": "SmartD", "component_type": "ValidationPack", "decision": "USE_IN_PHASE_1", "family": "operational_alert", "owner_limit": "Alerta acumulación; no diagnostica cuello de botella."},
+    {"id": "weekly_brief_structure", "source": "SmartD", "component_type": "ReportPack", "decision": "USE_IN_PHASE_1", "family": "owner_report", "owner_limit": "Formato breve; máximo 3-7 acciones."},
+
+    {"id": "auto_ganancia", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "cash_flow", "owner_limit": "Ordena caja diaria; no confirma ganancia."},
+    {"id": "caja_diaria", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "cash_flow", "owner_limit": "Ordena caja diaria; no confirma resultado contable."},
+    {"id": "costos_por_producto", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "price_margin", "owner_limit": "Calcula sobre datos entregados; no certifica costo real."},
+    {"id": "cuentas_corrientes_clientes", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "cash_flow", "owner_limit": "Ordena saldos declarados; no confirma deuda real."},
+    {"id": "precio_margen", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "price_margin", "owner_limit": "Calcula precio, margen bruto y markup; no define precio óptimo."},
+    {"id": "rentabilidad_por_producto", "source": "Exceland", "component_type": "CalculationTool", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "price_margin", "owner_limit": "Muestra margen bruto; no confirma rentabilidad neta."},
+    {"id": "simulador_inflacion", "source": "Exceland", "component_type": "SimulationTool", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "price_margin", "owner_limit": "Simula efecto; no recomienda estrategia comercial."},
+    {"id": "StockDesvioAlertRule", "source": "SmartCounter", "component_type": "AlertRulePack", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "stock_minimal_alert", "owner_limit": "Marca desvíos; no explica causa."},
+    {"id": "CostPriceReviewHeuristic", "source": "SmartCounter", "component_type": "HeuristicPack", "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS", "family": "price_margin", "owner_limit": "Alerta costo/precio; no forecast de inflación."},
+
+    {"id": "auto_stock", "source": "Exceland", "component_type": "CalculationTool", "decision": "NOT_FOR_PHASE_1_PHASE_2", "family": "stock_diagnostic", "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico de stock."},
+    {"id": "compras_y_proveedores", "source": "Exceland", "component_type": "CalculationTool", "decision": "NOT_FOR_PHASE_1_PHASE_2", "family": "supplier_diagnostic", "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico de compras/proveedores."},
+    {"id": "control_de_gastos", "source": "Exceland", "component_type": "CalculationTool", "decision": "NOT_FOR_PHASE_1_PHASE_2", "family": "expense_diagnostic", "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico."},
+    {"id": "punto_equilibrio", "source": "Exceland", "component_type": "CalculationTool", "decision": "NOT_FOR_PHASE_1_PHASE_2", "family": "break_even_diagnostic", "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico."},
+    {"id": "stock_control", "source": "Exceland", "component_type": "CalculationTool", "decision": "NOT_FOR_PHASE_1_PHASE_2", "family": "stock_diagnostic", "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico de stock."}
+  ],
+  "compositions": [
+    {"id": "excel_triage_basic", "component_ids": ["ExcelStructureValidationPack", "flujo_de_fondos", "proyeccion_ventas", "partial_data_copy", "not_calculable_na_copy"], "output_limit": "Validación estructural + cálculos básicos + declaración de cobertura."},
+    {"id": "cash_ordering_basic", "component_ids": ["SimpleCashArqueoChecklist", "caja_diaria", "flujo_de_fondos", "OwnerSignalTemplate"], "output_limit": "Ordenamiento de caja declarada + alerta owner-facing."},
+    {"id": "price_margin_basic", "component_ids": ["CostPriceReviewHeuristic", "precio_margen", "rentabilidad_por_producto", "simulador_inflacion"], "output_limit": "Margen bruto, markup, señales costo/precio y simulación limitada."},
+    {"id": "operational_alert_basic", "component_ids": ["OwnerSignalTemplate", "alert_severity_notification_mapping", "immediate_action_short_copy", "sla_breach_thresholds", "backlog_risk_thresholds", "weekly_brief_structure"], "output_limit": "Alerta breve, canal sugerido, acción inmediata y mini brief."},
+    {"id": "stock_minimal_alert", "component_ids": ["StockDesvioAlertRule", "OwnerSignalTemplate", "partial_data_copy"], "output_limit": "Alerta de desvío o faltante visible."}
+  ],
+  "smart_excel_addendum": {
+    "status": "CANDIDATE_ADDENDUM_SEPARATE",
+    "included_in_master": false,
+    "component_count": 7,
+    "cross_cutting_count": 13,
+    "do_not_migrate_count": 9
+  },
+  "expected_counts": {
+    "USE_IN_PHASE_1": 13,
+    "USE_IN_PHASE_1_WITH_GUARDRAILS": 9,
+    "NOT_FOR_PHASE_1_PHASE_2": 5,
+    "REVIEW_REQUIRED": 0,
+    "DO_NOT_MIGRATE": 0,
+    "components_total": 27,
+    "phase_1_components_total": 22,
+    "compositions_total": 5
+  }
+}
