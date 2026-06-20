@@ -22,6 +22,7 @@ Este documento no crea runtime, contratos, tests ni capacidades nuevas. Ordena p
 | `PYMIA_LIVE_CORE_MANIFEST.md` | Núcleo vivo actual | Manda sobre qué ejecuta, valida, decide, traduce, pregunta, registra evidencia u opera hoy. |
 | `PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md` | Arquitectura objetivo | Manda sobre reducción de `vertical_slice.py`, frontera `application`, canales y dependencias permitidas. |
 | `docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md` | Dirección de producto | Manda sobre universo de producto, profundidad variable de servicio y rol de microservicios/OCF. No autoriza runtime por sí solo. |
+| `docs/producto/EXCEL_TREATMENT_LAB_PRODUCT_CONCEPT.md` | Concepto de producto de Excel Treatment Lab | Subordinado a `PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md`; no autoriza runtime; debe respetar Anamnesis Taxonómica Mínima y OCF. |
 | `ORGANIZATIONAL_CASE_FILE_V1_CONCEPT.md` | Concepto rector de OCF | Manda sobre la definición conceptual de ficha como grafo/álbum epistémico, no sobre estado implementado. |
 | `ANAMNESIS_TAXONOMICA_MINIMA.md` | Primer contacto y taxonomía inicial | Manda sobre organismo/taxonomía/dolor/evidencia como orden canónico de ingreso. |
 | `PYMIA_LIVE_PIPELINE.md` | Contexto histórico/parcial de pipeline Live V1 | No manda si contradice `PYMIA_LIVE_CORE_MANIFEST.md`, `LIVE_CODE_FREEZE_LEDGER.md` o `PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md`. |
