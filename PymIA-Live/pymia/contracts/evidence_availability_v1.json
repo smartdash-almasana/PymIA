@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "EVIDENCE_AVAILABILITY_V1",
+  "status": "CONTRACT_ONLY",
+  "runtime_impact": "NONE",
+  "implementation_authorized": false,
+  "purpose": "Declare evidence availability semantics so PymIA does not confuse real zero, missing evidence, partial evidence, capped extraction, ambiguity, or excluded values.",
+  "availability_statuses": {
+    "MEASURED": {
+      "meaning": "The value was observed and normalized with sufficient confidence.",
+      "allows_calculation": true,
+      "requires_owner_disclosure": false,
+      "excluded_from_calculation": false,
+      "default_owner_message": "Dato medido con la evidencia disponible."
+    },
+    "ZERO_REAL": {
+      "meaning": "The value was observed and its value is genuinely zero.",
+      "allows_calculation": true,
+      "requires_owner_disclosure": false,
+      "excluded_from_calculation": false,
+      "default_owner_message": "El valor observado es cero real para esta fuente."
+    },
+    "NOT_AVAILABLE": {
+      "meaning": "The value is not available in the provided evidence or could not be obtained.",
+      "allows_calculation": false,
+      "requires_owner_disclosure": true,
+      "excluded_from_calculation": true,
+      "default_owner_message": "No se pudo determinar este dato con la evidencia actual."
+    },
+    "PARTIAL": {
+      "meaning": "The value was derived from incomplete evidence.",
+      "allows_calculation": true,
+      "requires_owner_disclosure": true,
+      "excluded_from_calculation": false,
+      "default_owner_message": "Este dato surge de evidencia parcial."
+    },
+    "CAPPED": {
+      "meaning": "The value was derived from evidence truncated by an explicit extraction or coverage cap.",
+      "allows_calculation": true,
+      "requires_owner_disclosure": true,
+      "excluded_from_calculation": false,
+      "default_owner_message": "Este dato puede estar limitado por cobertura o truncamiento de extracción."
+    },
+    "AMBIGUOUS": {
+      "meaning": "The value is present but cannot be trusted because format, meaning, or parsing is ambiguous.",
+      "allows_calculation": false,
+      "requires_owner_disclosure": true,
+      "excluded_from_calculation": true,
+      "default_owner_message": "Este dato es ambiguo y no se usó para calcular."
+    },
+    "EXCLUDED": {
+      "meaning": "The value was intentionally excluded from calculation due to an explicit rule or quality problem.",
+      "allows_calculation": false,
+      "requires_owner_disclosure": true,
+      "excluded_from_calculation": true,
+      "default_owner_message": "Este dato fue excluido del cálculo por una regla de calidad de evidencia."
+    }
+  },
+  "reason_codes": {
+    "OBSERVED_VALUE": {"default_status": "MEASURED", "blocks_required_field": false},
+    "OBSERVED_ZERO": {"default_status": "ZERO_REAL", "blocks_required_field": false},
+    "MISSING_FIELD": {"default_status": "NOT_AVAILABLE", "blocks_required_field": true},
+    "MISSING_SOURCE": {"default_status": "NOT_AVAILABLE", "blocks_required_field": true},
+    "PARTIAL_SOURCE": {"default_status": "PARTIAL", "blocks_required_field": false},
+    "COVERAGE_CAPPED": {"default_status": "CAPPED", "blocks_required_field": false},
+    "AMBIGUOUS_FORMAT": {"default_status": "AMBIGUOUS", "blocks_required_field": true},
+    "AMBIGUOUS_MEANING": {"default_status": "AMBIGUOUS", "blocks_required_field": true},
+    "EXCLUDED_BY_RULE": {"default_status": "EXCLUDED", "blocks_required_field": true},
+    "EXCLUDED_LOW_CONFIDENCE": {"default_status": "EXCLUDED", "blocks_required_field": true}
+  },
+  "field_policy": {
+    "required_field_blocking_statuses": ["NOT_AVAILABLE", "AMBIGUOUS", "EXCLUDED"],
+    "calculation_allowed_statuses": ["MEASURED", "ZERO_REAL", "PARTIAL", "CAPPED"],
+    "owner_disclosure_statuses": ["NOT_AVAILABLE", "PARTIAL", "CAPPED", "AMBIGUOUS", "EXCLUDED"],
+    "zero_semantics": {
+      "ZERO_REAL": "A measured zero is valid evidence.",
+      "NOT_AVAILABLE": "Unavailable evidence must never be coerced to zero."
+    }
+  },
+  "expected_counts": {
+    "availability_statuses": 7,
+    "reason_codes": 10,
+    "required_field_blocking_statuses": 3,
+    "calculation_allowed_statuses": 4,
+    "owner_disclosure_statuses": 5
+  }
+}
