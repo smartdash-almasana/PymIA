@@ -5,6 +5,8 @@ from pymia.contracts.column_confirmation_v1 import (
     ColumnConfirmationEntry,
     ColumnConfirmationMatrix,
     ConfirmationStatus,
+    OwnerColumnConfirmationAnswer,
+    OwnerColumnConfirmationOutcome,
     infer_calculation_relevance,
 )
 
@@ -347,3 +349,214 @@ def test_matrix_owner_questions_excludes_ignored() -> None:
         ],
     )
     assert matrix.owner_questions() == []
+
+
+def test_owner_answer_confirms_computational_column_and_unblocks_variable() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="Total",
+                sheet_name="Ventas",
+                suggested_semantic_role="venta_total",
+                calculation_relevance=CalculationRelevance.VENTAS,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+    assert matrix.can_compute_variable("ventas_total") is False
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="Total",
+            owner_answer_text="Sí, es el importe final cobrado por cada venta.",
+            proposed_role="unknown",
+            confirmed_role="venta_total",
+            outcome=OwnerColumnConfirmationOutcome.CONFIRMED_COMPUTATIONAL,
+            unblocks_variable_names=["ventas_total"],
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.CONFIRMED
+    assert entry.owner_confirmed_role == "venta_total"
+    assert entry.suggested_semantic_role == "venta_total"
+    assert entry.calculation_relevance == CalculationRelevance.VENTAS
+    assert matrix.can_compute_variable("ventas_total") is True
+
+
+def test_owner_answer_confirms_informational_column_without_unblocking_money_calculation() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="MetodoPago",
+                sheet_name="Ventas",
+                suggested_semantic_role="unknown",
+                calculation_relevance=CalculationRelevance.PAGOS,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="MetodoPago",
+            owner_answer_text="Sí, indica si fue efectivo, tarjeta o transferencia.",
+            proposed_role="unknown",
+            confirmed_role="payment_method",
+            outcome=OwnerColumnConfirmationOutcome.CONFIRMED_INFORMATIONAL,
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.CONFIRMED
+    assert entry.owner_confirmed_role == "payment_method"
+    assert entry.calculation_relevance == CalculationRelevance.INFORMATIONAL
+    assert entry.feeds_calculation() is False
+    assert matrix.can_compute_variable("ventas_total") is True
+
+
+def test_owner_unknown_answer_keeps_column_pending_and_does_not_unlock() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="Total",
+                sheet_name="Ventas",
+                suggested_semantic_role="venta_total",
+                calculation_relevance=CalculationRelevance.VENTAS,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="Total",
+            owner_answer_text="No sé qué significa esa columna.",
+            proposed_role="venta_total",
+            outcome=OwnerColumnConfirmationOutcome.OWNER_UNKNOWN,
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.PENDING_OWNER_CONFIRMATION
+    assert matrix.can_compute_variable("ventas_total") is False
+
+
+def test_owner_rejected_mapping_blocks_column_as_ambiguous() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="Total",
+                sheet_name="Ventas",
+                suggested_semantic_role="venta_total",
+                calculation_relevance=CalculationRelevance.VENTAS,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="Total",
+            owner_answer_text="No, Total no es el importe de la venta.",
+            proposed_role="venta_total",
+            outcome=OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING,
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.BLOCKED_AMBIGUOUS
+    assert matrix.status() == "blocked"
+    assert matrix.can_compute_variable("ventas_total") is False
+
+
+def test_owner_explicitly_ignores_column_only_after_answer() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="Observaciones",
+                sheet_name="Ventas",
+                suggested_semantic_role="unknown",
+                calculation_relevance=CalculationRelevance.INFORMATIONAL,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="Observaciones",
+            owner_answer_text="Ignorar esa columna, no sirve para este análisis.",
+            proposed_role="unknown",
+            outcome=OwnerColumnConfirmationOutcome.CONFIRMED_NOT_RELEVANT,
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.IGNORED_NOT_RELEVANT
+    assert entry.owner_confirmed_role == "IGNORED_NOT_RELEVANT"
+    assert entry.feeds_calculation() is False
+
+
+def test_metodo_pago_confirmed_as_payment_method_never_becomes_amount() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="cafeteria_abc.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="MetodoPago",
+                sheet_name="Ventas",
+                suggested_semantic_role="pago",
+                calculation_relevance=CalculationRelevance.PAGOS,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="MetodoPago",
+            owner_answer_text="Es sólo la forma de pago.",
+            proposed_role="pago",
+            confirmed_role="payment_method",
+            outcome=OwnerColumnConfirmationOutcome.CONFIRMED_INFORMATIONAL,
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.CONFIRMED
+    assert entry.suggested_semantic_role == "payment_method"
+    assert entry.calculation_relevance == CalculationRelevance.INFORMATIONAL
+    assert entry.feeds_calculation() is False
+
+
+def test_insufficient_owner_answer_keeps_column_pending() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="Total",
+                sheet_name="Ventas",
+                suggested_semantic_role="venta_total",
+                calculation_relevance=CalculationRelevance.VENTAS,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="Total",
+            owner_answer_text="Creo que sí, más o menos.",
+            proposed_role="venta_total",
+            outcome=OwnerColumnConfirmationOutcome.INSUFFICIENT_ANSWER,
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.PENDING_OWNER_CONFIRMATION
+    assert matrix.can_compute_variable("ventas_total") is False
