@@ -86,6 +86,10 @@ def build_structured_summary(
             "unsupported_formula_ids": [],
             "catalog_reconciliation": [],
         }
+        metadata = evidence.get("metadata") or payload.get("metadata") or {}
+        column_confirmation_matrix = metadata.get("column_confirmation_matrix")
+        if column_confirmation_matrix is not None:
+            summary["column_confirmation_matrix"] = column_confirmation_matrix
 
         structured_ev = StructuredEvidence.model_validate(evidence)
         matches = match_evidence_requirements(structured_ev)
@@ -213,7 +217,10 @@ def _build_owner_report_base(
             "warnings": ["Slice local; no es canal productivo."],
         },
     ).to_dict()
+    column_confirmation_matrix = structured_summary.pop("column_confirmation_matrix", None)
     report["structured_evidence_summary"] = structured_summary
+    if column_confirmation_matrix is not None:
+        report["column_confirmation_matrix"] = column_confirmation_matrix
     return {"report": report, "blocked": blocked}
 
 
