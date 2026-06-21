@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pymia.contracts.column_confirmation_v1 import ColumnConfirmationMatrix
 from pymia.contracts.language_corpus_v1 import load_language_corpus_seed, owner_label_for_variable_id
 from pymia.contracts.presentation_labels_v1 import label_for_field
 from pymia.contracts.vertical_slice_copy_v1 import vertical_slice_copy_for
+from pymia.rendering.column_confirmation_owner_view import render_column_confirmation_owner_view
 
 
 def _humanize_field(name: str) -> str:
@@ -31,6 +33,29 @@ def _owner_sufficiency_summary_lines(structured_summary: dict) -> list[str]:
     if not sufficiency and not unsupported_formula_ids:
         lines.append("- Sin alertas técnicas adicionales visibles en esta vista.")
     return lines
+
+
+def _column_confirmation_matrix_from_report(report: dict) -> ColumnConfirmationMatrix | None:
+    raw_matrix = report.get("column_confirmation_matrix")
+    if raw_matrix is None:
+        return None
+    if isinstance(raw_matrix, ColumnConfirmationMatrix):
+        return raw_matrix
+    if isinstance(raw_matrix, dict):
+        return ColumnConfirmationMatrix(**raw_matrix)
+    raise TypeError("column_confirmation_matrix must be a ColumnConfirmationMatrix or dict")
+
+
+def _owner_column_confirmation_lines(report: dict) -> list[str]:
+    matrix = _column_confirmation_matrix_from_report(report)
+    if matrix is None:
+        return []
+    if not any(entry.is_actionable() for entry in matrix.entries):
+        return []
+    rendered = render_column_confirmation_owner_view(matrix).strip()
+    if not rendered:
+        return []
+    return ["## Confirmación de columnas", *rendered.splitlines()]
 
 
 def _owner_view_lines(path: Path, message: str, profile: dict, report: dict) -> list[str]:
@@ -125,6 +150,10 @@ def _owner_view_lines(path: Path, message: str, profile: dict, report: dict) -> 
             lines.extend(_owner_sufficiency_summary_lines(structured_summary))
     else:
         lines.append(f"- Motivo: {structured_summary['reason']}")
+    column_confirmation_lines = _owner_column_confirmation_lines(report)
+    if column_confirmation_lines:
+        lines.append("")
+        lines.extend(column_confirmation_lines)
     lines.append("")
     lines.append("## Próxima pregunta")
     owner_question = report.get("owner_question", "")
