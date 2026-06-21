@@ -1,0 +1,103 @@
+metadata:
+  artifact: smartd_phase_1_first_aid_candidates
+  status: CANDIDATE_SELECTION
+  source_audit: smartd-dashb-clean/docs audit
+  service_fit: FIRST_AID_VALUE
+  runtime_impact: NONE
+  code_impact: NONE
+  tests_run: NO
+
+policy:
+  service: Primeros Auxilios PyME
+  rule: "Fase 1 calcula, ordena, valida, alerta y pide evidencia; no diagnostica."
+  requires_minimal_case_file_layer: true
+  migration_decision: DOCUMENT_ONLY
+
+items:
+  - id: owner_facing_copy_templates
+    source_file: 06_dashboard/copy-audit.md
+    extracted_item: "Plantillas de texto para alertas, acciones y diagnósticos cortos."
+    item_type: owner_language
+    suggested_pack_type: OwnerCopyPack
+    why_valuable: "199 textos en tono PyME, reutilizables para salida owner-facing con adaptación de contexto."
+    required_evidence: "Ninguna; son templates."
+    owner_facing_limit: "Mantener tono coloquial argentino y evitar promesas."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: alert_severity_notification_mapping
+    source_file: 07_runbooks/ALERT_SEVERITY_MATRIX.md
+    extracted_item: "Mapeo LOW→digest, MEDIUM→email, HIGH→email+WA, CRITICAL→todos."
+    item_type: workflow
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Define canal de notificación por severidad para alertar al dueño sin sobrealertar."
+    required_evidence: "Severidad calculada."
+    owner_facing_limit: "No sobrealertar; evitar fatiga."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: immediate_action_short_copy
+    source_file: 07_runbooks/ALERT_SEVERITY_MATRIX.md
+    extracted_item: "Frases cortas de acción inmediata por tipo de alerta."
+    item_type: owner_language
+    suggested_pack_type: OwnerCopyPack
+    why_valuable: "Lenguaje accionable no diagnóstico, apto para Primeros Auxilios."
+    required_evidence: "Alerta activa."
+    owner_facing_limit: "Una acción por alerta."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: sla_breach_thresholds
+    source_file: 07_runbooks/ALERT_SEVERITY_MATRIX.md
+    extracted_item: "Umbrales 30/45/60 min sin respuesta → severidad."
+    item_type: rule
+    suggested_pack_type: ValidationPack
+    why_valuable: "Regla temporal simple aplicable a PyMEs con SLA de atención."
+    required_evidence: "Timestamp de última respuesta."
+    owner_facing_limit: "Sólo alertar; no diagnosticar causa."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: backlog_risk_thresholds
+    source_file: 07_runbooks/ALERT_SEVERITY_MATRIX.md
+    extracted_item: "Umbrales de acumulación de tareas pendientes: 3/5/8+."
+    item_type: rule
+    suggested_pack_type: ValidationPack
+    why_valuable: "Detección simple de cuello de botella operativo."
+    required_evidence: "Conteo de pendientes."
+    owner_facing_limit: "Alertar volumen; no diagnosticar causa."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: partial_data_copy
+    source_file: specs/dashboard_philosophy_meli_v1.md
+    extracted_item: "Análisis parcial basado en una muestra de {N} operaciones recientes."
+    item_type: owner_language
+    suggested_pack_type: OwnerCopyPack
+    why_valuable: "Declara limitación de evidencia sin prometer certeza."
+    required_evidence: "Cobertura truncada."
+    owner_facing_limit: "Siempre declarar parcialidad."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: not_calculable_na_copy
+    source_file: specs/dashboard_philosophy_meli_v1.md
+    extracted_item: "No pudimos determinar la métrica debido a interrupción temporal."
+    item_type: owner_language
+    suggested_pack_type: OwnerCopyPack
+    why_valuable: "Diferencia cero real de no medible; evita falso 0."
+    required_evidence: "Fallo de extracción o ausencia de dato."
+    owner_facing_limit: "Nunca mostrar 0 cuando corresponde NA."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: weekly_brief_structure
+    source_file: specs/counseling_system_v1.md
+    extracted_item: "Formato: diagnóstico corto + evidencia + riesgos + plan de 3-7 acciones."
+    item_type: report_pattern
+    suggested_pack_type: ReportPack
+    why_valuable: "Estructura de salida acotada para owner-facing."
+    required_evidence: "Biomarcadores o señales mínimas."
+    owner_facing_limit: "3-7 acciones máximo."
+    migration_risk: LOW
+    confidence: HIGH
+
+summary:
+  total_items: 8
+  owner_copy_pack: 4
+  validation_pack: 2
+  workflow_pack: 1
+  report_pack: 1

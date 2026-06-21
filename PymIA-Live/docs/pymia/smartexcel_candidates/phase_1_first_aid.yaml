@@ -1,0 +1,100 @@
+metadata:
+  artifact: smartexcel_phase_1_first_aid_candidates
+  status: CANDIDATE_SELECTION
+  source_audit: smartexcel audit by Qwen
+  service_fit: FIRST_AID_VALUE
+  source_verdict: PARTIAL_VALUE_SOURCE
+  runtime_impact: NONE
+  code_impact: NONE
+  tests_run: NO
+
+policy:
+  service: Primeros Auxilios PyME
+  rule: "Fase 1 ordena, valida, alerta y declara limitaciones; no diagnostica."
+  migration_decision: DOCUMENT_ONLY
+  do_not_import_runtime: true
+
+items:
+  - id: top_deudores_payload
+    extracted_item: "Payload/resumen de principales deudores o saldos pendientes."
+    item_type: report_pattern
+    service_fit: FIRST_AID_VALUE
+    suggested_pack_type: ReportPack
+    why_valuable: "Permite ordenar rápidamente deuda visible o saldos pendientes para el dueño."
+    required_evidence: "Archivo Excel o tabla con cliente/deudor, monto y estado."
+    owner_facing_limit: "Muestra ranking con datos declarados; no confirma deuda legal ni cobrabilidad."
+    migration_risk: MEDIUM
+    confidence: HIGH
+
+  - id: structured_warnings_payload
+    extracted_item: "Warnings estructuradas asociadas a filas, columnas o parsing."
+    item_type: data_model
+    service_fit: FIRST_AID_VALUE
+    suggested_pack_type: ValidationPack
+    why_valuable: "Permite informar problemas de lectura sin bloquear toda la salida."
+    required_evidence: "Resultado de parsing o validación de archivo."
+    owner_facing_limit: "Advertir limitaciones técnicas; no interpretar causa de negocio."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: mixed_amount_parsing_warning
+    extracted_item: "Warning cuando un monto aparece mezclado, ambiguo o mal parseado."
+    item_type: validation_rule
+    service_fit: FIRST_AID_VALUE
+    suggested_pack_type: ValidationPack
+    why_valuable: "Evita que montos ambiguos contaminen cálculos de Primeros Auxilios."
+    required_evidence: "Celda o columna con monto no normalizable."
+    owner_facing_limit: "Indicar que el monto no se usó o requiere revisión."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: exclude_ambiguous_amounts_rule
+    extracted_item: "Excluir montos ambiguos de cálculos automáticos."
+    item_type: validation_rule
+    service_fit: FIRST_AID_VALUE
+    suggested_pack_type: ValidationPack
+    why_valuable: "Refuerza suficiencia mínima y evita falsos totales."
+    required_evidence: "Campo numérico con parsing incierto."
+    owner_facing_limit: "Declarar exclusión explícita en la salida."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: color_limit_disclaimer
+    extracted_item: "Declarar limitación cuando la lógica depende de colores o formatos visuales."
+    item_type: owner_language
+    service_fit: FIRST_AID_VALUE
+    suggested_pack_type: OwnerCopyPack
+    why_valuable: "Evita asumir semántica de color como verdad organizacional."
+    required_evidence: "Archivo con señales visuales no estructuradas."
+    owner_facing_limit: "El color orienta pero no certifica estado ni causa."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: excel_to_finding_to_summary_flow
+    extracted_item: "Flujo Excel → hallazgo → resumen owner-facing."
+    item_type: workflow
+    service_fit: FIRST_AID_VALUE
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Patrón de transformación simple desde archivo a salida limitada."
+    required_evidence: "Excel parseado + hallazgos estructurados."
+    owner_facing_limit: "Resumen limitado a lo observado en el archivo."
+    migration_risk: MEDIUM
+    confidence: HIGH
+
+  - id: recipient_routing_with_fallback
+    extracted_item: "Ruteo por destinatario con fallback."
+    item_type: workflow
+    service_fit: FIRST_AID_VALUE
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Patrón de entrega controlada cuando no está claro el canal/destinatario."
+    required_evidence: "Destinatario esperado o configuración mínima de entrega."
+    owner_facing_limit: "No acoplar a Telegram ni canal específico."
+    migration_risk: MEDIUM
+    confidence: MEDIUM
+
+summary:
+  total_items: 7
+  report_pack: 1
+  validation_pack: 3
+  owner_copy_pack: 1
+  workflow_pack: 2

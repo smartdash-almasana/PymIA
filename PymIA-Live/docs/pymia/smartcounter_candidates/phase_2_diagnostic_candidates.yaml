@@ -1,0 +1,71 @@
+- id: RealMarginFormulaPack
+  source_doc: real_margin_calc.md
+  phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  pack_type: FormulaPack
+  why_useful: "Computes real margins taking into account taxes, marketplace fees, and variable payment gateway costs."
+  required_evidence: "Sales records, tax lists, marketplace channel fee structures."
+  sufficiency_guards: "Requires all commission rates and tax rates to be explicitly loaded."
+  owner_facing_limits: "Excludes indirect overhead costs not mapped directly to sales transactions."
+  forbidden_claims: "rentabilidad real confirmada sin evidencia completa, audited financial statements"
+
+- id: BankReconciliationWorkflow
+  source_doc: cash_reconciliation.md
+  phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  pack_type: WorkflowPack
+  why_useful: "Aligns cashbook registries with actual bank statement lines, highlighting missing logs or double counts."
+  required_evidence: "Internal cashbooks, bank statements, settlement receipts."
+  sufficiency_guards: "Matches dates, amounts, and metadata within specific bounds."
+  owner_facing_limits: "Does not automatically fix bank errors or internal cashbook omissions."
+  forbidden_claims: "conciliación bancaria definitiva, certified financial balance"
+
+- id: BreakEvenFormulaPack
+  source_doc: break_even_analysis.md
+  phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  pack_type: FormulaPack
+  why_useful: "Determines the exact sales revenue needed to cover both fixed costs and average variable cost ratios."
+  required_evidence: "Fixed overhead list, average variable cost ratio, unit sales margins."
+  sufficiency_guards: "Must have a stable, non-zero marginal contribution ratio."
+  owner_facing_limits: "Assumes cost behavior is linear and variable margin is uniform across all product lines."
+  forbidden_claims: "rentabilidad futura garantizada"
+
+- id: FrozenStockDiagnostic
+  source_doc: frozen_stock_diagnosis.md
+  phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  pack_type: DiagnosticRulePack
+  why_useful: "Identifies items with zero sales velocity over a 60/90-day window to highlight capital locking."
+  required_evidence: "Sales history (last 90 days), current physical stock ledger."
+  sufficiency_guards: "Requires at least 90 continuous days of transaction history."
+  owner_facing_limits: "Does not identify seasonal demand changes or catalog obsolescence."
+  forbidden_claims: "diagnóstico integral de la empresa, automatic liquidation strategies"
+
+- id: ExpenseStructureAnalyzer
+  source_doc: expense_structure.md
+  phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  pack_type: ReportSectionPack
+  why_useful: "Groups expenses into fixed, variable, direct, and indirect categories to evaluate operating leverage."
+  required_evidence: "Expense ledger, categorized transactions."
+  sufficiency_guards: "Requires at least 85% of total expenses to be categorized."
+  owner_facing_limits: "Depends on accuracy of categorization; sector-specific benchmarks are hardcoded."
+  forbidden_claims: "clasificación fiscal automática, audit-level cost accounting"
+
+- id: AccountsPayableAgingReport
+  source_doc: accounts_payable_aging.md
+  phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  pack_type: ReportSectionPack
+  why_useful: "Chronologically organizes outstanding liabilities by due date (30/60/90+ days) to map short-term cash demand."
+  required_evidence: "Purchase invoices, payment status registry, due dates."
+  sufficiency_guards: "Requires purchase invoices to have valid issue and due dates."
+  owner_facing_limits: "Does not factor in verbal payment terms extensions or unrecorded invoices."
+  forbidden_claims: "automated payment execution, bank-backed debt resolution"

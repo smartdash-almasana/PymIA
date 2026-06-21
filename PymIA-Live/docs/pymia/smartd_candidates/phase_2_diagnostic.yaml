@@ -1,0 +1,144 @@
+metadata:
+  artifact: smartd_phase_2_diagnostic_candidates
+  status: CANDIDATE_SELECTION
+  source_audit: smartd-dashb-clean/docs audit
+  service_fit: SPECIFIC_DIAGNOSIS_VALUE
+  runtime_impact: NONE
+  code_impact: NONE
+  tests_run: NO
+
+policy:
+  service: Problema específico / diagnóstico sectorial
+  rule: "Puede diagnosticar sólo con suficiencia explícita de evidencia."
+  requires_minimal_case_file_layer: true
+  migration_decision: DOCUMENT_ONLY
+
+items:
+  - id: health_score_formula
+    source_file: 08_specs/HEALTH_SCORE_SPEC.md
+    extracted_item: "Score = 100 - TotalNetPenalty, con decay, caps y stability floor."
+    item_type: formula
+    suggested_pack_type: FormulaPack
+    why_valuable: "Fórmula de salud operativa adaptable a PyME."
+    required_evidence: "Eventos clínicos históricos."
+    owner_facing_limit: "No prometer predicción."
+    migration_risk: MEDIUM
+    confidence: HIGH
+  - id: time_decay_exponential
+    source_file: 08_specs/HEALTH_SCORE_SPEC.md
+    extracted_item: "Weight = exp(-lambda * hours), con half-life configurable."
+    item_type: formula
+    suggested_pack_type: FormulaPack
+    why_valuable: "Permite que eventos viejos pesen menos en diagnósticos temporales."
+    required_evidence: "Timestamps de eventos."
+    owner_facing_limit: "Declarar ventana temporal."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: stability_cap
+    source_file: 08_specs/HEALTH_SCORE_SPEC.md
+    extracted_item: "OverflowRatio = MAX_TOTAL_RAW / TotalRawPositive."
+    item_type: formula
+    suggested_pack_type: FormulaPack
+    why_valuable: "Evita castigo infinito por historial masivo."
+    required_evidence: "Suma de penalidades."
+    owner_facing_limit: "No presentar como score absoluto universal."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: dynamic_floor
+    source_file: 08_specs/HEALTH_SCORE_SPEC.md
+    extracted_item: "MaxRecoverableScore = 100 - (TotalRawPositive * FLOOR_FACTOR)."
+    item_type: formula
+    suggested_pack_type: FormulaPack
+    why_valuable: "Introduce cicatrización organizacional tras daño severo."
+    required_evidence: "Penalidad histórica."
+    owner_facing_limit: "No prometer recuperación instantánea."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: clinical_scenarios_taxonomy
+    source_file: 02_clinical/CLINICAL_SCENARIOS.md
+    extracted_item: "Escenarios con severidad, impacto y caps."
+    item_type: rule
+    suggested_pack_type: DiagnosticRulePack
+    why_valuable: "Base para taxonomía de patologías o escenarios PyME."
+    required_evidence: "Eventos por scenario_key adaptado."
+    owner_facing_limit: "Renombrar a contexto PyME antes de usar."
+    migration_risk: MEDIUM
+    confidence: HIGH
+  - id: measured_zero_real_not_available
+    source_file: contracts/clinical_ui_v1.md
+    extracted_item: "MEASURED / ZERO_REAL / NOT_AVAILABLE con razón."
+    item_type: rule
+    suggested_pack_type: ValidationPack
+    why_valuable: "Distingue ausencia real de problema vs incapacidad de medir."
+    required_evidence: "Estado de extracción."
+    owner_facing_limit: "Siempre declarar availability."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: coverage_caps
+    source_file: contracts/clinical_ui_v1.md
+    extracted_item: "Declaración explícita de truncamiento por límites de extracción."
+    item_type: rule
+    suggested_pack_type: ValidationPack
+    why_valuable: "Evita falso 'todo bien' cuando no se pudo medir todo."
+    required_evidence: "Conteo de filas extraídas."
+    owner_facing_limit: "Marcar como análisis parcial."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: biomarkers_model
+    source_file: contracts/clinical_ui_v1.md
+    extracted_item: "Modelo JSON con availability, reason, last_event_at, kpis_30d."
+    item_type: data_model
+    suggested_pack_type: DataModelPack
+    why_valuable: "Modelo de biomarcadores organizacionales adaptable a ventas, stock, caja y costos."
+    required_evidence: "Extracción de fuentes."
+    owner_facing_limit: "No mostrar biomarcador sin availability."
+    migration_risk: MEDIUM
+    confidence: HIGH
+  - id: timeline_events
+    source_file: contracts/clinical_ui_v1.md
+    extracted_item: "Timeline con occurred_at, status e ids; límite N=200."
+    item_type: data_model
+    suggested_pack_type: DataModelPack
+    why_valuable: "Modelo de vida organizacional para diagnóstico con suficiencia."
+    required_evidence: "Eventos extraídos."
+    owner_facing_limit: "Declarar límite de eventos."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: clinical_state_precedence
+    source_file: contracts/clinical_ui_v1.md
+    extracted_item: "Estados de vitalidad: activo, hipometabolismo, apagado, hibernación, inhabilitado, cerrado."
+    item_type: rule
+    suggested_pack_type: DiagnosticRulePack
+    why_valuable: "Taxonomía de vitalidad organizacional adaptable a PyME."
+    required_evidence: "Última actividad, venta o señal operacional."
+    owner_facing_limit: "Renombrar estados a lenguaje PyME."
+    migration_risk: MEDIUM
+    confidence: HIGH
+  - id: incident_review_triggers
+    source_file: specs/counseling_system_v1.md
+    extracted_item: "Triggers para escalar de First Aid a diagnóstico."
+    item_type: workflow
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Regla de gating entre servicios."
+    required_evidence: "Estado clínico + biomarcadores + múltiples NA."
+    owner_facing_limit: "Escalar sólo con evidencia."
+    migration_risk: LOW
+    confidence: HIGH
+  - id: recovery_plan_phases
+    source_file: specs/counseling_system_v1.md
+    extracted_item: "Plan por fases semana 1-2 y semana 3-4 sin prometer resultados."
+    item_type: workflow
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Estructura para recuperación operacional."
+    required_evidence: "Estado de apagado o deterioro operacional."
+    owner_facing_limit: "No prometer resultados."
+    migration_risk: LOW
+    confidence: HIGH
+
+summary:
+  total_items: 12
+  formula_pack: 4
+  validation_pack: 2
+  diagnostic_rule_pack: 2
+  data_model_pack: 2
+  workflow_pack: 2

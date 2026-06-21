@@ -1,0 +1,51 @@
+ValidationPack:
+  - id: ExcelStructureValidationPack
+    source_doc: excel_treatment_lab.md
+    phase: PHASE_1_FIRST_AID
+
+ChecklistPack:
+  - id: SimpleCashArqueoChecklist
+    source_doc: cash_simple_check.md
+    phase: PHASE_1_FIRST_AID
+
+DiagnosticRulePack:
+  - id: StockDesvioAlertRule
+    source_doc: stock_faltantes_detection.md
+    phase: PHASE_1_FIRST_AID
+  - id: FrozenStockDiagnostic
+    source_doc: frozen_stock_diagnosis.md
+    phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+
+FormulaPack:
+  - id: CostPriceReviewHeuristic
+    source_doc: cost_price_review.md
+    phase: PHASE_1_FIRST_AID
+  - id: RealMarginFormulaPack
+    source_doc: real_margin_calc.md
+    phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  - id: BreakEvenFormulaPack
+    source_doc: break_even_analysis.md
+    phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+
+WorkflowPack:
+  - id: BankReconciliationWorkflow
+    source_doc: cash_reconciliation.md
+    phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+
+ReportSectionPack:
+  - id: ExpenseStructureAnalyzer
+    source_doc: expense_structure.md
+    phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+  - id: AccountsPayableAgingReport
+    source_doc: accounts_payable_aging.md
+    phase: PHASE_2_DETERMINISTIC_DIAGNOSIS
+
+OwnerFacingCopyPack:
+  - id: OwnerSignalTemplate
+    source_doc: initial_signal_protocol.md
+    phase: PHASE_1_FIRST_AID
+
+ReferencePack:
+  - id: AccountingDefinitionsReference
+    source_doc: accounting_definitions.md
+    phase: TRANSVERSAL_REFERENCE

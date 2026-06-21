@@ -1,0 +1,167 @@
+metadata:
+  artifact: smartexcel_cross_cutting_candidates
+  status: CANDIDATE_SELECTION
+  source_audit: smartexcel audit by Qwen
+  service_fit: CROSS_CUTTING_VALUE
+  source_verdict: PARTIAL_VALUE_SOURCE
+  runtime_impact: NONE
+  code_impact: NONE
+  tests_run: NO
+
+policy:
+  service: transversal
+  rule: "Rescatar patrones documentales de parsing, validación, advertencias, fallback y trazabilidad; no migrar runtime."
+  migration_decision: DOCUMENT_ONLY
+
+items:
+  - id: structured_warning_contract
+    extracted_item: "Contrato conceptual de warnings con tipo, severidad, campo afectado y mensaje owner/operator."
+    item_type: data_model
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: DataModelPack
+    why_valuable: "Reusable en Excel, evidencia, owner report y operator report."
+    required_evidence: "Evento de validación o parsing."
+    owner_facing_limit: "Mostrar sólo advertencias comprensibles y accionables."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: parsing_confidence_flag
+    extracted_item: "Flag de confianza de parsing para campos extraídos."
+    item_type: data_model
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: DataModelPack
+    why_valuable: "Permite diferenciar dato medido de dato dudoso."
+    required_evidence: "Resultado de extracción."
+    owner_facing_limit: "No usar dato de baja confianza en cálculos sin advertencia."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: ambiguous_value_quarantine
+    extracted_item: "Cuarentena de valores ambiguos antes de cálculo."
+    item_type: workflow
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Previene contaminación de métricas."
+    required_evidence: "Valor no normalizable o contradictorio."
+    owner_facing_limit: "Declarar exclusión o pedir corrección."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: technical_warning_to_owner_copy
+    extracted_item: "Conversión de warning técnico a texto owner-facing."
+    item_type: owner_language
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: OwnerCopyPack
+    why_valuable: "Evita exponer errores internos al dueño y conserva transparencia."
+    required_evidence: "Warning técnico normalizado."
+    owner_facing_limit: "No culpar al usuario; pedir evidencia corregida."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: finding_summary_boundary
+    extracted_item: "Separar hallazgo estructurado de resumen narrativo."
+    item_type: report_pattern
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: ReportPack
+    why_valuable: "Mantiene trazabilidad y evita que la narrativa invente."
+    required_evidence: "Finding estructurado."
+    owner_facing_limit: "Resumen sólo de findings existentes."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: channel_agnostic_delivery
+    extracted_item: "Entrega desacoplada del canal concreto."
+    item_type: workflow
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Permite adaptar email, WhatsApp, CLI o dashboard sin acoplar Telegram."
+    required_evidence: "Output preparado + destino lógico."
+    owner_facing_limit: "No asumir canal."
+    migration_risk: MEDIUM
+    confidence: MEDIUM
+
+  - id: delivery_fallback_reason
+    extracted_item: "Registrar razón de fallback cuando falla o falta destinatario/canal."
+    item_type: data_model
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: DataModelPack
+    why_valuable: "Mejora trazabilidad operator-facing."
+    required_evidence: "Intento de entrega o configuración incompleta."
+    owner_facing_limit: "No mostrar detalles internos innecesarios."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: input_file_observation_boundary
+    extracted_item: "Límite entre observar archivo y afirmar realidad organizacional."
+    item_type: rule
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: ChecklistPack
+    why_valuable: "Regla anti-oráculo central para PymIA."
+    required_evidence: "Archivo analizado."
+    owner_facing_limit: "Decir 'en el archivo se observa', no 'la empresa tiene'."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: local_path_redaction_rule
+    extracted_item: "Evitar exponer paths locales en salida owner-facing."
+    item_type: rule
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: ValidationPack
+    why_valuable: "Protege privacidad y reduce ruido técnico."
+    required_evidence: "Salida generada con referencias técnicas."
+    owner_facing_limit: "Mostrar nombre lógico del archivo, no ruta local completa."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: evidence_payload_minimal_shape
+    extracted_item: "Forma mínima de payload de evidencia: source, field, value, confidence, warning."
+    item_type: data_model
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: DataModelPack
+    why_valuable: "Compatible con fichas y reportes PymIA."
+    required_evidence: "Extracción de datos."
+    owner_facing_limit: "No owner-facing directo."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: warning_severity_levels
+    extracted_item: "Niveles conceptuales de warning: info, caution, blocking."
+    item_type: rule
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: ValidationPack
+    why_valuable: "Permite decidir si continuar, advertir o bloquear cálculo."
+    required_evidence: "Warning estructurado."
+    owner_facing_limit: "Usar lenguaje simple."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: calculation_exclusion_trace
+    extracted_item: "Trazar qué valores fueron excluidos de un cálculo y por qué."
+    item_type: data_model
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: DataModelPack
+    why_valuable: "Explicabilidad de cálculos incompletos."
+    required_evidence: "Valores excluidos + razón."
+    owner_facing_limit: "Mostrar conteo y razón, no necesariamente detalle completo."
+    migration_risk: LOW
+    confidence: HIGH
+
+  - id: human_review_trigger_for_ambiguity
+    extracted_item: "Escalar a revisión humana cuando la ambigüedad afecta el resultado."
+    item_type: workflow
+    service_fit: CROSS_CUTTING_VALUE
+    suggested_pack_type: WorkflowPack
+    why_valuable: "Evita automatismo ante evidencia insuficiente."
+    required_evidence: "Warning blocking o datos críticos ambiguos."
+    owner_facing_limit: "Pedir corrección o confirmación; no inventar."
+    migration_risk: LOW
+    confidence: HIGH
+
+summary:
+  total_items: 13
+  data_model_pack: 5
+  workflow_pack: 3
+  owner_copy_pack: 1
+  report_pack: 1
+  checklist_pack: 1
+  validation_pack: 2
