@@ -47,7 +47,9 @@ def test_document_ingestion_exports_structured_evidence() -> None:
     assert evidence.source == "xlsx_upload"
     assert evidence.file_name == "pyme_textil_compleja.xlsx"
     assert evidence.tables
-    assert evidence.computed_variables
+    assert evidence.computed_variables == {}
+    assert evidence.metadata["calculation_blocked"] is True
+    assert evidence.metadata["owner_questions"]
     assert evidence.metadata["extraction_engine"] == "local_excel_evidence_v1"
     assert evidence.metadata["sheet_reports"]
 
