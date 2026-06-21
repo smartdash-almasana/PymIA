@@ -1,8 +1,66 @@
 # PymIA Memoria — Decisiones vigentes
 
-Fecha: 2026-06-16
+Fecha: 2026-06-20
 
-## Decisión rectora
+## Decisión rectora de producto
+
+```text
+PymIA no es un oráculo.
+PymIA es un sistema operativo para reducir tinieblas e incertidumbre mediante preguntas, evidencia y opciones proporcionales.
+```
+
+Consecuencia:
+
+```text
+La profundidad de servicio no debe adivinarse como primer movimiento.
+La entrada debe preguntar primero qué necesita resolver el dueño hoy.
+```
+
+Pregunta madre:
+
+```text
+¿Qué necesitás resolver hoy?
+```
+
+Opciones iniciales:
+
+```text
+1. Primeros Auxilios
+   Tengo algo puntual para ordenar o revisar ahora.
+
+2. Problema específico / diagnóstico sectorial
+   Tengo un problema más complejo que quiero entender.
+
+3. Estructura completa de la empresa
+   Quiero analizar y ordenar la empresa como sistema.
+```
+
+Secuencia rectora:
+
+```text
+pregunta inicial
+→ opción elegida por el dueño
+→ evidencia mínima
+→ profundidad de servicio
+→ respuesta proporcional
+```
+
+Regla de service depth:
+
+```text
+Service depth no debe ser adivinación.
+Debe combinar:
+1. elección explícita del dueño;
+2. evidencia disponible;
+3. señales del lenguaje;
+4. límites de suficiencia.
+```
+
+La elección explícita del dueño manda primero.
+
+---
+
+## Decisión rectora de conocimiento
 
 ```text
 El conocimiento de dominio es enchufable.
@@ -30,24 +88,69 @@ Orden de autoridad:
 
 ```text
 1. PymIA-Live ejecutable y tests validados.
-2. PymIA-Live/README.md.
-3. PymIA-Live/docs/pymia/PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md.
-4. Contratos JSON vivos bajo PymIA-Live/pymia/contracts/.
-5. Código runtime vivo bajo PymIA-Live/pymia/.
-6. Documentos vivos explícitamente promovidos.
-7. Museo histórico catalogado, sólo como contexto.
+2. PymIA-Live/docs/pymia/LIVE_DOCUMENT_PRIORITY_MAP.md.
+3. PymIA-Live/docs/pymia/LIVE_CODE_FREEZE_LEDGER.md.
+4. docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md.
+5. PymIA-Live/docs/pymia/PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md.
+6. PymIA-Live/docs/pymia/PYMIA_LIVE_CORE_MANIFEST.md.
+7. Código runtime vivo bajo PymIA-Live/pymia/.
+8. Contratos JSON vivos bajo PymIA-Live/pymia/contracts/.
+9. Documentos vivos explícitamente promovidos.
+10. Museo histórico catalogado, sólo como contexto.
 ```
 
-HEAD técnico vigente:
+Commits recientes aceptados:
 
 ```text
-f179267 refactor(pymia-live): make owner markdown renderer decision-free
+716c6d7 docs(producto): define excel treatment lab concept
+f924c27 feat(pymia-live): add first aid entrypoint helper
+dd0e659 feat(pymia-live): add first aid owner output helper
+67db189 chore(graphify): include pymia live in architecture graph
 ```
 
-Tests reportados:
+---
+
+## Decisión vigente sobre FIRST_AID
 
 ```text
-243/243 PASS
+FIRST_AID_ENTRYPOINT_V1 = CLOSED
+FIRST_AID_OWNER_OUTPUT_V1 = CLOSED
+FIRST_AID_APPLICATION_WIRING_V1 = DEFERRED
+```
+
+Cadena cerrada:
+
+```text
+service_depth.py
+→ first_aid_entrypoint.py
+→ first_aid_owner_output.py
+```
+
+Interpretación:
+
+```text
+FIRST_AID existe como capacidad latente cerrada.
+No está cableado a application, CLI, rendering, storage, OCF ni diagnóstico.
+```
+
+Regla:
+
+```text
+No cablear FIRST_AID por simetría arquitectónica.
+No cablear FIRST_AID porque los helpers existen.
+Sólo reabrir application wiring si existe canal consumidor real, caso piloto real o test de integración fallando por falta de wiring.
+```
+
+Checkpoint:
+
+```text
+PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
+```
+
+Estado:
+
+```text
+CREATED_NOT_COMMITTED
 ```
 
 ---
@@ -58,7 +161,7 @@ Tests reportados:
 vertical_slice.py no debe crecer.
 vertical_slice.py debe permanecer como adaptador CLI.
 Los futuros canales no deben copiar lógica desde vertical_slice.py.
-Los futuros canales deben invocar una frontera de aplicación común.
+Los futuros canales deben invocar una frontera de aplicación común sólo cuando exista consumidor real.
 ```
 
 Frontera de aplicación vigente:
@@ -82,6 +185,8 @@ question resolution         -> pymia/smartpyme/question_resolution.py
 diagnostic operator adapter -> pymia/smartpyme/diagnostic_operator_adapter.py
 owner markdown renderer     -> pymia/rendering/owner_markdown_renderer.py
 vertical pipeline           -> pymia/application/vertical_pipeline.py
+FIRST_AID latent entry      -> pymia/smartpyme/first_aid_entrypoint.py
+FIRST_AID latent owner view -> pymia/smartpyme/first_aid_owner_output.py
 ```
 
 Compatibilidad temporal aceptada:
@@ -102,15 +207,6 @@ El renderer markdown no decide dominio.
 El renderer markdown no resuelve QAG.
 El renderer markdown no reconstruye owner_simple.
 El renderer markdown sólo presenta datos ya resueltos por el caso de uso.
-```
-
-Campos pre-resueltos por `pymia/application/vertical_pipeline.py`:
-
-```text
-report["owner_question"]
-report["owner_question_technical_reference"]
-report["owner_simple"]
-report["evidence_request_alignment"]
 ```
 
 Prohibición vigente para `pymia/rendering/owner_markdown_renderer.py`:
@@ -173,6 +269,7 @@ owner_facing_report_copy_v1.json gobierna warnings owner-facing por status opera
 vertical_slice_copy_v1.json gobierna copy mínimo y fallback owner-facing local.
 language_corpus_seed.json gobierna labels declarativos del corpus dueño-variable.
 pipeline_run_v1.py gobierna la identidad de ejecución del pipeline vertical.
+service_depth.py clasifica profundidad proporcional, pero no debe actuar como oráculo si puede preguntarse explícitamente al dueño.
 ```
 
 ---
@@ -183,9 +280,26 @@ pipeline_run_v1.py gobierna la identidad de ejecución del pipeline vertical.
 .tmp/ no se versiona.
 _local_quarantine/ no se versiona.
 PymIA-Live/.tmp_smoke_owner_alignment/ no se versiona salvo decisión explícita de evidencia sanitizada.
-Pymia-memoria/ está trackeado: .gitignore no impide cambios porque los archivos ya existen en índice.
+graphify-out/ queda regenerable y untracked intencional.
 MUSEUM_CATALOG.md no gobierna runtime; sólo puede catalogar frontera museo/vivo.
 ROLE_PLAYING_ONBOARDING_FINDINGS.md es hallazgo experimental hasta promoción explícita.
+```
+
+---
+
+## Estado Graphify
+
+```text
+GRAPHIFY_SCOPE_FIX_V1 = CLOSED
+GRAPHIFY_POST_COMMIT_REGEN_CHECK_V1 = CLOSED
+```
+
+Regla:
+
+```text
+Graphify se usa sólo si resuelve una decisión arquitectónica concreta.
+No usarlo como ritual de validación redundante.
+No regenerar graphify-out/ por costumbre.
 ```
 
 ---
@@ -228,6 +342,7 @@ vertical_slice_cli ya no gobierna la identidad del pipeline.
 owner_markdown_renderer.py ya no decide QAG.
 owner_markdown_renderer.py ya no reconstruye owner_simple.
 owner_markdown_renderer.py ya no importa servicios smartpyme de dominio.
+FIRST_AID helpers quedaron cerrados como capacidad latente, sin wiring prematuro.
 ```
 
 Estas deudas no autorizan refactor automático. Requieren auditoría focal y clasificación previa.
@@ -241,7 +356,7 @@ Si trae evidencia -> validar evidencia.
 Si pide prompt -> dar prompt con encabezado: PROMPT — objetivo / PARA: agente.
 Si pide decisión -> dar decisión.
 Si pide siguiente paso -> dar un solo siguiente paso.
-Si pide ejecutar -> pedir AUTH si modifica repo, tests, commit o push.
+Si pide ejecutar -> pedir AUTH si modifica repo, tests, commit o push, salvo que el usuario haya autorizado explícitamente el frente.
 Lectura/auditoría puede hacerse sólo cuando el usuario la autoriza o el frente lo requiere explícitamente.
 ```
 
@@ -255,7 +370,7 @@ No agregar PymIA-Live/.tmp_smoke_owner_alignment/
 No agregar _local_quarantine/
 No commitear museo ni documentación no intencional.
 No mezclar memoria, museo, smoke y runtime en un mismo commit.
-No mezclar memoria documental con runtime en el mismo commit.
+No mezclar memoria documental con runtime en el mismo commit salvo autorización explícita del frente documental.
 ```
 
 ---
@@ -282,5 +397,5 @@ Reglas y controles de frontera para evitar derivas metodológicas en la IA:
 ## Frase rectora actual
 
 ```text
-PymIA-Live debe quedar pequeño, trazable, multicanal-ready y gobernado por contratos declarativos.
+PymIA-Live debe quedar pequeño, trazable, multicanal-ready, gobernado por contratos declarativos y guiado por preguntas explícitas antes que por adivinación.
 ```

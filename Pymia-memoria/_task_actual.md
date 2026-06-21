@@ -1,11 +1,11 @@
 # PymIA Memoria — Task actual
 
-Fecha: 2026-06-16
+Fecha: 2026-06-20
 
 ## Task actual
 
 ```text
-OWNER_MARKDOWN_RENDERER_DECISION_FREE_CLOSEOUT
+PRODUCT_FINAL_NO_ORACLE_AND_MEMORY_UPDATE
 ```
 
 ## Categoría
@@ -22,127 +22,127 @@ APPLIED_NOT_COMMITTED
 
 ## Objetivo
 
-```text
-Cerrar documentalmente OWNER_MARKDOWN_RENDERER_DECISION_FREE_V1 después del commit técnico f179267.
-```
-
----
-
-## HEAD validado antes del cierre documental
+Registrar la corrección conceptual incorporada al documento maestro de producto:
 
 ```text
-f179267 refactor(pymia-live): make owner markdown renderer decision-free
+PymIA no es un oráculo.
+PymIA reduce tinieblas e incertidumbre preguntando primero.
 ```
 
-Worktree antes del cierre documental:
+## Archivo modificado
 
 ```text
-limpio
+docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md
 ```
 
-Tests reportados al cierre técnico:
+Se agregó sección nueva:
 
 ```text
-243/243 PASS
+## 6.4 Pregunta madre de entrada / No-oráculo
 ```
 
----
-
-## Cambio técnico ya cerrado
+## Archivos de memoria actualizados
 
 ```text
-OWNER_MARKDOWN_RENDERER_DECISION_FREE_V1 = CLOSED
+Pymia-memoria/_estado_actual.md
+Pymia-memoria/_task_actual.md
+Pymia-memoria/_decisiones_vigentes.md
+Pymia-memoria/_no_volver_a_hacer.md
 ```
 
-Resultado:
+## Documento checkpoint creado
 
 ```text
-owner_markdown_renderer.py ya no decide QAG.
-owner_markdown_renderer.py ya no reconstruye owner_simple.
-owner_markdown_renderer.py ya no importa owner_output, question_alignment_gate ni question_resolution.
-vertical_pipeline.py pre-resuelve los datos de presentación necesarios para el renderer.
-boundary test protege la frontera presentation/application.
+PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
 ```
 
-Campos pre-resueltos por application:
+Estado:
 
 ```text
-report["owner_question"]
-report["owner_question_technical_reference"]
-report["owner_simple"]
-report["evidence_request_alignment"]
+CREATED_NOT_COMMITTED
 ```
 
----
-
-## Estado resultante
+## Decisión rectora incorporada
 
 ```text
-CLI = canal.
-vertical_pipeline.py = caso de uso / decisiones.
-owner_markdown_renderer.py = presentación.
-smartpyme/question_resolution.py = dominio reutilizable.
+Service depth no debe ser adivinación.
+Debe combinar:
+1. elección explícita del dueño;
+2. evidencia disponible;
+3. señales del lenguaje;
+4. límites de suficiencia.
 ```
 
----
+La elección explícita del dueño manda primero.
 
-## Cambios documentales de este task
+## Pregunta madre
 
 ```text
-Actualizar sólo:
-- Pymia-memoria/_estado_actual.md
-- Pymia-memoria/_decisiones_vigentes.md
-- Pymia-memoria/_task_actual.md
+¿Qué necesitás resolver hoy?
 ```
 
-No tocar:
+Opciones:
 
 ```text
-- runtime
-- tests
-- contratos JSON
-- docs/pymia
-- museo
-- smoke artifacts
+1. Primeros Auxilios
+   Tengo algo puntual para ordenar o revisar ahora.
+
+2. Problema específico / diagnóstico sectorial
+   Tengo un problema más complejo que quiero entender.
+
+3. Estructura completa de la empresa
+   Quiero analizar y ordenar la empresa como sistema.
 ```
 
----
-
-## Deuda viva posterior
+## FIRST_AID — Estado vigente
 
 ```text
-vertical_slice.py conserva imports de compatibilidad temporal.
-build_structured_summary vive dentro de application/vertical_pipeline.py y puede extraerse luego si hay deuda material.
-Language corpus sigue limitado; puede producir snake_case owner-facing si faltan labels.
-Runbook/checklist operativo debe actualizar flags y protocolo de piloto.
-No abrir owner_output_v1 sin señal material.
-No abrir canales nuevos por inercia.
+FIRST_AID_ENTRYPOINT_V1 = CLOSED
+FIRST_AID_OWNER_OUTPUT_V1 = CLOSED
+FIRST_AID_APPLICATION_WIRING_V1 = DEFERRED
 ```
 
----
+Cadena cerrada:
+
+```text
+service_depth.py
+→ first_aid_entrypoint.py
+→ first_aid_owner_output.py
+```
+
+No cablear application/CLI/rendering mientras no exista canal consumidor real, caso piloto real o test de integración fallando por falta de wiring.
 
 ## Próximo paso recomendado
 
+Commit documental focal con los archivos modificados de este frente, si el usuario lo autoriza.
+
+Archivos candidatos:
+
 ```text
-Commit documental focal del cierre de memoria.
-Después, avanzar a PILOT_OPERATOR_CHECKLIST_V1 antes de más runtime.
+docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md
+PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
+Pymia-memoria/_estado_actual.md
+Pymia-memoria/_task_actual.md
+Pymia-memoria/_decisiones_vigentes.md
+Pymia-memoria/_no_volver_a_hacer.md
 ```
 
 Commit sugerido:
 
 ```text
-docs(pymia-memoria): close owner markdown renderer decision-free
+docs(pymia): record no-oracle service entry decision
 ```
-
----
 
 ## Prohibiciones vigentes
 
 ```text
-No mezclar este cierre documental con runtime.
-No correr pytest por memoria documental.
-No crear contratos nuevos.
-No abrir API/UI/canales nuevos.
-No crear owner_output_v1.
-No continuar refactor técnico sin auditoría focal previa.
+No runtime.
+No tests.
+No Graphify.
+No wiring application.
+No CLI.
+No rendering.
+No OCF write-model.
+No diagnóstico por inferencia.
+No abrir más frentes antes de cerrar este documental.
 ```
