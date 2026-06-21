@@ -1,0 +1,354 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "FIRST_AID_TOOL_ACTIVATION_V1",
+  "status": "CONTRACT_ONLY",
+  "runtime_authorized": false,
+  "implementation_authorized": false,
+  "source_seed": "first_aid_toolbox_pack_seed_v1.json",
+  "allowed_service_depth": [
+    "FIRST_AID"
+  ],
+  "activation_states": [
+    "ELIGIBLE",
+    "BLOCKED_MISSING_EVIDENCE",
+    "BLOCKED_COLUMN_CONFIRMATION",
+    "BLOCKED_RESTRICTED_FORMULA",
+    "BLOCKED_FORBIDDEN_CLAIM",
+    "BLOCKED_SCOPE_MISMATCH",
+    "BLOCKED_COMPONENT_NOT_ALIGNED",
+    "BLOCKED_RUNTIME_NOT_AUTHORIZED"
+  ],
+  "required_inputs": [
+    "tool_ref",
+    "owner_problem",
+    "service_depth",
+    "available_evidence",
+    "column_confirmation_status",
+    "requested_formula_refs",
+    "requested_claims",
+    "pack_seed_status",
+    "runtime_authorized"
+  ],
+  "activation_rules": [
+    {
+      "rule_id": "AR_001_PACK_MEMBERSHIP",
+      "description": "La herramienta debe pertenecer al pack First Aid validado",
+      "condition": "tool_ref existe en source_seed.tool_refs",
+      "failure_state": "BLOCKED_COMPONENT_NOT_ALIGNED"
+    },
+    {
+      "rule_id": "AR_002_COMPONENT_ALIGNED",
+      "description": "La herramienta debe tener component_mapping ALIGNED en el seed",
+      "condition": "tool_component_mapping[tool_ref].mapping_status == ALIGNED",
+      "failure_state": "BLOCKED_COMPONENT_NOT_ALIGNED"
+    },
+    {
+      "rule_id": "AR_003_EVIDENCE_REQUIREMENTS_DEFINED",
+      "description": "La herramienta debe tener evidence_requirements en el seed",
+      "condition": "evidence_requirements[tool_ref] existe",
+      "failure_state": "BLOCKED_MISSING_EVIDENCE"
+    },
+    {
+      "rule_id": "AR_004_MINIMUM_EVIDENCE_AVAILABLE",
+      "description": "La evidencia mínima debe estar disponible",
+      "condition": "todos los campos de minimum_evidence están en available_evidence",
+      "failure_state": "BLOCKED_MISSING_EVIDENCE"
+    },
+    {
+      "rule_id": "AR_005_NO_RESTRICTED_FORMULA_REQUIRED",
+      "description": "La herramienta no debe requerir fórmulas restringidas",
+      "condition": "ninguna restricted_formula_ref está en las fórmulas necesarias de la herramienta",
+      "failure_state": "BLOCKED_RESTRICTED_FORMULA"
+    },
+    {
+      "rule_id": "AR_006_NO_FORBIDDEN_CLAIM",
+      "description": "El pedido no debe violar forbidden_claims",
+      "condition": "ningún requested_claim está en forbidden_claims",
+      "failure_state": "BLOCKED_FORBIDDEN_CLAIM"
+    },
+    {
+      "rule_id": "AR_007_COLUMNS_CONFIRMED",
+      "description": "No debe haber columnas computacionales sin confirmar",
+      "condition": "ninguna columna computacional tiene status unconfirmed",
+      "failure_state": "BLOCKED_COLUMN_CONFIRMATION"
+    },
+    {
+      "rule_id": "AR_008_SCOPE_MATCH",
+      "description": "El service_depth pedido debe incluir FIRST_AID",
+      "condition": "input.service_depth está incluido en allowed_service_depth del contrato",
+      "failure_state": "BLOCKED_SCOPE_MISMATCH"
+    },
+    {
+      "rule_id": "AR_009_RUNTIME_AUTHORIZED",
+      "description": "El runtime_authorized debe ser true para ejecución real",
+      "condition": "runtime_authorized == true",
+      "failure_state": "BLOCKED_RUNTIME_NOT_AUTHORIZED"
+    }
+  ],
+  "blocking_rules": [
+    {
+      "blocking_state": "BLOCKED_MISSING_EVIDENCE",
+      "trigger": "falta al menos un campo de minimum_evidence",
+      "recovery": "pedir evidencia faltante al dueño con owner_questions",
+      "escalation": false
+    },
+    {
+      "blocking_state": "BLOCKED_COLUMN_CONFIRMATION",
+      "trigger": "hay columnas computacionales sin confirmar",
+      "recovery": "preguntar al dueño qué columna es qué",
+      "escalation": false
+    },
+    {
+      "blocking_state": "BLOCKED_RESTRICTED_FORMULA",
+      "trigger": "la herramienta requiere fórmula restringida",
+      "recovery": null,
+      "escalation": "DETERMINISTIC_DIAGNOSIS"
+    },
+    {
+      "blocking_state": "BLOCKED_FORBIDDEN_CLAIM",
+      "trigger": "el pedido viola forbidden_claim",
+      "recovery": "reformular el pedido o explicar limitación",
+      "escalation": "possible DETERMINISTIC_DIAGNOSIS"
+    },
+    {
+      "blocking_state": "BLOCKED_SCOPE_MISMATCH",
+      "trigger": "service_depth no incluye FIRST_AID",
+      "recovery": null,
+      "escalation": "servicio correspondiente"
+    },
+    {
+      "blocking_state": "BLOCKED_COMPONENT_NOT_ALIGNED",
+      "trigger": "component_mapping no es ALIGNED",
+      "recovery": null,
+      "escalation": "auditoría de seed"
+    },
+    {
+      "blocking_state": "BLOCKED_RUNTIME_NOT_AUTHORIZED",
+      "trigger": "runtime_authorized es false",
+      "recovery": "autorizar runtime explícitamente",
+      "escalation": false
+    }
+  ],
+  "tool_activation_matrix": [
+    {
+      "tool_ref": "caja_diaria_triage",
+      "component_required": "caja_diaria",
+      "minimum_evidence": [
+        "saldo_inicial",
+        "ingresos",
+        "egresos"
+      ],
+      "optional_evidence": [
+        "banco",
+        "mercado_pago",
+        "ventas"
+      ],
+      "allowed_formulas": [
+        "flujo_caja_neto",
+        "saldo_acumulado",
+        "ingresos_totales",
+        "egresos_totales"
+      ],
+      "restricted_formulas": [
+        "resultado_neto",
+        "punto_equilibrio_unidades",
+        "punto_equilibrio_pesos",
+        "rotacion_inventario",
+        "costo_reposicion_promedio"
+      ],
+      "forbidden_claims": [
+        "conciliación bancaria cerrada",
+        "saldo real certificado",
+        "auditoría contable"
+      ],
+      "owner_questions_if_missing": [
+        "¿Cuál fue el saldo inicial del período?",
+        "¿Cuáles fueron los ingresos totales?",
+        "¿Cuáles fueron los egresos totales?"
+      ],
+      "eligible_when": "tiene saldo_inicial + ingresos + egresos y no pide diagnóstico",
+      "blocked_when": "falta alguno de los 3 mínimos o pide conciliación bancaria cerrada",
+      "limitations": [
+        "Ordena caja diaria; no confirma resultado contable ni conciliación bancaria"
+      ]
+    },
+    {
+      "tool_ref": "precio_margen_basico",
+      "component_required": "precio_margen",
+      "minimum_evidence": [
+        "precio_venta",
+        "costo_unitario"
+      ],
+      "optional_evidence": [
+        "margen_objetivo",
+        "descuento",
+        "comision",
+        "impuesto",
+        "envio"
+      ],
+      "allowed_formulas": [
+        "margen_bruto",
+        "margen_bruto_pesos",
+        "markup",
+        "precio_venta_con_margen"
+      ],
+      "restricted_formulas": [
+        "resultado_neto",
+        "punto_equilibrio_unidades",
+        "punto_equilibrio_pesos",
+        "rotacion_inventario",
+        "costo_reposicion_promedio"
+      ],
+      "forbidden_claims": [
+        "rentabilidad real confirmada",
+        "precio comercial definitivo",
+        "estrategia de pricing completa"
+      ],
+      "owner_questions_if_missing": [
+        "¿Cuál es el precio de venta actual?",
+        "¿Cuál es el costo unitario de este producto?"
+      ],
+      "eligible_when": "tiene precio_venta + costo_unitario y no pide rentabilidad real",
+      "blocked_when": "falta alguno de los 2 mínimos o pide rentabilidad real confirmada",
+      "limitations": [
+        "Calcula precio, margen bruto y markup; no define precio óptimo ni estrategia comercial"
+      ]
+    },
+    {
+      "tool_ref": "stock_alertas_basicas",
+      "component_required": "StockDesvioAlertRule",
+      "minimum_evidence": [
+        "producto",
+        "stock_actual",
+        "stock_minimo"
+      ],
+      "optional_evidence": [
+        "ventas_diarias_promedio",
+        "costo_unitario",
+        "inventario_fisico"
+      ],
+      "allowed_formulas": [
+        "alerta_stock_minimo",
+        "dias_stock_restante"
+      ],
+      "restricted_formulas": [
+        "rotacion_inventario",
+        "costo_reposicion_promedio",
+        "resultado_neto",
+        "punto_equilibrio_unidades",
+        "punto_equilibrio_pesos"
+      ],
+      "forbidden_claims": [
+        "stock físico confirmado",
+        "recomendación final de compra",
+        "rotación confiable sin ventas y CMV"
+      ],
+      "owner_questions_if_missing": [
+        "¿Cuál es el stock actual de este producto?",
+        "¿Cuál es el stock mínimo que querés mantener?"
+      ],
+      "eligible_when": "tiene producto + stock_actual + stock_minimo y no pide stock físico confirmado",
+      "blocked_when": "falta alguno de los 3 mínimos o pide stock físico confirmado sin conteo",
+      "limitations": [
+        "Marca desvíos y stock bajo; no explica causa ni confirma stock físico"
+      ]
+    },
+    {
+      "tool_ref": "gastos_triage",
+      "component_required": "gastos_triage",
+      "minimum_evidence": [
+        "concepto",
+        "importe"
+      ],
+      "optional_evidence": [
+        "fecha",
+        "categoria",
+        "proveedor",
+        "medio_pago"
+      ],
+      "allowed_formulas": [
+        "egresos_totales"
+      ],
+      "restricted_formulas": [
+        "resultado_neto",
+        "punto_equilibrio_unidades",
+        "punto_equilibrio_pesos",
+        "rotacion_inventario",
+        "costo_reposicion_promedio"
+      ],
+      "forbidden_claims": [
+        "clasificación contable definitiva",
+        "clasificación fiscal definitiva",
+        "auditoría de gastos",
+        "diagnóstico de rentabilidad",
+        "decisión impositiva"
+      ],
+      "owner_questions_if_missing": [
+        "¿Cuál es el concepto de este gasto?",
+        "¿Cuál es el importe?"
+      ],
+      "eligible_when": "tiene concepto + importe y no pide clasificación contable/fiscal",
+      "blocked_when": "falta alguno de los 2 mínimos o pide clasificación contable definitiva",
+      "limitations": [
+        "Agrupa egresos; no clasifica fiscalmente ni audita gastos"
+      ]
+    },
+    {
+      "tool_ref": "proveedores_precio_variacion_triage",
+      "component_required": "proveedores_precio_variacion_triage",
+      "minimum_evidence": [
+        "proveedor",
+        "producto_o_insumo",
+        "precio_o_costo"
+      ],
+      "optional_evidence": [
+        "fecha",
+        "cantidad",
+        "factura",
+        "lista_anterior"
+      ],
+      "allowed_formulas": [
+        "margen_bruto_pesos"
+      ],
+      "restricted_formulas": [
+        "rotacion_inventario",
+        "costo_reposicion_promedio",
+        "resultado_neto",
+        "punto_equilibrio_unidades",
+        "punto_equilibrio_pesos"
+      ],
+      "forbidden_claims": [
+        "estrategia de compras definitiva",
+        "rentabilidad por proveedor confirmada",
+        "recomendación final de compra",
+        "auditoría de proveedores",
+        "diagnóstico financiero completo"
+      ],
+      "owner_questions_if_missing": [
+        "¿Quién es el proveedor?",
+        "¿Qué producto o insumo estás comprando?",
+        "¿Cuál es el precio o costo actual?"
+      ],
+      "eligible_when": "tiene proveedor + producto_o_insumo + precio_o_costo y no pide estrategia de compras",
+      "blocked_when": "falta alguno de los 3 mínimos o pide estrategia de compras definitiva",
+      "limitations": [
+        "Detecta aumentos visibles; no decide estrategia de compras ni confirma rentabilidad"
+      ]
+    }
+  ],
+  "forbidden_runtime_actions": [
+    "runtime execution",
+    "tool execution",
+    "XLSX generation",
+    "pipeline wiring",
+    "diagnostic claims",
+    "LLM decisions"
+  ],
+  "notes": [
+    "Este contrato de activación no es runtime. Sólo define la regla de elegibilidad.",
+    "Próximo paso posterior sería loader o activation evaluator, no pipeline directo.",
+    "vertical_pipeline.py no debe tocarse en este frente.",
+    "Aunque una herramienta sea ELIGIBLE conceptualmente, el runtime_authorized sigue siendo false hasta autorización explícita posterior.",
+    "Este contrato consume first_aid_toolbox_pack_seed_v1.json como fuente de verdad. No lo reemplaza."
+  ]
+}

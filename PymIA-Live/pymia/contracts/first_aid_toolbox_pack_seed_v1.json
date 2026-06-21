@@ -1,0 +1,822 @@
+{
+  "schema_version": "1.0",
+  "seed_id": "FIRST_AID_TOOLBOX_PACK_SEED_V1",
+  "contract_id": "FIRST_AID_TOOLBOX_PACK_CONTRACT_V1",
+  "status": "CANDIDATE_SEED",
+  "runtime_impact": "NONE",
+  "code_impact": "CONTRACT_ONLY",
+  "implementation_authorized": false,
+  "runtime_authorized": false,
+  "version": "1.0.0",
+  "source": "exceland2_archaeology",
+  "scope": "FIRST_AID",
+  "owner_facing_name": "Caja de herramientas de primeros auxilios",
+  "summary": "Herramientas simples para revisar planillas, precios, costos, caja, stock y tareas manuales. No diagnostica. Ordena, valida, alerta y pide evidencia.",
+  "allowed_service_depth": [
+    "FIRST_AID"
+  ],
+  "requires_minimal_case_file_layer": true,
+  "service": "FIRST_AID_PHASE_1",
+  "rules": {
+    "phase_1_rule": "Fase 1 calcula, ordena, valida, alerta y pide evidencia; no diagnostica.",
+    "required_sequence": [
+      "mother_question",
+      "selected_option",
+      "minimal_organizational_case_file_layer",
+      "evidence",
+      "proportional_tool",
+      "limited_output"
+    ],
+    "mother_question": "¿Qué necesitás resolver hoy?",
+    "selected_option": "Primeros Auxilios — Tengo algo puntual para ordenar o revisar ahora."
+  },
+  "allowed_decisions": [
+    "USE_IN_PHASE_1",
+    "USE_IN_PHASE_1_WITH_GUARDRAILS",
+    "NOT_FOR_PHASE_1_PHASE_2",
+    "REVIEW_REQUIRED",
+    "DO_NOT_MIGRATE"
+  ],
+  "allowed_component_types": [
+    "CalculationTool",
+    "ValidationPack",
+    "ChecklistPack",
+    "HeuristicPack",
+    "AlertRulePack",
+    "OwnerCopyPack",
+    "WorkflowPack",
+    "ReportPack",
+    "SimulationTool"
+  ],
+  "owner_language": {
+    "allowed_verbs": [
+      "ordena",
+      "calcula",
+      "muestra",
+      "marca faltantes",
+      "marca inconsistencias",
+      "alerta",
+      "requiere más evidencia",
+      "no se puede determinar con la evidencia actual"
+    ],
+    "forbidden_verbs": [
+      "diagnostica",
+      "confirma",
+      "certifica",
+      "revela",
+      "demuestra",
+      "garantiza"
+    ]
+  },
+  "formula_refs": [
+    {
+      "id": "margen_bruto",
+      "source_ref": "exceland2/catalog/formulas.yaml#margen_bruto",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Margen bruto estimado",
+      "required_inputs": [
+        "precio_venta",
+        "costo_unitario"
+      ],
+      "output_type": "percentage",
+      "limitation": "No confirma rentabilidad real si faltan comisiones, impuestos, envíos, descuentos o costos indirectos."
+    },
+    {
+      "id": "margen_bruto_pesos",
+      "source_ref": "exceland2/catalog/formulas.yaml#margen_bruto_pesos",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Diferencia entre precio y costo",
+      "required_inputs": [
+        "precio_venta",
+        "costo_unitario"
+      ],
+      "output_type": "currency",
+      "limitation": "Es margen bruto unitario, no resultado final del negocio."
+    },
+    {
+      "id": "precio_venta_con_margen",
+      "source_ref": "exceland2/catalog/formulas.yaml#precio_venta_con_margen",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Precio sugerido para margen objetivo",
+      "required_inputs": [
+        "costo_unitario",
+        "margen_objetivo"
+      ],
+      "output_type": "currency",
+      "limitation": "Es simulación de precio, no recomendación comercial definitiva."
+    },
+    {
+      "id": "markup",
+      "source_ref": "exceland2/catalog/formulas.yaml#markup",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Markup sobre costo",
+      "required_inputs": [
+        "precio_venta",
+        "costo_unitario"
+      ],
+      "output_type": "percentage",
+      "limitation": "Markup no es lo mismo que margen sobre precio."
+    },
+    {
+      "id": "ingresos_totales",
+      "source_ref": "exceland2/catalog/formulas.yaml#ingresos_totales",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Ingresos totales simples",
+      "required_inputs": [
+        "precio_venta",
+        "unidades_vendidas"
+      ],
+      "output_type": "currency",
+      "limitation": "Ingresos no son ganancia."
+    },
+    {
+      "id": "egresos_totales",
+      "source_ref": "exceland2/catalog/formulas.yaml#egresos_totales",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Egresos totales simples",
+      "required_inputs": [
+        "costos_fijos",
+        "costo_variable_unitario",
+        "unidades_vendidas"
+      ],
+      "output_type": "currency",
+      "limitation": "Depende de que los costos estén completos y bien clasificados."
+    },
+    {
+      "id": "flujo_caja_neto",
+      "source_ref": "exceland2/catalog/formulas.yaml#flujo_caja_neto",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Flujo de caja neto",
+      "required_inputs": [
+        "ingresos",
+        "egresos"
+      ],
+      "output_type": "currency",
+      "limitation": "No equivale a conciliación bancaria ni resultado contable."
+    },
+    {
+      "id": "saldo_acumulado",
+      "source_ref": "exceland2/catalog/formulas.yaml#saldo_acumulado",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Saldo acumulado",
+      "required_inputs": [
+        "saldo_anterior",
+        "flujo_neto"
+      ],
+      "output_type": "currency",
+      "limitation": "Depende de saldo inicial confiable."
+    },
+    {
+      "id": "alerta_stock_minimo",
+      "source_ref": "exceland2/catalog/formulas.yaml#alerta_stock_minimo",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Alerta de stock mínimo",
+      "required_inputs": [
+        "stock_actual",
+        "stock_minimo"
+      ],
+      "output_type": "boolean",
+      "limitation": "No confirma stock físico real."
+    },
+    {
+      "id": "dias_stock_restante",
+      "source_ref": "exceland2/catalog/formulas.yaml#dias_stock_restante",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Días estimados de stock restante",
+      "required_inputs": [
+        "stock_actual",
+        "ventas_diarias_promedio"
+      ],
+      "output_type": "number",
+      "limitation": "Sólo es válido si ventas_diarias_promedio representa la realidad reciente."
+    }
+  ],
+  "restricted_formula_refs": [
+    {
+      "id": "resultado_neto",
+      "reason": "Puede inducir diagnóstico financiero si ingresos y egresos están incompletos.",
+      "suggested_depth": "DETERMINISTIC_DIAGNOSIS"
+    },
+    {
+      "id": "punto_equilibrio_unidades",
+      "reason": "Requiere costos fijos, precio y costo variable confiables.",
+      "suggested_depth": "DETERMINISTIC_DIAGNOSIS"
+    },
+    {
+      "id": "punto_equilibrio_pesos",
+      "reason": "Requiere margen de contribución confiable.",
+      "suggested_depth": "DETERMINISTIC_DIAGNOSIS"
+    },
+    {
+      "id": "rotacion_inventario",
+      "reason": "Requiere CMV e inventario promedio confiables.",
+      "suggested_depth": "DETERMINISTIC_DIAGNOSIS"
+    },
+    {
+      "id": "costo_reposicion_promedio",
+      "reason": "Puede orientar decisión de compras y reposición; requiere contexto de stock y costos.",
+      "suggested_depth": "DETERMINISTIC_DIAGNOSIS"
+    }
+  ],
+  "validation_refs": [
+    "positive_number",
+    "non_negative_number",
+    "percentage_0_1",
+    "percentage_0_100",
+    "integer_positive",
+    "integer_non_negative"
+  ],
+  "tool_refs": [
+    {
+      "id": "caja_diaria_triage",
+      "source_ref": "exeland2/specs/caja_diaria.yaml",
+      "category": "cashflow",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Revisión inicial de caja diaria",
+      "solves": [
+        "ordenar ingresos y egresos",
+        "calcular flujo neto simple",
+        "calcular saldo acumulado simple"
+      ],
+      "forbidden_claims": [
+        "conciliación bancaria cerrada",
+        "saldo real certificado",
+        "auditoría contable"
+      ]
+    },
+    {
+      "id": "precio_margen_basico",
+      "source_ref": "exeland2/specs/precio_margen.yaml",
+      "category": "pricing",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Revisión básica de precio y margen",
+      "solves": [
+        "calcular margen bruto",
+        "calcular markup",
+        "simular precio con margen objetivo"
+      ],
+      "forbidden_claims": [
+        "rentabilidad real confirmada",
+        "precio comercial definitivo",
+        "estrategia de pricing completa"
+      ]
+    },
+    {
+      "id": "stock_alertas_basicas",
+      "source_ref": "exeland2/specs/stock_control.yaml",
+      "category": "stock",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Alertas básicas de stock",
+      "solves": [
+        "detectar stock bajo",
+        "estimar días de stock restante",
+        "señalar datos faltantes para rotación"
+      ],
+      "forbidden_claims": [
+        "stock físico confirmado",
+        "recomendación final de compra",
+        "rotación confiable sin ventas y CMV"
+      ]
+    },
+    {
+      "id": "gastos_triage",
+      "source_ref": "exeland2/catalog/product_registry.yaml#control_de_gastos",
+      "category": "cashflow",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Orden inicial de gastos",
+      "solves": [
+        "agrupar egresos",
+        "detectar gastos sin categoría",
+        "pedir clasificación faltante"
+      ],
+      "forbidden_claims": [
+        "clasificación contable/fiscal definitiva",
+        "auditoría de gastos"
+      ]
+    },
+    {
+      "id": "proveedores_precio_variacion_triage",
+      "source_ref": "exeland2/catalog/product_registry.yaml#compras_y_proveedores",
+      "category": "stock",
+      "service_depth": "FIRST_AID",
+      "owner_label": "Revisión inicial de compras y proveedores",
+      "solves": [
+        "detectar aumentos visibles",
+        "comparar proveedores si hay datos",
+        "marcar costos faltantes"
+      ],
+      "forbidden_claims": [
+        "estrategia de compras definitiva",
+        "rentabilidad por proveedor confirmada"
+      ]
+    }
+  ],
+  "tool_component_mapping": [
+    {
+      "tool_ref": "caja_diaria_triage",
+      "component_id": "caja_diaria",
+      "component_decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "mapping_status": "ALIGNED",
+      "note": "Componente existe. Calcula caja diaria con guardrails."
+    },
+    {
+      "tool_ref": "precio_margen_basico",
+      "component_id": "precio_margen",
+      "component_decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "mapping_status": "ALIGNED",
+      "note": "Componente existe. Calcula precio, margen bruto y markup con guardrails."
+    },
+    {
+      "tool_ref": "stock_alertas_basicas",
+      "component_id": "StockDesvioAlertRule",
+      "component_decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "mapping_status": "ALIGNED",
+      "note": "Componente existe como alerta de desvío. No cubre días_stock_restante; requiere composición con formula_refs."
+    },
+    {
+      "tool_ref": "gastos_triage",
+      "component_id": "gastos_triage",
+      "component_decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "mapping_status": "ALIGNED",
+      "note": "Componente nuevo creado específicamente para triage FIRST_AID. No reutiliza control_de_gastos (NOT_FOR_PHASE_1_PHASE_2)."
+    },
+    {
+      "tool_ref": "proveedores_precio_variacion_triage",
+      "component_id": "proveedores_precio_variacion_triage",
+      "component_decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "mapping_status": "ALIGNED",
+      "note": "Componente nuevo creado específicamente para triage FIRST_AID. No reutiliza compras_y_proveedores (NOT_FOR_PHASE_1_PHASE_2)."
+    }
+  ],
+  "evidence_requirements": {
+    "caja_diaria_triage": {
+      "minimum": [
+        "saldo_inicial",
+        "ingresos",
+        "egresos"
+      ],
+      "optional": [
+        "banco",
+        "mercado_pago",
+        "ventas"
+      ],
+      "missing_response": "Para revisar caja necesito al menos saldo inicial, ingresos y egresos del período."
+    },
+    "precio_margen_basico": {
+      "minimum": [
+        "precio_venta",
+        "costo_unitario"
+      ],
+      "optional": [
+        "margen_objetivo",
+        "descuento",
+        "comision",
+        "impuesto",
+        "envio"
+      ],
+      "missing_response": "Para estimar margen necesito precio de venta y costo unitario."
+    },
+    "stock_alertas_basicas": {
+      "minimum": [
+        "producto",
+        "stock_actual",
+        "stock_minimo"
+      ],
+      "optional": [
+        "ventas_diarias_promedio",
+        "costo_unitario",
+        "inventario_fisico"
+      ],
+      "missing_response": "Para revisar stock necesito producto, stock actual y umbral mínimo."
+    },
+    "gastos_triage": {
+      "minimum": [
+        "concepto",
+        "importe"
+      ],
+      "optional": [
+        "fecha",
+        "categoria",
+        "proveedor",
+        "medio_pago"
+      ],
+      "missing_response": "Para ordenar gastos necesito al menos concepto e importe."
+    },
+    "proveedores_precio_variacion_triage": {
+      "minimum": [
+        "proveedor",
+        "producto_o_insumo",
+        "precio_o_costo"
+      ],
+      "optional": [
+        "fecha",
+        "cantidad",
+        "factura",
+        "lista_anterior"
+      ],
+      "missing_response": "Para revisar proveedores necesito proveedor, producto o insumo y precio/costo."
+    }
+  },
+  "components": [
+    {
+      "id": "flujo_de_fondos",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1",
+      "family": "cash_flow",
+      "owner_limit": "Ordena ingresos, egresos y saldo acumulado; no confirma caja real."
+    },
+    {
+      "id": "proyeccion_ventas",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1",
+      "family": "sales_projection",
+      "owner_limit": "Calcula ingresos; no interpreta rentabilidad."
+    },
+    {
+      "id": "ExcelStructureValidationPack",
+      "source": "SmartCounter",
+      "component_type": "ValidationPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "intake_validation",
+      "owner_limit": "Valida forma, headers y tipos; no valida verdad de negocio."
+    },
+    {
+      "id": "SimpleCashArqueoChecklist",
+      "source": "SmartCounter",
+      "component_type": "ChecklistPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "cash_flow",
+      "owner_limit": "Arqueo manual; no verifica efectivo físico automáticamente."
+    },
+    {
+      "id": "OwnerSignalTemplate",
+      "source": "SmartCounter",
+      "component_type": "OwnerCopyPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "owner_alert",
+      "owner_limit": "Entrega alerta; no resuelve causa raíz."
+    },
+    {
+      "id": "owner_facing_copy_templates",
+      "source": "SmartD",
+      "component_type": "OwnerCopyPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "owner_language",
+      "owner_limit": "Templates owner-facing; no deben prometer diagnóstico."
+    },
+    {
+      "id": "partial_data_copy",
+      "source": "SmartD",
+      "component_type": "OwnerCopyPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "coverage_disclaimer",
+      "owner_limit": "Declara análisis parcial."
+    },
+    {
+      "id": "not_calculable_na_copy",
+      "source": "SmartD",
+      "component_type": "OwnerCopyPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "coverage_disclaimer",
+      "owner_limit": "Diferencia NA de cero real."
+    },
+    {
+      "id": "alert_severity_notification_mapping",
+      "source": "SmartD",
+      "component_type": "WorkflowPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "owner_alert",
+      "owner_limit": "Mapea severidad a canal; no debe sobrealertar."
+    },
+    {
+      "id": "immediate_action_short_copy",
+      "source": "SmartD",
+      "component_type": "OwnerCopyPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "owner_alert",
+      "owner_limit": "Una acción corta por alerta."
+    },
+    {
+      "id": "sla_breach_thresholds",
+      "source": "SmartD",
+      "component_type": "ValidationPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "operational_alert",
+      "owner_limit": "Alerta por tiempo; no diagnostica causa."
+    },
+    {
+      "id": "backlog_risk_thresholds",
+      "source": "SmartD",
+      "component_type": "ValidationPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "operational_alert",
+      "owner_limit": "Alerta acumulación; no diagnostica cuello de botella."
+    },
+    {
+      "id": "weekly_brief_structure",
+      "source": "SmartD",
+      "component_type": "ReportPack",
+      "decision": "USE_IN_PHASE_1",
+      "family": "owner_report",
+      "owner_limit": "Formato breve; máximo 3-7 acciones."
+    },
+    {
+      "id": "auto_ganancia",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "cash_flow",
+      "owner_limit": "Ordena caja diaria; no confirma ganancia."
+    },
+    {
+      "id": "caja_diaria",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "cash_flow",
+      "owner_limit": "Ordena caja diaria; no confirma resultado contable."
+    },
+    {
+      "id": "costos_por_producto",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "price_margin",
+      "owner_limit": "Calcula sobre datos entregados; no certifica costo real."
+    },
+    {
+      "id": "cuentas_corrientes_clientes",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "cash_flow",
+      "owner_limit": "Ordena saldos declarados; no confirma deuda real."
+    },
+    {
+      "id": "precio_margen",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "price_margin",
+      "owner_limit": "Calcula precio, margen bruto y markup; no define precio óptimo."
+    },
+    {
+      "id": "rentabilidad_por_producto",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "price_margin",
+      "owner_limit": "Muestra margen bruto; no confirma rentabilidad neta."
+    },
+    {
+      "id": "simulador_inflacion",
+      "source": "Exceland",
+      "component_type": "SimulationTool",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "price_margin",
+      "owner_limit": "Simula efecto; no recomienda estrategia comercial."
+    },
+    {
+      "id": "StockDesvioAlertRule",
+      "source": "SmartCounter",
+      "component_type": "AlertRulePack",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "stock_minimal_alert",
+      "owner_limit": "Marca desvíos; no explica causa."
+    },
+    {
+      "id": "CostPriceReviewHeuristic",
+      "source": "SmartCounter",
+      "component_type": "HeuristicPack",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "price_margin",
+      "owner_limit": "Alerta costo/precio; no forecast de inflación."
+    },
+    {
+      "id": "auto_stock",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "NOT_FOR_PHASE_1_PHASE_2",
+      "family": "stock_diagnostic",
+      "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico de stock."
+    },
+    {
+      "id": "compras_y_proveedores",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "NOT_FOR_PHASE_1_PHASE_2",
+      "family": "supplier_diagnostic",
+      "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico de compras/proveedores."
+    },
+    {
+      "id": "control_de_gastos",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "NOT_FOR_PHASE_1_PHASE_2",
+      "family": "expense_diagnostic",
+      "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico."
+    },
+    {
+      "id": "punto_equilibrio",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "NOT_FOR_PHASE_1_PHASE_2",
+      "family": "break_even_diagnostic",
+      "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico."
+    },
+    {
+      "id": "stock_control",
+      "source": "Exceland",
+      "component_type": "CalculationTool",
+      "decision": "NOT_FOR_PHASE_1_PHASE_2",
+      "family": "stock_diagnostic",
+      "owner_limit": "Fuera de Fase 1; requiere diagnóstico específico de stock."
+    },
+    {
+      "id": "gastos_triage",
+      "source": "FirstAidPack",
+      "component_type": "ChecklistPack",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "expense_triage",
+      "scope": "FIRST_AID",
+      "purpose": "ordenar gastos de forma inicial, detectar faltantes y pedir clasificación mínima",
+      "owner_limit": "Agrupa egresos; no clasifica fiscalmente ni audita gastos.",
+      "forbidden_claims": [
+        "clasificación contable definitiva",
+        "clasificación fiscal definitiva",
+        "auditoría de gastos",
+        "diagnóstico de rentabilidad",
+        "decisión impositiva"
+      ]
+    },
+    {
+      "id": "proveedores_precio_variacion_triage",
+      "source": "FirstAidPack",
+      "component_type": "HeuristicPack",
+      "decision": "USE_IN_PHASE_1_WITH_GUARDRAILS",
+      "family": "supplier_triage",
+      "scope": "FIRST_AID",
+      "purpose": "revisar aumentos visibles de proveedores, comparar costos básicos y detectar faltantes",
+      "owner_limit": "Detecta aumentos visibles; no decide estrategia de compras ni confirma rentabilidad.",
+      "forbidden_claims": [
+        "estrategia de compras definitiva",
+        "rentabilidad por proveedor confirmada",
+        "recomendación final de compra",
+        "auditoría de proveedores",
+        "diagnóstico financiero completo"
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "id": "excel_triage_basic",
+      "component_ids": [
+        "ExcelStructureValidationPack",
+        "flujo_de_fondos",
+        "proyeccion_ventas",
+        "partial_data_copy",
+        "not_calculable_na_copy"
+      ],
+      "output_limit": "Validación estructural + cálculos básicos + declaración de cobertura."
+    },
+    {
+      "id": "cash_ordering_basic",
+      "component_ids": [
+        "SimpleCashArqueoChecklist",
+        "caja_diaria",
+        "flujo_de_fondos",
+        "OwnerSignalTemplate"
+      ],
+      "output_limit": "Ordenamiento de caja declarada + alerta owner-facing."
+    },
+    {
+      "id": "price_margin_basic",
+      "component_ids": [
+        "CostPriceReviewHeuristic",
+        "precio_margen",
+        "rentabilidad_por_producto",
+        "simulador_inflacion"
+      ],
+      "output_limit": "Margen bruto, markup, señales costo/precio y simulación limitada."
+    },
+    {
+      "id": "operational_alert_basic",
+      "component_ids": [
+        "OwnerSignalTemplate",
+        "alert_severity_notification_mapping",
+        "immediate_action_short_copy",
+        "sla_breach_thresholds",
+        "backlog_risk_thresholds",
+        "weekly_brief_structure"
+      ],
+      "output_limit": "Alerta breve, canal sugerido, acción inmediata y mini brief."
+    },
+    {
+      "id": "stock_minimal_alert",
+      "component_ids": [
+        "StockDesvioAlertRule",
+        "OwnerSignalTemplate",
+        "partial_data_copy"
+      ],
+      "output_limit": "Alerta de desvío o faltante visible."
+    }
+  ],
+  "owner_facing_limitations": {
+    "global": [
+      "Primeros Auxilios ordena, calcula y alerta sobre evidencia declarada por el dueño.",
+      "No confirma verdad operacional sin conteo, cruce o verificación adicional.",
+      "No reemplaza contador, ERP, auditoría ni diagnóstico integral.",
+      "Siempre declara datos usados, datos faltantes y límite de interpretación."
+    ],
+    "per_tool": {
+      "caja_diaria_triage": "Ordena caja diaria; no confirma resultado contable ni conciliación bancaria.",
+      "precio_margen_basico": "Calcula precio, margen bruto y markup; no define precio óptimo ni estrategia comercial.",
+      "stock_alertas_basicas": "Marca desvíos y stock bajo; no explica causa ni confirma stock físico.",
+      "gastos_triage": "Agrupa egresos; no clasifica fiscalmente ni audita gastos.",
+      "proveedores_precio_variacion_triage": "Detecta aumentos visibles; no decide estrategia de compras ni confirma rentabilidad."
+    }
+  },
+  "forbidden_claims": [
+    "diagnóstico integral de la empresa",
+    "auditoría contable certificada",
+    "rentabilidad real confirmada",
+    "precio óptimo definitivo",
+    "caja final confirmada",
+    "stock físico confirmado sin conteo",
+    "causa raíz confirmada",
+    "fraude detectado",
+    "estrategia comercial completa",
+    "rentabilidad real confirmada",
+    "margen neto real sin costos completos",
+    "saldo bancario conciliado con una sola fuente",
+    "fraude o irregularidad intencional",
+    "auditoría contable cerrada",
+    "precio óptimo definitivo",
+    "estrategia comercial completa",
+    "punto de equilibrio empresarial total sin evidencia suficiente",
+    "clasificación contable definitiva",
+    "clasificación fiscal definitiva",
+    "auditoría de gastos",
+    "diagnóstico de rentabilidad",
+    "decisión impositiva",
+    "estrategia de compras definitiva",
+    "rentabilidad por proveedor confirmada",
+    "recomendación final de compra",
+    "auditoría de proveedores",
+    "diagnóstico financiero completo"
+  ],
+  "escalation_rules": {
+    "to_deterministic_diagnosis": {
+      "conditions": [
+        "el dueño pregunta por causa",
+        "hay dos o más fuentes para cruzar",
+        "aparece diferencia material",
+        "se requiere explicar caja, margen, stock, canal o costos",
+        "se activan fórmulas restringidas (resultado_neto, punto_equilibrio, rotacion_inventario, costo_reposicion_promedio)"
+      ],
+      "message": "Para responder eso necesito cruzar más fuentes y trabajar en modo diagnóstico determinístico."
+    },
+    "to_organizational_lab": {
+      "conditions": [
+        "el dueño quiere ordenar la empresa completa",
+        "hay múltiples áreas críticas",
+        "hay necesidad longitudinal",
+        "hay intención explícita de laboratorio recurrente"
+      ],
+      "message": "Esto requiere laboratorio organizacional con seguimiento continuo."
+    }
+  },
+  "smart_excel_addendum": {
+    "status": "CANDIDATE_ADDENDUM_SEPARATE",
+    "included_in_master": false,
+    "component_count": 7,
+    "cross_cutting_count": 13,
+    "do_not_migrate_count": 9
+  },
+  "expected_counts": {
+    "formula_refs_aptas": 10,
+    "restricted_formula_refs": 5,
+    "validation_refs": 6,
+    "tool_refs": 5,
+    "tool_component_mapping_aligned": 5,
+    "tool_component_mapping_missing": 0,
+    "USE_IN_PHASE_1": 13,
+    "USE_IN_PHASE_1_WITH_GUARDRAILS": 11,
+    "NOT_FOR_PHASE_1_PHASE_2": 5,
+    "REVIEW_REQUIRED": 0,
+    "DO_NOT_MIGRATE": 0,
+    "components_total": 29,
+    "phase_1_components_total": 24,
+    "compositions_total": 5
+  },
+  "notes": [
+    "Este seed no autoriza runtime.",
+    "Este seed no reemplaza first_aid_toolbox_v1.json; lo complementa con la capa de pack que faltaba.",
+    "Este seed sirve para reconciliar contrato documental (FIRST_AID_TOOLBOX_PACK_CONTRACT_V1.md) y contrato de componentes (first_aid_toolbox_v1.json).",
+    "Próximo paso posterior: crear tests de contrato para este seed que validen presencia de todos los campos obligatorios y consistencia de refs.",
+    "El seed conserva todos los 27 componentes originales y agrega 2 nuevos (gastos_triage, proveedores_precio_variacion_triage) para un total de 29. No rompe compatibilidad con el loader existente.",
+    "Los 2 tool_refs que tenían mapping_status MISSING_COMPONENT (gastos_triage, proveedores_precio_variacion_triage) ahora tienen componentes nuevos específicos creados para triage FIRST_AID. No se reutilizaron control_de_gastos ni compras_y_proveedores (NOT_FOR_PHASE_1_PHASE_2). Decisión documentada en FIRST_AID_TRIAGE_COMPONENTS_DECISION_V1.md."
+  ]
+}
