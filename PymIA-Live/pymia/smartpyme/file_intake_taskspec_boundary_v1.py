@@ -1,27 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 from pymia.smartpyme.file_intake_v1 import FileIntakeResult
-
-TaskSpecBlockingState = Literal[
-    "BLOCKED_MISSING_EVIDENCE",
-    "BLOCKED_UNSUPPORTED_FILE_TYPE",
-    "BLOCKED_UNKNOWN_FILE_TYPE",
-    "BLOCKED_UNSAFE_FILE",
-    "BLOCKED_COLUMN_CONFIRMATION",
-    "BLOCKED_RUNTIME_NOT_AUTHORIZED",
-]
-
-TaskSpecNextAllowedAction = Literal[
-    "send_to_xlsx_document_ingestion",
-    "ask_owner_to_upload_xlsx",
-    "ask_owner_for_clearer_file",
-    "ask_owner_to_confirm_columns_after_curation",
-    "block_runtime_until_supported",
-]
-
-EvidenceAssetStatus = Literal["RECEIVED_SUPPORTED", "REJECTED_UNSUPPORTED", "REJECTED_UNKNOWN", "REJECTED_UNSAFE"]
+from pymia.smartpyme.service_1_taskspec_vocabulary_v1 import (
+    EvidenceAssetStatus,
+    TaskSpecBlockingState,
+    TaskSpecNextAllowedAction,
+)
 
 
 class TaskSpecAssetRef(TypedDict):
