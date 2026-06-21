@@ -1,9 +1,18 @@
 from __future__ import annotations
+"""EXPERIMENTAL_FROZEN boundary for Service 1 FSM decision projection.
+
+This module is not a runtime FSM, not an active Service 1 delivery lane, and
+must not be expanded until a vendible Service 1 contract is closed first.
+It is preserved only as an audited experimental boundary for traceability.
+"""
 
 from typing import Literal, TypedDict
 
 from pymia.smartpyme.service_1_taskspec_contract_v1 import Service1TaskSpec
 from pymia.smartpyme.service_1_taskspec_vocabulary_v1 import TaskSpecBlockingState, TaskSpecNextAllowedAction
+
+FREEZE_STATUS = "EXPERIMENTAL_FROZEN"
+FREEZE_REASON = "Scope drift audit: keep for traceability, do not expand before Service 1 product boundary."
 
 Service1FSMState = Literal[
     "TASK_CLASSIFIED",

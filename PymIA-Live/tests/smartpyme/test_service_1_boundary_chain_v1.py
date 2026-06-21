@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 from pymia.smartpyme.file_intake_v1 import classify_file_intake
-from pymia.smartpyme.service_1_boundary_chain_v1 import derive_service_1_boundary_chain_from_file_intake
+from pymia.smartpyme.service_1_boundary_chain_v1 import (
+    FREEZE_REASON,
+    FREEZE_STATUS,
+    derive_service_1_boundary_chain_from_file_intake,
+)
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def test_boundary_chain_module_is_explicitly_frozen() -> None:
+    assert FREEZE_STATUS == "EXPERIMENTAL_FROZEN"
+    assert "do not expand before Service 1 product boundary" in FREEZE_REASON
 
 
 def test_boundary_chain_supported_xlsx_stops_at_column_confirmation() -> None:

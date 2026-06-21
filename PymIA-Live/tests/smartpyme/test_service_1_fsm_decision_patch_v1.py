@@ -1,7 +1,16 @@
 from __future__ import annotations
 
-from pymia.smartpyme.service_1_fsm_decision_patch_v1 import derive_fsm_decision_patch_from_taskspec
+from pymia.smartpyme.service_1_fsm_decision_patch_v1 import (
+    FREEZE_REASON,
+    FREEZE_STATUS,
+    derive_fsm_decision_patch_from_taskspec,
+)
 from pymia.smartpyme.service_1_taskspec_contract_v1 import build_minimal_service_1_taskspec
+
+
+def test_fsm_decision_patch_module_is_explicitly_frozen() -> None:
+    assert FREEZE_STATUS == "EXPERIMENTAL_FROZEN"
+    assert "do not expand before Service 1 product boundary" in FREEZE_REASON
 
 
 def test_missing_evidence_requests_evidence_without_runtime() -> None:
