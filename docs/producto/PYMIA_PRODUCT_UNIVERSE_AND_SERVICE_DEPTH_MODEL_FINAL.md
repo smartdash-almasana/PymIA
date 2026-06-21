@@ -708,6 +708,144 @@ decisiones asistidas
 
 ---
 
+## 6.4 Pregunta madre de entrada / No-oráculo
+
+PymIA no debe comportarse como un oráculo.
+
+No debe asumir mágicamente qué profundidad de servicio necesita el dueño.
+
+Su función es reducir tinieblas e incertidumbre mediante:
+
+```text
+preguntas explícitas
+opciones proporcionales
+evidencia mínima
+límites de suficiencia
+```
+
+La entrada correcta no es:
+
+```text
+PymIA interpreta por intuición qué necesita el dueño.
+```
+
+La entrada correcta es:
+
+```text
+PymIA pregunta qué tipo de ayuda necesita hoy.
+```
+
+## Pregunta madre
+
+```text
+¿Qué necesitás resolver hoy?
+```
+
+Opciones iniciales:
+
+```text
+1. Primeros Auxilios
+   Tengo algo puntual para ordenar o revisar ahora.
+
+2. Problema específico / diagnóstico sectorial
+   Tengo un problema más complejo que quiero entender.
+
+3. Estructura completa de la empresa
+   Quiero analizar y ordenar la empresa como sistema.
+```
+
+## Traducción de opciones
+
+### Opción 1 — Primeros Auxilios
+
+Para casos como:
+
+```text
+Mirame este Excel.
+Ordename esta planilla.
+Revisame este stock.
+Sacame algo en limpio.
+```
+
+Promesa:
+
+```text
+Revisión puntual, rápida y de baja fricción.
+```
+
+No promete diagnóstico completo.
+
+### Opción 2 — Problema específico / diagnóstico sectorial
+
+Para casos como:
+
+```text
+No sé si gano.
+La caja no me cierra.
+Mercado Libre vende pero no sé si deja plata.
+El stock me está matando.
+```
+
+Promesa:
+
+```text
+Entender un cuello de botella con evidencia suficiente.
+```
+
+Puede activar fórmulas, cruces y diagnóstico acotado si la evidencia alcanza.
+
+### Opción 3 — Estructura completa
+
+Para casos como:
+
+```text
+Quiero ordenar mi empresa.
+Quiero profesionalizar.
+Quiero que la empresa no dependa de mí.
+```
+
+Promesa:
+
+```text
+Laboratorio organizacional completo.
+```
+
+Activa una ficha más profunda y una mirada longitudinal.
+
+## Secuencia correcta
+
+```text
+pregunta inicial
+→ opción elegida por el dueño
+→ evidencia mínima
+→ profundidad de servicio
+→ respuesta proporcional
+```
+
+## Regla de diseño
+
+```text
+Service depth no debe ser adivinación.
+Debe combinar:
+1. elección explícita del dueño;
+2. evidencia disponible;
+3. señales del lenguaje;
+4. límites de suficiencia.
+```
+
+La elección explícita del dueño manda primero.
+
+Las señales de lenguaje ayudan, pero no reemplazan la pregunta inicial.
+
+## Frase rectora
+
+```text
+PymIA no es un oráculo.
+PymIA es un sistema operativo para reducir tinieblas e incertidumbre mediante preguntas, evidencia y opciones proporcionales.
+```
+
+---
+
 # 7. Rol de la OrganizationalCaseFile
 
 ## Qué es
