@@ -1,0 +1,1857 @@
+- filename: auto_ganancia.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\auto_ganancia.yaml
+  slug: caja_diaria
+  title: Caja Diaria
+  subtitle: Control de ingresos y egresos de tu negocio
+  version: 1.0.0
+  category: cashflow
+  tags: []
+  price_ars: 4900.0
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: CAJA
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: nombre_negocio
+    label: Nombre del negocio
+    sheet: CAJA
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Mi Comercio
+    hint: null
+  - id: mes_anio
+    label: Mes / Año
+    sheet: CAJA
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Enero 2025
+    hint: null
+  - id: saldo_inicial
+    label: Saldo inicial (ARS)
+    sheet: CAJA
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_ventas
+    label: Ingresos por ventas
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_otros
+    label: Otros ingresos
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_proveedores
+    label: Pago a proveedores
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_sueldos
+    label: Sueldos y cargas
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_alquiler
+    label: Alquiler / Expensas
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_servicios
+    label: Servicios (luz, internet, etc.)
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_otros
+    label: Otros egresos
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: ingresos_totales
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: SUM(CAJA!C10:C11)
+      unidades_vendidas: '1'
+  - id: egresos_totales
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(CAJA!C13:C17)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: flujo_caja_neto
+    formula_ref: flujo_caja_neto
+    bindings:
+      ingresos: MOTOR!C2
+      egresos: MOTOR!C3
+  - id: saldo_acumulado
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: CAJA!C8
+      flujo_neto: MOTOR!C4
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: auto_stock.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\auto_stock.yaml
+  slug: auto_stock
+  title: Control de Stock
+  subtitle: Inventario, alertas y rotación para tu negocio
+  version: 1.0.0
+  category: stock
+  tags: []
+  price_ars: 4500.0
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: STOCK
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: nombre_producto
+    label: Nombre del producto
+    sheet: STOCK
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Producto A
+    hint: null
+  - id: stock_actual
+    label: Stock actual (unidades)
+    sheet: STOCK
+    input_type: integer
+    required: true
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  - id: stock_minimo
+    label: Stock mínimo de alerta
+    sheet: STOCK
+    input_type: integer
+    required: true
+    validation: integer_non_negative
+    default: 5
+    example: null
+    hint: null
+  - id: ventas_diarias
+    label: Ventas promedio diarias (uds)
+    sheet: STOCK
+    input_type: number
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: costo_actual
+    label: Costo unitario actual (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: unidades_reponer
+    label: Unidades a reponer
+    sheet: STOCK
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  - id: costo_reposicion
+    label: Costo unitario reposición (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: costo_mercaderia_vendida
+    label: CMV del período (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: inventario_promedio
+    label: Inventario promedio período (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: alerta_stock_minimo
+    formula_ref: alerta_stock_minimo
+    bindings:
+      stock_actual: STOCK!C7
+      stock_minimo: STOCK!C8
+  - id: dias_stock_restante
+    formula_ref: dias_stock_restante
+    bindings:
+      stock_actual: STOCK!C7
+      ventas_diarias_promedio: STOCK!C9
+  - id: costo_reposicion_promedio
+    formula_ref: costo_reposicion_promedio
+    bindings:
+      stock_actual: STOCK!C7
+      costo_actual: STOCK!C11
+      unidades_nuevas: STOCK!C12
+      costo_nuevo: STOCK!C13
+  - id: rotacion_inventario
+    formula_ref: rotacion_inventario
+    bindings:
+      costo_mercaderia_vendida: STOCK!C15
+      inventario_promedio: STOCK!C16
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: caja_diaria.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\caja_diaria.yaml
+  slug: caja_diaria
+  title: Caja Diaria Pro
+  subtitle: Control de ingresos y egresos diarios para tu negocio
+  version: 1.0.0
+  category: cashflow
+  tags: []
+  price_ars: 4900
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: CAJA
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: nombre_negocio
+    label: Nombre del negocio
+    sheet: CAJA
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Mi Comercio
+    hint: null
+  - id: mes_anio
+    label: Mes / Año
+    sheet: CAJA
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Abril 2025
+    hint: null
+  - id: saldo_inicial
+    label: Saldo inicial (ARS)
+    sheet: CAJA
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_ventas
+    label: Ingresos por ventas
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_otros
+    label: Otros ingresos
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_proveedores
+    label: Pago a proveedores
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_sueldos
+    label: Sueldos y cargas
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_alquiler
+    label: Alquiler / Expensas
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_servicios
+    label: Servicios (luz, internet, etc.)
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_otros
+    label: Otros egresos
+    sheet: CAJA
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: ingresos_totales
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: CAJA!C10
+      unidades_vendidas: '1'
+  - id: egresos_totales
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(CAJA!C13:C17)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: flujo_caja_neto
+    formula_ref: flujo_caja_neto
+    bindings:
+      ingresos: MOTOR!C2
+      egresos: MOTOR!C3
+  - id: saldo_acumulado
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: CAJA!C8
+      flujo_neto: MOTOR!C4
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: compras_y_proveedores.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\compras_y_proveedores.yaml
+  slug: compras_y_proveedores
+  title: Compras y Proveedores
+  subtitle: Gestioná tus órdenes de compra y el rendimiento de tus proveedores
+  version: 1.0.0
+  category: stock
+  tags:
+  - compras
+  - proveedores
+  - ordenes
+  - stock
+  - costos
+  price_ars: 4900
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: COMPRAS
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: prov1_nombre
+    label: 'Proveedor 1: Nombre'
+    sheet: COMPRAS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Proveedor A
+    hint: null
+  - id: prov1_producto
+    label: 'P1: Producto Comprado'
+    sheet: COMPRAS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Insumo X
+    hint: null
+  - id: prov1_costo
+    label: 'P1: Costo Total Orden'
+    sheet: COMPRAS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: prov1_fecha_entrega
+    label: 'P1: Días de Entrega'
+    sheet: COMPRAS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: Días que tarda en entregar.
+  - id: prov2_nombre
+    label: 'Proveedor 2: Nombre'
+    sheet: COMPRAS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Proveedor B
+    hint: null
+  - id: prov2_producto
+    label: 'P2: Producto Comprado'
+    sheet: COMPRAS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Insumo Y
+    hint: null
+  - id: prov2_costo
+    label: 'P2: Costo Total Orden'
+    sheet: COMPRAS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: prov2_fecha_entrega
+    label: 'P2: Días de Entrega'
+    sheet: COMPRAS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  - id: prov3_nombre
+    label: 'Proveedor 3: Nombre'
+    sheet: COMPRAS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Proveedor C
+    hint: null
+  - id: prov3_producto
+    label: 'P3: Producto Comprado'
+    sheet: COMPRAS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Insumo Z
+    hint: null
+  - id: prov3_costo
+    label: 'P3: Costo Total Orden'
+    sheet: COMPRAS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: prov3_fecha_entrega
+    label: 'P3: Días de Entrega'
+    sheet: COMPRAS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: total_compras
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(COMPRAS!C7, COMPRAS!C12, COMPRAS!C17)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: tiempo_promedio_entrega
+    formula_ref: costo_reposicion_promedio
+    bindings:
+      stock_actual: COMPRAS!C7+COMPRAS!C12
+      costo_actual: (COMPRAS!C8+COMPRAS!C13)/2
+      unidades_nuevas: COMPRAS!C17
+      costo_nuevo: COMPRAS!C18
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: control_de_gastos.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\control_de_gastos.yaml
+  slug: control_de_gastos
+  title: Control de Gastos
+  subtitle: Registrá y categorizá todos los gastos de tu negocio
+  version: 1.0.0
+  category: financial
+  tags:
+  - gastos
+  - control
+  - egresos
+  - categorias
+  - presupuesto
+  price_ars: 4800
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: GASTOS
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: gasto_fijo_alquiler
+    label: 'Gasto Fijo: Alquiler'
+    sheet: GASTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: gasto_fijo_servicios
+    label: 'Gasto Fijo: Servicios (luz, gas, internet)'
+    sheet: GASTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: gasto_fijo_sueldos
+    label: 'Gasto Fijo: Sueldos'
+    sheet: GASTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: gasto_variable_proveedores
+    label: 'Gasto Variable: Proveedores / Mercadería'
+    sheet: GASTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: gasto_variable_marketing
+    label: 'Gasto Variable: Marketing y Publicidad'
+    sheet: GASTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: gasto_variable_envios
+    label: 'Gasto Variable: Envíos y Logística'
+    sheet: GASTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: presupuesto_total_mensual
+    label: Presupuesto Total Mensual (Opcional)
+    sheet: GASTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: Para comparar lo gastado vs. lo presupuestado.
+  formulas:
+  - id: total_gastos_fijos
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(GASTOS!C5:C7)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: total_gastos_variables
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(GASTOS!C9:C11)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: total_gastos
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: MOTOR!C2 + MOTOR!C3
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: desvio_presupuesto
+    formula_ref: resultado_neto
+    bindings:
+      ingresos_totales: GASTOS!C13
+      egresos_totales: MOTOR!C4
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: costos_por_producto.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\costos_por_producto.yaml
+  slug: costos_por_producto
+  title: Costos por Producto
+  subtitle: Calculá el costo real de cada uno de tus productos
+  version: 1.0.0
+  category: pricing
+  tags:
+  - costos
+  - producto
+  - cogs
+  - materia_prima
+  price_ars: 4200
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: COSTOS
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: nombre_producto
+    label: Nombre del Producto
+    sheet: COSTOS
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Producto Ejemplo
+    hint: null
+  - id: costo_materia_prima
+    label: Costo Materia Prima / Insumos (por unidad)
+    sheet: COSTOS
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: costo_mano_obra_directa
+    label: Costo Mano de Obra Directa (por unidad)
+    sheet: COSTOS
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: Costo de producción específico de esta unidad.
+  - id: costos_indirectos_fabricacion
+    label: Costos Indirectos de Fabricación (por unidad)
+    sheet: COSTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: 'Ej: prorrateo de alquiler, luz de fábrica.'
+  - id: costo_envio_unitario
+    label: Costo de Envío (por unidad)
+    sheet: COSTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: comision_venta_porcentaje
+    label: Comisión de Venta (%)
+    sheet: COSTOS
+    input_type: percentage
+    required: false
+    validation: percentage_0_1
+    default: 0
+    example: null
+    hint: 'Ej: 0.15 para 15% de comisión de marketplace.'
+  formulas:
+  - id: costo_produccion_unitario
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(COSTOS!C7:C9)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: comision_venta_abs
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C4
+      unidades_vendidas: COSTOS!C12
+  - id: costo_total_unitario
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: MOTOR!C2 + COSTOS!C11 + MOTOR!C3
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: cuentas_corrientes_clientes.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\cuentas_corrientes_clientes.yaml
+  slug: cuentas_corrientes_clientes
+  title: Cuentas Corrientes Clientes
+  subtitle: Seguimiento de saldos y deudas de tus clientes
+  version: 1.0.0
+  category: cashflow
+  tags:
+  - clientes
+  - cta cte
+  - deudas
+  - cobros
+  - saldos
+  price_ars: 5100
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: CLIENTES
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: cli1_nombre
+    label: 'Cliente 1: Nombre'
+    sheet: CLIENTES
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Cliente A
+    hint: null
+  - id: cli1_saldo_anterior
+    label: 'C1: Saldo Anterior'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: Deuda que ya tenía.
+  - id: cli1_nueva_venta
+    label: 'C1: Nueva Venta (a crédito)'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: cli1_pago_recibido
+    label: 'C1: Pago Recibido'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: cli2_nombre
+    label: 'Cliente 2: Nombre'
+    sheet: CLIENTES
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Cliente B
+    hint: null
+  - id: cli2_saldo_anterior
+    label: 'C2: Saldo Anterior'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: cli2_nueva_venta
+    label: 'C2: Nueva Venta (a crédito)'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: cli2_pago_recibido
+    label: 'C2: Pago Recibido'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: cli3_nombre
+    label: 'Cliente 3: Nombre'
+    sheet: CLIENTES
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Cliente C
+    hint: null
+  - id: cli3_saldo_anterior
+    label: 'C3: Saldo Anterior'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: cli3_nueva_venta
+    label: 'C3: Nueva Venta (a crédito)'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: cli3_pago_recibido
+    label: 'C3: Pago Recibido'
+    sheet: CLIENTES
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: cli1_saldo_nuevo
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: CLIENTES!C6+CLIENTES!C7
+      flujo_neto: -CLIENTES!C8
+  - id: cli2_saldo_nuevo
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: CLIENTES!C11+CLIENTES!C12
+      flujo_neto: -CLIENTES!C13
+  - id: cli3_saldo_nuevo
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: CLIENTES!C16+CLIENTES!C17
+      flujo_neto: -CLIENTES!C18
+  - id: total_deuda_anterior
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(CLIENTES!C6,CLIENTES!C11,CLIENTES!C16)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  - id: total_deuda_actual
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: SUM(MOTOR!C2,MOTOR!C3,MOTOR!C4)
+      costo_variable_unitario: '0'
+      unidades_vendidas: '1'
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: flujo_de_fondos.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\flujo_de_fondos.yaml
+  slug: flujo_de_fondos
+  title: Flujo de Fondos Proyectado
+  subtitle: Proyectá tus ingresos y egresos para anticipar tu saldo de caja
+  version: 1.0.0
+  category: cashflow
+  tags:
+  - flujo
+  - fondos
+  - proyeccion
+  - caja
+  - futuro
+  price_ars: 5200
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: PROYECCION
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: saldo_inicial_caja
+    label: Saldo Inicial de Caja (ARS)
+    sheet: PROYECCION
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_proyectados_s1
+    label: Ingresos Proyectados (Semana 1)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_proyectados_s1
+    label: Egresos Proyectados (Semana 1)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_proyectados_s2
+    label: Ingresos Proyectados (Semana 2)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_proyectados_s2
+    label: Egresos Proyectados (Semana 2)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_proyectados_s3
+    label: Ingresos Proyectados (Semana 3)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_proyectados_s3
+    label: Egresos Proyectados (Semana 3)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: ingresos_proyectados_s4
+    label: Ingresos Proyectados (Semana 4)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: egresos_proyectados_s4
+    label: Egresos Proyectados (Semana 4)
+    sheet: PROYECCION
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: flujo_neto_s1
+    formula_ref: flujo_caja_neto
+    bindings:
+      ingresos: PROYECCION!C7
+      egresos: PROYECCION!C8
+  - id: saldo_final_s1
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: PROYECCION!C5
+      flujo_neto: MOTOR!C2
+  - id: flujo_neto_s2
+    formula_ref: flujo_caja_neto
+    bindings:
+      ingresos: PROYECCION!C10
+      egresos: PROYECCION!C11
+  - id: saldo_final_s2
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: MOTOR!C3
+      flujo_neto: MOTOR!C4
+  - id: flujo_neto_s3
+    formula_ref: flujo_caja_neto
+    bindings:
+      ingresos: PROYECCION!C13
+      egresos: PROYECCION!C14
+  - id: saldo_final_s3
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: MOTOR!C5
+      flujo_neto: MOTOR!C6
+  - id: flujo_neto_s4
+    formula_ref: flujo_caja_neto
+    bindings:
+      ingresos: PROYECCION!C16
+      egresos: PROYECCION!C17
+  - id: saldo_final_s4
+    formula_ref: saldo_acumulado
+    bindings:
+      saldo_anterior: MOTOR!C7
+      flujo_neto: MOTOR!C8
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: precio_margen.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\precio_margen.yaml
+  slug: precio_margen
+  title: Calculadora Precio & Margen
+  subtitle: Determiná el precio ideal con margen controlado
+  version: 1.0.0
+  category: pricing
+  tags: []
+  price_ars: 3900
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: DATOS
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: nombre_producto
+    label: Nombre del producto
+    sheet: DATOS
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Remera básica
+    hint: null
+  - id: costo_unitario
+    label: Costo unitario (ARS)
+    sheet: DATOS
+    input_type: currency
+    required: true
+    validation: positive_number
+    default: 0
+    example: null
+    hint: null
+  - id: margen_objetivo
+    label: Margen objetivo (%)
+    sheet: DATOS
+    input_type: percentage
+    required: true
+    validation: percentage_0_1
+    default: 0.4
+    example: null
+    hint: 'Ejemplo: 0.40 = 40%'
+  - id: precio_referencia
+    label: Precio de referencia competencia
+    sheet: DATOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: descuento_especial
+    label: Descuento especial (%)
+    sheet: DATOS
+    input_type: percentage
+    required: false
+    validation: percentage_0_1
+    default: 0
+    example: null
+    hint: 'Ejemplo: 0.10 = 10% de descuento'
+  - id: unidades_estimadas
+    label: Unidades a vender (mes)
+    sheet: DATOS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: precio_venta_con_margen
+    formula_ref: precio_venta_con_margen
+    bindings:
+      costo_unitario: DATOS!C7
+      margen_objetivo: DATOS!C8
+  - id: margen_bruto
+    formula_ref: margen_bruto
+    bindings:
+      precio_venta: MOTOR!C5
+      costo_unitario: DATOS!C7
+  - id: margen_bruto_pesos
+    formula_ref: margen_bruto_pesos
+    bindings:
+      precio_venta: MOTOR!C2
+      costo_unitario: DATOS!C7
+  - id: markup
+    formula_ref: markup
+    bindings:
+      precio_venta: MOTOR!C2
+      costo_unitario: DATOS!C7
+  - id: ingresos_totales
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C2
+      unidades_vendidas: DATOS!C13
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: proyeccion_ventas.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\proyeccion_ventas.yaml
+  slug: proyeccion_ventas
+  title: Proyección de Ventas
+  subtitle: Estimá tus ventas futuras basado en datos históricos y estacionalidad
+  version: 1.0.0
+  category: financial
+  tags:
+  - ventas
+  - proyeccion
+  - futuro
+  - forecast
+  - ingresos
+  price_ars: 5300
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: PROYECCION
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: ventas_mes_anterior
+    label: Ventas del Mes Anterior (ARS)
+    sheet: PROYECCION
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: crecimiento_mensual_esperado
+    label: Crecimiento Mensual Esperado (%)
+    sheet: PROYECCION
+    input_type: percentage
+    required: true
+    validation: percentage_0_1
+    default: 0.1
+    example: null
+    hint: 'Ej: 0.10 para un 10% de crecimiento'
+  - id: factor_estacional_m1
+    label: Factor Estacional Mes 1 (%)
+    sheet: PROYECCION
+    input_type: percentage
+    required: false
+    validation: non_negative_number
+    default: 1
+    example: null
+    hint: 1=normal, 1.2=20% más, 0.8=20% menos
+  - id: factor_estacional_m2
+    label: Factor Estacional Mes 2 (%)
+    sheet: PROYECCION
+    input_type: percentage
+    required: false
+    validation: non_negative_number
+    default: 1
+    example: null
+    hint: null
+  - id: factor_estacional_m3
+    label: Factor Estacional Mes 3 (%)
+    sheet: PROYECCION
+    input_type: percentage
+    required: false
+    validation: non_negative_number
+    default: 1
+    example: null
+    hint: null
+  formulas:
+  - id: base_proyeccion_m1
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: PROYECCION!C5
+      unidades_vendidas: (1+PROYECCION!C6)
+  - id: venta_proyectada_m1
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C2
+      unidades_vendidas: PROYECCION!C8
+  - id: base_proyeccion_m2
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C2
+      unidades_vendidas: (1+PROYECCION!C6)
+  - id: venta_proyectada_m2
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C4
+      unidades_vendidas: PROYECCION!C9
+  - id: base_proyeccion_m3
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C4
+      unidades_vendidas: (1+PROYECCION!C6)
+  - id: venta_proyectada_m3
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C6
+      unidades_vendidas: PROYECCION!C10
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: punto_equilibrio.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\punto_equilibrio.yaml
+  slug: punto_equilibrio
+  title: Punto de Equilibrio
+  subtitle: Cuánto tenés que vender para no perder
+  version: 1.0.0
+  category: financial
+  tags: []
+  price_ars: 0
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: DATOS
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: nombre_negocio
+    label: Nombre del negocio / producto
+    sheet: DATOS
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Mi Negocio
+    hint: null
+  - id: precio_venta
+    label: Precio de venta unitario (ARS)
+    sheet: DATOS
+    input_type: currency
+    required: true
+    validation: positive_number
+    default: 0
+    example: null
+    hint: null
+  - id: costo_variable_unitario
+    label: Costo variable por unidad (ARS)
+    sheet: DATOS
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: costos_fijos
+    label: Costos fijos del mes (ARS)
+    sheet: DATOS
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: unidades_estimadas
+    label: Unidades que estimás vender
+    sheet: DATOS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: punto_equilibrio_unidades
+    formula_ref: punto_equilibrio_unidades
+    bindings:
+      costos_fijos: DATOS!C9
+      precio_venta: DATOS!C7
+      costo_variable_unitario: DATOS!C8
+  - id: margen_bruto
+    formula_ref: margen_bruto
+    bindings:
+      precio_venta: DATOS!C7
+      costo_unitario: DATOS!C8
+  - id: punto_equilibrio_pesos
+    formula_ref: punto_equilibrio_pesos
+    bindings:
+      costos_fijos: DATOS!C9
+      margen_contribucion: MOTOR!C3
+  - id: ingresos_totales
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: DATOS!C7
+      unidades_vendidas: DATOS!C11
+  - id: egresos_totales
+    formula_ref: egresos_totales
+    bindings:
+      costos_fijos: DATOS!C9
+      costo_variable_unitario: DATOS!C8
+      unidades_vendidas: DATOS!C11
+  - id: resultado_neto
+    formula_ref: resultado_neto
+    bindings:
+      ingresos_totales: MOTOR!C5
+      egresos_totales: MOTOR!C6
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: rentabilidad_por_producto.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\rentabilidad_por_producto.yaml
+  slug: rentabilidad_por_producto
+  title: Rentabilidad por Producto
+  subtitle: Identificá qué productos te dan más ganancia
+  version: 1.0.0
+  category: financial
+  tags:
+  - rentabilidad
+  - producto
+  - ganancia
+  - margen
+  - abc
+  price_ars: 5500
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: PRODUCTOS
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: p1_nombre
+    label: 'Producto 1: Nombre'
+    sheet: PRODUCTOS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Producto A
+    hint: null
+  - id: p1_precio_venta
+    label: 'P1: Precio Venta Unitario'
+    sheet: PRODUCTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: p1_costo_unitario
+    label: 'P1: Costo Total Unitario'
+    sheet: PRODUCTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: p1_unidades_vendidas
+    label: 'P1: Unidades Vendidas'
+    sheet: PRODUCTOS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  - id: p2_nombre
+    label: 'Producto 2: Nombre'
+    sheet: PRODUCTOS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Producto B
+    hint: null
+  - id: p2_precio_venta
+    label: 'P2: Precio Venta Unitario'
+    sheet: PRODUCTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: p2_costo_unitario
+    label: 'P2: Costo Total Unitario'
+    sheet: PRODUCTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: p2_unidades_vendidas
+    label: 'P2: Unidades Vendidas'
+    sheet: PRODUCTOS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  - id: p3_nombre
+    label: 'Producto 3: Nombre'
+    sheet: PRODUCTOS
+    input_type: text
+    required: false
+    validation: null
+    default: null
+    example: Producto C
+    hint: null
+  - id: p3_precio_venta
+    label: 'P3: Precio Venta Unitario'
+    sheet: PRODUCTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: p3_costo_unitario
+    label: 'P3: Costo Total Unitario'
+    sheet: PRODUCTOS
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: p3_unidades_vendidas
+    label: 'P3: Unidades Vendidas'
+    sheet: PRODUCTOS
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: p1_ganancia_unitaria
+    formula_ref: margen_bruto_pesos
+    bindings:
+      precio_venta: PRODUCTOS!C6
+      costo_unitario: PRODUCTOS!C7
+  - id: p1_margen_unitario
+    formula_ref: margen_bruto
+    bindings:
+      precio_venta: PRODUCTOS!C6
+      costo_unitario: PRODUCTOS!C7
+  - id: p1_ganancia_total
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C2
+      unidades_vendidas: PRODUCTOS!C8
+  - id: p2_ganancia_unitaria
+    formula_ref: margen_bruto_pesos
+    bindings:
+      precio_venta: PRODUCTOS!C11
+      costo_unitario: PRODUCTOS!C12
+  - id: p2_margen_unitario
+    formula_ref: margen_bruto
+    bindings:
+      precio_venta: PRODUCTOS!C11
+      costo_unitario: PRODUCTOS!C12
+  - id: p2_ganancia_total
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C5
+      unidades_vendidas: PRODUCTOS!C13
+  - id: p3_ganancia_unitaria
+    formula_ref: margen_bruto_pesos
+    bindings:
+      precio_venta: PRODUCTOS!C16
+      costo_unitario: PRODUCTOS!C17
+  - id: p3_margen_unitario
+    formula_ref: margen_bruto
+    bindings:
+      precio_venta: PRODUCTOS!C16
+      costo_unitario: PRODUCTOS!C17
+  - id: p3_ganancia_total
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C8
+      unidades_vendidas: PRODUCTOS!C18
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: simulador_inflacion.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\simulador_inflacion.yaml
+  slug: simulador_inflacion
+  title: Simulador de Inflación
+  subtitle: Proyectá cómo la inflación afecta tus precios y costos
+  version: 1.0.0
+  category: financial
+  tags:
+  - inflacion
+  - proyeccion
+  - precios
+  - costos
+  - futuro
+  price_ars: 5800
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: SIMULADOR
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: precio_actual
+    label: Precio de Venta Actual
+    sheet: SIMULADOR
+    input_type: currency
+    required: true
+    validation: positive_number
+    default: 1000
+    example: null
+    hint: null
+  - id: costo_actual
+    label: Costo Unitario Actual
+    sheet: SIMULADOR
+    input_type: currency
+    required: true
+    validation: non_negative_number
+    default: 500
+    example: null
+    hint: null
+  - id: inflacion_mensual_proyectada
+    label: Inflación Mensual Proyectada (%)
+    sheet: SIMULADOR
+    input_type: percentage
+    required: true
+    validation: percentage_0_1
+    default: 0.05
+    example: null
+    hint: 'Ej: 0.05 para 5% mensual'
+  - id: meses_a_proyectar
+    label: Meses a Proyectar
+    sheet: SIMULADOR
+    input_type: integer
+    required: true
+    validation: integer_positive
+    default: 6
+    example: null
+    hint: null
+  formulas:
+  - id: precio_m1
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: SIMULADOR!C5
+      unidades_vendidas: (1+SIMULADOR!C8)
+  - id: costo_m1
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: SIMULADOR!C6
+      unidades_vendidas: (1+SIMULADOR!C8)
+  - id: margen_m1
+    formula_ref: margen_bruto
+    bindings:
+      precio_venta: MOTOR!C2
+      costo_unitario: MOTOR!C3
+  - id: precio_m2
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C2
+      unidades_vendidas: (1+SIMULADOR!C8)
+  - id: costo_m2
+    formula_ref: ingresos_totales
+    bindings:
+      precio_venta: MOTOR!C3
+      unidades_vendidas: (1+SIMULADOR!C8)
+  - id: margen_m2
+    formula_ref: margen_bruto
+    bindings:
+      precio_venta: MOTOR!C5
+      costo_unitario: MOTOR!C6
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+- filename: stock_control.yaml
+  source_path: E:\BuenosPasos\exeland2\specs\stock_control.yaml
+  slug: stock_control
+  title: Control de Stock
+  subtitle: Inventario, alertas y rotación para tu negocio
+  version: 1.0.0
+  category: stock
+  tags: []
+  price_ars: 4500
+  sheets:
+  - name: BIENVENIDA
+    type: welcome
+    protected: true
+  - name: STOCK
+    type: input
+    protected: false
+  - name: MOTOR
+    type: engine
+    protected: true
+  - name: DASHBOARD
+    type: dashboard
+    protected: true
+  - name: GUIA
+    type: guide
+    protected: true
+  fields:
+  - id: nombre_producto
+    label: Nombre del producto
+    sheet: STOCK
+    input_type: text
+    required: true
+    validation: null
+    default: null
+    example: Producto A
+    hint: null
+  - id: stock_actual
+    label: Stock actual (unidades)
+    sheet: STOCK
+    input_type: integer
+    required: true
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  - id: stock_minimo
+    label: Stock mínimo de alerta
+    sheet: STOCK
+    input_type: integer
+    required: true
+    validation: integer_non_negative
+    default: 5
+    example: null
+    hint: null
+  - id: ventas_diarias
+    label: Ventas promedio diarias (uds)
+    sheet: STOCK
+    input_type: number
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: costo_actual
+    label: Costo unitario actual (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: unidades_reponer
+    label: Unidades a reponer
+    sheet: STOCK
+    input_type: integer
+    required: false
+    validation: integer_non_negative
+    default: 0
+    example: null
+    hint: null
+  - id: costo_reposicion
+    label: Costo unitario reposición (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: costo_mercaderia_vendida
+    label: CMV del período (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  - id: inventario_promedio
+    label: Inventario promedio período (ARS)
+    sheet: STOCK
+    input_type: currency
+    required: false
+    validation: non_negative_number
+    default: 0
+    example: null
+    hint: null
+  formulas:
+  - id: alerta_stock_minimo
+    formula_ref: alerta_stock_minimo
+    bindings:
+      stock_actual: STOCK!C7
+      stock_minimo: STOCK!C8
+  - id: dias_stock_restante
+    formula_ref: dias_stock_restante
+    bindings:
+      stock_actual: STOCK!C7
+      ventas_diarias_promedio: STOCK!C9
+  - id: costo_reposicion_promedio
+    formula_ref: costo_reposicion_promedio
+    bindings:
+      stock_actual: STOCK!C7
+      costo_actual: STOCK!C11
+      unidades_nuevas: STOCK!C12
+      costo_nuevo: STOCK!C13
+  - id: rotacion_inventario
+    formula_ref: rotacion_inventario
+    bindings:
+      costo_mercaderia_vendida: STOCK!C15
+      inventario_promedio: STOCK!C16
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED

@@ -1,0 +1,239 @@
+- id: auto_ganancia
+  source_spec: E:\BuenosPasos\exeland2\specs\auto_ganancia.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\caja_diaria.xlsx
+  slug: caja_diaria
+  title: Caja Diaria
+  category: cashflow
+  fields_count: 10
+  formulas_used:
+  - egresos_totales
+  - flujo_caja_neto
+  - ingresos_totales
+  - saldo_acumulado
+  validations_used:
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: auto_stock
+  source_spec: E:\BuenosPasos\exeland2\specs\auto_stock.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\auto_stock.xlsx
+  slug: auto_stock
+  title: Control de Stock
+  category: stock
+  fields_count: 9
+  formulas_used:
+  - alerta_stock_minimo
+  - costo_reposicion_promedio
+  - dias_stock_restante
+  - rotacion_inventario
+  validations_used:
+  - integer_non_negative
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: caja_diaria
+  source_spec: E:\BuenosPasos\exeland2\specs\caja_diaria.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\caja_diaria.xlsx
+  slug: caja_diaria
+  title: Caja Diaria Pro
+  category: cashflow
+  fields_count: 10
+  formulas_used:
+  - egresos_totales
+  - flujo_caja_neto
+  - ingresos_totales
+  - saldo_acumulado
+  validations_used:
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: compras_y_proveedores
+  source_spec: E:\BuenosPasos\exeland2\specs\compras_y_proveedores.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\compras_y_proveedores.xlsx
+  slug: compras_y_proveedores
+  title: Compras y Proveedores
+  category: stock
+  fields_count: 12
+  formulas_used:
+  - costo_reposicion_promedio
+  - egresos_totales
+  validations_used:
+  - integer_non_negative
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: control_de_gastos
+  source_spec: E:\BuenosPasos\exeland2\specs\control_de_gastos.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\control_de_gastos.xlsx
+  slug: control_de_gastos
+  title: Control de Gastos
+  category: financial
+  fields_count: 7
+  formulas_used:
+  - egresos_totales
+  - resultado_neto
+  validations_used:
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: costos_por_producto
+  source_spec: E:\BuenosPasos\exeland2\specs\costos_por_producto.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\costos_por_producto.xlsx
+  slug: costos_por_producto
+  title: Costos por Producto
+  category: pricing
+  fields_count: 6
+  formulas_used:
+  - egresos_totales
+  - ingresos_totales
+  validations_used:
+  - non_negative_number
+  - percentage_0_1
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: cuentas_corrientes_clientes
+  source_spec: E:\BuenosPasos\exeland2\specs\cuentas_corrientes_clientes.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\cuentas_corrientes_clientes.xlsx
+  slug: cuentas_corrientes_clientes
+  title: Cuentas Corrientes Clientes
+  category: cashflow
+  fields_count: 12
+  formulas_used:
+  - egresos_totales
+  - saldo_acumulado
+  validations_used:
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: flujo_de_fondos
+  source_spec: E:\BuenosPasos\exeland2\specs\flujo_de_fondos.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\flujo_de_fondos.xlsx
+  slug: flujo_de_fondos
+  title: Flujo de Fondos Proyectado
+  category: cashflow
+  fields_count: 9
+  formulas_used:
+  - flujo_caja_neto
+  - saldo_acumulado
+  validations_used:
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: precio_margen
+  source_spec: E:\BuenosPasos\exeland2\specs\precio_margen.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\precio_margen.xlsx
+  slug: precio_margen
+  title: Calculadora Precio & Margen
+  category: pricing
+  fields_count: 6
+  formulas_used:
+  - ingresos_totales
+  - margen_bruto
+  - margen_bruto_pesos
+  - markup
+  - precio_venta_con_margen
+  validations_used:
+  - integer_non_negative
+  - non_negative_number
+  - percentage_0_1
+  - positive_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: proyeccion_ventas
+  source_spec: E:\BuenosPasos\exeland2\specs\proyeccion_ventas.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\proyeccion_ventas.xlsx
+  slug: proyeccion_ventas
+  title: Proyección de Ventas
+  category: financial
+  fields_count: 5
+  formulas_used:
+  - ingresos_totales
+  validations_used:
+  - non_negative_number
+  - percentage_0_1
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: punto_equilibrio
+  source_spec: E:\BuenosPasos\exeland2\specs\punto_equilibrio.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\punto_equilibrio.xlsx
+  slug: punto_equilibrio
+  title: Punto de Equilibrio
+  category: financial
+  fields_count: 5
+  formulas_used:
+  - egresos_totales
+  - ingresos_totales
+  - margen_bruto
+  - punto_equilibrio_pesos
+  - punto_equilibrio_unidades
+  - resultado_neto
+  validations_used:
+  - integer_non_negative
+  - non_negative_number
+  - positive_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: rentabilidad_por_producto
+  source_spec: E:\BuenosPasos\exeland2\specs\rentabilidad_por_producto.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\rentabilidad_por_producto.xlsx
+  slug: rentabilidad_por_producto
+  title: Rentabilidad por Producto
+  category: financial
+  fields_count: 12
+  formulas_used:
+  - ingresos_totales
+  - margen_bruto
+  - margen_bruto_pesos
+  validations_used:
+  - integer_non_negative
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: simulador_inflacion
+  source_spec: E:\BuenosPasos\exeland2\specs\simulador_inflacion.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\simulador_inflacion.xlsx
+  slug: simulador_inflacion
+  title: Simulador de Inflación
+  category: financial
+  fields_count: 4
+  formulas_used:
+  - ingresos_totales
+  - margen_bruto
+  validations_used:
+  - integer_positive
+  - non_negative_number
+  - percentage_0_1
+  - positive_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
+- id: stock_control
+  source_spec: E:\BuenosPasos\exeland2\specs\stock_control.yaml
+  source_template_if_exists: E:\BuenosPasos\exeland2\warehouse\templates\stock_control.xlsx
+  slug: stock_control
+  title: Control de Stock
+  category: stock
+  fields_count: 9
+  formulas_used:
+  - alerta_stock_minimo
+  - costo_reposicion_promedio
+  - dias_stock_restante
+  - rotacion_inventario
+  validations_used:
+  - integer_non_negative
+  - non_negative_number
+  candidate_status: UNDECIDED
+  activation_status: NOT_DECIDED
+  requires_minimal_case_file_layer: true
