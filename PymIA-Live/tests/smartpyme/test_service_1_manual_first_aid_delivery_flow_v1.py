@@ -83,7 +83,7 @@ def test_generates_xlsx_files() -> None:
             output_dir=tmpdir,
         )
 
-        xlsx_path = Path(tmpdir) / "first_aid_test_tool.xlsx"
+        xlsx_path = Path(tmpdir) / "first_aid_001_test_tool.xlsx"
         assert xlsx_path.exists()
         assert xlsx_path.stat().st_size > 0
         assert flow_result["deliveries"][0]["output_path"] == str(xlsx_path.resolve())
@@ -104,6 +104,26 @@ def test_uses_aggregate_and_preserves_aggregate_id() -> None:
 
     assert first["aggregate_id"] == second["aggregate_id"]
     assert first["aggregate_id"].startswith("first_aid_delivery_aggregate_v1:")
+
+
+def test_repeated_tool_refs_do_not_overwrite_xlsx_files() -> None:
+    first = _ok_result("same/tool", {"result": 1})
+    second = _ok_result("same/tool", {"result": 2})
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        flow_result = build_service_1_manual_first_aid_delivery_flow_v1(
+            tool_results=[first, second],
+            output_dir=tmpdir,
+        )
+
+        first_path = Path(tmpdir) / "first_aid_001_same_tool.xlsx"
+        second_path = Path(tmpdir) / "first_aid_002_same_tool.xlsx"
+
+        assert first_path.exists()
+        assert second_path.exists()
+        assert flow_result["deliveries"][0]["output_path"] == str(first_path.resolve())
+        assert flow_result["deliveries"][1]["output_path"] == str(second_path.resolve())
+        assert flow_result["deliveries"][0]["output_path"] != flow_result["deliveries"][1]["output_path"]
 
 
 def test_summary_text_includes_tool_ref_and_status() -> None:

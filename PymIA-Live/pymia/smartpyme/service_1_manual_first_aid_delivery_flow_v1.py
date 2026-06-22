@@ -53,9 +53,9 @@ def build_service_1_manual_first_aid_delivery_flow_v1(
     aggregate = build_first_aid_delivery_aggregate_v1(normalized_results)
 
     deliveries: list[FirstAidXlsxDeliveryV1] = []
-    for tool_result in normalized_results:
+    for index, tool_result in enumerate(normalized_results, start=1):
         tool_ref = str(tool_result["tool_ref"])
-        delivery_path = output_path / f"first_aid_{tool_ref}.xlsx"
+        delivery_path = output_path / f"first_aid_{index:03d}_{_safe_filename_token(tool_ref)}.xlsx"
         delivery = build_first_aid_xlsx_delivery_v1(
             tool_result=tool_result,
             output_path=str(delivery_path),
@@ -115,6 +115,12 @@ def _build_summary_text(
     lines.append("")
     lines.append("Entrega preliminar basada en datos declarados.")
     return "\n".join(lines)
+
+
+def _safe_filename_token(value: str) -> str:
+    safe_chars = [char if char.isalnum() or char in ("-", "_") else "_" for char in value]
+    safe_value = "".join(safe_chars).strip("._")
+    return safe_value or "tool"
 
 
 def _build_flow_id(aggregate: FirstAidDeliveryAggregateV1) -> str:
