@@ -58,6 +58,22 @@ def build_service_1_operator_harness_sample_case_v1() -> Service1OperatorHarness
                     "ventas_diarias_promedio": 3,
                 },
             },
+            {
+                "tool_ref": "gastos_triage",
+                "inputs": {
+                    "concepto": ["alquiler", "energia", "insumos"],
+                    "importe": [120000, 38500, 74200],
+                    "categoria": ["fijo", "fijo", "variable"],
+                },
+            },
+            {
+                "tool_ref": "proveedores_precio_variacion_triage",
+                "inputs": {
+                    "proveedor": ["Mayorista Norte", "Mayorista Sur", "Mayorista Norte"],
+                    "producto_o_insumo": ["Yerba 1kg", "Yerba 1kg", "Azucar 1kg"],
+                    "precio_o_costo": [1625, 1710, 940],
+                },
+            },
         ],
         "operator_notes": [
             "Caso demo con datos declarados por el dueño.",

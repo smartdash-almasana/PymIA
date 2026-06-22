@@ -15,6 +15,29 @@ from pymia.smartpyme.service_1_operator_harness_v1 import (
     run_service_1_operator_harness_v1,
 )
 
+EXPECTED_PACKAGE_FILES = [
+    "README_ENTREGA.md",
+    "first_aid_001_precio_margen_basico.xlsx",
+    "first_aid_002_caja_diaria_triage.xlsx",
+    "first_aid_003_stock_alertas_basicas.xlsx",
+    "first_aid_004_gastos_triage.xlsx",
+    "first_aid_005_proveedores_precio_variacion_triage.xlsx",
+    "manifest.json",
+    "operator_report.txt",
+    "summary.txt",
+]
+
+EXPECTED_MANIFEST_ARTIFACTS = {
+    "first_aid_001_precio_margen_basico.xlsx",
+    "first_aid_002_caja_diaria_triage.xlsx",
+    "first_aid_003_stock_alertas_basicas.xlsx",
+    "first_aid_004_gastos_triage.xlsx",
+    "first_aid_005_proveedores_precio_variacion_triage.xlsx",
+    "README_ENTREGA.md",
+    "operator_report.txt",
+    "summary.txt",
+}
+
 
 def _build_harness_run(tmp_path: Path):
     source_root = tmp_path / "source"
@@ -55,16 +78,8 @@ def test_delivery_package_inventory(tmp_path: Path) -> None:
     )
 
     files = sorted(path.name for path in Path(package["package_dir"]).iterdir() if path.is_file())
-    assert files == [
-        "README_ENTREGA.md",
-        "first_aid_001_precio_margen_basico.xlsx",
-        "first_aid_002_caja_diaria_triage.xlsx",
-        "first_aid_003_stock_alertas_basicas.xlsx",
-        "manifest.json",
-        "operator_report.txt",
-        "summary.txt",
-    ]
-    assert package["file_count"] == 7
+    assert files == EXPECTED_PACKAGE_FILES
+    assert package["file_count"] == 9
 
 
 def test_delivery_package_manifest_matches_artifacts(tmp_path: Path) -> None:
@@ -82,16 +97,9 @@ def test_delivery_package_manifest_matches_artifacts(tmp_path: Path) -> None:
     assert manifest["service_name"] == "SERVICE_1"
     assert manifest["case_id"] == harness_run["case_id"]
     assert manifest["runtime_authorized"] is False
-    assert manifest["artifact_count"] == 6
-    assert len(manifest["artifacts"]) == 6
-    assert {artifact["filename"] for artifact in manifest["artifacts"]} == {
-        "first_aid_001_precio_margen_basico.xlsx",
-        "first_aid_002_caja_diaria_triage.xlsx",
-        "first_aid_003_stock_alertas_basicas.xlsx",
-        "README_ENTREGA.md",
-        "operator_report.txt",
-        "summary.txt",
-    }
+    assert manifest["artifact_count"] == 8
+    assert len(manifest["artifacts"]) == 8
+    assert {artifact["filename"] for artifact in manifest["artifacts"]} == EXPECTED_MANIFEST_ARTIFACTS
 
 
 def test_delivery_package_files_include_hashes_and_sizes(tmp_path: Path) -> None:
@@ -128,6 +136,8 @@ def test_delivery_package_readme_is_client_and_operator_readable(tmp_path: Path)
     assert "summary.txt" in readme
     assert "operator_report.txt" in readme
     assert "manifest.json" in readme
+    assert "first_aid_004_gastos_triage.xlsx" in readme
+    assert "first_aid_005_proveedores_precio_variacion_triage.xlsx" in readme
     assert "Entrega preliminar basada en datos declarados." in readme
     assert "No es un diagnostico integral" in readme
     assert "No confirma saldo bancario real" in readme
@@ -145,7 +155,7 @@ def test_delivery_package_copied_xlsx_files_are_readable(tmp_path: Path) -> None
     )
 
     xlsx_paths = sorted(Path(package["package_dir"]).glob("*.xlsx"))
-    assert len(xlsx_paths) == 3
+    assert len(xlsx_paths) == 5
     for xlsx_path in xlsx_paths:
         workbook = load_workbook(xlsx_path)
         assert workbook["Resumen"]["B2"].value == "SERVICE_1"

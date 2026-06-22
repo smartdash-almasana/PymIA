@@ -28,19 +28,21 @@ def test_operator_harness_sample_case_creates_delivery_folder(tmp_path: Path) ->
     assert delivery_dir.is_dir()
 
 
-def test_operator_harness_runs_pipeline_and_generates_three_xlsx_files(tmp_path: Path) -> None:
+def test_operator_harness_runs_pipeline_and_generates_five_xlsx_files(tmp_path: Path) -> None:
     result = run_service_1_operator_harness_v1(
         case=build_service_1_operator_harness_sample_case_v1(),
         output_root=tmp_path,
     )
 
-    assert result["pipeline_result"]["requested_tool_count"] == 3
+    assert result["pipeline_result"]["requested_tool_count"] == 5
     assert result["pipeline_result"]["executed_tool_refs"] == [
         "precio_margen_basico",
         "caja_diaria_triage",
         "stock_alertas_basicas",
+        "gastos_triage",
+        "proveedores_precio_variacion_triage",
     ]
-    assert len(result["generated_files"]) == 3
+    assert len(result["generated_files"]) == 5
     for generated_file in result["generated_files"]:
         assert Path(generated_file).exists()
         assert Path(generated_file).suffix == ".xlsx"
@@ -83,10 +85,12 @@ def test_operator_harness_summary_contains_owner_relevant_limits(tmp_path: Path)
     )
     summary_text = result["summary_text"]
 
-    assert "Resultados procesados: 3" in summary_text
+    assert "Resultados procesados: 5" in summary_text
     assert "precio_margen_basico: OK" in summary_text
     assert "caja_diaria_triage: OK" in summary_text
     assert "stock_alertas_basicas: OK" in summary_text
+    assert "gastos_triage: OK" in summary_text
+    assert "proveedores_precio_variacion_triage: OK" in summary_text
     assert "No es un diagnostico integral" in summary_text
     assert "No confirma saldo bancario real" in summary_text
     assert "No confirma stock fisico real" in summary_text
@@ -163,9 +167,13 @@ def test_operator_harness_does_not_import_first_aid_tools_directly() -> None:
     assert "first_aid_precio_margen_basico_v1" not in source
     assert "first_aid_caja_diaria_triage_v1" not in source
     assert "first_aid_stock_alertas_basicas_v1" not in source
+    assert "first_aid_gastos_triage_v1" not in source
+    assert "first_aid_proveedores_precio_variacion_triage_v1" not in source
     assert "run_precio_margen_basico_v1" not in source
     assert "run_caja_diaria_triage_v1" not in source
     assert "run_stock_alertas_basicas_v1" not in source
+    assert "run_gastos_triage_v1" not in source
+    assert "run_proveedores_precio_variacion_triage_v1" not in source
 
 
 def test_operator_harness_does_not_depend_on_forbidden_product_layers() -> None:

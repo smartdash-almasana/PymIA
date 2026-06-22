@@ -53,9 +53,49 @@ def test_pipeline_executes_explicit_three_tool_request_and_generates_deliveries(
     assert len(result["delivery_flow"]["deliveries"]) == 3
 
 
+def _five_tool_requests() -> list[dict[str, object]]:
+    return [
+        *_three_tool_requests(),
+        {
+            "tool_ref": "gastos_triage",
+            "inputs": {
+                "concepto": ["alquiler", "luz", "insumos"],
+                "importe": [1000, 200, 300],
+                "categoria": ["fijo", "fijo", "variable"],
+            },
+        },
+        {
+            "tool_ref": "proveedores_precio_variacion_triage",
+            "inputs": {
+                "proveedor": ["Proveedor A", "Proveedor B"],
+                "producto_o_insumo": ["Harina", "Harina"],
+                "precio_o_costo": [1000, 1250],
+            },
+        },
+    ]
+
+
+def test_pipeline_executes_full_five_tool_first_aid_family_and_generates_deliveries(tmp_path: Path) -> None:
+    result = run_service_1_pipeline_v1(
+        tool_requests=_five_tool_requests(),
+        output_dir=tmp_path,
+    )
+
+    assert result["requested_tool_count"] == 5
+    assert result["executed_tool_refs"] == [
+        "precio_margen_basico",
+        "caja_diaria_triage",
+        "stock_alertas_basicas",
+        "gastos_triage",
+        "proveedores_precio_variacion_triage",
+    ]
+    assert result["delivery_flow"]["delivery_count"] == 5
+    assert len(result["delivery_flow"]["deliveries"]) == 5
+
+
 def test_pipeline_generates_readable_xlsx_outputs(tmp_path: Path) -> None:
     result = run_service_1_pipeline_v1(
-        tool_requests=_three_tool_requests(),
+        tool_requests=_five_tool_requests(),
         output_dir=tmp_path,
     )
 

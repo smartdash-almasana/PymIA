@@ -4,7 +4,11 @@ from pathlib import Path
 from typing import Final, Literal, Sequence, TypedDict
 
 from pymia.smartpyme.first_aid_caja_diaria_triage_v1 import run_caja_diaria_triage_v1
+from pymia.smartpyme.first_aid_gastos_triage_v1 import run_gastos_triage_v1
 from pymia.smartpyme.first_aid_precio_margen_basico_v1 import run_precio_margen_basico_v1
+from pymia.smartpyme.first_aid_proveedores_precio_variacion_triage_v1 import (
+    run_proveedores_precio_variacion_triage_v1,
+)
 from pymia.smartpyme.first_aid_stock_alertas_basicas_v1 import run_stock_alertas_basicas_v1
 from pymia.smartpyme.first_aid_tool_result_v1 import FirstAidToolResultV1
 from pymia.smartpyme.service_1_manual_first_aid_delivery_flow_v1 import (
@@ -19,12 +23,16 @@ Service1PipelineToolRefV1 = Literal[
     "precio_margen_basico",
     "caja_diaria_triage",
     "stock_alertas_basicas",
+    "gastos_triage",
+    "proveedores_precio_variacion_triage",
 ]
 
 _ALLOWED_TOOL_REFS: Final[tuple[str, ...]] = (
     "precio_margen_basico",
     "caja_diaria_triage",
     "stock_alertas_basicas",
+    "gastos_triage",
+    "proveedores_precio_variacion_triage",
 )
 
 
@@ -109,5 +117,17 @@ def _execute_allowed_tool(*, tool_ref: str, inputs: dict[str, object]) -> FirstA
             stock_actual=inputs.get("stock_actual"),
             stock_minimo=inputs.get("stock_minimo"),
             ventas_diarias_promedio=inputs.get("ventas_diarias_promedio"),
+        )
+    if tool_ref == "gastos_triage":
+        return run_gastos_triage_v1(
+            concepto=inputs.get("concepto"),
+            importe=inputs.get("importe"),
+            categoria=inputs.get("categoria"),
+        )
+    if tool_ref == "proveedores_precio_variacion_triage":
+        return run_proveedores_precio_variacion_triage_v1(
+            proveedor=inputs.get("proveedor"),
+            producto_o_insumo=inputs.get("producto_o_insumo"),
+            precio_o_costo=inputs.get("precio_o_costo"),
         )
     raise ValueError(f"Unsupported SERVICE_1_PIPELINE_V1 tool_ref: {tool_ref}")
