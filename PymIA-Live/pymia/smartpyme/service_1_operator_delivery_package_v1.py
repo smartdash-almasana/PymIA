@@ -66,12 +66,13 @@ def build_service_1_operator_delivery_package_v1(
         _build_readme(harness_run=harness_run, files=copied_files),
         encoding="utf-8",
     )
+    readme_file = _build_file_record(source_path=readme_path, package_path=readme_path)
 
     manifest_path = package_dir / "manifest.json"
     manifest_payload = _build_manifest_payload(
         harness_run=harness_run,
         package_dir=package_dir,
-        files=copied_files,
+        files=copied_files + [readme_file],
         readme_path=readme_path,
     )
     manifest_path.write_text(
@@ -79,10 +80,7 @@ def build_service_1_operator_delivery_package_v1(
         encoding="utf-8",
     )
 
-    final_files = copied_files + [
-        _build_file_record(source_path=readme_path, package_path=readme_path),
-        _build_file_record(source_path=manifest_path, package_path=manifest_path),
-    ]
+    final_files = copied_files + [readme_file, _build_file_record(source_path=manifest_path, package_path=manifest_path)]
 
     return {
         "schema_version": PACKAGE_SCHEMA_VERSION,

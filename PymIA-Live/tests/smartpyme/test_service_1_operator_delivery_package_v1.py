@@ -82,12 +82,13 @@ def test_delivery_package_manifest_matches_artifacts(tmp_path: Path) -> None:
     assert manifest["service_name"] == "SERVICE_1"
     assert manifest["case_id"] == harness_run["case_id"]
     assert manifest["runtime_authorized"] is False
-    assert manifest["artifact_count"] == 5
-    assert len(manifest["artifacts"]) == 5
+    assert manifest["artifact_count"] == 6
+    assert len(manifest["artifacts"]) == 6
     assert {artifact["filename"] for artifact in manifest["artifacts"]} == {
         "first_aid_001_precio_margen_basico.xlsx",
         "first_aid_002_caja_diaria_triage.xlsx",
         "first_aid_003_stock_alertas_basicas.xlsx",
+        "README_ENTREGA.md",
         "operator_report.txt",
         "summary.txt",
     }
