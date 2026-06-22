@@ -1,6 +1,102 @@
 # PymIA Memoria — Decisiones vigentes
 
-Fecha: 2026-06-20
+Fecha: 2026-06-22
+
+## Decisión metodológica vigente — bloques funcionales, no microciclo
+
+Regla actual:
+
+```text
+1 bloque funcional
+→ Codex ejecuta varias piezas relacionadas
+→ tests amplios del bloque
+→ reporte único
+→ auditoría única
+→ commit/push único
+```
+
+Se abandona el patrón:
+
+```text
+archivo mínimo
+→ permiso
+→ Codex
+→ vuelta al chat
+→ otro permiso
+→ otro archivo
+→ commit/push microscópico
+```
+
+Tamaño sano de bloque:
+
+```text
+1 capacidad operable
+3–8 archivos aproximadamente
+30–100+ tests focales o suite relevante
+1 commit
+1 push
+```
+
+La seguridad se mantiene por:
+
+```text
+allowlist explícita
+tests amplios
+auditoría única
+forbidden layers scan conceptual
+no git add .
+no mezclar frentes heterogéneos
+```
+
+---
+
+## Decisión vigente — Servicio 1 First Aid operable
+
+Estado:
+
+```text
+SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1 = CLOSED / PUSHED
+```
+
+Commit reportado:
+
+```text
+fe582c1
+```
+
+Capacidad actual:
+
+```text
+operator harness
+→ pipeline explícito
+→ tools allowlist
+→ FirstAidToolResultV1[]
+→ aggregate
+→ XLSX por tool
+→ summary.txt
+→ operator_report.txt
+→ README_ENTREGA.md
+→ manifest.json
+→ hashes + bytes
+→ carpeta final entregable
+```
+
+Interpretación:
+
+```text
+Servicio 1 First Aid ya es capacidad operable asistida.
+No equivale a Servicio 1 completo.
+No equivale a contabilidad automatizada.
+No equivale a diagnóstico integral.
+```
+
+Próxima decisión recomendada:
+
+```text
+SERVICE_1_FIRST_AID_PILOT_OFFER_V1
+```
+
+---
 
 ## Decisión rectora de producto
 

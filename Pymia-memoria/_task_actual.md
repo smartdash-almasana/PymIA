@@ -1,148 +1,127 @@
 # PymIA Memoria — Task actual
 
-Fecha: 2026-06-20
+Fecha: 2026-06-22
 
 ## Task actual
 
 ```text
-PRODUCT_FINAL_NO_ORACLE_AND_MEMORY_UPDATE
+SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1_COMPLETED
 ```
 
 ## Categoría
 
 ```text
-D. DOCUMENTACIÓN / MEMORIA
+A. CAPACIDAD OPERATIVA
 ```
 
 ## Estado
 
 ```text
-APPLIED_NOT_COMMITTED
+CLOSED_PUSHED
 ```
 
-## Objetivo
+## Resultado
 
-Registrar la corrección conceptual incorporada al documento maestro de producto:
+El bloque grueso de entrega quedó cerrado y pusheado.
+
+Commit reportado:
 
 ```text
-PymIA no es un oráculo.
-PymIA reduce tinieblas e incertidumbre preguntando primero.
+fe582c1
 ```
 
-## Archivo modificado
+Test reportado:
 
 ```text
-docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md
+421 passed in 18.21s
 ```
 
-Se agregó sección nueva:
+Working tree reportado:
 
 ```text
-## 6.4 Pregunta madre de entrada / No-oráculo
+CLEAN
 ```
 
-## Archivos de memoria actualizados
+## Capacidad entregada
 
 ```text
-Pymia-memoria/_estado_actual.md
-Pymia-memoria/_task_actual.md
-Pymia-memoria/_decisiones_vigentes.md
-Pymia-memoria/_no_volver_a_hacer.md
+SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1
 ```
 
-## Documento checkpoint creado
+Entrega:
 
 ```text
-PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
+carpeta final entregable
+README_ENTREGA.md
+manifest.json
+summary.txt
+operator_report.txt
+3 XLSX legibles
+hashes + bytes auditables
+smoke test real de carpeta
+audit test de integridad del manifest
 ```
 
-Estado:
+## Archivos incluidos en el commit
 
 ```text
-CREATED_NOT_COMMITTED
+PymIA-Live/pymia/smartpyme/service_1_operator_delivery_package_v1.py
+PymIA-Live/tests/smartpyme/test_service_1_operator_delivery_package_v1.py
+PymIA-Live/tests/smartpyme/test_service_1_delivery_folder_smoke_v1.py
+PymIA-Live/tests/smartpyme/test_service_1_delivery_manifest_audit_v1.py
+docs/producto/SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1.md
 ```
 
-## Decisión rectora incorporada
+## Cadena operable actual
 
 ```text
-Service depth no debe ser adivinación.
-Debe combinar:
-1. elección explícita del dueño;
-2. evidencia disponible;
-3. señales del lenguaje;
-4. límites de suficiencia.
+operator harness
+→ pipeline V1
+→ tools allowlist
+→ delivery flow
+→ package builder
+→ carpeta final auditable
 ```
 
-La elección explícita del dueño manda primero.
+## Metodología vigente
 
-## Pregunta madre
+No volver a microciclo trabado.
+
+Modo correcto:
 
 ```text
-¿Qué necesitás resolver hoy?
+bloque funcional grueso
+→ Codex ejecuta varias piezas relacionadas
+→ tests amplios
+→ auditoría única
+→ commit/push único
 ```
 
-Opciones:
+## Próximo task recomendado
 
 ```text
-1. Primeros Auxilios
-   Tengo algo puntual para ordenar o revisar ahora.
-
-2. Problema específico / diagnóstico sectorial
-   Tengo un problema más complejo que quiero entender.
-
-3. Estructura completa de la empresa
-   Quiero analizar y ordenar la empresa como sistema.
+SERVICE_1_FIRST_AID_PILOT_OFFER_V1
 ```
 
-## FIRST_AID — Estado vigente
+Objetivo:
 
 ```text
-FIRST_AID_ENTRYPOINT_V1 = CLOSED
-FIRST_AID_OWNER_OUTPUT_V1 = CLOSED
-FIRST_AID_APPLICATION_WIRING_V1 = DEFERRED
+Convertir la capacidad entregable en oferta piloto mínima.
 ```
 
-Cadena cerrada:
+Debe producir:
 
 ```text
-service_depth.py
-→ first_aid_entrypoint.py
-→ first_aid_owner_output.py
+alcance vendible
+no-alcance explícito
+checklist de intake manual
+script de operador/venta
+criterios de aceptación/rechazo del caso
+paquete entregable prometido
+precio orientativo o estructura de precio si el usuario autoriza
 ```
 
-No cablear application/CLI/rendering mientras no exista canal consumidor real, caso piloto real o test de integración fallando por falta de wiring.
+## Restricción
 
-## Próximo paso recomendado
-
-Commit documental focal con los archivos modificados de este frente, si el usuario lo autoriza.
-
-Archivos candidatos:
-
-```text
-docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md
-PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
-Pymia-memoria/_estado_actual.md
-Pymia-memoria/_task_actual.md
-Pymia-memoria/_decisiones_vigentes.md
-Pymia-memoria/_no_volver_a_hacer.md
-```
-
-Commit sugerido:
-
-```text
-docs(pymia): record no-oracle service entry decision
-```
-
-## Prohibiciones vigentes
-
-```text
-No runtime.
-No tests.
-No Graphify.
-No wiring application.
-No CLI.
-No rendering.
-No OCF write-model.
-No diagnóstico por inferencia.
-No abrir más frentes antes de cerrar este documental.
-```
+No abrir código runtime nuevo salvo necesidad directa del piloto.
+No abrir chatbot, LLM, FSM, document_ingestion, Exceland ni conciliaciones todavía.

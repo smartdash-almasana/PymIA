@@ -1,6 +1,6 @@
 # PymIA Memoria — Estado actual
 
-Fecha: 2026-06-20
+Fecha: 2026-06-22
 
 ## Estado operativo actual
 
@@ -22,198 +22,188 @@ GitHub:
 smartdash-almasana/PymIA
 ```
 
-## Estado consolidado reciente
+## Estado git reciente
 
-Últimos commits reportados y aceptados en esta sesión:
-
-```text
-716c6d7 docs(producto): define excel treatment lab concept
-f924c27 feat(pymia-live): add first aid entrypoint helper
-dd0e659 feat(pymia-live): add first aid owner output helper
-67db189 chore(graphify): include pymia live in architecture graph
-```
-
-## Cambios actuales no commiteados desde esta sesión
+Último bloque reportado como pusheado:
 
 ```text
-docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md
-PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
-Pymia-memoria/_estado_actual.md
-Pymia-memoria/_task_actual.md
-Pymia-memoria/_decisiones_vigentes.md
-Pymia-memoria/_no_volver_a_hacer.md
+fe582c1 SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1
+PUSH: SUCCESS
+WORKING_TREE: CLEAN
+TEST_RESULT: 421 passed
 ```
 
-## Documento de producto final
-
-Documento rector:
+Commits relevantes de la cadena Servicio 1 First Aid:
 
 ```text
-docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md
+fe582c1 service 1 operator delivery package block
+c586e6d test(pymia-live): audit service 1 operator harness outputs
+33be021 feat(pymia-live): add service 1 operator harness
+bca683e feat(pymia-live): add service 1 first aid pipeline
+22e420d docs(pymia): close service 1 first aid manual lane
+b3f16b8 feat(pymia-live): add service 1 semi-real first aid case
+6b6f6a1 docs(pymia): add service 1 manual operator runbook
+017a9a7 feat(pymia-live): add service 1 manual first aid smoke case
+0f247fa fix(pymia-live): avoid first aid delivery filename collisions
+97f0a5d feat(pymia-live): add service 1 manual first aid delivery flow
+496ddff feat(pymia-live): add first aid delivery aggregate
+9e03833 feat(pymia-live): add first aid xlsx delivery
+eb8b124 docs(pymia): close first aid minimal toolset
+368fed4 feat(pymia-live): add first aid stock alerts tool
+b436a9e feat(pymia-live): add first aid daily cash triage tool
+6ecdce2 feat(pymia-live): add first aid price margin tool
+fe7dc79 feat(pymia-live): add first aid tool result contract
 ```
 
-Cambio agregado:
+## Capacidad cerrada actual
 
 ```text
-## 6.4 Pregunta madre de entrada / No-oráculo
+SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1 = CLOSED / PUSHED
 ```
+
+Cadena operable:
+
+```text
+operator harness
+→ pipeline explícito
+→ tools allowlist
+→ FirstAidToolResultV1[]
+→ aggregate
+→ XLSX por tool
+→ summary.txt
+→ operator_report.txt
+→ README_ENTREGA.md
+→ manifest.json
+→ hashes + bytes
+→ carpeta final entregable
+```
+
+Inventario final del paquete:
+
+```text
+README_ENTREGA.md
+manifest.json
+summary.txt
+operator_report.txt
+first_aid_001_precio_margen_basico.xlsx
+first_aid_002_caja_diaria_triage.xlsx
+first_aid_003_stock_alertas_basicas.xlsx
+```
+
+Evidencia:
+
+```text
+421 passed
+36 passed en bloque pedido por Codex
+41 passed en validación ampliada con audit anterior
+```
+
+## Metodología vigente
+
+Se abandona el microciclo archivo-por-archivo.
+
+Cadencia nueva:
+
+```text
+1 bloque funcional
+→ Codex ejecuta varias piezas relacionadas
+→ tests amplios del bloque
+→ reporte único
+→ auditoría única
+→ commit/push único
+```
+
+Tamaño sano de bloque:
+
+```text
+1 capacidad operable
+3–8 archivos
+30–100+ tests focales o suite relevante
+1 commit
+1 push
+```
+
+No volver al ping-pong:
+
+```text
+pedir permiso por archivo
+commit por archivo
+push por micro-slice
+closeout documental después de cada paso técnico
+```
+
+## Servicio 1 First Aid — Estado de producto
 
 Estado:
 
 ```text
-Actualizado sin reemplazar el documento.
-Runtime impact: NONE.
-Code impact: NONE.
+CAPACIDAD OPERABLE ASISTIDA
+NO PRODUCTO FULL
 ```
 
-## Decisión rectora incorporada
+Se puede mostrar/probar como:
 
 ```text
-PymIA no es un oráculo.
-PymIA es un sistema operativo para reducir tinieblas e incertidumbre mediante preguntas, evidencia y opciones proporcionales.
+Servicio asistido manual de primeros auxilios operacionales sobre datos declarados.
+Entrega preliminar con XLSX + resumen + manifest.
+Revisión rápida de margen, caja diaria y stock crítico.
 ```
 
-La entrada correcta no debe ser adivinación de profundidad de servicio.
-
-La entrada correcta es preguntar primero:
+No vender como:
 
 ```text
-¿Qué necesitás resolver hoy?
+diagnóstico integral de empresa
+certificación contable
+conciliación bancaria cerrada
+validación de saldo bancario real
+validación de stock físico real
+rentabilidad real confirmada
+sistema autónomo
+chatbot productivo
+pipeline contable completo
 ```
 
-Con tres caminos explícitos:
+## Fronteras prohibidas vigentes
 
 ```text
-1. Primeros Auxilios
-   Tengo algo puntual para ordenar o revisar ahora.
-
-2. Problema específico / diagnóstico sectorial
-   Tengo un problema más complejo que quiero entender.
-
-3. Estructura completa de la empresa
-   Quiero analizar y ordenar la empresa como sistema.
-```
-
-Secuencia rectora:
-
-```text
-pregunta inicial
-→ opción elegida por el dueño
-→ evidencia mínima
-→ profundidad de servicio
-→ respuesta proporcional
-```
-
-Regla:
-
-```text
-Service depth no debe ser adivinación.
-Debe combinar elección explícita del dueño, evidencia disponible, señales de lenguaje y límites de suficiencia.
-La elección explícita del dueño manda primero.
-```
-
-## Estado FIRST_AID
-
-```text
-FIRST_AID_ENTRYPOINT_V1 = CLOSED
-FIRST_AID_OWNER_OUTPUT_V1 = CLOSED
-FIRST_AID_APPLICATION_WIRING_V1 = DEFERRED
-```
-
-Cadena cerrada:
-
-```text
-service_depth.py
-→ first_aid_entrypoint.py
-→ first_aid_owner_output.py
-```
-
-Estado conceptual:
-
-```text
-FIRST_AID existe como capacidad latente cerrada.
-No está cableado a application, CLI, rendering, storage, OCF ni diagnóstico.
-No debe cablearse hasta que exista canal real, caso real o test de integración fallando por falta de wiring.
-```
-
-Evidencia reportada:
-
-```text
-FIRST_AID_ENTRYPOINT_V1: 8/8 PASS; batería focal 38/38 PASS; forbidden import scan CLEAN.
-FIRST_AID_OWNER_OUTPUT_V1: 7/7 PASS; batería focal 19/19 PASS; forbidden import/text scan CLEAN.
-FIRST_AID_GRAPHIFY_AUDIT_V1: CLEAN; 15/15 PASS.
-```
-
-Checkpoint creado:
-
-```text
-PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
-```
-
-Estado del checkpoint:
-
-```text
-CREATED_NOT_COMMITTED
-```
-
-## Estado Graphify
-
-```text
-GRAPHIFY_SCOPE_FIX_V1 = CLOSED
-GRAPHIFY_POST_COMMIT_REGEN_CHECK_V1 = CLOSED
-```
-
-Resultado:
-
-```text
-.graphifyignore versionado en 67db189.
-PymIA-Live/ queda incluido para auditorías Graphify futuras.
-graphify-out/ queda regenerable y untracked intencional.
-No seguir invirtiendo ciclos en Graphify salvo decisión arquitectónica concreta.
-```
-
-## Excel Treatment Lab
-
-```text
-EXCEL_TREATMENT_LAB_PRODUCT_CONCEPT.md = versionado
-```
-
-Estado conceptual:
-
-```text
-Excel Treatment Lab es puerta FIRST_AID y cámara de descompresión entre caos administrativo y estructura computable.
-No es Excel Reader genérico.
-No autoriza runtime por sí mismo.
-```
-
-## Reglas operativas reforzadas
-
-```text
-No deriva GPT.
-No alucinaciones arquitectónicas.
-No proponer wiring sin necesidad real.
-No usar Graphify como ciclo ritual.
-No hacer tests desde entorno del asistente si ya se sabe inestable.
-No asumir contenido documental sin lectura real.
-No abrir runtime por ansiedad de avance.
-No convertir helpers cerrados en producto cableado sin canal real.
-No usar service_depth como oráculo cuando puede preguntarse explícitamente al dueño.
+No chatbot.
+No LLM.
+No FSM productiva.
+No document_ingestion real.
+No Exceland.
+No conciliación bancaria.
+No Mercado Pago.
+No IVA/IIBB.
+No asientos contables.
+No vertical_slice.py.
+No ERP/Odoo.
 ```
 
 ## Próximo foco recomendado
 
-Cerrar documentalmente este frente si el usuario autoriza commit.
+Pasar de capacidad técnica entregable a decisión comercial/piloto:
+
+```text
+SERVICE_1_FIRST_AID_PILOT_OFFER_V1
+```
+
+Objetivo del próximo bloque:
+
+```text
+definir oferta piloto mínima
+alcance
+precio orientativo
+checklist de intake manual
+criterios de aceptación del caso
+qué recibe el cliente
+qué no recibe
+script operador/venta
+```
 
 Categoría:
 
 ```text
-D. DOCUMENTACIÓN / MEMORIA
+A. CAPACIDAD OPERATIVA / PRODUCTIZACIÓN PILOTO
 ```
 
-## Guardrail actual
-
-```text
-La elección explícita del dueño manda primero.
-Las señales del lenguaje ayudan, pero no reemplazan la pregunta inicial.
-Service depth no debe ser adivinación.
-```
+No abrir más runtime hasta que exista decisión de piloto real o caso real.
