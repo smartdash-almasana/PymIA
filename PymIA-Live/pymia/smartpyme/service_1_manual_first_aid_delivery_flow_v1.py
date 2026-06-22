@@ -112,6 +112,12 @@ def _build_summary_text(
         for limitation in aggregate["limitations"]:
             lines.append(f"- {limitation}")
 
+    if aggregate["forbidden_claims"]:
+        lines.append("")
+        lines.append("Aclaraciones conservadoras:")
+        for forbidden_claim in aggregate["forbidden_claims"]:
+            lines.append(f"- {forbidden_claim}")
+
     lines.append("")
     lines.append("Entrega preliminar basada en datos declarados.")
     return "\n".join(lines)
