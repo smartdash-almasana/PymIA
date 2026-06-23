@@ -762,12 +762,28 @@ def test_vertical_slice_report_shows_computed_variable_names(tmp_path: Path, cap
     assert len(indented) > 0, "Variable names should be listed as indented items"
 
 
-def test_vertical_slice_report_uses_language_corpus_for_known_variable_labels(tmp_path: Path, capsys):
-    fixture = Path("prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx")
-    assert fixture.exists()
+def test_vertical_slice_report_uses_language_corpus_for_known_variable_labels(tmp_path: Path, capsys, monkeypatch):
+    excel = tmp_path / "language_corpus_vars.xlsx"
+    _write_excel(excel, [["fecha", "producto", "ventas", "costo"], ["2026-06-01", "A", 1000, 600]])
+
+    def mock_build_summary(*args, **kwargs):
+        return {
+            "status": "available",
+            "computed_variables_count": 2,
+            "computed_variable_names": ["costos_total", "ventas_total"],
+            "tables_count": 1,
+            "table_sheets": [{"name": "Sheet", "columns": 4, "rows": 1}],
+            "case_id": "language-corpus-case",
+            "sufficiency": [],
+            "unsupported_formula_ids": [],
+            "catalog_reconciliation": [],
+        }
+
+    monkeypatch.setattr("pymia.application.vertical_pipeline.build_structured_summary", mock_build_summary)
+
     rc = vertical_slice.main([
         "--excel",
-        str(fixture),
+        str(excel),
         "--message",
         "tengo una textil",
         "--storage-dir",

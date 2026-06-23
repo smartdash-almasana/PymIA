@@ -37,8 +37,8 @@ def test_manifest_audit_validates_integrity_and_visible_limits(tmp_path: Path) -
     assert manifest["schema_version"] == "1.0"
     assert manifest["service_name"] == "SERVICE_1"
     assert manifest["runtime_authorized"] is False
-    assert manifest["artifact_count"] == 6
-    assert len(manifest["artifacts"]) == 6
+    assert manifest["artifact_count"] == 8
+    assert len(manifest["artifacts"]) == 8
     assert "Entrega preliminar basada en datos declarados." in manifest["limitations"]
     assert "No confirma stock fisico real." in manifest["limitations"]
 
@@ -64,6 +64,8 @@ def test_manifest_audit_includes_readme_summary_report_and_xlsx_inventory(tmp_pa
         "first_aid_001_precio_margen_basico.xlsx",
         "first_aid_002_caja_diaria_triage.xlsx",
         "first_aid_003_stock_alertas_basicas.xlsx",
+        "first_aid_004_gastos_triage.xlsx",
+        "first_aid_005_proveedores_precio_variacion_triage.xlsx",
         "summary.txt",
         "operator_report.txt",
         "README_ENTREGA.md",

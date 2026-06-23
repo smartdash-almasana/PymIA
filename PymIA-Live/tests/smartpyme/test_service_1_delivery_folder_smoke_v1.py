@@ -46,6 +46,8 @@ def test_delivery_folder_smoke_generates_complete_operator_package(tmp_path: Pat
         "first_aid_001_precio_margen_basico.xlsx",
         "first_aid_002_caja_diaria_triage.xlsx",
         "first_aid_003_stock_alertas_basicas.xlsx",
+        "first_aid_004_gastos_triage.xlsx",
+        "first_aid_005_proveedores_precio_variacion_triage.xlsx",
         "manifest.json",
         "operator_report.txt",
         "summary.txt",
@@ -63,11 +65,11 @@ def test_delivery_folder_smoke_validates_xlsx_and_text_artifacts(tmp_path: Path)
 
     assert "Entrega preliminar basada en datos declarados." in readme_text
     assert manifest["runtime_authorized"] is False
-    assert "Resultados procesados: 3" in summary_text
-    assert "Tools ejecutadas: 3" in operator_report
+    assert "Resultados procesados: 5" in summary_text
+    assert "Tools ejecutadas: 5" in operator_report
 
     xlsx_files = sorted(package_dir.glob("*.xlsx"))
-    assert len(xlsx_files) == 3
+    assert len(xlsx_files) == 5
     for xlsx_file in xlsx_files:
         workbook = load_workbook(xlsx_file)
         assert workbook["Resumen"]["B2"].value == "SERVICE_1"

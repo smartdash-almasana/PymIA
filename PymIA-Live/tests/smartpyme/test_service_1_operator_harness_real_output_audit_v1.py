@@ -23,6 +23,8 @@ def test_operator_harness_real_output_audit_artifact_inventory(tmp_path: Path) -
         "first_aid_001_precio_margen_basico.xlsx",
         "first_aid_002_caja_diaria_triage.xlsx",
         "first_aid_003_stock_alertas_basicas.xlsx",
+        "first_aid_004_gastos_triage.xlsx",
+        "first_aid_005_proveedores_precio_variacion_triage.xlsx",
         "operator_report.txt",
         "summary.txt",
     ]
@@ -63,7 +65,7 @@ def test_operator_harness_real_output_audit_summary_is_deliverable(tmp_path: Pat
     summary = summary_path.read_text(encoding="utf-8")
 
     assert summary == run["summary_text"]
-    assert "Resultados procesados: 3" in summary
+    assert "Resultados procesados: 5" in summary
     assert "precio_margen_basico: OK" in summary
     assert "caja_diaria_triage: OK" in summary
     assert "stock_alertas_basicas: OK" in summary
@@ -84,7 +86,7 @@ def test_operator_harness_real_output_audit_operator_report_is_usable(tmp_path: 
     report = Path(run["operator_report_path"]).read_text(encoding="utf-8")
 
     assert "Caso: Comercio minorista alimentos - First Aid demo" in report
-    assert "Tools ejecutadas: 3" in report
+    assert "Tools ejecutadas: 5" in report
     assert "precio_margen_basico: OK" in report
     assert "caja_diaria_triage: OK" in report
     assert "stock_alertas_basicas: OK" in report
@@ -101,11 +103,13 @@ def test_operator_harness_real_output_audit_metadata_matches_files(tmp_path: Pat
     delivery_paths = [delivery["output_path"] for delivery in run["pipeline_result"]["delivery_flow"]["deliveries"]]
 
     assert run["generated_files"] == delivery_paths
-    assert run["pipeline_result"]["delivery_flow"]["delivery_count"] == 3
+    assert run["pipeline_result"]["delivery_flow"]["delivery_count"] == 5
     assert run["pipeline_result"]["delivery_flow"]["tool_refs"] == [
         "precio_margen_basico",
         "caja_diaria_triage",
         "stock_alertas_basicas",
+        "gastos_triage",
+        "proveedores_precio_variacion_triage",
     ]
     assert run["runtime_authorized"] is False
     assert run["pipeline_result"]["runtime_authorized"] is False
