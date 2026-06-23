@@ -169,6 +169,9 @@ DEFINED                    = concepto definido, sin diseño técnico
 DESIGNED                   = diseño técnico documentado, sin código
 DOCUMENTED_ONLY            = documentado extensamente, sin código implementado
 IMPLEMENTED_PARTIAL        = código existe pero incompleto o no integrado
+IMPLEMENTED_MINIMAL_CONTRACT = contrato/capa lógica implementada, sin runtime operativo completo
+IMPLEMENTED_MINIMAL_LOGICAL_BRIDGE = bridge lógico implementado, sin ejecución física real
+IMPLEMENTED_MINIMAL_CONTRACT_FAMILY = familia contractual implementada, sin automatización operativa
 IMPLEMENTED_VALIDATED      = código implementado y validado con tests
 NEEDS_WIRING               = código existe pero no está conectado al pipeline
 SELLABLE                   = vendible como producto operativo
@@ -227,20 +230,20 @@ MISSING                    = no existe ni como documento ni como código
 
 **Artefacto entregable:** `archivo_curado_pymIA.xlsx` con hojas normalizadas + Hallazgos_PymIA + Limitaciones.
 
-**Estado actual:** IMPLEMENTED_PARTIAL
+**Estado actual:** IMPLEMENTED_MINIMAL_CONTRACT
 
 **Evidencia documental:**
-- `docs/producto/EXCEL_TREATMENT_LAB_PRODUCT_CONCEPT.md` — 9 fases funcionales completas
-- `docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md` — sección 10.1
+- `docs/producto/EXCEL_TREATMENT_LAB_PRODUCT_CONCEPT.md` — visión funcional histórica
+- `docs/producto/SERVICE_1_EXCEL_TREATMENT_LAB_PRODUCTIZATION_V1.md` — cierre de la capa lógica productizada
 
 **Evidencia de código:**
-- `PymIA-Live/tools/document_ingestion.py` — pipeline completo: ingest, semantic mapping, curation, StructuredEvidence export
-- `PymIA-Live/tools/bem_schema_builder/excel_profile_builder.py` — profiling de Excel
-- `PymIA-Live/tools/bem_schema_builder/owner_questions_builder.py` — preguntas al dueño
+- `PymIA-Live/pymia/smartpyme/excel_treatment_lab_v1.py` — capa pura/determinística compatible con `Service1XlsxDeliveryInputV1`
+- `PymIA-Live/tests/smartpyme/test_excel_treatment_lab_v1.py` — cobertura de estados y compatibilidad
+- `PymIA-Live/tools/document_ingestion.py` — pipeline profundo histórico todavía fuera del runtime de Servicio 1
 
-**Riesgo:** Convertirse en Excel Reader genérico o macro disfrazada sin continuidad hacia OCF.
+**Riesgo:** Confundir la capa lógica productizada con ingesta semántica full en runtime.
 
-**Next action:** Consolidar `document_ingestion.py` como producto vendible propio, no sólo como herramienta interna.
+**Next action:** Conectar esta frontera lógica con una frontera estable posterior de curación/confirmación, sin abrir todavía pipeline full, FSM ni LLM.
 
 ---
 
@@ -256,21 +259,21 @@ MISSING                    = no existe ni como documento ni como código
 
 **Artefacto entregable:** 14 productos XLSX en `warehouse/templates/`.
 
-**Estado actual:** IMPLEMENTED_PARTIAL
+**Estado actual:** IMPLEMENTED_MINIMAL_LOGICAL_BRIDGE
 
 **Evidencia documental:**
-- `exeland2/catalog/formulas.yaml` — 15 fórmulas canónicas
-- `exeland2/catalog/validations.yaml` — 6 validaciones base
-- `exeland2/catalog/product_registry.yaml` — 12 productos registrados
-- `exeland2/specs/*.yaml` — 14 specs YAML
-- `exeland2/warehouse/templates/*.xlsx` — 14 XLSX generados
+- `docs/producto/SERVICE_1_EXCELAND_BRIDGE_V1.md` — cierre del bridge lógico mínimo
+- `exeland2/catalog/formulas.yaml` — fórmulas canónicas de la cantera
+- `exeland2/catalog/product_registry.yaml` — productos registrados
 
 **Evidencia de código:**
-- `exeland2/src/exceland_factory/` — factory completa: workbook_builders, postprocess, spec_compiler, nl_parser, matcher, style_system, formulas, layouts
+- `exeland2/src/exceland_factory/` — factoría autónoma
+- `PymIA-Live/pymia/smartpyme/exceland_bridge_v1.py` — bridge puro/determinístico compatible con `Service1XlsxDeliveryInputV1`
+- `PymIA-Live/tests/smartpyme/test_exceland_bridge_v1.py` — cobertura contractual
 
-**Riesgo:** Duplicación entre `exeland/` y `exeland2/`. Factoría funcionando como producto paralelo sin conexión a PymIA-Live.
+**Riesgo:** Sobreprometer integración física: el bridge existe, pero todavía NO ejecuta Exceland real ni genera XLSX físicos desde la cantera.
 
-**Next action:** Definir cuál es la cantera oficial (`exeland2/`) y crear puente de integración controlada (Ciclo 9 del plan).
+**Next action:** Abrir una frontera runtime controlada para la compilación/generación física sin migrar Exceland entero al kernel.
 
 ---
 
@@ -315,17 +318,21 @@ MISSING                    = no existe ni como documento ni como código
 
 **Artefacto entregable:** XLSX con papeles de trabajo estándar.
 
-**Estado actual:** DEFINED
+**Estado actual:** IMPLEMENTED_MINIMAL_CONTRACT_FAMILY
 
 **Evidencia documental:**
-- `docs/producto/PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` — sección 11 menciona ciclos contables
-- `PymIA-Live/docs/pymia/smartcounter_candidates/` — candidatos de SmartCounter
+- `docs/producto/SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` — cierre de la familia contractual mínima
+- `docs/producto/SERVICE_1_ACCOUNTING_HUMAN_REVIEW_GATE_V1.md` — compuerta humana de revisión
 
-**Evidencia de código:** Ninguna específica para contadores.
+**Evidencia de código:**
+- `PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py` — contratos puros para bank reconciliation, Mercado Pago, invoice matching, supplier review y workpaper
+- `PymIA-Live/pymia/smartpyme/accounting_human_review_gate_v1.py` — gate humano con `runtime_authorized=False`
+- `PymIA-Live/tests/smartpyme/test_service_1_accounting_contracts_v1.py`
+- `PymIA-Live/tests/smartpyme/test_accounting_human_review_gate_v1.py`
 
-**Riesgo:** Mezclar con diagnóstico Servicio 2 si se intenta hacer interpretación contable sin suficiencia.
+**Riesgo:** Vender esta familia como automatización contable real cuando hoy sólo existe la base contractual y la compuerta de revisión.
 
-**Next action:** Definir como familia propia cuando se cierren los ciclos de conciliación y workpapers.
+**Next action:** Abrir runtimes mínimos por familia empezando por conciliación bancaria, siempre bajo contrato y revisión humana.
 
 ---
 
@@ -341,20 +348,20 @@ MISSING                    = no existe ni como documento ni como código
 
 **Artefacto entregable:** `conciliacion_bancaria_{tenant_id}.xlsx` con hojas Resumen, Conciliados, Pendientes, Diferencias, Duplicados, Observaciones.
 
-**Estado actual:** IMPLEMENTED_PARTIAL
+**Estado actual:** IMPLEMENTED_MINIMAL_CONTRACT
 
 **Evidencia documental:**
-- `docs/producto/PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` — Ciclo 10 BANK_RECONCILIATION_V1
-- `smartbridge/SmartPyme/factory/topology_catalog.json` — "Conciliacion deterministica"
-- `smartbridge/SmartPyme/factory/reports/kernel_total_audit_001.md` — entity resolution pendiente
+- `docs/producto/SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` — incluye `bank_reconciliation_basic`
+- `docs/producto/PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` — ciclo histórico de conciliación bancaria
 
 **Evidencia de código:**
-- `exeland2/warehouse/templates/conciliador_bancario_macro.xlsx` — template existe
-- SmartPyme tiene reconciliación CSV genérica en kernel pero no expuesta por MCP
+- `PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py` — contrato puro/determinístico para conciliación bancaria básica
+- `exeland2/warehouse/templates/conciliador_bancario_macro.xlsx` — evidencia de template histórico en cantera
+- SmartPyme histórico conserva lógica genérica, pero NO expuesta como runtime de Servicio 1
 
-**Riesgo:** Entity resolution falta y bloquea reconciliación confiable. Sin resolver esto, cualquier conciliación va a ser frágil.
+**Riesgo:** Entity resolution sigue faltando y bloquea una conciliación confiable en runtime.
 
-**Next action:** Ciclo 10 del plan. Definir contrato BANK_RECONCILIATION_V1 con entrada/salida/límites claros.
+**Next action:** Abrir `SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1` como frontera de runtime mínimo apoyada en este contrato, no como automatización cerrada.
 
 ---
 
@@ -370,15 +377,17 @@ MISSING                    = no existe ni como documento ni como código
 
 **Artefacto entregable:** `conciliacion_mp_{tenant_id}.xlsx`.
 
-**Estado actual:** MISSING
+**Estado actual:** IMPLEMENTED_MINIMAL_CONTRACT
 
-**Evidencia documental:** Mencionado en plan de implementación como Ciclo 11 MERCADO_PAGO_RECONCILIATION_V1.
+**Evidencia documental:**
+- `docs/producto/SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` — incluye `mercado_pago_reconciliation_basic`
 
-**Evidencia de código:** Ninguna.
+**Evidencia de código:**
+- `PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py` — contrato puro para conciliación MP/tarjetas
 
-**Riesgo:** Complejidad de APIs externas y formatos variables de reportes MP.
+**Riesgo:** No existe runtime ni parser real de reportes MP; el contrato NO equivale a conciliación operativa.
 
-**Next action:** Definir contrato MERCADO_PAGO_RECONCILIATION_V1 después de cerrar conciliación bancaria base.
+**Next action:** Extender la familia contractual a un runtime mínimo sólo después de definir la base bancaria.
 
 ---
 
@@ -394,15 +403,17 @@ MISSING                    = no existe ni como documento ni como código
 
 **Artefacto entregable:** `facturas_vs_cobros_{tenant_id}.xlsx`.
 
-**Estado actual:** MISSING
+**Estado actual:** IMPLEMENTED_MINIMAL_CONTRACT
 
-**Evidencia documental:** No encontrado documento específico.
+**Evidencia documental:**
+- `docs/producto/SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` — incluye `invoice_collection_matching_basic`
 
-**Evidencia de código:** Ninguna.
+**Evidencia de código:**
+- `PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py` — contrato puro para matching factura/cobro
 
-**Riesgo:** Requiere modelo de dominio de factura y cobro bien definido.
+**Riesgo:** Falta matching real y modelo de dominio operativo.
 
-**Next action:** Definir como capacidad MISSING a resolver después de workpapers.
+**Next action:** Diseñar runtime mínimo de matching sobre la base contractual ya cerrada.
 
 ---
 
@@ -447,15 +458,17 @@ MISSING                    = no existe ni como documento ni como código
 
 **Artefacto entregable:** `workpaper_{tipo}_{tenant_id}.xlsx`.
 
-**Estado actual:** MISSING
+**Estado actual:** IMPLEMENTED_MINIMAL_CONTRACT
 
-**Evidencia documental:** Mencionado en plan como Ciclo 12 WORKPAPERS_V1.
+**Evidencia documental:**
+- `docs/producto/SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` — incluye `accounting_workpaper_basic`
 
-**Evidencia de código:** Ninguna específica.
+**Evidencia de código:**
+- `PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py` — contrato puro de workpaper/reporte contractual
 
-**Riesgo:** Sin workpapers, las conciliaciones no tienen entregable profesional.
+**Riesgo:** Todavía no existe generador operativo de workpapers profesionales.
 
-**Next action:** Definir estructura estándar de workpapers después de cerrar conciliación bancaria.
+**Next action:** Diseñar el runtime mínimo de workpaper sobre la base contractual y el delivery XLSX genérico.
 
 ---
 
@@ -741,10 +754,10 @@ claims no validados
 
 | CAPACIDAD | FAMILIA | ESTADO | DOCS | CÓDIGO | OUTPUT | RIESGO | NEXT_ACTION |
 |---|---|---|---|---|---|---|---|
-| precio_margen_basico | First Aid | DOCUMENTED_ONLY | ARCHAEOLOGY + CONTRACT | No existe como tool ejecutable | margen, markup, limitaciones | Bajo | Ciclo 5 |
-| caja_diaria_triage | First Aid | DOCUMENTED_ONLY | ARCHAEOLOGY + CONTRACT | No existe como tool ejecutable | flujo, saldo, faltantes | Bajo | Ciclo 6 |
-| stock_alertas_basicas | First Aid | DOCUMENTED_ONLY | ARCHAEOLOGY + CONTRACT | No existe como tool ejecutable | alertas, días stock | Bajo | Ciclo 7 |
-| gastos_triage | First Aid | DOCUMENTED_ONLY | CONTRACT | No existe como tool ejecutable | gastos ordenados | Bajo | Ciclo posterior |
+| precio_margen_basico | First Aid | IMPLEMENTED_VALIDATED | ARCHAEOLOGY + CONTRACT | first_aid_precio_margen_basico_v1.py | margen, markup, limitaciones | Bajo | Cerrado en familia First Aid |
+| caja_diaria_triage | First Aid | IMPLEMENTED_VALIDATED | ARCHAEOLOGY + CONTRACT | first_aid_caja_diaria_triage_v1.py | flujo, saldo, faltantes | Bajo | Cerrado en familia First Aid |
+| stock_alertas_basicas | First Aid | IMPLEMENTED_VALIDATED | ARCHAEOLOGY + CONTRACT | first_aid_stock_alertas_basicas_v1.py | alertas, días stock | Bajo | Cerrado en familia First Aid |
+| gastos_triage | First Aid | MISSING | CONTRACT | No existe como tool ejecutable | gastos ordenados | Bajo | Diferido fuera del cierre runtime actual |
 | proveedores_precio_variacion_triage | First Aid | DOCUMENTED_ONLY | CONTRACT | Spec en cantera, no en runtime | variaciones, alertas | Medio | Clasificar Fase 1 o Nivel 2 |
 | Excel descargable con fórmulas | Factoría Excel | IMPLEMENTED_PARTIAL | formulas.yaml | Factory genera XLSX con fórmulas | XLSX con fórmulas activas | Medio | XLSX_DELIVERY_V1 |
 | plantilla caja diaria | Factoría Excel | IMPLEMENTED_PARTIAL | specs/caja_diaria.yaml | XLSX generado en warehouse | XLSX template | Bajo | Integrar a delivery |
@@ -755,17 +768,17 @@ claims no validados
 | PDF → Excel | Conversión | MISSING | Mencionado en audit | No evidenciado | Excel normalizado | Alto | Definir contrato |
 | CSV normalizado | Conversión | IMPLEMENTED_PARTIAL | document_ingestion | SemanticFieldMapper | StructuredEvidence | Bajo | Cablear a pipeline |
 | Excel normalizado | Conversión | IMPLEMENTED_PARTIAL | document_ingestion | XlsxCurationPipeline completa | CuratedDocument + SE | Bajo | Cablear a pipeline |
-| conciliación bancaria | Conciliación | IMPLEMENTED_PARTIAL | Plan Ciclo 10 | Template XLSX + SmartPyme genérico | Workpaper XLSX | Alto | BANK_RECONCILIATION_V1 |
-| Mercado Pago / tarjetas | Conciliación MP | MISSING | Plan Ciclo 11 | No existe | Workpaper XLSX | Alto | MERCADO_PAGO_RECONCILIATION_V1 |
-| facturas vs cobros | Contabilidad | MISSING | No documentado | No existe | Workpaper XLSX | Alto | Definir contrato |
+| conciliación bancaria | Conciliación | IMPLEMENTED_MINIMAL_CONTRACT | SERVICE_1_ACCOUNTING_CONTRACTS_V1 | service_1_accounting_contracts_v1.py | Reporte contractual XLSX | Alto | BANK_RECONCILIATION_CONTRACT_V1 |
+| Mercado Pago / tarjetas | Conciliación MP | IMPLEMENTED_MINIMAL_CONTRACT | SERVICE_1_ACCOUNTING_CONTRACTS_V1 | service_1_accounting_contracts_v1.py | Reporte contractual XLSX | Alto | MERCADO_PAGO_RECONCILIATION_V1 |
+| facturas vs cobros | Contabilidad | IMPLEMENTED_MINIMAL_CONTRACT | SERVICE_1_ACCOUNTING_CONTRACTS_V1 | service_1_accounting_contracts_v1.py | Reporte contractual XLSX | Alto | Runtime mínimo de matching |
 | compras/proveedores | Compras | DOCUMENTED_ONLY | ARCHAEOLOGY 8.5 | Spec en cantera, NOT_FOR_PHASE_1 | Triage XLSX | Medio | Clasificar |
-| papeles de trabajo | Contabilidad | MISSING | Plan Ciclo 12 | No existe | Workpaper XLSX | Alto | WORKPAPERS_V1 |
+| papeles de trabajo | Contabilidad | IMPLEMENTED_MINIMAL_CONTRACT | SERVICE_1_ACCOUNTING_CONTRACTS_V1 | service_1_accounting_contracts_v1.py | Reporte contractual XLSX | Alto | WORKPAPER runtime mínimo |
 | IVA/IIBB | Contabilidad | MISSING | No documentado | No existe | XLSX fiscal | Alto | Fuera de Servicio 1 |
 | asientos automáticos | Contabilidad | MISSING | No documentado | No existe | XLSX asientos | Alto | Fuera de Servicio 1 |
 | vencimientos/alertas | Alertas | IMPLEMENTED_PARTIAL | SmartD candidates | En contrato JSON, no cableado | Notificaciones | Medio | Cablear Ciclo 8-9 |
 | gestor de tareas | Tareas | MISSING | No documentado | No existe | XLSX tareas | Bajo | Fuera de Servicio 1 |
-| XLSX delivery | Delivery | DOCUMENTED_ONLY | Plan Ciclo 8 | No existe | XLSX descargable | Alto | Crear first_aid_xlsx_delivery |
-| service_1_pipeline | Pipeline | DOCUMENTED_ONLY | Plan Ciclo 9 | No existe, vertical_pipeline sin frontera | Pipeline ejecutable | Alto | Crear service_1_pipeline |
+| XLSX delivery | Delivery | IMPLEMENTED_VALIDATED | SERVICE_1_XLSX_DELIVERY_GENERALIZATION_V1 | first_aid_xlsx_delivery_v1.py + service_1_xlsx_delivery_v1.py | XLSX descargable | Medio | Reutilizar, no duplicar |
+| service_1_pipeline | Pipeline | IMPLEMENTED_VALIDATED | PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1 | service_1_pipeline_v1.py | Pipeline ejecutable First Aid | Medio | Expandir a pipeline full |
 | Service 1 FSM | FSM | DOCUMENTED_ONLY | Plan sección 12 | No existe | Máquina de estados | Alto | Crear SERVICE_1_FSM_V1 |
 | LLM Adapter | IA | DOCUMENTED_ONLY | Plan sección 12 | No existe | TaskSpec/EvidenceRequest/etc | Alto | Crear LLM_ADAPTER_V1 |
 
@@ -775,19 +788,28 @@ claims no validados
 
 ### Documentadas
 
-Capacidades con documentación extensa pero sin código:
+Capacidades con documentación extensa pero sin código operativo específico:
 
 ```text
-XLSX Delivery (first_aid_xlsx_delivery)
-Service 1 Pipeline (service_1_pipeline.py)
 FSM Servicio 1 (SERVICE_1_FSM_V1)
 LLM Adapter Servicio 1 (LLM_ADAPTER_V1)
-Mercado Pago / tarjetas (MERCADO_PAGO_RECONCILIATION_V1)
-Facturas vs cobros
-Papeles de trabajo (WORKPAPERS_V1)
 IVA/IIBB
 Asientos automáticos
 Gestor de tareas
+```
+
+### Contractuales / lógicas ya implementadas
+
+Capacidades con código puro/determinístico, pero sin runtime operativo completo:
+
+```text
+Excel Treatment Lab — excel_treatment_lab_v1.py (capa lógica productizada)
+Exceland Bridge — exceland_bridge_v1.py (bridge lógico mínimo)
+Conciliación bancaria — bank_reconciliation_basic en service_1_accounting_contracts_v1.py
+Mercado Pago / tarjetas — mercado_pago_reconciliation_basic en service_1_accounting_contracts_v1.py
+Facturas vs cobros — invoice_collection_matching_basic en service_1_accounting_contracts_v1.py
+Papeles de trabajo — accounting_workpaper_basic en service_1_accounting_contracts_v1.py
+Accounting human review gate — accounting_human_review_gate_v1.py
 ```
 
 ### Implementadas parcialmente
@@ -795,11 +817,11 @@ Gestor de tareas
 Capacidades con código parcial:
 
 ```text
-Laboratorio Excel — document_ingestion.py (pipeline completo pero no empaquetado como producto)
-Factoría Excel — exceland2/ (factory completa, 14 XLSX generados, no conectada a PymIA-Live)
+Laboratorio Excel profundo — document_ingestion.py (pipeline completo pero no integrado al runtime de Servicio 1)
+Factoría Excel — exceland2/ (factory completa, puente lógico listo, ejecución física pendiente)
 Excel normalizado — XlsxCurationPipeline funcional
 CSV normalizado — SemanticFieldMapper funcional
-Conciliación bancaria — template XLSX existe, SmartPyme tiene reconciliación genérica
+Conciliación bancaria histórica — template XLSX existe, SmartPyme tiene reconciliación genérica
 Vencimientos/alertas — componentes en contrato JSON, no cableados
 Compras/proveedores — spec en cantera, clasificada NOT_FOR_PHASE_1_PHASE_2
 ```
@@ -831,23 +853,21 @@ SmartCounter módulos — excel_reader, header detector, mapper, normalizer suel
 SmartD candidatos — componentes de alertas en contrato, no ejecutables
 ```
 
-### Missing
+### Missing / runtime pendiente
 
-Capacidades que todavía no existen:
+Capacidades que todavía no existen o sólo existen como contrato/base no operativa:
 
 ```text
 PDF → Excel (ingesta funcional)
-Mercado Pago / tarjetas (conciliación)
-Facturas vs cobros
-Papeles de trabajo (estructura)
 IVA/IIBB
 Asientos automáticos
 Gestor de tareas
-XLSX delivery (first_aid_xlsx_delivery.py)
-Service 1 Pipeline (service_1_pipeline.py)
 FSM Servicio 1
 LLM Adapter Servicio 1
-Herramientas First Aid concretas (precio_margen, caja_diaria, stock_alertas, gastos_triage, proveedores_triage)
+Runtimes de conciliación bancaria / Mercado Pago / factura-cobro / workpapers
+PDF intake en runtime Servicio 1
+gastos_triage runtime
+proveedores_triage runtime
 ```
 
 ---
@@ -1010,7 +1030,8 @@ flujo de fondos
 
 ```text
 Factoría existe como producto independiente.
-No hay puente que permita a PymIA-Live invocar la generación de XLSX bajo contrato.
+Ya existe un bridge lógico en PymIA-Live para representar requests compatibles con el delivery XLSX genérico.
+Todavía NO existe invocación física controlada de Exceland desde PymIA-Live.
 No migrar Exceland entero al kernel.
 No meter YAML directo al kernel.
 No hardcodear fórmulas en kernel.
@@ -1022,33 +1043,33 @@ No hardcodear fórmulas en kernel.
 
 ### Conciliación bancaria
 
-**Estado:** IMPLEMENTED_PARTIAL
+**Estado:** IMPLEMENTED_MINIMAL_CONTRACT
 
-Template XLSX existe en cantera. SmartPyme tiene reconciliación CSV genérica en kernel pero no expuesta por MCP. Entity resolution falta y bloquea reconciliación confiable.
+Existe contrato puro en `service_1_accounting_contracts_v1.py`. El template XLSX histórico sigue en cantera y la lógica genérica histórica no está expuesta como runtime de Servicio 1. Entity resolution sigue faltando.
 
-**Plan:** Ciclo 10 BANK_RECONCILIATION_V1.
+**Plan:** `SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1` como siguiente frontera runtime mínima.
 
 **Entrada:** extracto_banco + archivo_contable
 
-**Salida:** conciliados, pendientes, diferencias, duplicados, workpaper_xlsx
+**Salida:** estado contractual + `delivery_input` compatible con XLSX delivery genérico
 
 ### Mercado Pago / tarjetas
 
-**Estado:** MISSING
+**Estado:** IMPLEMENTED_MINIMAL_CONTRACT
 
-No existe documento ni código específico. Mencionado en plan como Ciclo 11.
+Existe contrato puro para `mercado_pago_reconciliation_basic`, pero no hay runtime ni parser real de reportes MP.
 
-**Plan:** MERCADO_PAGO_RECONCILIATION_V1.
+**Plan:** `MERCADO_PAGO_RECONCILIATION_V1` después de la base bancaria.
 
 **Entrada:** reporte_mp + extracto_banco + ventas
 
-**Salida:** ventas, comisiones, retenciones, acreditaciones, diferencias
+**Salida:** estado contractual + `delivery_input` compatible con XLSX delivery genérico
 
 ### Facturas vs cobros
 
-**Estado:** MISSING
+**Estado:** IMPLEMENTED_MINIMAL_CONTRACT
 
-No documentado ni implementado.
+Existe contrato puro para `invoice_collection_matching_basic`, pero todavía no hay matching real.
 
 ### Compras y proveedores
 
@@ -1058,11 +1079,11 @@ Documentado en arqueología de Exceland como herramienta FIRST_AID. Spec existe 
 
 ### Papeles de trabajo
 
-**Estado:** MISSING
+**Estado:** IMPLEMENTED_MINIMAL_CONTRACT
 
-Mencionado en plan como Ciclo 12 WORKPAPERS_V1.
+Existe contrato puro para `accounting_workpaper_basic`, pero todavía no hay generador operativo de workpapers.
 
-**Salida estándar:** Resumen, Conciliados, Pendientes, Diferencias, Duplicados, Observaciones.
+**Salida estándar:** Resumen contractual + `delivery_input` compatible con XLSX delivery genérico.
 
 ### IVA / IIBB
 

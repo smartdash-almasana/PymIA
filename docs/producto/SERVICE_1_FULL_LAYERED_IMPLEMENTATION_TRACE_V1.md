@@ -35,18 +35,18 @@ Servicio 1 no se reduce a First Aid: es un sistema completo determinístico e in
 ## 1. VEREDICT (Veredicto de Auditoría)
 
 ```text
-SERVICE_1_FULL_STATUS: PARTIAL_SYSTEM_IMPLEMENTED / DRIFT_IDENTIFIED
+SERVICE_1_FULL_STATUS: PARTIAL_SYSTEM_IMPLEMENTED / DOCUMENTATION_REALIGNED
 ```
 
 ### Diagnóstico de la Traza Maestra
-1.  **Estado Implementado:** Se encuentra completamente cerrada y validada la cadena de **Primeros Auxilios (First Aid) asistido y manual**. La capa de contratos base (Capa 0), ingesta y normalización de valores (Capa 1), lógica de herramientas core (Capa 2), renderizado y formateo de respuesta (Capa 3), exportación física openpyxl (Capa 4), y orquestación del arnés del operador (`service_1_pipeline_v1`, `service_1_operator_harness_v1`, `service_1_operator_delivery_package_v1` en Capa 5) están **100% operacionales**.
+1.  **Estado Implementado:** Se encuentra completamente cerrada y validada la cadena de **Primeros Auxilios (First Aid) asistido y manual**, incluyendo su delivery XLSX genérico reutilizable. La capa de contratos base (Capa 0), ingesta y normalización de valores (Capa 1), lógica de herramientas core autorizadas (Capa 2), renderizado y formateo de respuesta (Capa 3), exportación física openpyxl First Aid, y orquestación del arnés del operador (`service_1_pipeline_v1`, `service_1_operator_harness_v1`, `service_1_operator_delivery_package_v1`) están **operacionales y validadas dentro del alcance First Aid**.
 2.  **Estado Parcial:**
-    *   **Laboratorio Excel / Ingesta Semántica:** El pipeline de curación `document_ingestion.py` reside como script aislado bajo `tools/`, sin estar integrado formalmente en el runtime del pipeline de Servicio 1.
-    *   **Factoría Excel (Exceland):** El compilador de specs YAML y warehouse de templates en `exeland2` funciona de manera autónoma, pero no existe el bridge de conexión para que PymIA-Live invoque la generación física.
-    *   **Conciliación Bancaria:** Existe la lógica de conciliación genérica en el kernel histórico y templates con macros en exeland2, pero sin un contrato o módulo integrado.
-3.  **Estado Faltante (Missing):** Ingesta de PDF, conciliación de Mercado Pago / tarjetas, facturas contra cobros, papeles de trabajo (`workpapers`), liquidación IVA/IIBB, generación de asientos para ERP, máquina de estados FSM productiva, adaptador LLM (IA arneada) y cableado del chatbot Telegram al pipeline.
-4.  **Desactualización Documental Detectada:** Existe una discrepancia significativa entre los documentos maestros (`FULL_CATALOG_V1`, `CAPABILITY_MATRIX_V2` y `ROADMAP_V1`) y el código real. Los documentos colocan componentes cruciales como `precio_margen_basico`, `caja_diaria_triage`, `stock_alertas_basicas`, `xlsx_delivery`, `pipeline_v1` y `taskspec_assembler` en estado `DOCUMENTED_ONLY` o `DEFINED`. Sin embargo, todos estos componentes están **físicamente implementados, validados y pasando pruebas automatizadas** en el repositorio.
-5.  **Evidencia Empírica de Fallo de Tests:** De las 2036 pruebas en la suite global del proyecto, fallan 13 correspondientes a la capa de diagnóstico heredada/sistémica. Esto demuestra empíricamente que la ingesta semántica profunda del core bloquea de forma segura el cálculo de variables (`computed_variables` vacío) ante columnas ambiguas o sin confirmar por el dueño en la fixture `pyme_textil_compleja.xlsx`. Por el contrario, la cadena determinista de Servicio 1 First Aid se mantiene aislada y robusta, pasando el 100% de sus pruebas focales.
+    *   **Laboratorio Excel / Ingesta Semántica:** `document_ingestion.py` sigue residiendo como script aislado bajo `tools/`, pero ya existe una capa lógica productizada en `pymia/smartpyme/excel_treatment_lab_v1.py` que modela entradas, confirmaciones y límites sin hacer IO ni abrir runtime profundo.
+    *   **Factoría Excel (Exceland):** El compilador de specs YAML y warehouse de templates en `exeland2` funciona de manera autónoma, y ahora existe un bridge lógico mínimo en `pymia/smartpyme/exceland_bridge_v1.py`; todavía falta la frontera controlada para invocar la generación física real.
+    *   **Servicios Contables:** Ya existe una base contractual pura en `service_1_accounting_contracts_v1.py` y una compuerta humana explícita en `accounting_human_review_gate_v1.py`, pero todavía no existe runtime contable confiable ni conciliación operativa productiva.
+3.  **Estado Faltante (Missing):** Ingesta de PDF funcional en runtime, conciliación real de Mercado Pago / tarjetas, matching real de facturas contra cobros, generación operativa de papeles de trabajo (`workpapers`), liquidación IVA/IIBB, generación de asientos para ERP, máquina de estados FSM productiva, adaptador LLM (IA arneada) y cableado del chatbot Telegram al pipeline.
+4.  **Desbalance Documental Corregido en Esta Traza:** Los documentos maestros venían subestimando capas ya cerradas o productizadas de forma contractual (`xlsx_delivery`, `excel_treatment_lab_v1`, `exceland_bridge_v1`, `service_1_accounting_contracts_v1`, `accounting_human_review_gate_v1`). Esta versión realinea la traza con el código real, sin convertir contratos lógicos en claims de runtime.
+5.  **Evidencia Empírica de Test y Aislamiento:** La cadena determinista de Servicio 1 mantiene suites focales verdes para delivery XLSX, Excel Treatment Lab, Exceland Bridge, accounting contracts y human review gate. Por contraste, el runtime profundo heredado de diagnóstico sigue siendo una frontera distinta y no debe confundirse con el estado de cierre de Servicio 1.
 
 ---
 
@@ -77,13 +77,14 @@ SERVICE_1_FULL_STATUS: PARTIAL_SYSTEM_IMPLEMENTED / DRIFT_IDENTIFIED
 | `service_1_excel_triage_report` | Capa 3 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_CAPABILITY_MATRIX_V2.md` | `service_1_excel_triage_report_v1.py` | `file_intake`, `boundary` | Ninguna | Ninguno |
 | `document_ingestion` | Capa 4 | `IMPLEMENTED_PARTIAL` | `EXCEL_TREATMENT_LAB_PRODUCT_CONCEPT.md` | `tools/document_ingestion.py` | Ninguna | `pipeline_full` | Falta empaquetado y wiring en runtime |
 | `pdf_intake` | Capa 4 | `MISSING` | `PYMIA_SERVICE_1_CAPABILITY_MATRIX_V2.md` | Ninguna | Ninguna | `document_ingestion` | Falta diseño y parser extractor |
-| `exceland_factory` | Capa 5 | `IMPLEMENTED_PARTIAL` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `exeland2/src/exceland_factory/` | Ninguna | `excel_factory_bridge` | Proyecto aislado; sin bridge |
-| `excel_factory_bridge` | Capa 5 | `MISSING` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | Ninguna | `exceland_factory` | `pipeline_full` | Falta adaptador de integración |
-| `bank_reconciliation_contract` | Capa 6 | `DESIGNED` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | Ninguna | Ninguna | `bank_reconciliation` | Falta diseño formal tipado |
-| `bank_reconciliation` | Capa 6 | `IMPLEMENTED_PARTIAL` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | `exeland2` template conciliador | `bank_reconciliation_contract` | `workpaper_xlsx` | Falta motor y entity resolution |
-| `mercado_pago_reconciliation` | Capa 6 | `MISSING` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | Ninguna | `bank_reconciliation` | `workpaper_xlsx` | Falta contrato, parser y lógica |
-| `facturas_vs_cobros` | Capa 6 | `MISSING` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | Ninguna | Ninguna | `workpaper_xlsx` | Falta modelo factura-cobro |
-| `workpaper_xlsx` | Capa 6 | `MISSING` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | Ninguna | `bank_reconciliation` | `pipeline_full` | Falta especificación y motor |
+| `exceland_factory` | Capa 5 | `IMPLEMENTED_PARTIAL` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `exeland2/src/exceland_factory/` | Ninguna | `excel_factory_bridge` | Cantera aislada; puente lógico ya existe pero falta ejecución física controlada |
+| `excel_factory_bridge` | Capa 5 | `IMPLEMENTED_MINIMAL_CONTRACT` | `SERVICE_1_EXCELAND_BRIDGE_V1.md` | `exceland_bridge_v1.py` | `exceland_factory` | `pipeline_full` | Falta frontera runtime para compilar/generar XLSX real |
+| `bank_reconciliation_contract` | Capa 6 | `IMPLEMENTED_MINIMAL_CONTRACT` | `SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` | `service_1_accounting_contracts_v1.py` | Ninguna | `bank_reconciliation` | Falta runtime de conciliación y entity resolution |
+| `bank_reconciliation` | Capa 6 | `IMPLEMENTED_PARTIAL` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | `exeland2` template conciliador + kernel histórico | `bank_reconciliation_contract` | `workpaper_xlsx` | Falta motor PymIA-Live y entity resolution |
+| `mercado_pago_reconciliation` | Capa 6 | `IMPLEMENTED_MINIMAL_CONTRACT` | `SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` | `service_1_accounting_contracts_v1.py` | `bank_reconciliation_contract` | `workpaper_xlsx` | Falta runtime, parser y lógica de conciliación MP |
+| `facturas_vs_cobros` | Capa 6 | `IMPLEMENTED_MINIMAL_CONTRACT` | `SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` | `service_1_accounting_contracts_v1.py` | `bank_reconciliation_contract` | `workpaper_xlsx` | Falta matching real factura-cobro |
+| `workpaper_xlsx` | Capa 6 | `IMPLEMENTED_MINIMAL_CONTRACT` | `SERVICE_1_ACCOUNTING_CONTRACTS_V1.md` | `service_1_accounting_contracts_v1.py` | `bank_reconciliation_contract` | `pipeline_full` | Falta generador operativo de workpapers |
+| `accounting_human_review_gate` | Capa 6 | `IMPLEMENTED_MINIMAL_GATE` | `SERVICE_1_ACCOUNTING_HUMAN_REVIEW_GATE_V1.md` | `accounting_human_review_gate_v1.py` | `bank_reconciliation_contract` | `bank_reconciliation` | Bloquea claims y runtime hasta revisión humana explícita |
 | `iva_iibb` | Capa 6 | `MISSING` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | Ninguna | Ninguna | Ninguna | Excluido por normativa/complejidad |
 | `asientos_contables` | Capa 6 | `MISSING` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | Ninguna | Ninguna | Ninguna | Excluido por complejidad AFIP/ERP |
 | `alertas_vencimientos` | Capa 6 | `IMPLEMENTED_PARTIAL` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `first_aid_toolbox_v1.json` thresholds | Ninguna | Ninguna | Falta motor ejecutable |
@@ -134,15 +135,16 @@ graph TD
 
     subgraph Capa 5: Exceland Bridge / Factoría
         exceland[exeland2/ - PARTIAL]
-        exceland_bridge[excel_factory_bridge_v1.py - MISSING]
+        exceland_bridge[exceland_bridge_v1.py - IMPLEMENTED_MINIMAL_CONTRACT]
     end
 
     subgraph Capa 6: Contadores / Conciliaciones / Workpapers
-        recon_contract[bank_reconciliation_contract_v1.py - DESIGNED]
-        bank_recon[bank_reconciliation_v1.py - PARTIAL]
-        mp_recon[mercado_pago_reconciliation_v1.py - MISSING]
-        facturas_cobros[facturas_vs_cobros_v1.py - MISSING]
-        workpapers[workpaper_xlsx_v1.py - MISSING]
+        recon_contract[service_1_accounting_contracts_v1.py - IMPLEMENTED_MINIMAL_CONTRACT]
+        review_gate[accounting_human_review_gate_v1.py - IMPLEMENTED_MINIMAL_GATE]
+        bank_recon[bank_reconciliation_v1.py - PARTIAL_RUNTIME_MISSING]
+        mp_recon[mercado_pago_reconciliation_v1.py - CONTRACT_ONLY]
+        facturas_cobros[facturas_vs_cobros_v1.py - CONTRACT_ONLY]
+        workpapers[workpaper_xlsx_v1.py - CONTRACT_ONLY]
     end
 
     subgraph Capa 7: Pipeline Servicio 1 Full
@@ -186,9 +188,10 @@ graph TD
     exceland_bridge --> exceland
     
     bank_recon --> recon_contract
-    mp_recon --> bank_recon
-    facturas_cobros --> bank_recon
-    workpapers --> bank_recon
+    mp_recon --> recon_contract
+    facturas_cobros --> recon_contract
+    workpapers --> recon_contract
+    review_gate --> recon_contract
 
     pipeline_fa --> precio_margen
     pipeline_fa --> caja_diaria
@@ -245,17 +248,17 @@ graph TD
 *   **Condición de cierre:** Ingesta y normalización de Excel, CSV y PDF producen un `StructuredEvidence` validado en el pipeline del producto.
 
 ### CAPA 5 — Exceland Bridge / Factoría
-*   **Componentes:** Cantera en `exeland2`, bridge de integración en PymIA-Live (`excel_factory_bridge`).
-*   **Dependencias satisfechas:** Ninguna.
-*   **Dependencias pendientes:** Creación del adaptador bridge.
-*   **Estado real:** `30% PARCIAL` (la factoría funciona de forma autónoma en su subcarpeta; falta puente en PymIA-Live).
+*   **Componentes:** Cantera en `exeland2` y bridge lógico mínimo en PymIA-Live (`exceland_bridge_v1.py`).
+*   **Dependencias satisfechas:** `Service1XlsxDeliveryInputV1` y delivery XLSX genérico reutilizable.
+*   **Dependencias pendientes:** Frontera runtime controlada para invocar compilación/generación física real sin meter YAML ni openpyxl de Exceland dentro del kernel.
+*   **Estado real:** `60% PARCIAL` (la factoría funciona de forma autónoma en su subcarpeta; el bridge lógico ya existe y está testeado, pero falta ejecución física controlada).
 *   **Condición de cierre:** PymIA-Live puede invocar el compilador y generador de openpyxl de `exeland2` bajo contrato sin mezclar código del kernel.
 
 ### CAPA 6 — Contadores / Conciliaciones / Workpapers
-*   **Componentes:** `bank_reconciliation_contract` (Designed), `bank_reconciliation` (Parcial en cantera), `mercado_pago_reconciliation` (Missing), `facturas_vs_cobros` (Missing), `workpaper_xlsx` (Missing), `alertas_vencimientos` (Parcial/Declarativo).
-*   **Dependencias satisfechas:** Capa 0 (`first_aid_tool_result_v1`).
-*   **Dependencias pendientes:** Contratos e implementación de conciliación bancaria (con resolver de entidades), conciliación MP, facturación y generación de workpapers.
-*   **Estado real:** `15% PARCIAL` (solo existen templates, thresholds declarativos y algoritmos genéricos no expuestos).
+*   **Componentes:** `service_1_accounting_contracts_v1` (Implementado como contrato mínimo), `accounting_human_review_gate_v1` (Implementado como gate mínimo), `bank_reconciliation` (runtime parcial en cantera/histórico), `mercado_pago_reconciliation` (contract-only), `facturas_vs_cobros` (contract-only), `workpaper_xlsx` (contract-only), `alertas_vencimientos` (Parcial/Declarativo).
+*   **Dependencias satisfechas:** Capa 0 (`first_aid_tool_result_v1`) y delivery XLSX genérico para reporte contractual.
+*   **Dependencias pendientes:** Runtime de conciliación bancaria (con resolver de entidades), runtime MP, matching real factura-cobro y generador operativo de workpapers.
+*   **Estado real:** `35% PARCIAL` (la base contractual y la compuerta humana ya existen y están testeadas; la ejecución contable real todavía no existe en PymIA-Live).
 *   **Condición de cierre:** Se cruzan extractos de banco y cobros MP contra planillas de ventas emitiendo un workpaper XLSX de auditoría de diferencias de saldo.
 
 ### CAPA 7 — Pipeline Servicio 1 Full
@@ -292,26 +295,25 @@ graph TD
 
 El camino crítico estructurado e incremental, basado estrictamente en dependencias topológicas de código, es el siguiente:
 
-1.  **Cierre formal de la familia First Aid (`SERVICE_1_FIRST_AID_FAMILY_CLOSURE_V1`):** Decidir a nivel de especificación el destino de las herramientas diferidas (`gastos_triage` y `proveedores_triage`) para declarar la familia First Aid como cerrada.
-2.  **Productización de la Ingesta Semántica (`SERVICE_1_EXCEL_TREATMENT_LAB_PRODUCTIZATION_V1`):** Migrar e integrar formalmente `tools/document_ingestion.py` al runtime de `pymia/` en la Capa 4, permitiendo la curación e ingesta formal del Laboratorio Excel.
-3.  **Bridge de Factoría Excel (`SERVICE_1_EXCELAND_BRIDGE_V1`):** Desarrollar el adaptador de puente con la factoría en `exeland2` para habilitar la generación de XLSX con fórmulas vivas bajo contrato (Capa 5).
-4.  **Diseño Contable y Conciliación Bancaria Base (`SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1`):** Definir el contrato tipado y programar el algoritmo de conciliación bancaria determinística (con entity resolver) y generación de `workpapers` (Capa 6).
-5.  **Conciliación de Mercado Pago (`SERVICE_1_MERCADO_PAGO_RECONCILIATION_V1`):** Desarrollar la ingesta y conciliación de movimientos de cobros y retenciones de Mercado Pago.
-6.  **Pipeline Servicio 1 Full (`SERVICE_1_FULL_PIPELINE_V1`):** Unificar el pipeline para integrar ingesta de laboratorio Excel, generación de templates de factoría y conciliaciones contables en un único motor central (Capa 7).
-7.  **Máquina de Estados (`SERVICE_1_FSM_V1`):** Diseñar e implementar la máquina de estados finitos que controle transiciones y bloqueos de tareas en la Capa 8.
-8.  **Adaptador IA y Arnés (`SERVICE_1_LLM_ADAPTER_V1`):** Implementar el arnés del adaptador LLM para restringir las salidas conversacionales a formatos tipados del sistema en la Capa 9.
-9.  **Wiring de Chatbot (`SERVICE_1_CHATBOT_OPERATIVE_V1`):** Conectar el canal de mensajería (Telegram) a la FSM y al pipeline en la Capa 10.
+1.  **Bloques ya cerrados y reusables:** `SERVICE_1_FIRST_AID_FAMILY_CLOSURE_V1`, `SERVICE_1_XLSX_DELIVERY_GENERALIZATION_V1`, `SERVICE_1_EXCEL_TREATMENT_LAB_PRODUCTIZATION_V1`, `SERVICE_1_EXCELAND_BRIDGE_V1`, `SERVICE_1_ACCOUNTING_CONTRACTS_V1` y `SERVICE_1_ACCOUNTING_HUMAN_REVIEW_GATE_V1` ya aportan bases tipadas y testeadas para las capas 2 a 6.
+2.  **Conciliación Bancaria Base (`SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1` o sandbox runtime contract equivalente):** Definir el runtime mínimo que consume los contratos contables ya creados, mantiene `runtime_authorized=False` por defecto y deja explícito el límite de entity resolution.
+3.  **Conciliación de Mercado Pago (`SERVICE_1_MERCADO_PAGO_RECONCILIATION_V1`):** Extender la familia contractual a un runtime mínimo de conciliación MP sin abrir APIs ni automatizaciones fuera de alcance.
+4.  **Facturas vs Cobros / Workpapers Runtime:** Crear la ejecución mínima para `invoice_collection_matching` y `accounting_workpaper` sobre la base contractual ya existente, sin sobreclaimear exactitud fiscal.
+5.  **Pipeline Servicio 1 Full (`SERVICE_1_FULL_PIPELINE_V1`):** Unificar el pipeline para integrar laboratorio Excel, bridge de factoría y runtimes contables autorizados en un único motor central.
+6.  **Máquina de Estados (`SERVICE_1_FSM_V1`):** Diseñar e implementar la máquina de estados finitos que controle transiciones y bloqueos de tareas en la Capa 8.
+7.  **Adaptador IA y Arnés (`SERVICE_1_LLM_ADAPTER_V1`):** Implementar el arnés del adaptador LLM para restringir las salidas conversacionales a formatos tipados del sistema en la Capa 9.
+8.  **Wiring de Chatbot (`SERVICE_1_CHATBOT_OPERATIVE_V1`):** Conectar el canal de mensajería (Telegram) a la FSM y al pipeline en la Capa 10.
 
 ---
 
 ## 6. COMPLETENESS ESTIMATE (Estimación de Completitud)
 
 ### 1. Estimación por Familia Funcional
-*   **First Aid (Primeros Auxilios):** **80%** (Las herramientas core, el arnés, empaquetador y XLSX están validados; falta gastos).
-*   **Laboratorio Excel (Excel Lab):** **70%** (Ingesta y normalización XLSX validada; falta PDF e integración del script de curación).
-*   **Factoría Excel (Exceland):** **60%** (Lógica y specs listas en `exeland2`; falta bridge de integración).
+*   **First Aid (Primeros Auxilios):** **100%** (Familia runtime cerrada dentro del alcance autorizado).
+*   **Laboratorio Excel (Excel Lab):** **75%** (La capa lógica está productizada y testeada; falta runtime integrado de `document_ingestion` y falta PDF).
+*   **Factoría Excel (Exceland):** **70%** (Cantera y bridge lógico mínimo listos; falta frontera controlada de generación física).
 *   **XLSX Delivery:** **100%** (Totalmente implementado y pasando pruebas unitarias).
-*   **Servicios Contables y Conciliación:** **5%** (Faltan conciliación bancaria base, MP, facturas y workpapers; solo existen bosquejos/templates).
+*   **Servicios Contables y Conciliación:** **25%** (La familia contractual y el gate humano existen; faltan runtimes bancarios/MP/facturas/workpapers).
 *   **Alertas y Vencimientos:** **20%** (Estructura declarativa y umbrales en JSON; falta motor ejecutable).
 *   **Orquestación y Arnés (Operator Engine):** **100%** (Pipeline First Aid, arnés y empaquetador manual listos y validados).
 *   **FSM, LLM y Chatbot:** **15%** (Telegram base existe; FSM y adapter en estado conceptual o experimental congelado).
@@ -319,11 +321,11 @@ El camino crítico estructurado e incremental, basado estrictamente en dependenc
 ### 2. Estimación por Capa Técnica
 *   **Capa 0 (Contratos y fronteras):** **100%**
 *   **Capa 1 (Intake / TaskSpec / Evidence):** **100%**
-*   **Capa 2 (Tools First Aid):** **75%**
+*   **Capa 2 (Tools First Aid):** **100%**
 *   **Capa 3 (Delivery de archivos):** **100%**
-*   **Capa 4 (Excel Lab / normalización):** **40%**
-*   **Capa 5 (Exceland Bridge / factoría):** **30%**
-*   **Capa 6 (Contadores / conciliaciones / workpapers):** **15%**
+*   **Capa 4 (Excel Lab / normalización):** **55%**
+*   **Capa 5 (Exceland Bridge / factoría):** **60%**
+*   **Capa 6 (Contadores / conciliaciones / workpapers):** **35%**
 *   **Capa 7 (Pipeline Servicio 1 full):** **35%**
 *   **Capa 8 (FSM Servicio 1):** **10%**
 *   **Capa 9 (IA con arnés / LLM Adapter):** **5%**
@@ -331,9 +333,9 @@ El camino crítico estructurado e incremental, basado estrictamente en dependenc
 
 ### 3. Estimación del Porcentaje de Completitud Total
 ```text
-SERVICE_1_FULL_COMPLETENESS: 57%
+SERVICE_1_FULL_COMPLETENESS: 60%
 ```
-*   *Justificación:* La base del sistema asistido y manual de primeros auxilios (Capas 0 a 5) está totalmente desarrollada y validada. Sin embargo, Servicio 1 Full se encuentra al **57%** de completitud del alcance total debido a la ausencia de lógica determinística de conciliación bancaria y contabilidad (Capa 6) y el gobierno conversacional autónomo FSM/LLM (Capas 8 a 10).
+*   *Justificación:* La base del sistema asistido/manual de First Aid, el delivery XLSX genérico, la productización lógica del Excel Lab, el bridge lógico de Exceland y la familia contractual contable ya están cerrados o realineados. Sin embargo, Servicio 1 Full sigue condicionado por la falta de runtimes contables reales, `pipeline_full`, FSM y gobierno conversacional controlado.
 
 ---
 
@@ -342,15 +344,15 @@ SERVICE_1_FULL_COMPLETENESS: 57%
 El próximo bloque técnico coherente y dependencialmente correcto es:
 
 ```text
-SERVICE_1_FIRST_AID_FAMILY_CLOSURE_V1
+SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1
 ```
 
-*   **Tipo:** `AUDIT_DECISION_AND_POLISHING` (No abre código runtime complejo, no viola fronteras, no proponer MVP).
-*   **Motivo de dependencia:** Antes de avanzar a integrar el Laboratorio Excel en runtime (Capa 4) o construir el Bridge de Exceland (Capa 5), es fundamental cerrar la Capa 2 (Tools First Aid) auditando y decidiendo a nivel de especificación si herramientas como `gastos_triage` y `proveedores` son implementadas o se difieren de forma definitiva en contratos.
+*   **Tipo:** `CONTRACT_AND_SANDBOX_RUNTIME_BOUNDARY` (abre runtime mínimo controlado, pero no habilita ejecución contable productiva ni claims de exactitud fiscal).
+*   **Motivo de dependencia:** First Aid, XLSX Delivery, Excel Treatment Lab, Exceland Bridge, accounting contracts y accounting human review gate ya están cerrados en su capa mínima. La siguiente dependencia real es transformar el contrato contable bancario en una frontera de runtime autorizable y verificable.
 *   **Entregables específicos:**
-    1.  *Auditoría de consistencia contractual:* Comparar `first_aid_toolbox_v1.json` contra la matriz de capacidades para evitar componentes fantasmas.
-    2.  *Decisión de alcance:* Resolver la exclusión o inclusión formal de `gastos_triage` en el contrato JSON de Fase 1.
-    3.  *Prueba de humo de integridad:* Validar que el loader y evaluador de activación de herramientas reconozcan la familia de herramientas como cerrada de acuerdo a la decisión de alcance.
+    1.  *Contrato de runtime mínimo:* Entrada/salida/límites explícitos para conciliación bancaria básica.
+    2.  *Integración con gate humano:* Asegurar que toda ejecución potencial siga bloqueada por `accounting_human_review_gate_v1` hasta revisión explícita.
+    3.  *Prueba de humo contractual:* Validar que el runtime candidato consuma `service_1_accounting_contracts_v1` sin saltarse límites ni claims prohibidos.
 
 ---
 
