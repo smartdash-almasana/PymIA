@@ -71,6 +71,12 @@ Aceptar sólo si existe:
 - aceptación explícita de límites del servicio
 
 La aceptación debe confirmar que la evidencia será tratada como declarada, no auditada.
+También puede aceptarse parcialmente con advertencias operativas si:
+- el caso preserva límites
+- existe evidencia mínima suficiente
+- el período y la familia operativa son claros
+- los faltantes quedan explícitos
+- se mantiene revisión humana requerida
 ```
 
 CASE_REJECTION_RULES:
@@ -89,6 +95,7 @@ Rechazar o detener si:
 - no hay período definido
 - la familia operativa no está acotada
 - los archivos mínimos no existen
+- el caso mezcla demasiadas familias operativas sin posibilidad real de recorte
 ```
 
 CLIENT_INTAKE_STEPS:
@@ -157,10 +164,78 @@ Antes de ejecutar confirmar:
 - familia operativa correcta
 - columnas mínimas visibles o declaradas
 - llaves transaccionales mínimas cuando existan
+- duplicados visibles o probables
+- datos maestros incompletos
+- importes negativos o notas de crédito
 - importes expresados de forma comparable
 - notas de contexto presentes
 - evidencia marcada como declarada, no auditada
 - no hay necesidad de API/OCR/parser
+```
+
+EDGE_CASE_RULES:
+
+```text
+1. INCOMPLETE_SALES_COLLECTIONS
+Condición:
+- ventas declaradas existentes pero cobros faltantes para varios tickets.
+Acción:
+- aceptar parcialmente si el período y archivos base son claros.
+- marcar faltantes.
+- no inventar cobros.
+- requerir revisión humana.
+Resultado esperado:
+PARTIAL_CONTROLLED_PILOT_RUN
+
+2. DUPLICATED_COLLECTIONS
+Condición:
+- múltiples cobros asociados al mismo ticket o referencia.
+Acción:
+- marcar posible duplicado.
+- no netear automáticamente.
+- no decidir si es error o pago parcial sin revisión humana.
+Resultado esperado:
+PASS_WITH_WARNINGS
+
+3. MISSING_MASTER_DATA
+Condición:
+- faltan CUIT, proveedor, fecha, medio, referencia o datos maestros relevantes.
+Acción:
+- aceptar con advertencias si hay evidencia suficiente para borrador operativo.
+- registrar datos maestros incompletos.
+- pedir saneamiento antes de cierre o registración contable.
+Resultado esperado:
+PASS_WITH_WARNINGS
+
+4. NEGATIVE_AMOUNTS_AND_CREDIT_NOTES
+Condición:
+- importes negativos, notas de crédito, devoluciones o ajustes.
+Acción:
+- separar ajustes de operaciones normales.
+- no tratarlos automáticamente como pagos o cobros ordinarios.
+- requerir revisión humana.
+Resultado esperado:
+NEEDS_HUMAN_REVIEW
+
+5. TOO_BROAD_MIXED_CASE
+Condición:
+- el cliente mezcla ventas, cobros, compras, pagos, banco, Mercado Pago, Mercado Libre, stock o impuestos en un único pedido.
+Acción:
+- bloquear o recortar.
+- proponer una sola familia operativa y un solo período.
+- no ejecutar análisis amplio.
+Resultado esperado:
+BLOCKED_OR_SCOPE_REDUCTION_REQUIRED
+
+6. NO_TRANSACTION_KEYS
+Condición:
+- existen archivos tabulares pero no hay llaves transaccionales claras.
+Acción:
+- pedir columnas mínimas o recortar a análisis agregado.
+- no hacer matching fino.
+- marcar limitación estructural.
+Resultado esperado:
+NEEDS_SCOPE_REDUCTION
 ```
 
 OPERATOR_EXECUTION_FLOW:
@@ -264,10 +339,32 @@ El responsable humano debe revisar:
 - totales declarados
 - diferencias visibles
 - brechas documentales
+- cobros faltantes
+- cobros duplicados
+- proveedores sin CUIT
+- pagos sin comprobante
+- importes negativos
+- notas de crédito
+- casos sin llaves transaccionales
 - límites del entregable
 - si el XLSX puede ser usado como apoyo operativo
 - si corresponde pedir evidencia adicional
 - si el caso debe detenerse por riesgo
+```
+
+CASE_SCOPE_REDUCTION:
+
+```text
+Si el caso no debe bloquearse de inmediato, reducirlo por:
+- familia operativa
+- período
+- tipo de evidencia
+
+Recortes válidos:
+- de múltiples frentes a una sola familia operativa soportada
+- de varios períodos a un solo período
+- de análisis transaccional fino a análisis agregado si faltan llaves mínimas
+- de evidencia amplia a un subconjunto mínimo con borrador operativo posible
 ```
 
 DELIVERY_PACKAGE:
@@ -314,8 +411,14 @@ STOP_CONDITIONS:
 
 ```text
 Detener si:
+- hay pedido de auditoría
+- hay pedido de certificación
+- hay pedido de validación fiscal
+- hay pedido de conciliación definitiva
 - el caso se amplía fuera de la familia aceptada
+- el caso es multi-fuente imposible de recortar
 - falta evidencia mínima
+- hay ausencia total de evidencia mínima
 - falta responsable humano
 - el cliente exige resultado final
 - el operador detecta riesgo fiscal/legal
@@ -333,6 +436,11 @@ Antes de cerrar el caso confirmar:
 - diferencias visibles, no conclusiones finales
 - faltantes documentales explícitos
 - revisión humana requerida
+- no se inventó evidencia
+- no se netearon duplicados automáticamente
+- no se trató una nota de crédito como pago normal sin advertencia
+- no se prometió exactitud
+- se preservó revisión humana
 - wording seguro
 - límites preservados
 - no claims prohibidos
