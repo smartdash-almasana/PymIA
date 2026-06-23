@@ -3,246 +3,346 @@
 VEREDICT:
 
 ```text
-ACCOUNTING_WORKPAPER_OPERATOR_RUNBOOK_V1: CREATED
+ACCOUNTING_WORKPAPER_OPERATOR_RUNBOOK_V1: STANDARDIZED_AFTER_TWO_CONTROLLED_PILOTS
 ```
 
 PURPOSE:
 
 ```text
-Definir el runbook operativo mínimo para que un operador pueda repetir pilotos controlados de la unidad:
-Papel de trabajo contable asistido.
+Convertir los pilotos controlados exitosos de la unidad Servicio 1 / Papel de trabajo contable asistido
+en una rutina operativa repetible para operador humano.
 
-El runbook estandariza ejecución manual/asistida sin abrir parser, OCR, APIs, runtime ni claims contables/fiscales finales.
+Este runbook define cómo aceptar, preparar, ejecutar y entregar casos simples bajo revisión humana,
+sin abrir parser, OCR, APIs, runtime ni claims contables/fiscales finales.
 ```
 
-WHEN_TO_USE:
+SERVICE_SCOPE:
 
 ```text
-Usar este runbook para:
-- segundo piloto controlado
-- repetición de piloto simple
-- onboarding de operador interno
-- preparación de paquete de revisión para contador
-- control de límites antes de entregar XLSX operativo
+El servicio produce:
+- borrador operativo
+- XLSX de revisión
+- diferencias visibles
+- faltantes de evidencia
+- checklist para revisión humana
+
+El servicio ordena evidencia declarada y prepara un paquete de revisión.
+No produce dictamen, certificación, conciliación definitiva ni resultado contable final.
 ```
 
-WHEN_NOT_TO_USE:
+SUPPORTED_CASE_FAMILIES:
 
 ```text
-No usar este runbook para:
+1. ventas declaradas vs cobros declarados
+2. compras declaradas vs pagos declarados
+```
+
+UNSUPPORTED_CASES:
+
+```text
 - auditoría
 - certificación
-- validación fiscal
 - conciliación definitiva
-- generación de asientos
-- casos con API/OCR/parser requerido
-- casos Mercado Pago complejos
-- cierres contables o fiscales
-- casos sin responsable humano
+- validación fiscal
+- asientos automáticos
+- resultado contable final
+- garantía de exactitud
+- API bancaria
+- Mercado Pago API
+- Mercado Libre API
+- OCR
+- parser automático nuevo
+- casos multi-período sin recorte
+- casos multi-moneda
+- casos con inspección fiscal o reclamo legal activo
+- casos sin responsable humano de revisión
 ```
 
-OPERATOR_ROLE:
+CASE_ACCEPTANCE_RULES:
 
 ```text
-El operador ordena, registra, controla límites y prepara el paquete.
-El operador no audita, no certifica, no valida impuestos, no concilia definitivamente y no reemplaza al contador.
+Aceptar sólo si existe:
+- período definido
+- cliente identificado
+- familia operativa acotada
+- al menos dos archivos tabulares simples o un archivo base suficiente
+- llaves transaccionales mínimas cuando existan
+- responsable humano de revisión
+- aceptación explícita de límites del servicio
+
+La aceptación debe confirmar que la evidencia será tratada como declarada, no auditada.
 ```
 
-PRE_RUN_CHECKLIST:
+CASE_REJECTION_RULES:
 
 ```text
-1. Confirmar que el caso es simple.
-2. Confirmar período único.
-3. Confirmar cliente/empresa.
-4. Confirmar área de revisión.
-5. Confirmar responsable humano.
-6. Confirmar evidencia mínima.
-7. Confirmar nota de contexto.
-8. Confirmar plantilla o estructura esperada.
-9. Confirmar aceptación de límites.
-10. Confirmar que no se requiere API, OCR ni parser.
+Rechazar o detener si:
+- el cliente exige auditoría
+- el cliente exige certificación
+- el cliente exige conciliación definitiva
+- el cliente exige validación fiscal
+- el cliente exige resultado contable final
+- el cliente exige asientos automáticos
+- el caso requiere API bancaria, Mercado Pago API o Mercado Libre API
+- el caso requiere OCR o parser automático nuevo
+- no hay responsable humano
+- no hay período definido
+- la familia operativa no está acotada
+- los archivos mínimos no existen
 ```
 
-REQUIRED_CLIENT_INPUTS:
+CLIENT_INTAKE_STEPS:
 
 ```text
-periodo
-cliente_o_empresa
-area_revision
-responsable_humano
-evidencia_base_declarada
-nota_contexto
-estructura_o_plantilla_declarada
-aceptacion_limites
+1. Identificar cliente o empresa.
+2. Definir período.
+3. Elegir familia operativa soportada.
+4. Registrar objetivo del cliente.
+5. Pedir archivos tabulares simples o archivo base suficiente.
+6. Pedir nota breve de contexto.
+7. Confirmar responsable humano de revisión.
+8. Confirmar aceptación de límites.
+9. Confirmar que no se espera dictamen, auditoría, certificación ni cierre final.
+10. Registrar el caso como piloto/servicio asistido bajo revisión humana.
 ```
 
-CASE_ACCEPTANCE_RULE:
+PILOT_FOLDER_SETUP:
 
 ```text
-Aceptar sólo si el caso puede ejecutarse como revisión documental asistida.
-Rechazar si el cliente espera resultado final, dictamen, certificación, validación fiscal, conciliación definitiva o asientos.
+Crear carpeta local fuera del repo para cada caso.
+
+Ubicación recomendada:
+E:\BuenosPasos\smartbridge\PymIA-local-artifacts\_pilot_cases\<CASE_REF>\
+
+Estructura sugerida:
+01_contexto\
+02_inputs_declarados\
+03_outputs_operativos\
+04_notas_revision\
+05_review_sanitizado\
+
+No commitear artefactos operativos.
+No commitear XLSX.
+No commitear datos del caso.
 ```
 
-FOLDER_RULE:
+INPUT_FILE_NAMING:
 
 ```text
-Los artefactos operativos del piloto deben mantenerse fuera del repo.
+Usar nombres simples, trazables y sin datos sensibles.
 
-Usar carpeta local externa, por ejemplo:
-E:\BuenosPasos\smartbridge\PymIA-local-artifacts\_pilot_cases\
+Ejemplos:
+ventas_declaradas_<periodo>.xlsx
+cobros_declarados_<periodo>.xlsx
+compras_declaradas_<periodo>.xlsx
+pagos_declarados_<periodo>.xlsx
+nota_contexto_<case_ref>.txt
+faltantes_declarados_<case_ref>.txt
 
-No commitear:
-- _pilot_cases/
-- XLSX de input
-- XLSX de output
-- archivos del cliente
-- notas operativas locales con datos sensibles
+Evitar:
+- CUIT reales
+- nombres de clientes finales
+- datos bancarios completos
+- credenciales
+- claves fiscales
+- tokens
 ```
 
-EVIDENCE_REGISTRATION_RULE:
+EVIDENCE_PRECHECK:
 
 ```text
-Registrar evidencia como declarada, no auditada.
-No afirmar que un archivo fue leído, parseado o validado si sólo fue declarado.
-No afirmar que una diferencia visible es conclusión contable final.
+Antes de ejecutar confirmar:
+- archivos presentes
+- período consistente
+- familia operativa correcta
+- columnas mínimas visibles o declaradas
+- llaves transaccionales mínimas cuando existan
+- importes expresados de forma comparable
+- notas de contexto presentes
+- evidencia marcada como declarada, no auditada
+- no hay necesidad de API/OCR/parser
 ```
 
-EXECUTION_STEPS:
+OPERATOR_EXECUTION_FLOW:
 
 ```text
-1. Crear carpeta local fuera del repo para el caso.
-2. Guardar archivos recibidos en carpeta local externa.
-3. Registrar período, cliente, área y responsable humano.
+1. Abrir caso local fuera del repo.
+2. Aplicar intake.
+3. Validar reglas de aceptación.
 4. Registrar evidencia declarada.
-5. Registrar plantilla o estructura declarada.
-6. Confirmar límites con cliente/responsable.
-7. Preparar manifest de evidencia.
-8. Preparar manifest de plantilla.
-9. Confirmar human review gate.
-10. Preparar draft packet.
-11. Generar XLSX operativo si corresponde.
-12. Revisar paquete antes de entregar.
-13. Entregar como borrador operativo de revisión.
-14. Registrar feedback post-piloto.
-15. Crear sólo resumen sanitizado en docs/producto si corresponde.
+5. Registrar responsable humano.
+6. Seleccionar flujo operativo: ventas/cobros o compras/pagos.
+7. Preparar revisión tabular manual/asistida.
+8. Calcular totales declarados si los datos lo permiten.
+9. Identificar diferencias visibles.
+10. Identificar faltantes de evidencia.
+11. Preparar XLSX operativo de revisión si corresponde.
+12. Revisar límites y wording antes de entrega.
+13. Entregar como borrador operativo sujeto a revisión humana.
+14. Registrar feedback y fricciones.
 ```
 
-DELIVERY_CHECKLIST:
+SALES_COLLECTIONS_FLOW:
 
 ```text
-Antes de entregar verificar:
-- XLSX identificado como borrador operativo
-- evidencia marcada como declarada
-- faltantes visibles
-- límites explícitos
-- claims prohibidos visibles
-- próxima acción segura incluida
-- revisión humana requerida indicada
-- sin lenguaje de auditoría/certificación/resultado final
+Usar para ventas declaradas vs cobros declarados.
+
+Pasos mínimos:
+1. Registrar total de ventas declaradas.
+2. Registrar cantidad de tickets/operaciones de venta.
+3. Registrar total de cobros declarados.
+4. Registrar cantidad de cobros.
+5. Comparar por llave transaccional si existe.
+6. Registrar diferencias visibles.
+7. Registrar cobros huérfanos si existen.
+8. Registrar ventas sin cobro asociado si existen.
+9. Registrar faltantes documentales.
+10. Preparar checklist para revisión humana.
 ```
 
-CLIENT_MESSAGE_TEMPLATE:
+PURCHASES_PAYMENTS_FLOW:
 
 ```text
-Te entregamos un borrador operativo de revisión con evidencia declarada, faltantes visibles y límites explícitos.
-Este archivo sirve como apoyo para revisión humana con el contador u operador responsable.
-No es auditoría, certificación, validación fiscal, conciliación definitiva ni resultado contable final.
+Usar para compras declaradas vs pagos declarados.
+
+Pasos mínimos:
+1. Registrar total de compras declaradas.
+2. Registrar cantidad de comprobantes de compra.
+3. Registrar total de pagos declarados.
+4. Registrar cantidad de pagos.
+5. Comparar por proveedor, comprobante o referencia si existe.
+6. Registrar pagos parciales visibles.
+7. Registrar pagos huérfanos si existen.
+8. Registrar compras sin pago asociado si existen.
+9. Registrar faltantes documentales.
+10. Preparar checklist para revisión humana.
 ```
 
-OPERATOR_STOP_CONDITIONS:
+DIFFERENCE_LOGGING:
 
 ```text
-Detener ejecución si:
-- falta responsable humano
-- falta evidencia mínima
-- el caso se amplía sin recorte
-- el cliente exige resultado final
-- aparece necesidad de API/OCR/parser
-- aparece riesgo fiscal/legal no previsto
-- el operador no puede explicar límites
-- el XLSX podría interpretarse como dictamen
+Registrar diferencias como señales visibles, no como conclusiones finales.
+
+Formato mínimo:
+- difference_ref
+- familia
+- referencia_origen
+- monto_declarado_A
+- monto_declarado_B
+- diferencia_visible
+- tipo: parcial / faltante / huérfano / exceso / no_clasificado
+- requiere_revision_humana: sí
+
+No llamar a esto saldo conciliado.
+No llamar a esto diferencia final.
 ```
 
-HUMAN_REVIEW_GATE:
+EVIDENCE_GAP_LOGGING:
 
 ```text
-La revisión humana es obligatoria antes de usar el paquete como insumo de trabajo.
-El contador, operador o responsable designado conserva control profesional.
-PymIA sólo ordena, estructura y prepara revisión.
+Registrar faltantes como brechas documentales.
+
+Formato mínimo:
+- gap_ref
+- familia
+- evidencia_faltante
+- referencia_relacionada
+- monto_asociado si existe
+- impacto_operativo
+- próxima acción sugerida
+
+No resolver fiscalmente la brecha.
+No inferir validez documental.
 ```
 
-POST_RUN_LOG:
+HUMAN_REVIEW_CHECKLIST:
 
 ```text
-Registrar después de cada piloto:
-- case_ref
-- fecha
-- período
-- área de revisión
+El responsable humano debe revisar:
+- alcance del caso
 - evidencia declarada
-- faltantes detectados
+- totales declarados
 - diferencias visibles
-- bloqueos
-- feedback cliente
-- feedback responsable humano
-- utilidad del XLSX
-- riesgos de wording
-- decisión: repetir, ajustar, detener
+- brechas documentales
+- límites del entregable
+- si el XLSX puede ser usado como apoyo operativo
+- si corresponde pedir evidencia adicional
+- si el caso debe detenerse por riesgo
 ```
 
-SANITIZED_REVIEW_RULE:
+DELIVERY_PACKAGE:
 
 ```text
-Si se documenta resultado en repo, crear sólo resumen sanitizado.
-No incluir archivos operativos, datos sensibles, XLSX ni carpeta del caso.
+El paquete de entrega debe incluir:
+- XLSX operativo de revisión
+- resumen del caso
+- totales declarados
+- diferencias visibles
+- faltantes de evidencia
+- checklist de revisión humana
+- límites del entregable
+- próxima acción segura
+
+El paquete no debe incluir datos sensibles innecesarios ni artefactos operativos dentro del repo.
 ```
 
-SUCCESS_CRITERIA:
+CLIENT_DELIVERY_WORDING:
 
 ```text
-El run es exitoso si:
-- el operador pudo seguir pasos sin improvisar
-- el cliente entendió límites
-- la evidencia mínima fue suficiente para preparar paquete
-- el responsable humano pudo revisar
-- el XLSX fue útil como apoyo operativo
-- los faltantes o bloqueos quedaron claros
+Usar lenguaje seguro:
+- borrador operativo
+- evidencia declarada
+- diferencias visibles
+- faltantes de evidencia
+- requiere revisión humana
+- archivo de apoyo
+- paquete de revisión
+
+Mensaje base:
+Te entregamos un borrador operativo con evidencia declarada, diferencias visibles y faltantes de evidencia para revisión humana. Este archivo es un apoyo de trabajo: no es auditoría, certificación, validación fiscal, conciliación definitiva ni resultado contable final.
+
+Evitar:
+- auditado
+- certificado
+- conciliado definitivamente
+- validado fiscalmente
+- exacto
+- cerrado contablemente
 ```
 
-FAILURE_CRITERIA:
+STOP_CONDITIONS:
 
 ```text
-El run falla si:
-- el caso requiere cierre contable/fiscal
-- el cliente interpreta el entregable como dictamen
-- falta responsable humano
+Detener si:
+- el caso se amplía fuera de la familia aceptada
 - falta evidencia mínima
-- se necesita API/OCR/parser
-- el paquete no ayuda al responsable humano
-- el operador no puede mantener límites
+- falta responsable humano
+- el cliente exige resultado final
+- el operador detecta riesgo fiscal/legal
+- se requiere API/OCR/parser
+- el XLSX puede interpretarse como dictamen
+- no se pueden preservar límites del servicio
 ```
 
-BOUNDARIES_PRESERVED:
+QUALITY_CHECK:
 
 ```text
-No código.
-No tests.
-No runtime.
-No parser.
-No OCR.
-No APIs.
-No auditoría.
-No certificación.
-No validación fiscal.
-No conciliación definitiva.
-No asientos automáticos.
-No resultado contable final.
+Antes de cerrar el caso confirmar:
+- artefactos operativos fuera del repo
+- evidencia declarada, no auditada
+- diferencias visibles, no conclusiones finales
+- faltantes documentales explícitos
+- revisión humana requerida
+- wording seguro
+- límites preservados
+- no claims prohibidos
+- git status limpio salvo documento sanitizado si corresponde
 ```
 
 NEXT_SAFE_ACTION:
 
 ```text
-RUN_SECOND_CONTROLLED_PILOT_WITH_OPERATOR_RUNBOOK
+PREPARE_REAL_CLIENT_OPERATOR_PACKET_OR_RUN_THIRD_CONTROLLED_PILOT
 ```
 
 COMMIT_READY:
