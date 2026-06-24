@@ -62,7 +62,7 @@ Por eso se versiona un generador Python determinístico que escribe el HTML loca
    - cantidad de columnas
    - fila probable de encabezado
    - encabezados visibles
-   - señales por nombres de hoja/columna
+   - sólo estructura visible, sin inferencia semántica automática
 5. PymIA genera preguntas desde esa estructura.
 6. El dueño responde en el chat derecho.
 7. El sistema avanza pregunta por pregunta.
@@ -91,7 +91,7 @@ rows reales leídas por SheetJS
 headers detectados
 nombres de hoja
 nombres de columnas
-señales por palabras como ventas, cobranzas, banco, stock, costo, precio
+preguntas neutras sobre hojas, filas, columnas y encabezados reales
 ```
 
 ## Preguntas generadas

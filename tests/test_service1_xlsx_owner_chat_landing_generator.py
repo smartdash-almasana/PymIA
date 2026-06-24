@@ -15,7 +15,8 @@ def test_xlsx_owner_chat_declares_real_structure_driven_flow() -> None:
     assert "buildProfile" in SERVICE1_XLSX_OWNER_CHAT_HTML
     assert "buildQuestions" in SERVICE1_XLSX_OWNER_CHAT_HTML
     assert "findHeaderRow" in SERVICE1_XLSX_OWNER_CHAT_HTML
-    assert "detectSignals" in SERVICE1_XLSX_OWNER_CHAT_HTML
+    assert "No se infiere desde el archivo" in SERVICE1_XLSX_OWNER_CHAT_HTML
+    assert "sin inferencia automática" in SERVICE1_XLSX_OWNER_CHAT_HTML
 
 
 def test_xlsx_owner_chat_has_right_side_chat_and_owner_answer_loop() -> None:
@@ -57,6 +58,10 @@ def test_xlsx_owner_chat_has_no_fake_metrics_backend_or_final_claims() -> None:
         "resultado contable final aprobado",
         "Mercado Pago API",
         "Servicio 2 habilitado",
+        "detectSignals",
+        "signals:",
+        "total facturado",
+        "registros procesados",
     )
     for fragment in forbidden_fragments:
         assert fragment not in SERVICE1_XLSX_OWNER_CHAT_HTML
