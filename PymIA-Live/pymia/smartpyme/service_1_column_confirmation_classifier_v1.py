@@ -119,6 +119,12 @@ def _has_phrase(text: str, phrases: tuple[str, ...]) -> bool:
 
 def _classify_outcome(raw_owner_answer: str, proposed_role: str) -> tuple[OwnerColumnConfirmationOutcome, str | None, str]:
     normalized = _normalize_text(raw_owner_answer)
+    if normalized == "no":
+        return (
+            OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING,
+            None,
+            "Owner rejected PymIA's proposed column interpretation.",
+        )
     if len(normalized) < 3:
         return (
             OwnerColumnConfirmationOutcome.INSUFFICIENT_ANSWER,
@@ -155,7 +161,6 @@ def _classify_outcome(raw_owner_answer: str, proposed_role: str) -> tuple[OwnerC
         "ignora",
         "no relevante",
         "no sirve",
-        "no corresponde",
         "no usar",
         "descartar",
         "irrelevante",
@@ -163,23 +168,35 @@ def _classify_outcome(raw_owner_answer: str, proposed_role: str) -> tuple[OwnerC
         "ignore",
         "discard",
     )
+    if _has_phrase(normalized, not_relevant_phrases):
+        return (
+            OwnerColumnConfirmationOutcome.CONFIRMED_NOT_RELEVANT,
+            None,
+            "Owner explicitly marked the column as not relevant for this analysis.",
+        )
+
     explicit_rejection_phrases = (
+        "no",
         "no es",
         "no,",
         "no ",
+        "no corresponde",
+        "no es eso",
+        "esta mal clasificada",
+        "esta mal interpretada",
+        "esta mal",
         "incorrecto",
         "rechazo",
-        "esta mal",
         "esta equivocado",
         "wrong",
         "incorrect",
         "nope",
     )
-    if _has_phrase(normalized, not_relevant_phrases) or normalized == "no" or _has_phrase(normalized, explicit_rejection_phrases):
+    if normalized == "no" or _has_phrase(normalized, explicit_rejection_phrases):
         return (
-            OwnerColumnConfirmationOutcome.CONFIRMED_NOT_RELEVANT,
+            OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING,
             None,
-            "Owner explicitly rejected the proposed column relevance.",
+            "Owner rejected PymIA's proposed column interpretation.",
         )
 
     confirmation_phrases = (

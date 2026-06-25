@@ -78,17 +78,43 @@ def test_classifies_explicit_confirmation_as_informational_when_role_is_informat
     assert answer.marks_informational() is True
 
 
-def test_classifies_explicit_negation_as_not_relevant() -> None:
+def test_classifies_owner_no_as_rejected_mapping() -> None:
     result = classify_owner_column_confirmation_answer(
-        raw_owner_answer="No, esa columna no corresponde para este análisis.",
+        raw_owner_answer="NO",
         question_target_ref=TARGET_REF,
         proposed_role="venta_total",
     )
 
     answer = result.owner_column_confirmation_answer
-    assert answer.outcome == OwnerColumnConfirmationOutcome.CONFIRMED_NOT_RELEVANT
+    assert answer.outcome == OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING
     assert answer.confirmed_role is None
-    assert answer.marks_not_relevant() is True
+    assert answer.unlocks_computation() is False
+    assert "rejected" in (answer.reason or "")
+
+
+def test_classifies_explicit_negation_as_rejected_mapping() -> None:
+    result = classify_owner_column_confirmation_answer(
+        raw_owner_answer="No, esa columna no es el total de ventas.",
+        question_target_ref=TARGET_REF,
+        proposed_role="venta_total",
+    )
+
+    answer = result.owner_column_confirmation_answer
+    assert answer.outcome == OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING
+    assert answer.confirmed_role is None
+    assert answer.unlocks_computation() is False
+
+
+def test_classifies_incorrect_mapping_as_rejected_mapping() -> None:
+    result = classify_owner_column_confirmation_answer(
+        raw_owner_answer="Incorrecto, esa columna está mal clasificada.",
+        question_target_ref=TARGET_REF,
+        proposed_role="venta_total",
+    )
+
+    answer = result.owner_column_confirmation_answer
+    assert answer.outcome == OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING
+    assert answer.confirmed_role is None
     assert answer.unlocks_computation() is False
 
 
@@ -128,6 +154,19 @@ def test_classifies_short_answer_as_insufficient() -> None:
     answer = result.owner_column_confirmation_answer
     assert answer.outcome == OwnerColumnConfirmationOutcome.INSUFFICIENT_ANSWER
     assert answer.confirmed_role is None
+
+
+def test_classifies_tu_respuesta_correction_as_rejected_mapping_without_guessing_new_role() -> None:
+    result = classify_owner_column_confirmation_answer(
+        raw_owner_answer="Tu respuesta: esa columna es el saldo pendiente, no la venta total.",
+        question_target_ref=TARGET_REF,
+        proposed_role="venta_total",
+    )
+
+    answer = result.owner_column_confirmation_answer
+    assert answer.outcome == OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING
+    assert answer.confirmed_role is None
+    assert answer.unlocks_computation() is False
 
 
 def test_confirmation_with_unknown_role_does_not_unlock_computation() -> None:

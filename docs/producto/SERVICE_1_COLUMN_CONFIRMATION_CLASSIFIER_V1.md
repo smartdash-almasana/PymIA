@@ -125,7 +125,19 @@ owner_answer_validation_status
 
 ## Clasificación conservadora
 
-### Confirmación explícita
+### Regla owner-facing canónica
+
+Este clasificador debe alinearse con la interfaz owner-facing:
+
+```text
+SÍ = correcto
+NO = no es eso
+TU_RESPUESTA = corregime qué significa
+```
+
+PymIA interpreta primero. El dueño no descubre la columna desde cero: confirma, rechaza o corrige la interpretación de PymIA.
+
+### SÍ / confirmación explícita
 
 Ejemplos:
 
@@ -152,15 +164,36 @@ si el rol propuesto es informacional.
 
 Si el rol propuesto es `unknown`, no desbloquea cómputo.
 
-### Negación explícita / irrelevancia
+### NO / rechazo de interpretación
 
 Ejemplos:
 
 ```text
-No
-No corresponde
-Ignorar
-No sirve
+NO
+No es eso
+No es el total de ventas
+Incorrecto, está mal clasificada
+Esa columna no corresponde a la interpretación propuesta
+```
+
+Resultado:
+
+```text
+OWNER_REJECTED_MAPPING
+```
+
+La columna no debe usarse para cálculo y debe quedar bloqueada para revisión o corrección semántica.
+
+### Columna explícitamente no relevante
+
+Ejemplos:
+
+```text
+Ignorar esa columna
+No sirve para este análisis
+No usar
+No relevante
+Descartar
 ```
 
 Resultado:
@@ -168,6 +201,22 @@ Resultado:
 ```text
 CONFIRMED_NOT_RELEVANT
 ```
+
+### TU_RESPUESTA / corrección semántica
+
+Ejemplo:
+
+```text
+Tu respuesta: esa columna es el saldo pendiente, no la venta total.
+```
+
+Resultado en este slice:
+
+```text
+OWNER_REJECTED_MAPPING
+```
+
+El clasificador no adivina ni traduce todavía la nueva semántica a un rol computacional. Sólo bloquea el mapeo propuesto para que el siguiente frente trate la corrección explícita con seguridad.
 
 ### Ambigüedad o insuficiencia
 
@@ -228,8 +277,10 @@ parsea target_ref válido
 rechaza target_ref inválido
 clasifica confirmación computacional
 clasifica confirmación informacional
-clasifica negación explícita
-clasifica instrucción de ignorar
+clasifica NO como rechazo de interpretación
+clasifica negación explícita como OWNER_REJECTED_MAPPING
+clasifica corrección TU_RESPUESTA como OWNER_REJECTED_MAPPING sin adivinar nuevo rol
+clasifica instrucción de ignorar como CONFIRMED_NOT_RELEVANT
 clasifica ambigüedad como insuficiente
 clasifica texto corto como insuficiente
 no desbloquea cómputo cuando proposed_role=unknown
