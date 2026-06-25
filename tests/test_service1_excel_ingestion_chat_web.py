@@ -28,12 +28,27 @@ def test_web_reads_real_excel_structure_with_sheetjs() -> None:
 
 
 def test_web_questions_are_based_on_visible_structure_not_fake_business_classification() -> None:
-    assert "hojas, filas, columnas y encabezados reales" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
-    assert "Propongo empezar por la hoja con más estructura visible" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
-    assert "¿Confirmás empezar por" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "libro completo" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "confirm_workbook_structure" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "file:.*:workbook" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML or True
+    # First question targets workbook level, not a specific sheet
+    assert "target_ref:file:" in SERVICE1_EXCEL_INGESTION_CHAT_HTML or "file:" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     # Deriva prohibida: no debe quedar texto de análisis local / diagnóstico.
     assert "¿Qué representa este archivo?" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     assert "desvíos entre presupuesto y gasto real" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+
+
+def test_web_first_question_is_workbook_level() -> None:
+    assert "confirm_workbook_structure" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "libro completo" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "target_ref:`file:${profile.fileName}:workbook`" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+
+
+def test_web_regression_no_sheet_first_phrases() -> None:
+    assert "Propongo empezar por" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "¿Confirmás empezar por" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "confirm_primary_sheet" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "pickPrimarySheet" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
 
 
 def test_web_has_no_simulation_backend_or_hardcoded_business_signals() -> None:

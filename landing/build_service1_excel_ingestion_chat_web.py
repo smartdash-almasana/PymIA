@@ -69,7 +69,7 @@ SERVICE1_EXCEL_INGESTION_CHAT_HTML = r'''<!doctype html>
     <div class="left-body">
       <div id="dropzone" class="dropzone">
         <strong>Cargar Excel</strong>
-        <p>El archivo se lee en el navegador con SheetJS. PymIA hará preguntas según hojas, filas, columnas y encabezados reales.</p>
+        <p>El archivo se lee como libro completo en el navegador con SheetJS. PymIA preguntará para entender la operación que representa.</p>
         <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
         <button id="selectFileBtn">Seleccionar XLSX / CSV</button>
       </div>
@@ -143,28 +143,12 @@ function findHeaderRow(rows){
 const ALLOWED_OWNER_RESPONSES=['SÍ','NO','TU_RESPUESTA'];
 function questionsFromProfile(profile){
   const questions=[];
-  const sheetNames=profile.sheets.map(s=>s.name).join(', ');
-  const primary=pickPrimarySheet(profile.sheets);
-  state.activeSheet=primary.name;
+  const sheetList=profile.sheets.map(s=>`- ${s.name}`).join('\n');
   questions.push(makeQuestion({
-    target_ref:`file:${profile.fileName}:sheet:${primary.name}`,
-    answer_type:'confirm_primary_sheet',
-    prompt_text:`Leí "${profile.fileName}". Detecté ${profile.sheets.length} hojas (${sheetNames}). Propongo empezar por la hoja con más estructura visible: "${primary.name}" (${primary.nonEmptyRowCount} filas, ${primary.columnCount} columnas). ¿Confirmás empezar por "${primary.name}"?`
+    target_ref:`file:${profile.fileName}:workbook`,
+    answer_type:'confirm_workbook_structure',
+    prompt_text:`Leí "${profile.fileName}" como un libro completo.\n\nDetecté ${profile.sheets.length} hoja(s):\n${sheetList}\n\nEl archivo parece representar una operación comercial donde las hojas podrían estar relacionadas.\n\n¿Ese es el sentido general del archivo?`
   }));
-  if(primary.headers.length){
-    const sample=primary.headers.slice(0,12).join(', ');
-    questions.push(makeQuestion({
-      target_ref:`file:${profile.fileName}:sheet:${primary.name}:headers`,
-      answer_type:'header_meaning',
-      prompt_text:`En "${primary.name}" veo estos encabezados: ${sample}. ¿Qué significan los principales?`
-    }));
-  } else {
-    questions.push(makeQuestion({
-      target_ref:`file:${profile.fileName}:sheet:${primary.name}:data_start`,
-      answer_type:'data_start',
-      prompt_text:`En "${primary.name}" no veo encabezados claros. ¿En qué fila empiezan los datos y cómo se leen las columnas?`
-    }));
-  }
   questions.push(makeQuestion({
     target_ref:`file:${profile.fileName}:period`,
     answer_type:'free_text',
@@ -194,10 +178,6 @@ function buildStableRef(source, targetRef){
 }
 function slug(value){ const t=String(value==null?'':value).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,''); return t||'unknown'; }
 function shortHash(value){ let h=0; for(let i=0;i<value.length;i++){ h=(h*31+value.charCodeAt(i))|0; } return (h>>>0).toString(16).padStart(8,'0').slice(0,12); }
-function pickPrimarySheet(sheets){
-  if(!sheets.length){ return {name:'sin_hojas', nonEmptyRowCount:0, columnCount:0, headers:[]}; }
-  return [...sheets].sort((a,b)=>((b.nonEmptyRowCount*b.columnCount)-(a.nonEmptyRowCount*a.columnCount)))[0];
-}
 function renderWorkbook(){
   els.fileStatus.textContent='Archivo leído';
   els.metaName.textContent=state.file.name;
@@ -227,7 +207,7 @@ function renderSheet(){
 }
 function startChat(){
   els.chatLog.innerHTML=''; state.questionIndex=-1; state.answers=[];
-  addMessage('pymia',`Recibí el Excel "${state.file.name}".\nLo leí en el navegador con SheetJS. No voy a diagnosticar; voy a preguntarte para entender el archivo. Cada pregunta lleva un question_ref para que tu respuesta quede atada a un objetivo concreto.`);
+  addMessage('pymia',`Recibí el Excel "${state.file.name}".\nLo leí como un libro completo en el navegador con SheetJS. No voy a diagnosticar; voy a preguntarte para entender la operación. Cada pregunta lleva un question_ref para que tu respuesta quede atada a un objetivo concreto.`);
   els.ownerInput.disabled=false; els.sendBtn.disabled=false; els.unknownBtn.disabled=false; els.exportBtn.disabled=false;
   nextQuestion();
 }
