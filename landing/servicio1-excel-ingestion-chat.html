@@ -1,10 +1,4 @@
-from __future__ import annotations
-
-from pathlib import Path
-
-OUTPUT_FILE = Path(__file__).with_name("servicio1-excel-ingestion-chat.html")
-
-SERVICE1_EXCEL_INGESTION_CHAT_HTML = r'''<!doctype html>
+<!doctype html>
 <html lang="es-AR">
 <head>
   <meta charset="utf-8" />
@@ -269,14 +263,3 @@ function columnName(index){ let n=index+1,s=''; while(n>0){const m=(n-1)%26; s=S
 </script>
 </body>
 </html>
-'''
-
-
-def build_service1_excel_ingestion_chat_web(output_file: Path = OUTPUT_FILE) -> Path:
-    output_file.write_text(SERVICE1_EXCEL_INGESTION_CHAT_HTML, encoding="utf-8", newline="\n")
-    return output_file
-
-
-if __name__ == "__main__":
-    path = build_service1_excel_ingestion_chat_web()
-    print(f"Wrote {path}")

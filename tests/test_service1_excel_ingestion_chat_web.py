@@ -29,11 +29,11 @@ def test_web_reads_real_excel_structure_with_sheetjs() -> None:
 
 def test_web_questions_are_based_on_visible_structure_not_fake_business_classification() -> None:
     assert "hojas, filas, columnas y encabezados reales" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
-    assert "¿Qué representa este archivo?" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
-    assert "¿Qué período o fecha cubre este archivo?" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
-    assert "¿Cuál querés revisar primero?" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
-    assert "¿Qué contiene esta hoja?" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
-    assert "¿Qué significan los principales?" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "Propongo empezar por la hoja con más estructura visible" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "¿Confirmás empezar por" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    # Deriva prohibida: no debe quedar texto de análisis local / diagnóstico.
+    assert "¿Qué representa este archivo?" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "desvíos entre presupuesto y gasto real" not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
 
 
 def test_web_has_no_simulation_backend_or_hardcoded_business_signals() -> None:
@@ -50,16 +50,42 @@ def test_web_has_no_simulation_backend_or_hardcoded_business_signals() -> None:
         "Mercado Pago API",
         "diagnóstico aprobado",
         "conciliación final",
+        "Posibles valores atípicos",
+        "analyzeActiveSheet",
+        "shouldRunLocalAnalysis",
+        "runLocalSheetAnalysis",
     )
     for item in forbidden:
         assert item not in SERVICE1_EXCEL_INGESTION_CHAT_HTML
 
 
-def test_web_export_is_json_conversation_payload_with_safe_flags() -> None:
+def test_web_generates_questions_with_governed_contract_fields() -> None:
+    assert "question_ref" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "target_ref" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "answer_type" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "prompt_text" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "allowed_owner_responses" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "ALLOWED_OWNER_RESPONSES" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "['SÍ','NO','TU_RESPUESTA']" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "buildStableRef" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "makeQuestion" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+
+
+def test_web_captures_governed_owner_answer_records() -> None:
+    assert "buildOwnerAnswerRecord" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "raw_owner_answer" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "owner_answer_validation_status" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "DECLARED_NOT_VALIDATED" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+
+
+def test_web_export_is_governed_json_payload() -> None:
     assert "PYMIA_SERVICE_1_EXCEL_INGESTION_CHAT_V1" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     assert "file_profile:state.profile" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "questions:state.questions" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     assert "answers:state.answers" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     assert "runtime_authorized:false" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "reexecution_authorized:false" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
+    assert "recalculation_authorized:false" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     assert "production_allowed:false" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     assert "final_diagnosis:false" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
     assert "final_accounting_result:false" in SERVICE1_EXCEL_INGESTION_CHAT_HTML
