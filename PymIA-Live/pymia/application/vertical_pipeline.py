@@ -9,6 +9,8 @@ from pymia.contracts.presentation_labels_v1 import (
 from pymia.contracts.vertical_slice_copy_v1 import vertical_slice_copy_for
 from pymia.smartpyme.owner_facing_report import build_owner_facing_report
 from pymia.smartpyme.owner_output import build_owner_simple_view
+from pymia.smartpyme.owner_pure_view import build_owner_pure_view
+from pymia.smartpyme.owner_pure_view_chain_a_adapter import adapt_chain_a_report_to_owner_pure_view_input
 from pymia.smartpyme.pipeline_registration import (
     register_anamnesis_record,
     register_evidence_record,
@@ -544,10 +546,13 @@ def build_pipeline(
     pipeline_run_record = report["pipeline_run_record"]
     structured_summary = report.get("structured_evidence_summary") or {}
     catalog_reconciliation = structured_summary.get("catalog_reconciliation") or []
+    owner_pure_view_input = adapt_chain_a_report_to_owner_pure_view_input(report)
+    owner_pure_view = build_owner_pure_view(report=owner_pure_view_input)
     return {
         "status": report["status"],
         "profile": profile,
         "report": report,
+        "owner_pure_view": owner_pure_view,
         "markdown": markdown,
         "diagnostic_operator_summary": diagnostic_operator_summary,
         "evidence_id": evidence_record["evidence_id"],
