@@ -848,3 +848,314 @@ def test_cli_with_qa_gate_does_not_import_forbidden_modules(tmp_path, monkeypatc
 
     for mod in forbidden:
         assert mod not in sys.modules, f"CLI must not import {mod}"
+
+
+# ---------------------------------------------------------------------------
+# First Aid tests (34-43)
+# ---------------------------------------------------------------------------
+
+def _write_confirmed_columns(tmp_path: Path) -> Path:
+    """Write a minimal confirmed_columns JSON file."""
+    cc = {
+        "confirmed_columns": {
+            "Cantidad": {"role": "quantity"},
+            "Precio": {"role": "price"},
+            "Total": {"role": "amount"},
+        }
+    }
+    cc_path = tmp_path / "confirmed_columns.json"
+    cc_path.write_text(json.dumps(cc), encoding="utf-8")
+    return cc_path
+
+
+# ---------------------------------------------------------------------------
+# 34. CLI con --confirmed-columns agrega confirmed_columns al packet
+# ---------------------------------------------------------------------------
+
+def test_cli_with_confirmed_columns_adds_to_packet(tmp_path, monkeypatch) -> None:
+    """CLI with --confirmed-columns must add confirmed_columns to packet."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+    ])
+    assert exit_code == 0
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "confirmed_columns" in packet
+    assert packet["confirmed_columns"]["runtime_authorized"] is False
+
+
+# ---------------------------------------------------------------------------
+# 35. CLI con --run-first-aid genera first_aid_eligibility_gate
+# ---------------------------------------------------------------------------
+
+def test_cli_run_first_aid_generates_eligibility_gate(tmp_path, monkeypatch) -> None:
+    """CLI with --run-first-aid must generate first_aid_eligibility_gate."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "first_aid_eligibility_gate" in packet
+    assert packet["first_aid_eligibility_gate"]["gate_type"] == "FIRST_AID_MINIMAL_ELIGIBILITY"
+
+
+# ---------------------------------------------------------------------------
+# 36. CLI con --run-first-aid genera first_aid_result si eligible
+# ---------------------------------------------------------------------------
+
+def test_cli_run_first_aid_generates_result_if_eligible(tmp_path, monkeypatch) -> None:
+    """CLI with --run-first-aid must generate first_aid_result when eligible."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    # If eligible, first_aid_result must exist
+    if packet["first_aid_eligibility_gate"]["status"] == "ELIGIBLE":
+        assert "first_aid_result" in packet
+        assert packet["first_aid_result"]["status"] == "DRAFT_REVIEW_REQUIRED"
+
+
+# ---------------------------------------------------------------------------
+# 37. Carpeta contiene confirmed_columns.json
+# ---------------------------------------------------------------------------
+
+def test_case_folder_contains_confirmed_columns_json(tmp_path, monkeypatch) -> None:
+    """Case folder must contain confirmed_columns.json when provided."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    cc_file = case_folders[0] / "confirmed_columns.json"
+    assert cc_file.exists()
+
+
+# ---------------------------------------------------------------------------
+# 38. Carpeta contiene first_aid_result.json
+# ---------------------------------------------------------------------------
+
+def test_case_folder_contains_first_aid_result_json(tmp_path, monkeypatch) -> None:
+    """Case folder must contain first_aid_result.json when eligible."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    # Check if first_aid_result.json was written (depends on eligibility)
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    if packet["first_aid_eligibility_gate"]["status"] == "ELIGIBLE":
+        fa_file = case_folders[0] / "first_aid_result.json"
+        assert fa_file.exists()
+
+
+# ---------------------------------------------------------------------------
+# 39. Carpeta contiene first_aid_owner_summary.md
+# ---------------------------------------------------------------------------
+
+def test_case_folder_contains_first_aid_owner_summary_md(tmp_path, monkeypatch) -> None:
+    """Case folder must contain first_aid_owner_summary.md when eligible."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    if packet["first_aid_eligibility_gate"]["status"] == "ELIGIBLE":
+        md_file = case_folders[0] / "first_aid_owner_summary.md"
+        assert md_file.exists()
+        content = md_file.read_text(encoding="utf-8")
+        assert "First Aid" in content
+
+
+# ---------------------------------------------------------------------------
+# 40. stdout incluye "First Aid mínimo"
+# ---------------------------------------------------------------------------
+
+def test_stdout_includes_first_aid_block(capsys, tmp_path, monkeypatch) -> None:
+    """stdout must contain 'First Aid mínimo' when --run-first-aid is used."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    captured = capsys.readouterr()
+    assert "First Aid mínimo" in captured.out
+    assert "Runtime autorizado: false" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# 41. Sin --confirmed-columns y con --run-first-aid bloquea sin traceback
+# ---------------------------------------------------------------------------
+
+def test_run_first_aid_without_confirmed_columns_blocks_gracefully(
+    tmp_path, monkeypatch, capsys
+) -> None:
+    """--run-first-aid without --confirmed-columns → BLOCKED, no traceback."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main([
+        "--file", str(xlsx_path),
+        "--run-first-aid",
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Traceback" not in captured.out
+    assert "First Aid mínimo" in captured.out
+    assert "BLOCKED" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# 42. runtime_authorized false en todos los niveles con First Aid
+# ---------------------------------------------------------------------------
+
+def test_runtime_authorized_false_at_all_levels_with_first_aid(
+    tmp_path, monkeypatch
+) -> None:
+    """runtime_authorized must be False at all levels when First Aid runs."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    def _check_no_true(obj):
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key == "runtime_authorized":
+                    assert value is not True, f"runtime_authorized=True at key: {key}"
+                _check_no_true(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                _check_no_true(item)
+
+    _check_no_true(packet)
+
+
+# ---------------------------------------------------------------------------
+# 43. No imports prohibidos con First Aid
+# ---------------------------------------------------------------------------
+
+def test_cli_with_first_aid_does_not_import_forbidden_modules(
+    tmp_path, monkeypatch
+) -> None:
+    """After running CLI with First Aid, forbidden modules must not be imported."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    forbidden = [
+        "pymia.smartpyme.vertical_pipeline",
+        "pymia.smartpyme.service_1_pipeline_v1",
+        "pymia.smartpyme.service_1_fsm_decision_patch_v1",
+        "pymia.smartpyme.service_1_owner_answer_reentry_v1",
+        "openai",
+        "chatbot",
+    ]
+
+    for mod in forbidden:
+        sys.modules.pop(mod, None)
+
+    from pymia.cli.service_1_operator import main
+    main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+
+    for mod in forbidden:
+        assert mod not in sys.modules, f"CLI must not import {mod}"

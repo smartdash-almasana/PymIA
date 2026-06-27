@@ -1,7 +1,7 @@
 """
 Service 1 Case Delivery Folder V1
 
-Creates a governed local folder with the complete packet for one Service 1
+Creates a governed folder with the complete packet for one Service 1
 execution. Does not copy the original file, perform calculations, authorize
 runtime, or produce a diagnosis.
 """
@@ -24,12 +24,17 @@ _README_TEXT = (
     " - No contiene el archivo XLSX original.\n"
     " - No contiene diagnostico de negocio.\n"
     " - No contiene calculos contables, financieros ni comerciales.\n"
-    " - Requiere confirmacion humana de columnas antes de cualquier conclusion.\n\n"
+    " - Requiere confirmacion humana de columnas antes de cualquier conclusion.\n"
+    " - First Aid minimo es descriptivo y requiere revision humana.\n\n"
     "Archivos:\n"
     " - owner_message.md          : mensaje visible para el dueno.\n"
     " - operator_packet.json      : paquete completo gobernado.\n"
     " - detected_structure.json   : estructura XLSX detectada (si aplica).\n"
     " - column_confirmation_packet.json : preguntas de confirmacion pendientes (si aplica).\n"
+    " - confirmed_columns.json    : columnas confirmadas por el operador (si aplica).\n"
+    " - first_aid_eligibility_gate.json : gate de elegibilidad First Aid (si aplica).\n"
+    " - first_aid_result.json     : resultados descriptivos First Aid (si aplica).\n"
+    " - first_aid_owner_summary.md: resumen First Aid para el dueno (si aplica).\n"
     " - README.txt                : este archivo.\n"
 )
 
@@ -83,6 +88,42 @@ def write_service_1_case_delivery_folder_v1(
             encoding="utf-8",
         )
         files_written.append("column_confirmation_packet.json")
+
+    # Write confirmed_columns.json if present
+    confirmed_columns = packet.get("confirmed_columns")
+    if confirmed_columns is not None:
+        (case_dir / "confirmed_columns.json").write_text(
+            json.dumps(confirmed_columns, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("confirmed_columns.json")
+
+    # Write first_aid_eligibility_gate.json if present
+    first_aid_eligibility_gate = packet.get("first_aid_eligibility_gate")
+    if first_aid_eligibility_gate is not None:
+        (case_dir / "first_aid_eligibility_gate.json").write_text(
+            json.dumps(first_aid_eligibility_gate, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("first_aid_eligibility_gate.json")
+
+    # Write first_aid_result.json if present
+    first_aid_result = packet.get("first_aid_result")
+    if first_aid_result is not None:
+        (case_dir / "first_aid_result.json").write_text(
+            json.dumps(first_aid_result, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("first_aid_result.json")
+
+    # Write first_aid_owner_summary.md if first_aid_result present
+    first_aid_owner_summary = packet.get("first_aid_owner_summary")
+    if first_aid_owner_summary is not None:
+        (case_dir / "first_aid_owner_summary.md").write_text(
+            first_aid_owner_summary,
+            encoding="utf-8",
+        )
+        files_written.append("first_aid_owner_summary.md")
 
     # Write README.txt
     (case_dir / "README.txt").write_text(_README_TEXT, encoding="utf-8")

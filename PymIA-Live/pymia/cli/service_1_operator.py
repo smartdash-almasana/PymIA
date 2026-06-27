@@ -21,6 +21,12 @@ from pymia.smartpyme.service_1_xlsx_structure_v1 import (
 from pymia.smartpyme.service_1_qa_delivery_gate_v1 import (
     evaluate_service_1_qa_delivery_gate_v1,
 )
+from pymia.smartpyme.service_1_first_aid_minimal_v1 import (
+    load_confirmed_columns_v1,
+    evaluate_first_aid_minimal_eligibility_v1,
+    run_first_aid_minimal_v1,
+    render_first_aid_owner_summary_v1,
+)
 
 
 def _infer_mime_type(filename: str) -> str | None:
@@ -61,6 +67,17 @@ def main(argv: list[str] | None = None) -> int:
         default="cli",
         choices=["cli", "chat", "upload", "api", "unknown"],
         help="Source channel (default: cli)",
+    )
+    parser.add_argument(
+        "--confirmed-columns",
+        default=None,
+        help="Path to confirmed_columns JSON file",
+    )
+    parser.add_argument(
+        "--run-first-aid",
+        action="store_true",
+        default=False,
+        help="Run minimal First Aid after intake (requires --confirmed-columns)",
     )
     args = parser.parse_args(argv)
 
@@ -160,7 +177,21 @@ def main(argv: list[str] | None = None) -> int:
     if _column_confirmation_packet is not None:
         packet_serializable["column_confirmation_packet"] = _column_confirmation_packet
 
-    # Write case delivery folder
+    # Load confirmed_columns if provided
+    _confirmed_columns_block = None
+    if args.confirmed_columns:
+        cc_path = Path(args.confirmed_columns)
+        if cc_path.exists():
+            try:
+                _confirmed_columns_block = load_confirmed_columns_v1(cc_path)
+                packet_serializable["confirmed_columns"] = _confirmed_columns_block
+            except Exception as exc:
+                print(
+                    f"Warning: could not load confirmed_columns: {exc}",
+                    flush=True,
+                )
+
+    # Write case delivery folder (before First Aid, to get manifest)
     manifest = write_service_1_case_delivery_folder_v1(packet_serializable)
     packet_serializable["case_delivery_manifest"] = manifest
     case_dir = Path(manifest["case_dir"])
@@ -169,6 +200,74 @@ def main(argv: list[str] | None = None) -> int:
     qa_gate = evaluate_service_1_qa_delivery_gate_v1(packet_serializable)
     packet_serializable["qa_delivery_gate"] = qa_gate
 
+    # Run First Aid if requested
+    if args.run_first_aid:
+        if _confirmed_columns_block is None:
+            print()
+            print("First Aid mínimo", flush=True)
+            print("- Estado: BLOCKED", flush=True)
+            print("- Motivo: requiere --confirmed-columns", flush=True)
+            print("- Revisión humana requerida: true", flush=True)
+            print("- Runtime autorizado: false", flush=True)
+            print()
+        else:
+            # Evaluate eligibility
+            eligibility_gate = evaluate_first_aid_minimal_eligibility_v1(
+                packet_serializable
+            )
+            packet_serializable["first_aid_eligibility_gate"] = eligibility_gate
+
+            if eligibility_gate["status"] == "ELIGIBLE":
+                # Run First Aid
+                first_aid_result = run_first_aid_minimal_v1(
+                    packet_serializable, str(file_path)
+                )
+                packet_serializable["first_aid_result"] = first_aid_result
+
+                # Render owner summary
+                owner_summary = render_first_aid_owner_summary_v1(first_aid_result)
+                packet_serializable["first_aid_owner_summary"] = owner_summary
+
+                # Write First Aid files to case folder
+                (case_dir / "first_aid_result.json").write_text(
+                    json.dumps(first_aid_result, indent=2, ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                (case_dir / "first_aid_owner_summary.md").write_text(
+                    owner_summary,
+                    encoding="utf-8",
+                )
+
+                # Print First Aid summary to stdout
+                print()
+                print("First Aid mínimo", flush=True)
+                print(f"- Estado: {first_aid_result['status']}", flush=True)
+                print("- Revisión humana requerida: true", flush=True)
+                print("- Runtime autorizado: false", flush=True)
+
+                summary = first_aid_result.get("summary", {})
+                print(
+                    f"- Hojas perfiladas: {summary.get('sheets_profiled', 0)}",
+                    flush=True,
+                )
+                print(
+                    f"- Findings generados: {summary.get('total_findings', 0)}",
+                    flush=True,
+                )
+                print()
+            else:
+                # BLOCKED
+                print()
+                print("First Aid mínimo", flush=True)
+                print("- Estado: BLOCKED", flush=True)
+                blockers_str = ", ".join(eligibility_gate.get("blockers", []))
+                if blockers_str:
+                    print(f"- Motivos: {blockers_str}", flush=True)
+                print("- Revisión humana requerida: true", flush=True)
+                print("- Runtime autorizado: false", flush=True)
+                print()
+
+    # Write operator_packet.json to case folder
     operator_packet_path = case_dir / "operator_packet.json"
     operator_packet_path.write_text(
         json.dumps(packet_serializable, indent=2, ensure_ascii=False),
