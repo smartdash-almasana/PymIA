@@ -27,6 +27,9 @@ from pymia.smartpyme.service_1_first_aid_minimal_v1 import (
     run_first_aid_minimal_v1,
     render_first_aid_owner_summary_v1,
 )
+from pymia.smartpyme.service_1_pipeline_v1 import (
+    run_service_1_pipeline_v1,
+)
 
 
 def _infer_mime_type(filename: str) -> str | None:
@@ -78,6 +81,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         default=False,
         help="Run minimal First Aid after intake (requires --confirmed-columns)",
+    )
+    parser.add_argument(
+        "--run-tools",
+        default=None,
+        help="Path to JSON file with tool requests for the First Aid pipeline",
     )
     args = parser.parse_args(argv)
 
@@ -200,6 +208,98 @@ def main(argv: list[str] | None = None) -> int:
     qa_gate = evaluate_service_1_qa_delivery_gate_v1(packet_serializable)
     packet_serializable["qa_delivery_gate"] = qa_gate
 
+    # Track files added after initial case folder creation
+    manifest_files_written: list[str] = manifest.get("files_written", [])
+
+    # Run pipeline tools if requested
+    if args.run_tools:
+        tools_path = Path(args.run_tools)
+        if not tools_path.exists():
+            print(f"Error: tools file not found: {tools_path}", flush=True)
+            return 2
+
+        try:
+            with open(tools_path, encoding="utf-8") as f:
+                tool_requests = json.load(f)
+        except json.JSONDecodeError as exc:
+            print(f"Error: invalid tools JSON: {exc}", flush=True)
+            return 2
+
+        if not isinstance(tool_requests, list) or not tool_requests:
+            print(
+                "Error: tools JSON must be a non-empty list of tool requests",
+                flush=True,
+            )
+            return 2
+
+        for i, req in enumerate(tool_requests):
+            if not isinstance(req, dict):
+                print(
+                    f"Error: tool request at index {i} must be a JSON object",
+                    flush=True,
+                )
+                return 2
+            if "tool_ref" not in req:
+                print(
+                    f"Error: tool request at index {i} missing 'tool_ref'",
+                    flush=True,
+                )
+                return 2
+            if "inputs" not in req or not isinstance(req["inputs"], dict):
+                print(
+                    f"Error: tool request at index {i} missing or invalid 'inputs'",
+                    flush=True,
+                )
+                return 2
+
+        # Run pipeline
+        pipeline_result = run_service_1_pipeline_v1(
+            tool_requests=tool_requests,
+            output_dir=case_dir,
+        )
+        packet_serializable["pipeline_result"] = pipeline_result
+
+        # Write pipeline result to case folder
+        pipeline_result_filename = "pipeline_result.json"
+        (case_dir / pipeline_result_filename).write_text(
+            json.dumps(pipeline_result, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        if pipeline_result_filename not in manifest_files_written:
+            manifest_files_written.append(pipeline_result_filename)
+
+        # Track XLSX files from delivery flow
+        for delivery in pipeline_result["delivery_flow"]["deliveries"]:
+            delivery_path = Path(delivery["output_path"])
+            if (
+                delivery_path.name not in manifest_files_written
+                and delivery_path.exists()
+            ):
+                manifest_files_written.append(delivery_path.name)
+
+        # Print pipeline summary
+        print()
+        print("Pipeline de herramientas First Aid", flush=True)
+        print(
+            f"- Tools ejecutadas: {', '.join(pipeline_result['executed_tool_refs'])}",
+            flush=True,
+        )
+        print(f"- Tool count: {pipeline_result['requested_tool_count']}", flush=True)
+        print("- Revisi\u00f3n humana requerida: true", flush=True)
+        print("- Runtime autorizado: false", flush=True)
+
+        for result in pipeline_result["tool_results"]:
+            tool_ref = result["tool_ref"]
+            status = result["status"]
+            print(f"  - {tool_ref}: {status}", flush=True)
+            computed = result.get("computed_results", {})
+            if isinstance(computed, dict):
+                for label, value in computed.items():
+                    if label and value is not None:
+                        print(f"    * {label}: {value}", flush=True)
+
+        print()
+
     # Run First Aid if requested
     if args.run_first_aid:
         if _confirmed_columns_block is None:
@@ -222,7 +322,6 @@ def main(argv: list[str] | None = None) -> int:
                 json.dumps(eligibility_gate, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
-            manifest_files_written = manifest.get("files_written", [])
             if eligibility_gate_filename not in manifest_files_written:
                 manifest_files_written.append(eligibility_gate_filename)
 
