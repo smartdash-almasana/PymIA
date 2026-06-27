@@ -358,17 +358,30 @@ Servicio 1 full = VERY FAR
 
 ## 7. NEXT BLOCK (Próximo Bloque de Avance hacia Servicio 1 Full)
 
-El próximo bloque correcto después de la realineación documental es:
+La contradicción de fórmulas queda resuelta por:
 
 ```text
-ETAPA 1 — DECISIÓN DE PRODUCTO SOBRE FÓRMULAS
+SERVICE_1_XLSX_FORMULA_POLICY_V1
+```
+
+Regla aplicada:
+
+```text
+delivery actual = sin fórmulas
+XLSX con fórmulas activas = carril Factoría Excel
+```
+
+El próximo bloque correcto después de esa decisión es:
+
+```text
+ETAPA 2 — CIERRE REAL DE PRIMEROS AUXILIOS
 ```
 
 Motivo:
 
 ```text
-La familia “Excel descargables con fórmulas” sigue bloqueada por contradicción explícita
-entre roadmap full y delivery actual.
+La contradicción de producto ya quedó resuelta.
+Ahora el siguiente cuello real es cerrar First Aid como familia runtime completa.
 ```
 
 Sin resolver eso, abrir contabilidad, conciliaciones o chatbot sólo apila complejidad sobre una frontera de producto todavía inconsistente.

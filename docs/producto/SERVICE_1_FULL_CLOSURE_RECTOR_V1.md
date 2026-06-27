@@ -308,7 +308,14 @@ Una de estas dos:
 1. ADR que habilita fórmulas canónicas bajo guardrails + plan técnico
 2. actualización oficial del roadmap full removiendo esa exigencia
 
-**Sin esta etapa, la familia 4 sigue bloqueada.**
+**Resultado**
+
+```text
+Resuelta por SERVICE_1_XLSX_FORMULA_POLICY_V1:
+- el delivery actual sigue sin fórmulas;
+- la familia de fórmulas activas se mueve al carril Factoría Excel;
+- no se habilitan fórmulas en First Aid ni en delivery genérico.
+```
 
 ### Etapa 2 — Cierre real de Primeros Auxilios
 
@@ -474,9 +481,9 @@ El chatbot deja de ser promesa documental y pasa a frontera operativa validada.
 ### Atacar primero
 
 1. Etapa 0 — alineación documental
-2. Etapa 1 — decisión de fórmulas
-3. Etapa 2 — Primeros Auxilios full
-4. Etapa 3 — Laboratorio Excel productizado
+2. Etapa 2 — Primeros Auxilios full
+3. Etapa 3 — Laboratorio Excel productizado
+4. Etapa 4 — Resolución de Factoría Excel
 
 ### No tocar todavía
 
@@ -525,7 +532,5 @@ y dejando de confundir envoltorio con motor.
 ## Próximo paso autorizado
 
 ```text
-ETAPA 0 — Alineación dura de verdad documental
+ETAPA 2 — CIERRE REAL DE PRIMEROS AUXILIOS
 ```
-
-Antes de escribir más runtime full.

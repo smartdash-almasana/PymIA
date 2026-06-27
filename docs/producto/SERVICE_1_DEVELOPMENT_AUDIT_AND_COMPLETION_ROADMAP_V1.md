@@ -369,17 +369,36 @@ No diagnosticar empresa como sistema desde Servicio 1.
 
 ---
 
-# 11. Próximo frente recomendado
+# 11. Resolución aplicada sobre fórmulas
 
 ```text
-ETAPA 1 — DECISIÓN DE PRODUCTO SOBRE FÓRMULAS
+La contradicción “roadmap full exige fórmulas” vs “delivery actual no usa fórmulas”
+queda resuelta por:
+
+SERVICE_1_XLSX_FORMULA_POLICY_V1
+```
+
+Regla resultante:
+
+```text
+First Aid y delivery genérico siguen sin fórmulas.
+La familia de fórmulas activas queda reservada al carril de Factoría Excel.
+```
+
+---
+
+# 12. Próximo frente recomendado
+
+```text
+ETAPA 2 — CIERRE REAL DE PRIMEROS AUXILIOS
 ```
 
 Razón:
 
 ```text
-Mientras el roadmap full exija fórmulas y el delivery actual las prohíba explícitamente,
-la familia “Excel descargables con fórmulas” sigue bloqueada.
+La contradicción de producto sobre fórmulas ya quedó resuelta por política.
+Ahora el siguiente cierre real es convertir Primeros Auxilios en familia full cerrada,
+no sólo lane asistida.
 ```
 
 ---
