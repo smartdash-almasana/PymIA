@@ -30,6 +30,9 @@ from pymia.smartpyme.service_1_first_aid_minimal_v1 import (
 from pymia.smartpyme.service_1_pipeline_v1 import (
     run_service_1_pipeline_v1,
 )
+from pymia.smartpyme.exceland_execution_flow_v1 import (
+    run_exceland_execution_flow_v1,
+)
 
 
 def _infer_mime_type(filename: str) -> str | None:
@@ -86,6 +89,34 @@ def main(argv: list[str] | None = None) -> int:
         "--run-tools",
         default=None,
         help="Path to JSON file with tool requests for the First Aid pipeline",
+    )
+    parser.add_argument(
+        "--run-factory",
+        action="store_true",
+        default=False,
+        help="Run Exceland factory execution (requires --template-ref)",
+    )
+    parser.add_argument(
+        "--template-ref",
+        default=None,
+        help="Template ref for factory execution (e.g. precio_margen_basico_template)",
+    )
+    parser.add_argument(
+        "--formula-ref",
+        action="append",
+        default=None,
+        help="Formula ref for factory (repeatable, e.g. --formula-ref margen_bruto)",
+    )
+    parser.add_argument(
+        "--factory-input",
+        action="append",
+        default=None,
+        help="Input field as key=value for factory (repeatable, e.g. --factory-input precio_venta=120)",
+    )
+    parser.add_argument(
+        "--factory-output",
+        default=None,
+        help="Output filename for factory XLSX (optional)",
     )
     args = parser.parse_args(argv)
 
@@ -299,6 +330,76 @@ def main(argv: list[str] | None = None) -> int:
                         print(f"    * {label}: {value}", flush=True)
 
         print()
+
+    # Run Exceland factory if requested
+    if args.run_factory:
+        if not args.template_ref:
+            print()
+            print("Factor\u00eda Excel", flush=True)
+            print("- Estado: BLOCKED", flush=True)
+            print("- Motivo: requiere --template-ref", flush=True)
+            print("- Revisi\u00f3n humana requerida: true", flush=True)
+            print("- Runtime autorizado: false", flush=True)
+            print()
+        else:
+            factory_inputs: dict[str, object] = {}
+            formula_refs: list[str] = args.formula_ref or []
+            raw_inputs: list[str] = args.factory_input or []
+            for entry in raw_inputs:
+                if "=" in entry:
+                    key, _, value = entry.partition("=")
+                    key = key.strip()
+                    value_str = value.strip()
+                    try:
+                        if "." in value_str:
+                            factory_inputs[key] = float(value_str)
+                        else:
+                            factory_inputs[key] = int(value_str)
+                    except ValueError:
+                        factory_inputs[key] = value_str
+
+            bridge_input: dict[str, object] = {
+                "requested_template_ref": args.template_ref,
+                "requested_formula_refs": formula_refs,
+                "input_fields_required": list(factory_inputs.keys()),
+                "input_fields_received": factory_inputs,
+                "warnings": ["Factory execution requested from operator CLI."],
+                "limitations": ["Generated via exceland_execution_flow_v1; requires human review."],
+            }
+
+            factory_result = run_exceland_execution_flow_v1(
+                bridge_input=bridge_input,
+                output_dir=case_dir,
+                output_filename=args.factory_output,
+            )
+            packet_serializable["factory_result"] = factory_result
+
+            factory_result_filename = "factory_result.json"
+            (case_dir / factory_result_filename).write_text(
+                json.dumps(factory_result, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            if factory_result_filename not in manifest_files_written:
+                manifest_files_written.append(factory_result_filename)
+
+            if factory_result.get("output_path"):
+                output_path = Path(factory_result["output_path"])
+                if output_path.name not in manifest_files_written and output_path.exists():
+                    manifest_files_written.append(output_path.name)
+
+            print()
+            print("Factor\u00eda Excel", flush=True)
+            print(f"- Estado: {factory_result['status']}", flush=True)
+            if factory_result.get("product_ref"):
+                print(f"- Producto: {factory_result['product_ref']}", flush=True)
+            if factory_result.get("output_path"):
+                print(f"- Archivo: {factory_result['output_path']}", flush=True)
+            print(f"- Artifact existe: {factory_result['artifact_exists']}", flush=True)
+            print("- Revisi\u00f3n humana requerida: true", flush=True)
+            print("- Runtime autorizado: false", flush=True)
+            if factory_result.get("error_message"):
+                print(f"- Error: {factory_result['error_message']}", flush=True)
+            print()
 
     # Run First Aid if requested
     if args.run_first_aid:
