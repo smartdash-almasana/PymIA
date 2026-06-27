@@ -88,8 +88,8 @@ entonces esta traza cede.
 | `precio_margen_basico` | Capa 2 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `first_aid_precio_margen_basico_v1.py` | `first_aid_tool_result` | `pipeline` | Ninguno |
 | `caja_diaria_triage` | Capa 2 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `first_aid_caja_diaria_triage_v1.py` | `first_aid_tool_result` | `pipeline` | Ninguno |
 | `stock_alertas_basicas` | Capa 2 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `first_aid_stock_alertas_basicas_v1.py` | `first_aid_tool_result` | `pipeline` | Ninguno |
-| `gastos_triage` | Capa 2 | `MISSING` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | Ninguna | `first_aid_tool_result` | `pipeline` | Falta lógica runtime |
-| `proveedores_triage` | Capa 2 | `DOCUMENTED_ONLY` | `FIRST_AID_TOOLBOX_ARCHAEOLOGY_EXCELAND_V1.md` | `exeland2/specs/compras_y_proveedores.yaml` | `first_aid_tool_result` | `pipeline` | Falta lógica runtime + diferido |
+| `gastos_triage` | Capa 2 | `IMPLEMENTED_VALIDATED` | `SERVICE_1_FIRST_AID_FAMILY_CLOSEOUT_V1.md` | `first_aid_gastos_triage_v1.py` | `first_aid_tool_result` | `pipeline` | Ninguno dentro de First Aid |
+| `proveedores_precio_variacion_triage` | Capa 2 | `IMPLEMENTED_VALIDATED` | `SERVICE_1_FIRST_AID_FAMILY_CLOSEOUT_V1.md` | `first_aid_proveedores_precio_variacion_triage_v1.py` | `first_aid_tool_result` | `pipeline` | Ninguno dentro de First Aid |
 | `first_aid_xlsx_delivery` | Capa 3 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `first_aid_xlsx_delivery_v1.py` | `first_aid_tool_result` | `delivery_flow` | Ninguno |
 | `service_1_manual_first_aid_delivery_flow` | Capa 3 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `service_1_manual_first_aid_delivery_flow_v1.py` | `first_aid_xlsx_delivery` | `pipeline` | Ninguno |
 | `owner_response_renderer` | Capa 3 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_CAPABILITY_MATRIX_V2.md` | `owner_response_renderer_v1.py` | `file_intake`, `boundary` | `owner_message_formatter` | Ninguno |
@@ -109,7 +109,8 @@ entonces esta traza cede.
 | `asientos_contables` | Capa 6 | `MISSING` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | Ninguna | Ninguna | Ninguna | Excluido por complejidad AFIP/ERP |
 | `alertas_vencimientos` | Capa 6 | `IMPLEMENTED_PARTIAL` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `first_aid_toolbox_v1.json` thresholds | Ninguna | Ninguna | Falta motor ejecutable |
 | `gestor_tareas` | Capa 6 | `MISSING` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | Ninguna | Ninguna | Ninguna | Fuera de núcleo |
-| `service_1_pipeline_v1` | Capa 7 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | `service_1_pipeline_v1.py` | Capa 2 Tools, Capa 3 Delivery | `operator_harness` | Limitado a First Aid |
+| `service_1_pipeline_v1` | Capa 7 | `IMPLEMENTED_VALIDATED` | `SERVICE_1_FIRST_AID_FAMILY_CLOSEOUT_V1.md` | `service_1_pipeline_v1.py` | Capa 2 Tools, Capa 3 Delivery | `operator_harness` | Limitado a First Aid; ejecuta 5 tools allowlisted |
+| `service_1_operator_cli_pipeline_wiring` | Capa 7 | `IMPLEMENTED_VALIDATED` | `SERVICE_1_FIRST_AID_FAMILY_CLOSEOUT_V1.md` | `pymia/cli/service_1_operator.py` | `service_1_pipeline_v1` | Operador local | CLI real con `--run-tools` cableado al pipeline First Aid |
 | `pipeline_full` | Capa 7 | `MISSING` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | Ninguna | Capa 4 Lab, Capa 5 Bridge, Capa 6 Conciliación | `service_1_fsm` | Depende de la compleción de capas inferiores |
 | `service_1_fsm` | Capa 8 | `EXPERIMENTAL_FROZEN` | `SERVICE_1_DEVELOPMENT_AUDIT_AND_COMPLETION_ROADMAP_V1.md` | `service_1_fsm_decision_patch_v1.py` | `pipeline_full` | `llm_adapter` | Congelamiento intencional por derivas |
 | `llm_adapter` | Capa 9 | `MISSING` | `PYMIA_SERVICE_1_IMPLEMENTATION_INTEGRATION_PLAN_V1.md` | Ninguna | `service_1_fsm` | `chatbot_operativo` | Falta lógica y contratos de arnés de IA |
@@ -138,7 +139,8 @@ graph TD
         precio_margen[first_aid_precio_margen_basico_v1.py]
         caja_diaria[first_aid_caja_diaria_triage_v1.py]
         stock_alertas[first_aid_stock_alertas_basicas_v1.py]
-        gastos_triage[gastos_triage_v1.py - MISSING]
+        gastos_triage[first_aid_gastos_triage_v1.py - IMPLEMENTED]
+        proveedores_triage[first_aid_proveedores_precio_variacion_triage_v1.py - IMPLEMENTED]
     end
 
     subgraph Capa 3: Delivery de Archivos
@@ -216,6 +218,8 @@ graph TD
     pipeline_fa --> precio_margen
     pipeline_fa --> caja_diaria
     pipeline_fa --> stock_alertas
+    pipeline_fa --> gastos_triage
+    pipeline_fa --> proveedores_triage
     pipeline_fa --> delivery_flow
 
     pipeline_full --> pipeline_fa
@@ -247,11 +251,11 @@ graph TD
 *   **Condición de cierre:** Se genera un `Service1TaskSpec` coherente a partir de un archivo ingerido y se evalúa de manera determinista la activación de tools.
 
 ### CAPA 2 — Tools First Aid
-*   **Componentes:** `precio_margen_basico`, `caja_diaria_triage`, `stock_alertas_basicas`, `gastos_triage` (Missing), `proveedores_triage` (Diferido).
+*   **Componentes:** `precio_margen_basico`, `caja_diaria_triage`, `stock_alertas_basicas`, `gastos_triage`, `proveedores_precio_variacion_triage`.
 *   **Dependencias satisfechas:** Capa 0 (`first_aid_tool_result_v1`).
-*   **Dependencias pendientes:** Implementación en código de `gastos_triage`.
-*   **Estado real:** `75% PARCIAL` (las 3 herramientas núcleo están completadas y testeadas; falta gastos).
-*   **Condición de cierre:** Las 4 herramientas core están implementadas y devuelven un `FirstAidToolResultV1` válido.
+*   **Dependencias pendientes:** Ninguna dentro de la familia First Aid certificada.
+*   **Estado real:** `FIRST_AID_FAMILY_CLOSED_IN_SCOPE` (5 herramientas runtime implementadas y validadas; `gastos_triage` y `proveedores_precio_variacion_triage` ya no son missing/diferidas).
+*   **Condición de cierre:** Cumplida para First Aid: las 5 tools devuelven `FirstAidToolResultV1` y quedan ejecutables por pipeline allowlisted.
 
 ### CAPA 3 — Delivery de Archivos
 *   **Componentes:** `first_aid_xlsx_delivery_v1`, `service_1_manual_first_aid_delivery_flow_v1`, renderizadores owner-facing (`owner_response_renderer_v1`, `owner_message_formatter_v1`, `service_1_excel_triage_report_v1`).
@@ -282,11 +286,11 @@ graph TD
 *   **Condición de cierre:** Se cruzan extractos de banco y cobros MP contra planillas de ventas emitiendo un workpaper XLSX de auditoría de diferencias de saldo.
 
 ### CAPA 7 — Pipeline Servicio 1 Full
-*   **Componentes:** `service_1_pipeline_v1` (Parcial, First Aid), `service_1_pipeline_full` (Missing).
+*   **Componentes:** `service_1_pipeline_v1` (First Aid cerrado en alcance), CLI operador cableada al pipeline, `service_1_pipeline_full` (Missing).
 *   **Dependencias satisfechas:** Capa 2 (Tools), Capa 3 (Delivery).
 *   **Dependencias pendientes:** Completar Capas 4, 5 y 6 para integrarlas en el pipeline unificado.
-*   **Estado real:** `35% PARCIAL` (orquestación para First Aid completada; pipeline full multi-familia pendiente).
-*   **Condición de cierre:** Un único endpoint orquesta la ingesta de cualquier archivo, clasificación de tarea, normalización, conciliación contable o triage, y genera la carpeta de entrega.
+*   **Estado real:** `FIRST_AID_PIPELINE_IMPLEMENTED_VALIDATED / FULL_PIPELINE_MISSING` (orquestación First Aid cerrada; pipeline full multi-familia pendiente).
+*   **Condición de cierre:** Cumplida sólo para First Aid. Para Servicio 1 full sigue faltando endpoint multi-familia con Lab Excel, Factoría, normalización y conciliaciones.
 
 ### CAPA 8 — FSM Servicio 1
 *   **Componentes:** Máquina de estados finitos (`service_1_fsm_decision_patch_v1.py` congelada).
@@ -371,20 +375,19 @@ delivery actual = sin fórmulas
 XLSX con fórmulas activas = carril Factoría Excel
 ```
 
-El próximo bloque correcto después de esa decisión es:
+La decisión posterior queda registrada como:
 
 ```text
-ETAPA 2 — CIERRE REAL DE PRIMEROS AUXILIOS
+ETAPA 2 — PRIMEROS AUXILIOS CERRADO EN ALCANCE RUNTIME
 ```
 
 Motivo:
 
 ```text
-La contradicción de producto ya quedó resuelta.
-Ahora el siguiente cuello real es cerrar First Aid como familia runtime completa.
+La familia First Aid ya cuenta con runtime de 5 herramientas, pipeline allowlisted, delivery manual y wiring desde CLI.
 ```
 
-Sin resolver eso, abrir contabilidad, conciliaciones o chatbot sólo apila complejidad sobre una frontera de producto todavía inconsistente.
+Esto no declara Servicio 1 full: Lab Excel, Factoría, normalización, contabilidad, conciliaciones, FSM, LLM y chatbot siguen abiertos.
 
 ---
 

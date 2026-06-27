@@ -140,7 +140,7 @@ Pero sigue muy lejos del full grande porque todavía faltan:
 
 | Familia | Estado rector | Evidencia real | Bloqueo madre | Condición de cierre real |
 |---|---|---|---|---|
-| Primeros Auxilios | `PARTIAL` | CLI operativa, First Aid mínimo, tools core parciales, pipeline First Aid, carpeta de caso, QA gate | faltan tools y conflicto fórmulas | toolbox completo + delivery decidido |
+| Primeros Auxilios | `CLOSED_IN_SCOPE_RUNTIME` | CLI cableada al pipeline, 5 tools runtime implementadas, delivery manual, QA gate, case folder, fórmula policy resuelta | brechas resueltas (5 tools completas, pipeline allowlisted, fórmula policy decidida) | familia cerrada como familia del roadmap, no sólo carril asistido |
 | Laboratorio Excel | `PARTIAL_SCRIPT_ISOLATED` | `tools/document_ingestion.py` existe | no está empaquetado en `pymia.smartpyme` | módulo importable + tests + wiring |
 | Factoría Excel | `PARTIAL_EXTERNAL_DEPENDENCY` | `exeland2` existe fuera del repo, bridge mínimo existe | dependencia externa no formalizada | factory internalizada o dependencia formal |
 | Excel descargables con fórmulas | `BLOCKED_BY_PRODUCT_DECISION` | delivery actual dice explícitamente “No formulas” | contradicción con roadmap full | ADR + runtime/test de fórmulas o redefinición de scope |
@@ -317,25 +317,28 @@ Resuelta por SERVICE_1_XLSX_FORMULA_POLICY_V1:
 - no se habilitan fórmulas en First Aid ni en delivery genérico.
 ```
 
-### Etapa 2 — Cierre real de Primeros Auxilios
+### Etapa 2 — Cierre real de Primeros Auxilios (COMPLETADA)
 
-**Objetivo**
+**Estado**: `COMPLETED`
 
-```text
-Cerrar toolbox y pipeline First Aid como familia runtime completa, no demo parcial.
-```
+**Verificación con repo HEAD**
 
-**Incluye**
+- `7f67b58` feat(pymia-live): wire service 1 pipeline tools into cli
 
-- tools faltantes;
-- revisión de pipeline First Aid;
-- verificación de delivery según decisión de fórmulas.
+**Lo que incluía**
 
-**Cierre**
+- tools faltantes → 5 tools completas (precio_margen, caja_diaria, stock_alertas, gastos_triage, proveedores_precio_variacion_triage)
+- revisión de pipeline First Aid → pipeline allowlisted con 5 tools, cableado a CLI via `--run-tools`
+- verificación de delivery según decisión de fórmulas → delivery sin fórmulas, policy decidida (`SERVICE_1_XLSX_FORMULA_POLICY_V1`)
+
+**Cierre alcanzado**
 
 ```text
 Primeros Auxilios = DONE como familia del roadmap, no sólo como carril asistido.
+53 tests PASS en suite de validación (pipeline + delivery + CLI + manual + e2e).
 ```
+
+**Próxima etapa después de ésta**: Etapa 3
 
 ### Etapa 3 — Productización de Laboratorio Excel
 
@@ -480,10 +483,11 @@ El chatbot deja de ser promesa documental y pasa a frontera operativa validada.
 
 ### Atacar primero
 
-1. Etapa 0 — alineación documental
-2. Etapa 2 — Primeros Auxilios full
-3. Etapa 3 — Laboratorio Excel productizado
-4. Etapa 4 — Resolución de Factoría Excel
+1. ~~Etapa 0 — alineación documental~~ (COMPLETADA)
+2. ~~Etapa 1 — decisión de producto sobre fórmulas~~ (COMPLETADA)
+3. ~~Etapa 2 — Primeros Auxilios full~~ (COMPLETADA)
+4. Etapa 3 — Laboratorio Excel productizado
+5. Etapa 4 — Resolución de Factoría Excel
 
 ### No tocar todavía
 
@@ -532,5 +536,5 @@ y dejando de confundir envoltorio con motor.
 ## Próximo paso autorizado
 
 ```text
-ETAPA 2 — CIERRE REAL DE PRIMEROS AUXILIOS
+ETAPA 3 — PRODUCTIZACIÓN DE LABORATORIO EXCEL
 ```

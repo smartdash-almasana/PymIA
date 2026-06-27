@@ -36,7 +36,7 @@ SERVICE_1_FULL_CLOSURE_RECTOR_V1
 ## HEAD relevante verificado en esta realineación
 
 ```text
-33907be docs(pymia): add service 1 full closure rector
+7f67b58 feat(pymia-live): wire service 1 pipeline tools into cli
 e9747fe test(pymia): add service 1 anonymized real case harness
 607063b test(pymia): add service 1 synthetic final case run
 c1c319d test(pymia): add service 1 local first aid functional e2e
@@ -45,10 +45,8 @@ c1c319d test(pymia): add service 1 local first aid functional e2e
 ## Working tree conocido
 
 ```text
-?? docs/pymia/ORGANIZATIONAL_CASE_FILE_V1_CONCEPT.md
+clean
 ```
-
-Ese archivo queda fuera de esta auditoría y no debe incorporarse salvo autorización explícita.
 
 ---
 
@@ -78,7 +76,19 @@ XLSX real
 → carpeta de caso
 ```
 
-Esto prueba una punta operativa real y útil.
+## 2.3 Familia First Aid runtime / operator CLI
+
+```text
+CLI operador
+→ service_1_pipeline_v1
+→ 5 herramientas First Aid allowlisted
+→ delivery flow manual
+→ pipeline_result.json
+→ XLSX de entrega por tool
+→ carpeta de caso
+```
+
+Esto prueba una familia First Aid runtime cerrada en su alcance actual, no Servicio 1 full.
 
 No prueba todavía:
 
@@ -99,11 +109,11 @@ Condición central:
 runtime_authorized = False
 ```
 
-No hay ejecución de herramientas.
-No hay lectura real XLSX.
+Hay ejecución determinística de herramientas First Aid en pipeline allowlisted.
+Hay lectura real XLSX en la lane asistida local.
+Hay delivery XLSX para resultados First Aid.
 No hay diagnóstico.
-No hay cálculo.
-No hay delivery XLSX.
+No hay cálculo fuera de las herramientas First Aid permitidas.
 No hay chatbot.
 No hay LLM.
 
@@ -194,7 +204,7 @@ Estado real realineado:
 
 | Familia | Estado real | Brecha principal |
 |---|---|---|
-| Primeros Auxilios | PARTIAL | existe lane asistida fuerte, pero no familia full cerrada |
+| Primeros Auxilios | CLOSED_IN_SCOPE_RUNTIME | runtime de 5 herramientas, pipeline allowlisted, delivery flow y CLI cableada; no implica Servicio 1 full |
 | Laboratorio Excel | PARTIAL_SCRIPT_ISOLATED | `document_ingestion.py` no está productizado en `pymia.smartpyme` |
 | Factoría Excel | PARTIAL_EXTERNAL_DEPENDENCY | `exeland2` vive fuera del repo y el bridge no cierra generación física controlada |
 | Excel descargables con fórmulas | BLOCKED_BY_PRODUCT_DECISION | el delivery actual declara explícitamente que no usa fórmulas |
@@ -333,7 +343,7 @@ El orden vigente ya no es la tabla histórica de microciclos sino este:
 |---:|---|---|---|
 | 0 | Alineación documental dura | DOC/AUDIT | roadmap, DoD, trace y rector sin contradicción |
 | 1 | Decisión de producto sobre fórmulas | PRODUCT/DOC | contradicción roadmap vs delivery resuelta |
-| 2 | Cierre real de Primeros Auxilios | CODE/TEST/AUDIT | familia First Aid cerrada como familia full |
+| 2 | Cierre real de Primeros Auxilios | CODE/TEST/AUDIT | CERRADO EN ALCANCE: runtime de 5 tools, pipeline allowlisted, delivery y CLI; no declara Servicio 1 full |
 | 3 | Productización de Laboratorio Excel | CODE/TEST | `document_ingestion` dentro del paquete y cableado |
 | 4 | Resolución de Factoría Excel | CODE/DEP/AUDIT | dependencia `exeland2` formalizada y usable |
 | 5 | CSV + PDF + normalizador común | CODE/TEST | familia normalización cerrada |
@@ -390,15 +400,15 @@ La familia de fórmulas activas queda reservada al carril de Factoría Excel.
 # 12. Próximo frente recomendado
 
 ```text
-ETAPA 2 — CIERRE REAL DE PRIMEROS AUXILIOS
+ETAPA 3 — PRODUCTIZACIÓN DE LABORATORIO EXCEL
 ```
 
 Razón:
 
 ```text
 La contradicción de producto sobre fórmulas ya quedó resuelta por política.
-Ahora el siguiente cierre real es convertir Primeros Auxilios en familia full cerrada,
-no sólo lane asistida.
+La familia First Aid ya quedó cerrada en alcance runtime con 5 herramientas, pipeline allowlisted, delivery y CLI.
+El siguiente cuello real del full es sacar Laboratorio Excel del estado de script aislado.
 ```
 
 ---
