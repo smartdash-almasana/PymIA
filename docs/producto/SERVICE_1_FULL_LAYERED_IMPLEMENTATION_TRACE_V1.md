@@ -51,8 +51,8 @@ SERVICE_1_FULL_STATUS: PARTIAL_FOUNDATIONS_IMPLEMENTED / FULL_FAMILIES_NOT_CLOSE
 
 ### Diagnóstico de la Traza Maestra
 1.  **Estado Implementado:** Hay foundations reales fuertes en First Aid asistido, owner-facing, delivery gate y operador local. Eso prueba una punta operativa, no el producto full.
-2.  **Estado Parcial:** Laboratorio Excel sigue aislado en `tools/document_ingestion.py`; Factoría depende de `exeland2` fuera del repo; contabilidad/conciliaciones siguen mayormente en contrato, gate o sandbox.
-3.  **Estado Faltante:** PDF y CSV runtime dentro del paquete, workpaper runtime real, conciliaciones operativas, FSM productiva, adapter LLM tipado y cableado chatbot.
+2.  **Estado Parcial:** Factoría depende de `exeland2` fuera del repo; contabilidad/conciliaciones siguen mayormente en contrato, gate o sandbox.
+3.  **Estado Faltante:** PDF runtime dentro del paquete, workpaper runtime real, conciliaciones operativas, FSM productiva, adapter LLM tipado y cableado chatbot.
 4.  **Contradicción de producto clave:** el delivery XLSX actual declara explícitamente que no usa fórmulas, mientras el roadmap full exige “Excel descargables con fórmulas”.
 5.  **Regla de lectura corregida:** esta traza no debe volver a usarse para justificar porcentajes optimistas de completitud ni proximidad falsa al full.
 
@@ -95,7 +95,7 @@ entonces esta traza cede.
 | `owner_response_renderer` | Capa 3 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_CAPABILITY_MATRIX_V2.md` | `owner_response_renderer_v1.py` | `file_intake`, `boundary` | `owner_message_formatter` | Ninguno |
 | `owner_message_formatter` | Capa 3 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_CAPABILITY_MATRIX_V2.md` | `owner_message_formatter_v1.py` | `owner_response_renderer` | Ninguna | Ninguno |
 | `service_1_excel_triage_report` | Capa 3 | `IMPLEMENTED_VALIDATED` | `PYMIA_SERVICE_1_CAPABILITY_MATRIX_V2.md` | `service_1_excel_triage_report_v1.py` | `file_intake`, `boundary` | Ninguna | Ninguno |
-| `document_ingestion` | Capa 4 | `IMPLEMENTED_PARTIAL` | `EXCEL_TREATMENT_LAB_PRODUCT_CONCEPT.md` | `tools/document_ingestion.py` | Ninguna | `pipeline_full` | Falta empaquetado y wiring en runtime |
+| `document_ingestion` | Capa 4 | `IMPLEMENTED_VALIDATED` | `EXCEL_TREATMENT_LAB_PRODUCT_CONCEPT.md` | `excel_lab_ingestion_v1.py`, `document_ingestion.py` | Ninguna | `pipeline_full` | Ninguno (productizado y validado) |
 | `pdf_intake` | Capa 4 | `MISSING` | `PYMIA_SERVICE_1_CAPABILITY_MATRIX_V2.md` | Ninguna | Ninguna | `document_ingestion` | Falta diseño y parser extractor |
 | `exceland_factory` | Capa 5 | `IMPLEMENTED_PARTIAL` | `PYMIA_SERVICE_1_FULL_CATALOG_V1.md` | `exeland2/src/exceland_factory/` | Ninguna | `excel_factory_bridge` | Cantera aislada; puente lógico ya existe pero falta ejecución física controlada |
 | `excel_factory_bridge` | Capa 5 | `IMPLEMENTED_MINIMAL_CONTRACT` | `SERVICE_1_EXCELAND_BRIDGE_V1.md` | `exceland_bridge_v1.py` | `exceland_factory` | `pipeline_full` | Falta frontera runtime para compilar/generar XLSX real |
@@ -265,10 +265,10 @@ graph TD
 *   **Condición de cierre:** Se escriben físicamente archivos XLSX estructurados y formateados con disclaimers, y se formatea el mensaje de chat de salida.
 
 ### CAPA 4 — Excel Lab / Normalización
-*   **Componentes:** `tools/document_ingestion.py` (Parcial), `pdf_intake` (Missing).
+*   **Componentes:** `pymia/smartpyme/excel_lab_ingestion_v1.py` (Implementado), `tools/document_ingestion.py` wrapper (Implementado), `pdf_intake` (Missing).
 *   **Dependencias satisfechas:** Capa 0 (`file_intake`).
-*   **Dependencias pendientes:** Empaquetar y cablear `document_ingestion.py` en runtime; diseñar extractor PDF.
-*   **Estado real:** `40% PARCIAL` (código de curación XLSX y CSV en tools es robusto; falta PDF y estructuración formal como módulo de PymIA-Live).
+*   **Dependencias pendientes:** Diseñar extractor PDF (CSV y Excel Lab están completos).
+*   **Estado real:** `80% PARCIAL` (Excel Lab está completamente productizado y validado; CSV es soportado; PDF sigue missing).
 *   **Condición de cierre:** Ingesta y normalización de Excel, CSV y PDF producen un `StructuredEvidence` validado en el pipeline del producto.
 
 ### CAPA 5 — Exceland Bridge / Factoría
@@ -362,32 +362,19 @@ Servicio 1 full = VERY FAR
 
 ## 7. NEXT BLOCK (Próximo Bloque de Avance hacia Servicio 1 Full)
 
-La contradicción de fórmulas queda resuelta por:
+La contradicción de fórmulas queda resuelta por política. La familia First Aid quedó cerrada en alcance runtime, y la Etapa 3 (Laboratorio Excel) ha sido productizada.
+
+El próximo bloque de avance autorizado es:
 
 ```text
-SERVICE_1_XLSX_FORMULA_POLICY_V1
-```
-
-Regla aplicada:
-
-```text
-delivery actual = sin fórmulas
-XLSX con fórmulas activas = carril Factoría Excel
-```
-
-La decisión posterior queda registrada como:
-
-```text
-ETAPA 2 — PRIMEROS AUXILIOS CERRADO EN ALCANCE RUNTIME
+ETAPA 4 — RESOLUCIÓN DE FACTORÍA EXCEL
 ```
 
 Motivo:
 
 ```text
-La familia First Aid ya cuenta con runtime de 5 herramientas, pipeline allowlisted, delivery manual y wiring desde CLI.
+Laboratorio Excel se ha productizado en `pymia.smartpyme.excel_lab_ingestion_v1` con un wrapper de compatibilidad y tests de caracterización focal aprobados. El próximo cuello de botella real de Servicio 1 full es resolver la Factoría Excel (exeland2).
 ```
-
-Esto no declara Servicio 1 full: Lab Excel, Factoría, normalización, contabilidad, conciliaciones, FSM, LLM y chatbot siguen abiertos.
 
 ---
 

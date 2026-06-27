@@ -36,6 +36,7 @@ SERVICE_1_FULL_CLOSURE_RECTOR_V1
 ## HEAD relevante verificado en esta realineación
 
 ```text
+cd1235e feat(pymia-live): productize service 1 excel lab ingestion
 7f67b58 feat(pymia-live): wire service 1 pipeline tools into cli
 e9747fe test(pymia): add service 1 anonymized real case harness
 607063b test(pymia): add service 1 synthetic final case run
@@ -88,13 +89,12 @@ CLI operador
 → carpeta de caso
 ```
 
-Esto prueba una familia First Aid runtime cerrada en su alcance actual, no Servicio 1 full.
+Esto prueba una familia First Aid runtime y Laboratorio Excel productizados en su alcance actual, no Servicio 1 full.
 
 No prueba todavía:
 
 ```text
 Servicio 1 full
-Laboratorio Excel productizado
 Factoría Excel cerrada
 XLSX con fórmulas
 runtime contable
@@ -131,7 +131,7 @@ No hay LLM.
 | OwnerResponse Renderer V1 | `PymIA-Live/pymia/smartpyme/owner_response_renderer_v1.py` | IMPLEMENTED_VALIDATED | Salida principal owner-facing mínima |
 | OwnerMessage Formatter V1 | `PymIA-Live/pymia/smartpyme/owner_message_formatter_v1.py` | IMPLEMENTED_VALIDATED | Texto plano listo para canal manual |
 | First Aid pipeline / assisted operator lane | `PymIA-Live/pymia/smartpyme/service_1_pipeline_v1.py`, `PymIA-Live/pymia/cli/service_1_operator.py` | IMPLEMENTED_VALIDATED_IN_SCOPE | Pipeline parcial y CLI asistida, no pipeline full |
-| Document ingestion script | `tools/document_ingestion.py` | IMPLEMENTED_PARTIAL | Existe, pero sigue fuera de `pymia.smartpyme` |
+| Document ingestion productized | `pymia/smartpyme/excel_lab_ingestion_v1.py`, `tools/document_ingestion.py` | IMPLEMENTED_VALIDATED | Productizado en smartpyme con wrapper de compatibilidad en tools |
 | Exceland bridge | `PymIA-Live/pymia/smartpyme/exceland_bridge_v1.py` | IMPLEMENTED_MINIMAL_CONTRACT | Bridge mínimo; factoría física sigue externa |
 | Accounting contracts / gate | `PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py`, `PymIA-Live/pymia/smartpyme/accounting_human_review_gate_v1.py` | IMPLEMENTED_MINIMAL_CONTRACT | Base contractual/gate, no runtime contable productivo |
 | FSM Decision Patch V1 | `PymIA-Live/pymia/smartpyme/service_1_fsm_decision_patch_v1.py` | EXPERIMENTAL_FROZEN | Congelado por deriva |
@@ -205,7 +205,7 @@ Estado real realineado:
 | Familia | Estado real | Brecha principal |
 |---|---|---|
 | Primeros Auxilios | CLOSED_IN_SCOPE_RUNTIME | runtime de 5 herramientas, pipeline allowlisted, delivery flow y CLI cableada; no implica Servicio 1 full |
-| Laboratorio Excel | PARTIAL_SCRIPT_ISOLATED | `document_ingestion.py` no está productizado en `pymia.smartpyme` |
+| Laboratorio Excel | CLOSED_IN_SCOPE_RUNTIME | Productizado en `pymia/smartpyme/excel_lab_ingestion_v1.py` y testeado con tests boundary |
 | Factoría Excel | PARTIAL_EXTERNAL_DEPENDENCY | `exeland2` vive fuera del repo y el bridge no cierra generación física controlada |
 | Excel descargables con fórmulas | BLOCKED_BY_PRODUCT_DECISION | el delivery actual declara explícitamente que no usa fórmulas |
 | Servicios para contadores | PARTIAL_CONTRACT_AND_GATE | hay contratos/gates, no runtime estable de workpaper productivo |
@@ -222,7 +222,7 @@ SERVICE_1_CURRENT_STATUS:
 PARTIAL_FOUNDATIONS_REAL
 FULL_TARGET_STILL_VERY_FAR
 RECTOR_GOVERNANCE_REQUIRED
-NEXT_REQUIRED: ETAPA_0_COMPLETED / ETAPA_1_PENDING
+NEXT_REQUIRED: ETAPA_3_COMPLETED / ETAPA_4_PENDING
 ```
 
 Interpretación:
@@ -344,7 +344,7 @@ El orden vigente ya no es la tabla histórica de microciclos sino este:
 | 0 | Alineación documental dura | DOC/AUDIT | roadmap, DoD, trace y rector sin contradicción |
 | 1 | Decisión de producto sobre fórmulas | PRODUCT/DOC | contradicción roadmap vs delivery resuelta |
 | 2 | Cierre real de Primeros Auxilios | CODE/TEST/AUDIT | CERRADO EN ALCANCE: runtime de 5 tools, pipeline allowlisted, delivery y CLI; no declara Servicio 1 full |
-| 3 | Productización de Laboratorio Excel | CODE/TEST | `document_ingestion` dentro del paquete y cableado |
+| 3 | Productización de Laboratorio Excel | CODE/TEST | CERRADO EN ALCANCE: `excel_lab_ingestion_v1` y wrapper implementados y testeados |
 | 4 | Resolución de Factoría Excel | CODE/DEP/AUDIT | dependencia `exeland2` formalizada y usable |
 | 5 | CSV + PDF + normalizador común | CODE/TEST | familia normalización cerrada |
 | 6 | Runtime de servicios para contadores | CODE/TEST/REAL_CASE | workpaper productivo con gate humano |
@@ -400,15 +400,14 @@ La familia de fórmulas activas queda reservada al carril de Factoría Excel.
 # 12. Próximo frente recomendado
 
 ```text
-ETAPA 3 — PRODUCTIZACIÓN DE LABORATORIO EXCEL
+ETAPA 4 — RESOLUCIÓN DE FACTORÍA EXCEL
 ```
 
 Razón:
 
 ```text
-La contradicción de producto sobre fórmulas ya quedó resuelta por política.
-La familia First Aid ya quedó cerrada en alcance runtime con 5 herramientas, pipeline allowlisted, delivery y CLI.
-El siguiente cuello real del full es sacar Laboratorio Excel del estado de script aislado.
+La productización de Laboratorio Excel ya fue completada y validada en el paquete.
+El siguiente cuello real del full es formalizar la dependencia y generación de la Factoría Excel (exeland2).
 ```
 
 ---

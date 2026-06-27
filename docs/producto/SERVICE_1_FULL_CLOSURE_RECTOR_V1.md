@@ -141,7 +141,7 @@ Pero sigue muy lejos del full grande porque todavía faltan:
 | Familia | Estado rector | Evidencia real | Bloqueo madre | Condición de cierre real |
 |---|---|---|---|---|
 | Primeros Auxilios | `CLOSED_IN_SCOPE_RUNTIME` | CLI cableada al pipeline, 5 tools runtime implementadas, delivery manual, QA gate, case folder, fórmula policy resuelta | brechas resueltas (5 tools completas, pipeline allowlisted, fórmula policy decidida) | familia cerrada como familia del roadmap, no sólo carril asistido |
-| Laboratorio Excel | `PARTIAL_SCRIPT_ISOLATED` | `tools/document_ingestion.py` existe | no está empaquetado en `pymia.smartpyme` | módulo importable + tests + wiring |
+| Laboratorio Excel | `CLOSED_IN_SCOPE_RUNTIME` | `pymia/smartpyme/excel_lab_ingestion_v1.py` productivo, `tools/document_ingestion.py` wrapper, tests boundary focales PASS, consumers actualizados | ninguna (ingestión, profiling y structured output encapsulados y testeados) | módulo importable + tests + wiring |
 | Factoría Excel | `PARTIAL_EXTERNAL_DEPENDENCY` | `exeland2` existe fuera del repo, bridge mínimo existe | dependencia externa no formalizada | factory internalizada o dependencia formal |
 | Excel descargables con fórmulas | `BLOCKED_BY_PRODUCT_DECISION` | delivery actual dice explícitamente “No formulas” | contradicción con roadmap full | ADR + runtime/test de fórmulas o redefinición de scope |
 | Servicios para contadores | `PARTIAL_CONTRACT_AND_GATE` | contracts, manifest, gate, draft packet, docs de workpaper | no hay runtime estable de workpaper productivo | workpaper runtime + caso real supervisado |
@@ -342,24 +342,25 @@ Primeros Auxilios = DONE como familia del roadmap, no sólo como carril asistido
 
 ### Etapa 3 — Productización de Laboratorio Excel
 
-**Objetivo**
+**Estado**: `COMPLETED`
 
-```text
-Mover la capacidad real de document_ingestion al paquete del producto.
-```
+**Verificación con repo HEAD**
 
-**Incluye**
+- `cd1235e` feat(pymia-live): productize service 1 excel lab ingestion
 
-- módulo `pymia.smartpyme.*`;
-- contrato explícito;
-- tests focales;
-- wiring controlado al pipeline.
+**Lo que incluía**
+
+- módulo `pymia.smartpyme.*` → `pymia.smartpyme.excel_lab_ingestion_v1.py` creado, dividiendo Ingestión, Profiling y Output Estructurado.
+- contrato explícito y tests focales → 8 tests boundary en `tests/smartpyme/test_excel_lab_ingestion_boundary_v1.py`.
+- wiring controlado al pipeline → consumidores actualizados, compatibilidad preservada con wrapper en `tools/document_ingestion.py`.
 
 **Cierre**
 
 ```text
-Laboratorio Excel deja de ser script aislado y pasa a ser familia de producto.
+Laboratorio Excel deja de ser script aislado y pasa a ser familia de producto con 100% de tests de frontera PASS.
 ```
+
+**Próxima etapa después de ésta**: Etapa 4
 
 ### Etapa 4 — Resolución de Factoría Excel
 
@@ -486,7 +487,7 @@ El chatbot deja de ser promesa documental y pasa a frontera operativa validada.
 1. ~~Etapa 0 — alineación documental~~ (COMPLETADA)
 2. ~~Etapa 1 — decisión de producto sobre fórmulas~~ (COMPLETADA)
 3. ~~Etapa 2 — Primeros Auxilios full~~ (COMPLETADA)
-4. Etapa 3 — Laboratorio Excel productizado
+4. ~~Etapa 3 — Laboratorio Excel productizado~~ (COMPLETADA)
 5. Etapa 4 — Resolución de Factoría Excel
 
 ### No tocar todavía
@@ -536,5 +537,5 @@ y dejando de confundir envoltorio con motor.
 ## Próximo paso autorizado
 
 ```text
-ETAPA 3 — PRODUCTIZACIÓN DE LABORATORIO EXCEL
+ETAPA 4 — RESOLUCIÓN DE FACTORÍA EXCEL
 ```
