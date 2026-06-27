@@ -8,7 +8,7 @@ from pymia.smartpyme.service_1_column_confirmation_owner_prompt_batch_v1 import 
     Service1ColumnConfirmationOwnerPromptBatchV1,
     build_service_1_column_confirmation_owner_prompt_batch_v1,
 )
-from tools.document_ingestion import DocumentCurationReport
+from pymia.smartpyme.excel_lab_ingestion_v1 import DocumentCurationReport
 
 SCHEMA_VERSION = "SERVICE_1_DOCUMENT_CURATION_REPORT_TO_OWNER_PROMPT_BATCH_BRIDGE_V1"
 SERVICE_NAME = "SERVICE_1"
