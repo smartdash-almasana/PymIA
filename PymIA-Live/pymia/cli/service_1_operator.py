@@ -238,14 +238,21 @@ def main(argv: list[str] | None = None) -> int:
                 packet_serializable["first_aid_owner_summary"] = owner_summary
 
                 # Write First Aid files to case folder
-                (case_dir / "first_aid_result.json").write_text(
+                first_aid_result_filename = "first_aid_result.json"
+                (case_dir / first_aid_result_filename).write_text(
                     json.dumps(first_aid_result, indent=2, ensure_ascii=False),
                     encoding="utf-8",
                 )
-                (case_dir / "first_aid_owner_summary.md").write_text(
+                if first_aid_result_filename not in manifest_files_written:
+                    manifest_files_written.append(first_aid_result_filename)
+
+                first_aid_owner_summary_filename = "first_aid_owner_summary.md"
+                (case_dir / first_aid_owner_summary_filename).write_text(
                     owner_summary,
                     encoding="utf-8",
                 )
+                if first_aid_owner_summary_filename not in manifest_files_written:
+                    manifest_files_written.append(first_aid_owner_summary_filename)
 
                 # Print First Aid summary to stdout
                 print()
