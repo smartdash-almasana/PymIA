@@ -450,3 +450,185 @@ def test_xlsx_stdout_no_traceback(capsys, tmp_path, monkeypatch) -> None:
     captured = capsys.readouterr()
     assert "Traceback" not in captured.out
     assert "traceback" not in captured.out.lower()
+
+
+# ---------------------------------------------------------------------------
+# 18. CLI con XLSX crea case_delivery_manifest en packet
+# ---------------------------------------------------------------------------
+
+def test_xlsx_creates_case_delivery_manifest_in_packet(tmp_path, monkeypatch) -> None:
+    """XLSX file → packet JSON must contain case_delivery_manifest."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(xlsx_path)])
+    assert exit_code == 0
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "case_delivery_manifest" in packet
+    assert packet["case_delivery_manifest"]["service_name"] == "SERVICE_1"
+    assert "case_id" in packet["case_delivery_manifest"]
+
+
+# ---------------------------------------------------------------------------
+# 19. Crea carpeta .tmp/service_1_cases/<case_id>
+# ---------------------------------------------------------------------------
+
+def test_creates_case_folder_under_service_1_cases(tmp_path, monkeypatch) -> None:
+    """Case folder must exist under .tmp/service_1_cases/<case_id>."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    assert case_dir.exists()
+
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+
+# ---------------------------------------------------------------------------
+# 20. Stdout incluye "Carpeta de caso"
+# ---------------------------------------------------------------------------
+
+def test_stdout_includes_case_folder_block(capsys, tmp_path, monkeypatch) -> None:
+    """stdout must contain the case folder summary block."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    captured = capsys.readouterr()
+    assert "Carpeta de caso" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# 21. operator_packet.json existe dentro de carpeta
+# ---------------------------------------------------------------------------
+
+def test_operator_packet_json_in_case_folder(tmp_path, monkeypatch) -> None:
+    """Case folder must contain operator_packet.json with complete data."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    op_packet = case_folders[0] / "operator_packet.json"
+    assert op_packet.exists()
+
+    with open(op_packet, encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert packet["service_name"] == "SERVICE_1"
+    assert "case_delivery_manifest" in packet
+
+
+# ---------------------------------------------------------------------------
+# 22. detected_structure.json existe para XLSX
+# ---------------------------------------------------------------------------
+
+def test_detected_structure_json_in_case_folder(tmp_path, monkeypatch) -> None:
+    """Case folder must contain detected_structure.json for XLSX files."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    ds_file = case_folders[0] / "detected_structure.json"
+    assert ds_file.exists()
+
+    data = json.loads(ds_file.read_text(encoding="utf-8"))
+    assert data["service_name"] == "SERVICE_1"
+
+
+# ---------------------------------------------------------------------------
+# 23. column_confirmation_packet.json existe para XLSX
+# ---------------------------------------------------------------------------
+
+def test_column_confirmation_packet_json_in_case_folder(tmp_path, monkeypatch) -> None:
+    """Case folder must contain column_confirmation_packet.json for XLSX files."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    cc_file = case_folders[0] / "column_confirmation_packet.json"
+    assert cc_file.exists()
+
+    data = json.loads(cc_file.read_text(encoding="utf-8"))
+    assert data["packet_type"] == "COLUMN_CONFIRMATION"
+
+
+# ---------------------------------------------------------------------------
+# 24. Non-XLSX crea carpeta con archivos mínimos
+# ---------------------------------------------------------------------------
+
+def test_non_xlsx_creates_minimal_case_folder(tmp_path, monkeypatch) -> None:
+    """Non-XLSX file must still create a case folder with minimum files."""
+    monkeypatch.chdir(tmp_path)
+
+    csv_path = tmp_path / "test_data.csv"
+    csv_path.write_text("col1,col2\n1,2\n3,4", encoding="utf-8")
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(csv_path)])
+    assert exit_code == 0
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    assert (case_folders[0] / "owner_message.md").exists()
+    assert (case_folders[0] / "operator_packet.json").exists()
+    assert (case_folders[0] / "README.txt").exists()
+
+    assert not (case_folders[0] / "detected_structure.json").exists()
+    assert not (case_folders[0] / "column_confirmation_packet.json").exists()
+
+
+# ---------------------------------------------------------------------------
+# 25. runtime_authorized top-level sigue false con case delivery
+# ---------------------------------------------------------------------------
+
+def test_packet_runtime_authorized_false_with_case_delivery(tmp_path, monkeypatch) -> None:
+    """Top-level runtime_authorized must be False after adding case delivery manifest."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert packet["runtime_authorized"] is False
+    assert packet["case_delivery_manifest"]["runtime_authorized"] is False

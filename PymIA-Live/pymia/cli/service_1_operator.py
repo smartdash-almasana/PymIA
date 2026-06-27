@@ -12,6 +12,9 @@ from pymia.smartpyme.service_1_executable_entrypoint_v1 import (
 from pymia.smartpyme.service_1_column_confirmation_packet_v1 import (
     build_service_1_column_confirmation_packet_v1,
 )
+from pymia.smartpyme.service_1_case_delivery_folder_v1 import (
+    write_service_1_case_delivery_folder_v1,
+)
 from pymia.smartpyme.service_1_xlsx_structure_v1 import (
     read_service_1_xlsx_structure_v1,
 )
@@ -134,10 +137,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             print()
 
-    # Save packet JSON to .tmp/service_1_operator/<asset_id>.json
+    # Save packet JSON to .tmp/service_1_operator/<asset_id>.json (legacy)
     output_dir = Path(".tmp/service_1_operator")
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{asset_id}.json"
 
     packet_serializable: dict[str, Any] = {
         "schema_version": packet["schema_version"],
@@ -155,8 +157,30 @@ def main(argv: list[str] | None = None) -> int:
     if _column_confirmation_packet is not None:
         packet_serializable["column_confirmation_packet"] = _column_confirmation_packet
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(packet_serializable, f, indent=2, ensure_ascii=False)
+    # Write case delivery folder
+    manifest = write_service_1_case_delivery_folder_v1(packet_serializable)
+    packet_serializable["case_delivery_manifest"] = manifest
+    case_dir = Path(manifest["case_dir"])
+    operator_packet_path = case_dir / "operator_packet.json"
+    operator_packet_path.write_text(
+        json.dumps(packet_serializable, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    # Print case delivery summary to stdout
+    print()
+    print("Carpeta de caso", flush=True)
+    print(f"- Caso: {manifest['case_id']}", flush=True)
+    print(f"- Archivos generados: {len(manifest['files_written'])}", flush=True)
+    print(f"- Ubicaci\u00f3n: {manifest['case_dir']}", flush=True)
+    print()
+
+    # Legacy JSON output for backward compatibility
+    legacy_path = output_dir / f"{asset_id}.json"
+    legacy_path.write_text(
+        json.dumps(packet_serializable, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
 
     return 0
 
