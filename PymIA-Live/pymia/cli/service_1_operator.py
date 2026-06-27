@@ -9,6 +9,9 @@ from typing import Any
 from pymia.smartpyme.service_1_executable_entrypoint_v1 import (
     run_service_1_executable_entrypoint_v1,
 )
+from pymia.smartpyme.service_1_column_confirmation_packet_v1 import (
+    build_service_1_column_confirmation_packet_v1,
+)
 from pymia.smartpyme.service_1_xlsx_structure_v1 import (
     read_service_1_xlsx_structure_v1,
 )
@@ -73,8 +76,9 @@ def main(argv: list[str] | None = None) -> int:
     # Print owner_message to stdout
     print(packet["owner_message"], flush=True)
 
-    # If the file is XLSX, read its structure
+    # If the file is XLSX, read its structure and build column confirmation packet
     _detected_structure = None
+    _column_confirmation_packet = None
     if file_path.suffix.lower() in (".xlsx",):
         try:
             structure = read_service_1_xlsx_structure_v1(str(file_path))
@@ -101,6 +105,22 @@ def main(argv: list[str] | None = None) -> int:
                     flush=True,
                 )
             print()
+
+            # Build column confirmation packet from detected structure
+            _column_confirmation_packet = (
+                build_service_1_column_confirmation_packet_v1(structure)
+            )
+            questions = _column_confirmation_packet.get("questions", [])
+            if questions:
+                print("Confirmaci\u00f3n necesaria", flush=True)
+                print(
+                    "- Necesito confirmar el significado de algunas columnas "
+                    "antes de calcular o concluir.",
+                    flush=True,
+                )
+                print(f"- Preguntas generadas: {len(questions)}", flush=True)
+                print(f"- Primera pregunta: {questions[0]['question']}", flush=True)
+                print()
         except Exception:
             _detected_structure = {
                 "error": True,
@@ -132,6 +152,8 @@ def main(argv: list[str] | None = None) -> int:
     }
     if _detected_structure is not None:
         packet_serializable["detected_structure"] = _detected_structure
+    if _column_confirmation_packet is not None:
+        packet_serializable["column_confirmation_packet"] = _column_confirmation_packet
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(packet_serializable, f, indent=2, ensure_ascii=False)

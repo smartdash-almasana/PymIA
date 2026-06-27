@@ -339,3 +339,114 @@ def test_reader_error_no_traceback_adds_warning(capsys, tmp_path, monkeypatch) -
     assert "detected_structure" in packet
     assert packet["detected_structure"]["error"] is True
     assert "warning" in packet["detected_structure"]
+
+
+# ---------------------------------------------------------------------------
+# 13. XLSX agrega column_confirmation_packet al JSON
+# ---------------------------------------------------------------------------
+
+def test_xlsx_generates_column_confirmation_packet(tmp_path, monkeypatch) -> None:
+    """XLSX file → packet JSON must contain column_confirmation_packet."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(xlsx_path)])
+    assert exit_code == 0
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "column_confirmation_packet" in packet
+    assert packet["column_confirmation_packet"] is not None
+    assert packet["column_confirmation_packet"]["packet_type"] == "COLUMN_CONFIRMATION"
+    assert len(packet["column_confirmation_packet"]["questions"]) > 0
+
+
+# ---------------------------------------------------------------------------
+# 14. stdout incluye "Confirmación necesaria"
+# ---------------------------------------------------------------------------
+
+def test_stdout_includes_column_confirmation_block(capsys, tmp_path, monkeypatch) -> None:
+    """stdout must contain the column confirmation block."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    captured = capsys.readouterr()
+    assert "Confirmaci\u00f3n necesaria" in captured.out
+    assert "Preguntas generadas" in captured.out
+    assert "Primera pregunta" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# 15. column_confirmation_packet.runtime_authorized sigue false
+# ---------------------------------------------------------------------------
+
+def test_column_confirmation_packet_runtime_authorized_is_false(tmp_path, monkeypatch) -> None:
+    """Column confirmation packet must have runtime_authorized = False."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert packet["runtime_authorized"] is False
+    assert packet["column_confirmation_packet"]["runtime_authorized"] is False
+
+
+# ---------------------------------------------------------------------------
+# 16. Non-XLSX no agrega column_confirmation_packet
+# ---------------------------------------------------------------------------
+
+def test_non_xlsx_file_no_column_confirmation_packet(tmp_path, monkeypatch) -> None:
+    """Non-XLSX file → packet must NOT have column_confirmation_packet."""
+    monkeypatch.chdir(tmp_path)
+
+    csv_path = tmp_path / "test_data.csv"
+    csv_path.write_text("col1,col2\n1,2\n3,4", encoding="utf-8")
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(csv_path)])
+    assert exit_code == 0
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "column_confirmation_packet" not in packet
+    assert "detected_structure" not in packet
+
+
+# ---------------------------------------------------------------------------
+# 17. stdout con XLSX no contiene traceback
+# ---------------------------------------------------------------------------
+
+def test_xlsx_stdout_no_traceback(capsys, tmp_path, monkeypatch) -> None:
+    """Successful XLSX run must not print traceback to stdout."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(xlsx_path)])
+    assert exit_code == 0
+
+    captured = capsys.readouterr()
+    assert "Traceback" not in captured.out
+    assert "traceback" not in captured.out.lower()
