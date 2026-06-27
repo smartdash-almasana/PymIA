@@ -1,5 +1,7 @@
 # SERVICE_1_FULL_CLOSURE_RECTOR_V1
 
+> Nota de autoridad documental: para estado operativo vigente de Servicio 1, ver `SERVICE_1_CURRENT_STATE_V1.md`. Este documento conserva función rectora/roadmap, pero no prevalece sobre el current state cuando describa estados ya superados.
+
 ## Estado
 
 ```text

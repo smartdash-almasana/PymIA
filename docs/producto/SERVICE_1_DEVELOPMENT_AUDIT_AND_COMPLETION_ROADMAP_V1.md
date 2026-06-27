@@ -1,5 +1,7 @@
 # SERVICE_1_DEVELOPMENT_AUDIT_AND_COMPLETION_ROADMAP_V1
 
+> Nota de autoridad documental: para estado operativo vigente de Servicio 1, ver `SERVICE_1_CURRENT_STATE_V1.md`. Este documento conserva función de roadmap/target, pero no prevalece sobre el current state cuando describa estados ya superados.
+
 ## Estado
 
 ```text
