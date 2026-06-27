@@ -4,7 +4,7 @@
 
 ```text
 Tipo: DEVELOPMENT_AUDIT_AND_COMPLETION_ROADMAP
-Estado: DRAFT_APPLIED
+Estado: REALIGNED_ETAPA_0
 Metodología: Gentle AI Development
 Runtime impact: NONE
 Code impact: NONE
@@ -13,35 +13,33 @@ Tests impact: NONE
 
 ## Propósito
 
-Este documento consolida la auditoría actual de desarrollo de PymIA Servicio 1 y define un roadmap de completitud pieza por pieza.
+Este documento define el objetivo grande de **Servicio 1 full** y, desde esta realineación, debe leerse como **roadmap de target**, no como declaración de cercanía al cierre.
 
-Corrige la desactualización entre la documentación previa y el estado real del repo después de los ciclos recientes de File Intake, TaskSpec boundary, OwnerResponse y OwnerMessageFormatter.
+Su función ahora es:
 
-No autoriza implementación nueva.
-No autoriza runtime.
-No autoriza pipeline.
-No autoriza FSM nueva.
-No autoriza LLM.
-No autoriza chatbot.
-No autoriza XLSX delivery.
+- fijar las 8 familias del objetivo full;
+- reconocer que el estado actual sigue siendo parcial;
+- convivir sin contradicción con el DoD conservador y con el rector full;
+- impedir que avances asistidos parciales se confundan con completitud del producto.
+
+Este documento no autoriza implementación nueva por sí solo.
+El orden vigente de cierre queda gobernado por:
+
+```text
+SERVICE_1_FULL_CLOSURE_RECTOR_V1
+```
 
 ---
 
 # 1. Estado real del repo al cierre de auditoría
 
-## HEAD relevante
+## HEAD relevante verificado en esta realineación
 
 ```text
-9b1737e feat(pymia-live): add service 1 owner message formatter
-ed01d01 feat(pymia-live): add service 1 owner response renderer
-91f2c46 feat(pymia-live): add service 1 excel triage report contract
-89d4a1e docs(pymia-live): freeze service 1 fsm boundary drift
-184692f test(pymia-live): cover service 1 boundary chain
-46670ca feat(pymia-live): add service 1 fsm decision patch
-4a2662b feat(pymia-live): add service 1 taskspec contract
-5268ab9 feat(pymia-live): centralize service 1 taskspec vocabulary
-b583815 docs(pymia): close column confirmation report wiring
-dfd6909 feat(pymia-live): add file intake taskspec boundary
+33907be docs(pymia): add service 1 full closure rector
+e9747fe test(pymia): add service 1 anonymized real case harness
+607063b test(pymia): add service 1 synthetic final case run
+c1c319d test(pymia): add service 1 local first aid functional e2e
 ```
 
 ## Working tree conocido
@@ -54,9 +52,11 @@ Ese archivo queda fuera de esta auditoría y no debe incorporarse salvo autoriza
 
 ---
 
-# 2. Cadena real implementada en Servicio 1
+# 2. Capacidad real implementada al día de hoy
 
-La cadena implementada actual es:
+Hay dos niveles probados que NO deben confundirse con el full:
+
+## 2.1 Foundation owner-facing mínima
 
 ```text
 FileIntakeResult
@@ -65,14 +65,32 @@ FileIntakeResult
 → OwnerMessageFormatterV1
 ```
 
-Esta cadena permite una salida owner-facing mínima:
+## 2.2 Lane asistida local de First Aid / operator CLI
 
 ```text
-qué se recibió
-qué se puede hacer ahora
-qué falta
-qué no se puede afirmar todavía
-próximo paso del dueño
+XLSX real
+→ intake
+→ structure reader
+→ column confirmation packet
+→ confirmed columns
+→ first aid mínimo
+→ QA delivery gate
+→ carpeta de caso
+```
+
+Esto prueba una punta operativa real y útil.
+
+No prueba todavía:
+
+```text
+Servicio 1 full
+Laboratorio Excel productizado
+Factoría Excel cerrada
+XLSX con fórmulas
+runtime contable
+conciliaciones runtime
+PDF/CSV normalizado
+chatbot con IA arneada
 ```
 
 Condición central:
@@ -91,7 +109,7 @@ No hay LLM.
 
 ---
 
-# 3. Piezas implementadas relevantes
+# 3. Piezas implementadas relevantes para NO sobreclaimar
 
 | Pieza | Archivo | Estado | Rol |
 |---|---|---|---|
@@ -102,6 +120,10 @@ No hay LLM.
 | Excel Triage Report V1 | `PymIA-Live/pymia/smartpyme/service_1_excel_triage_report_v1.py` | IMPLEMENTED | Anexo estructurado técnico |
 | OwnerResponse Renderer V1 | `PymIA-Live/pymia/smartpyme/owner_response_renderer_v1.py` | IMPLEMENTED_VALIDATED | Salida principal owner-facing mínima |
 | OwnerMessage Formatter V1 | `PymIA-Live/pymia/smartpyme/owner_message_formatter_v1.py` | IMPLEMENTED_VALIDATED | Texto plano listo para canal manual |
+| First Aid pipeline / assisted operator lane | `PymIA-Live/pymia/smartpyme/service_1_pipeline_v1.py`, `PymIA-Live/pymia/cli/service_1_operator.py` | IMPLEMENTED_VALIDATED_IN_SCOPE | Pipeline parcial y CLI asistida, no pipeline full |
+| Document ingestion script | `tools/document_ingestion.py` | IMPLEMENTED_PARTIAL | Existe, pero sigue fuera de `pymia.smartpyme` |
+| Exceland bridge | `PymIA-Live/pymia/smartpyme/exceland_bridge_v1.py` | IMPLEMENTED_MINIMAL_CONTRACT | Bridge mínimo; factoría física sigue externa |
+| Accounting contracts / gate | `PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py`, `PymIA-Live/pymia/smartpyme/accounting_human_review_gate_v1.py` | IMPLEMENTED_MINIMAL_CONTRACT | Base contractual/gate, no runtime contable productivo |
 | FSM Decision Patch V1 | `PymIA-Live/pymia/smartpyme/service_1_fsm_decision_patch_v1.py` | EXPERIMENTAL_FROZEN | Congelado por deriva |
 | Boundary Chain V1 | `PymIA-Live/pymia/smartpyme/service_1_boundary_chain_v1.py` | EXPERIMENTAL_FROZEN | Congelado por deriva |
 
@@ -133,43 +155,27 @@ No usarlas para abrir runtime.
 
 ---
 
-# 5. Diferencias contra Capability Matrix V1
+# 5. Regla de lectura vigente
 
-La matriz previa declara:
+Este roadmap ya no puede leerse como tabla de “proximidad”.
+
+Debe leerse así:
 
 ```text
-Service 1 TaskSpec = MISSING
+Roadmap = target full
+DoD conservador = cierre asistido/manual
+Rector full = baseline de verdad documental y orden vigente
 ```
 
-Pero el repo ya contiene:
+Cuando haya conflicto:
 
 ```text
-service_1_taskspec_vocabulary_v1.py
-service_1_taskspec_contract_v1.py
-file_intake_taskspec_boundary_v1.py
-```
-
-Por lo tanto:
-
-```text
-Capability Matrix V1 está desactualizada.
-```
-
-Corrección recomendada:
-
-```text
-Service 1 TaskSpec = IMPLEMENTED_PARTIAL / IMPLEMENTED_FOCAL
-```
-
-Motivo:
-
-```text
-Existe contrato y vocabulario, pero falta assembler completo y conexión controlada con piezas posteriores.
+repo verificado > roadmap antiguo > traza optimista > inferencia
 ```
 
 ---
 
-# 6. Estado de completitud contra Producto Servicio 1 Full
+# 6. Estado real de las 8 familias del full
 
 Servicio 1 full incluye:
 
@@ -184,38 +190,38 @@ PDF/CSV/Excel a Excel normalizado
 Chatbot operativo con IA bajo arnés
 ```
 
-Estado real actual:
+Estado real realineado:
 
-| Familia | Estado real | Brecha |
+| Familia | Estado real | Brecha principal |
 |---|---|---|
-| Primeros Auxilios | Foundation owner-facing lista | Falta tool ejecutable y entregable XLSX |
-| Laboratorio Excel | Implementación parcial existente en document_ingestion | Falta empaquetado como producto Servicio 1 |
-| Factoría Excel | Parcial en Exceland/exeland2 | Falta bridge controlado |
-| Excel descargables | Documentado | Falta XLSX Delivery V1 |
-| Servicios contadores | Definido/documentado | Falta contrato operativo inicial |
-| Conciliaciones | Parcial/documentado | Falta Bank Reconciliation Contract V1 |
-| PDF/CSV/Excel normalizado | Parcial | PDF todavía missing / no evidenciado |
-| Chatbot operativo | Documentado / needs wiring | No abrir antes de FSM + pipeline + LLM adapter |
+| Primeros Auxilios | PARTIAL | existe lane asistida fuerte, pero no familia full cerrada |
+| Laboratorio Excel | PARTIAL_SCRIPT_ISOLATED | `document_ingestion.py` no está productizado en `pymia.smartpyme` |
+| Factoría Excel | PARTIAL_EXTERNAL_DEPENDENCY | `exeland2` vive fuera del repo y el bridge no cierra generación física controlada |
+| Excel descargables con fórmulas | BLOCKED_BY_PRODUCT_DECISION | el delivery actual declara explícitamente que no usa fórmulas |
+| Servicios para contadores | PARTIAL_CONTRACT_AND_GATE | hay contratos/gates, no runtime estable de workpaper productivo |
+| Conciliaciones | PARTIAL_SANDBOX_OR_CONTRACT | falta motor real de matching y conciliación |
+| PDF/CSV/Excel normalizado | MISSING | no hay módulos `pdf` ni `csv` en `smartpyme` |
+| Chatbot operativo con IA bajo arnés | FROZEN_OR_MISSING | FSM congelada + sin adapter LLM ni wiring final |
 
 ---
 
-# 7. Veredicto de auditoría
+# 7. Veredicto de auditoría realineado
 
 ```text
 SERVICE_1_CURRENT_STATUS:
-FOUNDATION_OWNER_OUTPUT_READY
-NOT_FULL_PRODUCT_READY
-ROADMAP_DOCS_OUTDATED
-NEXT_REQUIRED: GENTLE_AI_COMPLETION_LOOP
+PARTIAL_FOUNDATIONS_REAL
+FULL_TARGET_STILL_VERY_FAR
+RECTOR_GOVERNANCE_REQUIRED
+NEXT_REQUIRED: ETAPA_0_COMPLETED / ETAPA_1_PENDING
 ```
 
 Interpretación:
 
 ```text
-Servicio 1 ya tiene una primera salida owner-facing honesta y testeada.
-Servicio 1 todavía no tiene archivo entregable ni tool ejecutable.
-La documentación previa debe actualizarse para reflejar los commits recientes.
-El avance debe continuar pieza por pieza bajo Gentle AI Development.
+Servicio 1 ya tiene fundaciones reales y una lane asistida útil.
+Eso no equivale al producto full.
+La cercanía al full no puede inferirse por demos ni por contracts aislados.
+El orden vigente de cierre lo fija SERVICE_1_FULL_CLOSURE_RECTOR_V1.
 ```
 
 ---
@@ -319,26 +325,22 @@ PASS_WITH_NOTES
 
 ---
 
-# 9. Roadmap V2 pieza por pieza
+# 9. Etapas rectoras vigentes
 
-| Ciclo | Pieza | Fase Gentle AI | Tipo | Output | Tests esperados | Auditoría requerida | Freno humano | Riesgo | Condición de cierre |
-|---:|---|---|---|---|---|---|---|---|---|
-| 0 | SERVICE_1_DEVELOPMENT_AUDIT_AND_COMPLETION_ROADMAP_V1 | DESIGN/AUDIT | DOC | Roadmap actualizado | No aplica | Sí | Sí | Bajo | Documento creado |
-| 1 | SERVICE_1_OWNER_OUTPUT_CLOSEOUT_V1 | AUDIT/DOC | DOC | Cierre owner-facing | No aplica | Sí | Sí | Bajo | Owner output reconocido como foundation |
-| 2 | SERVICE_1_CAPABILITY_MATRIX_V2 | AUDIT/DOC | DOC | Matriz corregida | No aplica | Sí | Sí | Bajo | TaskSpec deja de figurar como MISSING |
-| 3 | SERVICE_1_TASKSPEC_ASSEMBLER_V1 | BUILD | CODE | Service1TaskSpec completo desde intake/patch | Tests focales assembler | Sí | Sí | Medio | No runtime autorizado |
-| 4 | FIRST_AID_TOOL_RESULT_V1 | BUILD | CONTRACT | Contrato común de resultado de tool | Tests contrato | Sí | Sí | Medio | Formato común cerrado |
-| 5 | FIRST_AID_PRECIO_MARGEN_BASICO_V1 | BUILD | CODE | Tool determinística margen básico | Tests cálculo/faltantes/limitaciones | Sí | Sí | Medio | Sin diagnóstico ni rentabilidad real |
-| 6 | FIRST_AID_XLSX_DELIVERY_V1 | BUILD | CODE | XLSX descargable desde ToolResult | Tests archivo/hojas mínimas | Sí | Sí | Alto | XLSX determinístico validado |
-| 7 | FIRST_AID_CAJA_DIARIA_TRIAGE_V1 | BUILD | CODE | Tool caja diaria simple | Tests cálculo/faltantes/limitaciones | Sí | Sí | Medio | No afirmar saldo bancario real |
-| 8 | FIRST_AID_STOCK_ALERTAS_BASICAS_V1 | BUILD | CODE | Tool alerta stock mínima | Tests alerta/faltantes/limitaciones | Sí | Sí | Medio | No afirmar stock físico real |
-| 9 | SERVICE_1_PIPELINE_V1 | BUILD | CODE | Pipeline propio Servicio 1 | Tests integración mínima | Sí | Sí | Alto | No usar vertical_pipeline como expansión caótica |
-| 10 | SERVICE_1_FSM_V1 | BUILD | CODE | FSM real de Servicio 1 | Tests estados/transiciones | Sí | Sí | Alto | No reabrir módulos congelados sin auditoría |
-| 11 | EXCELAND_BRIDGE_V1 | BUILD | CODE | Puente controlado a templates/specs | Tests bridge | Sí | Sí | Alto | No migrar Exceland entero |
-| 12 | BANK_RECONCILIATION_CONTRACT_V1 | DESIGN/BUILD | CONTRACT | Contrato conciliación bancaria | Tests contrato | Sí | Sí | Alto | Sin ejecución hasta contrato cerrado |
-| 13 | WORKPAPER_XLSX_V1 | BUILD | CODE | Workpaper XLSX estándar | Tests hojas/schema | Sí | Sí | Alto | Depende de delivery estable |
-| 14 | LLM_ADAPTER_V1 | DESIGN/BUILD | CONTRACT/CODE | IA bajo arnés | Tests outputs permitidos/prohibidos | Sí | Sí | Alto | IA no calcula ni concilia |
-| 15 | CHATBOT_OPERATIVO_SERVICE_1_V1 | BUILD | WIRING | Interfaz conversacional | Tests de flujo | Sí | Sí | Alto | Sólo después de FSM/pipeline/adapter |
+El orden vigente ya no es la tabla histórica de microciclos sino este:
+
+| Etapa | Frente | Tipo | Cierre requerido |
+|---:|---|---|---|
+| 0 | Alineación documental dura | DOC/AUDIT | roadmap, DoD, trace y rector sin contradicción |
+| 1 | Decisión de producto sobre fórmulas | PRODUCT/DOC | contradicción roadmap vs delivery resuelta |
+| 2 | Cierre real de Primeros Auxilios | CODE/TEST/AUDIT | familia First Aid cerrada como familia full |
+| 3 | Productización de Laboratorio Excel | CODE/TEST | `document_ingestion` dentro del paquete y cableado |
+| 4 | Resolución de Factoría Excel | CODE/DEP/AUDIT | dependencia `exeland2` formalizada y usable |
+| 5 | CSV + PDF + normalizador común | CODE/TEST | familia normalización cerrada |
+| 6 | Runtime de servicios para contadores | CODE/TEST/REAL_CASE | workpaper productivo con gate humano |
+| 7 | Motores de conciliación | CODE/TEST | matching y conciliación reales |
+| 8 | FSM productiva + LLM adapter | CODE/TEST/AUDIT | gobierno conversacional tipado |
+| 9 | Chatbot operativo con IA bajo arnés | WIRING/TEST | canal final cableado al pipeline real |
 
 ---
 
@@ -367,45 +369,17 @@ No diagnosticar empresa como sistema desde Servicio 1.
 
 ---
 
-# 11. Próximo ciclo recomendado
-
-## Ciclo 1
+# 11. Próximo frente recomendado
 
 ```text
-SERVICE_1_OWNER_OUTPUT_CLOSEOUT_V1
+ETAPA 1 — DECISIÓN DE PRODUCTO SOBRE FÓRMULAS
 ```
 
-Tipo:
+Razón:
 
 ```text
-DOC/AUDIT ONLY
-```
-
-Objetivo:
-
-```text
-Declarar formalmente que OwnerResponseV1 + OwnerMessageFormatterV1 constituyen la primera salida owner-facing mínima de Servicio 1.
-```
-
-Debe dejar claro:
-
-```text
-No es diagnóstico.
-No es XLSX delivery.
-No es pipeline.
-No es chatbot.
-No es runtime.
-Es salida inicial vendible/asistida/manual.
-```
-
-Condición de cierre:
-
-```text
-Documento creado.
-No tests.
-No runtime.
-No código.
-Commit atómico sólo del documento si el usuario aprueba.
+Mientras el roadmap full exija fórmulas y el delivery actual las prohíba explícitamente,
+la familia “Excel descargables con fórmulas” sigue bloqueada.
 ```
 
 ---
@@ -413,5 +387,5 @@ Commit atómico sólo del documento si el usuario aprueba.
 # 12. Veredicto final
 
 ```text
-SERVICE_1_ROADMAP_V2_READY_WITH_GENTLE_AI_LOOP
+SERVICE_1_ROADMAP_REALIGNED_TO_FULL_RECTOR
 ```

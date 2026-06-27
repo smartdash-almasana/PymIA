@@ -14,6 +14,30 @@ Definir qué significa Servicio 1 completo/terminado en PymIA sin ampliar alcanc
 Servicio 1 se entiende como microservicio asistido bajo revisión humana orientado a archivos, evidencia declarada, XLSX operativo, owner/operator delivery y límites explícitos.
 ```
 
+RELATION_TO_FULL_ROADMAP:
+
+```text
+Este documento NO equivale al objetivo “Servicio 1 full” del roadmap grande.
+
+Gobierna una definición conservadora de cierre asistido/manual.
+
+Si el objetivo es:
+- Primeros Auxilios
+- Laboratorio Excel
+- Factoría Excel
+- Excel descargables con fórmulas
+- Servicios para contadores
+- Conciliaciones
+- PDF/CSV/Excel normalizado
+- Chatbot con IA bajo arnés
+
+entonces la autoridad de target es:
+docs/producto/SERVICE_1_DEVELOPMENT_AUDIT_AND_COMPLETION_ROADMAP_V1.md
+
+y la línea base de verdad documental es:
+docs/producto/SERVICE_1_FULL_CLOSURE_RECTOR_V1.md
+```
+
 SERVICE_1_DONE_DEFINITION:
 
 ```text
@@ -33,6 +57,22 @@ Servicio 1 estará completo cuando pueda ejecutar de forma repetible, segura y a
 12. haber pasado pilotos sintéticos y al menos un caso real supervisado
 
 Servicio 1 completo no significa autonomía plena, auditoría, certificación, conciliación definitiva, fiscalidad, APIs vivas, OCR, parser automático ni chatbot libre.
+```
+
+FULL_ROADMAP_BOUNDARY:
+
+```text
+Este DoD no autoriza inferir que Servicio 1 full esté cerca.
+
+Sirve para medir cierre asistido conservador.
+
+No sirve para declarar cerradas estas familias del roadmap full:
+- Laboratorio Excel productizado
+- Factoría Excel cerrada
+- XLSX con fórmulas
+- Conciliaciones runtime
+- PDF/CSV/Excel normalizado
+- Chatbot con IA bajo arnés
 ```
 
 MODULE_STATUS_MATRIX:
@@ -304,6 +344,19 @@ Recommended order:
 1. patch runbook with edge-case rules if not yet committed
 2. create QA Delivery Checklist
 3. run first real client case
+```
+
+NEXT_FRONT_IF_GOAL_IS_FULL_ROADMAP:
+
+```text
+If the active goal is Servicio 1 full del roadmap grande,
+do not use this DoD as the main work queue.
+
+Use instead:
+SERVICE_1_FULL_CLOSURE_RECTOR_V1
+
+and continue with:
+ETAPA 1 — decisión de producto sobre fórmulas.
 ```
 
 COMMIT_READY:

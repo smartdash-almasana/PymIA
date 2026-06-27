@@ -4,7 +4,7 @@
 
 ```text
 Tipo: PRODUCT_TRACE / MASTER_IMPLEMENTATION_AUDIT
-Estado: MASTER_APPLIED
+Estado: REALIGNED_WITH_RECTOR
 Runtime impact: NONE
 Code impact: NONE
 Tests impact: NONE
@@ -14,9 +14,20 @@ Push autorizado: NO
 
 ## Propósito
 
-Este documento fija de forma rigurosa la traza maestra de implementación por capas de **Servicio 1 Full** a partir de la verdad fáctica del repositorio y la evidencia documental, eliminando cualquier tipo de desactualización, supuestos de valor o derivas hacia MVPs o pilotos comerciales.
+Este documento mantiene la vista **por capas** de Servicio 1 Full, pero desde esta realineación ya no puede leerse como indicador de cercanía al cierre.
 
-Servicio 1 no se reduce a First Aid: es un sistema completo determinístico e integrado de datos, Excel y contabilidad para la PyME, con chatbot conversacional arneado.
+Su rol correcto es:
+
+- mapear dependencias técnicas por capas;
+- mostrar dónde existen foundations reales;
+- dejar explícito qué capas siguen abiertas;
+- obedecer al rector cuando haya conflicto de interpretación.
+
+Autoridad de precedencia:
+
+```text
+repo verificado > SERVICE_1_FULL_CLOSURE_RECTOR_V1 > esta traza por capas
+```
 
 ---
 
@@ -35,18 +46,27 @@ Servicio 1 no se reduce a First Aid: es un sistema completo determinístico e in
 ## 1. VEREDICT (Veredicto de Auditoría)
 
 ```text
-SERVICE_1_FULL_STATUS: PARTIAL_SYSTEM_IMPLEMENTED / DOCUMENTATION_REALIGNED
+SERVICE_1_FULL_STATUS: PARTIAL_FOUNDATIONS_IMPLEMENTED / FULL_FAMILIES_NOT_CLOSED
 ```
 
 ### Diagnóstico de la Traza Maestra
-1.  **Estado Implementado:** Se encuentra completamente cerrada y validada la cadena de **Primeros Auxilios (First Aid) asistido y manual**, incluyendo su delivery XLSX genérico reutilizable. La capa de contratos base (Capa 0), ingesta y normalización de valores (Capa 1), lógica de herramientas core autorizadas (Capa 2), renderizado y formateo de respuesta (Capa 3), exportación física openpyxl First Aid, y orquestación del arnés del operador (`service_1_pipeline_v1`, `service_1_operator_harness_v1`, `service_1_operator_delivery_package_v1`) están **operacionales y validadas dentro del alcance First Aid**.
-2.  **Estado Parcial:**
-    *   **Laboratorio Excel / Ingesta Semántica:** `document_ingestion.py` sigue residiendo como script aislado bajo `tools/`, pero ya existe una capa lógica productizada en `pymia/smartpyme/excel_treatment_lab_v1.py` que modela entradas, confirmaciones y límites sin hacer IO ni abrir runtime profundo.
-    *   **Factoría Excel (Exceland):** El compilador de specs YAML y warehouse de templates en `exeland2` funciona de manera autónoma, y ahora existe un bridge lógico mínimo en `pymia/smartpyme/exceland_bridge_v1.py`; todavía falta la frontera controlada para invocar la generación física real.
-    *   **Servicios Contables:** Ya existe una base contractual pura en `service_1_accounting_contracts_v1.py` y una compuerta humana explícita en `accounting_human_review_gate_v1.py`, pero todavía no existe runtime contable confiable ni conciliación operativa productiva.
-3.  **Estado Faltante (Missing):** Ingesta de PDF funcional en runtime, conciliación real de Mercado Pago / tarjetas, matching real de facturas contra cobros, generación operativa de papeles de trabajo (`workpapers`), liquidación IVA/IIBB, generación de asientos para ERP, máquina de estados FSM productiva, adaptador LLM (IA arneada) y cableado del chatbot Telegram al pipeline.
-4.  **Desbalance Documental Corregido en Esta Traza:** Los documentos maestros venían subestimando capas ya cerradas o productizadas de forma contractual (`xlsx_delivery`, `excel_treatment_lab_v1`, `exceland_bridge_v1`, `service_1_accounting_contracts_v1`, `accounting_human_review_gate_v1`). Esta versión realinea la traza con el código real, sin convertir contratos lógicos en claims de runtime.
-5.  **Evidencia Empírica de Test y Aislamiento:** La cadena determinista de Servicio 1 mantiene suites focales verdes para delivery XLSX, Excel Treatment Lab, Exceland Bridge, accounting contracts y human review gate. Por contraste, el runtime profundo heredado de diagnóstico sigue siendo una frontera distinta y no debe confundirse con el estado de cierre de Servicio 1.
+1.  **Estado Implementado:** Hay foundations reales fuertes en First Aid asistido, owner-facing, delivery gate y operador local. Eso prueba una punta operativa, no el producto full.
+2.  **Estado Parcial:** Laboratorio Excel sigue aislado en `tools/document_ingestion.py`; Factoría depende de `exeland2` fuera del repo; contabilidad/conciliaciones siguen mayormente en contrato, gate o sandbox.
+3.  **Estado Faltante:** PDF y CSV runtime dentro del paquete, workpaper runtime real, conciliaciones operativas, FSM productiva, adapter LLM tipado y cableado chatbot.
+4.  **Contradicción de producto clave:** el delivery XLSX actual declara explícitamente que no usa fórmulas, mientras el roadmap full exige “Excel descargables con fórmulas”.
+5.  **Regla de lectura corregida:** esta traza no debe volver a usarse para justificar porcentajes optimistas de completitud ni proximidad falsa al full.
+
+---
+
+## 1.1 RELACIÓN CON EL RECTOR
+
+```text
+Si esta traza por capas entra en conflicto con:
+- SERVICE_1_FULL_CLOSURE_RECTOR_V1
+- o con el repo verificado
+
+entonces esta traza cede.
+```
 
 ---
 
@@ -306,53 +326,52 @@ El camino crítico estructurado e incremental, basado estrictamente en dependenc
 
 ---
 
-## 6. COMPLETENESS ESTIMATE (Estimación de Completitud)
+## 6. COMPLETENESS ESTIMATE (Realineado)
 
-### 1. Estimación por Familia Funcional
-*   **First Aid (Primeros Auxilios):** **100%** (Familia runtime cerrada dentro del alcance autorizado).
-*   **Laboratorio Excel (Excel Lab):** **75%** (La capa lógica está productizada y testeada; falta runtime integrado de `document_ingestion` y falta PDF).
-*   **Factoría Excel (Exceland):** **70%** (Cantera y bridge lógico mínimo listos; falta frontera controlada de generación física).
-*   **XLSX Delivery:** **100%** (Totalmente implementado y pasando pruebas unitarias).
-*   **Servicios Contables y Conciliación:** **25%** (La familia contractual y el gate humano existen; faltan runtimes bancarios/MP/facturas/workpapers).
-*   **Alertas y Vencimientos:** **20%** (Estructura declarativa y umbrales en JSON; falta motor ejecutable).
-*   **Orquestación y Arnés (Operator Engine):** **100%** (Pipeline First Aid, arnés y empaquetador manual listos y validados).
-*   **FSM, LLM y Chatbot:** **15%** (Telegram base existe; FSM y adapter en estado conceptual o experimental congelado).
+### 6.1 Regla nueva
 
-### 2. Estimación por Capa Técnica
-*   **Capa 0 (Contratos y fronteras):** **100%**
-*   **Capa 1 (Intake / TaskSpec / Evidence):** **100%**
-*   **Capa 2 (Tools First Aid):** **100%**
-*   **Capa 3 (Delivery de archivos):** **100%**
-*   **Capa 4 (Excel Lab / normalización):** **55%**
-*   **Capa 5 (Exceland Bridge / factoría):** **60%**
-*   **Capa 6 (Contadores / conciliaciones / workpapers):** **35%**
-*   **Capa 7 (Pipeline Servicio 1 full):** **35%**
-*   **Capa 8 (FSM Servicio 1):** **10%**
-*   **Capa 9 (IA con arnés / LLM Adapter):** **5%**
-*   **Capa 10 (Chatbot operativo):** **5%**
-
-### 3. Estimación del Porcentaje de Completitud Total
 ```text
-SERVICE_1_FULL_COMPLETENESS: 60%
+NO_NUMERIC_COMPLETENESS_ESTIMATE_ALLOWED
 ```
-*   *Justificación:* La base del sistema asistido/manual de First Aid, el delivery XLSX genérico, la productización lógica del Excel Lab, el bridge lógico de Exceland y la familia contractual contable ya están cerrados o realineados. Sin embargo, Servicio 1 Full sigue condicionado por la falta de runtimes contables reales, `pipeline_full`, FSM y gobierno conversacional controlado.
+
+Esta traza deja de usar porcentajes globales porque inducían a una lectura falsa de cercanía.
+
+### 6.2 Lectura correcta
+
+- **Capas bajas fuertes** no implican **familias full cerradas**.
+- Tener contratos, gates, bridges mínimos o sandboxes no autoriza inferir runtime productivo.
+- Mientras persistan:
+  - la contradicción de fórmulas,
+  - Lab Excel no empaquetado,
+  - `exeland2` externo,
+  - PDF/CSV missing,
+  - runtime contable y conciliaciones abiertos,
+  - FSM/LLM/chatbot abiertos,
+
+la lectura correcta sigue siendo:
+
+```text
+Servicio 1 full = VERY FAR
+```
 
 ---
 
 ## 7. NEXT BLOCK (Próximo Bloque de Avance hacia Servicio 1 Full)
 
-El próximo bloque técnico coherente y dependencialmente correcto es:
+El próximo bloque correcto después de la realineación documental es:
 
 ```text
-SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1
+ETAPA 1 — DECISIÓN DE PRODUCTO SOBRE FÓRMULAS
 ```
 
-*   **Tipo:** `CONTRACT_AND_SANDBOX_RUNTIME_BOUNDARY` (abre runtime mínimo controlado, pero no habilita ejecución contable productiva ni claims de exactitud fiscal).
-*   **Motivo de dependencia:** First Aid, XLSX Delivery, Excel Treatment Lab, Exceland Bridge, accounting contracts y accounting human review gate ya están cerrados en su capa mínima. La siguiente dependencia real es transformar el contrato contable bancario en una frontera de runtime autorizable y verificable.
-*   **Entregables específicos:**
-    1.  *Contrato de runtime mínimo:* Entrada/salida/límites explícitos para conciliación bancaria básica.
-    2.  *Integración con gate humano:* Asegurar que toda ejecución potencial siga bloqueada por `accounting_human_review_gate_v1` hasta revisión explícita.
-    3.  *Prueba de humo contractual:* Validar que el runtime candidato consuma `service_1_accounting_contracts_v1` sin saltarse límites ni claims prohibidos.
+Motivo:
+
+```text
+La familia “Excel descargables con fórmulas” sigue bloqueada por contradicción explícita
+entre roadmap full y delivery actual.
+```
+
+Sin resolver eso, abrir contabilidad, conciliaciones o chatbot sólo apila complejidad sobre una frontera de producto todavía inconsistente.
 
 ---
 
@@ -363,6 +382,7 @@ Queda estrictamente prohibido iniciar trabajos o abrir ramas de código en runti
 *   **Chatbot operativo / Telegram:** No implementar wiring del canal de mensajería (riesgo de deriva conversacional sin FSM).
 *   **LLM SDKs / OpenAI / OpenRouter:** No implementar integraciones de IA (riesgo de alucinaciones matemáticas sin arnés).
 *   **FSM productiva:** No descongelar ni refactorizar `service_1_fsm_decision_patch_v1.py` sin una auditoría de flujo previa.
+*   **Métricas porcentuales de “cercanía al full”:** No volver a usarlas como herramienta de gobierno.
 *   **Conciliación Bancaria y Mercado Pago:** No escribir lógica de cruce de banco sin contratos formales de conciliación tipados.
 *   **IVA / IIBB / Liquidaciones impositivas:** Fuera del alcance determinístico de Servicio 1.
 *   **Asientos Contables Automáticos:** Fuera del alcance.
