@@ -1159,3 +1159,37 @@ def test_cli_with_first_aid_does_not_import_forbidden_modules(
 
     for mod in forbidden:
         assert mod not in sys.modules, f"CLI must not import {mod}"
+
+
+# ---------------------------------------------------------------------------
+# 44. First Aid eligibility gate JSON written to case folder
+# ---------------------------------------------------------------------------
+
+
+def test_case_folder_contains_first_aid_eligibility_gate_json(
+    tmp_path, monkeypatch
+) -> None:
+    """Case folder must contain first_aid_eligibility_gate.json when First Aid is requested."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+    cc_path = _write_confirmed_columns(tmp_path)
+
+    from pymia.cli.service_1_operator import main
+
+    exit_code = main([
+        "--file", str(xlsx_path),
+        "--confirmed-columns", str(cc_path),
+        "--run-first-aid",
+    ])
+    assert exit_code == 0
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    eligibility_file = case_folders[0] / "first_aid_eligibility_gate.json"
+    assert eligibility_file.exists()
+
+    data = json.loads(eligibility_file.read_text(encoding="utf-8"))
+    assert data["gate_type"] == "FIRST_AID_MINIMAL_ELIGIBILITY"
+    assert data["runtime_authorized"] is False

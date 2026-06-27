@@ -217,6 +217,15 @@ def main(argv: list[str] | None = None) -> int:
             )
             packet_serializable["first_aid_eligibility_gate"] = eligibility_gate
 
+            eligibility_gate_filename = "first_aid_eligibility_gate.json"
+            (case_dir / eligibility_gate_filename).write_text(
+                json.dumps(eligibility_gate, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            manifest_files_written = manifest.get("files_written", [])
+            if eligibility_gate_filename not in manifest_files_written:
+                manifest_files_written.append(eligibility_gate_filename)
+
             if eligibility_gate["status"] == "ELIGIBLE":
                 # Run First Aid
                 first_aid_result = run_first_aid_minimal_v1(
