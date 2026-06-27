@@ -173,22 +173,7 @@ Acción rectora:
 Resolver primero una decisión de producto.
 ```
 
-### 4.2 `document_ingestion.py` existe, pero está fuera del producto empaquetado
-
-Hecho verificado:
-
-```text
-tools/document_ingestion.py existe
-PymIA-Live/pymia/smartpyme/document_ingestion_v1.py no existe
-```
-
-Implicancia:
-
-```text
-Laboratorio Excel no está cerrado como familia de producto.
-```
-
-### 4.3 `exeland2` no vive dentro de este repo
+### 4.2 `exeland2` no vive dentro de este repo
 
 Hecho verificado:
 
@@ -203,7 +188,7 @@ Implicancia:
 La factoría no puede tratarse como capacidad plenamente internalizada.
 ```
 
-### 4.4 PDF y CSV prometidos no existen como módulos del paquete
+### 4.3 PDF y CSV prometidos no existen como módulos del paquete
 
 Hecho verificado:
 
@@ -337,8 +322,6 @@ Resuelta por SERVICE_1_XLSX_FORMULA_POLICY_V1:
 Primeros Auxilios = DONE como familia del roadmap, no sólo como carril asistido.
 53 tests PASS en suite de validación (pipeline + delivery + CLI + manual + e2e).
 ```
-
-**Próxima etapa después de ésta**: Etapa 3
 
 ### Etapa 3 — Productización de Laboratorio Excel
 

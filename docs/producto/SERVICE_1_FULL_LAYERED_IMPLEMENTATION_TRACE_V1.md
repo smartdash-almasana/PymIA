@@ -151,7 +151,7 @@ graph TD
     end
 
     subgraph Capa 4: Excel Lab / Normalización
-        doc_ingestion[tools/document_ingestion.py - PARTIAL]
+        doc_ingestion[excel_lab_ingestion_v1.py + document_ingestion.py wrapper - IMPLEMENTED]
         pdf_intake[pdf_intake_v1.py - MISSING]
     end
 
@@ -267,8 +267,8 @@ graph TD
 ### CAPA 4 — Excel Lab / Normalización
 *   **Componentes:** `pymia/smartpyme/excel_lab_ingestion_v1.py` (Implementado), `tools/document_ingestion.py` wrapper (Implementado), `pdf_intake` (Missing).
 *   **Dependencias satisfechas:** Capa 0 (`file_intake`).
-*   **Dependencias pendientes:** Diseñar extractor PDF (CSV y Excel Lab están completos).
-*   **Estado real:** `80% PARCIAL` (Excel Lab está completamente productizado y validado; CSV es soportado; PDF sigue missing).
+*   **Dependencias pendientes:** Diseñar extractor PDF y cerrar la convergencia multi-formato real de la familia normalización.
+*   **Estado real:** `EXCEL_LAB_CLOSED_IN_SCOPE / NORMALIZATION_FAMILY_PARTIAL` (Excel Lab XLSX está completamente productizado y validado; la familia PDF/CSV/Excel normalizado sigue abierta).
 *   **Condición de cierre:** Ingesta y normalización de Excel, CSV y PDF producen un `StructuredEvidence` validado en el pipeline del producto.
 
 ### CAPA 5 — Exceland Bridge / Factoría
