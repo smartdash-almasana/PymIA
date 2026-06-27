@@ -632,3 +632,219 @@ def test_packet_runtime_authorized_false_with_case_delivery(tmp_path, monkeypatc
 
     assert packet["runtime_authorized"] is False
     assert packet["case_delivery_manifest"]["runtime_authorized"] is False
+
+
+# ---------------------------------------------------------------------------
+# 26. CLI con XLSX agrega qa_delivery_gate al packet
+# ---------------------------------------------------------------------------
+
+
+def test_xlsx_adds_qa_delivery_gate_to_packet(tmp_path, monkeypatch) -> None:
+    """XLSX file → packet JSON must contain qa_delivery_gate."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(xlsx_path)])
+    assert exit_code == 0
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "qa_delivery_gate" in packet
+    assert packet["qa_delivery_gate"]["service_name"] == "SERVICE_1"
+    assert packet["qa_delivery_gate"]["gate_type"] == "QA_DELIVERY_GATE"
+
+
+# ---------------------------------------------------------------------------
+# 27. qa_delivery_gate.status == PASS para caso completo
+# ---------------------------------------------------------------------------
+
+
+def test_qa_delivery_gate_status_is_pass_for_complete_case(tmp_path, monkeypatch) -> None:
+    """Complete XLSX case → qa_delivery_gate.status must be PASS."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert packet["qa_delivery_gate"]["status"] == "PASS"
+
+
+# ---------------------------------------------------------------------------
+# 28. qa_delivery_gate.runtime_authorized == false
+# ---------------------------------------------------------------------------
+
+
+def test_qa_delivery_gate_runtime_authorized_is_false(tmp_path, monkeypatch) -> None:
+    """qa_delivery_gate must have runtime_authorized = False."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert packet["qa_delivery_gate"]["runtime_authorized"] is False
+
+
+# ---------------------------------------------------------------------------
+# 29. stdout incluye "QA delivery gate"
+# ---------------------------------------------------------------------------
+
+
+def test_stdout_includes_qa_delivery_gate_block(capsys, tmp_path, monkeypatch) -> None:
+    """stdout must contain the QA delivery gate summary block."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    captured = capsys.readouterr()
+    assert "QA delivery gate" in captured.out
+    assert "Estado:" in captured.out
+    assert "Checks:" in captured.out
+    assert "Runtime autorizado: false" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# 30. operator_packet.json final contiene qa_delivery_gate
+# ---------------------------------------------------------------------------
+
+
+def test_operator_packet_json_contains_qa_delivery_gate(tmp_path, monkeypatch) -> None:
+    """operator_packet.json in case folder must contain qa_delivery_gate."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    case_dir = tmp_path / ".tmp" / "service_1_cases"
+    case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
+    assert len(case_folders) == 1
+
+    op_packet = case_folders[0] / "operator_packet.json"
+    assert op_packet.exists()
+
+    with open(op_packet, encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "qa_delivery_gate" in packet
+    assert packet["qa_delivery_gate"]["status"] == "PASS"
+
+
+# ---------------------------------------------------------------------------
+# 31. Non-XLSX no rompe; gate puede PASS o BLOCKED sin traceback
+# ---------------------------------------------------------------------------
+
+
+def test_non_xlsx_qa_gate_does_not_crash(tmp_path, monkeypatch, capsys) -> None:
+    """Non-XLSX file → qa_delivery_gate must not crash, no traceback."""
+    monkeypatch.chdir(tmp_path)
+
+    csv_path = tmp_path / "test_data.csv"
+    csv_path.write_text("col1,col2\n1,2\n3,4", encoding="utf-8")
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(csv_path)])
+    assert exit_code == 0
+
+    captured = capsys.readouterr()
+    assert "Traceback" not in captured.out
+    assert "traceback" not in captured.out.lower()
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "qa_delivery_gate" in packet
+    # For non-XLSX, gate may PASS (if minimal artifacts present) or BLOCKED
+    assert packet["qa_delivery_gate"]["status"] in ("PASS", "BLOCKED")
+
+
+# ---------------------------------------------------------------------------
+# 32. No runtime_authorized true en ningún nivel
+# ---------------------------------------------------------------------------
+
+
+def test_no_runtime_authorized_true_at_any_level(tmp_path, monkeypatch) -> None:
+    """Packet must not have runtime_authorized=True at any nesting level."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    def _check_no_true(obj):
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key == "runtime_authorized":
+                    assert value is not True, f"Found runtime_authorized=True at key: {key}"
+                _check_no_true(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                _check_no_true(item)
+
+    _check_no_true(packet)
+
+
+# ---------------------------------------------------------------------------
+# 33. No imports prohibidos en CLI con QA gate
+# ---------------------------------------------------------------------------
+
+
+def test_cli_with_qa_gate_does_not_import_forbidden_modules(tmp_path, monkeypatch) -> None:
+    """After running CLI with QA gate, forbidden modules must not be in sys.modules."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    forbidden = [
+        "pymia.smartpyme.vertical_pipeline",
+        "pymia.smartpyme.service_1_boundary_chain_v1",
+        "pymia.smartpyme.service_1_fsm_decision_patch_v1",
+        "pymia.smartpyme.service_1_pipeline_v1",
+        "pymia.smartpyme.service_1_owner_answer_reentry_v1",
+        "pymia.smartpyme.service_1_owner_answer_reentry_persistence_v1",
+        "pymia.smartpyme.service_1_case_reentry_read_model_v1",
+        "openai",
+        "chatbot",
+    ]
+
+    for mod in forbidden:
+        sys.modules.pop(mod, None)
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    for mod in forbidden:
+        assert mod not in sys.modules, f"CLI must not import {mod}"

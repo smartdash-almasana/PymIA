@@ -18,6 +18,9 @@ from pymia.smartpyme.service_1_case_delivery_folder_v1 import (
 from pymia.smartpyme.service_1_xlsx_structure_v1 import (
     read_service_1_xlsx_structure_v1,
 )
+from pymia.smartpyme.service_1_qa_delivery_gate_v1 import (
+    evaluate_service_1_qa_delivery_gate_v1,
+)
 
 
 def _infer_mime_type(filename: str) -> str | None:
@@ -161,11 +164,27 @@ def main(argv: list[str] | None = None) -> int:
     manifest = write_service_1_case_delivery_folder_v1(packet_serializable)
     packet_serializable["case_delivery_manifest"] = manifest
     case_dir = Path(manifest["case_dir"])
+
+    # Run QA delivery gate
+    qa_gate = evaluate_service_1_qa_delivery_gate_v1(packet_serializable)
+    packet_serializable["qa_delivery_gate"] = qa_gate
+
     operator_packet_path = case_dir / "operator_packet.json"
     operator_packet_path.write_text(
         json.dumps(packet_serializable, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
+
+    # Print QA delivery gate summary to stdout
+    print()
+    print("QA delivery gate", flush=True)
+    print(f"- Estado: {qa_gate['status']}", flush=True)
+    print(f"- Checks: {qa_gate['checks_passed']}/{qa_gate['checks_total']}", flush=True)
+    print("- Runtime autorizado: false", flush=True)
+    if qa_gate["status"] == "BLOCKED":
+        print()
+        print("El caso queda bloqueado para entrega hasta revisión humana.", flush=True)
+    print()
 
     # Print case delivery summary to stdout
     print()
