@@ -186,3 +186,156 @@ def test_cli_does_not_import_forbidden_modules(tmp_path, monkeypatch) -> None:
 
     for mod in _FORBIDDEN_MODULES:
         assert mod not in sys.modules, f"CLI must not import {mod}"
+
+
+# ---------------------------------------------------------------------------
+# 7. XLSX genera packet JSON con key detected_structure
+# ---------------------------------------------------------------------------
+
+def test_xlsx_generates_detected_structure_in_packet(tmp_path, monkeypatch) -> None:
+    """XLSX file → packet JSON must contain detected_structure key with structure data."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(xlsx_path)])
+    assert exit_code == 0
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "detected_structure" in packet
+    assert packet["detected_structure"] is not None
+    assert packet["detected_structure"]["service_name"] == "SERVICE_1"
+    assert "workbook" in packet["detected_structure"]
+
+
+# ---------------------------------------------------------------------------
+# 8. detected_structure.runtime_authorized es false
+# ---------------------------------------------------------------------------
+
+def test_detected_structure_runtime_authorized_is_false(tmp_path, monkeypatch) -> None:
+    """The detected_structure block must have runtime_authorized = False."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert packet["detected_structure"]["runtime_authorized"] is False
+
+
+# ---------------------------------------------------------------------------
+# 9. packet runtime_authorized principal sigue false
+# ---------------------------------------------------------------------------
+
+def test_packet_runtime_authorized_remains_false_with_structure(tmp_path, monkeypatch) -> None:
+    """Top-level runtime_authorized must remain False even when structure is added."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert packet["runtime_authorized"] is False
+    assert packet["detected_structure"]["runtime_authorized"] is False
+
+
+# ---------------------------------------------------------------------------
+# 10. stdout incluye "Estructura detectada" y "Hojas detectadas"
+# ---------------------------------------------------------------------------
+
+def test_stdout_includes_structure_block(capsys, tmp_path, monkeypatch) -> None:
+    """stdout must contain the structure block with Spanish labels."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    from pymia.cli.service_1_operator import main
+    main(["--file", str(xlsx_path)])
+
+    captured = capsys.readouterr()
+    assert "Estructura detectada" in captured.out
+    assert "Hojas detectadas" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# 11. Archivo no XLSX no agrega detected_structure y no rompe
+# ---------------------------------------------------------------------------
+
+def test_non_xlsx_file_no_detected_structure(tmp_path, monkeypatch) -> None:
+    """Non-XLSX file → packet must NOT have detected_structure, and CLI must not crash."""
+    monkeypatch.chdir(tmp_path)
+
+    csv_path = tmp_path / "test_data.csv"
+    csv_path.write_text("col1,col2\n1,2\n3,4", encoding="utf-8")
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(csv_path)])
+    assert exit_code == 0
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "detected_structure" not in packet
+
+
+# ---------------------------------------------------------------------------
+# 12. Error del reader no produce traceback y agrega warning
+# ---------------------------------------------------------------------------
+
+def test_reader_error_no_traceback_adds_warning(capsys, tmp_path, monkeypatch) -> None:
+    """When the reader raises, stdout must show warning without stack trace."""
+    monkeypatch.chdir(tmp_path)
+    xlsx_path = _find_xlsx_fixture()
+
+    import pymia.cli.service_1_operator as cli_mod
+
+    def _failing_reader(_path: str):
+        raise OSError("simulated read failure")
+
+    monkeypatch.setattr(
+        cli_mod,
+        "read_service_1_xlsx_structure_v1",
+        _failing_reader,
+    )
+
+    from pymia.cli.service_1_operator import main
+    exit_code = main(["--file", str(xlsx_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "No se pudo leer" in captured.out
+    assert "Traceback" not in captured.out
+
+    output_dir = tmp_path / ".tmp" / "service_1_operator"
+    json_files = list(output_dir.glob("*.json"))
+    assert len(json_files) == 1
+
+    with open(json_files[0], encoding="utf-8") as f:
+        packet = json.load(f)
+
+    assert "detected_structure" in packet
+    assert packet["detected_structure"]["error"] is True
+    assert "warning" in packet["detected_structure"]

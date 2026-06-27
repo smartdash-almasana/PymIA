@@ -9,6 +9,9 @@ from typing import Any
 from pymia.smartpyme.service_1_executable_entrypoint_v1 import (
     run_service_1_executable_entrypoint_v1,
 )
+from pymia.smartpyme.service_1_xlsx_structure_v1 import (
+    read_service_1_xlsx_structure_v1,
+)
 
 
 def _infer_mime_type(filename: str) -> str | None:
@@ -70,13 +73,53 @@ def main(argv: list[str] | None = None) -> int:
     # Print owner_message to stdout
     print(packet["owner_message"], flush=True)
 
+    # If the file is XLSX, read its structure
+    _detected_structure = None
+    if file_path.suffix.lower() in (".xlsx",):
+        try:
+            structure = read_service_1_xlsx_structure_v1(str(file_path))
+            _detected_structure = structure
+
+            # Print structure block to stdout
+            sheet_count = structure.get("workbook", {}).get("sheet_count", 0)
+            sheets = structure.get("workbook", {}).get("sheets", [])
+            first_sheet_name = sheets[0]["name"] if sheets else "N/A"
+
+            all_columns: list[str] = []
+            for sheet in sheets:
+                for header in sheet.get("headers", []):
+                    if header and header not in all_columns:
+                        all_columns.append(header)
+
+            print()
+            print("Estructura detectada", flush=True)
+            print(f"- Hojas detectadas: {sheet_count}", flush=True)
+            print(f"- Primera hoja: {first_sheet_name}", flush=True)
+            if all_columns:
+                print(
+                    f"- Columnas detectadas: {', '.join(all_columns)}",
+                    flush=True,
+                )
+            print()
+        except Exception:
+            _detected_structure = {
+                "error": True,
+                "warning": "No se pudo leer la estructura XLSX autom\u00e1ticamente; requiere revisi\u00f3n manual.",
+                "runtime_authorized": False,
+            }
+            print()
+            print(
+                "No se pudo leer la estructura XLSX autom\u00e1ticamente; requiere revisi\u00f3n manual.",
+                flush=True,
+            )
+            print()
+
     # Save packet JSON to .tmp/service_1_operator/<asset_id>.json
     output_dir = Path(".tmp/service_1_operator")
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{asset_id}.json"
-    
-    # Convert packet to JSON-serializable dict
-    packet_serializable = {
+
+    packet_serializable: dict[str, Any] = {
         "schema_version": packet["schema_version"],
         "service_name": packet["service_name"],
         "source_channel": packet["source_channel"],
@@ -87,7 +130,9 @@ def main(argv: list[str] | None = None) -> int:
         "owner_message": packet["owner_message"],
         "runtime_authorized": packet["runtime_authorized"],
     }
-    
+    if _detected_structure is not None:
+        packet_serializable["detected_structure"] = _detected_structure
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(packet_serializable, f, indent=2, ensure_ascii=False)
 
