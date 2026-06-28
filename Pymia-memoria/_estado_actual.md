@@ -2,6 +2,56 @@
 
 Fecha: 2026-06-28
 
+## Actualización 2026-06-28 — Servicio 1 Productización
+
+```text
+SERVICE_1_MICROSERVICIO_ASISTIDO_V1 = PRODUCTIZED_AND_PUSHED
+Commit: af9c54e
+```
+
+Servicio 1 queda vendible como servicio asistido, no autónomo.
+
+Capacidades vendibles:
+
+```text
+First Aid toolbox
+Excel Lab
+Excel Factory controlada
+CSV/XLSX NormalizedTableV1
+Operator Runbook V1
+Productization Pack V1
+Delivery Package
+QA Checklist
+Manifest Audit
+Human Review Gate
+```
+
+NO prometer:
+
+```text
+autonomía completa
+chatbot operativo
+LLM/FSM productivos
+PDF/OCR
+conciliación definitiva
+reemplazo del contador
+pipeline full
+exactitud garantizada
+```
+
+Checkpoint detallado:
+
+```text
+CHECKPOINT_SERVICE_1_PRODUCTIZATION_CLOSED_20260628.md
+```
+
+Próximo frente recomendado:
+
+```text
+Kit comercial mínimo O primer caso real supervisado
+NO más runtime abierto
+```
+
 ## Actualización 2026-06-28 — Servicio 1 Stage 5
 
 ```text
@@ -62,10 +112,14 @@ smartdash-almasana/PymIA
 Último bloque reportado como pusheado:
 
 ```text
-fe582c1 SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1
+af9c54e docs(pymia): productize service 1 assisted delivery
+001087c docs(pymia): close service 1 stage 5 normalized table intake
+a5a0444 memoria: stage 5 csv xlsx next checkpoint
+69fc176 feat(pymia-live): add service 1 xlsx normalized table adapter
+dfd460c feat(pymia): add service 1 csv normalized table adapter
 PUSH: SUCCESS
 WORKING_TREE: CLEAN
-TEST_RESULT: 421 passed
+TEST_RESULT: 47 passed (Stage 5)
 ```
 
 Commits relevantes de la cadena Servicio 1 First Aid:
@@ -93,7 +147,7 @@ fe7dc79 feat(pymia-live): add first aid tool result contract
 ## Capacidad cerrada actual
 
 ```text
-SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1 = CLOSED / PUSHED
+SERVICE_1_MICROSERVICIO_ASISTIDO_V1 = PRODUCTIZED_AND_PUSHED
 ```
 
 Cadena operable:
@@ -111,6 +165,10 @@ operator harness
 → manifest.json
 → hashes + bytes
 → carpeta final entregable
+→ Operator Runbook V1
+→ Productization Pack V1
+→ QA Checklist + Delivery Audit
+→ Human Review Gate
 ```
 
 Inventario final del paquete:
@@ -216,29 +274,46 @@ No ERP/Odoo.
 
 ## Próximo foco recomendado
 
-Pasar de capacidad técnica entregable a decisión comercial/piloto:
+Decisión tomada:
 
 ```text
-SERVICE_1_FIRST_AID_PILOT_OFFER_V1
+STOP_RUNTIME_AND_PRODUCTIZE
+Stage 6 routing = NOT_APPROVED
+Stage 6 consumer = NOT_APPROVED
 ```
 
-Objetivo del próximo bloque:
+Servicio 1 ya es vendible como microservicio asistido.
+
+Próximas opciones:
 
 ```text
-definir oferta piloto mínima
-alcance
-precio orientativo
-checklist de intake manual
-criterios de aceptación del caso
-qué recibe el cliente
-qué no recibe
-script operador/venta
+Opción A: Kit comercial mínimo
+  - Sales one-pager final
+  - Pricing orientativo
+  - Script operador/venta
+  - Engagement letter template
+
+Opción B: Primer caso real supervisado
+  - Cliente real (no sintético)
+  - Intake con evidencia real
+  - Ejecución bajo Operator Runbook V1
+  - QA Checklist + Delivery Audit
+  - Post-delivery review documentado
+```
+
+Regla operativa:
+
+```text
+NO MÁS RUNTIME ABIERTO hasta que exista:
+  - decisión de piloto real, O
+  - caso real supervisado, O
+  - demanda concreta de consumidor downstream
+
+El valor está en entregar lo construido, no en construir más.
 ```
 
 Categoría:
 
 ```text
-A. CAPACIDAD OPERATIVA / PRODUCTIZACIÓN PILOTO
+A. PRODUCTIZACIÓN / PRIMER CASO REAL
 ```
-
-No abrir más runtime hasta que exista decisión de piloto real o caso real.
