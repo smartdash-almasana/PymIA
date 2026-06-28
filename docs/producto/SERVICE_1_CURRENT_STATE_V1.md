@@ -45,10 +45,21 @@ Los documentos anteriores quedan como evidencia histórica, diseño o trazabilid
 
 ```text
 HEAD_VERIFIED:
-a909f809efa465a68e3d863ceceff02da67cd1d4
+post-001087c (Stage 5 closeout pushed)
 
-COMMIT:
-docs(pymia): close service 1 excel factory stage
+COMMITS_CERTIFICADOS:
+69fc176  runtime   Stage 5 versión final limpia
+a5a0444  memoria   Memoria actualizada
+001087c  docs      Stage 5 closeout documental
+
+DECISIÓN_VIGENTE:
+STOP_RUNTIME_AND_PRODUCTIZE
+
+AUDITORÍAS_CERRADAS:
+STOP_RUNTIME_AND_PRODUCTIZE_AUDIT_V1
+STAGE_6_ROUTING_AUDIT_V1           -> NOT_APPROVED
+STAGE_6_CONSUMER_AUDIT_V1          -> NOT_APPROVED
+COMMON_TABLE_NORMALIZER_AUDIT_V1   -> NOT_APPROVED
 
 WORKING_TREE_AT_AUDIT:
 clean
@@ -60,7 +71,10 @@ Validaciones recientes relevantes:
 First Aid family:
 53 passed
 
-Excel Factory stage:
+Excel Factory stage (Stage 4):
+47 passed
+
+Stage 5 NormalizedTableV1 (CSV + XLSX adapters):
 47 passed
 ```
 
@@ -78,7 +92,8 @@ Este documento no vuelve a correr tests.
 | Excel con fórmulas | `PARTIAL_FACTORY_ONLY` | Permitido sólo por carril Factoría Excel; First Aid y delivery genérico siguen sin fórmulas. |
 | Servicios para contadores | `PARTIAL_SYNTHETIC_RUNTIME_AND_CONTRACT_GATE` | Hay contratos, gates y paquetes sintéticos; no producción real. |
 | Conciliaciones | `PARTIAL_SANDBOX_OR_CONTRACT` | Hay sandbox/contract; no motor real productivo. |
-| PDF/CSV/Excel normalizado | `MISSING_FOR_CSV_AND_PDF` | Excel existe; CSV/PDF no tienen módulos productivos en `smartpyme`. |
+| PDF/CSV/Excel normalizado | `CSV_AND_XLSX_CLOSED_STAGE_5` | CSV + XLSX → `NormalizedTableV1` cerrados en Stage 5 (47 tests); PDF sigue MISSING. |
+| Stage 5 NormalizedTableV1 | `CLOSED_RUNTIME_DOCS_PUSHED` | Frontera común CSV/XLSX cerrada; normalizador común NOT_APPROVED. |
 | FSM / LLM / Chatbot | `FROZEN_OR_MISSING` | FSM experimental congelada; no hay adapter LLM ni chatbot operativo. |
 
 ---
@@ -198,14 +213,21 @@ Conciliaciones:
 - Mercado Pago reconciliation contract
 
 Normalización multi-formato:
-- Excel: existe
-- CSV: missing en smartpyme
-- PDF: missing en smartpyme
+- Excel: CLOSED (Stage 5, adapter XLSX → NormalizedTableV1)
+- CSV:   CLOSED (Stage 5, adapter CSV → NormalizedTableV1)
+- PDF:   MISSING (prohibido abrir sin OCR/parser)
 
 Conversacional:
 - FSM experimental congelada
 - LLM adapter missing
 - chatbot missing
+
+Productización:
+- Operator Runbook V1: ACTIVE (protocolo manual)
+- Productization Pack V1: ACTIVE (microservicio asistido vendible)
+- QA Checklist V1: APPLIED
+- Delivery Manifest Audit V1: APPLIED
+- Synthetic XLSX Edge Case Run V2: EXECUTED
 ```
 
 Estas capacidades no deben venderse ni tratarse como Servicio 1 full.
@@ -221,7 +243,7 @@ NO mezclar First Aid con diagnóstico contable.
 NO afirmar conciliación real productiva.
 NO afirmar Mercado Pago runtime.
 NO afirmar PDF intake productivo.
-NO afirmar CSV intake productivo.
+NO afirmar CSV intake productivo (CSV intake sí está cerrado en Stage 5; lo prohibido es tratarlo como Servicio 1 full autónomo).
 NO afirmar chatbot operativo.
 NO afirmar LLM adapter cableado.
 NO reactivar FSM congelada sin auditoría explícita.
@@ -275,30 +297,51 @@ Esa lectura no equivale a Servicio 1 full.
 
 ## 9. Próxima etapa activa recomendada
 
-Antes de código nuevo:
-
 ```text
-SERVICE_1_STAGE_5_NORMALIZATION_SCOPE_DESIGN_V1
+FRENTE_ABIERTO:
+PRODUCTIZACIÓN_DOCUMENTAL_Y_OPERATIVA
+
+NO_ABRIR_RUNTIME_NUEVO:
+- Stage 5 cerrado
+- Stage 6 routing NOT_APPROVED (sin consumidor downstream)
+- Stage 6 consumer NOT_APPROVED (sin caso de uso real)
+- COMMON_TABLE_NORMALIZER NOT_APPROVED (abstracción prematura)
 ```
 
-Objetivo:
+Decisión vigente:
 
 ```text
-Diseñar la Etapa 5 — CSV + PDF + normalizador común.
+STOP_RUNTIME_AND_PRODUCTIZE
 ```
 
-Orden sugerido:
+Qué hacer ahora:
 
 ```text
-1. CSV intake
-2. normalizador común
-3. PDF intake
+1. Ejecutar primer caso real supervisado bajo Operator Runbook V1.
+2. Aplicar QA Checklist + Delivery Manifest Audit + Human Review Gate.
+3. Entregar solo como borrador operativo.
+4. Registrar post-delivery review.
+5. No abrir Stage 6, pipeline full, FSM, LLM, chatbot, PDF, OCR.
+```
+
+Qué NO hacer:
+
+```text
+- NO implementar Stage 6 routing.
+- NO implementar Stage 6 consumer.
+- NO implementar COMMON_TABLE_NORMALIZER_V1.
+- NO abrir PDF/OCR.
+- NO abrir chatbot/LLM/FSM.
+- NO abrir pipeline full.
+- NO tocar CLI ni pipeline.
 ```
 
 Motivo:
 
 ```text
-CSV es más controlable que PDF y permite cerrar una frontera real sin OCR ni parser PDF prematuro.
+Servicio 1 ya puede operar asistidamente con las piezas existentes.
+El próximo valor está en empaquetar, no en agregar módulos.
+El riesgo principal actual es comercial/operativo (prometer de más), no técnico.
 ```
 
 ---
@@ -321,6 +364,9 @@ Documentos activos recomendados:
 SERVICE_1_CURRENT_STATE_V1.md
 SERVICE_1_FULL_CLOSURE_RECTOR_V1.md
 SERVICE_1_DEVELOPMENT_AUDIT_AND_COMPLETION_ROADMAP_V1.md
+SERVICE_1_STAGE_5_CLOSEOUT_V1.md
+SERVICE_1_OPERATOR_RUNBOOK_V1.md
+SERVICE_1_PRODUCTIZATION_PACK_V1.md
 SERVICE_1_ACTIVE_TASKSPEC.md, si se decide crearlo
 ```
 
@@ -332,11 +378,20 @@ SERVICE_1_ACTIVE_TASKSPEC.md, si se decide crearlo
 SERVICE_1_CURRENT_STATE_CANONICALIZED
 
 CURRENT_CAPABILITY:
-REAL_BUT_PARTIAL
+REAL_ASSISTED_SELLABLE_V1
 
 SERVICE_1_FULL:
 NOT_CLOSED
 
+STAGE_5:
+CLOSED_RUNTIME_DOCS_MEMORY_PUSHED
+
+STAGE_6:
+NOT_APPROVED (routing y consumer sin consumidor real)
+
 NEXT_SAFE_STEP:
-SERVICE_1_STAGE_5_NORMALIZATION_SCOPE_DESIGN_V1
+RUN_FIRST_REAL_CLIENT_CASE_UNDER_OPERATOR_SUPERVISION
+
+PRODUCTIZATION_STATUS:
+MICROSERVICIO_ASISTIDO_V1_ACTIVO
 ```
