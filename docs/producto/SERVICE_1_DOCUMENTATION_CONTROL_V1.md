@@ -53,6 +53,8 @@ CLOSED_FRONT_DOCS:
 - docs/producto/SERVICE_1_CAJA_DIARIA_POR_FECHA_CLOSEOUT_V1.md
 - docs/producto/SERVICE_1_EXCEL_FACTORY_COMMERCIAL_CATALOG_V1.md
 - docs/producto/SERVICE_1_PAQUETE_ENTREGA_CLIENTE_ESTANDAR_V1.md
+- docs/producto/SERVICE_1_QA_CLAIMS_AND_REPRESENTATIVE_DELIVERY_CASE_V1.md
+- docs/producto/SERVICE_1_FULL_ASSISTED_V1_FINAL_DECLARATION.md
 ```
 
 Regla:
@@ -93,7 +95,7 @@ Prohibido:
 
 ```text
 NEXT_PRIORITY: funciones faltantes reales
-CURRENT_FUNCTIONAL_FRONT: QA final de claims prohibidos y caso comercial estrella
+CURRENT_FUNCTIONAL_FRONT: oferta comercial/pricing o ensayo operativo del paquete estándar
 ```
 
 La documentación debe seguir a la evidencia, no al revés.

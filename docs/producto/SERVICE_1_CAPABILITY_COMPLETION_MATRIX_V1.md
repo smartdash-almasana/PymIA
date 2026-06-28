@@ -326,7 +326,7 @@ Servicio 1 puede declararse **FULL ASSISTED V1** cuando estén cumplidas estas c
 [x] caja_diaria_triage ejecutable bajo contrato actual con caveat MOV-016; modo POR_FECHA validado como agrupación externa.
 [x] proveedores_precio_variacion_triage ejecutable con caveats documentados.
 [x] Excel Factory expresada como catálogo comercial inicial con límites V1.
-[ ] Claims prohibidos incorporados en entrega.
+[x] Claims prohibidos incorporados en entrega mediante SERVICE_1_QA_CLAIMS_AND_REPRESENTATIVE_DELIVERY_CASE_V1.
 [ ] Stage 6 sigue cerrado.
 [ ] PDF/OCR sigue diferido.
 [ ] Outputs locales no se commitean.
