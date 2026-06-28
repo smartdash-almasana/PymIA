@@ -95,7 +95,7 @@ Prohibido:
 
 ```text
 NEXT_PRIORITY: funciones faltantes reales
-CURRENT_FUNCTIONAL_FRONT: oferta comercial/pricing o ensayo operativo del paquete estándar
+CURRENT_FUNCTIONAL_FRONT: Servicio 1 cerrado; Servicio 2 abierto por frontera mínima
 ```
 
 La documentación debe seguir a la evidencia, no al revés.
