@@ -1,6 +1,41 @@
 # PymIA Memoria — Estado actual
 
-Fecha: 2026-06-22
+Fecha: 2026-06-28
+
+## Actualización 2026-06-28 — Servicio 1 Stage 5
+
+```text
+SERVICE_1_STAGE_5_CSV_TRACK = CLOSED_AND_PUSHED
+Commit: dfd460c
+Tests: 33 verdes
+```
+
+Capacidades cerradas:
+
+```text
+CSV intake
+NormalizedTable V1
+CSV → NormalizedTable adapter
+```
+
+Regla operativa vigente:
+
+```text
+Ningún siguiente paso se acepta por impulso.
+Cada paso debe ser confirmado como preciso, certero y antideriva mediante lectura real del repo.
+```
+
+Próximo paso aprobado por auditoría Qwen con MCP-Files:
+
+```text
+SERVICE_1_STAGE_5_XLSX_TO_NORMALIZED_TABLE_ADAPTER_V1
+```
+
+Checkpoint detallado:
+
+```text
+CHECKPOINT_SERVICE_1_STAGE5_CSV_AND_XLSX_NEXT_20260628.md
+```
 
 ## Estado operativo actual
 
