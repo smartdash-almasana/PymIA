@@ -65,6 +65,7 @@ CLOSED_OR_OPERATIONAL_WITH_CAVEATS:
 - stock_alertas_basicas
 - gastos_triage
 - caja_diaria_triage modo AGREGADO
+- caja_diaria_triage modo POR_FECHA como agrupación externa del operador
 - proveedores_precio_variacion_triage
 ```
 
@@ -85,7 +86,6 @@ Estas capacidades pueden existir dentro de Servicio 1, pero no deben venderse co
 
 ```text
 LIMITED_IN_FULL_ASSISTED_V1:
-- caja_diaria_triage modo POR_FECHA
 - Excel Factory catálogo parcial
 - casos demo vendibles no consolidados como paquete único final
 ```
@@ -93,7 +93,7 @@ LIMITED_IN_FULL_ASSISTED_V1:
 Criterio:
 
 ```text
-- caja POR_FECHA no fue ejecutado como modo probado; el contrato runtime actual opera agregado.
+- caja POR_FECHA fue ejecutado como modo probado mediante agrupación externa del operador; el contrato runtime actual no cambia.
 - Excel Factory existe como capacidad parcial, no como catálogo comercial completo.
 ```
 
@@ -181,7 +181,6 @@ Entregables permitidos:
 
 ```text
 NOT_FULLY_COMPLETE:
-- caja POR_FECHA necesita ejecución controlada o quedar fuera de promesa.
 - Excel Factory necesita catálogo comercial cerrado.
 - paquete comercial owner-facing debe consolidarse después del cierre técnico.
 - documentación debe reducirse a documentos rectores y anexos, no seguir multiplicándose.
@@ -208,13 +207,13 @@ La próxima etapa debe priorizar funciones faltantes reales, una por vez, con ev
 
 ```text
 NEXT_FUNCTIONAL_FRONT:
-Excel Factory catálogo parcial / caja_diaria POR_FECHA
+Excel Factory catálogo parcial
 ```
 
 Razón:
 
 ```text
-proveedores_precio_variacion_triage ya tiene ejecución pilot auditada. Los frentes funcionales restantes son caja_diaria POR_FECHA y Excel Factory catálogo parcial.
+proveedores_precio_variacion_triage y caja_diaria POR_FECHA ya tienen ejecución pilot auditada. El frente funcional restante documentado es Excel Factory catálogo parcial.
 ```
 
 Criterio de cierre:
@@ -242,5 +241,5 @@ SERVICE_1_FULL_ASSISTED_V1: READY_WITH_LIMITATIONS_FOR_ASSISTED_OPERATION
 SELLABLE: YES_WITH_EXPLICIT_LIMITS
 TECHNICALLY_COMPLETE: NO
 OPERATIONALLY_USABLE: YES
-NEXT_STEP: choose Excel Factory catalog or caja_diaria POR_FECHA
+NEXT_STEP: Excel Factory catalog
 ```

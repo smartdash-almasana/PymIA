@@ -83,7 +83,7 @@ No hay evidencia suficiente.
 | owner_message.md | CLOSED | Generado en demo y flows previos | Ajuste de tono comercial futuro | Mantener guardrails | No |
 | precio_margen_basico | CLOSED | cafeteria_abc: 15/15 OK; distribuidora sample 10/10 OK; pilot_002 7 OK + 2 INVALID por datos | Ninguno runtime; sólo calidad de datos | Usar como familia estrella | No |
 | stock_alertas_basicas | OPERATIONAL_WITH_CAVEATS | Smoke existente indica operación/mapeo sobre pilotos; playbook lo marca operativo con caveats | Requiere controlar calidad de inputs y mapping | Ejecutar sólo bajo playbook, sin ceremonia extra | No, pero afecta amplitud full |
-| caja_diaria_triage | OPERATIONAL_WITH_CAVEATS | pilot_004 auditado: `Caja_Banco`, modo AGREGADO, saldo_inicial=6000.0 basado en MOV-016, ingresos=88900.0, egresos=35070.0, flujo_neto=53830.0, saldo_final_estimado=59830.0 | MOV-016 requiere caveat: saldo inicial interpretado por descripción, no por `Tipo movimiento`; modo POR_FECHA sigue pendiente | Usar sólo bajo contrato actual saldo_inicial/ingresos/egresos, con confirmación humana del saldo inicial | No |
+| caja_diaria_triage | OPERATIONAL_WITH_CAVEATS | pilot_004 auditado: `Caja_Banco`; modo AGREGADO OK y modo POR_FECHA OK como agrupación externa del operador; POR_FECHA ejecutó 15 fechas, saldo_inicial=6000.0, saldo_final_estimado=59830.0, 3 filas excluidas | MOV-016 requiere caveat: saldo inicial interpretado por descripción, no por `Tipo movimiento`; POR_FECHA no cambia contrato runtime, no confirma saldo real ni conciliación | Usar bajo contrato actual saldo_inicial/ingresos/egresos, con confirmación humana del saldo inicial; POR_FECHA debe documentar fecha y filas fuente fuera del payload runtime | No |
 | gastos_triage | OPERATIONAL_WITH_CAVEATS | pilot_004 auditado: `Caja_Banco`, `Descripción` -> concepto, `Importe declarado` -> importe; 5 movimientos incluidos, 15 excluidos, total_gastos 35070.0; runtime_authorized false | Sólo egresos positivos explícitos; categoría ausente cae a `sin_categoria`; egresos negativos no se convierten con `abs()`; no es conciliación, auditoría ni clasificación contable/fiscal | Usar bajo playbook con mapping explícito y outputs locales no commiteables | No |
 | proveedores_precio_variacion_triage | OPERATIONAL_WITH_CAVEATS | constructora_nueva_era_srl.xlsx auditado: hoja `PROVEEDORES_MATERIALES`, 30 filas incluidas, 0 excluidas; mapping `proveedor` -> proveedor, `producto` -> producto_o_insumo, `precio_unitario_real` -> precio_o_costo; runtime OK | Caveat: usa `precio_unitario_real` como precio_o_costo; no calcula variación presupuestado vs real bajo contrato runtime actual; sólo detecta variación visible entre registros del mismo producto | Usar bajo playbook con caveat explícito; no prometer estrategia de compras ni auditoría de proveedores | No |
 | Conciliación caja/banco definitiva | OUT_OF_SCOPE | Guardrails explícitos | No pertenece al runtime actual | No prometer | No, si oferta dice triage |
@@ -153,14 +153,49 @@ Caveats operativos:
 - requiere confirmación humana del operador/cliente;
 - si MOV-016 fuera ingreso ordinario, cambiarían ingresos y saldo final;
 - modo AGREGADO validado bajo contrato runtime actual;
-- modo POR_FECHA queda pendiente como operación externa;
+- modo POR_FECHA queda validado como operación externa del operador, sin cambio de contrato runtime;
 - no es conciliación bancaria;
 - no es auditoría;
 - no valida efectivo físico;
 - no reemplaza revisión contable.
 ```
 
-## 3.3 Evidencia auditada: proveedores_precio_variacion_triage / constructora_nueva_era_srl
+## 3.3 Evidencia auditada: caja_diaria_triage POR_FECHA / pilot_004
+
+```text
+AUDIT_VERDICT: PASS_WITH_CAVEATS
+CAPABILITY_STATUS_RECOMMENDED: OPERATIONAL_WITH_CAVEATS
+SOURCE_FILE: prueba_excels/first_aid_pilot_004_cash_bank_reconciliation_demo.xlsx
+SHEET: Caja_Banco
+MODE: POR_FECHA
+RUNTIME_CONTRACT: unchanged; saldo_inicial, ingresos, egresos
+DATES_EXECUTED: 15
+SALDO_INICIAL_DETECTED: 6000.0
+SALDO_FINAL_ESTIMADO: 59830.0
+EXCLUDED_ROWS: 3
+RUNTIME_STATUS: OK
+RUNTIME_MODIFIED: NO
+RUNTIME_AUTHORIZED: false
+LOCAL_OUTPUTS: generados localmente; no commiteables
+```
+
+Caveats operativos:
+
+```text
+- POR_FECHA es agrupación externa del operador, no contrato runtime nuevo;
+- cada fecha se ejecuta como una tool_request separada con saldo rodante;
+- fecha y filas fuente deben documentarse fuera del payload runtime;
+- MOV-016 sigue interpretado como saldo inicial por descripción;
+- no confirma saldo bancario real;
+- no equivale a conciliación;
+- no valida efectivo físico;
+- no incluye movimientos no declarados;
+- no reemplaza revisión contable.
+```
+
+---
+
+## 3.4 Evidencia auditada: proveedores_precio_variacion_triage / constructora_nueva_era_srl
 
 ```text
 AUDIT_VERDICT: PASS_WITH_CAVEATS
@@ -240,7 +275,7 @@ chatbot productivo.
 |---|---|---|---:|---|---:|---:|
 | GAP-001 | Paquete comercial owner-facing mínimo no consolidado | producto | Alta | GPT + operador | Sí parcial | Sí |
 | GAP-002 | RESOLVED: gastos_triage tiene cierre operativo auditado sobre pilot_004 con caveats explícitos | operación | Cerrada | Codex | No | No |
-| GAP-003 | PARCIALMENTE RESUELTO: caja_diaria_triage tiene modo AGREGADO validado; modo POR_FECHA sigue pendiente como operación externa | operación | Media | DeepSeek/Codex | No | Parcial |
+| GAP-003 | RESOLVED_WITH_CAVEATS: caja_diaria_triage tiene modo AGREGADO validado y modo POR_FECHA validado como operación externa sin cambiar contrato runtime | operación | Cerrada | GPT/MCP-local | No | No |
 | GAP-004 | RESOLVED: proveedores_precio_variacion_triage tiene ejecución auditada sobre archivo existente con caveats de contrato | evidencia | Cerrada | GPT/MCP-local | No | No |
 | GAP-005 | Excel Factory no expresada como catálogo comercial final | producto | Media | GPT | Sí parcial | Sí |
 | GAP-006 | Delivery package comercial aún técnico | producto | Media | GPT | Sí parcial | Sí |
@@ -288,7 +323,7 @@ Servicio 1 puede declararse **FULL ASSISTED V1** cuando estén cumplidas estas c
 [ ] precio_margen_basico cerrado.
 [ ] stock_alertas_basicas operativa con caveats documentados.
 [x] gastos_triage ejecutable con caveats documentados.
-[x] caja_diaria_triage ejecutable bajo contrato actual con caveat MOV-016.
+[x] caja_diaria_triage ejecutable bajo contrato actual con caveat MOV-016; modo POR_FECHA validado como agrupación externa.
 [x] proveedores_precio_variacion_triage ejecutable con caveats documentados.
 [ ] Excel Factory expresada como catálogo comercial inicial.
 [ ] Claims prohibidos incorporados en entrega.

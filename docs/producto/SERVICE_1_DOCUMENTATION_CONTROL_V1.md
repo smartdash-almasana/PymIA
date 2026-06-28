@@ -90,7 +90,7 @@ Prohibido:
 
 ```text
 NEXT_PRIORITY: funciones faltantes reales
-CURRENT_FUNCTIONAL_FRONT: choose between caja_diaria POR_FECHA or Excel Factory catalog
+CURRENT_FUNCTIONAL_FRONT: Excel Factory catalog
 ```
 
 La documentación debe seguir a la evidencia, no al revés.
