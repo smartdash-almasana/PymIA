@@ -95,6 +95,11 @@ No vender como:
 - inteligencia artificial autónoma;
 - automatización bancaria;
 - OCR/PDF productivo.
+
+Aclaración S1/S2:
+- los artefactos históricos de conciliación bajo S1 son legacy/preparatorios/no runtime;
+- no son capacidad vendible de S1;
+- la conciliación asistida activa pertenece a S2.
 ```
 
 ---

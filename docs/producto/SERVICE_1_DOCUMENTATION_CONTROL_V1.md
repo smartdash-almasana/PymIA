@@ -35,6 +35,7 @@ Uso:
 
 ```text
 KEEP_AS_APPENDIX:
+- docs/producto/SERVICE_1_BASELINE_CORRECTION_MINIMAL_PATCH_V1.md
 - docs/producto/SERVICE_1_DELIVERY_MANIFEST_AUDIT_V1.md
 - docs/producto/SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1.md
 - docs/producto/SERVICE_1_SYNTHETIC_XLSX_EDGE_CASE_RUN_V2.md
@@ -94,8 +95,9 @@ Prohibido:
 # 5. Próxima prioridad
 
 ```text
-NEXT_PRIORITY: funciones faltantes reales
+NEXT_PRIORITY: S2_RECONCILIATION_ASSISTED_REVIEW_BLOCK_V1
 CURRENT_FUNCTIONAL_FRONT: Servicio 1 cerrado; Servicio 2 abierto por frontera mínima
+S1_RECONCILIATION_DOCS: legacy/preparatorios/no runtime según SERVICE_1_BASELINE_CORRECTION_MINIMAL_PATCH_V1
 ```
 
 La documentación debe seguir a la evidencia, no al revés.

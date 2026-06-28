@@ -373,27 +373,27 @@ Sí bloquea vender sin riesgo:
 
 ```text
 NEXT_ACTION:
-Crear docs/producto/SERVICE_1_OWNER_FACING_DELIVERY_TEMPLATE_V1.md
+Avanzar en S2_RECONCILIATION_ASSISTED_REVIEW_BLOCK_V1
 ```
 
 Objetivo:
 
 ```text
-Transformar los artifacts técnicos del runtime en una entrega legible para dueño PyME sin claims indebidos.
+Continuar Servicio 2 sobre conciliación asistida sin reabrir Servicio 1.
 ```
 
-No implica runtime.
-No implica tests.
+Servicio 1 queda cerrado con límites.
+No implica runtime S1.
 No implica Stage 6.
-No implica nuevos Excel.
+No implica nuevos Excel S1.
 
 ---
 
 # 10. Veredicto
 
 ```text
-SERVICE_1_STATUS: OPERABLE_ASSISTED_CORE
-FULL_STATUS: NOT_YET
-CHAOS_CONTROL: PLAYBOOK + MATRIX
-NEXT_BOTTLENECK: OWNER_FACING_DELIVERY_TEMPLATE
+SERVICE_1_STATUS: FINAL_DECLARED_WITH_LIMITS
+FULL_STATUS: SELLABLE_WITH_EXPLICIT_LIMITS
+CHAOS_CONTROL: PLAYBOOK + MATRIX + BASELINE_CORRECTION_MINIMAL_PATCH
+NEXT_BOTTLENECK: S2_RECONCILIATION_ASSISTED_REVIEW_BLOCK_V1
 ```
