@@ -92,7 +92,7 @@ No hay evidencia suficiente.
 | Chatbot productivo | DEFERRED | Regla: IA conversa, FSM gobierna, tools ejecutan | Falta arnés productivo | No abrir ahora | No para servicio asistido |
 | Stage 6 auto-routing | DEFERRED | Technical certainty low; no consumer recomendado | Sin consumidor técnico real | No abrir | No |
 | Producción industrial KPI | OUT_OF_SCOPE | fabrica_industrial_compleja unsupported | No First Aid actual | Registrar gap futuro | No |
-| Excel Factory descargables | PARTIAL | Templates/documentación previas; outputs XLSX por tool existen | Falta catálogo comercial final | Conectar a oferta, no a runtime nuevo | Sí parcial |
+| Excel Factory descargables | CLOSED_WITH_LIMITS | Catálogo comercial inicial creado en `SERVICE_1_EXCEL_FACTORY_COMMERCIAL_CATALOG_V1.md`; 5 entregables XLSX asistidos IN_SCOPE_V1 con caveats | No habilita generación autónoma ni ExcelSpec productivo; costos/Servicio 2 quedan fuera | Conectar a paquetes vendibles, no a runtime nuevo | No |
 | Casos demo vendibles | PARTIAL | cafeteria_abc demo ready; synthetic case closed local | Falta paquete comercial mínimo | Preparar 1 muestra owner-facing | Sí parcial |
 
 ## 3.1 Evidencia auditada: gastos_triage / pilot_004
@@ -277,7 +277,7 @@ chatbot productivo.
 | GAP-002 | RESOLVED: gastos_triage tiene cierre operativo auditado sobre pilot_004 con caveats explícitos | operación | Cerrada | Codex | No | No |
 | GAP-003 | RESOLVED_WITH_CAVEATS: caja_diaria_triage tiene modo AGREGADO validado y modo POR_FECHA validado como operación externa sin cambiar contrato runtime | operación | Cerrada | GPT/MCP-local | No | No |
 | GAP-004 | RESOLVED: proveedores_precio_variacion_triage tiene ejecución auditada sobre archivo existente con caveats de contrato | evidencia | Cerrada | GPT/MCP-local | No | No |
-| GAP-005 | Excel Factory no expresada como catálogo comercial final | producto | Media | GPT | Sí parcial | Sí |
+| GAP-005 | RESOLVED_WITH_LIMITS: Excel Factory expresada como catálogo comercial inicial V1; autonomía y ExcelSpec productivo quedan diferidos | producto | Cerrada | GPT/MCP-local | No | No |
 | GAP-006 | Delivery package comercial aún técnico | producto | Media | GPT | Sí parcial | Sí |
 | GAP-007 | Backlog de archivos existentes sin clasificación final | orden operativo | Media | GPT/DeepSeek | No | Parcial |
 | GAP-008 | Chatbot/FSM productiva pendiente | producto futuro | Baja ahora | No abrir | No | No para S1 asistido |
@@ -295,7 +295,7 @@ No avanzar por curiosidad. Cerrar en este orden:
 2. Delivery template estándar.
 3. caja_diaria_triage bajo contrato actual.
 4. proveedores_precio_variacion_triage sólo si hay archivo existente calzante.
-5. Excel Factory catálogo comercial.
+5. Excel Factory catálogo comercial inicial cerrado con límites.
 ```
 
 Prohibido en esta fase:
@@ -325,7 +325,7 @@ Servicio 1 puede declararse **FULL ASSISTED V1** cuando estén cumplidas estas c
 [x] gastos_triage ejecutable con caveats documentados.
 [x] caja_diaria_triage ejecutable bajo contrato actual con caveat MOV-016; modo POR_FECHA validado como agrupación externa.
 [x] proveedores_precio_variacion_triage ejecutable con caveats documentados.
-[ ] Excel Factory expresada como catálogo comercial inicial.
+[x] Excel Factory expresada como catálogo comercial inicial con límites V1.
 [ ] Claims prohibidos incorporados en entrega.
 [ ] Stage 6 sigue cerrado.
 [ ] PDF/OCR sigue diferido.

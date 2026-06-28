@@ -86,7 +86,7 @@ Estas capacidades pueden existir dentro de Servicio 1, pero no deben venderse co
 
 ```text
 LIMITED_IN_FULL_ASSISTED_V1:
-- Excel Factory catálogo parcial
+- Excel Factory catálogo comercial inicial cerrado con límites
 - casos demo vendibles no consolidados como paquete único final
 ```
 
@@ -94,7 +94,7 @@ Criterio:
 
 ```text
 - caja POR_FECHA fue ejecutado como modo probado mediante agrupación externa del operador; el contrato runtime actual no cambia.
-- Excel Factory existe como capacidad parcial, no como catálogo comercial completo.
+- Excel Factory existe como catálogo comercial inicial cerrado con límites; no habilita autonomía ni generación libre.
 ```
 
 ---
@@ -181,7 +181,6 @@ Entregables permitidos:
 
 ```text
 NOT_FULLY_COMPLETE:
-- Excel Factory necesita catálogo comercial cerrado.
 - paquete comercial owner-facing debe consolidarse después del cierre técnico.
 - documentación debe reducirse a documentos rectores y anexos, no seguir multiplicándose.
 ```
@@ -207,13 +206,13 @@ La próxima etapa debe priorizar funciones faltantes reales, una por vez, con ev
 
 ```text
 NEXT_FUNCTIONAL_FRONT:
-Excel Factory catálogo parcial
+owner-facing delivery package standardization
 ```
 
 Razón:
 
 ```text
-proveedores_precio_variacion_triage y caja_diaria POR_FECHA ya tienen ejecución pilot auditada. El frente funcional restante documentado es Excel Factory catálogo parcial.
+proveedores_precio_variacion_triage, caja_diaria POR_FECHA y Excel Factory catálogo inicial ya están cerrados con límites. El frente funcional restante es estandarizar el paquete owner-facing.
 ```
 
 Criterio de cierre:
@@ -241,5 +240,5 @@ SERVICE_1_FULL_ASSISTED_V1: READY_WITH_LIMITATIONS_FOR_ASSISTED_OPERATION
 SELLABLE: YES_WITH_EXPLICIT_LIMITS
 TECHNICALLY_COMPLETE: NO
 OPERATIONALLY_USABLE: YES
-NEXT_STEP: Excel Factory catalog
+NEXT_STEP: owner-facing delivery package standardization
 ```

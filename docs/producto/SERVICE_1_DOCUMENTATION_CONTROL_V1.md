@@ -51,6 +51,7 @@ No deben convertirse en nuevos centros de decisión.
 CLOSED_FRONT_DOCS:
 - docs/producto/SERVICE_1_PROVEEDORES_PRECIO_VARIACION_TRIAGE_NEXT_FRONT_V1.md
 - docs/producto/SERVICE_1_CAJA_DIARIA_POR_FECHA_CLOSEOUT_V1.md
+- docs/producto/SERVICE_1_EXCEL_FACTORY_COMMERCIAL_CATALOG_V1.md
 ```
 
 Regla:
@@ -91,7 +92,7 @@ Prohibido:
 
 ```text
 NEXT_PRIORITY: funciones faltantes reales
-CURRENT_FUNCTIONAL_FRONT: Excel Factory catalog
+CURRENT_FUNCTIONAL_FRONT: owner-facing delivery package standardization
 ```
 
 La documentación debe seguir a la evidencia, no al revés.
