@@ -136,9 +136,19 @@ def test_cli_run_tools_delegates_to_pipeline(
     pipeline_result_path = case_folders[0] / "pipeline_result.json"
     assert pipeline_result_path.exists()
 
+    owner_summary_path = case_folders[0] / "post_tool_owner_delivery_summary.md"
+    assert owner_summary_path.exists()
+    owner_summary = owner_summary_path.read_text(encoding="utf-8")
+    assert "# Entrega PymIA — Servicio 1" in owner_summary
+    assert "Herramientas aplicadas: **5**" in owner_summary
+    assert "Archivos XLSX generados: **5**" in owner_summary
+    assert "No calcula margenes" not in owner_summary
+
     pipeline_data = json.loads(pipeline_result_path.read_text(encoding="utf-8"))
     assert pipeline_data["runtime_authorized"] is False
     assert len(pipeline_data["delivery_flow"]["deliveries"]) == 5
+    assert "post_tool_owner_delivery_summary" in packet
+    assert "post_tool_owner_delivery_summary.md" in packet["case_delivery_manifest"]["files_written"]
 
 
 # ---------------------------------------------------------------------------

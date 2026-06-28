@@ -30,6 +30,10 @@ from pymia.smartpyme.service_1_first_aid_minimal_v1 import (
 from pymia.smartpyme.service_1_pipeline_v1 import (
     run_service_1_pipeline_v1,
 )
+from pymia.smartpyme.service_1_post_tool_owner_delivery_summary_v1 import (
+    SUMMARY_FILENAME,
+    render_service_1_post_tool_owner_delivery_summary_v1,
+)
 from pymia.smartpyme.exceland_execution_flow_v1 import (
     run_exceland_execution_flow_v1,
 )
@@ -298,6 +302,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         if pipeline_result_filename not in manifest_files_written:
             manifest_files_written.append(pipeline_result_filename)
+
+        post_tool_owner_summary = render_service_1_post_tool_owner_delivery_summary_v1(
+            packet_serializable
+        )
+        packet_serializable["post_tool_owner_delivery_summary"] = post_tool_owner_summary
+        (case_dir / SUMMARY_FILENAME).write_text(
+            post_tool_owner_summary,
+            encoding="utf-8",
+        )
+        if SUMMARY_FILENAME not in manifest_files_written:
+            manifest_files_written.append(SUMMARY_FILENAME)
 
         # Track XLSX files from delivery flow
         for delivery in pipeline_result["delivery_flow"]["deliveries"]:
