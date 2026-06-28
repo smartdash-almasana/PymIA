@@ -181,7 +181,7 @@ Entregables permitidos:
 
 ```text
 NOT_FULLY_COMPLETE:
-- paquete comercial owner-facing debe consolidarse después del cierre técnico.
+- paquete comercial owner-facing ya tiene estándar V1; falta ensayo sobre caso comercial estrella.
 - documentación debe reducirse a documentos rectores y anexos, no seguir multiplicándose.
 ```
 
@@ -206,13 +206,13 @@ La próxima etapa debe priorizar funciones faltantes reales, una por vez, con ev
 
 ```text
 NEXT_FUNCTIONAL_FRONT:
-owner-facing delivery package standardization
+QA final de claims prohibidos y caso comercial estrella
 ```
 
 Razón:
 
 ```text
-proveedores_precio_variacion_triage, caja_diaria POR_FECHA y Excel Factory catálogo inicial ya están cerrados con límites. El frente funcional restante es estandarizar el paquete owner-facing.
+proveedores_precio_variacion_triage, caja_diaria POR_FECHA, Excel Factory catálogo inicial y paquete owner-facing estándar ya están cerrados con límites. El frente restante es QA final de claims prohibidos y caso comercial estrella.
 ```
 
 Criterio de cierre:
@@ -240,5 +240,5 @@ SERVICE_1_FULL_ASSISTED_V1: READY_WITH_LIMITATIONS_FOR_ASSISTED_OPERATION
 SELLABLE: YES_WITH_EXPLICIT_LIMITS
 TECHNICALLY_COMPLETE: NO
 OPERATIONALLY_USABLE: YES
-NEXT_STEP: owner-facing delivery package standardization
+NEXT_STEP: QA final de claims prohibidos y caso comercial estrella
 ```

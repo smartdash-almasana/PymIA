@@ -78,7 +78,7 @@ No hay evidencia suficiente.
 | Detección de estructura | CLOSED | detected_structure.json generado en casos reales/sintéticos | Puede requerir lectura humana | Usar playbook | No |
 | Column confirmation packet | CLOSED | column_confirmation_packet.json generado | No es UI final | Usar como artifact operador | No |
 | Operator packet | CLOSED | operator_packet.json generado | Revisión humana obligatoria | Mantener | No |
-| Delivery package | CLOSED | README, owner_message, XLSX outputs, QA artifacts disponibles | Pulido comercial pendiente | Normalizar plantilla de entrega | Parcial |
+| Delivery package | CLOSED_WITH_LIMITS | Paquete técnico existente + estándar cliente creado en `SERVICE_1_PAQUETE_ENTREGA_CLIENTE_ESTANDAR_V1.md` | Requiere ensayo operativo con caso comercial antes de declarar cierre final | Usar estructura owner-facing estándar: LEEME, resumen, evidencia, hallazgos, límites, próximos pedidos, próximas acciones, outputs y técnico | No |
 | QA gate | CLOSED | QA 12/12 en demo cafeteria_abc | No cubre todas las familias | Mantener como gate | No |
 | owner_message.md | CLOSED | Generado en demo y flows previos | Ajuste de tono comercial futuro | Mantener guardrails | No |
 | precio_margen_basico | CLOSED | cafeteria_abc: 15/15 OK; distribuidora sample 10/10 OK; pilot_002 7 OK + 2 INVALID por datos | Ninguno runtime; sólo calidad de datos | Usar como familia estrella | No |
@@ -278,7 +278,7 @@ chatbot productivo.
 | GAP-003 | RESOLVED_WITH_CAVEATS: caja_diaria_triage tiene modo AGREGADO validado y modo POR_FECHA validado como operación externa sin cambiar contrato runtime | operación | Cerrada | GPT/MCP-local | No | No |
 | GAP-004 | RESOLVED: proveedores_precio_variacion_triage tiene ejecución auditada sobre archivo existente con caveats de contrato | evidencia | Cerrada | GPT/MCP-local | No | No |
 | GAP-005 | RESOLVED_WITH_LIMITS: Excel Factory expresada como catálogo comercial inicial V1; autonomía y ExcelSpec productivo quedan diferidos | producto | Cerrada | GPT/MCP-local | No | No |
-| GAP-006 | Delivery package comercial aún técnico | producto | Media | GPT | Sí parcial | Sí |
+| GAP-006 | RESOLVED_WITH_LIMITS: paquete de entrega cliente estandarizado; falta ensayo sobre caso comercial estrella antes de cierre final | producto | Cerrada | GPT/MCP-local | No | No |
 | GAP-007 | Backlog de archivos existentes sin clasificación final | orden operativo | Media | GPT/DeepSeek | No | Parcial |
 | GAP-008 | Chatbot/FSM productiva pendiente | producto futuro | Baja ahora | No abrir | No | No para S1 asistido |
 | GAP-009 | PDF/OCR pendiente | futuro | Baja ahora | No abrir | No | No para S1 asistido |
