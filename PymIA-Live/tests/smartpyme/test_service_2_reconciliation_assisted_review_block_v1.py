@@ -141,8 +141,58 @@ def test_review_summary_counts_all_sections() -> None:
         "diferencias_fecha": 1,
         "faltantes_evidencia": 2,
     }
+    assert result["counts"] == result["review_summary"]
     assert "1 matches exactos" in result["executive_summary"]
     assert "2 faltantes de evidencia" in result["executive_summary"]
+
+
+def test_audience_summaries_are_part_of_active_block_after_merge() -> None:
+    result = build_reconciliation_assisted_review_block_v1(
+        [{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
+        [{"id": "i1", "fecha": "2026-06-01", "importe": 1000}],
+    )
+
+    assert result["audience"] == {
+        "operator": True,
+        "owner": True,
+        "accountant": True,
+    }
+    assert "Revisión asistida" in result["operator_brief"]
+    assert "responsable o contador" in result["owner_summary"]
+    assert "revisión contable asistida" in result["accountant_summary"]
+
+
+def test_sections_are_markdown_ready_inside_active_block() -> None:
+    result = build_reconciliation_assisted_review_block_v1(
+        [{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
+        [{"id": "i1", "fecha": "2026-06-01", "importe": 1000}],
+    )
+    section_ids = [section["id"] for section in result["sections"]]
+
+    assert section_ids == [
+        "executive_summary",
+        "exact_matches",
+        "probable_matches",
+        "bank_pending",
+        "internal_pending",
+        "amount_differences",
+        "date_differences",
+        "missing_evidence",
+        "next_steps",
+        "caveats",
+    ]
+    assert all(section["markdown_ready"] is True for section in result["sections"])
+
+
+def test_no_io_delivery_flags_are_part_of_active_block_after_merge() -> None:
+    result = build_reconciliation_assisted_review_block_v1([], [])
+
+    assert result["markdown_ready"] is True
+    assert result["io_performed"] is False
+    assert result["files_created"] == []
+    assert result["xlsx_created"] is False
+    assert result["api_used"] is False
+    assert result["llm_used"] is False
 
 
 def test_next_steps_change_by_status() -> None:
@@ -184,6 +234,9 @@ def test_forbidden_claims_do_not_appear_as_status_or_positive_conclusion() -> No
         [
             str(result["status"]),
             str(result["executive_summary"]),
+            str(result["operator_brief"]),
+            str(result["owner_summary"]),
+            str(result["accountant_summary"]),
             " ".join(result["next_steps"]),
         ]
     ).lower()
@@ -231,3 +284,5 @@ def test_no_forbidden_statuses_are_used() -> None:
     assert "CERTIFIED" not in source
     assert "AUDITED" not in source
     assert "TAX_READY" not in source
+    assert "ACCOUNTING_CLOSED" not in source
+    assert "FISCAL_CLOSED" not in source

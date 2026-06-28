@@ -11,95 +11,63 @@ from pymia.smartpyme.service_2_reconciliation_assisted_review_delivery_packet_v1
 )
 
 
-def _ready_review_result() -> dict[str, object]:
-    return build_reconciliation_assisted_review_block_v1(
+def test_delivery_packet_is_deprecated_compatibility_shim() -> None:
+    review = build_reconciliation_assisted_review_block_v1(
         [{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
         [{"id": "i1", "fecha": "2026-06-01", "importe": 1000}],
     )
 
-
-def test_builds_logical_packet_from_assisted_review_result() -> None:
-    review = _ready_review_result()
     packet = build_reconciliation_assisted_review_delivery_packet_v1(review)
 
-    assert packet["schema_version"] == "1.0"
-    assert packet["service"] == "S2_ADMIN_OPERATIONS_V1"
-    assert packet["packet"] == "S2_RECONCILIATION_ASSISTED_REVIEW_DELIVERY_PACKET_V1"
-    assert packet["source_block"] == "S2_RECONCILIATION_ASSISTED_REVIEW_BLOCK_V1"
+    assert packet["deprecated"] is True
+    assert "Merged into S2_RECONCILIATION_ASSISTED_REVIEW_BLOCK_V1" in packet["deprecation_reason"]
     assert packet["source_result"] is review
+    assert packet["status"] == review["status"]
+    assert packet["packet"] == "S2_RECONCILIATION_ASSISTED_REVIEW_DELIVERY_PACKET_V1"
 
 
-def test_ready_review_maps_to_ready_for_operator_review() -> None:
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(_ready_review_result())
-
-    assert packet["status"] == "READY_FOR_OPERATOR_REVIEW"
-    assert packet["source_status"] == "READY_FOR_ASSISTED_REVIEW"
-    assert packet["counts"]["matches_exactos"] == 1
-
-
-def test_partial_review_maps_to_partial_packet_ready() -> None:
+def test_shim_does_not_add_active_processing_layer() -> None:
     review = build_reconciliation_assisted_review_block_v1(
         [{"id": "b1", "fecha": "2026-06-03", "importe": 1000}],
         [{"id": "i1", "fecha": "2026-06-01", "importe": 1000}],
     )
+
     packet = build_reconciliation_assisted_review_delivery_packet_v1(review)
 
-    assert packet["status"] == "PARTIAL_PACKET_READY"
-    assert packet["counts"]["matches_probables"] == 1
-    assert packet["counts"]["diferencias_fecha"] == 1
+    assert packet["review_summary"] == review["review_summary"]
+    assert packet["sections"] == review["sections"]
+    assert packet["next_steps"] == review["next_steps"]
+    assert packet["caveats"] == review["caveats"]
+    assert packet["forbidden_claims"] == review["forbidden_claims"]
 
 
-def test_no_candidates_status_is_preserved() -> None:
-    review = build_reconciliation_assisted_review_block_v1(
-        [{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
-        [],
-    )
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(review)
-
-    assert packet["status"] == "NO_REVIEWABLE_CANDIDATES"
-    assert packet["counts"]["banco_sin_imputar"] == 1
-
-
-def test_missing_evidence_status_is_preserved() -> None:
-    review = build_reconciliation_assisted_review_block_v1(
-        [{"id": "b1", "fecha": "", "importe": 1000}],
-        [],
-    )
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(review)
-
-    assert packet["status"] == "NEEDS_MORE_EVIDENCE"
-    assert packet["counts"]["faltantes_evidencia"] == 1
-
-
-def test_invalid_assisted_review_result_blocks() -> None:
+def test_invalid_input_blocks_conservatively() -> None:
     packet = build_reconciliation_assisted_review_delivery_packet_v1(None)
 
     assert packet["status"] == "BLOCKED_BY_INVALID_INPUTS"
-    assert packet["block_reason"] == "assisted_review_result_must_be_a_dict"
+    assert packet["deprecated"] is True
     assert packet["requires_human_review"] is True
+    assert packet["block_reason"] == "expected_current_assisted_review_block_v1"
 
 
-def test_invalid_review_shape_blocks_with_validation_errors() -> None:
+def test_invalid_legacy_shape_blocks_conservatively() -> None:
     packet = build_reconciliation_assisted_review_delivery_packet_v1(
         {
             "service": "S2_ADMIN_OPERATIONS_V1",
             "block": "WRONG_BLOCK",
             "status": "READY_FOR_ASSISTED_REVIEW",
-            "requires_human_review": False,
+            "requires_human_review": True,
             "review_summary": {},
         }
     )
 
     assert packet["status"] == "BLOCKED_BY_INVALID_INPUTS"
-    assert packet["block_reason"] == "invalid_assisted_review_result"
-    assert {error["field"] for error in packet["validation_errors"]} == {
-        "block",
-        "requires_human_review",
-    }
+    assert packet["source_result"]["block"] == "WRONG_BLOCK"
 
 
-def test_packet_is_markdown_ready_but_performs_no_delivery_side_effects() -> None:
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(_ready_review_result())
+def test_shim_preserves_no_side_effect_flags() -> None:
+    review = build_reconciliation_assisted_review_block_v1([], [])
+    packet = build_reconciliation_assisted_review_delivery_packet_v1(review)
 
     assert packet["markdown_ready"] is True
     assert packet["io_performed"] is False
@@ -109,70 +77,9 @@ def test_packet_is_markdown_ready_but_performs_no_delivery_side_effects() -> Non
     assert packet["llm_used"] is False
 
 
-def test_packet_has_operator_owner_and_accountant_audiences() -> None:
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(_ready_review_result())
-
-    assert packet["audience"] == {
-        "operator": True,
-        "owner": True,
-        "accountant": True,
-    }
-    assert "Paquete lógico" in packet["operator_brief"]
-    assert "responsable o contador" in packet["owner_summary"]
-    assert "revisión contable asistida" in packet["accountant_summary"]
-
-
-def test_sections_include_core_review_sections() -> None:
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(_ready_review_result())
-    section_ids = [section["id"] for section in packet["sections"]]
-
-    assert section_ids == [
-        "executive_summary",
-        "exact_matches",
-        "probable_matches",
-        "bank_pending",
-        "internal_pending",
-        "amount_differences",
-        "date_differences",
-        "missing_evidence",
-        "next_steps",
-        "caveats",
-    ]
-    assert all(section["markdown_ready"] is True for section in packet["sections"])
-
-
-def test_next_steps_and_caveats_are_carried_forward() -> None:
-    review = _ready_review_result()
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(review)
-
-    assert packet["next_steps"] == review["next_steps"]
-    caveats_blob = " ".join(str(item) for item in packet["caveats"]).lower()
-    assert "no es conciliación definitiva" in caveats_blob
-    assert "requiere revisión humana" in caveats_blob
-
-
-def test_forbidden_claims_are_carried_and_not_used_as_positive_output() -> None:
-    packet = build_reconciliation_assisted_review_delivery_packet_v1(_ready_review_result())
-    forbidden_blob = " ".join(str(item) for item in packet["forbidden_claims"]).lower()
-    positive_blob = " ".join(
-        [
-            str(packet["status"]),
-            str(packet["operator_brief"]),
-            str(packet["owner_summary"]),
-            str(packet["accountant_summary"]),
-        ]
-    ).lower()
-
-    assert "banco conciliado" in forbidden_blob
-    assert "conciliación cerrada" in forbidden_blob
-    assert "saldo real confirmado" in forbidden_blob
-    assert "banco conciliado" not in positive_blob
-    assert "conciliación cerrada" not in positive_blob
-    assert "saldo real confirmado" not in positive_blob
-
-
 def test_requires_human_review_is_always_true() -> None:
-    ready_packet = build_reconciliation_assisted_review_delivery_packet_v1(_ready_review_result())
+    review = build_reconciliation_assisted_review_block_v1([], [])
+    ready_packet = build_reconciliation_assisted_review_delivery_packet_v1(review)
     blocked_packet = build_reconciliation_assisted_review_delivery_packet_v1(None)
 
     assert ready_packet["requires_human_review"] is True

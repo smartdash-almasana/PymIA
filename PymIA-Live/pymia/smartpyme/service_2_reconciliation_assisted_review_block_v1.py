@@ -61,6 +61,15 @@ def build_reconciliation_assisted_review_block_v1(
     source_status = str(source_result.get("status", "BLOCKED_BY_INVALID_INPUTS"))
     status = STATUS_BY_SOURCE_STATUS.get(source_status, "BLOCKED_BY_INVALID_INPUTS")
     review_summary = _build_review_summary(source_result)
+    next_steps = _next_steps_for_status(status)
+    exact_matches_summary = _section_summary(source_result, "matches_exactos")
+    probable_matches_summary = _section_summary(source_result, "matches_probables")
+    bank_pending_summary = _section_summary(source_result, "banco_sin_imputar")
+    internal_pending_summary = _section_summary(source_result, "interno_sin_banco")
+    amount_differences_summary = _section_summary(source_result, "diferencias_importe")
+    date_differences_summary = _section_summary(source_result, "diferencias_fecha")
+    missing_evidence_summary = _section_summary(source_result, "faltantes_evidencia")
+    executive_summary = _build_executive_summary(status=status, review_summary=review_summary)
 
     return {
         "schema_version": "1.0",
@@ -69,18 +78,46 @@ def build_reconciliation_assisted_review_block_v1(
         "status": status,
         "source_status": source_status,
         "requires_human_review": True,
-        "executive_summary": _build_executive_summary(status=status, review_summary=review_summary),
+        "audience": {
+            "operator": True,
+            "owner": True,
+            "accountant": True,
+        },
+        "title": "Revisión asistida de conciliación",
+        "executive_summary": executive_summary,
+        "operator_brief": _operator_brief(status, review_summary),
+        "owner_summary": _owner_summary(status, review_summary),
+        "accountant_summary": _accountant_summary(status, review_summary),
         "review_summary": review_summary,
-        "exact_matches_summary": _section_summary(source_result, "matches_exactos"),
-        "probable_matches_summary": _section_summary(source_result, "matches_probables"),
-        "bank_pending_summary": _section_summary(source_result, "banco_sin_imputar"),
-        "internal_pending_summary": _section_summary(source_result, "interno_sin_banco"),
-        "amount_differences_summary": _section_summary(source_result, "diferencias_importe"),
-        "date_differences_summary": _section_summary(source_result, "diferencias_fecha"),
-        "missing_evidence_summary": _section_summary(source_result, "faltantes_evidencia"),
-        "next_steps": _next_steps_for_status(status),
+        "counts": dict(review_summary),
+        "exact_matches_summary": exact_matches_summary,
+        "probable_matches_summary": probable_matches_summary,
+        "bank_pending_summary": bank_pending_summary,
+        "internal_pending_summary": internal_pending_summary,
+        "amount_differences_summary": amount_differences_summary,
+        "date_differences_summary": date_differences_summary,
+        "missing_evidence_summary": missing_evidence_summary,
+        "sections": _build_sections(
+            executive_summary=executive_summary,
+            exact_matches_summary=exact_matches_summary,
+            probable_matches_summary=probable_matches_summary,
+            bank_pending_summary=bank_pending_summary,
+            internal_pending_summary=internal_pending_summary,
+            amount_differences_summary=amount_differences_summary,
+            date_differences_summary=date_differences_summary,
+            missing_evidence_summary=missing_evidence_summary,
+            next_steps=next_steps,
+            caveats=list(CAVEATS),
+        ),
+        "next_steps": next_steps,
         "caveats": list(CAVEATS),
         "forbidden_claims": list(FORBIDDEN_CLAIMS),
+        "markdown_ready": True,
+        "io_performed": False,
+        "files_created": [],
+        "xlsx_created": False,
+        "api_used": False,
+        "llm_used": False,
         "source_result": source_result,
     }
 
@@ -125,6 +162,73 @@ def _build_executive_summary(*, status: str, review_summary: dict[str, int]) -> 
         f"{review_summary['faltantes_evidencia']} faltantes de evidencia. "
         f"Estado de revisión: {status}. Requiere revisión humana."
     )
+
+
+def _operator_brief(status: str, review_summary: dict[str, int]) -> str:
+    return (
+        f"Revisión asistida lista con estado {status}: "
+        f"{review_summary['matches_exactos']} exactos, "
+        f"{review_summary['matches_probables']} probables, "
+        f"{review_summary['banco_sin_imputar']} bancarios pendientes, "
+        f"{review_summary['interno_sin_banco']} internos pendientes."
+    )
+
+
+def _owner_summary(status: str, review_summary: dict[str, int]) -> str:
+    return (
+        "Se preparó una revisión asistida para mirar con responsable o contador: "
+        f"{review_summary['matches_exactos']} coincidencias exactas, "
+        f"{review_summary['matches_probables']} posibles coincidencias y "
+        f"{review_summary['faltantes_evidencia']} faltantes de evidencia. "
+        f"Estado: {status}."
+    )
+
+
+def _accountant_summary(status: str, review_summary: dict[str, int]) -> str:
+    return (
+        "Paquete preliminar para revisión contable asistida: "
+        f"{review_summary['diferencias_importe']} diferencias de importe, "
+        f"{review_summary['diferencias_fecha']} diferencias de fecha, "
+        f"{review_summary['banco_sin_imputar']} movimientos bancarios sin imputar y "
+        f"{review_summary['interno_sin_banco']} movimientos internos sin banco. "
+        f"Estado: {status}."
+    )
+
+
+def _build_sections(
+    *,
+    executive_summary: str,
+    exact_matches_summary: dict[str, object],
+    probable_matches_summary: dict[str, object],
+    bank_pending_summary: dict[str, object],
+    internal_pending_summary: dict[str, object],
+    amount_differences_summary: dict[str, object],
+    date_differences_summary: dict[str, object],
+    missing_evidence_summary: dict[str, object],
+    next_steps: list[str],
+    caveats: list[str],
+) -> list[dict[str, object]]:
+    return [
+        _section("executive_summary", "Resumen ejecutivo", executive_summary),
+        _section("exact_matches", "Matches exactos", exact_matches_summary),
+        _section("probable_matches", "Matches probables", probable_matches_summary),
+        _section("bank_pending", "Movimientos bancarios sin imputar", bank_pending_summary),
+        _section("internal_pending", "Movimientos internos sin banco", internal_pending_summary),
+        _section("amount_differences", "Diferencias de importe", amount_differences_summary),
+        _section("date_differences", "Diferencias de fecha", date_differences_summary),
+        _section("missing_evidence", "Faltantes de evidencia", missing_evidence_summary),
+        _section("next_steps", "Próximos pasos", next_steps),
+        _section("caveats", "Límites y caveats", caveats),
+    ]
+
+
+def _section(section_id: str, title: str, payload: object) -> dict[str, object]:
+    return {
+        "id": section_id,
+        "title": title,
+        "payload": payload,
+        "markdown_ready": True,
+    }
 
 
 def _next_steps_for_status(status: str) -> list[str]:
