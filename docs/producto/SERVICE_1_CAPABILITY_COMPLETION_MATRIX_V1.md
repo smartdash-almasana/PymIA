@@ -85,7 +85,7 @@ No hay evidencia suficiente.
 | stock_alertas_basicas | OPERATIONAL_WITH_CAVEATS | Smoke existente indica operación/mapeo sobre pilotos; playbook lo marca operativo con caveats | Requiere controlar calidad de inputs y mapping | Ejecutar sólo bajo playbook, sin ceremonia extra | No, pero afecta amplitud full |
 | caja_diaria_triage | OPERATIONAL_WITH_CAVEATS | pilot_004 auditado: `Caja_Banco`, modo AGREGADO, saldo_inicial=6000.0 basado en MOV-016, ingresos=88900.0, egresos=35070.0, flujo_neto=53830.0, saldo_final_estimado=59830.0 | MOV-016 requiere caveat: saldo inicial interpretado por descripción, no por `Tipo movimiento`; modo POR_FECHA sigue pendiente | Usar sólo bajo contrato actual saldo_inicial/ingresos/egresos, con confirmación humana del saldo inicial | No |
 | gastos_triage | OPERATIONAL_WITH_CAVEATS | pilot_004 auditado: `Caja_Banco`, `Descripción` -> concepto, `Importe declarado` -> importe; 5 movimientos incluidos, 15 excluidos, total_gastos 35070.0; runtime_authorized false | Sólo egresos positivos explícitos; categoría ausente cae a `sin_categoria`; egresos negativos no se convierten con `abs()`; no es conciliación, auditoría ni clasificación contable/fiscal | Usar bajo playbook con mapping explícito y outputs locales no commiteables | No |
-| proveedores_precio_variacion_triage | PARTIAL/UNKNOWN | Documentado como allowlisted; evidencia de archivo calzante no clara | Falta caso existente o dataset real compatible | Buscar sólo en archivos existentes; no fabricar Excel | Sí para full amplio |
+| proveedores_precio_variacion_triage | OPERATIONAL_WITH_CAVEATS | constructora_nueva_era_srl.xlsx auditado: hoja `PROVEEDORES_MATERIALES`, 30 filas incluidas, 0 excluidas; mapping `proveedor` -> proveedor, `producto` -> producto_o_insumo, `precio_unitario_real` -> precio_o_costo; runtime OK | Caveat: usa `precio_unitario_real` como precio_o_costo; no calcula variación presupuestado vs real bajo contrato runtime actual; sólo detecta variación visible entre registros del mismo producto | Usar bajo playbook con caveat explícito; no prometer estrategia de compras ni auditoría de proveedores | No |
 | Conciliación caja/banco definitiva | OUT_OF_SCOPE | Guardrails explícitos | No pertenece al runtime actual | No prometer | No, si oferta dice triage |
 | Contabilidad fiscal / IVA / IIBB | OUT_OF_SCOPE | Guardrails explícitos | No pertenece a S1 actual | No prometer | No |
 | APIs bancarias / Mercado Pago / ML | DEFERRED | Guardrails explícitos | No runtime | Mantener fuera | No |
@@ -160,6 +160,35 @@ Caveats operativos:
 - no reemplaza revisión contable.
 ```
 
+## 3.3 Evidencia auditada: proveedores_precio_variacion_triage / constructora_nueva_era_srl
+
+```text
+AUDIT_VERDICT: PASS_WITH_CAVEATS
+CAPABILITY_STATUS_RECOMMENDED: OPERATIONAL_WITH_CAVEATS
+SOURCE_FILE: prueba_excels/constructora_nueva_era_srl.xlsx
+SHEET: PROVEEDORES_MATERIALES
+MAPPING: proveedor -> proveedor; producto_o_insumo -> producto; precio_o_costo -> precio_unitario_real
+INCLUDED_ROWS: 30
+EXCLUDED_ROWS: 0
+RUNTIME_STATUS: OK
+RUNTIME_MODIFIED: NO
+RUNTIME_AUTHORIZED: false
+LOCAL_OUTPUTS: generados localmente; no commiteables
+```
+
+Caveats operativos:
+
+```text
+- usa precio_unitario_real como precio_o_costo;
+- no calcula variación precio_unitario_presupuestado vs precio_unitario_real bajo contrato runtime actual;
+- sólo detecta variación visible entre registros del mismo producto;
+- no define estrategia de compras;
+- no confirma rentabilidad por proveedor;
+- no recomienda compra final;
+- no audita proveedores;
+- no reemplaza revisión comercial ni contable.
+```
+
 ---
 
 # 4. Capacidades cerradas para operar ya
@@ -212,7 +241,7 @@ chatbot productivo.
 | GAP-001 | Paquete comercial owner-facing mínimo no consolidado | producto | Alta | GPT + operador | Sí parcial | Sí |
 | GAP-002 | RESOLVED: gastos_triage tiene cierre operativo auditado sobre pilot_004 con caveats explícitos | operación | Cerrada | Codex | No | No |
 | GAP-003 | PARCIALMENTE RESUELTO: caja_diaria_triage tiene modo AGREGADO validado; modo POR_FECHA sigue pendiente como operación externa | operación | Media | DeepSeek/Codex | No | Parcial |
-| GAP-004 | proveedores_precio_variacion_triage sin evidencia fuerte de archivo existente | evidencia | Media | GPT/DeepSeek | No | Sí para full amplio |
+| GAP-004 | RESOLVED: proveedores_precio_variacion_triage tiene ejecución auditada sobre archivo existente con caveats de contrato | evidencia | Cerrada | GPT/MCP-local | No | No |
 | GAP-005 | Excel Factory no expresada como catálogo comercial final | producto | Media | GPT | Sí parcial | Sí |
 | GAP-006 | Delivery package comercial aún técnico | producto | Media | GPT | Sí parcial | Sí |
 | GAP-007 | Backlog de archivos existentes sin clasificación final | orden operativo | Media | GPT/DeepSeek | No | Parcial |
@@ -260,7 +289,7 @@ Servicio 1 puede declararse **FULL ASSISTED V1** cuando estén cumplidas estas c
 [ ] stock_alertas_basicas operativa con caveats documentados.
 [x] gastos_triage ejecutable con caveats documentados.
 [x] caja_diaria_triage ejecutable bajo contrato actual con caveat MOV-016.
-[ ] proveedores_precio_variacion_triage ejecutable o explícitamente limitado.
+[x] proveedores_precio_variacion_triage ejecutable con caveats documentados.
 [ ] Excel Factory expresada como catálogo comercial inicial.
 [ ] Claims prohibidos incorporados en entrega.
 [ ] Stage 6 sigue cerrado.

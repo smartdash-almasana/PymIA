@@ -1,106 +1,69 @@
 # SERVICE_1_PROVEEDORES_PRECIO_VARIACION_TRIAGE_NEXT_FRONT_V1
 
-## Objetivo
-
-Abrir el próximo frente funcional real de Servicio 1 sin deriva documental ni runtime innecesario.
+## Estado
 
 ```text
+STATUS: CLOSED_AS_OPERATIONAL_WITH_CAVEATS
 FRONT: proveedores_precio_variacion_triage
-TYPE: pilot audit sobre archivos existentes
-RUNTIME_DEFAULT: no modificar
-NEW_EXCELS: no
-STAGE_6: no
-PDF_OCR: no
+RUNTIME_MODIFIED: NO
+NEW_EXCELS: NO
+STAGE_6: NO
 ```
 
 ---
 
-# 1. Hipótesis operativa
+# 1. Resultado
 
-La capacidad existe como tool/test/toolbox, pero no tiene ejecución pilot específica auditada suficiente para declararla cerrada.
-
-Estado conservador actual:
+El frente fue ejecutado sobre archivo existente.
 
 ```text
-LIMITED_IN_FULL_ASSISTED_V1
-```
-
-Estado objetivo posible:
-
-```text
-OPERATIONAL_WITH_CAVEATS
-```
-
-Sólo si se encuentra evidencia real en archivos existentes.
-
----
-
-# 2. Archivos candidatos
-
-Buscar únicamente en:
-
-```text
-prueba_excels/
-```
-
-Priorizar:
-
-```text
-- first_aid_pilot_002_lista_precios_costos_demo.xlsx
-- distribuidora_mayorista_compleja.xlsx
-- cafeteria_abc.xlsx
-- constructora_nueva_era_srl.xlsx
-- taller_mecanico_lubricar_srl.xlsx
-```
-
-No fabricar Excel.
-
----
-
-# 3. Evidencia mínima requerida
-
-Debe existir mapping razonable para:
-
-```text
-- proveedor o equivalente;
-- producto / insumo / item;
-- precio anterior o precio base;
-- precio actual o precio nuevo;
-- fecha o período si el contrato lo requiere;
-- moneda/unidad si aparece.
-```
-
-Si no existe, declarar:
-
-```text
-LIMITED_IN_FULL_ASSISTED_V1
+SOURCE_FILE: prueba_excels/constructora_nueva_era_srl.xlsx
+SHEET: PROVEEDORES_MATERIALES
+ROWS_INCLUDED: 30
+ROWS_EXCLUDED: 0
+RUNTIME_STATUS: OK
 ```
 
 ---
 
-# 4. Criterio de salida
+# 2. Mapping auditado
 
 ```text
-OPERATIONAL_WITH_CAVEATS:
-si hay archivo existente compatible, ejecución controlada, outputs locales y auditoría de mapping.
-
-LIMITED_IN_FULL_ASSISTED_V1:
-si hay tool/test pero no archivo real compatible suficiente.
-
-BLOCKED_WITH_REASON:
-si el contrato runtime exige inputs ausentes o ambiguos.
+proveedor -> proveedor
+producto_o_insumo -> producto
+precio_o_costo -> precio_unitario_real
 ```
 
 ---
 
-# 5. No hacer
+# 3. Caveats
 
 ```text
-- no modificar runtime;
-- no inventar columnas;
-- no inferir proveedor desde texto libre débil;
-- no prometer análisis de compras integral;
-- no prometer negociación con proveedores;
-- no prometer contabilidad de costos completa;
-- no commitear outputs locales.
+- usa precio_unitario_real como precio_o_costo;
+- no calcula variación precio_unitario_presupuestado vs precio_unitario_real bajo contrato runtime actual;
+- sólo detecta variación visible entre registros del mismo producto;
+- no define estrategia de compras;
+- no confirma rentabilidad por proveedor;
+- no recomienda compra final;
+- no audita proveedores;
+- no reemplaza revisión comercial ni contable.
+```
+
+---
+
+# 4. Decisión
+
+```text
+CAPABILITY_STATUS: OPERATIONAL_WITH_CAVEATS
+MATRIX_UPDATE: DONE
+LOCAL_OUTPUTS: prueba_excels/SERVICE_1_PROVEEDORES_PRECIO_VARIACION_RUN_OUTPUT/
+COMMIT_OUTPUTS: NO
+```
+
+---
+
+# 5. Próximo frente
+
+```text
+NEXT_FRONT: choose between caja_diaria POR_FECHA or Excel Factory catalog
 ```

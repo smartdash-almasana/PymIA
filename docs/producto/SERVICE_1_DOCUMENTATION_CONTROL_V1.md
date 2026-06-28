@@ -48,7 +48,7 @@ No deben convertirse en nuevos centros de decisión.
 # 3. Documentos transitorios de frente funcional
 
 ```text
-TEMPORARY_FRONT_DOCS:
+CLOSED_FRONT_DOCS:
 - docs/producto/SERVICE_1_PROVEEDORES_PRECIO_VARIACION_TRIAGE_NEXT_FRONT_V1.md
 ```
 
@@ -90,7 +90,7 @@ Prohibido:
 
 ```text
 NEXT_PRIORITY: funciones faltantes reales
-CURRENT_FUNCTIONAL_FRONT: proveedores_precio_variacion_triage
+CURRENT_FUNCTIONAL_FRONT: choose between caja_diaria POR_FECHA or Excel Factory catalog
 ```
 
 La documentación debe seguir a la evidencia, no al revés.
