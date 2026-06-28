@@ -83,8 +83,8 @@ No hay evidencia suficiente.
 | owner_message.md | CLOSED | Generado en demo y flows previos | Ajuste de tono comercial futuro | Mantener guardrails | No |
 | precio_margen_basico | CLOSED | cafeteria_abc: 15/15 OK; distribuidora sample 10/10 OK; pilot_002 7 OK + 2 INVALID por datos | Ninguno runtime; sólo calidad de datos | Usar como familia estrella | No |
 | stock_alertas_basicas | OPERATIONAL_WITH_CAVEATS | Smoke existente indica operación/mapeo sobre pilotos; playbook lo marca operativo con caveats | Requiere controlar calidad de inputs y mapping | Ejecutar sólo bajo playbook, sin ceremonia extra | No, pero afecta amplitud full |
-| caja_diaria_triage | PARTIAL | Sintético ejecutado; pilot_004 requiere mapping; contrato runtime saldo_inicial/ingresos/egresos | Modo por fecha es operativo externo, no contrato runtime | Usar sólo en modo agregado o por fecha consolidada | Sí parcial |
-| gastos_triage | PARTIAL | pilot_004 candidato; contrato orientado a concepto/importe | Falta cierre operativo con archivo existente | Ejecutar caso controlado cuando sea prioridad | Sí parcial |
+| caja_diaria_triage | OPERATIONAL_WITH_CAVEATS | pilot_004 auditado: `Caja_Banco`, modo AGREGADO, saldo_inicial=6000.0 basado en MOV-016, ingresos=88900.0, egresos=35070.0, flujo_neto=53830.0, saldo_final_estimado=59830.0 | MOV-016 requiere caveat: saldo inicial interpretado por descripción, no por `Tipo movimiento`; modo POR_FECHA sigue pendiente | Usar sólo bajo contrato actual saldo_inicial/ingresos/egresos, con confirmación humana del saldo inicial | No |
+| gastos_triage | OPERATIONAL_WITH_CAVEATS | pilot_004 auditado: `Caja_Banco`, `Descripción` -> concepto, `Importe declarado` -> importe; 5 movimientos incluidos, 15 excluidos, total_gastos 35070.0; runtime_authorized false | Sólo egresos positivos explícitos; categoría ausente cae a `sin_categoria`; egresos negativos no se convierten con `abs()`; no es conciliación, auditoría ni clasificación contable/fiscal | Usar bajo playbook con mapping explícito y outputs locales no commiteables | No |
 | proveedores_precio_variacion_triage | PARTIAL/UNKNOWN | Documentado como allowlisted; evidencia de archivo calzante no clara | Falta caso existente o dataset real compatible | Buscar sólo en archivos existentes; no fabricar Excel | Sí para full amplio |
 | Conciliación caja/banco definitiva | OUT_OF_SCOPE | Guardrails explícitos | No pertenece al runtime actual | No prometer | No, si oferta dice triage |
 | Contabilidad fiscal / IVA / IIBB | OUT_OF_SCOPE | Guardrails explícitos | No pertenece a S1 actual | No prometer | No |
@@ -94,6 +94,71 @@ No hay evidencia suficiente.
 | Producción industrial KPI | OUT_OF_SCOPE | fabrica_industrial_compleja unsupported | No First Aid actual | Registrar gap futuro | No |
 | Excel Factory descargables | PARTIAL | Templates/documentación previas; outputs XLSX por tool existen | Falta catálogo comercial final | Conectar a oferta, no a runtime nuevo | Sí parcial |
 | Casos demo vendibles | PARTIAL | cafeteria_abc demo ready; synthetic case closed local | Falta paquete comercial mínimo | Preparar 1 muestra owner-facing | Sí parcial |
+
+## 3.1 Evidencia auditada: gastos_triage / pilot_004
+
+```text
+AUDIT_VERDICT: PASS_REPORTED_BY_CODEX_IS_VALID
+CAPABILITY_STATUS_RECOMMENDED: OPERATIONAL_WITH_CAVEATS
+SOURCE_FILE: prueba_excels/first_aid_pilot_004_cash_bank_reconciliation_demo.xlsx
+SHEET: Caja_Banco
+MAPPING: concepto -> Descripción; importe -> Importe declarado
+FILTER: Tipo movimiento == Egreso AND Importe declarado numérico AND >= 0
+INCLUDED_MOVEMENTS: 5
+EXCLUDED_MOVEMENTS: 15
+TOTAL_GASTOS: 35070.0
+CATEGORY_BEHAVIOR: categoría ausente -> sin_categoria
+NEGATIVE_EXPENSE_RULE: MOV-005 excluido por importe negativo; no aplicar abs()
+RUNTIME_MODIFIED: NO
+RUNTIME_AUTHORIZED: false
+LOCAL_OUTPUTS: generados localmente; no commiteables
+```
+
+Caveats operativos:
+
+```text
+- sólo egresos positivos explícitos;
+- categoría ausente cae a sin_categoria;
+- egresos negativos no se convierten con abs();
+- no es conciliación bancaria;
+- no es auditoría;
+- no es clasificación contable/fiscal.
+```
+
+## 3.2 Evidencia auditada: caja_diaria_triage / pilot_004
+
+```text
+AUDIT_VERDICT: PASS_REPORTED_IS_VALID_WITH_CAVEAT
+CAPABILITY_STATUS_RECOMMENDED: OPERATIONAL_WITH_CAVEATS
+SOURCE_FILE: prueba_excels/first_aid_pilot_004_cash_bank_reconciliation_demo.xlsx
+SHEET: Caja_Banco
+MODE: AGREGADO
+CONTRACT: saldo_inicial + ingresos + egresos
+SALDO_INICIAL: 6000.0
+SALDO_SOURCE: MOV-016 / Descripción = Ajuste saldo inicial anterior / Tipo movimiento = Ingreso
+INGRESOS: 88900.0
+EGRESOS: 35070.0
+FLUJO_NETO: 53830.0
+SALDO_FINAL_ESTIMADO: 59830.0
+RUNTIME_STATUS: OK
+RUNTIME_MODIFIED: NO
+RUNTIME_AUTHORIZED: false
+LOCAL_OUTPUTS: generados localmente; no commiteables
+```
+
+Caveats operativos:
+
+```text
+- MOV-016 se usa como saldo_inicial por interpretación de descripción, no por tipo_movimiento;
+- requiere confirmación humana del operador/cliente;
+- si MOV-016 fuera ingreso ordinario, cambiarían ingresos y saldo final;
+- modo AGREGADO validado bajo contrato runtime actual;
+- modo POR_FECHA queda pendiente como operación externa;
+- no es conciliación bancaria;
+- no es auditoría;
+- no valida efectivo físico;
+- no reemplaza revisión contable.
+```
 
 ---
 
@@ -145,8 +210,8 @@ chatbot productivo.
 | Gap ID | Gap | Tipo | Prioridad | Responsable sugerido | Bloquea venta inicial | Bloquea full |
 |---|---|---|---:|---|---:|---:|
 | GAP-001 | Paquete comercial owner-facing mínimo no consolidado | producto | Alta | GPT + operador | Sí parcial | Sí |
-| GAP-002 | gastos_triage sin cierre operativo claro sobre archivo existente | operación | Alta | DeepSeek/Codex | No | Sí |
-| GAP-003 | caja_diaria_triage requiere criterio estable AGREGADO/POR_FECHA | operación | Alta | DeepSeek/Codex | No | Sí |
+| GAP-002 | RESOLVED: gastos_triage tiene cierre operativo auditado sobre pilot_004 con caveats explícitos | operación | Cerrada | Codex | No | No |
+| GAP-003 | PARCIALMENTE RESUELTO: caja_diaria_triage tiene modo AGREGADO validado; modo POR_FECHA sigue pendiente como operación externa | operación | Media | DeepSeek/Codex | No | Parcial |
 | GAP-004 | proveedores_precio_variacion_triage sin evidencia fuerte de archivo existente | evidencia | Media | GPT/DeepSeek | No | Sí para full amplio |
 | GAP-005 | Excel Factory no expresada como catálogo comercial final | producto | Media | GPT | Sí parcial | Sí |
 | GAP-006 | Delivery package comercial aún técnico | producto | Media | GPT | Sí parcial | Sí |
@@ -164,10 +229,9 @@ No avanzar por curiosidad. Cerrar en este orden:
 ```text
 1. Paquete comercial owner-facing mínimo.
 2. Delivery template estándar.
-3. gastos_triage con archivo existente.
-4. caja_diaria_triage bajo contrato actual.
-5. proveedores_precio_variacion_triage sólo si hay archivo existente calzante.
-6. Excel Factory catálogo comercial.
+3. caja_diaria_triage bajo contrato actual.
+4. proveedores_precio_variacion_triage sólo si hay archivo existente calzante.
+5. Excel Factory catálogo comercial.
 ```
 
 Prohibido en esta fase:
@@ -194,8 +258,8 @@ Servicio 1 puede declararse **FULL ASSISTED V1** cuando estén cumplidas estas c
 [ ] Delivery template estándar definido.
 [ ] precio_margen_basico cerrado.
 [ ] stock_alertas_basicas operativa con caveats documentados.
-[ ] gastos_triage ejecutable o explícitamente limitado.
-[ ] caja_diaria_triage ejecutable bajo contrato actual o explícitamente limitado.
+[x] gastos_triage ejecutable con caveats documentados.
+[x] caja_diaria_triage ejecutable bajo contrato actual con caveat MOV-016.
 [ ] proveedores_precio_variacion_triage ejecutable o explícitamente limitado.
 [ ] Excel Factory expresada como catálogo comercial inicial.
 [ ] Claims prohibidos incorporados en entrega.
