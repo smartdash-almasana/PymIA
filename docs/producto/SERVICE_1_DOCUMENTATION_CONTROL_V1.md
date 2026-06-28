@@ -50,6 +50,7 @@ No deben convertirse en nuevos centros de decisión.
 ```text
 CLOSED_FRONT_DOCS:
 - docs/producto/SERVICE_1_PROVEEDORES_PRECIO_VARIACION_TRIAGE_NEXT_FRONT_V1.md
+- docs/producto/SERVICE_1_CAJA_DIARIA_POR_FECHA_CLOSEOUT_V1.md
 ```
 
 Regla:
