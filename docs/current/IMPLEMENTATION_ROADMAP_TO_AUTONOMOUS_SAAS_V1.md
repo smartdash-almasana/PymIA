@@ -61,7 +61,11 @@ Verified against the current `main` branch and committed implementation files:
 | Autonomous delivery candidate | Implemented | `S1_AUTONOMOUS_DELIVERY_RELEASE_GATE_V1`, `S1_OWNER_DELIVERY_PACKET_FOR_SAAS_V1` |
 | Owner reentry / autonomous rerun | Implemented | `S1_OWNER_FEEDBACK_TO_CASE_TRUTH_PATCH_V1`, `S1_OWNER_REENTRY_TO_AUTONOMOUS_RERUN_V1` |
 | SaaS shell candidates | Implemented as pure contracts | `S1_SAAS_CASE_SESSION_MODEL_V1`, `S1_SAAS_FILE_INTAKE_API_V1`, `S1_SAAS_JOB_ORCHESTRATION_V1` |
-| Conversational owner layer | In progress | `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1` implemented; `S1_LLM_GUARDED_RESPONSE_GATE_V1` and `S1_OWNER_QUESTION_ROUTER_V1` pending |
+| Conversational owner layer | Implemented | `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1`, `S1_LLM_GUARDED_RESPONSE_GATE_V1`, `S1_OWNER_QUESTION_ROUTER_V1` |
+| SaaS hardening — audit log | Implemented | `S1_AUDIT_LOG_V1` — commit `7319e1f` |
+| SaaS hardening — tenant isolation | Implemented | `S1_TENANT_ISOLATION_GUARD_V1` — commit `fea2d5b` |
+| SaaS hardening — failure recovery | Contract design pending | `S1_FAILURE_RECOVERY_V1_CONTRACT_DESIGN` — NEXT |
+| SaaS hardening — cost/rate limit | Not started | `S1_COST_AND_RATE_LIMIT_GUARD_V1` — PENDING |
 | Human review / release boundary | Partial | Human review gate, final QA gate, and signoff flow exist; final SaaS/runtime release integration is still pending |
 | Real SaaS runtime boundary | Not started | No real endpoint/API, auth, DB/storage, upload, worker, or UI as the canonical autonomous path |
 
@@ -148,31 +152,33 @@ Provide the runtime container around the autonomous Servicio 1 core: case sessio
 **Closure criterion:**
 A PyME owner can create a case, submit files, let PymIA process asynchronously, and inspect state through SaaS-ready interfaces.
 
-### Phase E — Conversational AI Under Harness
+### Phase E — Conversational AI Under Harness (CLOSED)
 
 **Objective:**
 Connect conversational AI as a governed interaction layer. The LLM may explain, ask, summarize, and transform owner responses into structured payloads, but it cannot decide truth, bypass gates, invent results, or authorize execution.
 
 **Likely slices:**
 
-- `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1`
-- `S1_LLM_GUARDED_RESPONSE_GATE_V1`
-- `S1_OWNER_QUESTION_ROUTER_V1`
+- `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1` — implemented
+- `S1_LLM_GUARDED_RESPONSE_GATE_V1` — implemented
+- `S1_OWNER_QUESTION_ROUTER_V1` — implemented
 
 **Closure criterion:**
 The LLM can interact with the PyME owner only through approved contracts and guarded responses, while all truth and execution decisions remain in PymIA runtime.
 
-### Phase F — SaaS Hardening
+**Status:** CLOSED — all three slices implemented and committed.
+
+### Phase F — SaaS Hardening (IN PROGRESS)
 
 **Objective:**
 Make the autonomous SaaS safe, observable, tenant-isolated, recoverable, and cost-controlled.
 
 **Likely slices:**
 
-- `S1_AUDIT_LOG_V1`
-- `S1_TENANT_ISOLATION_GUARD_V1`
-- `S1_FAILURE_RECOVERY_V1`
-- `S1_COST_AND_RATE_LIMIT_GUARD_V1`
+- `S1_AUDIT_LOG_V1` — CLOSED + PUSHED (`7319e1f`)
+- `S1_TENANT_ISOLATION_GUARD_V1` — CLOSED + PUSHED (`fea2d5b`)
+- `S1_FAILURE_RECOVERY_V1` — NEXT
+- `S1_COST_AND_RATE_LIMIT_GUARD_V1` — PENDING
 
 **Closure criterion:**
 The system has enough operational safety to run as a real SaaS: audit trail, tenant boundaries, failure recovery, and cost/rate controls.
@@ -200,9 +206,9 @@ Strict implementation path from baseline `e0075cc`:
 - Phase B must close before owner-facing autonomous release can be claimed.
 - Phase C can begin after the core gates are stable, but must support both pre-execution clarification and post-delivery feedback.
 - Phase D should not lead the work. SaaS shell comes after the core autonomous runtime has stable contracts.
-- Phase E is active. Its preconditions are already satisfied by the implemented owner reentry, rerun, delivery-candidate, and SaaS-shell contracts.
-- The immediate open work inside Phase E is the guarded LLM response gate first, then the owner question router.
-- Phase F still depends on the final shape of the conversational layer and the eventual real SaaS runtime boundary.
+- Phase E is CLOSED. All three conversational slices are implemented and committed.
+- Phase F is IN PROGRESS. F.1 (audit log) and F.2 (tenant isolation) are closed and pushed. F.3 (failure recovery) is the next unique front.
+- Phase F still depends on the final shape of the eventual real SaaS runtime boundary.
 
 ## Not Allowed Yet
 
@@ -231,15 +237,16 @@ A phase is closed only when all its required slices meet the same criteria and t
 ## Next Unique Front
 
 ```text
-S1_LLM_GUARDED_RESPONSE_GATE_V1
+S1_FAILURE_RECOVERY_V1_CONTRACT_DESIGN
 ```
 
-This is the immediate front after closing `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1`.
+This is the immediate front after closing F.1 (`S1_AUDIT_LOG_V1`) and F.2 (`S1_TENANT_ISOLATION_GUARD_V1`).
 
-It must consume the conversational bridge candidate and strictly constrain what an LLM-generated response candidate may do:
+It must define a pure failure recovery candidate contract that:
 
-- explain or summarize existing verified state;
-- ask for missing evidence or clarification;
-- preserve forbidden scopes such as runtime authorization, case mutation, delivery publication, or fabricated certainty.
+- describes deterministic error/blocked conditions without runtime recovery execution;
+- preserves the session anchor and source slice lineage;
+- avoids real storage, DB, worker, pipeline, runner, LLM, or API authority;
+- leaves the recovery plan as a non-executable candidate for a future runtime.
 
-It must not replace the bridge, bypass the deterministic contracts, or turn the conversational layer into a truth/authorization engine.
+It must not implement real recovery, retry logic, state mutation, or runtime SaaS behavior.
