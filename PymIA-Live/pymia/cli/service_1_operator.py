@@ -13,6 +13,8 @@ from pymia.smartpyme.service_1_column_confirmation_packet_v1 import (
     build_service_1_column_confirmation_packet_v1,
 )
 from pymia.smartpyme.service_1_case_delivery_folder_v1 import (
+    build_service_1_human_review_gate_v1,
+    finalize_service_1_case_delivery_folder_v1,
     write_service_1_case_delivery_folder_v1,
 )
 from pymia.smartpyme.service_1_xlsx_structure_v1 import (
@@ -498,12 +500,25 @@ def main(argv: list[str] | None = None) -> int:
                 print("- Runtime autorizado: false", flush=True)
                 print()
 
+    # Build explicit human review gate before the final operator packet is written.
+    human_review_gate = build_service_1_human_review_gate_v1(packet_serializable)
+    packet_serializable["human_review_gate"] = human_review_gate
+
     # Write operator_packet.json to case folder
     operator_packet_path = case_dir / "operator_packet.json"
     operator_packet_path.write_text(
         json.dumps(packet_serializable, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
+    if "operator_packet.json" not in manifest_files_written:
+        manifest_files_written.append("operator_packet.json")
+
+    final_delivery_manifest = finalize_service_1_case_delivery_folder_v1(
+        packet=packet_serializable,
+        case_dir=case_dir,
+        files_written=manifest_files_written,
+    )
+    packet_serializable["final_delivery_manifest"] = final_delivery_manifest
 
     # Print QA delivery gate summary to stdout
     print()
@@ -520,8 +535,17 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print("Carpeta de caso", flush=True)
     print(f"- Caso: {manifest['case_id']}", flush=True)
-    print(f"- Archivos generados: {len(manifest['files_written'])}", flush=True)
+    print(f"- Archivos generados: {len(manifest_files_written)}", flush=True)
     print(f"- Ubicaci\u00f3n: {manifest['case_dir']}", flush=True)
+    print("- Ruta canónica de entrega: true", flush=True)
+    print(
+        f"- QA final: {final_delivery_manifest['final_qa_delivery_gate']['status']}",
+        flush=True,
+    )
+    print(
+        f"- Human review gate: {final_delivery_manifest['human_review_gate']['status']}",
+        flush=True,
+    )
     print()
 
     # Legacy JSON output for backward compatibility
