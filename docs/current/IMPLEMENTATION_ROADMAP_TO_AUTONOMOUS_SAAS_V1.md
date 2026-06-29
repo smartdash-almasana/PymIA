@@ -49,7 +49,21 @@ normalized data / evidence
 → pipeline request candidate gate
 ```
 
-This chain currently remains in candidate/gated state. It does not yet execute the pipeline autonomously, produce autonomous delivery, or run conversational AI.
+This was the original certified baseline. The repository has since advanced beyond this point, so this section should be read as the historical base of the autonomous SaaS roadmap, not as the current frontier.
+
+## Verified Repo State (June 29, 2026)
+
+Verified against the current `main` branch and committed implementation files:
+
+| Area | Status | Verified slices |
+|-------|--------|-----------------|
+| Autonomous core pipeline | Implemented | `S1_PIPELINE_REQUEST_EXECUTION_GATE_V1`, `S1_AUTONOMOUS_PIPELINE_RUNNER_V1` |
+| Autonomous delivery candidate | Implemented | `S1_AUTONOMOUS_DELIVERY_RELEASE_GATE_V1`, `S1_OWNER_DELIVERY_PACKET_FOR_SAAS_V1` |
+| Owner reentry / autonomous rerun | Implemented | `S1_OWNER_FEEDBACK_TO_CASE_TRUTH_PATCH_V1`, `S1_OWNER_REENTRY_TO_AUTONOMOUS_RERUN_V1` |
+| SaaS shell candidates | Implemented as pure contracts | `S1_SAAS_CASE_SESSION_MODEL_V1`, `S1_SAAS_FILE_INTAKE_API_V1`, `S1_SAAS_JOB_ORCHESTRATION_V1` |
+| Conversational owner layer | In progress | `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1` implemented; `S1_LLM_GUARDED_RESPONSE_GATE_V1` and `S1_OWNER_QUESTION_ROUTER_V1` pending |
+| Human review / release boundary | Partial | Human review gate, final QA gate, and signoff flow exist; final SaaS/runtime release integration is still pending |
+| Real SaaS runtime boundary | Not started | No real endpoint/API, auth, DB/storage, upload, worker, or UI as the canonical autonomous path |
 
 ## Implementation Principles
 
@@ -186,8 +200,9 @@ Strict implementation path from baseline `e0075cc`:
 - Phase B must close before owner-facing autonomous release can be claimed.
 - Phase C can begin after the core gates are stable, but must support both pre-execution clarification and post-delivery feedback.
 - Phase D should not lead the work. SaaS shell comes after the core autonomous runtime has stable contracts.
-- Phase E is blocked until PymIA can safely pause, ask, receive, patch, rerun, and deliver without an operator as the normal path.
-- Phase F depends on the shape of the SaaS shell and conversational layer.
+- Phase E is active. Its preconditions are already satisfied by the implemented owner reentry, rerun, delivery-candidate, and SaaS-shell contracts.
+- The immediate open work inside Phase E is the guarded LLM response gate first, then the owner question router.
+- Phase F still depends on the final shape of the conversational layer and the eventual real SaaS runtime boundary.
 
 ## Not Allowed Yet
 
@@ -216,9 +231,15 @@ A phase is closed only when all its required slices meet the same criteria and t
 ## Next Unique Front
 
 ```text
-S1_PIPELINE_REQUEST_EXECUTION_GATE_V1
+S1_LLM_GUARDED_RESPONSE_GATE_V1
 ```
 
-This is the immediate hinge from candidate planning to governed execution. It must authorize or block a `pipeline_request_candidate` before any autonomous runner calls the existing Servicio 1 pipeline.
+This is the immediate front after closing `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1`.
 
-It still must not call the pipeline itself. The runner is the following slice.
+It must consume the conversational bridge candidate and strictly constrain what an LLM-generated response candidate may do:
+
+- explain or summarize existing verified state;
+- ask for missing evidence or clarification;
+- preserve forbidden scopes such as runtime authorization, case mutation, delivery publication, or fabricated certainty.
+
+It must not replace the bridge, bypass the deterministic contracts, or turn the conversational layer into a truth/authorization engine.
