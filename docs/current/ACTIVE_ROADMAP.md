@@ -1,0 +1,7 @@
+# Active Roadmap
+
+Los frentes vivos actuales (máximo 3) son:
+
+1. **`S1_AUTO_TOOL_SELECTION_AND_MAPPING_V1`**
+2. **`S1_OWNER_REENTRY_TO_AUTONOMOUS_RERUN_V1`**
+3. **`S1_AUTONOMOUS_DELIVERY_RELEASE_GATE_V1`**
