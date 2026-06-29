@@ -2,7 +2,27 @@
 
 Fecha: 2026-06-10
 Estado: DRAFT_FOR_REVIEW
-Frente: lógica semántica Dueño / Hermes-IA / PymIA
+Frente: lógica semántica Dueño / IA conversacional / PymIA
+
+
+## 0. Nota de saneamiento terminológico
+
+```text
+Hermes queda fuera del lenguaje rector vigente del proyecto.
+```
+
+En este documento, cualquier referencia histórica a Hermes debe leerse como:
+
+```text
+IA conversacional / capa de interacción continua con el dueño PyME
+```
+
+No implica runtime Hermes, agente Hermes, Telegram, MCP Hermes ni dependencia externa.
+La arquitectura vigente conserva el flujo fundacional:
+
+```text
+Dueño PyME ↔ IA conversacional ↔ PymIA computacional
+```
 
 ## 1. Propósito
 
@@ -10,7 +30,7 @@ Este documento consolida el flujo semántico correcto entre tres capas del siste
 
 ```text
 Dueño
-→ Hermes / IA conversacional
+→ IA conversacional
 → PymIA computacional
 ```
 
@@ -18,7 +38,7 @@ La tesis central es:
 
 ```text
 El dueño da sentido.
-Hermes / IA traduce, repregunta y pide autorización.
+La IA conversacional traduce, repregunta y pide autorización.
 PymIA valida, estructura y computa.
 ```
 
@@ -45,9 +65,9 @@ Sin autorización explícita y trazable del dueño, no hay ejecución.
 La ontología de agentes define:
 
 ```text
-Dueño          = agente creacional
-Hermes         = organismo operativo / conversacional
-PymIA          = inteligencia computacional de Hermes
+Dueño              = agente creacional
+IA conversacional  = capa de interacción continua con el dueño
+PymIA              = inteligencia computacional
 PyME / negocio = universo observado conocido/desconocido
 ```
 
@@ -81,9 +101,9 @@ El dueño cumple funciones soberanas:
 - decide si se avanza o no.
 ```
 
-### 3.2 Hermes / IA conversacional — traductor semántico-operativo
+### 3.2 IA conversacional — traductor semántico-operativo
 
-Hermes / IA no diagnostica ni calcula. Su función es escuchar, traducir, repreguntar, aproximar y pedir autorización.
+La IA conversacional no diagnostica ni calcula. Su función es escuchar, traducir, repreguntar, aproximar y pedir autorización.
 
 Ante una frase como:
 
@@ -91,7 +111,7 @@ Ante una frase como:
 “Los precios los fui cambiando porque subió la tela.”
 ```
 
-Hermes / IA puede proponer una interpretación tentativa:
+La IA conversacional puede proponer una interpretación tentativa:
 
 ```text
 Estoy entendiendo que el eje a revisar es si la suba de la tela obligó a cambiar precios y eso pudo afectar el margen. ¿Confirmás que vamos por ese lado?
@@ -107,7 +127,7 @@ PymIA debe preservar la diferencia entre:
 
 ```text
 verdad declarada por el dueño;
-interpretación tentativa de Hermes / IA;
+interpretación tentativa de la IA conversacional;
 evidencia estructural validada;
 hallazgo computado.
 ```
@@ -116,16 +136,16 @@ hallazgo computado.
 
 ```text
 1. Dueño expresa narrativa operativa.
-2. Hermes / IA escucha y traduce tentativamente.
-3. Hermes / IA contrasta contra patologías y fórmulas candidatas.
-4. Hermes / IA formula repregunta de aproximación.
+2. La IA conversacional escucha y traduce tentativamente.
+3. La IA conversacional contrasta contra patologías y fórmulas candidatas.
+4. La IA conversacional formula repregunta de aproximación.
 5. Dueño confirma, rechaza o corrige.
 6. PymIA registra el gate semántico.
 7. PymIA determina evidencia faltante y computabilidad.
-8. Hermes / IA pide evidencia concreta y accionable.
+8. La IA conversacional pide evidencia concreta y accionable.
 9. Dueño aporta datos, documentos o nueva aclaración.
 10. PymIA computa sólo si la evidencia alcanza.
-11. Hermes traduce resultado o límite.
+11. La IA conversacional traduce resultado o límite.
 12. Dueño decide siguiente acción.
 ```
 
@@ -133,10 +153,10 @@ Versión sintética:
 
 ```text
 Dueño expresa.
-Hermes interpreta y repregunta.
+La IA conversacional interpreta y repregunta.
 Dueño confirma o corrige.
 PymIA estructura y computa.
-Hermes traduce el próximo paso.
+La IA conversacional traduce el próximo paso.
 Dueño autoriza avanzar.
 ```
 
@@ -173,13 +193,13 @@ Fórmulas candidatas:
 - flujo operativo.
 ```
 
-Hermes / IA repregunta para reducir incertidumbre:
+La IA conversacional repregunta para reducir incertidumbre:
 
 ```text
 Cuando decís que vendés más pero no te queda plata, ¿lo ves más por aumento de costos, por demora en cobrar, por stock parado o por gastos que crecieron?
 ```
 
-Si la incertidumbre sigue alta, Hermes / IA propone una interpretación y pide autorización.
+Si la incertidumbre sigue alta, la IA conversacional propone una interpretación y pide autorización.
 
 ## 6. Gate soberano de confirmación
 
@@ -209,7 +229,7 @@ Una interpretación tentativa no puede tratarse como confirmada sin acto explíc
 Ejemplo:
 
 ```text
-Hermes / IA:
+IA conversacional:
 Estoy entendiendo que el problema principal es variación de precios por suba de tela. ¿Confirmás que este es el eje correcto?
 
 Dueño:
@@ -303,7 +323,7 @@ No puedo diagnosticar todavía, pero sé exactamente qué pedirte para avanzar.
 Estoy vendiendo más, pero no me queda plata. Encima la tela subió y fui cambiando precios.
 ```
 
-### Turno 2 — Hermes / IA
+### Turno 2 — IA conversacional
 
 ```text
 Estoy entendiendo dos posibles ejes:
@@ -337,7 +357,7 @@ Fórmulas candidatas: margen bruto, margen por producto, precio efectivo, costo 
 Faltantes: precio por producto, costo por producto, unidades vendidas, período
 ```
 
-### Hermes / IA
+### IA conversacional
 
 ```text
 Para revisar margen necesito una base mínima:
@@ -365,7 +385,7 @@ No hay diagnóstico todavía.
 - Tomar la narrativa del dueño como evidencia dura.
 - Tomar una interpretación de IA como confirmada sin OK del dueño.
 - Convertir el builder semántico en catálogo infinito de preguntas fijas.
-- Usar Hermes / IA para diagnosticar o calcular.
+- Usar la IA conversacional para diagnosticar o calcular.
 - Hacer que PymIA converse libremente con el dueño.
 - Producir findings antes de evidencia suficiente.
 - Ocultar al dueño que el caso sigue bloqueado.
@@ -375,10 +395,10 @@ No hay diagnóstico todavía.
 
 ```text
 Dueño da sentido.
-Hermes / IA traduce sentido.
+La IA conversacional traduce sentido.
 Dueño confirma sentido.
 PymIA computa sobre evidencia.
-Hermes traduce límites y próximos pasos.
+La IA conversacional traduce límites y próximos pasos.
 Dueño decide acción.
 ```
 

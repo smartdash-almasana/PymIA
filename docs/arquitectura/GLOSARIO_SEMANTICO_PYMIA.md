@@ -17,7 +17,7 @@ Este glosario define con precisión absoluta e inquebrantable cada término, rol
 * **Definición corta:** El origen subjetivo del caso de negocio; el ser humano que dirige la organización y experimenta los dolores de su gestión.
 * **Qué puede hacer:** Expresar dolores, relatar contextos, aportar intuiciones de gestión, manifestar contradicciones operacionales y cargar documentación cruda.
 * **Qué NO puede hacer:** Formular diagnósticos contables científicamente validados ni reescribir las reglas matemáticas del kernel.
-* **Relación con otros componentes:** Es escuchado por **Hermes**, analizado taxonómicamente por **PymIA**, y contrastado mediante la evidencia normalizada por **BEM** o **INTERNAL_FACT**.
+* **Relación con otros componentes:** Es escuchado por la **IA conversacional**, analizado taxonómicamente por **PymIA**, y contrastado mediante la evidencia normalizada por **BEM** o **INTERNAL_FACT**.
 
 ---
 
@@ -29,11 +29,12 @@ Este glosario define con precisión absoluta e inquebrantable cada término, rol
 
 ---
 
-### Hermes
-* **Definición corta:** El sirviente conversacional de PymIA; el conducto y adaptador traductor de lenguaje entre la computadora sorda/muda y las organizaciones humanas.
-* **Qué puede hacer:** Escuchar empáticamente al dueño PyME, preguntar con rigor mayéutico sin suponer, menguar ante la voz del dueño para registrar contradicciones, y traducir la verdad matemática de PymIA a un diálogo natural comprensible.
-* **Qué NO puede hacer:** Diagnosticar de forma autónoma, formular afirmaciones sin sustento grounded, recalcular variables matemáticas, o poseer dependencias con infraestructura pesada dentro del kernel.
-* **Relación con otros componentes:** Traduce los inputs de texto de los usuarios para **PymIA** y asimila la superficie de **pathology_routing_summary** para guiar los siguientes pasos de la conversación.
+### IA conversacional / capa de interacción continua con el dueño PyME
+* **Definición corta:** Capa conversacional autónoma y gobernada que traduce lenguaje del dueño PyME a artefactos computables para PymIA, y traduce resultados/límites de PymIA de vuelta al dueño.
+* **Nombre histórico:** Hermes. El nombre Hermes queda fuera del lenguaje rector vigente del proyecto y debe leerse como antecedente documental, no como runtime obligatorio ni dependencia activa.
+* **Qué puede hacer:** Escuchar al dueño PyME, preguntar con rigor mayéutico sin suponer, registrar contradicciones, pedir confirmación explícita, solicitar evidencia faltante y traducir salidas de PymIA a diálogo natural comprensible.
+* **Qué NO puede hacer:** Diagnosticar sin evidencia, formular afirmaciones sin sustento grounded, recalcular variables matemáticas, modificar el kernel, omitir gates de confirmación o reemplazar las reglas computacionales de PymIA.
+* **Relación con otros componentes:** Traduce inputs conversacionales hacia **PymIA**, consume superficies controladas como **pathology_routing_summary** y resultados computados, y mantiene el loop Dueño ↔ IA conversacional ↔ PymIA sin convertir la IA en fuente soberana de verdad.
 
 ---
 
@@ -81,15 +82,15 @@ Este glosario define con precisión absoluta e inquebrantable cada término, rol
 * **Definición corta:** El documento JSON estructurado y validado que contiene la verdad grounded absoluta calculada para un caso operativo en una sesión.
 * **Qué puede hacer:** Agrupar métricas (`ComputedMetric`), hallazgos de patología (`PathologyFindingResult`), señales operativas, hilos activos de auditoría, taxonomía e historial del caso contable.
 * **Qué NO puede hacer:** Modificarse o mutar de forma directa por fuera de las reglas rigurosas de consistencia y referencias internas de PymIA.
-* **Relación con otros componentes:** Es cargado dinámicamente de forma transitoria en memoria por el **routing_node** de **AuditBoundaryGraph** para fundamentar todas las respuestas que emita **Hermes**.
+* **Relación con otros componentes:** Es cargado dinámicamente de forma transitoria en memoria por el **routing_node** de **AuditBoundaryGraph** para fundamentar todas las respuestas que emita la **IA conversacional**.
 
 ---
 
 ### pathology_routing_summary
-* **Definición corta:** La superficie de enrutamiento ligera y expuesta de PymIA que mapea códigos de patologías, estados y siguientes preguntas sugeridas para Hermes.
+* **Definición corta:** La superficie de enrutamiento ligera y expuesta de PymIA que mapea códigos de patologías, estados y siguientes preguntas sugeridas para la IA conversacional.
 * **Qué puede hacer:** Facilitar que el enrutador de mensajes asocie de forma inmediata palabras clave con patologías del caso activo sin transferir payloads pesados en memoria.
 * **Qué NO puede hacer:** Ejecutar cálculos matemáticos, modificar el estado clínico, o almacenar tablas físicas del negocio.
-* **Relación con otros componentes:** Consumido por el enrutador operacional de Hermes (`route_operational_audit_message`) para determinar las respuestas conversacionales adecuadas.
+* **Relación con otros componentes:** Consumido por el enrutador operacional de la IA conversacional (`route_operational_audit_message`) para determinar las respuestas conversacionales adecuadas.
 
 ---
 
@@ -145,7 +146,7 @@ Este glosario define con precisión absoluta e inquebrantable cada término, rol
 * **Definición corta:** La confirmación científica y matemática de la existencia de un desvío en una patología específica del catálogo formal de PymIA.
 * **Qué puede hacer:** Vincularse directamente a métricas calculadas con trazabilidad física rigurosa y desencadenar señales operativas y oportunidades de mejora para la PyME.
 * **Qué NO puede hacer:** Existir sin un sustento explícito de evidencia validada ni desvincularse de su correspondiente código de patología.
-* **Relación con otros componentes:** Es una pieza clave del **OperationalAuditResult** que fundamenta las respuestas que Hermes emite.
+* **Relación con otros componentes:** Es una pieza clave del **OperationalAuditResult** que fundamenta las respuestas que emite la IA conversacional.
 
 ---
 
@@ -153,7 +154,7 @@ Este glosario define con precisión absoluta e inquebrantable cada término, rol
 * **Definición corta:** La fase clínica inicial del caso operativo en la que se interroga disciplinadamente al dueño para estructurar sus dolores y abrir hipótesis.
 * **Qué puede hacer:** Capturar el vocabulario prioritario del dueño PyME, registrar contradicciones, calibrar la intensidad de su dolor y delimitar las áreas de fricción de la empresa.
 * **Qué NO puede hacer:** Procesar balances contables, conciliar extractos de bancos o emitir diagnósticos matemáticos definitivos.
-* **Relación con otros componentes:** Es liderada por **Hermes** y culmina con la generación del artefacto de admisión inicial del caso contable.
+* **Relación con otros componentes:** Es liderada por la **IA conversacional** y culmina con la generación del artefacto de admisión inicial del caso contable.
 
 ---
 
@@ -174,10 +175,10 @@ Este glosario define con precisión absoluta e inquebrantable cada término, rol
 ---
 
 ### Pregunta de rigor
-* **Definición corta:** Pregunta estructurada y sistemática formulada por Hermes para recolectar variables indispensables de control (ej. el rubro, período o impacto operativo).
+* **Definición corta:** Pregunta estructurada y sistemática formulada por la IA conversacional para recolectar variables indispensables de control (ej. el rubro, período o impacto operativo).
 * **Qué puede hacer:** Reducir la vaguedad del relato difuso inicial y estandarizar la taxonomía básica requerida por el kernel de admisión de PymIA.
 * **Qué NO puede hacer:** Invadir la experiencia de usuario con cuestionarios abrumadores; se dosifica con elegancia a razón de una pregunta de rigor por turno.
-* **Relación con otros componentes:** Alimenta el pipeline de anamnesis inicial liderado por **Hermes**.
+* **Relación con otros componentes:** Alimenta el pipeline de anamnesis inicial liderado por la **IA conversacional**.
 
 ---
 
@@ -185,7 +186,7 @@ Este glosario define con precisión absoluta e inquebrantable cada término, rol
 * **Definición corta:** Pregunta orientada a invitar a la reflexión de gestión del dueño, buscando que identifique el área exacta de su negocio donde reside la ineficiencia.
 * **Qué puede hacer:** Direccionar la atención del dueño de la PyME hacia los desvíos sospechados (ej. cuestionar si se calcula margen por producto) y preparar el terreno intelectual para la entrega de evidencia.
 * **Qué NO puede hacer:** Imponer aserciones técnicas culpabilizadoras ni sugerir desvíos antes de la contrastación matemática del kernel.
-* **Relación con otros componentes:** Es formulada por **Hermes** a sugerencia del catálogo de patologías y el resumen de enrutamiento.
+* **Relación con otros componentes:** Es formulada por la **IA conversacional** a sugerencia del catálogo de patologías y el resumen de enrutamiento.
 
 ---
 

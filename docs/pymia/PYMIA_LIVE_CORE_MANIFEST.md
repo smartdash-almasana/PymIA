@@ -116,12 +116,29 @@ Estas superficies pueden conservar verdad histórica, pero no mandan el próximo
 | Auditorías repetidas | HISTÓRICO |
 | Prompts acumulados | HISTÓRICO |
 | Telegram | CONGELADO |
-| Hermes | CONGELADO |
+| Hermes como nombre/runtime | LEGACY / CONGELADO |
 | conversa-engine | CONGELADO |
 | UI/API/SaaS | FUTURO |
 | Pack runtime | FUTURO |
 | LC-7 | FUTURO |
 | Pronóstico | FUTURO |
+
+
+Nota de saneamiento terminológico:
+
+```text
+Hermes no es fuente rectora vigente ni dependencia runtime activa.
+El lenguaje vigente para producto/arquitectura nueva es:
+IA conversacional / capa de interacción continua con el dueño PyME.
+```
+
+Esto no elimina la arquitectura fundacional:
+
+```text
+Dueño PyME ↔ IA conversacional ↔ PymIA computacional
+```
+
+Sólo retira a Hermes como nombre operativo del proyecto vivo.
 
 Regla:
 
