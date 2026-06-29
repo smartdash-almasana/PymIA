@@ -209,20 +209,27 @@ def finalize_service_1_case_delivery_folder_v1(
     )
     _append_once(final_files, human_gate_filename)
 
+    final_qa_filename = "final_qa_delivery_gate.json"
+    manifest_filename = "manifest.json"
+
+    manifest_records_for_qa = _build_file_manifest_records(
+        folder=folder,
+        filenames=final_files,
+        excluded_filenames={manifest_filename, final_qa_filename},
+    )
     final_qa_gate = evaluate_service_1_final_delivery_folder_gate_v1(
         packet=packet,
         case_dir=folder,
         files_written=final_files,
         human_review_gate=human_review_gate,
+        manifest_file_records=manifest_records_for_qa,
     )
-    final_qa_filename = "final_qa_delivery_gate.json"
     (folder / final_qa_filename).write_text(
         json.dumps(final_qa_gate, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
     _append_once(final_files, final_qa_filename)
 
-    manifest_filename = "manifest.json"
     manifest_payload = {
         "schema_version": SCHEMA_VERSION,
         "service_name": SERVICE_NAME,
@@ -235,14 +242,20 @@ def finalize_service_1_case_delivery_folder_v1(
         "runtime_authorized": False,
         "human_review_gate": human_review_gate,
         "final_qa_delivery_gate": final_qa_gate,
-        "files": [
-            _build_file_manifest_record(folder / filename)
-            for filename in final_files
-            if (folder / filename).is_file()
-        ],
+        "hash_policy": {
+            "algorithm": "sha256",
+            "excluded_files": [manifest_filename],
+            "reason": "manifest.json is not self-hashed because its payload contains the hash ledger.",
+        },
+        "files": _build_file_manifest_records(
+            folder=folder,
+            filenames=final_files,
+            excluded_filenames={manifest_filename},
+        ),
         "warnings": [
             "This manifest inventories generated Service 1 artifacts only.",
             "The original client file is not copied into the delivery folder.",
+            "manifest.json is intentionally excluded from its own hash ledger.",
         ],
     }
     (folder / manifest_filename).write_text(
@@ -250,15 +263,6 @@ def finalize_service_1_case_delivery_folder_v1(
         encoding="utf-8",
     )
     _append_once(final_files, manifest_filename)
-    manifest_payload["files"] = [
-        _build_file_manifest_record(folder / filename)
-        for filename in final_files
-        if (folder / filename).is_file()
-    ]
-    (folder / manifest_filename).write_text(
-        json.dumps(manifest_payload, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
 
     files_written[:] = final_files
     return manifest_payload
@@ -270,6 +274,7 @@ def evaluate_service_1_final_delivery_folder_gate_v1(
     case_dir: str | Path,
     files_written: list[str],
     human_review_gate: dict[str, Any] | None = None,
+    manifest_file_records: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Evaluate the final canonical folder artifacts without authorizing runtime."""
     folder = Path(case_dir)
@@ -346,6 +351,12 @@ def evaluate_service_1_final_delivery_folder_gate_v1(
         "final folder does not contain original client file",
         not original_filename or not (folder / original_filename).exists(),
     )
+    if manifest_file_records is not None:
+        add_check(
+            "final_qa_010",
+            "manifest SHA256 records match actual files",
+            _manifest_records_match_files(folder, manifest_file_records),
+        )
 
     status = "BLOCKED" if blockers else "PASS"
     return {
@@ -387,6 +398,35 @@ def _unique_filenames(filenames: list[str]) -> list[str]:
 def _append_once(filenames: list[str], filename: str) -> None:
     if filename and filename not in filenames:
         filenames.append(filename)
+
+
+def _build_file_manifest_records(*, folder: Path, filenames: list[str], excluded_filenames: set[str]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for filename in filenames:
+        if filename in excluded_filenames:
+            continue
+        path = folder / filename
+        if path.is_file():
+            records.append(_build_file_manifest_record(path))
+    return records
+
+
+def _manifest_records_match_files(folder: Path, records: list[dict[str, Any]]) -> bool:
+    for record in records:
+        if not isinstance(record, dict):
+            return False
+        filename = record.get("filename")
+        if not isinstance(filename, str) or filename == "manifest.json":
+            return False
+        path = folder / filename
+        if not path.is_file():
+            return False
+        payload = path.read_bytes()
+        if record.get("bytes") != len(payload):
+            return False
+        if record.get("sha256") != hashlib.sha256(payload).hexdigest():
+            return False
+    return True
 
 
 def _build_file_manifest_record(path: Path) -> dict[str, Any]:

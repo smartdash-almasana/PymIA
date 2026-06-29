@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pymia.smartpyme.service_1_case_delivery_folder_v1 import (
     build_service_1_human_review_gate_v1,
+    evaluate_service_1_final_delivery_folder_gate_v1,
     finalize_service_1_case_delivery_folder_v1,
     write_service_1_case_delivery_folder_v1,
 )
@@ -326,3 +327,44 @@ def test_finalize_blocks_runtime_authorized_true(tmp_path) -> None:
 
     assert final_manifest["delivery_status"] == "BLOCKED"
     assert final_manifest["final_qa_delivery_gate"]["status"] == "BLOCKED"
+
+
+
+def test_finalize_manifest_does_not_hash_itself(tmp_path) -> None:
+    base_dir = tmp_path / "cases"
+    packet = _packet_with_structure()
+    packet["human_review_gate"] = build_service_1_human_review_gate_v1(packet)
+    manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=str(base_dir))
+    case_dir = Path(manifest["case_dir"])
+    (case_dir / "operator_packet.json").write_text(json.dumps(packet, indent=2), encoding="utf-8")
+
+    final_manifest = finalize_service_1_case_delivery_folder_v1(
+        packet=packet,
+        case_dir=case_dir,
+        files_written=manifest["files_written"],
+    )
+
+    filenames = [record["filename"] for record in final_manifest["files"]]
+    assert "manifest.json" not in filenames
+    assert final_manifest["hash_policy"]["excluded_files"] == ["manifest.json"]
+
+
+
+def test_final_qa_blocks_incomplete_manifest_record(tmp_path) -> None:
+    base_dir = tmp_path / "cases"
+    packet = _packet_with_structure()
+    packet["human_review_gate"] = build_service_1_human_review_gate_v1(packet)
+    manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=str(base_dir))
+    case_dir = Path(manifest["case_dir"])
+    (case_dir / "operator_packet.json").write_text(json.dumps(packet, indent=2), encoding="utf-8")
+
+    records = [{"filename": "README.txt"}]
+    gate = evaluate_service_1_final_delivery_folder_gate_v1(
+        packet=packet,
+        case_dir=case_dir,
+        files_written=manifest["files_written"],
+        human_review_gate=packet["human_review_gate"],
+        manifest_file_records=records,
+    )
+
+    assert gate["status"] == "BLOCKED"
