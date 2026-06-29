@@ -31,4 +31,8 @@ PymIA-Live/docs/pymia/ROLE_PLAYING_ONBOARDING_FINDINGS.md
 .opencode/
 graphify-out/
 prueba_excels/*.xlsx
+prueba_excels/*_OUTPUT/
+prueba_excels/*_RUN_OUTPUT/
+prueba_excels/*_AUDITABLE/
+prueba_excels/*_AUDITABLE.zip
 .atl/
