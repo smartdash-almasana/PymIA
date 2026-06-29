@@ -18,7 +18,7 @@ REQUIRED_COVERAGE = (
     "precio_margen_basico",
     "caja_diaria_triage",
     "gastos_triage",
-    "proveedores_precio_variacion",
+    "proveedores_precio_variacion_triage",
 )
 
 
@@ -121,7 +121,7 @@ def service_1_synthetic_case_bank_v1() -> tuple[Service1SyntheticCaseSpecV1, ...
                 "SERVICE_1_PROVEEDORES_PRECIO_VARIACION_RUN_OUTPUT/mapping_decision.json",
                 "SERVICE_1_PROVEEDORES_PRECIO_VARIACION_RUN_OUTPUT/workbook_structure.json",
             ),
-            covered_tool_refs=("proveedores_precio_variacion",),
+            covered_tool_refs=("proveedores_precio_variacion_triage",),
             expected_delivery_status="TOOL_PROBE_RECORDED",
             expected_human_review_status="HUMAN_REVIEW_REQUIRED",
             runtime_authorized=False,
