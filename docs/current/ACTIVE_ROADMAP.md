@@ -3,20 +3,20 @@
 ## STATUS
 
 ```text
-POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_CHAIN_COMPOSITION
+PHASE_I_RECONCILED_AND_CLOSED
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_CHAIN_COMPOSITION_V1
+SERVICE_1_PHASE_I_ROADMAP_RECONCILIATION_AND_CLOSEOUT_V1
 ```
 
-## Closed baseline
+## Closed Phase I baseline
 
-Servicio 1 / SmartPyme A→I is closed as a candidate/supervised system.
+Servicio 1 / SmartPyme Phase I is closed as a candidate/supervised system.
 
-Closed chain:
+Closed Phase I chain:
 
 ```text
 readiness
@@ -28,38 +28,46 @@ readiness
 → controlled delivery review candidate
 → full chain composition
 → Phase I closeout
-→ doc drift and naming cleanup
-→ real controlled case precheck gate
-→ operator packet template
-→ operator packet template acceptance audit
-→ synthetic operator packet rehearsal
-→ synthetic controlled case instance
-→ synthetic controlled case run preparation
-→ synthetic supervised run request model
-→ synthetic blocked variants
-→ pre-run gate closeout
-→ execution candidate alignment
-→ full chain dry binding
-→ synthetic controlled case phase closeout
-→ synthetic controlled case candidate model + tests
-→ synthetic controlled case candidate chain composition + tests
 ```
 
-## Methodological correction
+## Reconciliation
 
-For this stage:
+```text
+Phase I was already closed.
+Post-I synthetic controlled case work is hardening, not Phase I expansion.
+Candidate model and candidate chain composition are post-I technical hardening, not runtime authorization.
+```
+
+## Post-I hardening closed
+
+The following post-I work is accepted as closed safety reinforcement:
+
+```text
+- doc drift and naming cleanup
+- controlled case precheck gate
+- operator packet template
+- operator packet template acceptance audit
+- synthetic operator packet rehearsal
+- synthetic controlled case instance
+- synthetic controlled case run preparation
+- synthetic supervised run request model
+- synthetic blocked variants
+- pre-run gate closeout
+- execution candidate alignment
+- full chain dry binding
+- synthetic controlled case phase closeout
+- synthetic controlled case candidate model + tests
+- synthetic controlled case candidate chain composition + tests
+- Phase I roadmap reconciliation and closeout
+```
+
+## Methodological correction preserved
 
 ```text
 controlled case = synthetic, well-enunciated, operationally plausible case
 ```
 
-No external client is required to advance methodology.
-
-## Anti-micro-slice rule
-
-```text
-Do not split candidate composition, focal tests, and Phase I regression into separate micro-fronts unless a concrete contradiction appears.
-```
+No external client is required for the synthetic methodology already closed.
 
 ## Explicitly not active
 
@@ -88,21 +96,26 @@ Authorized ≠ executed.
 Review candidate ≠ delivery real.
 Run result candidate ≠ CLI executed.
 Synthetic controlled case ≠ external client case.
-Full chain dry binding ≠ actual run.
+Post-I hardening ≠ Phase I reopened.
 Candidate model ready ≠ CLI executed.
 Candidate chain composition ready ≠ runtime authorized.
 Tests passing ≠ delivery ready.
 ```
 
-## Current front result
-
-The synthetic controlled case candidate model now composes with the Phase I candidate chain as pure candidate data.
-
-Validated:
+## Anti-drift rule
 
 ```text
-Focal: 20/20 passed
-Regression: 121/121 passed
+No additional Phase I micro-fronts are allowed.
+No additional synthetic controlled case hardening fronts are allowed unless a concrete contradiction is found.
+No code candidate, audit, dry binding, closeout, or chain-composition front may be opened under Phase I.
+```
+
+## Current front result
+
+```text
+PHASE_I: CLOSED
+POST_I_HARDENING: CLOSED
+ROADMAP_RECONCILED: YES
 ```
 
 It does not authorize:
@@ -124,17 +137,8 @@ It does not authorize:
 
 ## Next decision gate
 
-Choose explicitly between:
-
 ```text
-A. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CODE_FRONT_CLOSEOUT_V1
-   - docs closeout only
-   - no runtime
-
-B. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_CHAIN_ADVERSARIAL_AUDIT_V1
-   - audit only if contradiction is suspected
-
-C. STOP_AND_DECIDE
+STOP_AND_DECIDE
 ```
 
-No future roadmap document overrides this active gate unless explicitly updated after review.
+Any future work must be explicitly classified outside Phase I before opening it.
