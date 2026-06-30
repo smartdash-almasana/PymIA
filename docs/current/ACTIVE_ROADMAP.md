@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-POST_A_TO_I_SYNTHETIC_OPERATOR_PACKET_REHEARSAL
+POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_INSTANCE
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_SYNTHETIC_OPERATOR_PACKET_REHEARSAL_V1
+SERVICE_1_SYNTHETIC_CONTROLLED_CASE_INSTANCE_V1
 ```
 
 ## Closed baseline
@@ -33,7 +33,18 @@ readiness
 → operator packet template
 → operator packet template acceptance audit
 → synthetic operator packet rehearsal
+→ synthetic controlled case instance
 ```
+
+## Methodological correction
+
+For this stage:
+
+```text
+controlled case = synthetic, well-enunciated, operationally plausible case
+```
+
+No external client is required to advance methodology.
 
 ## Explicitly not active
 
@@ -59,20 +70,18 @@ Candidate complete ≠ runtime real.
 Authorized ≠ executed.
 Review candidate ≠ delivery real.
 Run result candidate ≠ CLI executed.
-Precheck gate defined ≠ operator packet created.
-Operator packet template ≠ case instance.
-Synthetic rehearsal ≠ case instance.
-Synthetic checklist pass ≠ CLI executed.
+Synthetic controlled case ≠ external client case.
+Synthetic case instance ≠ CLI executed.
+Synthetic case ready ≠ delivery ready.
 ```
 
 ## Current front result
 
-The synthetic operator packet rehearsal validates the packet template with synthetic placeholders only.
+The synthetic controlled case instance defines a canonical, operationally plausible Service 1 case without external client dependency.
 
 It does not authorize:
 
 ```text
-- case instance
 - business file intake
 - CLI execution
 - runtime execution
@@ -90,13 +99,13 @@ It does not authorize:
 Choose explicitly between:
 
 ```text
-A. SERVICE_1_OPERATOR_PACKET_CASE_INSTANCE_V1
-   - only with explicit case approval
-   - still no CLI execution by implication
+A. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_RUN_PREPARATION_V1
+   - preparation only
+   - still no CLI execution
 
-B. SERVICE_1_SYNTHETIC_OPERATOR_PACKET_REHEARSAL_HARDENING_V1
-   - more synthetic negative cases
-   - still no business files
+B. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_NEGATIVE_VARIANTS_V1
+   - add blocked variants
+   - still synthetic only
 
 C. STOP_AND_DECIDE
 ```
