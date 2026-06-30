@@ -50,6 +50,9 @@ EvidencePacketStatusV1 = Literal[
 
 class FirstControlledClientCaseEvidencePacketCandidateV1(TypedDict):
     candidate_kind: Literal["CONTROLLED_CASE_EVIDENCE_PACKET_CANDIDATE"]
+    packet_ref: str
+    status: Literal["EVIDENCE_PACKET_READY"]
+    ready: Literal[True]
     service_name: Literal["SERVICE_1"]
     source_gate_kind: Literal["FIRST_CONTROLLED_CLIENT_CASE_READINESS_GATE"]
     source_gate_status: str
@@ -178,6 +181,13 @@ def build_service_1_first_controlled_client_case_evidence_packet_v1(
 
     candidate: FirstControlledClientCaseEvidencePacketCandidateV1 = {
         "candidate_kind": PACKET_KIND,
+        "packet_ref": _packet_ref(
+            owner_ref=owner_ref.strip(),
+            tenant_ref=tenant_ref.strip(),
+            case_ref=case_ref.strip(),
+        ),
+        "status": "EVIDENCE_PACKET_READY",
+        "ready": True,
         "service_name": SERVICE_NAME,
         "source_gate_kind": READINESS_GATE_KIND,
         "source_gate_status": str(gate_snapshot["status"]),
@@ -233,6 +243,10 @@ def _clean_refs(values: object) -> list[str]:
     if not isinstance(values, list):
         return []
     return [str(value).strip() for value in values if _has_text(value)]
+
+
+def _packet_ref(*, owner_ref: str, tenant_ref: str, case_ref: str) -> str:
+    return f"controlled_case_evidence_packet:{tenant_ref}:{owner_ref}:{case_ref}"
 
 
 def _has_text(value: Any) -> bool:
