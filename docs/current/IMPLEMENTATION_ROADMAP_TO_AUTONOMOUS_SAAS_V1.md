@@ -67,7 +67,8 @@ Verified against the current `main` branch and committed implementation files:
 | SaaS hardening — failure recovery | Implemented | `S1_FAILURE_RECOVERY_V1` — commit `9f1aa8b` |
 | SaaS hardening — cost/rate limit | Implemented | `S1_COST_AND_RATE_LIMIT_GUARD_V1` — commit `c434b67` |
 | Human review / release boundary | Partial | Human review gate, final QA gate, and signoff flow exist; final SaaS/runtime release integration is still pending |
-| Real SaaS runtime boundary | Not started | No real endpoint/API, auth, DB/storage, upload, worker, or UI as the canonical autonomous path |
+| Real SaaS runtime boundary contracts | Implemented as pure contracts | `S1_REAL_ENDPOINT_API_BOUNDARY_CONTRACT_V1`, `S1_REAL_AUTH_BOUNDARY_CONTRACT_V1`, `S1_REAL_STORAGE_UPLOAD_BOUNDARY_CONTRACT_V1`, `S1_REAL_WORKER_RUNTIME_BOUNDARY_CONTRACT_V1` |
+| Real SaaS runtime infrastructure | Not implemented | No real HTTP API, auth provider, DB/storage, upload pipeline, worker, queue, scheduler, or UI as the canonical autonomous path |
 
 ## Implementation Principles
 
@@ -185,6 +186,24 @@ The system has enough operational safety to run as a real SaaS: audit trail, ten
 
 **Status:** CLOSED — all four hardening slices are implemented, committed, and pushed.
 
+### Phase G — Real SaaS Runtime Boundary Contracts (CLOSED)
+
+**Objective:**
+Define and implement the pure boundary contracts required before real SaaS runtime infrastructure can be introduced.
+
+**Implemented slices:**
+
+- `S1_SAAS_RUNTIME_BOUNDARY_CONTRACTS_V1` — CLOSED + PUSHED (`b681f27`)
+- `S1_REAL_ENDPOINT_API_BOUNDARY_CONTRACT_V1` — CLOSED + PUSHED (`bf1d0dc`)
+- `S1_REAL_AUTH_BOUNDARY_CONTRACT_V1` — CLOSED + PUSHED (`f7f2813`)
+- `S1_REAL_STORAGE_UPLOAD_BOUNDARY_CONTRACT_V1` — CLOSED + PUSHED (`08bcb82`)
+- `S1_REAL_WORKER_RUNTIME_BOUNDARY_CONTRACT_V1` — CLOSED + PUSHED (`9e077a1`)
+
+**Closure criterion:**
+All four real runtime boundary contracts exist as pure deterministic contracts with focal tests and minimal regression evidence.
+
+**Status:** CLOSED — Phase G closed boundary contracts only. It did not implement real API, real auth, real storage/upload, real worker/queue/scheduler, DB, or UI.
+
 ## Critical Path
 
 Strict implementation path from baseline `e0075cc`:
@@ -202,7 +221,7 @@ Strict implementation path from baseline `e0075cc`:
 11. `S1_LLM_GUARDED_RESPONSE_GATE_V1`
 12. `S1_OWNER_QUESTION_ROUTER_V1`
 
-This critical path from Phase A through Phase F is now COMPLETE.
+This critical path from Phase A through Phase G is now COMPLETE.
 
 ## Dependencies and Blockers
 
@@ -212,7 +231,9 @@ This critical path from Phase A through Phase F is now COMPLETE.
 - Phase D should not lead the work. SaaS shell comes after the core autonomous runtime has stable contracts.
 - Phase E is CLOSED. All three conversational slices are implemented and committed.
 - Phase F is CLOSED. Audit log, tenant isolation, failure recovery, and cost/rate limit guards are implemented and pushed.
-- The next front is Phase G preparation only. Phase G itself remains NOT STARTED until its runtime boundary contracts/opening slice are defined.
+- Phase G is CLOSED. Real SaaS runtime boundary contracts are implemented and pushed as pure contracts only.
+- Real runtime infrastructure remains NOT IMPLEMENTED: no real API, auth provider, DB/storage, upload pipeline, worker, queue, scheduler, or UI.
+- The next front is Phase H preparation: Human Review + Final Release Integration.
 
 ## Not Allowed Yet
 
@@ -241,16 +262,16 @@ A phase is closed only when all its required slices meet the same criteria and t
 ## Next Unique Front
 
 ```text
-Phase G preparation
+Phase H preparation
 ```
 
-This is the immediate front after closing the full Phase F hardening set.
+This is the immediate front after closing Phase G boundary contracts.
 
-It should prepare the opening boundary for:
+It should prepare Human Review + Final Release Integration:
 
-- real endpoint/API boundary definition;
-- real auth boundary definition;
-- real storage/upload boundary definition;
-- real worker/runtime boundary definition.
+- audit existing human review gates;
+- audit final QA/signoff flow;
+- define how release gates integrate with SaaS-ready boundary candidates;
+- preserve the distinction between pure contracts and real runtime infrastructure.
 
-It must not mark `Phase G` as started until the corresponding runtime boundary front is explicitly opened.
+It must not implement real API, auth, storage/upload, worker, queue, scheduler, DB, or UI.
