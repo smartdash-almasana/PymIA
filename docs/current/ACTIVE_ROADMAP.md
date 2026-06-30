@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_PRE_RUN_GATE_CLOSEOUT
+POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_PHASE_CLOSED
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_SYNTHETIC_CONTROLLED_CASE_PRE_RUN_GATE_CLOSEOUT_V1
+SERVICE_1_SYNTHETIC_CONTROLLED_CASE_PHASE_CLOSEOUT_V1
 ```
 
 ## Closed baseline
@@ -38,6 +38,9 @@ readiness
 → synthetic supervised run request model
 → synthetic blocked variants
 → pre-run gate closeout
+→ execution candidate alignment
+→ full chain dry binding
+→ synthetic controlled case phase closeout
 ```
 
 ## Methodological correction
@@ -53,7 +56,7 @@ No external client is required to advance methodology.
 ## Anti-micro-slice rule
 
 ```text
-Do not split run request, blocked variants, and pre-run closeout into separate micro-fronts unless a concrete contradiction appears.
+Do not split execution candidate alignment, full chain dry binding, and phase closeout into separate micro-fronts unless a concrete contradiction appears.
 ```
 
 ## Explicitly not active
@@ -85,18 +88,21 @@ Run result candidate ≠ CLI executed.
 Synthetic controlled case ≠ external client case.
 Run preparation ≠ run execution.
 Run request model ≠ CLI execution.
-Negative variants blocked ≠ runtime safety proof.
-Expected artifacts ≠ produced artifacts.
+Execution candidate alignment ≠ CLI execution.
+Full chain dry binding ≠ actual run.
+Phase closeout ≠ runtime readiness.
 ```
 
 ## Current front result
 
-The synthetic pre-run gate closeout consolidates:
+The synthetic controlled case phase is closed as documentation/candidate alignment only.
+
+It closed:
 
 ```text
-- supervised synthetic run request model
-- blocked variants
-- pre-run closeout decision
+- execution candidate alignment
+- full chain dry binding
+- synthetic phase closeout
 ```
 
 It does not authorize:
@@ -121,13 +127,12 @@ It does not authorize:
 Choose explicitly between:
 
 ```text
-A. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_EXECUTION_CANDIDATE_ALIGNMENT_V1
-   - candidate alignment only
-   - no CLI execution
-   - no runtime
+A. CODE_CANDIDATE_AND_TEST_FRONT
+   - convert selected synthetic phase contracts into pure Python candidate/test artifacts
+   - still no runtime execution
 
-B. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_PRE_RUN_CLOSEOUT_AUDIT_V1
-   - audit only if a contradiction is suspected
+B. SYNTHETIC_PHASE_ADVERSARIAL_AUDIT
+   - audit only if contradiction is suspected
 
 C. STOP_AND_DECIDE
 ```
