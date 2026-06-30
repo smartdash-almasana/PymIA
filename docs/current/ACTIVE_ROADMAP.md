@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-POST_A_TO_I_PRE_OPERATOR_PACKET_GATE
+POST_A_TO_I_OPERATOR_PACKET_TEMPLATE
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_REAL_CONTROLLED_CASE_PRECHECK_GATE_V1
+SERVICE_1_OPERATOR_PACKET_FOR_REAL_CONTROLLED_CASE_V1
 ```
 
 ## Closed baseline
@@ -29,6 +29,7 @@ readiness
 → full chain composition
 → Phase I closeout
 → doc drift and naming cleanup
+→ real controlled case precheck gate
 ```
 
 ## Explicitly not active
@@ -37,11 +38,15 @@ readiness
 PHASE_J_ALLOWED_NOW: NO
 RUNTIME_REAL_ALLOWED_NOW: NO
 CLI_EXECUTION_ALLOWED_NOW: NO
+RAW_CLIENT_DATA_ALLOWED_NOW: NO
 SAAS_API_UI_ALLOWED_NOW: NO
 SERVICE_2_ALLOWED_NOW: NO
 PRODUCTIVE_RUNTIME_ALLOWED_NOW: NO
 AUTONOMOUS_DELIVERY_ALLOWED_NOW: NO
 OWNER_DELIVERY_ALLOWED_NOW: NO
+PUBLISH_ALLOWED_NOW: NO
+NOTIFICATION_ALLOWED_NOW: NO
+WORKER_STORAGE_QUEUE_ALLOWED_NOW: NO
 ```
 
 ## Current rule
@@ -52,12 +57,13 @@ Authorized ≠ executed.
 Review candidate ≠ delivery real.
 Run result candidate ≠ CLI executed.
 Precheck gate defined ≠ operator packet created.
+Operator packet template ≠ real case instance.
 Operator packet created ≠ CLI executed.
 ```
 
-## Current gate purpose
+## Current front purpose
 
-The current front only defines the conditions required before preparing an operator packet for a real controlled case.
+The current front defines the operator packet template for one future real controlled Service 1 case.
 
 It does not authorize:
 
@@ -76,18 +82,21 @@ It does not authorize:
 
 ## Next decision gate
 
-If and only if `SERVICE_1_REAL_CONTROLLED_CASE_PRECHECK_GATE_V1` is accepted as READY, the next allowed front may be:
+If and only if `SERVICE_1_OPERATOR_PACKET_FOR_REAL_CONTROLLED_CASE_V1` is accepted as template-defined and a case-specific packet instance is later completed, the next possible front may be:
 
 ```text
-SERVICE_1_OPERATOR_PACKET_FOR_REAL_CONTROLLED_CASE_V1
+SERVICE_1_REAL_CONTROLLED_CASE_SUPERVISED_RUN_PREPARATION_V1
 ```
+
+That future front still must not execute CLI unless separately and explicitly approved.
 
 Otherwise choose explicitly between:
 
 ```text
-A. Reduce scope / define missing precheck inputs
-B. Additional docs cleanup / anti-deriva
-C. STOP_AND_DECIDE
+A. Return to precheck gate
+B. Reduce scope / define missing packet inputs
+C. Additional docs cleanup / anti-deriva
+D. STOP_AND_DECIDE
 ```
 
 No future roadmap document overrides this active gate unless explicitly updated after review.
