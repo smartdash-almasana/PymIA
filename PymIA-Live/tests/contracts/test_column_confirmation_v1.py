@@ -7,6 +7,8 @@ from pymia.contracts.column_confirmation_v1 import (
     ConfirmationStatus,
     OwnerColumnConfirmationAnswer,
     OwnerColumnConfirmationOutcome,
+    SemanticRectificationStatus,
+    get_effective_operational_function,
     infer_calculation_relevance,
 )
 
@@ -380,7 +382,9 @@ def test_owner_answer_confirms_computational_column_and_unblocks_variable() -> N
 
     assert entry.confirmation_status == ConfirmationStatus.CONFIRMED
     assert entry.owner_confirmed_role == "venta_total"
+    assert entry.owner_rectified_function == "venta_total"
     assert entry.suggested_semantic_role == "venta_total"
+    assert entry.semantic_rectification_status == SemanticRectificationStatus.OWNER_CONFIRMED_AS_INFERRED
     assert entry.calculation_relevance == CalculationRelevance.VENTAS
     assert matrix.can_compute_variable("ventas_total") is True
 
@@ -412,6 +416,9 @@ def test_owner_answer_confirms_informational_column_without_unblocking_money_cal
 
     assert entry.confirmation_status == ConfirmationStatus.CONFIRMED
     assert entry.owner_confirmed_role == "payment_method"
+    assert entry.owner_rectified_function == "payment_method"
+    assert entry.suggested_semantic_role == "unknown"
+    assert entry.semantic_rectification_status == SemanticRectificationStatus.OWNER_RECTIFIED_TO_NEW_FUNCTION
     assert entry.calculation_relevance == CalculationRelevance.INFORMATIONAL
     assert entry.feeds_calculation() is False
     assert matrix.can_compute_variable("ventas_total") is True
@@ -470,6 +477,8 @@ def test_owner_rejected_mapping_blocks_column_as_ambiguous() -> None:
     )
 
     assert entry.confirmation_status == ConfirmationStatus.BLOCKED_AMBIGUOUS
+    assert entry.owner_rectified_function is None
+    assert entry.semantic_rectification_status == SemanticRectificationStatus.OWNER_REJECTED
     assert matrix.status() == "blocked"
     assert matrix.can_compute_variable("ventas_total") is False
 
@@ -500,6 +509,8 @@ def test_owner_explicitly_ignores_column_only_after_answer() -> None:
 
     assert entry.confirmation_status == ConfirmationStatus.IGNORED_NOT_RELEVANT
     assert entry.owner_confirmed_role == "IGNORED_NOT_RELEVANT"
+    assert entry.owner_rectified_function is None
+    assert entry.semantic_rectification_status == SemanticRectificationStatus.OWNER_REJECTED
     assert entry.feeds_calculation() is False
 
 
@@ -529,7 +540,9 @@ def test_metodo_pago_confirmed_as_payment_method_never_becomes_amount() -> None:
     )
 
     assert entry.confirmation_status == ConfirmationStatus.CONFIRMED
-    assert entry.suggested_semantic_role == "payment_method"
+    assert entry.suggested_semantic_role == "pago"
+    assert entry.owner_rectified_function == "payment_method"
+    assert entry.semantic_rectification_status == SemanticRectificationStatus.OWNER_RECTIFIED_TO_NEW_FUNCTION
     assert entry.calculation_relevance == CalculationRelevance.INFORMATIONAL
     assert entry.feeds_calculation() is False
 
@@ -559,4 +572,80 @@ def test_insufficient_owner_answer_keeps_column_pending() -> None:
     )
 
     assert entry.confirmation_status == ConfirmationStatus.PENDING_OWNER_CONFIRMATION
+    assert entry.owner_rectified_function is None
+    assert entry.semantic_rectification_status == SemanticRectificationStatus.INFERRED_NOT_RECTIFIED
     assert matrix.can_compute_variable("ventas_total") is False
+
+
+def test_tu_respuesta_not_normalizable_blocks_without_guessing() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="Total",
+                sheet_name="Ventas",
+                suggested_semantic_role="venta_total",
+                calculation_relevance=CalculationRelevance.VENTAS,
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    entry = matrix.apply_owner_answer(
+        OwnerColumnConfirmationAnswer(
+            sheet_name="Ventas",
+            column_name="Total",
+            owner_answer_text="Tu respuesta: esa columna es algo interno del negocio.",
+            proposed_role="venta_total",
+            outcome=OwnerColumnConfirmationOutcome.INSUFFICIENT_ANSWER,
+        )
+    )
+
+    assert entry.confirmation_status == ConfirmationStatus.BLOCKED_AMBIGUOUS
+    assert entry.owner_rectified_function is None
+    assert entry.suggested_semantic_role == "venta_total"
+    assert (
+        entry.semantic_rectification_status
+        == SemanticRectificationStatus.BLOCKED_UNNORMALIZABLE_OWNER_RESPONSE
+    )
+
+
+def test_get_effective_operational_function_prefers_owner_rectified_function() -> None:
+    entry = ColumnConfirmationEntry(
+        original_column_name="Total",
+        sheet_name="Ventas",
+        suggested_semantic_role="venta_total",
+        owner_confirmed_role="venta_total",
+        owner_rectified_function="saldo",
+        confirmation_status=ConfirmationStatus.CONFIRMED,
+    )
+
+    assert get_effective_operational_function(entry) == "saldo"
+
+
+def test_can_compute_variable_uses_owner_rectified_function_for_new_data() -> None:
+    matrix = ColumnConfirmationMatrix(
+        file_name="test.xlsx",
+        entries=[
+            ColumnConfirmationEntry(
+                original_column_name="ColumnaRara",
+                sheet_name="Ventas",
+                suggested_semantic_role="unknown",
+                owner_rectified_function="cantidad",
+                confirmation_status=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
+            ),
+        ],
+    )
+
+    assert matrix.can_compute_variable("cantidad_total") is False
+
+
+def test_get_effective_operational_function_uses_legacy_fallback_for_confirmed_entries() -> None:
+    entry = ColumnConfirmationEntry(
+        original_column_name="Total",
+        sheet_name="Ventas",
+        suggested_semantic_role="venta_total",
+        confirmation_status=ConfirmationStatus.CONFIRMED,
+    )
+
+    assert get_effective_operational_function(entry) == "venta_total"

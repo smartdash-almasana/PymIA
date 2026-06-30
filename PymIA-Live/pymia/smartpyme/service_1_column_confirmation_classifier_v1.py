@@ -21,6 +21,22 @@ TARGET_REF_PREFIX_COLUMN = "column"
 
 OWNER_ANSWER_VALIDATION_STATUS_DECLARED_NOT_VALIDATED = "DECLARED_NOT_VALIDATED"
 
+_RECTIFIED_FUNCTION_ALIASES: tuple[tuple[str, str], ...] = (
+    ("saldo pendiente", "saldo"),
+    ("saldo", "saldo"),
+    ("medio de pago", "payment_method"),
+    ("forma de pago", "payment_method"),
+    ("metodo de pago", "payment_method"),
+    ("método de pago", "payment_method"),
+    ("total de la venta", "venta_total"),
+    ("total vendido", "venta_total"),
+    ("importe vendido", "venta_total"),
+    ("venta total", "venta_total"),
+    ("cantidad vendida", "cantidad"),
+    ("cantidad", "cantidad"),
+    ("producto", "producto"),
+)
+
 
 @dataclass(frozen=True)
 class ColumnConfirmationTargetRefV1:
@@ -117,8 +133,54 @@ def _has_phrase(text: str, phrases: tuple[str, ...]) -> bool:
     return any(phrase in text for phrase in phrases)
 
 
+def _extract_rectified_role(raw_owner_answer: str) -> str | None:
+    normalized = _normalize_text(raw_owner_answer)
+    if not normalized.startswith("tu respuesta"):
+        return None
+
+    patterns = (
+        r"tu respuesta:\s*(?:esa columna\s+)?(?:es|significa|corresponde a|representa)\s+(.*?)(?:,?\s+no\b|$)",
+        r"tu respuesta:\s*(.*?)(?:,?\s+no\b|$)",
+    )
+    candidate = ""
+    for pattern in patterns:
+        match = re.search(pattern, normalized)
+        if match:
+            candidate = match.group(1).strip(" .,:;")
+            break
+
+    if not candidate:
+        return None
+
+    candidate = re.sub(r"^(el|la|los|las|un|una)\s+", "", candidate).strip()
+
+    for alias, role in sorted(_RECTIFIED_FUNCTION_ALIASES, key=lambda item: len(item[0]), reverse=True):
+        if alias == candidate or alias in candidate:
+            return role
+    return None
+
+
 def _classify_outcome(raw_owner_answer: str, proposed_role: str) -> tuple[OwnerColumnConfirmationOutcome, str | None, str]:
     normalized = _normalize_text(raw_owner_answer)
+    rectified_role = _extract_rectified_role(raw_owner_answer)
+    if rectified_role:
+        relevance = infer_calculation_relevance(rectified_role)
+        if relevance.value == "INFORMATIONAL":
+            outcome = OwnerColumnConfirmationOutcome.CONFIRMED_INFORMATIONAL
+        else:
+            outcome = OwnerColumnConfirmationOutcome.CONFIRMED_COMPUTATIONAL
+        return (
+            outcome,
+            rectified_role,
+            "Owner supplied a normalizable corrected semantic function.",
+        )
+    if normalized.startswith("tu respuesta"):
+        return (
+            OwnerColumnConfirmationOutcome.INSUFFICIENT_ANSWER,
+            None,
+            "Owner provided a correction, but it is not normalizable safely.",
+        )
+
     if normalized == "no":
         return (
             OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING,

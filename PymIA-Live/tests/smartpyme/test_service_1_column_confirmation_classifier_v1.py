@@ -156,7 +156,7 @@ def test_classifies_short_answer_as_insufficient() -> None:
     assert answer.confirmed_role is None
 
 
-def test_classifies_tu_respuesta_correction_as_rejected_mapping_without_guessing_new_role() -> None:
+def test_classifies_tu_respuesta_correction_as_normalizable_rectified_function() -> None:
     result = classify_owner_column_confirmation_answer(
         raw_owner_answer="Tu respuesta: esa columna es el saldo pendiente, no la venta total.",
         question_target_ref=TARGET_REF,
@@ -164,9 +164,23 @@ def test_classifies_tu_respuesta_correction_as_rejected_mapping_without_guessing
     )
 
     answer = result.owner_column_confirmation_answer
-    assert answer.outcome == OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING
+    assert answer.outcome == OwnerColumnConfirmationOutcome.CONFIRMED_COMPUTATIONAL
+    assert answer.confirmed_role == "saldo"
+    assert answer.unlocks_computation() is True
+
+
+def test_classifies_tu_respuesta_not_normalizable_without_guessing() -> None:
+    result = classify_owner_column_confirmation_answer(
+        raw_owner_answer="Tu respuesta: esa columna es algo interno del negocio.",
+        question_target_ref=TARGET_REF,
+        proposed_role="venta_total",
+    )
+
+    answer = result.owner_column_confirmation_answer
+    assert answer.outcome == OwnerColumnConfirmationOutcome.INSUFFICIENT_ANSWER
     assert answer.confirmed_role is None
     assert answer.unlocks_computation() is False
+    assert "not normalizable safely" in (answer.reason or "")
 
 
 def test_confirmation_with_unknown_role_does_not_unlock_computation() -> None:

@@ -5,6 +5,7 @@ from pymia.contracts.column_confirmation_v1 import (
     ColumnConfirmationEntry,
     ColumnConfirmationMatrix,
     ConfirmationStatus,
+    SemanticRectificationStatus,
 )
 from pymia.smartpyme.service_1_column_confirmation_applier_v1 import (
     SCHEMA_VERSION,
@@ -58,6 +59,12 @@ def test_applies_confirmed_computational_and_unlocks() -> None:
     assert result.intake_id == "intake-1"
     assert result.applied_entry_snapshot.confirmation_status == ConfirmationStatus.CONFIRMED
     assert result.applied_entry_snapshot.owner_confirmed_role == "venta_total"
+    assert result.applied_entry_snapshot.owner_rectified_function == "venta_total"
+    assert (
+        result.applied_entry_snapshot.semantic_rectification_status
+        == SemanticRectificationStatus.OWNER_CONFIRMED_AS_INFERRED
+    )
+    assert result.applied_entry_snapshot.suggested_semantic_role == "venta_total"
     assert matrix.entries[0].confirmation_status == ConfirmationStatus.CONFIRMED
     assert matrix.can_compute_variable("ventas_total") is True
     assert result.computation_unlocked is True
@@ -86,6 +93,11 @@ def test_applies_confirmed_informational_without_computation_unlock() -> None:
     result = apply_service_1_column_confirmation_v1(classification=classification, matrix=matrix)
 
     assert result.applied_entry_snapshot.confirmation_status == ConfirmationStatus.CONFIRMED
+    assert result.applied_entry_snapshot.owner_rectified_function == "producto"
+    assert (
+        result.applied_entry_snapshot.semantic_rectification_status
+        == SemanticRectificationStatus.OWNER_CONFIRMED_AS_INFERRED
+    )
     assert result.applied_entry_snapshot.calculation_relevance == CalculationRelevance.INFORMATIONAL
     assert result.computation_unlocked is False
     assert result.variables_affected == []
@@ -114,22 +126,32 @@ def test_rejected_mapping_blocks_column() -> None:
     )
 
     assert result.applied_entry_snapshot.confirmation_status == ConfirmationStatus.BLOCKED_AMBIGUOUS
+    assert result.applied_entry_snapshot.owner_rectified_function is None
+    assert (
+        result.applied_entry_snapshot.semantic_rectification_status
+        == SemanticRectificationStatus.OWNER_REJECTED
+    )
     assert matrix.blocked_entries()[0].original_column_name == "Total"
     assert result.matrix_status_after == "blocked"
     assert result.computation_unlocked is False
 
 
-def test_tu_respuesta_correction_blocks_without_guessing() -> None:
-    matrix = _matrix_with_total()
+def test_tu_respuesta_correction_registers_new_function_without_overwriting_inferred() -> None:
+    matrix = _matrix_with_total("pago")
 
     result = apply_service_1_column_confirmation_v1(
-        classification=_classify("Tu respuesta: esa columna es saldo pendiente, no venta total."),
+        classification=_classify("Tu respuesta: esa columna es el saldo pendiente, no un pago.", "pago"),
         matrix=matrix,
     )
 
-    assert result.applied_entry_snapshot.confirmation_status == ConfirmationStatus.BLOCKED_AMBIGUOUS
-    assert result.applied_entry_snapshot.owner_confirmed_role is None
-    assert result.applied_entry_snapshot.suggested_semantic_role == "venta_total"
+    assert result.applied_entry_snapshot.confirmation_status == ConfirmationStatus.CONFIRMED
+    assert result.applied_entry_snapshot.owner_confirmed_role == "saldo"
+    assert result.applied_entry_snapshot.owner_rectified_function == "saldo"
+    assert result.applied_entry_snapshot.suggested_semantic_role == "pago"
+    assert (
+        result.applied_entry_snapshot.semantic_rectification_status
+        == SemanticRectificationStatus.OWNER_RECTIFIED_TO_NEW_FUNCTION
+    )
     assert result.computation_unlocked is False
 
 
@@ -146,6 +168,25 @@ def test_insufficient_answer_does_not_unlock_and_stays_pending() -> None:
     assert matrix.entries[0].confirmation_status == ConfirmationStatus.PENDING_OWNER_CONFIRMATION
     assert result.computation_unlocked is False
     assert result.variables_affected == []
+
+
+def test_tu_respuesta_not_normalizable_blocks_without_guessing() -> None:
+    matrix = _matrix_with_total()
+
+    result = apply_service_1_column_confirmation_v1(
+        classification=_classify("Tu respuesta: esa columna es algo interno del negocio."),
+        matrix=matrix,
+    )
+
+    assert result.applied_entry_snapshot.confirmation_status == ConfirmationStatus.BLOCKED_AMBIGUOUS
+    assert result.applied_entry_snapshot.owner_confirmed_role is None
+    assert result.applied_entry_snapshot.owner_rectified_function is None
+    assert result.applied_entry_snapshot.suggested_semantic_role == "venta_total"
+    assert (
+        result.applied_entry_snapshot.semantic_rectification_status
+        == SemanticRectificationStatus.BLOCKED_UNNORMALIZABLE_OWNER_RESPONSE
+    )
+    assert result.computation_unlocked is False
 
 
 def test_tracks_matrix_status_before_and_after() -> None:
