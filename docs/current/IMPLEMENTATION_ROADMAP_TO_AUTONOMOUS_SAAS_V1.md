@@ -64,8 +64,8 @@ Verified against the current `main` branch and committed implementation files:
 | Conversational owner layer | Implemented | `S1_CONVERSATIONAL_OWNER_BRIDGE_CONTRACT_V1`, `S1_LLM_GUARDED_RESPONSE_GATE_V1`, `S1_OWNER_QUESTION_ROUTER_V1` |
 | SaaS hardening — audit log | Implemented | `S1_AUDIT_LOG_V1` — commit `7319e1f` |
 | SaaS hardening — tenant isolation | Implemented | `S1_TENANT_ISOLATION_GUARD_V1` — commit `fea2d5b` |
-| SaaS hardening — failure recovery | Contract design pending | `S1_FAILURE_RECOVERY_V1_CONTRACT_DESIGN` — NEXT |
-| SaaS hardening — cost/rate limit | Not started | `S1_COST_AND_RATE_LIMIT_GUARD_V1` — PENDING |
+| SaaS hardening — failure recovery | Implemented | `S1_FAILURE_RECOVERY_V1` — commit `9f1aa8b` |
+| SaaS hardening — cost/rate limit | Implemented | `S1_COST_AND_RATE_LIMIT_GUARD_V1` — commit `c434b67` |
 | Human review / release boundary | Partial | Human review gate, final QA gate, and signoff flow exist; final SaaS/runtime release integration is still pending |
 | Real SaaS runtime boundary | Not started | No real endpoint/API, auth, DB/storage, upload, worker, or UI as the canonical autonomous path |
 
@@ -168,7 +168,7 @@ The LLM can interact with the PyME owner only through approved contracts and gua
 
 **Status:** CLOSED — all three slices implemented and committed.
 
-### Phase F — SaaS Hardening (IN PROGRESS)
+### Phase F — SaaS Hardening (CLOSED)
 
 **Objective:**
 Make the autonomous SaaS safe, observable, tenant-isolated, recoverable, and cost-controlled.
@@ -177,11 +177,13 @@ Make the autonomous SaaS safe, observable, tenant-isolated, recoverable, and cos
 
 - `S1_AUDIT_LOG_V1` — CLOSED + PUSHED (`7319e1f`)
 - `S1_TENANT_ISOLATION_GUARD_V1` — CLOSED + PUSHED (`fea2d5b`)
-- `S1_FAILURE_RECOVERY_V1` — NEXT
-- `S1_COST_AND_RATE_LIMIT_GUARD_V1` — PENDING
+- `S1_FAILURE_RECOVERY_V1` — CLOSED + PUSHED (`9f1aa8b`)
+- `S1_COST_AND_RATE_LIMIT_GUARD_V1` — CLOSED + PUSHED (`c434b67`)
 
 **Closure criterion:**
 The system has enough operational safety to run as a real SaaS: audit trail, tenant boundaries, failure recovery, and cost/rate controls.
+
+**Status:** CLOSED — all four hardening slices are implemented, committed, and pushed.
 
 ## Critical Path
 
@@ -200,6 +202,8 @@ Strict implementation path from baseline `e0075cc`:
 11. `S1_LLM_GUARDED_RESPONSE_GATE_V1`
 12. `S1_OWNER_QUESTION_ROUTER_V1`
 
+This critical path from Phase A through Phase F is now COMPLETE.
+
 ## Dependencies and Blockers
 
 - Phase A must close before autonomous delivery can be claimed.
@@ -207,8 +211,8 @@ Strict implementation path from baseline `e0075cc`:
 - Phase C can begin after the core gates are stable, but must support both pre-execution clarification and post-delivery feedback.
 - Phase D should not lead the work. SaaS shell comes after the core autonomous runtime has stable contracts.
 - Phase E is CLOSED. All three conversational slices are implemented and committed.
-- Phase F is IN PROGRESS. F.1 (audit log) and F.2 (tenant isolation) are closed and pushed. F.3 (failure recovery) is the next unique front.
-- Phase F still depends on the final shape of the eventual real SaaS runtime boundary.
+- Phase F is CLOSED. Audit log, tenant isolation, failure recovery, and cost/rate limit guards are implemented and pushed.
+- The next front is Phase G preparation only. Phase G itself remains NOT STARTED until its runtime boundary contracts/opening slice are defined.
 
 ## Not Allowed Yet
 
@@ -237,16 +241,16 @@ A phase is closed only when all its required slices meet the same criteria and t
 ## Next Unique Front
 
 ```text
-S1_FAILURE_RECOVERY_V1_CONTRACT_DESIGN
+Phase G preparation
 ```
 
-This is the immediate front after closing F.1 (`S1_AUDIT_LOG_V1`) and F.2 (`S1_TENANT_ISOLATION_GUARD_V1`).
+This is the immediate front after closing the full Phase F hardening set.
 
-It must define a pure failure recovery candidate contract that:
+It should prepare the opening boundary for:
 
-- describes deterministic error/blocked conditions without runtime recovery execution;
-- preserves the session anchor and source slice lineage;
-- avoids real storage, DB, worker, pipeline, runner, LLM, or API authority;
-- leaves the recovery plan as a non-executable candidate for a future runtime.
+- real endpoint/API boundary definition;
+- real auth boundary definition;
+- real storage/upload boundary definition;
+- real worker/runtime boundary definition.
 
-It must not implement real recovery, retry logic, state mutation, or runtime SaaS behavior.
+It must not mark `Phase G` as started until the corresponding runtime boundary front is explicitly opened.
