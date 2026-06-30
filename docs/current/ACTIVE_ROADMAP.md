@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_MODEL
+POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_CHAIN_COMPOSITION
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_MODEL_V1
+SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_CHAIN_COMPOSITION_V1
 ```
 
 ## Closed baseline
@@ -42,6 +42,7 @@ readiness
 → full chain dry binding
 → synthetic controlled case phase closeout
 → synthetic controlled case candidate model + tests
+→ synthetic controlled case candidate chain composition + tests
 ```
 
 ## Methodological correction
@@ -57,7 +58,7 @@ No external client is required to advance methodology.
 ## Anti-micro-slice rule
 
 ```text
-Do not split candidate model, focal tests, and Phase I regression into separate micro-fronts unless a concrete contradiction appears.
+Do not split candidate composition, focal tests, and Phase I regression into separate micro-fronts unless a concrete contradiction appears.
 ```
 
 ## Explicitly not active
@@ -89,18 +90,19 @@ Run result candidate ≠ CLI executed.
 Synthetic controlled case ≠ external client case.
 Full chain dry binding ≠ actual run.
 Candidate model ready ≠ CLI executed.
-Tests passing ≠ runtime authorized.
+Candidate chain composition ready ≠ runtime authorized.
+Tests passing ≠ delivery ready.
 ```
 
 ## Current front result
 
-The synthetic controlled case documentation phase has been converted into a pure Python candidate model with tests.
+The synthetic controlled case candidate model now composes with the Phase I candidate chain as pure candidate data.
 
 Validated:
 
 ```text
-Focal: 22/22 passed
-Regression: 101/101 passed
+Focal: 20/20 passed
+Regression: 121/121 passed
 ```
 
 It does not authorize:
@@ -125,13 +127,12 @@ It does not authorize:
 Choose explicitly between:
 
 ```text
-A. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_CHAIN_COMPOSITION_V1
-   - pure candidate composition only
-   - no CLI execution
+A. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CODE_FRONT_CLOSEOUT_V1
+   - docs closeout only
    - no runtime
 
-B. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CODE_FRONT_CLOSEOUT_V1
-   - docs closeout only
+B. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_CANDIDATE_CHAIN_ADVERSARIAL_AUDIT_V1
+   - audit only if contradiction is suspected
 
 C. STOP_AND_DECIDE
 ```
