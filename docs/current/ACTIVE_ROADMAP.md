@@ -1,7 +1,7 @@
 # Active Roadmap
 
-Los frentes vivos actuales (máximo 3) son:
+Los frentes vivos actuales (maximo 3) son:
 
-1. **Preparación de `Phase H - Human Review + Final Release Integration`**
-2. **Auditoría de integración entre runtime boundary contracts y release/signoff gates**
-3. **Cierre documental de `Phase G` sin marcar runtime real como implementado**
+1. **Preparacion de `Phase I - First Real Controlled Client Flow`**
+2. **Auditoria de apertura para primer caso controlado sin runtime real prematuro**
+3. **Cierre documental de `Phase H` sin marcar publish real como implementado**
