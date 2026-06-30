@@ -67,6 +67,7 @@ Verified against the current `main` branch and committed implementation files:
 | SaaS hardening — failure recovery | Implemented | `S1_FAILURE_RECOVERY_V1` — commit `9f1aa8b` |
 | SaaS hardening — cost/rate limit | Implemented | `S1_COST_AND_RATE_LIMIT_GUARD_V1` — commit `c434b67` |
 | Human review / final release integration | Implemented as pure gated release chain | `S1_HUMAN_REVIEW_RELEASE_INTEGRATION_GATE_V1`, `S1_FINAL_OWNER_RELEASE_DECISION_GATE_V1`, `S1_FINAL_RELEASE_TO_OWNER_HANDOFF_CONTRACT_V1`, `S1_PHASE_H_RELEASE_CHAIN_COMPOSITION_TEST_V1` |
+| Phase I opening chain | CLOSED | `S1_FIRST_CONTROLLED_CLIENT_CASE_READINESS_GATE_V1` — commit `84fd37d`; `S1_FIRST_CONTROLLED_CLIENT_CASE_EVIDENCE_PACKET_V1` — commit `3a9aff7`; `S1_CONTROLLED_CLIENT_CASE_OPERATOR_SUPERVISION_CONTRACT_V1` — commit `9f1484e`; `S1_PHASE_I_CONTROLLED_CASE_CHAIN_COMPOSITION_TEST_V1` — commit `313d7f9` |
 | Real SaaS runtime boundary contracts | Implemented as pure contracts | `S1_REAL_ENDPOINT_API_BOUNDARY_CONTRACT_V1`, `S1_REAL_AUTH_BOUNDARY_CONTRACT_V1`, `S1_REAL_STORAGE_UPLOAD_BOUNDARY_CONTRACT_V1`, `S1_REAL_WORKER_RUNTIME_BOUNDARY_CONTRACT_V1` |
 | Real SaaS runtime infrastructure | Not implemented | No real HTTP API, auth provider, DB/storage, upload pipeline, worker, queue, scheduler, or UI as the canonical autonomous path |
 
@@ -218,6 +219,41 @@ Integrate the SaaS-ready release chain with human review, signoff, QA, final rel
 
 **Status:** CLOSED — Phase H closed the pure human review and final release integration chain.
 
+### Phase I — First Real Controlled Client Flow (OPENING CHAIN CLOSED / PHASE NOT CLOSED)
+
+**Objective:**
+Advance from pure readiness and supervision preparation toward the first real controlled client flow, while preserving supervised execution only and keeping runtime/publish/notification infrastructure out of scope until explicitly implemented.
+
+**Opening chain implemented:**
+
+- `S1_FIRST_CONTROLLED_CLIENT_CASE_READINESS_GATE_V1` — CLOSED + PUSHED (`84fd37d`)
+- `S1_FIRST_CONTROLLED_CLIENT_CASE_EVIDENCE_PACKET_V1` — CLOSED + PUSHED (`3a9aff7`)
+- `S1_CONTROLLED_CLIENT_CASE_OPERATOR_SUPERVISION_CONTRACT_V1` — CLOSED + PUSHED (`9f1484e`)
+- `S1_PHASE_I_CONTROLLED_CASE_CHAIN_COMPOSITION_TEST_V1` — CLOSED + PUSHED (`313d7f9`)
+
+**What is closed:**
+
+Only the opening chain is closed:
+
+```text
+readiness
+→ evidence packet
+→ operator supervision
+```
+
+**What is NOT closed:**
+
+- Phase I as a whole is NOT closed.
+- There is no `controlled_execution_candidate`.
+- There is no `supervised_cli_run_result_candidate`.
+- There is no `abort_rollback_result_candidate`.
+- There is no `controlled_delivery_review_candidate`.
+- There is no runtime real.
+- There is no publish real.
+- There are no real notifications.
+
+**Status:** OPENING CHAIN CLOSED / PHASE NOT CLOSED — Phase I has only the governed opening chain implemented so far.
+
 ## Critical Path
 
 Strict implementation path from baseline `e0075cc`:
@@ -247,8 +283,9 @@ This critical path from Phase A through Phase H is now COMPLETE.
 - Phase F is CLOSED. Audit log, tenant isolation, failure recovery, and cost/rate limit guards are implemented and pushed.
 - Phase G is CLOSED. Real SaaS runtime boundary contracts are implemented and pushed as pure contracts only.
 - Phase H is CLOSED. Human review, signoff, QA, final release decision, owner handoff, and composition test are implemented and pushed as pure contracts/tests only.
+- Phase I opening chain is CLOSED. Readiness, evidence packet, operator supervision, and chain composition are implemented and pushed, but Phase I is not closed.
 - Real runtime infrastructure remains NOT IMPLEMENTED: no real API, auth provider, DB/storage, upload pipeline, worker, queue, scheduler, publish execution, notification, or UI.
-- The next front is Phase I preparation: First Real Controlled Client Flow.
+- The next unique front is `S1_CONTROLLED_CLIENT_CASE_EXECUTION_CANDIDATE_V1`.
 
 ## Not Allowed Yet
 
@@ -277,16 +314,16 @@ A phase is closed only when all its required slices meet the same criteria and t
 ## Next Unique Front
 
 ```text
-Phase I preparation
+S1_CONTROLLED_CLIENT_CASE_EXECUTION_CANDIDATE_V1
 ```
 
-This is the immediate front after closing Phase G boundary contracts.
+This is the immediate front after closing Phase H release integration and the Phase I opening chain.
 
-It should prepare First Real Controlled Client Flow:
+It should extend First Real Controlled Client Flow from opening-chain preparation into governed execution candidate design/implementation:
 
-- audit requirements for a first controlled case;
 - preserve CLI/operator fallback until the autonomous path is certified;
-- define evidence, owner consent, oversight, and rollback boundaries;
+- keep execution candidate logic separate from real execution;
+- preserve abort/rollback and controlled delivery review as later slices;
 - preserve the distinction between pure candidates and real execution.
 
 It must not implement real API, auth, storage/upload, worker, queue, scheduler, DB, or UI.
