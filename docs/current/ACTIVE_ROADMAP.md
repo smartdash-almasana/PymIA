@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-PHASE_I_RECONCILED_AND_CLOSED
+SERVICE_1_XLSX_RUNTIME_BRIDGE_MILESTONE_OPEN
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_PHASE_I_ROADMAP_RECONCILIATION_AND_CLOSEOUT_V1
+SERVICE_1_XLSX_RUNTIME_BRIDGE_MILESTONE_V1
 ```
 
 ## Closed Phase I baseline
@@ -30,54 +30,90 @@ readiness
 → Phase I closeout
 ```
 
-## Reconciliation
+## Reconciliation preserved
 
 ```text
-Phase I was already closed.
-Post-I synthetic controlled case work is hardening, not Phase I expansion.
-Candidate model and candidate chain composition are post-I technical hardening, not runtime authorization.
+PHASE_I: CLOSED
+POST_I_HARDENING: CLOSED
+ROADMAP_RECONCILED: YES
 ```
 
-## Post-I hardening closed
+Phase I is not reopened by the XLSX runtime bridge milestone.
 
-The following post-I work is accepted as closed safety reinforcement:
+## Terminology correction
+
+Use this term going forward:
 
 ```text
-- doc drift and naming cleanup
-- controlled case precheck gate
-- operator packet template
-- operator packet template acceptance audit
-- synthetic operator packet rehearsal
-- synthetic controlled case instance
-- synthetic controlled case run preparation
-- synthetic supervised run request model
-- synthetic blocked variants
-- pre-run gate closeout
-- execution candidate alignment
-- full chain dry binding
-- synthetic controlled case phase closeout
-- synthetic controlled case candidate model + tests
-- synthetic controlled case candidate chain composition + tests
-- Phase I roadmap reconciliation and closeout
+CONTROLLED_OPERATIONAL_CASE
 ```
 
-## Methodological correction preserved
+Do not split valid development cases into lower-value categories such as "real" versus "synthetic".
+
+The relevant boundary is now:
 
 ```text
-controlled case = synthetic, well-enunciated, operationally plausible case
+controlled operational case
+vs
+controlled XLSX execution bridge
 ```
 
-No external client is required for the synthetic methodology already closed.
+## Milestone now open
+
+```text
+SERVICE_1_XLSX_RUNTIME_BRIDGE_MILESTONE: OPEN
+```
+
+Goal:
+
+```text
+candidate / supervised model
+→ controlled XLSX execution bridge
+```
+
+## Existing XLSX assets to reuse
+
+```text
+PymIA-Live/pymia/smartpyme/service_1_xlsx_to_normalized_table_v1.py
+PymIA-Live/pymia/smartpyme/service_1_xlsx_structure_v1.py
+PymIA-Live/pymia/smartpyme/service_1_xlsx_delivery_v1.py
+PymIA-Live/pymia/smartpyme/first_aid_xlsx_delivery_v1.py
+```
+
+Rule:
+
+```text
+Do not duplicate XLSX parsing.
+Use the existing XLSX reader/normalizer boundary.
+```
+
+## Finite milestone units
+
+Only these units are allowed:
+
+```text
+1. SERVICE_1_XLSX_RUNTIME_BRIDGE_CONTRACT_V1
+2. SERVICE_1_XLSX_RUNTIME_BRIDGE_ENTRYPOINT_V1
+3. SERVICE_1_XLSX_RUNTIME_BRIDGE_CLOSEOUT_V1
+```
+
+Maximum units:
+
+```text
+3
+```
+
+If a fourth unit seems necessary:
+
+```text
+STOP_AND_RECONCILE
+```
 
 ## Explicitly not active
 
 ```text
+PHASE_I_REOPENED: NO
 PHASE_J_ALLOWED_NOW: NO
-RUNTIME_REAL_ALLOWED_NOW: NO
-CLI_EXECUTION_ALLOWED_NOW: NO
-BUSINESS_FILES_ALLOWED_NOW: NO
-DATA_PROCESSING_ALLOWED_NOW: NO
-ARTIFACT_GENERATION_ALLOWED_NOW: NO
 SAAS_API_UI_ALLOWED_NOW: NO
 SERVICE_2_ALLOWED_NOW: NO
 PRODUCTIVE_RUNTIME_ALLOWED_NOW: NO
@@ -86,51 +122,34 @@ OWNER_DELIVERY_ALLOWED_NOW: NO
 PUBLISH_ALLOWED_NOW: NO
 NOTIFICATION_ALLOWED_NOW: NO
 WORKER_STORAGE_QUEUE_ALLOWED_NOW: NO
+EXTERNAL_API_ALLOWED_NOW: NO
+OCR_PDF_PARSER_ALLOWED_NOW: NO
 ```
 
 ## Current rule
 
 ```text
-Candidate complete ≠ runtime real.
-Authorized ≠ executed.
-Review candidate ≠ delivery real.
-Run result candidate ≠ CLI executed.
-Synthetic controlled case ≠ external client case.
-Post-I hardening ≠ Phase I reopened.
-Candidate model ready ≠ CLI executed.
-Candidate chain composition ready ≠ runtime authorized.
-Tests passing ≠ delivery ready.
-```
-
-## Anti-drift rule
-
-```text
-No additional Phase I micro-fronts are allowed.
-No additional synthetic controlled case hardening fronts are allowed unless a concrete contradiction is found.
-No code candidate, audit, dry binding, closeout, or chain-composition front may be opened under Phase I.
+Phase I closed ≠ Service 1 complete.
+Controlled operational case ≠ controlled XLSX execution bridge.
+Bridge contract ready ≠ autonomous runtime.
+Entry point ready ≠ owner delivery.
+Tests passing ≠ SaaS/API/UI authorization.
 ```
 
 ## Current front result
 
-```text
-PHASE_I: CLOSED
-POST_I_HARDENING: CLOSED
-ROADMAP_RECONCILED: YES
-```
+The XLSX runtime bridge milestone is opened as the next finite Service 1 completion front.
 
 It does not authorize:
 
 ```text
-- business file intake
-- CLI execution
-- runtime execution
-- data processing
-- artifact generation
-- owner delivery
+- SaaS/API/UI
+- chatbot
+- autonomous owner delivery
 - publish
 - notification
-- SaaS/API/UI
 - worker/storage/queue
+- external API integration
 - Servicio 2
 - Phase J
 ```
@@ -138,7 +157,7 @@ It does not authorize:
 ## Next decision gate
 
 ```text
-STOP_AND_DECIDE
+SERVICE_1_XLSX_RUNTIME_BRIDGE_CONTRACT_V1
 ```
 
-Any future work must be explicitly classified outside Phase I before opening it.
+No future roadmap document may add extra units to this milestone without explicit reconciliation.
