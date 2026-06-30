@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-SERVICE_1_XLSX_BRIDGE_ENTRYPOINT_CLOSED
+SERVICE_1_XLSX_BRIDGE_MILESTONE_CLOSED
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_XLSX_RUNTIME_BRIDGE_ENTRYPOINT_V1
+SERVICE_1_XLSX_RUNTIME_BRIDGE_CLOSEOUT_V1
 ```
 
 ## Closed baseline
@@ -30,47 +30,57 @@ CONTROLLED_OPERATIONAL_CASE
 ```text
 UNIT_1_OF_3: CLOSED
 UNIT_2_OF_3: CLOSED
-UNIT_3_OF_3: NEXT
+UNIT_3_OF_3: CLOSED
 ```
 
-## Unit 2 result
-
-```text
-ENTRYPOINT_MODULE: PymIA-Live/pymia/cli/service_1_xlsx_runtime_bridge.py
-ENTRYPOINT_TEST: PymIA-Live/tests/smartpyme/test_service_1_xlsx_runtime_bridge_entrypoint_v1.py
-FOCAL_TESTS: 7/7 passed
-XLSX_BRIDGE_REGRESSION: 42/42 passed
-```
-
-## Behavior
-
-```text
-- exposes callable entrypoint
-- exposes CLI main(argv)
-- accepts xlsx path, case_ref, operator_ref, optional sheet
-- writes JSON to stdout or output file
-- returns 0 when ready
-- returns 2 when blocked
-- invokes the contract module only
-```
-
-## Finite units
+## Closed units
 
 ```text
 1. SERVICE_1_XLSX_RUNTIME_BRIDGE_CONTRACT_V1    CLOSED
 2. SERVICE_1_XLSX_RUNTIME_BRIDGE_ENTRYPOINT_V1  CLOSED
-3. SERVICE_1_XLSX_RUNTIME_BRIDGE_CLOSEOUT_V1    NEXT
+3. SERVICE_1_XLSX_RUNTIME_BRIDGE_CLOSEOUT_V1    CLOSED
+```
+
+## Technical evidence
+
+```text
+CONTRACT_FOCAL: 12/12 passed
+ENTRYPOINT_FOCAL: 7/7 passed
+XLSX_BRIDGE_REGRESSION: 42/42 passed
+```
+
+## Capability closed
+
+```text
+CONTROLLED_XLSX_PATH_ACCEPTED
+CASE_REF_REQUIRED
+OPERATOR_REF_REQUIRED
+OPTIONAL_SHEET_SUPPORTED
+CALLABLE_ENTRYPOINT_READY
+CLI_MAIN_ARGV_READY
+JSON_STDOUT_OR_FILE_READY
+READY_RETURNS_0
+BLOCKED_RETURNS_2
+```
+
+## Reuse rule
+
+```text
+NO_SECOND_XLSX_PARSER
+EXISTING_XLSX_READER_REUSED
+EXISTING_XLSX_NORMALIZER_REUSED
 ```
 
 ## Stop rule
 
 ```text
 MAX_UNITS: 3
-FOURTH_UNIT: STOP_AND_RECONCILE
+UNITS_USED: 3
+FOURTH_UNIT_ALLOWED: FALSE
 ```
 
 ## Next decision gate
 
 ```text
-SERVICE_1_XLSX_RUNTIME_BRIDGE_CLOSEOUT_V1
+STOP_AND_DECIDE
 ```
