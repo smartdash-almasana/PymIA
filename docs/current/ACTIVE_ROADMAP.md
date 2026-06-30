@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_INSTANCE
+POST_A_TO_I_SYNTHETIC_CONTROLLED_CASE_RUN_PREPARATION
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_SYNTHETIC_CONTROLLED_CASE_INSTANCE_V1
+SERVICE_1_SYNTHETIC_CONTROLLED_CASE_RUN_PREPARATION_V1
 ```
 
 ## Closed baseline
@@ -34,6 +34,7 @@ readiness
 → operator packet template acceptance audit
 → synthetic operator packet rehearsal
 → synthetic controlled case instance
+→ synthetic controlled case run preparation
 ```
 
 ## Methodological correction
@@ -53,6 +54,7 @@ PHASE_J_ALLOWED_NOW: NO
 RUNTIME_REAL_ALLOWED_NOW: NO
 CLI_EXECUTION_ALLOWED_NOW: NO
 BUSINESS_FILES_ALLOWED_NOW: NO
+DATA_PROCESSING_ALLOWED_NOW: NO
 SAAS_API_UI_ALLOWED_NOW: NO
 SERVICE_2_ALLOWED_NOW: NO
 PRODUCTIVE_RUNTIME_ALLOWED_NOW: NO
@@ -72,12 +74,14 @@ Review candidate ≠ delivery real.
 Run result candidate ≠ CLI executed.
 Synthetic controlled case ≠ external client case.
 Synthetic case instance ≠ CLI executed.
-Synthetic case ready ≠ delivery ready.
+Run preparation ≠ run execution.
+Prepared inputs ≠ processed data.
+Expected artifacts ≠ produced artifacts.
 ```
 
 ## Current front result
 
-The synthetic controlled case instance defines a canonical, operationally plausible Service 1 case without external client dependency.
+The synthetic controlled case run preparation defines a safe preparation plan for a future supervised synthetic run request.
 
 It does not authorize:
 
@@ -85,6 +89,7 @@ It does not authorize:
 - business file intake
 - CLI execution
 - runtime execution
+- data processing
 - owner delivery
 - publish
 - notification
@@ -99,12 +104,12 @@ It does not authorize:
 Choose explicitly between:
 
 ```text
-A. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_RUN_PREPARATION_V1
-   - preparation only
+A. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_SUPERVISED_RUN_REQUEST_V1
+   - request model only
    - still no CLI execution
 
 B. SERVICE_1_SYNTHETIC_CONTROLLED_CASE_NEGATIVE_VARIANTS_V1
-   - add blocked variants
+   - blocked variants
    - still synthetic only
 
 C. STOP_AND_DECIDE
