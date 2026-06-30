@@ -3,13 +3,13 @@
 ## STATUS
 
 ```text
-POST_A_TO_I_OPERATOR_PACKET_TEMPLATE
+POST_A_TO_I_OPERATOR_PACKET_TEMPLATE_ACCEPTED
 ```
 
 ## Current active front
 
 ```text
-SERVICE_1_OPERATOR_PACKET_FOR_REAL_CONTROLLED_CASE_V1
+SERVICE_1_OPERATOR_PACKET_TEMPLATE_ACCEPTANCE_AUDIT_V1
 ```
 
 ## Closed baseline
@@ -30,6 +30,8 @@ readiness
 → Phase I closeout
 → doc drift and naming cleanup
 → real controlled case precheck gate
+→ operator packet template
+→ operator packet template acceptance audit
 ```
 
 ## Explicitly not active
@@ -58,16 +60,17 @@ Review candidate ≠ delivery real.
 Run result candidate ≠ CLI executed.
 Precheck gate defined ≠ operator packet created.
 Operator packet template ≠ real case instance.
-Operator packet created ≠ CLI executed.
+Operator packet accepted ≠ CLI executed.
 ```
 
-## Current front purpose
+## Current front result
 
-The current front defines the operator packet template for one future real controlled Service 1 case.
+The operator packet template is accepted only as a reusable preparation template.
 
 It does not authorize:
 
 ```text
+- real case instance
 - raw client data intake
 - CLI execution
 - runtime execution
@@ -82,21 +85,19 @@ It does not authorize:
 
 ## Next decision gate
 
-If and only if `SERVICE_1_OPERATOR_PACKET_FOR_REAL_CONTROLLED_CASE_V1` is accepted as template-defined and a case-specific packet instance is later completed, the next possible front may be:
+Choose explicitly between:
 
 ```text
-SERVICE_1_REAL_CONTROLLED_CASE_SUPERVISED_RUN_PREPARATION_V1
-```
+A. SERVICE_1_OPERATOR_PACKET_CASE_INSTANCE_V1
+   - only if a real controlled case is explicitly approved
+   - still no CLI execution by implication
 
-That future front still must not execute CLI unless separately and explicitly approved.
+B. SERVICE_1_SYNTHETIC_OPERATOR_PACKET_REHEARSAL_V1
+   - if no real case is approved
+   - synthetic/redacted only
+   - no raw client data
 
-Otherwise choose explicitly between:
-
-```text
-A. Return to precheck gate
-B. Reduce scope / define missing packet inputs
-C. Additional docs cleanup / anti-deriva
-D. STOP_AND_DECIDE
+C. STOP_AND_DECIDE
 ```
 
 No future roadmap document overrides this active gate unless explicitly updated after review.
