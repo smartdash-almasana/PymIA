@@ -1,0 +1,17 @@
+zero_file_count: 166
+
+Sample of relevant zero-byte/empty files observed in local extraction:
+
+- tests/architecture/policy.py
+- pymia/smartpyme/owner_facing_report.py
+- PymIA-Live/pymia/contracts/formula_rules_v1.py
+- docs/current/ACTIVE_ROADMAP.md
+- docs/current/SAAS_AUTONOMY_TARGET.md
+- pymia/document_intelligence/__init__.py
+- pymia/contracts/__init__.py
+- pymia/hermes/plugins/pymia_telegram_bridge/__init__.py
+- PymIA-Live/pymia/__init__.py
+- PymIA-Live/tests/__init__.py
+
+Audit interpretation:
+Because extraction was partial or produced empty files, this audit must be used as orientation. Any destructive cleanup should be verified against the GitHub repo state before deletion or migration.
