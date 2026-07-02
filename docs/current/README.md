@@ -23,3 +23,9 @@ docs/current/
 PymIA-Live/pymia/smartpyme/
 PymIA-Live/pymia/contracts/
 ```
+
+## Web intake current alignment
+
+```text
+docs/current/WEB_INTAKE_ROOT_ALIGNMENT_V1.md
+```
