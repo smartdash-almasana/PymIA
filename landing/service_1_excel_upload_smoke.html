@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PymIA · Servicio 1 · Excel Upload Smoke</title>
+  <title>PymIA · Servicio 1 · Carga de archivo Excel</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root{
@@ -266,29 +266,29 @@
 </head>
 <body>
   <header>
-    <h1>PymIA · Servicio 1 · Excel Upload Smoke</h1>
-    <p>Subí un Excel real para inspección preliminar. Esta pantalla NO diagnostica todavía. Sólo lee estructura y columnas para preparar la rectificación del dueño. La web captura evidencia. La FSM/runtime de Servicio 1 NO se ejecuta acá.</p>
+    <h1>PymIA · Servicio 1 · Carga de archivo Excel</h1>
+    <p>Subí un Excel real para una primera revisión. Esta pantalla todavía no analiza el negocio. Sólo muestra la estructura del archivo y las columnas visibles para preparar la próxima conversación con el dueño del negocio. El archivo se lee en este navegador y no dispara análisis automático ni informe final.</p>
   </header>
 
   <main class="page">
     <section class="panel">
       <div class="panel-head">
-        <h2>Smoke web local</h2>
-        <span id="topStatus" class="status-pill">WAITING_FOR_FILE</span>
+        <h2>Carga del archivo</h2>
+        <span id="topStatus" class="status-pill">Esperando archivo</span>
       </div>
       <div class="panel-body grid">
         <div class="hero-copy">
-          <div>Dependencia explícita: <strong>SheetJS por CDN</strong> usado sólo como <strong>browser-only preview dependency</strong>. No es parser productivo de PymIA.</div>
-          <div>No se sube ningún archivo. No se persiste nada. No se usa localStorage. No se llama runtime, pipeline, tools ni delivery.</div>
+          <div>Esta pantalla usa una librería del navegador sólo para mostrar una vista previa local del Excel. No forma parte del procesamiento operativo de PymIA.</div>
+          <div>No se sube ningún archivo. No se guarda nada. No hay análisis automático, herramientas ejecutadas ni informe final.</div>
         </div>
 
         <div id="dropzone" class="dropzone">
-          <strong>Adjuntá un `.xlsx` o `.xls`</strong>
-          <p>La lectura ocurre sólo en este navegador para mostrar hojas, headers y una vista previa operativa de Servicio 1.</p>
+          <strong>Adjuntá un archivo Excel</strong>
+          <p>La lectura ocurre sólo en este navegador para mostrar hojas, columnas y una vista previa de datos.</p>
           <input id="fileInput" type="file" accept=".xlsx,.xls" />
           <div class="actions">
             <button id="selectBtn" type="button">Seleccionar archivo</button>
-            <button id="resetBtn" type="button" class="secondary">Reiniciar smoke</button>
+            <button id="resetBtn" type="button" class="secondary">Reiniciar</button>
           </div>
         </div>
       </div>
@@ -297,7 +297,7 @@
     <section class="panel">
       <div class="panel-head">
         <h2>Estado del archivo</h2>
-        <span id="validationStatus" class="status-pill">AWAITING_UPLOAD</span>
+        <span id="validationStatus" class="status-pill">Esperando archivo</span>
       </div>
       <div class="panel-body grid cols-4">
         <div class="card"><small>Archivo</small><span id="fileName">—</span></div>
@@ -309,27 +309,27 @@
 
     <section class="panel">
       <div class="panel-head">
-        <h2>Estado Servicio 1</h2>
-        <span class="status-pill warn">PREVIEW_WEB_ONLY</span>
+        <h2>Estado de la revisión</h2>
+        <span class="status-pill warn">Sólo vista previa</span>
       </div>
       <div class="panel-body grid cols-2">
         <div class="block">
           <div class="chips">
-            <span class="chip">WEB_UPLOAD_CAPTURED</span>
-            <span class="chip">STRUCTURE_PREVIEW_ONLY</span>
-            <span class="chip">NO_RUNTIME_EXECUTION</span>
-            <span class="chip">NO_TOOL_RUN</span>
-            <span class="chip">NO_DELIVERY</span>
+            <span class="chip">Archivo recibido</span>
+            <span class="chip">Sólo estructura</span>
+            <span class="chip">Sin análisis todavía</span>
+            <span class="chip">Sin herramientas ejecutadas</span>
+            <span class="chip">Sin informe final</span>
           </div>
         </div>
         <div class="block">
-          <strong>Qué falta para continuar</strong>
+          <strong>Para continuar falta</strong>
           <ul class="list">
-            <li>Confirmar qué representa cada columna.</li>
-            <li>Seleccionar columnas relevantes para el caso.</li>
-            <li>Pasar a una rectificación semántica futura del dueño.</li>
-            <li>Recién después evaluar una ejecución controlada.</li>
-            <li>Todavía NO hay diagnóstico final.</li>
+            <li>Confirmar qué significa cada columna.</li>
+            <li>Elegir qué hoja y columnas querés revisar primero.</li>
+            <li>Contarnos qué problema querés resolver con este archivo.</li>
+            <li>Recién después se puede preparar un análisis controlado.</li>
+            <li>Todavía no hay diagnóstico ni informe final.</li>
           </ul>
         </div>
       </div>
@@ -338,41 +338,41 @@
     <section class="panel">
       <div class="panel-head">
         <h2>Estructura detectada</h2>
-        <span id="sheetStatus" class="status-pill">NO_WORKBOOK_LOADED</span>
+        <span id="sheetStatus" class="status-pill">Sin archivo cargado</span>
       </div>
       <div class="panel-body grid">
         <div id="sheetTabs" class="sheet-tabs hidden"></div>
 
         <div class="block">
           <dl class="kv">
-            <dt>file_name</dt>
+            <dt>Archivo</dt>
             <dd id="summaryFileName">—</dd>
-            <dt>sheet_name</dt>
+            <dt>Hoja</dt>
             <dd id="summarySheetName">—</dd>
-            <dt>column_count</dt>
+            <dt>Cantidad de columnas</dt>
             <dd id="summaryColumnCount">—</dd>
-            <dt>row_count_preview</dt>
+            <dt>Filas mostradas</dt>
             <dd id="summaryRowCountPreview">—</dd>
-            <dt>headers</dt>
+            <dt>Columnas encontradas</dt>
             <dd id="summaryHeaders">—</dd>
-            <dt>detected_columns_preview</dt>
+            <dt>Primeras columnas detectadas</dt>
             <dd id="summaryDetectedColumns">—</dd>
           </dl>
         </div>
 
         <div>
-          <h3 style="margin:0 0 10px">Headers detectados</h3>
+          <h3 style="margin:0 0 10px">Columnas detectadas</h3>
           <div id="headersChips" class="chips">
-            <span class="chip">Sin headers detectados todavía</span>
+            <span class="chip">Todavía no se detectaron columnas</span>
           </div>
         </div>
 
         <div>
-          <h3 style="margin:0 0 10px">Vista previa operativa (primeras 10 filas)</h3>
+          <h3 style="margin:0 0 10px">Vista previa de datos (primeras 10 filas)</h3>
           <div id="previewTable" class="table-wrap">
             <table>
               <thead><tr><th>Esperando archivo</th></tr></thead>
-              <tbody><tr><td class="empty">Todavía no hay workbook cargado.</td></tr></tbody>
+              <tbody><tr><td class="empty">Todavía no hay archivo cargado.</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -381,10 +381,10 @@
 
     <section class="panel">
       <div class="panel-head">
-        <h2>Nota metodológica</h2>
+        <h2>Límite de esta pantalla</h2>
       </div>
       <div class="panel-body notice">
-        Esta pantalla captura evidencia visual mínima de carga web. No reemplaza contratos, tests ni gates del runtime. Si el archivo se captura y la estructura se ve, el siguiente paso correcto es confirmar significado de columnas con el dueño, NO saltar a diagnóstico automático.
+        Esta pantalla sólo confirma que el archivo puede leerse y que tiene estructura visible. El siguiente paso correcto es confirmar el significado de las columnas con el dueño. No hay diagnóstico automático.
       </div>
     </section>
   </main>
@@ -457,9 +457,9 @@
       state.sheets = [];
       state.activeSheetIndex = 0;
       els.fileInput.value = '';
-      setStatus('topStatus', 'WAITING_FOR_FILE', 'status-pill');
-      setStatus('validationStatus', 'AWAITING_UPLOAD', 'status-pill');
-      setStatus('sheetStatus', 'NO_WORKBOOK_LOADED', 'status-pill');
+      setStatus('topStatus', 'Esperando archivo', 'status-pill');
+      setStatus('validationStatus', 'Esperando archivo', 'status-pill');
+      setStatus('sheetStatus', 'Sin archivo cargado', 'status-pill');
       fillText(els.fileName, '—');
       fillText(els.fileSize, '—');
       fillText(els.fileType, '—');
@@ -472,8 +472,8 @@
       fillText(els.summaryDetectedColumns, '—');
       els.sheetTabs.innerHTML = '';
       els.sheetTabs.classList.add('hidden');
-      els.headersChips.innerHTML = '<span class="chip">Sin headers detectados todavía</span>';
-      els.previewTable.innerHTML = '<table><thead><tr><th>Esperando archivo</th></tr></thead><tbody><tr><td class="empty">Todavía no hay workbook cargado.</td></tr></tbody></table>';
+      els.headersChips.innerHTML = '<span class="chip">Todavía no se detectaron columnas</span>';
+      els.previewTable.innerHTML = '<table><thead><tr><th>Esperando archivo</th></tr></thead><tbody><tr><td class="empty">Todavía no hay archivo cargado.</td></tr></tbody></table>';
     }
 
     async function loadWorkbook(file) {
@@ -481,20 +481,20 @@
 
       if (!isSupportedExcel(file.name)) {
         hydrateFileMeta(file);
-        setStatus('topStatus', 'BLOCKED_UNSUPPORTED_FILE_TYPE', 'status-pill bad');
-        setStatus('validationStatus', 'BLOCKED_UNSUPPORTED_FILE_TYPE', 'status-pill bad');
-        setStatus('sheetStatus', 'BLOCKED_UNSUPPORTED_FILE_TYPE', 'status-pill bad');
+        setStatus('topStatus', 'Formato no compatible', 'status-pill bad');
+        setStatus('validationStatus', 'Formato no compatible', 'status-pill bad');
+        setStatus('sheetStatus', 'Formato no compatible', 'status-pill bad');
         return;
       }
 
       hydrateFileMeta(file);
-      setStatus('topStatus', 'WEB_UPLOAD_CAPTURED', 'status-pill ok');
+      setStatus('topStatus', 'Archivo recibido', 'status-pill ok');
 
       try {
         const buffer = await file.arrayBuffer();
         if (!hasExpectedWorkbookSignature(file.name, buffer)) {
-          setStatus('validationStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
-          setStatus('sheetStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
+          setStatus('validationStatus', 'No se pudo leer el archivo', 'status-pill bad');
+          setStatus('sheetStatus', 'No se pudo leer el archivo', 'status-pill bad');
           return;
         }
         const workbook = XLSX.read(buffer, { type: 'array' });
@@ -503,8 +503,8 @@
         if (!sheetNames.length) {
           state.file = file;
           state.workbook = workbook;
-          setStatus('validationStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
-          setStatus('sheetStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
+          setStatus('validationStatus', 'No se pudo leer el archivo', 'status-pill bad');
+          setStatus('sheetStatus', 'No se pudo leer el archivo', 'status-pill bad');
           return;
         }
 
@@ -517,8 +517,8 @@
         renderActiveSheet();
       } catch (error) {
         console.error(error);
-        setStatus('validationStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
-        setStatus('sheetStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
+        setStatus('validationStatus', 'No se pudo leer el archivo', 'status-pill bad');
+        setStatus('sheetStatus', 'No se pudo leer el archivo', 'status-pill bad');
       }
     }
 
@@ -536,7 +536,8 @@
       const headerRow = headerRowIndex >= 0 ? rows[headerRowIndex] : [];
       const actualHeaders = extractActualHeaders(headerRow);
       const headers = normalizeHeaders(headerRow);
-      const previewRows = rows.slice(0, PREVIEW_ROWS);
+      const previewStartIndex = headerRowIndex >= 0 ? headerRowIndex + 1 : 0;
+      const previewRows = rows.slice(previewStartIndex, previewStartIndex + PREVIEW_ROWS);
       const maxColumns = Math.max(0, ...rows.map((row) => Array.isArray(row) ? row.length : 0));
 
       return {
@@ -544,6 +545,7 @@
         rows,
         previewRows,
         headerRowIndex,
+        previewStartIndex,
         actualHeaders,
         headers,
         columnCount: maxColumns,
@@ -588,7 +590,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'sheet-tab' + (index === state.activeSheetIndex ? ' active' : '');
-        button.textContent = sheet.sheetName;
+        button.textContent = `Hoja: ${formatSheetName(sheet.sheetName)}`;
         button.addEventListener('click', () => {
           state.activeSheetIndex = index;
           renderSheetTabs();
@@ -602,26 +604,26 @@
     function renderActiveSheet() {
       const sheet = state.sheets[state.activeSheetIndex];
       if (!sheet) {
-        setStatus('validationStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
-        setStatus('sheetStatus', 'BLOCKED_UNREADABLE_WORKBOOK', 'status-pill bad');
+        setStatus('validationStatus', 'No se pudo leer el archivo', 'status-pill bad');
+        setStatus('sheetStatus', 'No se pudo leer el archivo', 'status-pill bad');
         return;
       }
 
       const previewRowCount = sheet.previewRows.length;
       const detectedColumnsPreview = sheet.headers.slice(0, 8);
 
-      fillText(els.summarySheetName, sheet.sheetName);
+      fillText(els.summarySheetName, formatSheetName(sheet.sheetName));
       fillText(els.summaryColumnCount, String(sheet.columnCount));
       fillText(els.summaryRowCountPreview, String(previewRowCount));
-      fillText(els.summaryHeaders, sheet.actualHeaders.length ? sheet.actualHeaders.join(' | ') : 'Sin headers detectados');
-      fillText(els.summaryDetectedColumns, detectedColumnsPreview.length ? detectedColumnsPreview.join(' | ') : 'Sin columnas detectadas');
+      fillText(els.summaryHeaders, sheet.actualHeaders.length ? sheet.actualHeaders.join(' | ') : 'Todavía no se detectaron columnas');
+      fillText(els.summaryDetectedColumns, detectedColumnsPreview.length ? detectedColumnsPreview.join(' | ') : 'Todavía no se detectaron columnas');
 
       if (!sheet.actualHeaders.length) {
-        setStatus('validationStatus', 'NEEDS_HEADER_REVIEW', 'status-pill warn');
-        setStatus('sheetStatus', 'NEEDS_HEADER_REVIEW', 'status-pill warn');
+        setStatus('validationStatus', 'Hay que revisar encabezados', 'status-pill warn');
+        setStatus('sheetStatus', 'Hay que revisar encabezados', 'status-pill warn');
       } else {
-        setStatus('validationStatus', 'STRUCTURE_PREVIEW_READY', 'status-pill ok');
-        setStatus('sheetStatus', 'STRUCTURE_PREVIEW_READY', 'status-pill ok');
+        setStatus('validationStatus', 'Estructura detectada', 'status-pill ok');
+        setStatus('sheetStatus', 'Estructura detectada', 'status-pill ok');
       }
 
       renderHeaders(sheet.actualHeaders.length ? sheet.actualHeaders : []);
@@ -631,7 +633,7 @@
     function renderHeaders(headers) {
       els.headersChips.innerHTML = '';
       if (!headers.length) {
-        els.headersChips.innerHTML = '<span class="chip">Sin headers detectados</span>';
+        els.headersChips.innerHTML = '<span class="chip">Todavía no se detectaron columnas</span>';
         return;
       }
 
@@ -652,7 +654,7 @@
 
       for (let index = 0; index < columnCount; index += 1) {
         const th = document.createElement('th');
-        th.textContent = sheet.headers[index] || `COLUMN_${index + 1}`;
+        th.textContent = sheet.headers[index] || fallbackColumnLabel(index);
         headRow.appendChild(th);
       }
 
@@ -665,7 +667,7 @@
         const td = document.createElement('td');
         td.colSpan = columnCount;
         td.className = 'empty';
-        td.textContent = 'La hoja no tiene filas visibles para preview.';
+        td.textContent = 'La hoja no tiene filas visibles para esta vista previa.';
         tr.appendChild(td);
         tbody.appendChild(tr);
       } else {
@@ -707,6 +709,29 @@
       if (/\.xlsx$/i.test(fileName || '')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       if (/\.xls$/i.test(fileName || '')) return 'application/vnd.ms-excel';
       return '';
+    }
+
+    function fallbackColumnLabel(index) {
+      return `Columna ${index + 1}`;
+    }
+
+    function formatSheetName(sheetName) {
+      const normalized = String(sheetName || '')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLocaleLowerCase('es-AR');
+
+      const accentFixes = {
+        operacion: 'operación'
+      };
+
+      return normalized
+        .split(' ')
+        .filter(Boolean)
+        .map((word) => accentFixes[word] || word)
+        .map((word) => word.charAt(0).toLocaleUpperCase('es-AR') + word.slice(1))
+        .join(' ') || '—';
     }
 
     function hasExpectedWorkbookSignature(fileName, buffer) {
