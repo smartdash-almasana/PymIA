@@ -9,14 +9,10 @@ INTAKE_KIND: Final[str] = "SAAS_FILE_INTAKE_CANDIDATE"
 
 ALLOWED_FILE_KINDS: Final[tuple[str, ...]] = (
     "XLSX",
-    "CSV",
-    "TXT",
 )
 
 ALLOWED_MIME_TYPES: Final[tuple[str, ...]] = (
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "text/csv",
-    "text/plain",
 )
 
 SaasFileIntakeStatusV1 = Literal[

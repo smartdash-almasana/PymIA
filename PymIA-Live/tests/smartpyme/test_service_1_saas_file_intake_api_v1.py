@@ -183,7 +183,7 @@ def test_ready_builds_saas_file_intake_candidate() -> None:
     }
 
 
-def test_accepts_csv_and_text_metadata_without_reading_files() -> None:
+def test_blocks_csv_and_text_metadata_to_match_file_intake_v1() -> None:
     cases = [
         ("CSV", "text/csv", "ventas.csv"),
         ("TXT", "text/plain", "notas.txt"),
@@ -194,11 +194,9 @@ def test_accepts_csv_and_text_metadata_without_reading_files() -> None:
         payload["declared_mime_type"] = mime_type
         payload["declared_filename"] = filename
         result = _build(payload)
-        candidate = result["saas_file_intake_candidate"]
-        assert result["status"] == "SAAS_FILE_INTAKE_CANDIDATE_READY"
-        assert candidate is not None
-        assert candidate["declared_file_kind"] == file_kind
-        assert candidate["declared_mime_type"] == mime_type
+        assert result["status"] == "BLOCKED_UNSUPPORTED_FILE_KIND"
+        assert result["blocked_reason"] == "declared_file_kind_not_supported"
+        assert result["saas_file_intake_candidate"] is None
 
 
 def test_preserves_session_owner_case_and_file_refs() -> None:
