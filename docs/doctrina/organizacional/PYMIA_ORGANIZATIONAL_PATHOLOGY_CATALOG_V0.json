@@ -1,0 +1,387 @@
+{
+  "catalogo_patologias_smartpyme_v0": {
+    "version": "0.1",
+    "criterio": "Patología PyME = patrón repetible de pérdida de dinero, pérdida de tiempo o pérdida de control.",
+    "estado": "DRAFT_CANONICAL_CANDIDATE",
+    "fuentes_base": [
+      "La Brújula Ausente",
+      "Del Dolor al Accionable",
+      "Informe de Diagnóstico: El Límite Operativo de Excel",
+      "Diagnóstico de Rentabilidad PyME 2026",
+      "SmartPyme Catálogo Priorizado de Fórmulas 2026"
+    ],
+    "dominios": {
+      "liquidez": [
+        {
+          "id": "LIQ_001",
+          "nombre": "descalce_ventas_cobranzas",
+          "descripcion": "Las ventas registradas superan las cobranzas efectivas y generan tensión de caja.",
+          "sintomas": [
+            "hay ventas pero falta dinero",
+            "clientes pagan tarde",
+            "no alcanza para proveedores"
+          ],
+          "senales_anamnesis": [
+            "vendo pero no veo la plata",
+            "me deben mucho",
+            "no sé cuánto cobré realmente"
+          ],
+          "datos_minimos": [
+            "total_ventas_periodo",
+            "total_cobrado_periodo",
+            "cuentas_por_cobrar",
+            "fecha_vencimiento_cobros"
+          ],
+          "formulas_asociadas": [
+            "Diferencia vendido-cobrado",
+            "Antigüedad de deuda",
+            "Flujo de fondos proyectado"
+          ],
+          "impacto": [
+            "pérdida de liquidez",
+            "incapacidad de pagar proveedores",
+            "financiamiento forzado"
+          ]
+        },
+        {
+          "id": "LIQ_002",
+          "nombre": "flujo_caja_sin_anticipacion",
+          "descripcion": "El dueño opera sin previsión de entradas y salidas futuras.",
+          "sintomas": [
+            "pagos inesperados",
+            "faltante de caja recurrente",
+            "decisiones de compra improvisadas"
+          ],
+          "senales_anamnesis": [
+            "no sé si llego a fin de mes",
+            "me entero tarde de los vencimientos",
+            "vivo apagando incendios"
+          ],
+          "datos_minimos": [
+            "saldo_inicial",
+            "cobros_estimados",
+            "pagos_estimados",
+            "vencimientos",
+            "costos_fijos"
+          ],
+          "formulas_asociadas": [
+            "Flujo de fondos proyectado",
+            "Caja diaria",
+            "Punto de equilibrio"
+          ],
+          "impacto": [
+            "estrés financiero",
+            "atraso en pagos",
+            "compras urgentes caras"
+          ]
+        }
+      ],
+      "rentabilidad": [
+        {
+          "id": "REN_001",
+          "nombre": "margen_invisible",
+          "descripcion": "El negocio factura pero no sabe qué productos, clientes o canales dejan ganancia real.",
+          "sintomas": [
+            "vende mucho pero no gana",
+            "precios definidos a ojo",
+            "no distingue facturación de rentabilidad"
+          ],
+          "senales_anamnesis": [
+            "no sé qué producto me conviene",
+            "vendo pero no sé si gano",
+            "pongo precios mirando a la competencia"
+          ],
+          "datos_minimos": [
+            "precio_venta",
+            "costo_unitario",
+            "comisiones",
+            "impuestos",
+            "logistica",
+            "descuentos"
+          ],
+          "formulas_asociadas": [
+            "Margen bruto por producto",
+            "Margen neto",
+            "Precio de venta con margen objetivo"
+          ],
+          "impacto": [
+            "descapitalización",
+            "venta con pérdida",
+            "subsidio oculto a clientes o canales"
+          ]
+        },
+        {
+          "id": "REN_002",
+          "nombre": "costo_reposicion_ignorado",
+          "descripcion": "El precio se calcula sobre costo histórico y no sobre el costo real de volver a comprar.",
+          "sintomas": [
+            "vende y no puede reponer",
+            "stock pierde valor operativo",
+            "margen aparente positivo"
+          ],
+          "senales_anamnesis": [
+            "cuando voy a comprar de nuevo no me alcanza",
+            "el proveedor aumentó y no ajusté",
+            "uso la lista vieja"
+          ],
+          "datos_minimos": [
+            "costo_historico",
+            "costo_reposicion_actual",
+            "precio_venta",
+            "fecha_ultima_compra",
+            "proveedor"
+          ],
+          "formulas_asociadas": [
+            "Costo de reposición promedio ponderado",
+            "Margen bruto",
+            "Variación intermensual"
+          ],
+          "impacto": [
+            "pérdida de capacidad de reposición",
+            "capital erosionado",
+            "falsa rentabilidad"
+          ]
+        }
+      ],
+      "inventario": [
+        {
+          "id": "INV_001",
+          "nombre": "stock_critico",
+          "descripcion": "Productos clave se agotan o están por agotarse y generan pérdida directa de ventas.",
+          "sintomas": [
+            "quiebres frecuentes",
+            "clientes piden productos que no hay",
+            "compras urgentes"
+          ],
+          "senales_anamnesis": [
+            "me quedo sin productos importantes",
+            "compro de urgencia",
+            "pierdo ventas por falta de stock"
+          ],
+          "datos_minimos": [
+            "sku",
+            "descripcion",
+            "stock_actual",
+            "ventas_promedio",
+            "lead_time_proveedor",
+            "stock_minimo"
+          ],
+          "formulas_asociadas": [
+            "Rotación de stock",
+            "Punto de reposición",
+            "SI condicional para alerta"
+          ],
+          "impacto": [
+            "ventas perdidas",
+            "daño reputacional",
+            "sobrecosto por urgencia"
+          ]
+        },
+        {
+          "id": "INV_002",
+          "nombre": "capital_inmovilizado_stock_sin_rotacion",
+          "descripcion": "Productos con baja o nula rotación bloquean dinero, espacio y capacidad de compra.",
+          "sintomas": [
+            "stock viejo",
+            "depósito lleno",
+            "faltan fondos para mercadería que sí rota"
+          ],
+          "senales_anamnesis": [
+            "tengo mercadería parada",
+            "no sé qué liquidar",
+            "hay productos que no salen nunca"
+          ],
+          "datos_minimos": [
+            "sku",
+            "stock_actual",
+            "fecha_ultima_venta",
+            "ventas_ultimos_30_60_90_dias",
+            "costo_unitario",
+            "valor_inventario"
+          ],
+          "formulas_asociadas": [
+            "Rotación de stock",
+            "Inventario valorizado",
+            "Productos sin rotación"
+          ],
+          "impacto": [
+            "capital bloqueado",
+            "obsolescencia",
+            "pérdida de liquidez"
+          ]
+        }
+      ],
+      "operaciones": [
+        {
+          "id": "OPE_001",
+          "nombre": "dependencia_del_dueno",
+          "descripcion": "El negocio depende de decisiones, memoria o aprobación constante del dueño.",
+          "sintomas": [
+            "todo pasa por el dueño",
+            "no hay procedimientos",
+            "se frena la operación si el dueño no está"
+          ],
+          "senales_anamnesis": [
+            "si no estoy yo no funciona",
+            "todos me preguntan todo",
+            "no puedo delegar"
+          ],
+          "datos_minimos": [
+            "procesos_recurrentes",
+            "responsables",
+            "tiempos_de_aprobacion",
+            "tareas_manualizadas"
+          ],
+          "formulas_asociadas": [
+            "Costo oculto por retrabajo",
+            "Tiempo operativo perdido",
+            "Capacidad ocupada"
+          ],
+          "impacto": [
+            "pérdida de tiempo",
+            "cuello de botella",
+            "imposibilidad de escalar"
+          ]
+        },
+        {
+          "id": "OPE_002",
+          "nombre": "informacion_fragmentada",
+          "descripcion": "Los datos viven en Excel, WhatsApp, PDFs, emails y sistemas no integrados.",
+          "sintomas": [
+            "versiones múltiples",
+            "datos contradictorios",
+            "búsqueda lenta de información"
+          ],
+          "senales_anamnesis": [
+            "tengo todo desparramado",
+            "no sé cuál archivo es el último",
+            "cada empleado tiene su planilla"
+          ],
+          "datos_minimos": [
+            "fuentes_de_datos",
+            "canales_de_comunicacion",
+            "archivos_operativos",
+            "responsables_de_actualizacion"
+          ],
+          "formulas_asociadas": [
+            "Conciliación bancaria",
+            "Conciliación Mercado Pago",
+            "Dashboard básico"
+          ],
+          "impacto": [
+            "pérdida de control",
+            "errores de decisión",
+            "tiempo perdido buscando datos"
+          ]
+        }
+      ],
+      "fiscal_contable": [
+        {
+          "id": "FIS_001",
+          "nombre": "data_decay_excel_contable",
+          "descripcion": "La información fiscal-contable se degrada por manipulación manual, versiones y falta de trazabilidad.",
+          "sintomas": [
+            "archivos FINAL_v2_corregido",
+            "fórmulas rotas",
+            "errores de clasificación",
+            "datos modificados sin registro"
+          ],
+          "senales_anamnesis": [
+            "le mando planillas al contador",
+            "después no coincide",
+            "no sabemos quién tocó el archivo"
+          ],
+          "datos_minimos": [
+            "archivos_excel",
+            "versiones",
+            "origen_dato",
+            "fecha_modificacion",
+            "responsable"
+          ],
+          "formulas_asociadas": [
+            "Conciliación",
+            "BUSCARV/BUSCARX",
+            "SUMAR.SI.CONJUNTO",
+            "Validaciones de consistencia"
+          ],
+          "impacto": [
+            "riesgo fiscal",
+            "responsabilidad profesional",
+            "horas de depuración"
+          ]
+        },
+        {
+          "id": "FIS_002",
+          "nombre": "riesgo_fiscal_por_discrepancias",
+          "descripcion": "Diferencias entre registros internos y organismos fiscales generan multas, ajustes o intimaciones.",
+          "sintomas": [
+            "IVA no coincide",
+            "retenciones/percepciones mal registradas",
+            "ventas no declaradas",
+            "comprobantes duplicados u omitidos"
+          ],
+          "senales_anamnesis": [
+            "AFIP/ARCA me intimó",
+            "el contador me dice que no cierra",
+            "tengo percepciones que no sé dónde están"
+          ],
+          "datos_minimos": [
+            "comprobantes_emitidos",
+            "comprobantes_recibidos",
+            "libro_iva",
+            "retenciones",
+            "percepciones",
+            "extractos_bancarios"
+          ],
+          "formulas_asociadas": [
+            "Percepción IVA",
+            "Percepción Ingresos Brutos",
+            "Conciliación bancaria",
+            "Ajuste por inflación"
+          ],
+          "impacto": [
+            "multas",
+            "intereses",
+            "pérdida de saldos a favor",
+            "riesgo de inspección"
+          ]
+        }
+      ],
+      "reputacion": [
+        {
+          "id": "REP_001",
+          "nombre": "erosion_confianza_clientes_proveedores",
+          "descripcion": "La pérdida de orden operativo deteriora la confianza de clientes, proveedores o plataformas.",
+          "sintomas": [
+            "reclamos crecientes",
+            "proveedores piden anticipo",
+            "clientes preguntan repetidamente por facturas o entregas"
+          ],
+          "senales_anamnesis": [
+            "los proveedores ya no me esperan",
+            "los clientes reclaman más",
+            "Mercado Libre me bajó la reputación"
+          ],
+          "datos_minimos": [
+            "reclamos",
+            "cancelaciones",
+            "demoras_entrega",
+            "pagos_a_proveedores",
+            "comentarios_clientes"
+          ],
+          "formulas_asociadas": [
+            "Tasa de reclamos",
+            "Días de atraso",
+            "Stock crítico",
+            "Ventas canceladas"
+          ],
+          "impacto": [
+            "pérdida de clientes",
+            "menor crédito comercial",
+            "penalizaciones de plataforma"
+          ]
+        }
+      ]
+    }
+  }
+}
