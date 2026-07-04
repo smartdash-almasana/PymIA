@@ -193,6 +193,23 @@ Core rules:
 - The PyME owner provides data and operational meaning.
 - No diagnosis may be treated as final without case evidence.
 
+## Service 1 LLM language mediator rule
+
+For Servicio 1, the LLM layer is only a linguistic and semantic mediator between the PyME owner and PymIA.
+
+PymIA remains the deterministic computational authority for case state, gaps, required evidence, questions, skills, tools, structured outputs, diagnoses, treatments, and deliverables.
+
+The LLM may normalize owner language into PymIA-consumable input and may verbalize PymIA-generated outputs in owner-facing language.
+
+The LLM must not change, invent, override, or independently decide case state, evidence requirements, tool selection, diagnosis, treatment, or delivery scope.
+
+Operational rule:
+
+```text
+PymIA decides.
+The LLM communicates.
+```
+
 Default integration method for new observable capabilities:
 
 ```text
