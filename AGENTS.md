@@ -162,6 +162,65 @@ If the system lacks evidence or meaning, the correct state is not silence.
 
 The correct state is a visible GAP, BLOCKED, NEEDS_EVIDENCE, or methodological stop, depending on the implemented contract.
 
+## Service 1 product axis
+
+Servicio 1 is not an operator-assisted service as its product definition.
+
+Servicio 1 is a PyME operational diagnosis system governed by:
+
+```text
+owner pain
+→ conversation
+→ anamnesis
+→ pathology candidates
+→ required evidence
+→ deterministic skills / microservices
+→ diagnosis
+→ treatment
+→ deliverables
+```
+
+The operator, CLI, QA, runbooks, manifests, and human review gates are internal infrastructure, development scaffolding, QA support, or exceptional support layers.
+
+They are not the normal product actor and must not govern the product narrative.
+
+Core rules:
+
+- The IA conversa.
+- PymIA computa.
+- The pathology catalog orients diagnosis.
+- Deterministic tools produce evidence.
+- The PyME owner provides data and operational meaning.
+- No diagnosis may be treated as final without case evidence.
+
+Default integration method for new observable capabilities:
+
+```text
+Feature Flag
++
+Shadow Mode
++
+Observational artifact
++
+Early integration
++
+Gradual promotion
+```
+
+If a capability can observe without changing runtime decisions, it must enter first in `SHADOW_MODE`.
+
+Only changes that alter critical runtime decisions require isolated implementation before integration.
+
+Every new Service 1 capability must answer:
+
+- What pathology does it help detect?
+- What evidence does it require?
+- What skills or microservices does it use?
+- What diagnosis does it enable?
+- What treatment or deliverable does it produce?
+
+Do not change this Service 1 axis unless there is strong technical evidence and an explicit architectural update.
+
 ## Layer separation
 
 The following layers must remain separate:
@@ -258,4 +317,5 @@ Rules:
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 
 ## Documentation Policy
+
 Antes de leer documentación histórica, leer `docs/current/README.md`.
