@@ -56,9 +56,10 @@ build_service_1_saas_job_to_pipeline_request_adapter_v1
 ```text
 Consume a SaaS job orchestration candidate and pre-existing explicit tool request candidates.
 Validate lineage and job kind.
-Produce input payloads for existing gates:
-1. explicit_request_to_pipeline_request_gate
-2. pipeline_request_execution_gate
+Produce input payload for the existing explicit_request_to_pipeline_request_gate only.
+
+The adapter must not produce complete pipeline_execution_gate_input in V1.
+That second-stage input requires real output from explicit_request_to_pipeline_request_gate.
 ```
 
 ## NON_RESPONSIBILITIES
@@ -126,7 +127,7 @@ schema_version
 service_name
 status
 explicit_to_pipeline_gate_input
-pipeline_execution_gate_input
+pipeline_execution_gate_input_required_later
 blocked_reason
 runtime_authorized=false
 execution_authorized=false
@@ -161,22 +162,17 @@ final_execution_gate_status -> CLOSED_NOT_EXECUTABLE
 pipeline_request_policy -> SAAS_JOB_ADAPTER_V1
 ```
 
-### pipeline_execution_gate_input
+### pipeline_execution_gate_input_required_later
 
 ```text
-pipeline_candidate_status -> PIPELINE_REQUEST_CANDIDATE_READY
-pipeline_tool_requests -> produced later by explicit_request_to_pipeline_request_gate
-allowed_tool_refs -> allowed_tool_refs
-missing_inputs -> missing_inputs
-unsafe_flags -> unsafe_flags
-case_truth_status -> case_truth_status
+Not produced by this adapter in V1.
 ```
 
-Important:
+Reason:
 
 ```text
-The adapter must not fabricate pipeline_tool_requests.
-It may prepare a placeholder/contractual slot indicating that pipeline_tool_requests must come from explicit_request_to_pipeline_request_gate output.
+pipeline_candidate_status and pipeline_tool_requests must come from actual explicit_request_to_pipeline_request_gate output.
+The adapter must not fabricate pipeline_tool_requests or pre-authorize execution.
 ```
 
 ## LINEAGE_RULES
@@ -220,9 +216,10 @@ llm_authorized
 7. Blocks unsafe_flags.
 8. Blocks missing_inputs.
 9. Produces explicit_to_pipeline_gate_input with CLOSED_NOT_EXECUTABLE.
-10. Produces pipeline_execution_gate_input with execution flags still false.
-11. Does not import runner, pipeline, IO, FastAPI, requests, openpyxl, pandas, LLM packages.
-12. Does not authorize execution or delivery.
+10. Does not produce complete pipeline_execution_gate_input.
+11. Does not fabricate pipeline_tool_requests.
+12. Does not import runner, pipeline, IO, FastAPI, requests, openpyxl, pandas, LLM packages.
+13. Does not authorize execution or delivery.
 ```
 
 ## FORBIDDEN_IMPORTS
