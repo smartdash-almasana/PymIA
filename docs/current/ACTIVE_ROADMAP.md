@@ -51,6 +51,7 @@ UNIT_3_OF_3: SERVICE_1_XLSX_RUNTIME_BRIDGE_CLOSEOUT_V1    CLOSED
 5. SERVICE_1_SAAS_JOB_TO_PIPELINE_REQUEST_ADAPTER_V1             CLOSED
 6. SERVICE_1_SAAS_ADAPTER_TO_EXPLICIT_GATE_CHAIN_TEST_V1         CLOSED
 7. SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1               CLOSED
+8. SERVICE_1_EXPLICIT_GATE_TO_EXECUTION_GATE_CHAIN_TEST_V1       CLOSED
 ```
 
 ## Current validated chain
@@ -61,6 +62,8 @@ SaaS job orchestration candidate
 -> explicit_to_pipeline_gate_input
 -> service_1_explicit_request_to_pipeline_request_gate_v1
 -> pipeline_tool_request_candidate
+-> service_1_pipeline_request_execution_gate_v1
+-> authorized_pipeline_tool_requests
 ```
 
 ## Technical evidence
@@ -71,13 +74,14 @@ XLSX_BRIDGE_ENTRYPOINT_FOCAL: 7/7 passed
 XLSX_BRIDGE_REGRESSION: 42/42 passed
 SAAS_ADAPTER_FOCAL_AND_NEIGHBORING_GATES: 39 passed
 SAAS_ADAPTER_TO_EXPLICIT_GATE_CHAIN: 31 passed
+EXPLICIT_GATE_TO_EXECUTION_GATE_CHAIN: 49 passed
 GEMINI_GENERAL_AUDIT_REPORTED: 1880 passed from PymIA-Live cwd
 ```
 
 ## Current limits
 
 ```text
-No execution gate chain certified from this new adapter path.
+Execution gate chain certified from this new adapter path.
 No runner call.
 No pipeline call.
 No SaaS runtime.
@@ -102,9 +106,10 @@ NO_BYPASS_OF_PIPELINE_REQUEST_EXECUTION_GATE
 ## Next safe front
 
 ```text
-SERVICE_1_EXPLICIT_GATE_TO_EXECUTION_GATE_CHAIN_TEST_V1
-COMPOSITION TEST ONLY
-NO RUNNER
+SERVICE_1_EXECUTION_GATE_TO_RUNNER_SHADOW_SMOKE_V1
+TEST FIRST
+NO OWNER DELIVERY
+NO API/STORAGE/WORKER
 ```
 
 ## Stop rules
@@ -120,5 +125,5 @@ STOP_IF_PIPELINE_TOOL_REQUESTS_ARE_CREATED_OUTSIDE_EXPLICIT_GATE
 ## Next decision gate
 
 ```text
-GO_FOR_COMPOSITION_TEST_ONLY
+GO_FOR_SHADOW_SMOKE_TEST_ONLY
 ```
