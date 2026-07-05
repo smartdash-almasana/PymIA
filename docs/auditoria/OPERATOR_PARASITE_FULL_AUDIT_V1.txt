@@ -1,0 +1,180 @@
+VERDICT: PARASITIC TERMINOLOGY DETECTED ACROSS CODE, TESTS AND DOCS.
+TOTAL_REFERENCES: 2046
+FILES_BY_ZONE:
+  docs: 239 files
+  PymIA-Live: 146 files
+  prueba_excels: 31 files
+  _docs_inbox: 12 files
+  pymia: 10 files
+  Pymia-memoria: 8 files
+  tests: 7 files
+  root: 2 files
+  _local_quarantine: 2 files
+  conversa-engine: 1 files
+  landing: 1 files
+  scripts: 1 files
+
+P0_CRITICAL:
+- PymIA-Live\pymia\smartpyme\accounting_human_review_gate_v1.py (3 refs: human review) -> B: Código vivo a eliminar [P0]
+- PymIA-Live\pymia\smartpyme\service_1_human_review_release_integration_gate_v1.py (13 refs: human review) -> B: Código vivo a eliminar [P0]
+- PymIA-Live\pymia\smartpyme\service_1_operator_harness_v1.py (3 refs: operador, operator) -> B: Código vivo a eliminar [P0]
+- PymIA-Live\pymia\smartpyme\service_2_reconciliation_assisted_review_block_v1.py (1 refs: operator) -> B: Código vivo a eliminar [P0]
+- PymIA-Live\pymia\smartpyme\service_2_reconciliation_assisted_review_delivery_packet_v1.py (1 refs: assisted) -> B: Código vivo a eliminar [P0]
+
+P1_CORE_RENAME:
+- audit_parasite.py (18 refs: operador, operator_id, allowed_operator_language, human intervention, human_review, owner_operator, operator_assumes, operator_cli, operator_harness, operator, supervisor, asistido, human review, supervision, operator_packet, hitl, reviewer, assisted) -> A: Código vivo a renombrar [P1]
+- pymia\faithful_operator.py (2 refs: operator) -> A: Código vivo a renombrar [P1]
+- pymia\faithful_operator_next_action.py (3 refs: operator, assisted) -> A: Código vivo a renombrar [P1]
+- pymia\telegram_bot_runtime.py (3 refs: operator) -> A: Código vivo a renombrar [P1]
+- pymia\contracts\language_corpus_v1.py (3 refs: allowed_operator_language) -> A: Código vivo a renombrar [P1]
+- pymia\contracts\primary_case_file_v1.py (4 refs: operator_id, operator_assumes) -> A: Código vivo a renombrar [P1]
+- pymia\llm_operator\operator.py (7 refs: operador, operator) -> A: Código vivo a renombrar [P1]
+- pymia\llm_operator\providers.py (1 refs: operator) -> A: Código vivo a renombrar [P1]
+- pymia\llm_operator\__init__.py (4 refs: operador, operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\cli\service_1_operator.py (10 refs: operator, human review, operator_packet) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\cli\service_1_xlsx_runtime_bridge.py (1 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\contracts\language_corpus_v1.py (3 refs: allowed_operator_language) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\rendering\owner_markdown_renderer.py (6 refs: operador, operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\services\formula_engine_service.py (6 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\services\pathology_knowledge_tank.py (11 refs: operador, operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\accounting_workpaper_completion_slice_v1.py (3 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\accounting_workpaper_draft_packet_v1.py (1 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\excel_treatment_lab_completion_slice_v1.py (1 refs: human review) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_abort_rollback_result_candidate_v1.py (3 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_case_delivery_folder_v1.py (14 refs: operador, operator, asistido, human review, operator_packet) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_case_folder_manifest_contract_v1.py (1 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_column_confirmation_classifier_v1.py (2 refs: human review) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_controlled_client_case_execution_candidate_v1.py (5 refs: operator, supervision) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_controlled_client_case_operator_supervision_contract_v1.py (5 refs: operator, supervision) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_controlled_delivery_review_candidate_v1.py (3 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_final_owner_release_decision_gate_v1.py (4 refs: human review) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_first_aid_minimal_v1.py (1 refs: asistido) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_manual_first_aid_smoke_case_v1.py (1 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_microservice_registry_contract_v1.py (1 refs: operator_harness) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_operator_delivery_package_v1.py (3 refs: operador, operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_qa_delivery_gate_v1.py (3 refs: operator, assisted) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_supervised_cli_run_result_candidate_v1.py (6 refs: operator, supervision) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_synthetic_case_bank_v1.py (1 refs: operator_packet) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_1_synthetic_real_case_pilot_v1.py (3 refs: operator, human review) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\pymia\smartpyme\service_2_reconciliation_match_candidates_v1.py (1 refs: operator) -> A: Código vivo a renombrar [P1]
+- PymIA-Live\tests\contracts\test_formula_rules_v1.py (1 refs: operator) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\contracts\test_language_corpus_v1.py (1 refs: allowed_operator_language) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\e2e\test_service_1_anonymized_real_case_run_v1.py (3 refs: operator_packet) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\e2e\test_service_1_local_first_aid_functional_v1.py (2 refs: operator_packet) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\e2e\test_service_1_operator_cli_v1.py (7 refs: operator_packet) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\e2e\test_service_1_synthetic_final_case_run_v1.py (2 refs: operator_packet) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\e2e\test_vertical_slice_cli.py (10 refs: operador, operator) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_accounting_human_review_gate_v1.py (1 refs: operator) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_accounting_workpaper_draft_packet_v1.py (3 refs: operador, operator) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_accounting_workpaper_manifest_model_v1.py (1 refs: operador) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_evidence_request.py (1 refs: operator) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_evidence_request_storage.py (1 refs: operator) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_phase_i_controlled_case_chain_composition_v1.py (1 refs: operator) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_service_1_abort_rollback_result_candidate_v1.py (8 refs: operator, supervision) -> D: Test a actualizar [P1]
+- PymIA-Live\tests\smartpyme\test_service_1_aligned_owner_prompt_display_packet_v1.py (3 refs: operator_cli) -> D: Test a actualizar [P1]
+  ... (+28 more)
+
+P2_CONTRACT_MIGRATION:
+- docs\current\S1_FAILURE_RECOVERY_V1_CONTRACT_DESIGN.md (1 refs: operator) -> C: Doc/Contrato [P2]
+- docs\current\S1_LLM_GUARDED_RESPONSE_GATE_V1_CONTRACT_DESIGN.md (2 refs: operator, reviewer) -> C: Doc/Contrato [P2]
+- docs\current\S1_SAAS_RUNTIME_BOUNDARY_CONTRACTS_V1.md (1 refs: operator) -> C: Doc/Contrato [P2]
+- docs\doctrina\PYMIA_CONTRACT_TO_SOFTWARE_MAPPING.md (1 refs: operator) -> C: Doc/Contrato [P2]
+- docs\producto\PIPELINE_OWNER_PURE_VIEW_MODULE_CONTRACT_V1.md (2 refs: operator) -> C: Doc/Contrato [P2]
+- docs\producto\S1_AUTONOMOUS_OWNER_EVIDENCE_GATE_CHAIN_CONTRACT_V1.md (14 refs: operator, supervision, assisted) -> C: Doc/Contrato [P2]
+- docs\producto\S1_AUTONOMOUS_OWNER_EVIDENCE_GATE_CHAIN_TASKSPEC_V1.md (4 refs: operator, assisted) -> C: Doc/Contrato [P3]
+- docs\producto\SERVICE_1_CASE_FOLDER_MANIFEST_CONTRACT_V1.md (4 refs: operator, reviewer, human review) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_DELIVERY_MANIFEST_AUDIT_CONTRACT_V1.md (5 refs: reviewer, operator, human review) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_MICROSERVICE_ACTIVATION_CONTRACT_V1.md (1 refs: human review) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_MICROSERVICE_REGISTRY_CONTRACT_V1.md (4 refs: operator_harness, human review) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_OPERATOR_HARNESS_V2_MINIMAL_CONTRACT.md (8 refs: operator, human review, reviewer) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_OWNER_CONVERSATION_LAYER_CONTRACT_V1.md (7 refs: operador, assisted, operator_packet) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_PATHOLOGY_SHADOW_ARTIFACT_MODULE_CONTRACT_V1.md (2 refs: operator, human review) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_PATHOLOGY_SHADOW_ARTIFACT_TASKSPEC_V1.md (1 refs: human_review) -> C: Doc/Contrato [P3]
+- docs\producto\SERVICE_1_SAAS_JOB_TO_PIPELINE_REQUEST_ADAPTER_CONTRACT_V1.md (1 refs: human review) -> C: Doc/Contrato [P2]
+- docs\producto\SERVICE_1_WEB_TEST_INTERFACE_RUN_SPEC_V1.md (4 refs: operator, human review) -> C: Doc/Contrato [P3]
+- docs\pymia\C1_FAITHFUL_OPERATOR_CATALOG_RECONCILIATION_TASKSPEC.md (9 refs: operator, assisted) -> C: Doc/Contrato [P3]
+- docs\pymia\C2_OWNER_FACING_CATALOG_RECONCILIATION_SUMMARY_TASKSPEC.md (8 refs: operador, operator, asistido, assisted) -> C: Doc/Contrato [P3]
+- docs\pymia\C3_OWNER_CONFIRMATION_BOUNDARY_FOR_CATALOG_SUMMARY_TASKSPEC.md (6 refs: operator, assisted) -> C: Doc/Contrato [P3]
+  ... (+14 more)
+
+P3_DOC_ARCHIVE:
+- AGENTS.md (8 refs: operator, human review, assisted) -> E: Doc/Contrato [P3]
+- conversa-engine\HERMES_TELEGRAM_SYSTEM_PROMPT.md (1 refs: operator) -> E: Doc/Contrato [P3]
+- docs\DOCUMENTATION_INDEX.md (13 refs: operator, asistido) -> E: Doc/Contrato [P3]
+- docs\PYMIA_AGENT_MASTER_PLAN.md (7 refs: operador, operator) -> E: Doc/Contrato [P3]
+- docs\PYMIA_DOCTRINAL_AUDIT.md (1 refs: operator) -> E: Doc/Contrato [P3]
+- docs\adr\ADR-010-conversational-anamnesis-contract.md (1 refs: hitl) -> E: Doc histórico a archivar [P3]
+- docs\adr\ADR-015-unsolved-integration-problem.md (1 refs: hitl) -> E: Doc histórico a archivar [P3]
+- docs\adr\ADR-M31C-PREPARACION-COMERCIAL-ASISTIDA.md (3 refs: asistido) -> E: Doc histórico a archivar [P3]
+- docs\adr\ADR-M31P-PILOTOS-ASISTIDOS.md (1 refs: asistido) -> E: Doc histórico a archivar [P3]
+- docs\adr\ADR-M31R-PILOTOS-REALES-CONTROLADOS.md (2 refs: operador, asistido) -> E: Doc histórico a archivar [P3]
+- docs\contratos\language-corpus-v1.md (9 refs: operador, operator, allowed_operator_language) -> E: Doc/Contrato [P3]
+- docs\contratos\owner-decision-v1.md (4 refs: operador, operator) -> E: Doc/Contrato [P3]
+- docs\contratos\primary-case-file-v1.md (4 refs: operator, operator_id, operator_assumes) -> E: Doc/Contrato [P3]
+- docs\current\HERMES_AXIS.md (1 refs: hitl) -> E: Doc/Contrato [P3]
+- docs\current\IMPLEMENTATION_ROADMAP_TO_AUTONOMOUS_SAAS_V1.md (22 refs: operator, supervision, human review) -> E: Doc/Contrato [P3]
+- docs\current\PRODUCT_VISION.md (2 refs: operador) -> E: Doc/Contrato [P3]
+- docs\current\SAAS_AUTONOMY_TARGET.md (2 refs: operador) -> E: Doc/Contrato [P3]
+- docs\current\SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1.md (1 refs: assisted) -> E: Doc/Contrato [P3]
+- docs\current\SERVICE_1_CANONICAL_AXIS.md (1 refs: assisted) -> E: Doc/Contrato [P3]
+- docs\current\SERVICE_1_STATUS.md (4 refs: human review, assisted) -> E: Doc/Contrato [P3]
+  ... (+224 more)
+
+DELETE_CANDIDATES:
+  - docs\adr\ADR-025-faithful-operator-output-vs-owner-report-delivery-boundary.md
+  - docs\current\S1_OWNER_QUESTION_ROUTER_V1_CONTRACT_DESIGN.md
+  - docs\producto\BANK_RECONCILIATION_SANDBOX_COMPLETION_SLICE_V1.md
+  - docs\producto\INVOICE_COLLECTION_MATCHING_SANDBOX_COMPLETION_SLICE_V1.md
+  - docs\producto\S2_RECONCILIATION_ASSISTED_REVIEW_BLOCK_CLOSEOUT_V1.md
+  - docs\producto\S2_RECONCILIATION_ASSISTED_REVIEW_DELIVERY_PACKET_CLOSEOUT_V1.md
+  - docs\producto\SERVICE_1_ACCOUNTING_SANDBOX_PATTERN_V1.md
+  - docs\producto\SERVICE_1_ACCOUNTING_WORKPAPER_PRODUCT_CLOSEOUT_V1.md
+  - docs\producto\SERVICE_1_ACCOUNTING_WORKPAPER_SANDBOX_PATTERN_V1.md
+  - docs\producto\SERVICE_1_BANK_RECONCILIATION_SANDBOX_REVIEW_PACKET_V1.md
+  - docs\producto\SERVICE_1_CAJA_DIARIA_POR_FECHA_CLOSEOUT_V1.md
+  - docs\producto\SERVICE_1_FIRST_AID_FAMILY_CLOSEOUT_V1.md
+  - docs\producto\SERVICE_1_FIRST_AID_LANE_CLOSEOUT_V1.md
+  - docs\producto\SERVICE_1_FULL_ASSISTED_V1_CLOSEOUT_DECLARATION.md
+  - docs\producto\SERVICE_1_FULL_ASSISTED_V1_HARDENING_CLOSEOUT.md
+  - docs\producto\SERVICE_1_MATURITY_CLOSEOUT_POST_EXCEL_TREATMENT_LAB_V1.md
+  - docs\producto\SERVICE_1_OPERATOR_HARNESS_REAL_OUTPUT_AUDIT_V1.md
+  - docs\producto\SERVICE_1_PATHOLOGY_SHADOW_ARTIFACT_CLOSEOUT_V1.md
+  - docs\producto\SERVICE_1_POST_SLICES_STATE_CLOSEOUT_V1.md
+  - docs\producto\SERVICE_1_POST_TOOL_OWNER_DELIVERY_SUMMARY_CLOSEOUT_V1.md
+  ... (+77 more)
+
+RENAME_CANDIDATES:
+  - audit_parasite.py
+  - pymia\faithful_operator.py
+  - pymia\faithful_operator_next_action.py
+  - pymia\telegram_bot_runtime.py
+  - pymia\contracts\language_corpus_v1.py
+  - pymia\contracts\primary_case_file_v1.py
+  - pymia\llm_operator\operator.py
+  - pymia\llm_operator\providers.py
+  - pymia\llm_operator\__init__.py
+  - PymIA-Live\pymia\cli\service_1_operator.py
+  - PymIA-Live\pymia\cli\service_1_xlsx_runtime_bridge.py
+  - PymIA-Live\pymia\contracts\language_corpus_v1.py
+  - PymIA-Live\pymia\rendering\owner_markdown_renderer.py
+  - PymIA-Live\pymia\services\formula_engine_service.py
+  - PymIA-Live\pymia\services\pathology_knowledge_tank.py
+  - PymIA-Live\pymia\smartpyme\accounting_workpaper_completion_slice_v1.py
+  - PymIA-Live\pymia\smartpyme\accounting_workpaper_draft_packet_v1.py
+  - PymIA-Live\pymia\smartpyme\excel_treatment_lab_completion_slice_v1.py
+  - PymIA-Live\pymia\smartpyme\service_1_abort_rollback_result_candidate_v1.py
+  - PymIA-Live\pymia\smartpyme\service_1_case_delivery_folder_v1.py
+  ... (+58 more)
+
+KEEP_WITH_EXCEPTION:
+- prueba_excels\SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE\json_exports\README_CASO.json (1 refs: asistido) -> H: Falso positivo / conservar con excepción [P3]
+- prueba_excels\SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE\json_exports\tool_requests_expected.json (1 refs: operador) -> H: Falso positivo / conservar con excepción [P3]
+- pymia\contracts\language_corpus_seed.json (3 refs: allowed_operator_language) -> H: Falso positivo / conservar con excepción [P3]
+- PymIA-Live\pymia\contracts\evidence_warning_v1.json (1 refs: operator) -> H: Falso positivo / conservar con excepción [P3]
+- PymIA-Live\pymia\contracts\formula_rules_v1.json (11 refs: operator) -> H: Falso positivo / conservar con excepción [P3]
+- PymIA-Live\pymia\contracts\language_corpus_seed.json (3 refs: allowed_operator_language) -> H: Falso positivo / conservar con excepción [P3]
+- PymIA-Live\pymia\contracts\pathology_rules_v1.json (1 refs: operator) -> H: Falso positivo / conservar con excepción [P3]
+
+FIRST_SAFE_PATCH: Archivar documentación histórica (.md) de _docs_inbox y mover operator_harness y configs de human_review a una zona deprecada antes de refactorizar el código vivo (rename/delete).
+RISKS: Hay referencias en 'service_1' core components y contracts. Eliminar los archivos con 'human_review' o 'operator_packet' puede romper los flujos que actualmente dependen de esto (reconciliation, case folder).
+NEXT_PROMPT_FOR_CODEX: 'Draft a TaskSpec to eliminate P0_CRITICAL operator and human_review live code and gracefully migrate their boundaries to exclusively Owner-facing representations.'
