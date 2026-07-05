@@ -19,10 +19,10 @@ from pymia.smartpyme.service_1_operator_delivery_package_v1 import (
     Service1OperatorDeliveryPackageV1,
     build_service_1_operator_delivery_package_v1,
 )
-from pymia.smartpyme.service_1_operator_harness_v1 import (
-    Service1OperatorHarnessRunV1,
-    build_service_1_operator_harness_sample_case_v1,
-    run_service_1_operator_harness_v1,
+from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import (
+    Service1ControlledDeliveryDemoRunV1,
+    build_service_1_controlled_delivery_demo_sample_case_v1,
+    run_service_1_controlled_delivery_demo_harness_v1,
 )
 from pymia.smartpyme.service_1_operator_harness_v2_contract import (
     Service1OperatorHarnessV2Contract,
@@ -43,7 +43,7 @@ class Service1SyntheticRealCasePilotV1(TypedDict):
     real_client_data: bool
     runtime_authorized: bool
     activation: Service1MicroserviceActivationContractV1
-    harness_run: Service1OperatorHarnessRunV1
+    harness_run: Service1ControlledDeliveryDemoRunV1
     delivery_package: Service1OperatorDeliveryPackageV1
     case_manifest: Service1CaseFolderManifestContractV1
     delivery_audit: Service1DeliveryManifestAuditContractV1
@@ -57,8 +57,8 @@ def run_service_1_synthetic_real_case_pilot_v1(output_root: str | Path) -> Servi
     if not output_root_path.exists():
         raise FileNotFoundError(f"Output root does not exist: {output_root_path}")
 
-    case = build_service_1_operator_harness_sample_case_v1()
-    harness_run = run_service_1_operator_harness_v1(
+    case = build_service_1_controlled_delivery_demo_sample_case_v1()
+    harness_run = run_service_1_controlled_delivery_demo_harness_v1(
         case=case,
         output_root=output_root_path,
     )

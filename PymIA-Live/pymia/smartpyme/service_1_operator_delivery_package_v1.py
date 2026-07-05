@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 from typing import Final, TypedDict
 
-from pymia.smartpyme.service_1_operator_harness_v1 import Service1OperatorHarnessRunV1
+from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import Service1ControlledDeliveryDemoRunV1
 
 PACKAGE_SCHEMA_VERSION: Final[str] = "1.0"
 SERVICE_NAME: Final[str] = "SERVICE_1"
@@ -36,7 +36,7 @@ class Service1OperatorDeliveryPackageV1(TypedDict):
 
 def build_service_1_operator_delivery_package_v1(
     *,
-    harness_run: Service1OperatorHarnessRunV1,
+    harness_run: Service1ControlledDeliveryDemoRunV1,
     package_root: str | Path,
 ) -> Service1OperatorDeliveryPackageV1:
     package_root_path = Path(package_root)
@@ -94,16 +94,16 @@ def build_service_1_operator_delivery_package_v1(
         "file_count": len(final_files),
         "runtime_authorized": False,
         "notes": [
-            "Operator delivery package created from audited harness output.",
-            "Package includes XLSX files, summary, operator report, README, and manifest.",
+            "Delivery package created from audited controlled delivery demo harness output.",
+            "Package includes XLSX files, summary, delivery report, README, and manifest.",
         ],
     }
 
 
-def _collect_source_paths(harness_run: Service1OperatorHarnessRunV1) -> list[Path]:
+def _collect_source_paths(harness_run: Service1ControlledDeliveryDemoRunV1) -> list[Path]:
     paths = [Path(path) for path in harness_run["generated_files"]]
     paths.append(Path(harness_run["summary_path"]))
-    paths.append(Path(harness_run["operator_report_path"]))
+    paths.append(Path(harness_run["delivery_report_path"]))
     return paths
 
 
@@ -120,7 +120,7 @@ def _build_file_record(*, source_path: Path, package_path: Path) -> Service1Oper
 
 def _build_readme(
     *,
-    harness_run: Service1OperatorHarnessRunV1,
+    harness_run: Service1ControlledDeliveryDemoRunV1,
     files: list[Service1OperatorDeliveryPackageFileV1],
 ) -> str:
     lines: list[str] = [
@@ -140,7 +140,7 @@ def _build_readme(
             "## Cómo leer esta entrega",
             "",
             "1. Revisar `summary.txt` para una lectura rápida.",
-            "2. Revisar `operator_report.txt` para control interno del operador.",
+            "2. Revisar `delivery_report.txt` para control interno de la entrega.",
             "3. Abrir los XLSX para ver datos usados, resultados, limitaciones y claims prohibidos.",
             "4. Usar `manifest.json` para verificar inventario e integridad de archivos.",
             "",
@@ -159,7 +159,7 @@ def _build_readme(
 
 def _build_manifest_payload(
     *,
-    harness_run: Service1OperatorHarnessRunV1,
+    harness_run: Service1ControlledDeliveryDemoRunV1,
     package_dir: Path,
     files: list[Service1OperatorDeliveryPackageFileV1],
     readme_path: Path,

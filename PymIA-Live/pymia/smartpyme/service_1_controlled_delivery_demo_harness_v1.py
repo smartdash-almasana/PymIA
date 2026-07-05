@@ -14,14 +14,14 @@ SERVICE_NAME: Final[str] = "SERVICE_1"
 SAMPLE_CASE_ID: Final[str] = "service_1_first_aid_comercio_minorista_demo"
 
 
-class Service1OperatorHarnessCaseV1(TypedDict):
+class Service1ControlledDeliveryDemoCaseV1(TypedDict):
     case_id: str
     case_name: str
     tool_requests: list[Service1PipelineToolRequestV1]
-    operator_notes: list[str]
+    delivery_notes: list[str]
 
 
-class Service1OperatorHarnessRunV1(TypedDict):
+class Service1ControlledDeliveryDemoRunV1(TypedDict):
     schema_version: str
     service_name: str
     case_id: str
@@ -30,13 +30,13 @@ class Service1OperatorHarnessRunV1(TypedDict):
     pipeline_result: Service1PipelineV1
     generated_files: list[str]
     summary_path: str
-    operator_report_path: str
+    delivery_report_path: str
     summary_text: str
     runtime_authorized: bool
     notes: list[str]
 
 
-def build_service_1_operator_harness_sample_case_v1() -> Service1OperatorHarnessCaseV1:
+def build_service_1_controlled_delivery_demo_sample_case_v1() -> Service1ControlledDeliveryDemoCaseV1:
     return {
         "case_id": SAMPLE_CASE_ID,
         "case_name": "Comercio minorista alimentos - First Aid demo",
@@ -75,7 +75,7 @@ def build_service_1_operator_harness_sample_case_v1() -> Service1OperatorHarness
                 },
             },
         ],
-        "operator_notes": [
+        "delivery_notes": [
             "Caso demo con datos declarados por el dueño.",
             "Entregar XLSX y resumen como orientación preliminar.",
             "Pedir evidencia adicional antes de afirmar resultados reales.",
@@ -83,20 +83,20 @@ def build_service_1_operator_harness_sample_case_v1() -> Service1OperatorHarness
     }
 
 
-def run_service_1_operator_harness_v1(
+def run_service_1_controlled_delivery_demo_harness_v1(
     *,
-    case: Service1OperatorHarnessCaseV1,
+    case: Service1ControlledDeliveryDemoCaseV1,
     output_root: str | Path,
-) -> Service1OperatorHarnessRunV1:
+) -> Service1ControlledDeliveryDemoRunV1:
     output_root_path = Path(output_root)
     if not output_root_path.exists():
         raise FileNotFoundError(f"Output root does not exist: {output_root_path}")
 
     case_id = _safe_case_id(case["case_id"])
     if not case_id:
-        raise ValueError("SERVICE_1_OPERATOR_HARNESS_V1 requires a non-empty case_id.")
+        raise ValueError("SERVICE_1_CONTROLLED_DELIVERY_DEMO_HARNESS_V1 requires a non-empty case_id.")
     if not case["tool_requests"]:
-        raise ValueError("SERVICE_1_OPERATOR_HARNESS_V1 requires at least one tool request.")
+        raise ValueError("SERVICE_1_CONTROLLED_DELIVERY_DEMO_HARNESS_V1 requires at least one tool request.")
 
     delivery_dir = output_root_path / case_id
     delivery_dir.mkdir(exist_ok=True)
@@ -111,11 +111,11 @@ def run_service_1_operator_harness_v1(
     ]
     summary_text = pipeline_result["delivery_flow"]["summary_text"]
     summary_path = delivery_dir / "summary.txt"
-    operator_report_path = delivery_dir / "operator_report.txt"
+    delivery_report_path = delivery_dir / "delivery_report.txt"
 
     summary_path.write_text(summary_text, encoding="utf-8")
-    operator_report_path.write_text(
-        _build_operator_report(case=case, pipeline_result=pipeline_result),
+    delivery_report_path.write_text(
+        _build_delivery_report(case=case, pipeline_result=pipeline_result),
         encoding="utf-8",
     )
 
@@ -128,12 +128,12 @@ def run_service_1_operator_harness_v1(
         "pipeline_result": pipeline_result,
         "generated_files": generated_files,
         "summary_path": str(summary_path.resolve()),
-        "operator_report_path": str(operator_report_path.resolve()),
+        "delivery_report_path": str(delivery_report_path.resolve()),
         "summary_text": summary_text,
         "runtime_authorized": False,
         "notes": [
-            "Operator harness run completed from explicit case payload.",
-            "Delivery folder contains XLSX files, summary, and operator report.",
+            "Controlled delivery demo harness run completed from explicit case payload.",
+            "Delivery folder contains XLSX files, summary, and delivery report.",
         ],
     }
 
@@ -143,9 +143,9 @@ def _safe_case_id(value: str) -> str:
     return "".join(safe_chars).strip("._")
 
 
-def _build_operator_report(
+def _build_delivery_report(
     *,
-    case: Service1OperatorHarnessCaseV1,
+    case: Service1ControlledDeliveryDemoCaseV1,
     pipeline_result: Service1PipelineV1,
 ) -> str:
     lines: list[str] = [
@@ -162,10 +162,10 @@ def _build_operator_report(
     ):
         lines.append(f"- {tool_ref}: {status}")
 
-    if case["operator_notes"]:
+    if case["delivery_notes"]:
         lines.append("")
-        lines.append("Notas operador:")
-        for note in case["operator_notes"]:
+        lines.append("Notas de entrega:")
+        for note in case["delivery_notes"]:
             lines.append(f"- {note}")
 
     lines.append("")

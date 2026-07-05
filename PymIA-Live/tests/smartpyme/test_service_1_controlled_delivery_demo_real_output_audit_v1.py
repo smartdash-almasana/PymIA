@@ -4,15 +4,15 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from pymia.smartpyme.service_1_operator_harness_v1 import (
-    build_service_1_operator_harness_sample_case_v1,
-    run_service_1_operator_harness_v1,
+from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import (
+    build_service_1_controlled_delivery_demo_sample_case_v1,
+    run_service_1_controlled_delivery_demo_harness_v1,
 )
 
 
-def test_operator_harness_real_output_audit_artifact_inventory(tmp_path: Path) -> None:
-    run = run_service_1_operator_harness_v1(
-        case=build_service_1_operator_harness_sample_case_v1(),
+def test_controlled_delivery_demo_real_output_audit_artifact_inventory(tmp_path: Path) -> None:
+    run = run_service_1_controlled_delivery_demo_harness_v1(
+        case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=tmp_path,
     )
 
@@ -20,19 +20,19 @@ def test_operator_harness_real_output_audit_artifact_inventory(tmp_path: Path) -
     files = sorted(path.name for path in delivery_dir.iterdir() if path.is_file())
 
     assert files == [
+        "delivery_report.txt",
         "first_aid_001_precio_margen_basico.xlsx",
         "first_aid_002_caja_diaria_triage.xlsx",
         "first_aid_003_stock_alertas_basicas.xlsx",
         "first_aid_004_gastos_triage.xlsx",
         "first_aid_005_proveedores_precio_variacion_triage.xlsx",
-        "operator_report.txt",
         "summary.txt",
     ]
 
 
-def test_operator_harness_real_output_audit_xlsx_contract(tmp_path: Path) -> None:
-    run = run_service_1_operator_harness_v1(
-        case=build_service_1_operator_harness_sample_case_v1(),
+def test_controlled_delivery_demo_real_output_audit_xlsx_contract(tmp_path: Path) -> None:
+    run = run_service_1_controlled_delivery_demo_harness_v1(
+        case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=tmp_path,
     )
 
@@ -55,9 +55,9 @@ def test_operator_harness_real_output_audit_xlsx_contract(tmp_path: Path) -> Non
         assert workbook["Limitaciones"].max_row >= 2
 
 
-def test_operator_harness_real_output_audit_summary_is_deliverable(tmp_path: Path) -> None:
-    run = run_service_1_operator_harness_v1(
-        case=build_service_1_operator_harness_sample_case_v1(),
+def test_controlled_delivery_demo_real_output_audit_summary_is_deliverable(tmp_path: Path) -> None:
+    run = run_service_1_controlled_delivery_demo_harness_v1(
+        case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=tmp_path,
     )
 
@@ -77,26 +77,26 @@ def test_operator_harness_real_output_audit_summary_is_deliverable(tmp_path: Pat
     assert "Entrega preliminar basada en datos declarados." in summary
 
 
-def test_operator_harness_real_output_audit_operator_report_is_usable(tmp_path: Path) -> None:
-    run = run_service_1_operator_harness_v1(
-        case=build_service_1_operator_harness_sample_case_v1(),
+def test_controlled_delivery_demo_real_output_audit_delivery_report_is_usable(tmp_path: Path) -> None:
+    run = run_service_1_controlled_delivery_demo_harness_v1(
+        case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=tmp_path,
     )
 
-    report = Path(run["operator_report_path"]).read_text(encoding="utf-8")
+    report = Path(run["delivery_report_path"]).read_text(encoding="utf-8")
 
     assert "Caso: Comercio minorista alimentos - First Aid demo" in report
     assert "Tools ejecutadas: 5" in report
     assert "precio_margen_basico: OK" in report
     assert "caja_diaria_triage: OK" in report
     assert "stock_alertas_basicas: OK" in report
-    assert "Notas operador:" in report
+    assert "Notas de entrega:" in report
     assert "Entrega preliminar basada en datos declarados." in report
 
 
-def test_operator_harness_real_output_audit_metadata_matches_files(tmp_path: Path) -> None:
-    run = run_service_1_operator_harness_v1(
-        case=build_service_1_operator_harness_sample_case_v1(),
+def test_controlled_delivery_demo_real_output_audit_metadata_matches_files(tmp_path: Path) -> None:
+    run = run_service_1_controlled_delivery_demo_harness_v1(
+        case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=tmp_path,
     )
 

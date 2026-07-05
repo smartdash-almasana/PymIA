@@ -7,9 +7,9 @@ from pathlib import Path
 from pymia.smartpyme.service_1_operator_delivery_package_v1 import (
     build_service_1_operator_delivery_package_v1,
 )
-from pymia.smartpyme.service_1_operator_harness_v1 import (
-    build_service_1_operator_harness_sample_case_v1,
-    run_service_1_operator_harness_v1,
+from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import (
+    build_service_1_controlled_delivery_demo_sample_case_v1,
+    run_service_1_controlled_delivery_demo_harness_v1,
 )
 
 
@@ -19,8 +19,8 @@ def _build_manifest(tmp_path: Path):
     harness_root.mkdir()
     package_root.mkdir()
 
-    harness_run = run_service_1_operator_harness_v1(
-        case=build_service_1_operator_harness_sample_case_v1(),
+    harness_run = run_service_1_controlled_delivery_demo_harness_v1(
+        case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=harness_root,
     )
     package = build_service_1_operator_delivery_package_v1(
@@ -67,6 +67,6 @@ def test_manifest_audit_includes_readme_summary_report_and_xlsx_inventory(tmp_pa
         "first_aid_004_gastos_triage.xlsx",
         "first_aid_005_proveedores_precio_variacion_triage.xlsx",
         "summary.txt",
-        "operator_report.txt",
+        "delivery_report.txt",
         "README_ENTREGA.md",
     ]

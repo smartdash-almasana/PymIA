@@ -10,20 +10,20 @@ from pymia.smartpyme.service_1_operator_delivery_package_v1 import (
     SERVICE_NAME,
     build_service_1_operator_delivery_package_v1,
 )
-from pymia.smartpyme.service_1_operator_harness_v1 import (
-    build_service_1_operator_harness_sample_case_v1,
-    run_service_1_operator_harness_v1,
+from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import (
+    build_service_1_controlled_delivery_demo_sample_case_v1,
+    run_service_1_controlled_delivery_demo_harness_v1,
 )
 
 EXPECTED_PACKAGE_FILES = [
     "README_ENTREGA.md",
+    "delivery_report.txt",
     "first_aid_001_precio_margen_basico.xlsx",
     "first_aid_002_caja_diaria_triage.xlsx",
     "first_aid_003_stock_alertas_basicas.xlsx",
     "first_aid_004_gastos_triage.xlsx",
     "first_aid_005_proveedores_precio_variacion_triage.xlsx",
     "manifest.json",
-    "operator_report.txt",
     "summary.txt",
 ]
 
@@ -34,7 +34,7 @@ EXPECTED_MANIFEST_ARTIFACTS = {
     "first_aid_004_gastos_triage.xlsx",
     "first_aid_005_proveedores_precio_variacion_triage.xlsx",
     "README_ENTREGA.md",
-    "operator_report.txt",
+    "delivery_report.txt",
     "summary.txt",
 }
 
@@ -42,8 +42,8 @@ EXPECTED_MANIFEST_ARTIFACTS = {
 def _build_harness_run(tmp_path: Path):
     source_root = tmp_path / "source"
     source_root.mkdir()
-    return run_service_1_operator_harness_v1(
-        case=build_service_1_operator_harness_sample_case_v1(),
+    return run_service_1_controlled_delivery_demo_harness_v1(
+        case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=source_root,
     )
 
@@ -120,7 +120,7 @@ def test_delivery_package_files_include_hashes_and_sizes(tmp_path: Path) -> None
         assert file_record["bytes"] > 0
 
 
-def test_delivery_package_readme_is_client_and_operator_readable(tmp_path: Path) -> None:
+def test_delivery_package_readme_is_client_and_delivery_readable(tmp_path: Path) -> None:
     harness_run = _build_harness_run(tmp_path)
     package_root = tmp_path / "packages"
     package_root.mkdir()
@@ -134,7 +134,7 @@ def test_delivery_package_readme_is_client_and_operator_readable(tmp_path: Path)
     assert "# Entrega preliminar — Servicio 1 First Aid" in readme
     assert "## Archivos incluidos" in readme
     assert "summary.txt" in readme
-    assert "operator_report.txt" in readme
+    assert "delivery_report.txt" in readme
     assert "manifest.json" in readme
     assert "first_aid_004_gastos_triage.xlsx" in readme
     assert "first_aid_005_proveedores_precio_variacion_triage.xlsx" in readme
