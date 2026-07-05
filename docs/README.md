@@ -29,7 +29,6 @@ Las referencias de esta sección usan rutas relativas reales desde `PymIA/docs/`
 - `README.md`
 - `DOCTRINA_ROBUSTEZ_INCREMENTAL_Y_MIGRACION_MVP.md` — doctrina vigente sobre robustez incremental y plan de transición de lenguaje/campos legado
 - `INVENTARIO_CANONICO.md`
-- `ingenieria_conversacional.README.md` — índice lógico de corpus conversacional migrado
 - `ingenieria_conversacional.corpus_migrado.md` — corpus bruto SmartPyme → PymIA, sin depuración fina
 - `ingenieria_conversacional.NORMATIVA_v1.md` — reglas canónicas iniciales para conversación
 - `ingenieria_conversacional.PROTOCOLO_PRIMER_CONTACTO_v1.md` — protocolo de recepción/anamnesis inicial
