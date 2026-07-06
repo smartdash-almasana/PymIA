@@ -24,9 +24,9 @@ from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import (
     build_service_1_controlled_delivery_demo_sample_case_v1,
     run_service_1_controlled_delivery_demo_harness_v1,
 )
-from pymia.smartpyme.service_1_operator_harness_v2_contract import (
-    Service1OperatorHarnessV2Contract,
-    build_service_1_operator_harness_v2_contract,
+from pymia.smartpyme.service_1_owner_release_action_gate_v1 import (
+    Service1OwnerReleaseActionGateV1,
+    build_service_1_owner_release_action_gate_v1,
 )
 
 SYNTHETIC_REAL_CASE_SCHEMA_VERSION: Final[str] = "1.0"
@@ -47,9 +47,9 @@ class Service1SyntheticRealCasePilotV1(TypedDict):
     delivery_package: Service1OwnerDeliveryPackageV1
     case_manifest: Service1CaseFolderManifestContractV1
     delivery_audit: Service1DeliveryManifestAuditContractV1
-    operator_harness_v2: Service1OperatorHarnessV2Contract
+    owner_release_action_gate: Service1OwnerReleaseActionGateV1
     final_delivery_allowed: bool
-    operator_notes: list[str]
+    delivery_notes: list[str]
 
 
 def run_service_1_synthetic_real_case_pilot_v1(output_root: str | Path) -> Service1SyntheticRealCasePilotV1:
@@ -81,8 +81,8 @@ def run_service_1_synthetic_real_case_pilot_v1(output_root: str | Path) -> Servi
             "client_alias": "synthetic_comercio_minorista_alimentos",
             "case_family": "first_aid_xlsx_delivery",
             "period": "synthetic_period",
-            "operator": "synthetic_operator",
-            "human_reviewer": "synthetic_human_reviewer",
+            "operator": "synthetic_release_responsible",
+            "human_reviewer": "synthetic_release_responsible",
             "intake_status": "ACCEPTED_SYNTHETIC",
             "accepted_scope": "Servicio 1 synthetic real-case pilot under human review",
             "input_files": ["synthetic_declared_values"],
@@ -118,13 +118,13 @@ def run_service_1_synthetic_real_case_pilot_v1(output_root: str | Path) -> Servi
             "warning_flags": ["synthetic_data_only"],
         }
     )
-    operator_harness_v2 = build_service_1_operator_harness_v2_contract(
+    owner_release_action_gate = build_service_1_owner_release_action_gate_v1(
         {
             "case_folder_manifest_status": case_manifest["status"],
             "delivery_manifest_audit_status": delivery_audit["status"],
-            "operator_requested_action": "deliver_operational_draft",
-            "human_reviewer_present": True,
-            "human_review_status": "REQUIRED",
+            "requested_release_action": "deliver_operational_draft",
+            "release_responsible_present": True,
+            "release_review_status": "REQUIRED",
             "forbidden_claims_check": "PASSED",
             "stop_conditions": "NONE",
             "delivery_allowed_by_audit": delivery_audit["delivery_allowed"],
@@ -135,7 +135,7 @@ def run_service_1_synthetic_real_case_pilot_v1(output_root: str | Path) -> Servi
         activation["activation_allowed"] is True
         and case_manifest["delivery_allowed"] is True
         and delivery_audit["delivery_allowed"] is True
-        and operator_harness_v2["delivery_allowed"] is True
+        and owner_release_action_gate["delivery_allowed"] is True
         and harness_run["runtime_authorized"] is False
         and delivery_package["runtime_authorized"] is False
     )
@@ -153,9 +153,9 @@ def run_service_1_synthetic_real_case_pilot_v1(output_root: str | Path) -> Servi
         "delivery_package": delivery_package,
         "case_manifest": case_manifest,
         "delivery_audit": delivery_audit,
-        "operator_harness_v2": operator_harness_v2,
+        "owner_release_action_gate": owner_release_action_gate,
         "final_delivery_allowed": final_delivery_allowed,
-        "operator_notes": [
+        "delivery_notes": [
             "Synthetic real-case pilot: no real client data is present.",
             "Use as rehearsal of Servicio 1 delivery chain, not as client delivery proof.",
             "All outputs remain operational drafts under human review.",

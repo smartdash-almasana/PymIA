@@ -173,15 +173,15 @@ SUPPORTED_MICROSERVICES: dict[str, dict[str, object]] = {
         "dependencies": ["case_folder_manifest"],
         "next_allowed_action": "audit_delivery_manifest",
     },
-    "operator_harness": {
+    "owner_release_action_gate": {
         "state": "IMPLEMENTED_VALIDATED",
-        "allowed_inputs": ["case_manifest_status", "delivery_audit_status", "operator_action"],
-        "allowed_outputs": ["operator_action_decision"],
+        "allowed_inputs": ["case_manifest_status", "delivery_audit_status", "requested_release_action"],
+        "allowed_outputs": ["release_action_decision"],
         "runtime_authorized": False,
         "human_review_required": True,
         "blocked_capabilities": ["chatbot_autonomo", "llm_runtime", "ocr", "parser", "api", "final_accounting_claim"],
         "dependencies": ["case_folder_manifest", "delivery_manifest_audit"],
-        "next_allowed_action": "govern_operator_action",
+        "next_allowed_action": "gate_owner_release_action",
     },
     "chatbot": {
         "state": "OUT_OF_SCOPE",

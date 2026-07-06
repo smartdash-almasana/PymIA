@@ -21,8 +21,8 @@ def test_file_intake_registry_entry_is_valid_without_human_review_requirement() 
     assert result["next_allowed_action"] == "use_as_intake_boundary"
 
 
-def test_operator_harness_registry_entry_declares_manifest_and_audit_dependencies() -> None:
-    result = build_service_1_microservice_registry_contract_v1({"microservice_id": "operator_harness"})
+def test_owner_release_action_gate_registry_entry_declares_manifest_and_audit_dependencies() -> None:
+    result = build_service_1_microservice_registry_contract_v1({"microservice_id": "owner_release_action_gate"})
 
     assert result["status"] == "VALID"
     assert result["state"] == "IMPLEMENTED_VALIDATED"
@@ -141,7 +141,7 @@ def test_core_microservices_are_registered() -> None:
         "accounting_workpaper",
         "case_folder_manifest",
         "delivery_manifest_audit",
-        "operator_harness",
+        "owner_release_action_gate",
     }
 
     assert expected.issubset(set(SUPPORTED_MICROSERVICES))

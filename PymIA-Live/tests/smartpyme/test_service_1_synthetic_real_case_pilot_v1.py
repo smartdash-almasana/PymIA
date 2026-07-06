@@ -25,7 +25,7 @@ def test_synthetic_real_case_pilot_runs_full_safe_delivery_chain(tmp_path: Path)
     assert result["final_delivery_allowed"] is True
 
 
-def test_synthetic_real_case_pilot_activation_manifest_audit_and_harness_are_coherent(tmp_path: Path) -> None:
+def test_synthetic_real_case_pilot_activation_manifest_audit_and_release_gate_are_coherent(tmp_path: Path) -> None:
     result = run_service_1_synthetic_real_case_pilot_v1(tmp_path)
 
     assert result["activation"]["status"] == "ACTIVATION_ALLOWED"
@@ -34,11 +34,11 @@ def test_synthetic_real_case_pilot_activation_manifest_audit_and_harness_are_coh
     assert result["case_manifest"]["delivery_allowed"] is True
     assert result["delivery_audit"]["status"] == "PASS_WITH_WARNINGS_REQUIRES_HUMAN_REVIEW"
     assert result["delivery_audit"]["delivery_allowed"] is True
-    assert result["operator_harness_v2"]["status"] == "READY_FOR_OPERATIONAL_DRAFT_DELIVERY"
-    assert result["operator_harness_v2"]["delivery_allowed"] is True
+    assert result["owner_release_action_gate"]["status"] == "READY_FOR_OPERATIONAL_DRAFT_DELIVERY"
+    assert result["owner_release_action_gate"]["delivery_allowed"] is True
 
 
-def test_synthetic_real_case_pilot_generates_operator_delivery_package(tmp_path: Path) -> None:
+def test_synthetic_real_case_pilot_generates_owner_delivery_package(tmp_path: Path) -> None:
     result = run_service_1_synthetic_real_case_pilot_v1(tmp_path)
     package = result["delivery_package"]
 
