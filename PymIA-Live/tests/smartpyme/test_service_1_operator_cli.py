@@ -152,21 +152,22 @@ def test_cli_run_tools_delegates_to_pipeline(
 
     manifest_path = case_folders[0] / "manifest.json"
     final_qa_path = case_folders[0] / "final_qa_delivery_gate.json"
-    human_review_gate_path = case_folders[0] / "human_review_gate.json"
+    delivery_policy_guard_path = case_folders[0] / "delivery_policy_guard.json"
     assert manifest_path.exists()
     assert final_qa_path.exists()
-    assert human_review_gate_path.exists()
+    assert delivery_policy_guard_path.exists()
 
     final_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     final_qa = json.loads(final_qa_path.read_text(encoding="utf-8"))
-    human_review_gate = json.loads(human_review_gate_path.read_text(encoding="utf-8"))
+    delivery_policy_guard = json.loads(delivery_policy_guard_path.read_text(encoding="utf-8"))
     assert final_manifest["manifest_type"] == "SERVICE_1_CANONICAL_DELIVERY_MANIFEST"
-    assert final_manifest["delivery_status"] == "READY_FOR_HUMAN_REVIEW"
+    assert final_manifest["delivery_status"] == "READY_FOR_DELIVERY_POLICY_GUARD"
     assert final_manifest["runtime_authorized"] is False
     assert final_qa["gate_type"] == "SERVICE_1_FINAL_DELIVERY_FOLDER_QA"
     assert final_qa["status"] == "PASS"
-    assert human_review_gate["status"] == "PENDING_HUMAN_REVIEW"
-    assert human_review_gate["human_review_required"] is True
+    assert delivery_policy_guard["status"] == "PENDING_DELIVERY_POLICY_GUARD"
+    assert delivery_policy_guard["delivery_policy_guard_required"] is True
+    assert final_manifest["delivery_policy_guard"]["status"] == "PENDING_DELIVERY_POLICY_GUARD"
     assert all("sha256" in file_record for file_record in final_manifest["files"])
 
 

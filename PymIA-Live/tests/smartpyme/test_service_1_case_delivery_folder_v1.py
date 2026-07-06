@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from pymia.smartpyme.service_1_case_delivery_folder_v1 import (
+    build_service_1_delivery_policy_guard_v1,
     build_service_1_human_review_gate_v1,
     evaluate_service_1_final_delivery_folder_gate_v1,
     finalize_service_1_case_delivery_folder_v1,
@@ -187,7 +188,7 @@ def test_readme_contains_required_limits(tmp_path) -> None:
     content = readme.read_text(encoding="utf-8").lower()
     assert "no contiene diagnostico" in content
     assert "no contiene calculos" in content
-    assert "confirmacion humana" in content
+    assert "confirmacion del dueno" in content
 
 
 # ---------------------------------------------------------------------------
@@ -278,13 +279,13 @@ def test_readme_mentions_first_aid(tmp_path) -> None:
     readme = Path(manifest["case_dir"]) / "README.txt"
     content = readme.read_text(encoding="utf-8").lower()
     assert "first aid" in content
-    assert "revision humana" in content
+    assert "control de politica de entrega" in content
 
 
 def test_finalize_writes_canonical_manifest_and_final_qa(tmp_path) -> None:
     base_dir = tmp_path / "cases"
     packet = _packet_with_structure()
-    packet["human_review_gate"] = build_service_1_human_review_gate_v1(packet)
+    packet["delivery_policy_guard"] = build_service_1_delivery_policy_guard_v1(packet)
     manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=str(base_dir))
     case_dir = Path(manifest["case_dir"])
     (case_dir / "operator_packet.json").write_text(
@@ -299,12 +300,14 @@ def test_finalize_writes_canonical_manifest_and_final_qa(tmp_path) -> None:
 
     assert final_manifest["manifest_type"] == "SERVICE_1_CANONICAL_DELIVERY_MANIFEST"
     assert final_manifest["runtime_authorized"] is False
-    assert final_manifest["delivery_status"] == "READY_FOR_HUMAN_REVIEW"
+    assert final_manifest["delivery_status"] == "READY_FOR_DELIVERY_POLICY_GUARD"
     assert (case_dir / "manifest.json").exists()
     assert (case_dir / "final_qa_delivery_gate.json").exists()
-    assert (case_dir / "human_review_gate.json").exists()
+    assert (case_dir / "delivery_policy_guard.json").exists()
     assert final_manifest["final_qa_delivery_gate"]["status"] == "PASS"
-    assert final_manifest["human_review_gate"]["status"] == "PENDING_HUMAN_REVIEW"
+    assert final_manifest["delivery_policy_guard"]["status"] == "PENDING_DELIVERY_POLICY_GUARD"
+    assert final_manifest["delivery_policy_guard"]["delivery_policy_guard_required"] is True
+    assert final_manifest["human_review_gate"]["status"] == "PENDING_DELIVERY_POLICY_GUARD"
     assert all("sha256" in file_record for file_record in final_manifest["files"])
 
 
@@ -312,7 +315,7 @@ def test_finalize_blocks_runtime_authorized_true(tmp_path) -> None:
     base_dir = tmp_path / "cases"
     packet = _packet_with_structure()
     packet["taskspec_patch"] = {"runtime_authorized": True}
-    packet["human_review_gate"] = build_service_1_human_review_gate_v1(packet)
+    packet["delivery_policy_guard"] = build_service_1_delivery_policy_guard_v1(packet)
     manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=str(base_dir))
     case_dir = Path(manifest["case_dir"])
     (case_dir / "operator_packet.json").write_text(
@@ -333,7 +336,7 @@ def test_finalize_blocks_runtime_authorized_true(tmp_path) -> None:
 def test_finalize_manifest_does_not_hash_itself(tmp_path) -> None:
     base_dir = tmp_path / "cases"
     packet = _packet_with_structure()
-    packet["human_review_gate"] = build_service_1_human_review_gate_v1(packet)
+    packet["delivery_policy_guard"] = build_service_1_delivery_policy_guard_v1(packet)
     manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=str(base_dir))
     case_dir = Path(manifest["case_dir"])
     (case_dir / "operator_packet.json").write_text(json.dumps(packet, indent=2), encoding="utf-8")
@@ -353,7 +356,7 @@ def test_finalize_manifest_does_not_hash_itself(tmp_path) -> None:
 def test_final_qa_blocks_incomplete_manifest_record(tmp_path) -> None:
     base_dir = tmp_path / "cases"
     packet = _packet_with_structure()
-    packet["human_review_gate"] = build_service_1_human_review_gate_v1(packet)
+    packet["delivery_policy_guard"] = build_service_1_delivery_policy_guard_v1(packet)
     manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=str(base_dir))
     case_dir = Path(manifest["case_dir"])
     (case_dir / "operator_packet.json").write_text(json.dumps(packet, indent=2), encoding="utf-8")
@@ -363,8 +366,14 @@ def test_final_qa_blocks_incomplete_manifest_record(tmp_path) -> None:
         packet=packet,
         case_dir=case_dir,
         files_written=manifest["files_written"],
-        human_review_gate=packet["human_review_gate"],
+        human_review_gate=packet["delivery_policy_guard"],
         manifest_file_records=records,
     )
 
     assert gate["status"] == "BLOCKED"
+
+
+def test_legacy_human_review_gate_builder_is_alias_to_delivery_policy_guard() -> None:
+    packet = _minimal_packet()
+
+    assert build_service_1_human_review_gate_v1(packet) == build_service_1_delivery_policy_guard_v1(packet)

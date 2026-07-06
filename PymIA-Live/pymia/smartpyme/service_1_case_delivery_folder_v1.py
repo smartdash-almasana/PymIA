@@ -26,14 +26,14 @@ _README_TEXT = (
     " - No contiene diagnostico de negocio.\n"
     " - No contiene calculos contables, fiscales ni conciliaciones definitivas.\n"
     " - Puede contener calculos operativos preliminares First Aid si el operador ejecuto tools.\n"
-    " - Requiere confirmacion humana de columnas cuando existan preguntas pendientes.\n"
-    " - Requiere revision humana antes de usar la entrega como conclusion.\n\n"
+    " - Requiere confirmacion del dueno cuando existan preguntas pendientes.\n"
+    " - Requiere control de politica de entrega antes de usar la salida como conclusion.\n\n"
     "Archivos:\n"
     " - owner_message.md          : mensaje visible para el dueno.\n"
     " - operator_packet.json      : paquete completo gobernado.\n"
     " - pipeline_result.json      : resultado de tools First Aid ejecutadas (si aplica).\n"
     " - post_tool_owner_delivery_summary.md : resumen final post-tools para el dueno (si aplica).\n"
-    " - human_review_gate.json    : gate explicito de revision humana.\n"
+    " - delivery_policy_guard.json : guard de politica de entrega.\n"
     " - final_qa_delivery_gate.json : QA final sobre artefactos reales de carpeta.\n"
     " - manifest.json             : inventario final de archivos con hashes.\n"
     " - detected_structure.json   : estructura XLSX detectada (si aplica).\n"
@@ -53,18 +53,18 @@ _README_TEXT = (
     )
 
 
-def build_service_1_human_review_gate_v1(packet: dict[str, Any]) -> dict[str, Any]:
-    """Build the explicit human review gate for a Service 1 delivery folder."""
+def build_service_1_delivery_policy_guard_v1(packet: dict[str, Any]) -> dict[str, Any]:
+    """Build the explicit delivery policy guard for a Service 1 delivery folder."""
     return {
         "schema_version": SCHEMA_VERSION,
         "service_name": SERVICE_NAME,
-        "gate_type": "SERVICE_1_HUMAN_REVIEW_GATE",
-        "status": "PENDING_HUMAN_REVIEW",
-        "human_review_required": True,
-        "reviewer_role": "operator_or_accountant",
+        "guard_type": "SERVICE_1_DELIVERY_POLICY_GUARD",
+        "status": "PENDING_DELIVERY_POLICY_GUARD",
+        "delivery_policy_guard_required": True,
+        "policy_guard_agent": "pymia_delivery_policy_guard",
         "decision_required_before_client_use": True,
         "runtime_authorized": False,
-        "allowed_decisions": ["APPROVED_FOR_DELIVERY", "NEEDS_CORRECTION", "BLOCKED"],
+        "allowed_decisions": ["APPROVED_FOR_OWNER_DELIVERY_DRAFT", "NEEDS_CORRECTION", "BLOCKED"],
         "blocked_claims": [
             "auditoria",
             "certificacion",
@@ -74,10 +74,15 @@ def build_service_1_human_review_gate_v1(packet: dict[str, Any]) -> dict[str, An
             "reemplazo_contador",
         ],
         "notes": [
-            "This gate does not approve delivery by itself.",
-            "The folder is ready for human review, not for autonomous client use.",
+            "This guard does not approve delivery by itself.",
+            "The folder is ready for delivery policy control, not for autonomous client use.",
         ],
     }
+
+
+def build_service_1_human_review_gate_v1(packet: dict[str, Any]) -> dict[str, Any]:
+    """Temporary legacy alias for delivery policy guard builders."""
+    return build_service_1_delivery_policy_guard_v1(packet)
 
 
 def write_service_1_case_delivery_folder_v1(
@@ -257,8 +262,8 @@ def finalize_service_1_case_delivery_folder_v1(
     """Finalize the canonical Service 1 delivery folder.
 
     This extends the existing case folder instead of creating a parallel package:
-    it writes an aligned README, explicit human review gate, final QA gate, and a
-    manifest with hashes for the actual files present in the folder.
+    it writes an aligned README, explicit delivery policy guard, final QA gate,
+    and a manifest with hashes for the actual files present in the folder.
     """
     folder = Path(case_dir)
     folder.mkdir(parents=True, exist_ok=True)
@@ -269,9 +274,10 @@ def finalize_service_1_case_delivery_folder_v1(
     (folder / readme_filename).write_text(_README_TEXT, encoding="utf-8")
     _append_once(final_files, readme_filename)
 
-    human_review_gate = packet.get("human_review_gate")
-    if not isinstance(human_review_gate, dict):
-        human_review_gate = build_service_1_human_review_gate_v1(packet)
+    delivery_policy_guard = packet.get("delivery_policy_guard")
+    if not isinstance(delivery_policy_guard, dict):
+        legacy_gate = packet.get("human_review_gate")
+        delivery_policy_guard = legacy_gate if isinstance(legacy_gate, dict) else build_service_1_delivery_policy_guard_v1(packet)
     product_gate = packet.get("product_gate")
     if product_gate is not None:
         product_gate_filename = "product_gate.json"
@@ -281,12 +287,12 @@ def finalize_service_1_case_delivery_folder_v1(
         )
         _append_once(final_files, product_gate_filename)
 
-    human_gate_filename = "human_review_gate.json"
-    (folder / human_gate_filename).write_text(
-        json.dumps(human_review_gate, indent=2, ensure_ascii=False),
+    delivery_policy_guard_filename = "delivery_policy_guard.json"
+    (folder / delivery_policy_guard_filename).write_text(
+        json.dumps(delivery_policy_guard, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    _append_once(final_files, human_gate_filename)
+    _append_once(final_files, delivery_policy_guard_filename)
 
     final_qa_filename = "final_qa_delivery_gate.json"
     manifest_filename = "manifest.json"
@@ -296,11 +302,12 @@ def finalize_service_1_case_delivery_folder_v1(
         filenames=final_files,
         excluded_filenames={manifest_filename, final_qa_filename},
     )
+    legacy_human_review_gate = delivery_policy_guard
     final_qa_gate = evaluate_service_1_final_delivery_folder_gate_v1(
         packet=packet,
         case_dir=folder,
         files_written=final_files,
-        human_review_gate=human_review_gate,
+        human_review_gate=legacy_human_review_gate,
         manifest_file_records=manifest_records_for_qa,
     )
     (folder / final_qa_filename).write_text(
@@ -315,11 +322,12 @@ def finalize_service_1_case_delivery_folder_v1(
         "manifest_type": "SERVICE_1_CANONICAL_DELIVERY_MANIFEST",
         "case_id": packet.get("case_delivery_manifest", {}).get("case_id"),
         "case_dir": str(folder),
-        "delivery_status": "READY_FOR_HUMAN_REVIEW"
+        "delivery_status": "READY_FOR_DELIVERY_POLICY_GUARD"
         if final_qa_gate["status"] == "PASS"
         else "BLOCKED",
         "runtime_authorized": False,
-        "human_review_gate": human_review_gate,
+        "delivery_policy_guard": delivery_policy_guard,
+        "human_review_gate": delivery_policy_guard,
         "final_qa_delivery_gate": final_qa_gate,
         "hash_policy": {
             "algorithm": "sha256",
@@ -409,13 +417,19 @@ def evaluate_service_1_final_delivery_folder_gate_v1(
         all(has_file(filename) for filename in expected_xlsx),
     )
 
-    gate = human_review_gate if isinstance(human_review_gate, dict) else packet.get("human_review_gate")
+    gate = (
+        human_review_gate
+        if isinstance(human_review_gate, dict)
+        else packet.get("delivery_policy_guard")
+        if isinstance(packet.get("delivery_policy_guard"), dict)
+        else packet.get("human_review_gate")
+    )
     add_check(
         "final_qa_007",
-        "human review gate is explicit and pending",
+        "delivery policy guard is explicit and pending",
         isinstance(gate, dict)
-        and gate.get("human_review_required") is True
-        and gate.get("status") == "PENDING_HUMAN_REVIEW"
+        and gate.get("delivery_policy_guard_required", gate.get("human_review_required")) is True
+        and gate.get("status") in {"PENDING_DELIVERY_POLICY_GUARD", "PENDING_HUMAN_REVIEW"}
         and gate.get("runtime_authorized") is False,
     )
     add_check(
@@ -443,14 +457,14 @@ def evaluate_service_1_final_delivery_folder_gate_v1(
         "service_name": SERVICE_NAME,
         "gate_type": "SERVICE_1_FINAL_DELIVERY_FOLDER_QA",
         "status": status,
-        "delivery_status": "READY_FOR_HUMAN_REVIEW" if status == "PASS" else "BLOCKED",
+        "delivery_status": "READY_FOR_DELIVERY_POLICY_GUARD" if status == "PASS" else "BLOCKED",
         "runtime_authorized": False,
         "checks": checks,
         "checks_passed": sum(1 for check in checks if check["status"] == "PASS"),
         "checks_total": len(checks),
         "blockers": blockers,
         "warnings": [
-            "PASS means the folder is ready for human review, not approved for autonomous use."
+            "PASS means the folder is ready for delivery policy control, not approved for autonomous use."
         ],
     }
 

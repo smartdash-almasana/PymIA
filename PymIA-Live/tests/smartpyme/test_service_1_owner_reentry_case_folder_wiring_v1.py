@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from pymia.smartpyme.service_1_case_delivery_folder_v1 import (
+    build_service_1_delivery_policy_guard_v1,
     build_service_1_human_review_gate_v1,
     finalize_service_1_case_delivery_folder_v1,
     write_service_1_case_delivery_folder_v1,
@@ -60,7 +61,7 @@ def test_readme_mentions_owner_reentry_bridge(tmp_path: Path) -> None:
 
 def test_finalize_manifest_hashes_owner_reentry_bridge(tmp_path: Path) -> None:
     packet = _packet_with_reentry_bridge()
-    packet["human_review_gate"] = build_service_1_human_review_gate_v1(packet)
+    packet["delivery_policy_guard"] = build_service_1_delivery_policy_guard_v1(packet)
     manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=tmp_path)
     case_dir = Path(manifest["case_dir"])
     (case_dir / "operator_packet.json").write_text(
@@ -79,3 +80,10 @@ def test_finalize_manifest_hashes_owner_reentry_bridge(tmp_path: Path) -> None:
     assert file_records["owner_reentry_bridge.json"]["bytes"] > 0
     assert len(file_records["owner_reentry_bridge.json"]["sha256"]) == 64
     assert final_manifest["runtime_authorized"] is False
+    assert final_manifest["delivery_policy_guard"]["status"] == "PENDING_DELIVERY_POLICY_GUARD"
+
+
+def test_legacy_human_review_gate_alias_matches_delivery_policy_guard() -> None:
+    packet = _packet_with_reentry_bridge()
+
+    assert build_service_1_human_review_gate_v1(packet) == build_service_1_delivery_policy_guard_v1(packet)
