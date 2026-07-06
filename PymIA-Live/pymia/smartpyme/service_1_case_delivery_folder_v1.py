@@ -38,11 +38,17 @@ _README_TEXT = (
     " - manifest.json             : inventario final de archivos con hashes.\n"
     " - detected_structure.json   : estructura XLSX detectada (si aplica).\n"
     " - column_confirmation_packet.json : preguntas de confirmacion pendientes (si aplica).\n"
+    " - question_bundle.json      : preguntas canonicas al dueno con refs estables (si aplica).\n"
     " - confirmed_columns.json    : columnas confirmadas por el operador (si aplica).\n"
     " - first_aid_eligibility_gate.json : gate de elegibilidad First Aid (si aplica).\n"
     " - first_aid_result.json     : resultados descriptivos First Aid (si aplica).\n"
     " - first_aid_owner_summary.md: resumen First Aid para el dueno (si aplica).\n"
     " - owner_reentry_bridge.json : estado de reentrada de respuesta del dueno (si aplica).\n"
+    " - next_owner_question.md    : proxima pregunta legible para el dueno (si aplica).\n"
+    " - evidence_loop_status.json : estado del loop evidencia/preguntas/respuestas.\n"
+    " - case_record.json          : registro reproducible del caso.\n"
+    " - owner_delivery_packet.json: paquete legible para el dueno.\n"
+    " - product_gate.json         : gate final de producto Servicio 1.\n"
     " - README.txt                : este archivo.\n"
     )
 
@@ -124,6 +130,15 @@ def write_service_1_case_delivery_folder_v1(
         )
         files_written.append("column_confirmation_packet.json")
 
+    # Write question_bundle.json if present
+    question_bundle = packet.get("question_bundle")
+    if question_bundle is not None:
+        (case_dir / "question_bundle.json").write_text(
+            json.dumps(question_bundle, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("question_bundle.json")
+
     # Write confirmed_columns.json if present
     confirmed_columns = packet.get("confirmed_columns")
     if confirmed_columns is not None:
@@ -169,6 +184,51 @@ def write_service_1_case_delivery_folder_v1(
         )
         files_written.append("owner_reentry_bridge.json")
 
+    # Write next_owner_question.md if present
+    next_owner_question = packet.get("next_owner_question")
+    if isinstance(next_owner_question, dict) and next_owner_question.get("markdown"):
+        (case_dir / "next_owner_question.md").write_text(
+            str(next_owner_question["markdown"]),
+            encoding="utf-8",
+        )
+        files_written.append("next_owner_question.md")
+
+    # Write evidence_loop_status.json if present
+    evidence_loop_status = packet.get("evidence_loop_status")
+    if evidence_loop_status is not None:
+        (case_dir / "evidence_loop_status.json").write_text(
+            json.dumps(evidence_loop_status, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("evidence_loop_status.json")
+
+    # Write case_record.json if present
+    case_record = packet.get("case_record")
+    if case_record is not None:
+        (case_dir / "case_record.json").write_text(
+            json.dumps(case_record, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("case_record.json")
+
+    # Write owner_delivery_packet.json if present
+    owner_delivery_packet = packet.get("owner_delivery_packet")
+    if owner_delivery_packet is not None:
+        (case_dir / "owner_delivery_packet.json").write_text(
+            json.dumps(owner_delivery_packet, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("owner_delivery_packet.json")
+
+    # Write product_gate.json if present
+    product_gate = packet.get("product_gate")
+    if product_gate is not None:
+        (case_dir / "product_gate.json").write_text(
+            json.dumps(product_gate, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("product_gate.json")
+
     # Write README.txt
     (case_dir / "README.txt").write_text(_README_TEXT, encoding="utf-8")
     files_written.append("README.txt")
@@ -212,6 +272,15 @@ def finalize_service_1_case_delivery_folder_v1(
     human_review_gate = packet.get("human_review_gate")
     if not isinstance(human_review_gate, dict):
         human_review_gate = build_service_1_human_review_gate_v1(packet)
+    product_gate = packet.get("product_gate")
+    if product_gate is not None:
+        product_gate_filename = "product_gate.json"
+        (folder / product_gate_filename).write_text(
+            json.dumps(product_gate, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        _append_once(final_files, product_gate_filename)
+
     human_gate_filename = "human_review_gate.json"
     (folder / human_gate_filename).write_text(
         json.dumps(human_review_gate, indent=2, ensure_ascii=False),

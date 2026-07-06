@@ -42,6 +42,9 @@ from pymia.smartpyme.exceland_execution_flow_v1 import (
 from pymia.smartpyme.service_1_owner_reentry_bridge_v1 import (
     run_service_1_owner_reentry_bridge_v1,
 )
+from pymia.smartpyme.service_1_next_owner_question_view_v1 import (
+    build_service_1_next_owner_question_view_v1,
+)
 
 
 def _infer_mime_type(filename: str) -> str | None:
@@ -65,6 +68,97 @@ def _build_file_asset(file_path: Path) -> dict[str, Any]:
         "declared_mime_type": declared_mime_type,
         "size_bytes": size_bytes,
         "source": "path",
+    }
+
+
+def _build_loop_status(packet: dict[str, Any]) -> dict[str, Any]:
+    has_file = isinstance(packet.get("file_intake"), dict)
+    has_questions = isinstance(packet.get("question_bundle"), dict)
+    has_answer = isinstance(packet.get("owner_reentry_bridge"), dict)
+    next_view = packet.get("next_owner_question")
+    has_next = isinstance(next_view, dict) and next_view.get("status") == "READY"
+    if not has_file:
+        status = "NEEDS_FILE_EVIDENCE"
+    elif has_questions and not has_answer:
+        status = "NEEDS_OWNER_EVIDENCE"
+    elif has_answer and has_next:
+        status = "NEEDS_OWNER_EVIDENCE"
+    elif has_answer:
+        status = "EVIDENCE_LOOP_COMPLETE"
+    else:
+        status = "INTAKE_ONLY"
+    return {
+        "schema_version": "SERVICE_1_LOOP_STATUS_V1",
+        "service_name": "SERVICE_1",
+        "status": status,
+        "has_file_intake": has_file,
+        "has_question_bundle": has_questions,
+        "has_owner_reentry_bridge": has_answer,
+        "has_next_owner_question": has_next,
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "delivery_authorized": False,
+    }
+
+
+def _build_case_record(packet: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": "SERVICE_1_CASE_RECORD_V1",
+        "service_name": "SERVICE_1",
+        "asset": packet.get("asset"),
+        "file_intake": packet.get("file_intake"),
+        "question_bundle_present": isinstance(packet.get("question_bundle"), dict),
+        "owner_reentry_bridge_present": isinstance(packet.get("owner_reentry_bridge"), dict),
+        "next_owner_question_present": isinstance(packet.get("next_owner_question"), dict),
+        "pipeline_result_present": isinstance(packet.get("pipeline_result"), dict),
+        "first_aid_result_present": isinstance(packet.get("first_aid_result"), dict),
+        "factory_result_present": isinstance(packet.get("factory_result"), dict),
+        "runtime_authorized": False,
+        "delivery_authorized": False,
+    }
+
+
+def _build_owner_delivery_packet(packet: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": "SERVICE_1_OWNER_DELIVERY_PACKET_V1",
+        "service_name": "SERVICE_1",
+        "owner_message": packet.get("owner_message"),
+        "next_owner_question": packet.get("next_owner_question"),
+        "post_tool_owner_delivery_summary": packet.get("post_tool_owner_delivery_summary"),
+        "first_aid_owner_summary": packet.get("first_aid_owner_summary"),
+        "limitations": [
+            "No reemplaza contador.",
+            "No concluye sin evidencia suficiente.",
+            "No autoriza ejecucion autonoma.",
+        ],
+        "runtime_authorized": False,
+        "delivery_authorized": False,
+    }
+
+
+def _build_product_gate(packet: dict[str, Any]) -> dict[str, Any]:
+    loop_status = packet.get("evidence_loop_status", {})
+    has_files = isinstance(packet.get("case_delivery_manifest"), dict)
+    has_tools = isinstance(packet.get("pipeline_result"), dict) or isinstance(packet.get("first_aid_result"), dict) or isinstance(packet.get("factory_result"), dict)
+    if loop_status.get("status") == "NEEDS_FILE_EVIDENCE":
+        status = "NEEDS_FILE_EVIDENCE"
+    elif loop_status.get("status") == "NEEDS_OWNER_EVIDENCE":
+        status = "NEEDS_OWNER_EVIDENCE"
+    elif has_files and has_tools:
+        status = "READY_FOR_OWNER_DELIVERY"
+    elif has_files:
+        status = "NEEDS_SCOPE_REDUCTION"
+    else:
+        status = "BLOCKED"
+    return {
+        "schema_version": "SERVICE_1_PRODUCT_GATE_V1",
+        "service_name": "SERVICE_1",
+        "status": status,
+        "runtime_authorized": False,
+        "delivery_authorized": False,
+        "has_case_folder": has_files,
+        "has_tool_outputs": has_tools,
+        "loop_status": loop_status.get("status"),
     }
 
 
@@ -266,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.owner_reentry_storage_dir
             else Path(".tmp/service_1_owner_reentry")
         )
+        packet_serializable.update({"question_bundle": question_bundle})
         reentry_bridge = run_service_1_owner_reentry_bridge_v1(
             question_bundle=question_bundle,
             question_ref=args.question_ref,
@@ -276,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
             metadata={"source_channel": args.source_channel, "cli_entrypoint": "service_1_operator"},
         )
         packet_serializable["owner_reentry_bridge"] = reentry_bridge.to_dict()
+        packet_serializable["next_owner_question"] = build_service_1_next_owner_question_view_v1(packet_serializable)
         print()
         print("Owner evidence reentry", flush=True)
         print(f"- Estado: {reentry_bridge.status}", flush=True)
@@ -301,10 +397,16 @@ def main(argv: list[str] | None = None) -> int:
                     flush=True,
                 )
 
+    packet_serializable["evidence_loop_status"] = _build_loop_status(packet_serializable)
+    packet_serializable["case_record"] = _build_case_record(packet_serializable)
+    packet_serializable["owner_delivery_packet"] = _build_owner_delivery_packet(packet_serializable)
+
     # Write case delivery folder (before First Aid, to get manifest)
     manifest = write_service_1_case_delivery_folder_v1(packet_serializable)
     packet_serializable["case_delivery_manifest"] = manifest
     case_dir = Path(manifest["case_dir"])
+
+    packet_serializable["product_gate"] = _build_product_gate(packet_serializable)
 
     # Run QA delivery gate
     qa_gate = evaluate_service_1_qa_delivery_gate_v1(packet_serializable)
