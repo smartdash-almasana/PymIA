@@ -15,9 +15,9 @@ from pymia.smartpyme.service_1_microservice_activation_contract_v1 import (
     Service1MicroserviceActivationContractV1,
     build_service_1_microservice_activation_contract_v1,
 )
-from pymia.smartpyme.service_1_operator_delivery_package_v1 import (
-    Service1OperatorDeliveryPackageV1,
-    build_service_1_operator_delivery_package_v1,
+from pymia.smartpyme.service_1_owner_delivery_package_v1 import (
+    Service1OwnerDeliveryPackageV1,
+    build_service_1_owner_delivery_package_v1,
 )
 from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import (
     Service1ControlledDeliveryDemoRunV1,
@@ -44,7 +44,7 @@ class Service1SyntheticRealCasePilotV1(TypedDict):
     runtime_authorized: bool
     activation: Service1MicroserviceActivationContractV1
     harness_run: Service1ControlledDeliveryDemoRunV1
-    delivery_package: Service1OperatorDeliveryPackageV1
+    delivery_package: Service1OwnerDeliveryPackageV1
     case_manifest: Service1CaseFolderManifestContractV1
     delivery_audit: Service1DeliveryManifestAuditContractV1
     operator_harness_v2: Service1OperatorHarnessV2Contract
@@ -62,7 +62,7 @@ def run_service_1_synthetic_real_case_pilot_v1(output_root: str | Path) -> Servi
         case=case,
         output_root=output_root_path,
     )
-    delivery_package = build_service_1_operator_delivery_package_v1(
+    delivery_package = build_service_1_owner_delivery_package_v1(
         harness_run=harness_run,
         package_root=output_root_path,
     )

@@ -4,8 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from pymia.smartpyme.service_1_operator_delivery_package_v1 import (
-    build_service_1_operator_delivery_package_v1,
+from pymia.smartpyme.service_1_owner_delivery_package_v1 import (
+    build_service_1_owner_delivery_package_v1,
 )
 from pymia.smartpyme.service_1_controlled_delivery_demo_harness_v1 import (
     build_service_1_controlled_delivery_demo_sample_case_v1,
@@ -23,7 +23,7 @@ def _build_manifest(tmp_path: Path):
         case=build_service_1_controlled_delivery_demo_sample_case_v1(),
         output_root=harness_root,
     )
-    package = build_service_1_operator_delivery_package_v1(
+    package = build_service_1_owner_delivery_package_v1(
         harness_run=harness_run,
         package_root=package_root,
     )

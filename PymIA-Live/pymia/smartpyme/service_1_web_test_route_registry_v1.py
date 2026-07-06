@@ -182,7 +182,7 @@ _ALLOWED_WEB_TEST_ROUTES: dict[str, Service1WebTestRouteV1] = {
         "expected_artifacts": [
             "first_aid_xlsx_outputs",
             "summary.txt",
-            "operator_report.txt",
+            "delivery_report.txt",
             "README_ENTREGA.md",
             "manifest.json",
         ],
