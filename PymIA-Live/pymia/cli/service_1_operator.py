@@ -39,6 +39,9 @@ from pymia.smartpyme.service_1_post_tool_owner_delivery_summary_v1 import (
 from pymia.smartpyme.exceland_execution_flow_v1 import (
     run_exceland_execution_flow_v1,
 )
+from pymia.smartpyme.service_1_owner_reentry_bridge_v1 import (
+    run_service_1_owner_reentry_bridge_v1,
+)
 
 
 def _infer_mime_type(filename: str) -> str | None:
@@ -123,6 +126,26 @@ def main(argv: list[str] | None = None) -> int:
         "--factory-output",
         default=None,
         help="Output filename for factory XLSX (optional)",
+    )
+    parser.add_argument(
+        "--question-bundle",
+        default=None,
+        help="Path to Service 1 question bundle JSON for owner evidence reentry",
+    )
+    parser.add_argument(
+        "--question-ref",
+        default=None,
+        help="Stable question_ref answered by the owner",
+    )
+    parser.add_argument(
+        "--owner-answer",
+        default=None,
+        help="Raw owner answer for the selected question_ref",
+    )
+    parser.add_argument(
+        "--owner-reentry-storage-dir",
+        default=None,
+        help="Storage dir for owner evidence reentry records",
     )
     args = parser.parse_args(argv)
 
@@ -221,6 +244,48 @@ def main(argv: list[str] | None = None) -> int:
         packet_serializable["detected_structure"] = _detected_structure
     if _column_confirmation_packet is not None:
         packet_serializable["column_confirmation_packet"] = _column_confirmation_packet
+
+    reentry_args = [args.question_bundle, args.question_ref, args.owner_answer]
+    if any(reentry_args) and not all(reentry_args):
+        print("Error: reentry requires bundle, ref and answer", flush=True)
+        return 2
+
+    if all(reentry_args):
+        question_bundle_path = Path(args.question_bundle)
+        if not question_bundle_path.exists():
+            print(f"Error: question bundle file not found: {question_bundle_path}", flush=True)
+            return 2
+        try:
+            with open(question_bundle_path, encoding="utf-8") as f:
+                question_bundle = json.load(f)
+        except json.JSONDecodeError as exc:
+            print(f"Error: invalid question bundle JSON: {exc}", flush=True)
+            return 2
+        reentry_storage_dir = (
+            Path(args.owner_reentry_storage_dir)
+            if args.owner_reentry_storage_dir
+            else Path(".tmp/service_1_owner_reentry")
+        )
+        reentry_bridge = run_service_1_owner_reentry_bridge_v1(
+            question_bundle=question_bundle,
+            question_ref=args.question_ref,
+            raw_owner_answer=args.owner_answer,
+            anamnesis_id=packet_serializable["file_intake"].get("anamnesis_id", asset_id),
+            investigation_id=packet_serializable["file_intake"].get("investigation_id", asset_id),
+            storage_dir=reentry_storage_dir,
+            metadata={"source_channel": args.source_channel, "cli_entrypoint": "service_1_operator"},
+        )
+        packet_serializable["owner_reentry_bridge"] = reentry_bridge.to_dict()
+        print()
+        print("Owner evidence reentry", flush=True)
+        print(f"- Estado: {reentry_bridge.status}", flush=True)
+        print(f"- Question ref: {reentry_bridge.question_ref}", flush=True)
+        if reentry_bridge.selected_next_pending_question_ref:
+            print(f"- Next pending: {reentry_bridge.selected_next_pending_question_ref}", flush=True)
+        if reentry_bridge.blocked_reason:
+            print(f"- Bloqueo: {reentry_bridge.blocked_reason}", flush=True)
+        print("- Runtime autorizado: false", flush=True)
+        print()
 
     # Load confirmed_columns if provided
     _confirmed_columns_block = None
