@@ -5,9 +5,9 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Final, Literal, TypedDict
 
-from pymia.smartpyme.accounting_human_review_gate_v1 import (
+from pymia.smartpyme.accounting_sandbox_release_gate_v1 import (
     GateResult,
-    evaluate_accounting_human_review_gate_v1,
+    evaluate_accounting_sandbox_release_gate_v1,
 )
 from pymia.smartpyme.invoice_collection_matching_contract_v1 import (
     InvoiceCollectionMatchingContractResultV1,
@@ -104,7 +104,7 @@ def run_invoice_collection_matching_sandbox_completion_slice_v1(
             "received_fields": ["fecha", "cliente", "numero_factura", "importe"],
         }
     )
-    human_review_gate = evaluate_accounting_human_review_gate_v1(
+    human_review_gate = evaluate_accounting_sandbox_release_gate_v1(
         gate_input={
             "capability_ref": "invoice_collection_matching_basic",
             "reviewer_role": "operator",

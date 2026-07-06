@@ -5,7 +5,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from pymia.smartpyme.accounting_human_review_gate_v1 import evaluate_accounting_human_review_gate_v1
+from pymia.smartpyme.accounting_sandbox_release_gate_v1 import evaluate_accounting_sandbox_release_gate_v1
 from pymia.smartpyme.accounting_workpaper_contract_v1 import build_accounting_workpaper_contract_v1
 from pymia.smartpyme.accounting_workpaper_draft_packet_v1 import (
     CAPABILITY_REF,
@@ -58,7 +58,7 @@ def _manifest_result() -> dict[str, object]:
 
 
 def _human_gate_result() -> dict[str, object]:
-    return evaluate_accounting_human_review_gate_v1(
+    return evaluate_accounting_sandbox_release_gate_v1(
         gate_input={
             "capability_ref": "accounting_workpaper_basic",
             "reviewer_role": "operator",

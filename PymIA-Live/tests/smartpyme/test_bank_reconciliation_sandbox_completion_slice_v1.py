@@ -30,7 +30,7 @@ def test_completion_slice_component_chain_is_ready_and_safe(tmp_path: Path) -> N
     result = run_bank_reconciliation_sandbox_completion_slice_v1(tmp_path)
 
     assert result["base_contract"]["status"] == "READY_FOR_REVIEW"
-    assert result["human_review_gate"]["status"] == "PASS"
+    assert result["sandbox_release_gate"]["status"] == "PASS"
     assert result["fixture_model"]["status"] == "VALID"
     assert result["fixture_handoff"]["status"] == "READY"
     assert result["sandbox_contract"]["status"] == "READY_FOR_SANDBOX_CONTRACT"
@@ -81,7 +81,7 @@ def test_completion_slice_operator_notes_explain_limits(tmp_path: Path) -> None:
     notes = Path(result["operator_notes_path"]).read_text(encoding="utf-8")
 
     assert "base_contract_status=READY_FOR_REVIEW" in notes
-    assert "human_review_gate_status=PASS" in notes
+    assert "sandbox_release_gate_status=PASS" in notes
     assert "fixture_model_status=VALID" in notes
     assert "fixture_handoff_status=READY" in notes
     assert "sandbox_contract_status=READY_FOR_SANDBOX_CONTRACT" in notes

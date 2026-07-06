@@ -5,7 +5,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from pymia.smartpyme.accounting_human_review_gate_v1 import evaluate_accounting_human_review_gate_v1
+from pymia.smartpyme.accounting_sandbox_release_gate_v1 import evaluate_accounting_sandbox_release_gate_v1
 from pymia.smartpyme.bank_reconciliation_contract_v1 import build_bank_reconciliation_contract_v1
 from pymia.smartpyme.bank_reconciliation_sandbox_contract_v1 import (
     CAPABILITY_REF,
@@ -24,11 +24,11 @@ def _bank_contract() -> dict[str, object]:
     )
 
 
-def _human_gate() -> dict[str, object]:
-    return evaluate_accounting_human_review_gate_v1(
+def _sandbox_release_gate() -> dict[str, object]:
+    return evaluate_accounting_sandbox_release_gate_v1(
         gate_input={
             "capability_ref": "bank_reconciliation_basic",
-            "reviewer_role": "operator",
+            "responsible_role": "owner_or_accountant",
             "decision": "APPROVED",
             "scope_ok": True,
             "evidence_ok": True,
@@ -41,7 +41,7 @@ def _human_gate() -> dict[str, object]:
 def _sandbox_input() -> dict[str, object]:
     return {
         "bank_contract": _bank_contract(),
-        "human_review_gate": _human_gate(),
+        "sandbox_release_gate": _sandbox_release_gate(),
         "fixture_refs": ["bank_statement_fixture", "internal_ledger_fixture"],
         "live_use_requested": False,
     }
@@ -71,16 +71,16 @@ def test_blocks_when_bank_contract_is_not_ready() -> None:
     assert result["runtime_authorized"] is False
 
 
-def test_blocks_when_human_review_gate_did_not_pass() -> None:
+def test_blocks_when_sandbox_release_gate_did_not_pass() -> None:
     sandbox_input = _sandbox_input()
-    human_gate = _human_gate()
-    human_gate["status"] = "PENDING"
-    sandbox_input["human_review_gate"] = human_gate
+    sandbox_release_gate = _sandbox_release_gate()
+    sandbox_release_gate["status"] = "PENDING"
+    sandbox_input["sandbox_release_gate"] = sandbox_release_gate
 
     result = build_bank_reconciliation_sandbox_contract_v1(sandbox_input=sandbox_input)  # type: ignore[arg-type]
 
-    assert result["status"] == "BLOCKED_HUMAN_REVIEW_NOT_PASSED"
-    assert result["next_allowed_action"] == "complete_human_review_gate_first"
+    assert result["status"] == "BLOCKED_SANDBOX_RELEASE_GATE_NOT_PASSED"
+    assert result["next_allowed_action"] == "complete_sandbox_release_gate_first"
 
 
 def test_blocks_live_use_request() -> None:

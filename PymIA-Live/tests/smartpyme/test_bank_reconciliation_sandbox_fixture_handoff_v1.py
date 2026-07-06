@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 
-from pymia.smartpyme.accounting_human_review_gate_v1 import evaluate_accounting_human_review_gate_v1
+from pymia.smartpyme.accounting_sandbox_release_gate_v1 import evaluate_accounting_sandbox_release_gate_v1
 from pymia.smartpyme.bank_reconciliation_contract_v1 import build_bank_reconciliation_contract_v1
 from pymia.smartpyme.bank_reconciliation_sandbox_contract_v1 import build_bank_reconciliation_sandbox_contract_v1
 from pymia.smartpyme.bank_reconciliation_sandbox_fixture_handoff_v1 import (
@@ -51,11 +51,11 @@ def _base_contract() -> dict[str, object]:
     )
 
 
-def _human_gate() -> dict[str, object]:
-    return evaluate_accounting_human_review_gate_v1(
+def _sandbox_release_gate() -> dict[str, object]:
+    return evaluate_accounting_sandbox_release_gate_v1(
         gate_input={
             "capability_ref": "bank_reconciliation_basic",
-            "reviewer_role": "operator",
+            "responsible_role": "owner_or_accountant",
             "decision": "APPROVED",
             "scope_ok": True,
             "evidence_ok": True,
@@ -69,7 +69,7 @@ def _handoff_input() -> dict[str, object]:
     return {
         "fixture_model_result": _fixture_model(),
         "base_contract": _base_contract(),
-        "human_gate": _human_gate(),
+        "sandbox_release_gate": _sandbox_release_gate(),
         "live_use_requested": False,
     }
 
@@ -121,16 +121,16 @@ def test_blocks_base_contract_not_ready() -> None:
     assert result["next_allowed_action"] == "complete_base_contract_first"
 
 
-def test_blocks_human_gate_not_passed() -> None:
+def test_blocks_sandbox_release_gate_not_passed() -> None:
     handoff_input = _handoff_input()
-    human_gate = _human_gate()
-    human_gate["status"] = "PENDING"
-    handoff_input["human_gate"] = human_gate
+    sandbox_release_gate = _sandbox_release_gate()
+    sandbox_release_gate["status"] = "PENDING"
+    handoff_input["sandbox_release_gate"] = sandbox_release_gate
 
     result = build_bank_reconciliation_sandbox_fixture_handoff_v1(handoff_input=handoff_input)  # type: ignore[arg-type]
 
-    assert result["status"] == "BLOCKED_HUMAN_GATE"
-    assert result["next_allowed_action"] == "complete_human_gate_first"
+    assert result["status"] == "BLOCKED_SANDBOX_RELEASE_GATE"
+    assert result["next_allowed_action"] == "complete_sandbox_release_gate_first"
 
 
 def test_blocks_live_use_request() -> None:

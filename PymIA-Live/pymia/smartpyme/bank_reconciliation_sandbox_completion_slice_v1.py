@@ -4,9 +4,9 @@ import hashlib
 from pathlib import Path
 from typing import Final, TypedDict
 
-from pymia.smartpyme.accounting_human_review_gate_v1 import (
+from pymia.smartpyme.accounting_sandbox_release_gate_v1 import (
     GateResult,
-    evaluate_accounting_human_review_gate_v1,
+    evaluate_accounting_sandbox_release_gate_v1,
 )
 from pymia.smartpyme.bank_reconciliation_contract_v1 import (
     BankReconciliationContractResultV1,
@@ -49,7 +49,7 @@ class BankReconciliationSandboxCompletionSliceV1(TypedDict):
     runtime_authorized: bool
     production_allowed: bool
     base_contract: BankReconciliationContractResultV1
-    human_review_gate: GateResult
+    sandbox_release_gate: GateResult
     fixture_model: FixtureBundleResultV1
     fixture_handoff: HandoffResult
     sandbox_contract: SandboxResult
@@ -76,10 +76,10 @@ def run_bank_reconciliation_sandbox_completion_slice_v1(output_dir: str | Path) 
             "received_fields": ["fecha", "importe", "referencia"],
         }
     )
-    human_review_gate = evaluate_accounting_human_review_gate_v1(
+    sandbox_release_gate = evaluate_accounting_sandbox_release_gate_v1(
         gate_input={
             "capability_ref": "bank_reconciliation_basic",
-            "reviewer_role": "operator",
+            "responsible_role": "owner_or_accountant",
             "decision": "APPROVED",
             "scope_ok": True,
             "evidence_ok": True,
@@ -149,7 +149,7 @@ def run_bank_reconciliation_sandbox_completion_slice_v1(output_dir: str | Path) 
         handoff_input={
             "fixture_model_result": fixture_model,
             "base_contract": base_contract,
-            "human_gate": human_review_gate,
+            "sandbox_release_gate": sandbox_release_gate,
             "live_use_requested": False,
         }
     )
@@ -157,7 +157,7 @@ def run_bank_reconciliation_sandbox_completion_slice_v1(output_dir: str | Path) 
         sandbox_contract = build_bank_reconciliation_sandbox_contract_v1(
             sandbox_input={
                 "bank_contract": base_contract,
-                "human_review_gate": human_review_gate,
+                "sandbox_release_gate": sandbox_release_gate,
                 "fixture_refs": [],
                 "live_use_requested": False,
             }
@@ -183,7 +183,7 @@ def run_bank_reconciliation_sandbox_completion_slice_v1(output_dir: str | Path) 
     owner_summary = _build_owner_visible_summary(review_packet=review_packet)
     operator_notes = _build_operator_notes(
         base_contract=base_contract,
-        human_review_gate=human_review_gate,
+        sandbox_release_gate=sandbox_release_gate,
         fixture_model=fixture_model,
         fixture_handoff=fixture_handoff,
         sandbox_contract=sandbox_contract,
@@ -207,7 +207,7 @@ def run_bank_reconciliation_sandbox_completion_slice_v1(output_dir: str | Path) 
         "runtime_authorized": False,
         "production_allowed": False,
         "base_contract": base_contract,
-        "human_review_gate": human_review_gate,
+        "sandbox_release_gate": sandbox_release_gate,
         "fixture_model": fixture_model,
         "fixture_handoff": fixture_handoff,
         "sandbox_contract": sandbox_contract,
@@ -249,7 +249,7 @@ def _build_owner_visible_summary(*, review_packet: ReviewPacketResult) -> str:
 def _build_operator_notes(
     *,
     base_contract: BankReconciliationContractResultV1,
-    human_review_gate: GateResult,
+    sandbox_release_gate: GateResult,
     fixture_model: FixtureBundleResultV1,
     fixture_handoff: HandoffResult,
     sandbox_contract: SandboxResult,
@@ -258,7 +258,7 @@ def _build_operator_notes(
     return [
         "BANK_RECONCILIATION_SANDBOX_COMPLETION_SLICE_V1",
         f"base_contract_status={base_contract['status']}",
-        f"human_review_gate_status={human_review_gate['status']}",
+        f"sandbox_release_gate_status={sandbox_release_gate['status']}",
         f"fixture_model_status={fixture_model['status']}",
         f"fixture_handoff_status={fixture_handoff['status']}",
         f"sandbox_contract_status={sandbox_contract['status']}",
@@ -266,7 +266,7 @@ def _build_operator_notes(
         "Use as sandbox review packet only; do not treat as final bank reconciliation.",
         "No bank API was called.",
         "No source files were read or parsed in this completion slice.",
-        "Human accounting review remains mandatory before any client-facing accounting interpretation.",
+        "Accounting sandbox release remains mandatory before any client-facing accounting interpretation.",
     ]
 
 

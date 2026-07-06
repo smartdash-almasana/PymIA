@@ -4,9 +4,9 @@ import hashlib
 from pathlib import Path
 from typing import Final, TypedDict
 
-from pymia.smartpyme.accounting_human_review_gate_v1 import (
+from pymia.smartpyme.accounting_sandbox_release_gate_v1 import (
     GateResult,
-    evaluate_accounting_human_review_gate_v1,
+    evaluate_accounting_sandbox_release_gate_v1,
 )
 from pymia.smartpyme.accounting_workpaper_contract_v1 import (
     AccountingWorkpaperContractResultV1,
@@ -104,7 +104,7 @@ def run_accounting_workpaper_completion_slice_v1(output_dir: str | Path) -> Acco
             },
         }
     )
-    human_review_gate = evaluate_accounting_human_review_gate_v1(
+    human_review_gate = evaluate_accounting_sandbox_release_gate_v1(
         gate_input={
             "capability_ref": "accounting_workpaper_basic",
             "reviewer_role": "operator",

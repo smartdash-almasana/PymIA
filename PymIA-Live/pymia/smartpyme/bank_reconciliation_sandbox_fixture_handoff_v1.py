@@ -8,7 +8,7 @@ Status = Literal[
     "READY",
     "BLOCKED_FIXTURE_MODEL",
     "BLOCKED_BASE_CONTRACT",
-    "BLOCKED_HUMAN_GATE",
+    "BLOCKED_SANDBOX_RELEASE_GATE",
     "BLOCKED_LIVE_USE",
     "INVALID_INPUT",
 ]
@@ -17,7 +17,7 @@ Status = Literal[
 class HandoffInput(TypedDict):
     fixture_model_result: dict[str, object]
     base_contract: dict[str, object]
-    human_gate: dict[str, object]
+    sandbox_release_gate: dict[str, object]
     live_use_requested: bool
 
 
@@ -38,9 +38,9 @@ def build_bank_reconciliation_sandbox_fixture_handoff_v1(*, handoff_input: Hando
 
     fixture_model = handoff_input.get("fixture_model_result")
     base_contract = handoff_input.get("base_contract")
-    human_gate = handoff_input.get("human_gate")
+    sandbox_release_gate = handoff_input.get("sandbox_release_gate")
 
-    if not isinstance(fixture_model, dict) or not isinstance(base_contract, dict) or not isinstance(human_gate, dict):
+    if not isinstance(fixture_model, dict) or not isinstance(base_contract, dict) or not isinstance(sandbox_release_gate, dict):
         return _result("INVALID_INPUT", None, "fix_invalid_handoff_components", ["Invalid handoff components."])
     if handoff_input.get("live_use_requested") is True:
         return _result("BLOCKED_LIVE_USE", None, "downgrade_to_fixture_scope", ["Live use is blocked."])
@@ -48,8 +48,8 @@ def build_bank_reconciliation_sandbox_fixture_handoff_v1(*, handoff_input: Hando
         return _result("BLOCKED_FIXTURE_MODEL", None, "complete_fixture_model_first", ["Fixture model is not valid."])
     if base_contract.get("status") != "READY_FOR_REVIEW":
         return _result("BLOCKED_BASE_CONTRACT", None, "complete_base_contract_first", ["Base contract is not ready."])
-    if human_gate.get("status") != "PASS":
-        return _result("BLOCKED_HUMAN_GATE", None, "complete_human_gate_first", ["Human gate has not passed."])
+    if sandbox_release_gate.get("status") != "PASS":
+        return _result("BLOCKED_SANDBOX_RELEASE_GATE", None, "complete_sandbox_release_gate_first", ["Sandbox release gate has not passed."])
 
     refs = fixture_model.get("handoff_refs")
     if not isinstance(refs, list) or not all(isinstance(item, str) for item in refs):
@@ -57,7 +57,7 @@ def build_bank_reconciliation_sandbox_fixture_handoff_v1(*, handoff_input: Hando
 
     sandbox_input = {
         "bank_contract": base_contract,
-        "human_review_gate": human_gate,
+        "sandbox_release_gate": sandbox_release_gate,
         "fixture_refs": [item.strip() for item in refs if item.strip()],
         "live_use_requested": False,
     }

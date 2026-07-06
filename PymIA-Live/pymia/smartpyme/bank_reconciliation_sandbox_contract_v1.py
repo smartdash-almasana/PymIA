@@ -7,7 +7,7 @@ CAPABILITY_REF = "service_1_bank_reconciliation_sandbox_contract_v1"
 Status = Literal[
     "READY_FOR_SANDBOX_CONTRACT",
     "BLOCKED_BANK_CONTRACT_NOT_READY",
-    "BLOCKED_HUMAN_REVIEW_NOT_PASSED",
+    "BLOCKED_SANDBOX_RELEASE_GATE_NOT_PASSED",
     "MISSING_FIXTURES",
     "BLOCKED_LIVE_USE",
     "INVALID_INPUT",
@@ -16,7 +16,7 @@ Status = Literal[
 
 class SandboxInput(TypedDict):
     bank_contract: dict[str, object]
-    human_review_gate: dict[str, object]
+    sandbox_release_gate: dict[str, object]
     fixture_refs: list[str]
     live_use_requested: bool
 
@@ -44,14 +44,14 @@ def build_bank_reconciliation_sandbox_contract_v1(*, sandbox_input: SandboxInput
     clean_fixtures = [item.strip() for item in fixture_refs if item.strip()]
     missing_fixtures = [item for item in required_fixtures if item not in clean_fixtures]
     bank_contract = sandbox_input.get("bank_contract")
-    human_review_gate = sandbox_input.get("human_review_gate")
+    sandbox_release_gate = sandbox_input.get("sandbox_release_gate")
 
     if sandbox_input.get("live_use_requested") is True:
         return _result("BLOCKED_LIVE_USE", clean_fixtures, missing_fixtures, False, "downgrade_to_fixture_scope", ["Live use is blocked."])
     if not isinstance(bank_contract, dict) or bank_contract.get("status") != "READY_FOR_REVIEW":
         return _result("BLOCKED_BANK_CONTRACT_NOT_READY", clean_fixtures, missing_fixtures, False, "complete_bank_contract_first", ["Bank contract is not ready."])
-    if not isinstance(human_review_gate, dict) or human_review_gate.get("status") != "PASS":
-        return _result("BLOCKED_HUMAN_REVIEW_NOT_PASSED", clean_fixtures, missing_fixtures, False, "complete_human_review_gate_first", ["Human review gate has not passed."])
+    if not isinstance(sandbox_release_gate, dict) or sandbox_release_gate.get("status") != "PASS":
+        return _result("BLOCKED_SANDBOX_RELEASE_GATE_NOT_PASSED", clean_fixtures, missing_fixtures, False, "complete_sandbox_release_gate_first", ["Sandbox release gate has not passed."])
     if missing_fixtures:
         return _result("MISSING_FIXTURES", clean_fixtures, missing_fixtures, False, "provide_required_fixtures", ["Required fixtures are missing."])
 
@@ -113,8 +113,8 @@ def _owner_summary(status: str, missing_fixture_refs: list[str]) -> str:
         return "Faltan fixtures obligatorios: " + ", ".join(missing_fixture_refs) + "."
     if status == "BLOCKED_BANK_CONTRACT_NOT_READY":
         return "Primero debe quedar listo el contrato base de conciliación bancaria."
-    if status == "BLOCKED_HUMAN_REVIEW_NOT_PASSED":
-        return "Primero debe aprobarse la puerta humana contable."
+    if status == "BLOCKED_SANDBOX_RELEASE_GATE_NOT_PASSED":
+        return "Primero debe aprobarse la puerta de release sandbox contable."
     if status == "BLOCKED_LIVE_USE":
         return "El uso con datos reales está bloqueado para este contrato sandbox."
     return "El input del contrato sandbox es inválido."
