@@ -206,7 +206,7 @@ def test_preserves_security_flags_and_declared_not_validated_status() -> None:
     assert result.schema_version == SCHEMA_VERSION
     assert result.service_name == "SERVICE_1"
     assert result.runtime_authorized is False
-    assert result.human_review_required is True
+    assert result.owner_confirmation_required is True
     assert result.reexecution_authorized is False
     assert result.recalculation_authorized is False
     assert result.owner_answer_validation_status == OWNER_ANSWER_VALIDATION_STATUS_DECLARED_NOT_VALIDATED
@@ -227,6 +227,7 @@ def test_to_dict_serializes_answer_and_target() -> None:
         "sheet_name": "Ventas",
         "column_name": "Total",
     }
+    assert data["owner_confirmation_required"] is True
     assert data["owner_column_confirmation_answer"]["owner_answer_text"] == "Sí, correcto."
     assert data["owner_column_confirmation_answer"]["outcome"] == "CONFIRMED_COMPUTATIONAL"
     assert data["metadata"] == {"question_ref": "q1"}

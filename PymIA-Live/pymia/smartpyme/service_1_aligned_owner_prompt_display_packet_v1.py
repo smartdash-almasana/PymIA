@@ -31,7 +31,7 @@ class Service1AlignedOwnerPromptDisplayItemV1:
     allowed_owner_responses: tuple[str, ...]
     operator_note: str
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     persistence_authorized: bool
@@ -41,6 +41,10 @@ class Service1AlignedOwnerPromptDisplayItemV1:
         data = asdict(self)
         data["allowed_owner_responses"] = list(self.allowed_owner_responses)
         return data
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
 
 @dataclass(frozen=True)
@@ -58,7 +62,7 @@ class Service1AlignedOwnerPromptDisplayPacketV1:
     blocked_reason: str | None
     unaligned_prompt_targets: tuple[str, ...]
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     persistence_authorized: bool
@@ -70,6 +74,10 @@ class Service1AlignedOwnerPromptDisplayPacketV1:
         data["items"] = [item.to_dict() for item in self.items]
         data["unaligned_prompt_targets"] = list(self.unaligned_prompt_targets)
         return data
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
 
 def _now_iso() -> str:
@@ -116,7 +124,7 @@ def build_service_1_aligned_owner_prompt_display_packet_v1(
                 allowed_owner_responses=prompt.allowed_owner_responses,
                 operator_note="Registrar la respuesta usando este question_ref. No recalcular ni reejecutar automaticamente.",
                 runtime_authorized=False,
-                human_review_required=True,
+                owner_confirmation_required=True,
                 reexecution_authorized=False,
                 recalculation_authorized=False,
                 persistence_authorized=False,
@@ -138,7 +146,7 @@ def build_service_1_aligned_owner_prompt_display_packet_v1(
         blocked_reason=blocked_reason,
         unaligned_prompt_targets=alignment.unaligned_prompt_targets,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         persistence_authorized=False,

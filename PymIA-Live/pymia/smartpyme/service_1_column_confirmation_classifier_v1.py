@@ -56,7 +56,7 @@ class Service1ColumnConfirmationClassificationV1:
     parsed_target_ref: ColumnConfirmationTargetRefV1
     owner_column_confirmation_answer: OwnerColumnConfirmationAnswer
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     owner_answer_validation_status: str
@@ -67,6 +67,10 @@ class Service1ColumnConfirmationClassificationV1:
         data = asdict(self)
         data["owner_column_confirmation_answer"] = self.owner_column_confirmation_answer.model_dump()
         return data
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
 
 def _now_iso() -> str:
@@ -341,7 +345,7 @@ def classify_owner_column_confirmation_answer(
         parsed_target_ref=target,
         owner_column_confirmation_answer=answer,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         owner_answer_validation_status=OWNER_ANSWER_VALIDATION_STATUS_DECLARED_NOT_VALIDATED,

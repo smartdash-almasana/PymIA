@@ -35,10 +35,14 @@ class Service1OwnerReentryClosedLoopV1:
     confirmed_columns_patch: dict[str, Any]
     operator_rerun_required: bool
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -109,6 +113,7 @@ def build_service_1_question_bundle_from_column_confirmation_packet_v1(*, packet
         questions.append(question)
         question_ref_by_question_id[question_id] = question.question_ref
     empty = build_service_1_question_bundle_v1(case_id=case_id, tenant_id=tenant_id, intake_id=intake_id, run_id=run_id)
+    owner_confirmation_required = True
     bundle = Service1QuestionBundleV1(
         schema_version=empty.schema_version,
         service_name=empty.service_name,
@@ -119,7 +124,7 @@ def build_service_1_question_bundle_from_column_confirmation_packet_v1(*, packet
         questions=tuple(questions),
         selected_next_question_ref=questions[0].question_ref if questions else None,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=owner_confirmation_required,
         created_at=empty.created_at,
         metadata={"origin": SCHEMA_VERSION},
     )
@@ -155,7 +160,7 @@ def _patch_from_projection(projection: Any) -> dict[str, Any]:
         "patch_type": "OWNER_DECLARED_COLUMN_CONFIRMATION_PATCH",
         "status": "DECLARED_NOT_VALIDATED",
         "runtime_authorized": False,
-        "human_review_required": True,
+        "owner_confirmation_required": True,
         "columns": columns,
     }
 
@@ -203,7 +208,7 @@ def run_service_1_owner_reentry_minimal_closed_loop_v1(*, packet: dict[str, Any]
         confirmed_columns_patch=_patch_from_projection(projection),
         operator_rerun_required=status == STATUS_READY_FOR_OPERATOR_RERUN,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         metadata={"hardening_scope": "S1_FULL_ASSISTED_V1_HARDENING", "does_not_reopen_full_assisted_v1_closure": True},

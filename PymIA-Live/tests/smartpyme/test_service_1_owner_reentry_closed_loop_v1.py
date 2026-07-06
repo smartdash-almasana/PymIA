@@ -51,7 +51,7 @@ def test_builds_question_bundle_from_cli_column_confirmation_packet() -> None:
     assert len(bundle.questions) == 2
     assert set(mapping) == {"col_confirm_001", "col_confirm_002"}
     assert bundle.runtime_authorized is False
-    assert bundle.human_review_required is True
+    assert bundle.owner_confirmation_required is True
 
 
 def test_closed_loop_projects_partial_owner_answers(tmp_path) -> None:
@@ -92,5 +92,5 @@ def test_closed_loop_ready_for_operator_rerun_when_all_answers_present(tmp_path)
     assert result.persisted_answer_count == 2
     assert result.operator_rerun_required is True
     assert result.runtime_authorized is False
-    assert result.human_review_required is True
+    assert result.owner_confirmation_required is True
     assert result.metadata["does_not_reopen_full_assisted_v1_closure"] is True

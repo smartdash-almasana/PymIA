@@ -41,11 +41,15 @@ class Service1OwnerAnswerReentryV1:
     selected_question: Service1QuestionV1 | None
     blocked_reason: str | None
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     created_at: str
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -91,6 +95,10 @@ def _bundle_to_object(bundle: Service1QuestionBundleV1 | dict[str, Any]) -> Serv
         for item in bundle.get("questions", [])
     )
 
+    owner_confirmation_required = bool(
+        bundle.get("owner_confirmation_required", bundle.get("human_review_required", True))
+    )
+
     return Service1QuestionBundleV1(
         schema_version=_required_text(bundle.get("schema_version", ""), field_name="schema_version"),
         service_name=_required_text(bundle.get("service_name", ""), field_name="service_name"),
@@ -101,7 +109,7 @@ def _bundle_to_object(bundle: Service1QuestionBundleV1 | dict[str, Any]) -> Serv
         questions=questions,
         selected_next_question_ref=bundle.get("selected_next_question_ref"),
         runtime_authorized=bool(bundle.get("runtime_authorized", False)),
-        human_review_required=bool(bundle.get("human_review_required", True)),
+        owner_confirmation_required=owner_confirmation_required,
         created_at=_required_text(bundle.get("created_at", ""), field_name="created_at"),
         metadata=dict(bundle.get("metadata") or {}),
     )
@@ -135,7 +143,7 @@ def _blocked_packet(
         selected_question=selected_question,
         blocked_reason=blocked_reason,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         created_at=_now_iso(),
@@ -220,7 +228,7 @@ def bind_owner_answer_for_service_1_reentry_v1(
         selected_question=selected_question,
         blocked_reason=None,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         created_at=_now_iso(),

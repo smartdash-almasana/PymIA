@@ -61,7 +61,7 @@ class Service1QuestionBundleV1:
     questions: tuple[Service1QuestionV1, ...]
     selected_next_question_ref: str | None
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     created_at: str
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -69,6 +69,10 @@ class Service1QuestionBundleV1:
         data = asdict(self)
         data["questions"] = [question.to_dict() for question in self.questions]
         return data
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
 
 def _now_iso() -> str:
@@ -312,7 +316,7 @@ def build_service_1_question_bundle_v1(
         questions=tuple(deduped),
         selected_next_question_ref=selected_next_question_ref,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         created_at=_now_iso(),
         metadata=dict(metadata or {}),
     )

@@ -78,7 +78,7 @@ def test_bundle_extracts_column_confirmation_questions_first() -> None:
     assert bundle.questions[0].answer_type == ANSWER_TYPE_CONFIRM_COLUMN_ROLE
     assert bundle.selected_next_question_ref == bundle.questions[0].question_ref
     assert bundle.runtime_authorized is False
-    assert bundle.human_review_required is True
+    assert bundle.owner_confirmation_required is True
 
 
 def test_bundle_extracts_report_next_questions_with_stable_refs() -> None:
@@ -155,6 +155,8 @@ def test_bundle_is_serializable_for_future_persistence() -> None:
     assert data["schema_version"] == SCHEMA_VERSION
     assert data["questions"][0]["question_ref"] == "service_1:owner_question:owner_axis_margin"
     assert data["selected_next_question_ref"] == data["questions"][0]["question_ref"]
+    assert data["owner_confirmation_required"] is True
+    assert "human_review_required" not in data
 
 
 def test_empty_sources_return_empty_bundle_without_authorizing_runtime() -> None:
@@ -168,4 +170,4 @@ def test_empty_sources_return_empty_bundle_without_authorizing_runtime() -> None
     assert bundle.questions == ()
     assert bundle.selected_next_question_ref is None
     assert bundle.runtime_authorized is False
-    assert bundle.human_review_required is True
+    assert bundle.owner_confirmation_required is True

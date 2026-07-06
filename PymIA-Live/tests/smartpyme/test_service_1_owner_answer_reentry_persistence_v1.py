@@ -54,7 +54,7 @@ def test_persists_accepted_reentry_owner_answer_record(tmp_path: Path) -> None:
     assert persistence.blocked_reason is None
     assert persistence.answer_id == reentry_packet.owner_answer_record.answer_id
     assert persistence.runtime_authorized is False
-    assert persistence.human_review_required is True
+    assert persistence.owner_confirmation_required is True
     assert persistence.reexecution_authorized is False
     assert persistence.recalculation_authorized is False
 
@@ -102,7 +102,7 @@ def test_blocks_reentry_packet_that_was_not_accepted(tmp_path: Path) -> None:
         selected_question=accepted.selected_question,
         blocked_reason="TEST_BLOCK",
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         created_at=accepted.created_at,
@@ -135,7 +135,7 @@ def test_blocks_accepted_packet_without_owner_answer_record(tmp_path: Path) -> N
         selected_question=accepted.selected_question,
         blocked_reason=None,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         created_at=accepted.created_at,
@@ -178,7 +178,7 @@ def test_persistence_dataclass_allows_blocked_packet_serialization() -> None:
         persisted_path=None,
         blocked_reason=PERSISTENCE_BLOCK_REENTRY_NOT_ACCEPTED,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         created_at="2026-01-01T00:00:00+00:00",

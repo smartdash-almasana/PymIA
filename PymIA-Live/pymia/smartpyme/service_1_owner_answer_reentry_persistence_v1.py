@@ -36,11 +36,15 @@ class Service1OwnerAnswerReentryPersistenceV1:
     persisted_path: str | None
     blocked_reason: str | None
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     created_at: str
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -73,7 +77,7 @@ def _blocked_packet(
         persisted_path=None,
         blocked_reason=blocked_reason,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         created_at=_now_iso(),
@@ -142,7 +146,7 @@ def persist_service_1_owner_answer_reentry_v1(
         persisted_path=str(persisted_path),
         blocked_reason=None,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         created_at=_now_iso(),

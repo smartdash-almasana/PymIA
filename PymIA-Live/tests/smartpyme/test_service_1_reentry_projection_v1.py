@@ -79,7 +79,7 @@ def test_projects_no_answers_as_all_pending(tmp_path: Path) -> None:
     assert projection.pending_question_refs == tuple(question.question_ref for question in bundle.questions)
     assert projection.selected_next_pending_question_ref == bundle.questions[0].question_ref
     assert projection.runtime_authorized is False
-    assert projection.human_review_required is True
+    assert projection.owner_confirmation_required is True
     assert projection.reexecution_authorized is False
     assert projection.recalculation_authorized is False
 
@@ -244,7 +244,7 @@ def test_projection_respects_manual_question_status_but_does_not_mutate_it(tmp_p
         questions=(question,),
         selected_next_question_ref=question.question_ref,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         created_at=bundle.created_at,
         metadata={},
     )

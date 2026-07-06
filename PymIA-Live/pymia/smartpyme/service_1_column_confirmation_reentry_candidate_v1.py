@@ -53,10 +53,14 @@ class Service1ColumnConfirmationReentryCandidateV1:
     proposed_role: str | None
     owner_answer_validation_status: str | None
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -144,7 +148,7 @@ def _base_packet(
         proposed_role=proposed_role,
         owner_answer_validation_status=owner_answer_validation_status,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         metadata=dict(metadata or {}),

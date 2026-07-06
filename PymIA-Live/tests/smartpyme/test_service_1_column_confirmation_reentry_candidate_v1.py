@@ -45,7 +45,7 @@ def _projected_question(**overrides: object) -> Service1ProjectedQuestionV1:
 
 def _assert_safety_flags(result: Service1ColumnConfirmationReentryCandidateV1) -> None:
     assert result.runtime_authorized is False
-    assert result.human_review_required is True
+    assert result.owner_confirmation_required is True
     assert result.reexecution_authorized is False
     assert result.recalculation_authorized is False
 

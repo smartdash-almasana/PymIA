@@ -55,10 +55,14 @@ class Service1CaseReentryReadModelV1:
     answers: tuple[Service1ReentryAnswerViewV1, ...]
     storage_path: str | None
     runtime_authorized: bool
-    human_review_required: bool
+    owner_confirmation_required: bool
     reexecution_authorized: bool
     recalculation_authorized: bool
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.owner_confirmation_required
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -107,7 +111,7 @@ def _empty_model(
         answers=(),
         storage_path=storage_path,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         metadata={"storage_dir": str(Path(storage_dir))} | dict(metadata or {}),
@@ -240,7 +244,7 @@ def load_service_1_case_reentry_read_model_v1(
         answers=answers,
         storage_path=str(owner_answers_path),
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         reexecution_authorized=False,
         recalculation_authorized=False,
         metadata={"storage_dir": str(Path(storage_dir))} | dict(metadata or {}),

@@ -86,7 +86,7 @@ def test_display_packet_question_ref_binds_owner_answer_for_reentry() -> None:
     assert reentry_packet.owner_answer_record.metadata["question_text"] == question_bundle.questions[0].text
     assert reentry_packet.owner_answer_record.metadata["owner_answer_validation_status"] == "DECLARED_NOT_VALIDATED"
     assert reentry_packet.runtime_authorized is False
-    assert reentry_packet.human_review_required is True
+    assert reentry_packet.owner_confirmation_required is True
     assert reentry_packet.reexecution_authorized is False
     assert reentry_packet.recalculation_authorized is False
 

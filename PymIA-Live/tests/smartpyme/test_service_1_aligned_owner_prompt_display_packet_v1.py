@@ -122,14 +122,17 @@ def test_metadata_flags_and_to_dict_are_stable() -> None:
 
     assert packet.metadata == {"delivery_surface": "operator_cli"}
     assert packet.runtime_authorized is False
-    assert packet.human_review_required is True
+    assert packet.owner_confirmation_required is True
     assert packet.reexecution_authorized is False
     assert packet.recalculation_authorized is False
     assert packet.persistence_authorized is False
     assert packet.items[0].metadata["delivery_surface"] == "operator_cli"
     assert packet.items[0].runtime_authorized is False
+    assert packet.items[0].owner_confirmation_required is True
     data = packet.to_dict()
     assert isinstance(data["items"], list)
+    assert data["owner_confirmation_required"] is True
+    assert data["items"][0]["owner_confirmation_required"] is True
     assert data["items"][0]["allowed_owner_responses"] == ["SÍ", "NO", "TU_RESPUESTA"]
 
 

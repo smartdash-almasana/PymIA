@@ -68,7 +68,7 @@ def test_loads_persisted_service_1_reentry_answers(tmp_path: Path) -> None:
     assert read_model.latest_answer.raw_owner_answer == "Caja primero."
     assert read_model.latest_answer.owner_answer_validation_status == OWNER_ANSWER_VALIDATION_DECLARED_NOT_VALIDATED
     assert read_model.runtime_authorized is False
-    assert read_model.human_review_required is True
+    assert read_model.owner_confirmation_required is True
     assert read_model.reexecution_authorized is False
     assert read_model.recalculation_authorized is False
 

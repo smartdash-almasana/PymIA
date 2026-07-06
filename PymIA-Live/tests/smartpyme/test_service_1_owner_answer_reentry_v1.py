@@ -62,7 +62,7 @@ def test_binds_owner_answer_to_pending_question_ref() -> None:
     assert packet.owner_answer_record.metadata["question_target_ref"] == "file:ventas.xlsx:sheet:Ventas:column:MetodoPago"
     assert packet.owner_answer_record.metadata["owner_answer_validation_status"] == "DECLARED_NOT_VALIDATED"
     assert packet.runtime_authorized is False
-    assert packet.human_review_required is True
+    assert packet.owner_confirmation_required is True
     assert packet.reexecution_authorized is False
     assert packet.recalculation_authorized is False
 
@@ -106,7 +106,7 @@ def test_blocks_non_pending_question_ref_without_creating_answer_record() -> Non
         questions=(answered_question,),
         selected_next_question_ref=None,
         runtime_authorized=bundle.runtime_authorized,
-        human_review_required=bundle.human_review_required,
+        owner_confirmation_required=bundle.owner_confirmation_required,
         created_at=bundle.created_at,
         metadata=bundle.metadata,
     )
