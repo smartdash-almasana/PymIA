@@ -324,7 +324,7 @@ def _validate_human_review_integration_candidate(candidate: dict[str, object]) -
         return "gate_kind_must_be_human_review_release_integration_candidate"
     if candidate.get("candidate_status") != "HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE_READY":
         return "candidate_status_must_be_ready"
-    if candidate.get("status") != "PENDING_HUMAN_REVIEW":
+    if candidate.get("status") not in {"PENDING_DELIVERY_POLICY_GUARD", "PENDING_HUMAN_REVIEW"}:
         return "status_must_be_pending_human_review"
     if candidate.get("service_name") != SERVICE_NAME:
         return "service_name_must_be_service_1"
@@ -342,7 +342,7 @@ def _validate_human_review_integration_candidate(candidate: dict[str, object]) -
         return "artifact_refs_required"
     if _clean_required_ref(candidate.get("owner_facing_summary")) is None:
         return "owner_facing_summary_required"
-    if candidate.get("human_review_required") is not True:
+    if candidate.get("delivery_policy_guard_required", candidate.get("human_review_required")) is not True:
         return "human_review_required_must_be_true"
     if candidate.get("decision_required_before_client_use") is not True:
         return "decision_required_before_client_use_must_be_true"
@@ -408,7 +408,7 @@ def _validate_signoff_result(
         return ("BLOCKED_MISSING_SIGNOFF", "signoff_type_required")
     if signoff_result.get("runtime_authorized") is not False:
         return ("BLOCKED_UNSAFE_RELEASE_FLAGS", "runtime_authorized_must_be_false")
-    if signoff_result.get("human_review_required") is not True:
+    if signoff_result.get("delivery_policy_guard_required", signoff_result.get("human_review_required")) is not True:
         return ("BLOCKED_MISSING_SIGNOFF", "human_review_required_must_be_true")
     status = _clean_required_ref(signoff_result.get("status"))
     if status is None:

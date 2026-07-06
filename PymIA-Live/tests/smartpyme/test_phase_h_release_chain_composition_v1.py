@@ -346,14 +346,14 @@ def test_phase_h_release_chain_composition_e2e_pure() -> None:
             "notes": [],
         }
     )
-    assert integration_result["status"] == "PENDING_HUMAN_REVIEW"
+    assert integration_result["status"] == "PENDING_DELIVERY_POLICY_GUARD"
     integration_candidate = integration_result["human_review_release_integration_candidate"]
     assert integration_candidate is not None
-    assert integration_candidate["status"] == "PENDING_HUMAN_REVIEW"
+    assert integration_candidate["status"] == "PENDING_DELIVERY_POLICY_GUARD"
     assert integration_candidate["runtime_authorized"] is False
 
     signoff_result = apply_service_1_human_review_signoff_v1(
-        human_review_gate=integration_candidate,
+        delivery_policy_guard=integration_candidate,
         decision=DECISION_APPROVED_FOR_DELIVERY,
         reviewer_id="operator_1",
         reviewer_notes="Revisión supervisada completa.",

@@ -60,7 +60,7 @@ def _final_owner_release_candidate() -> dict[str, object]:
         "qa_gate_status": "PASS",
         "qa_checks_passed": 1,
         "qa_checks_total": 1,
-        "delivery_status_before_signoff": "PENDING_HUMAN_REVIEW",
+        "delivery_status_before_signoff": "PENDING_DELIVERY_POLICY_GUARD",
         "delivery_status_after_signoff": "APPROVED_FOR_HUMAN_SUPERVISED_DELIVERY",
         "publishable": False,
         "final_release_authorized": True,

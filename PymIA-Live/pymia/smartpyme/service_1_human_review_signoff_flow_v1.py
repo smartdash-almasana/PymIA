@@ -36,7 +36,7 @@ class Service1HumanReviewSignoffV1:
     status: str
     decision: str
     reviewer_id: str
-    reviewer_role: str
+    policy_guard_agent: str
     case_id: str | None
     delivery_status_before: str | None
     delivery_status_after: str
@@ -45,7 +45,7 @@ class Service1HumanReviewSignoffV1:
     correction_required: bool
     delivery_allowed_after_signoff: bool
     runtime_authorized: bool
-    human_review_required: bool
+    delivery_policy_guard_required: bool
     autonomous_use_authorized: bool
     created_at: str
     blocked_claims: tuple[str, ...]
@@ -55,6 +55,14 @@ class Service1HumanReviewSignoffV1:
         data = asdict(self)
         data["blocked_claims"] = list(self.blocked_claims)
         return data
+
+    @property
+    def reviewer_role(self) -> str:
+        return self.policy_guard_agent
+
+    @property
+    def human_review_required(self) -> bool:
+        return self.delivery_policy_guard_required
 
 
 def _now_iso() -> str:
@@ -87,7 +95,7 @@ def _status_for_decision(decision: str) -> tuple[str, str, bool, bool]:
     return STATUS_BLOCKED, "BLOCKED_BY_HUMAN_REVIEW", False, False
 
 
-def _rejected_packet(*, decision: str, reviewer_id: str, reviewer_role: str, case_id: str | None, delivery_status_before: str | None, blocked_reason: str, blocked_claims: tuple[str, ...], reviewer_notes: str | None, metadata: dict[str, Any] | None) -> Service1HumanReviewSignoffV1:
+def _rejected_packet(*, decision: str, reviewer_id: str, policy_guard_agent: str, case_id: str | None, delivery_status_before: str | None, blocked_reason: str, blocked_claims: tuple[str, ...], reviewer_notes: str | None, metadata: dict[str, Any] | None) -> Service1HumanReviewSignoffV1:
     return Service1HumanReviewSignoffV1(
         schema_version=SCHEMA_VERSION,
         service_name=SERVICE_NAME,
@@ -95,7 +103,7 @@ def _rejected_packet(*, decision: str, reviewer_id: str, reviewer_role: str, cas
         status=STATUS_REJECTED,
         decision=decision,
         reviewer_id=reviewer_id,
-        reviewer_role=reviewer_role,
+        policy_guard_agent=policy_guard_agent,
         case_id=case_id,
         delivery_status_before=delivery_status_before,
         delivery_status_after="BLOCKED_BY_SIGNOFF_VALIDATION",
@@ -104,7 +112,7 @@ def _rejected_packet(*, decision: str, reviewer_id: str, reviewer_role: str, cas
         correction_required=True,
         delivery_allowed_after_signoff=False,
         runtime_authorized=False,
-        human_review_required=True,
+        delivery_policy_guard_required=True,
         autonomous_use_authorized=False,
         created_at=_now_iso(),
         blocked_claims=blocked_claims,
@@ -112,28 +120,35 @@ def _rejected_packet(*, decision: str, reviewer_id: str, reviewer_role: str, cas
     )
 
 
-def apply_service_1_human_review_signoff_v1(*, human_review_gate: dict[str, Any], decision: str, reviewer_id: str, reviewer_role: str | None = None, reviewer_notes: str | None = None, case_id: str | None = None, delivery_status_before: str | None = None, metadata: dict[str, Any] | None = None) -> Service1HumanReviewSignoffV1:
-    if not isinstance(human_review_gate, dict):
-        return _rejected_packet(decision=_text(decision), reviewer_id=_text(reviewer_id), reviewer_role=_text(reviewer_role) or "unknown", case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_GATE_MISSING, blocked_claims=(), reviewer_notes=reviewer_notes, metadata=metadata)
+def apply_service_1_human_review_signoff_v1(*, delivery_policy_guard: dict[str, Any] | None = None, decision: str, reviewer_id: str, policy_guard_agent: str | None = None, reviewer_notes: str | None = None, case_id: str | None = None, delivery_status_before: str | None = None, metadata: dict[str, Any] | None = None, human_review_gate: dict[str, Any] | None = None, reviewer_role: str | None = None) -> Service1HumanReviewSignoffV1:
+    gate = delivery_policy_guard if isinstance(delivery_policy_guard, dict) else human_review_gate
+    if not isinstance(gate, dict):
+        return _rejected_packet(decision=_text(decision), reviewer_id=_text(reviewer_id), policy_guard_agent=_text(policy_guard_agent) or _text(reviewer_role) or "unknown", case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_GATE_MISSING, blocked_claims=(), reviewer_notes=reviewer_notes, metadata=metadata)
 
     decision = _text(decision)
     reviewer_id = _text(reviewer_id)
-    reviewer_role = _text(reviewer_role) or _text(human_review_gate.get("reviewer_role")) or "operator_or_accountant"
+    policy_guard_agent = (
+        _text(policy_guard_agent)
+        or _text(reviewer_role)
+        or _text(gate.get("policy_guard_agent"))
+        or _text(gate.get("reviewer_role"))
+        or "policy_guard_agent"
+    )
     reviewer_notes = _text(reviewer_notes) or None
-    blocked_claims = _blocked_claims_from_gate(human_review_gate)
-    allowed = human_review_gate.get("allowed_decisions", ALLOWED_DECISIONS)
+    blocked_claims = _blocked_claims_from_gate(gate)
+    allowed = gate.get("allowed_decisions", ALLOWED_DECISIONS)
     if not isinstance(allowed, list):
         allowed = list(ALLOWED_DECISIONS)
 
-    gate_status = human_review_gate.get("status")
-    if gate_status != "PENDING_HUMAN_REVIEW":
-        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, reviewer_role=reviewer_role, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_GATE_NOT_PENDING, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
+    gate_status = gate.get("status")
+    if gate_status not in {"PENDING_DELIVERY_POLICY_GUARD", "PENDING_HUMAN_REVIEW"}:
+        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, policy_guard_agent=policy_guard_agent, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_GATE_NOT_PENDING, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
     if decision not in allowed or decision not in ALLOWED_DECISIONS:
-        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, reviewer_role=reviewer_role, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_DECISION_NOT_ALLOWED, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
+        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, policy_guard_agent=policy_guard_agent, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_DECISION_NOT_ALLOWED, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
     if not reviewer_id:
-        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, reviewer_role=reviewer_role, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_REVIEWER_MISSING, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
+        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, policy_guard_agent=policy_guard_agent, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_REVIEWER_MISSING, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
     if reviewer_notes and _contains_forbidden_claim(reviewer_notes, blocked_claims):
-        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, reviewer_role=reviewer_role, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_FORBIDDEN_CLAIM, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
+        return _rejected_packet(decision=decision, reviewer_id=reviewer_id, policy_guard_agent=policy_guard_agent, case_id=case_id, delivery_status_before=delivery_status_before, blocked_reason=REJECT_FORBIDDEN_CLAIM, blocked_claims=blocked_claims, reviewer_notes=reviewer_notes, metadata=metadata)
 
     status, delivery_status_after, correction_required, delivery_allowed = _status_for_decision(decision)
     return Service1HumanReviewSignoffV1(
@@ -143,7 +158,7 @@ def apply_service_1_human_review_signoff_v1(*, human_review_gate: dict[str, Any]
         status=status,
         decision=decision,
         reviewer_id=reviewer_id,
-        reviewer_role=reviewer_role,
+        policy_guard_agent=policy_guard_agent,
         case_id=case_id,
         delivery_status_before=delivery_status_before,
         delivery_status_after=delivery_status_after,
@@ -152,7 +167,7 @@ def apply_service_1_human_review_signoff_v1(*, human_review_gate: dict[str, Any]
         correction_required=correction_required,
         delivery_allowed_after_signoff=delivery_allowed,
         runtime_authorized=False,
-        human_review_required=True,
+        delivery_policy_guard_required=True,
         autonomous_use_authorized=False,
         created_at=_now_iso(),
         blocked_claims=blocked_claims,

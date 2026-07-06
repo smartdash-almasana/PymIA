@@ -16,10 +16,10 @@ def _gate() -> dict:
     return {
         "schema_version": "1.0",
         "service_name": "SERVICE_1",
-        "gate_type": "SERVICE_1_HUMAN_REVIEW_GATE",
-        "status": "PENDING_HUMAN_REVIEW",
-        "human_review_required": True,
-        "reviewer_role": "operator_or_accountant",
+        "gate_type": "SERVICE_1_DELIVERY_POLICY_GUARD",
+        "status": "PENDING_DELIVERY_POLICY_GUARD",
+        "delivery_policy_guard_required": True,
+        "policy_guard_agent": "policy_guard_agent",
         "decision_required_before_client_use": True,
         "runtime_authorized": False,
         "allowed_decisions": ["APPROVED_FOR_DELIVERY", "NEEDS_CORRECTION", "BLOCKED"],
@@ -36,11 +36,11 @@ def _gate() -> dict:
 
 def test_approved_signoff_allows_human_supervised_delivery_only() -> None:
     result = apply_service_1_human_review_signoff_v1(
-        human_review_gate=_gate(),
+        delivery_policy_guard=_gate(),
         decision=DECISION_APPROVED_FOR_DELIVERY,
         reviewer_id="operator_1",
         case_id="case_1",
-        delivery_status_before="READY_FOR_HUMAN_REVIEW",
+        delivery_status_before="READY_FOR_DELIVERY_POLICY_GUARD",
         reviewer_notes="Revisado para entrega controlada.",
     )
 
@@ -49,12 +49,17 @@ def test_approved_signoff_allows_human_supervised_delivery_only() -> None:
     assert result.delivery_allowed_after_signoff is True
     assert result.runtime_authorized is False
     assert result.autonomous_use_authorized is False
-    assert result.human_review_required is True
+    assert result.delivery_policy_guard_required is True
+    assert result.policy_guard_agent == "policy_guard_agent"
+    assert result.to_dict()["delivery_policy_guard_required"] is True
+    assert result.to_dict()["policy_guard_agent"] == "policy_guard_agent"
+    assert "human_review_required" not in result.to_dict()
+    assert "reviewer_role" not in result.to_dict()
 
 
 def test_needs_correction_signoff_blocks_delivery_until_fix() -> None:
     result = apply_service_1_human_review_signoff_v1(
-        human_review_gate=_gate(),
+        delivery_policy_guard=_gate(),
         decision=DECISION_NEEDS_CORRECTION,
         reviewer_id="operator_1",
         reviewer_notes="Corregir faltante de costo_unitario.",
@@ -69,7 +74,7 @@ def test_needs_correction_signoff_blocks_delivery_until_fix() -> None:
 
 def test_blocked_signoff_blocks_delivery() -> None:
     result = apply_service_1_human_review_signoff_v1(
-        human_review_gate=_gate(),
+        delivery_policy_guard=_gate(),
         decision=DECISION_BLOCKED,
         reviewer_id="accountant_1",
         reviewer_notes="No entregar por datos inconsistentes.",
@@ -83,7 +88,7 @@ def test_blocked_signoff_blocks_delivery() -> None:
 
 def test_rejects_invalid_decision() -> None:
     result = apply_service_1_human_review_signoff_v1(
-        human_review_gate=_gate(),
+        delivery_policy_guard=_gate(),
         decision="AUTO_APPROVE",
         reviewer_id="operator_1",
     )
@@ -96,7 +101,7 @@ def test_rejects_invalid_decision() -> None:
 
 def test_rejects_reviewer_notes_with_forbidden_claim() -> None:
     result = apply_service_1_human_review_signoff_v1(
-        human_review_gate=_gate(),
+        delivery_policy_guard=_gate(),
         decision=DECISION_APPROVED_FOR_DELIVERY,
         reviewer_id="operator_1",
         reviewer_notes="Aprobado como auditoria contable.",

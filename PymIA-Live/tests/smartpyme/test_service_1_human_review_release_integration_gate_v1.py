@@ -255,12 +255,12 @@ def test_ready_pending_human_review() -> None:
     candidate = result["human_review_release_integration_candidate"]
     audit_event_candidate = result["audit_event_candidate"]
     assert result["schema_version"] == SCHEMA_VERSION
-    assert result["status"] == "PENDING_HUMAN_REVIEW"
+    assert result["status"] == "PENDING_DELIVERY_POLICY_GUARD"
     assert result["blocked_reason"] is None
     assert candidate is not None
     assert candidate["gate_kind"] == GATE_KIND
     assert candidate["candidate_status"] == "HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE_READY"
-    assert candidate["status"] == "PENDING_HUMAN_REVIEW"
+    assert candidate["status"] == "PENDING_DELIVERY_POLICY_GUARD"
     assert candidate["source_pipeline_run_ref"] == "pipeline_run:001"
     assert candidate["tenant_ref"] == "tenant:pyme:001"
     assert candidate["owner_ref"] == "owner:pyme:001"
@@ -268,7 +268,8 @@ def test_ready_pending_human_review() -> None:
     assert candidate["session_ref"] == "session:s1:001"
     assert candidate["artifact_refs"] == ["artifact:001", "artifact:002"]
     assert candidate["warning_refs"] == ["warning:001"]
-    assert candidate["human_review_required"] is True
+    assert candidate["delivery_policy_guard_required"] is True
+    assert candidate["policy_guard_agent"] == "policy_guard_agent"
     assert candidate["decision_required_before_client_use"] is True
     assert candidate["publishable"] is False
     assert candidate["signoff_required"] is True
@@ -278,7 +279,7 @@ def test_ready_pending_human_review() -> None:
     assert audit_event_candidate is not None
     assert candidate["audit_event_candidate"] == audit_event_candidate
     assert audit_event_candidate["event_kind"] == "HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE_RECORDED"
-    assert audit_event_candidate["event_status"] == "PENDING_HUMAN_REVIEW"
+    assert audit_event_candidate["event_status"] == "PENDING_DELIVERY_POLICY_GUARD"
 
 
 def test_invalid_delivery_release() -> None:

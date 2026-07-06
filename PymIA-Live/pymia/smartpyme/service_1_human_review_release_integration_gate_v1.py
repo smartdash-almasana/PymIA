@@ -43,7 +43,7 @@ IntegrationDangerFlagNames = Literal[
 
 HumanReviewReleaseIntegrationStatusV1 = Literal[
     "HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE_READY",
-    "PENDING_HUMAN_REVIEW",
+    "PENDING_DELIVERY_POLICY_GUARD",
     "BLOCKED_INVALID_DELIVERY_RELEASE",
     "BLOCKED_INVALID_OWNER_PACKET",
     "BLOCKED_INVALID_ENDPOINT_BOUNDARY",
@@ -97,7 +97,7 @@ class Service1HumanReviewReleaseIntegrationAuditEventCandidateV1(TypedDict):
 class Service1HumanReviewReleaseIntegrationCandidateV1(TypedDict):
     gate_kind: Literal["HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE"]
     candidate_status: Literal["HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE_READY"]
-    status: Literal["PENDING_HUMAN_REVIEW"]
+    status: Literal["PENDING_DELIVERY_POLICY_GUARD"]
     service_name: Literal["SERVICE_1"]
     source_pipeline_run_ref: str
     tenant_ref: str
@@ -107,8 +107,8 @@ class Service1HumanReviewReleaseIntegrationCandidateV1(TypedDict):
     artifact_refs: list[str]
     warning_refs: list[str]
     owner_facing_summary: str
-    human_review_required: Literal[True]
-    reviewer_role: str
+    delivery_policy_guard_required: Literal[True]
+    policy_guard_agent: str
     decision_required_before_client_use: Literal[True]
     allowed_decisions: list[str]
     blocked_claims: list[str]
@@ -318,7 +318,7 @@ def build_service_1_human_review_release_integration_gate_v1(
     candidate: Service1HumanReviewReleaseIntegrationCandidateV1 = {
         "gate_kind": GATE_KIND,
         "candidate_status": "HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE_READY",
-        "status": "PENDING_HUMAN_REVIEW",
+        "status": "PENDING_DELIVERY_POLICY_GUARD",
         "service_name": SERVICE_NAME,
         "source_pipeline_run_ref": source_pipeline_run_ref,
         "tenant_ref": tenant_ref,
@@ -328,8 +328,8 @@ def build_service_1_human_review_release_integration_gate_v1(
         "artifact_refs": artifact_refs,
         "warning_refs": warning_refs,
         "owner_facing_summary": owner_facing_summary,
-        "human_review_required": True,
-        "reviewer_role": "operator_or_accountant",
+        "delivery_policy_guard_required": True,
+        "policy_guard_agent": "policy_guard_agent",
         "decision_required_before_client_use": True,
         "allowed_decisions": list(ALLOWED_DECISIONS),
         "blocked_claims": list(BLOCKED_CLAIMS),
@@ -356,7 +356,7 @@ def build_service_1_human_review_release_integration_gate_v1(
         "llm_authorized": False,
     }
     return _result(
-        status="PENDING_HUMAN_REVIEW",
+        status="PENDING_DELIVERY_POLICY_GUARD",
         human_review_release_integration_candidate=candidate,
         audit_event_candidate=audit_event_candidate,
         notes=_notes(
@@ -577,7 +577,7 @@ def _audit_event_candidate(
     return {
         "audit_event_kind": "AUDIT_EVENT_CANDIDATE",
         "event_kind": "HUMAN_REVIEW_RELEASE_INTEGRATION_CANDIDATE_RECORDED",
-        "event_status": "PENDING_HUMAN_REVIEW",
+        "event_status": "PENDING_DELIVERY_POLICY_GUARD",
         "owner_ref": owner_ref,
         "case_ref": case_ref,
         "service_name": SERVICE_NAME,
