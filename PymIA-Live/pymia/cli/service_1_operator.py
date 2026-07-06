@@ -667,6 +667,11 @@ def main(argv: list[str] | None = None) -> int:
                 print("- Runtime autorizado: false", flush=True)
                 print()
 
+    packet_serializable["evidence_loop_status"] = _build_loop_status(packet_serializable)
+    packet_serializable["case_record"] = _build_case_record(packet_serializable)
+    packet_serializable["owner_delivery_packet"] = _build_owner_delivery_packet(packet_serializable)
+    packet_serializable["product_gate"] = _build_product_gate(packet_serializable)
+
     # Build explicit human review gate before the final operator packet is written.
     human_review_gate = build_service_1_human_review_gate_v1(packet_serializable)
     packet_serializable["human_review_gate"] = human_review_gate
