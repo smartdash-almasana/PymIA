@@ -42,6 +42,7 @@ _README_TEXT = (
     " - first_aid_eligibility_gate.json : gate de elegibilidad First Aid (si aplica).\n"
     " - first_aid_result.json     : resultados descriptivos First Aid (si aplica).\n"
     " - first_aid_owner_summary.md: resumen First Aid para el dueno (si aplica).\n"
+    " - owner_reentry_bridge.json : estado de reentrada de respuesta del dueno (si aplica).\n"
     " - README.txt                : este archivo.\n"
     )
 
@@ -158,6 +159,15 @@ def write_service_1_case_delivery_folder_v1(
             encoding="utf-8",
         )
         files_written.append("first_aid_owner_summary.md")
+
+    # Write owner_reentry_bridge.json if present
+    owner_reentry_bridge = packet.get("owner_reentry_bridge")
+    if owner_reentry_bridge is not None:
+        (case_dir / "owner_reentry_bridge.json").write_text(
+            json.dumps(owner_reentry_bridge, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        files_written.append("owner_reentry_bridge.json")
 
     # Write README.txt
     (case_dir / "README.txt").write_text(_README_TEXT, encoding="utf-8")
