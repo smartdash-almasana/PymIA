@@ -98,6 +98,23 @@ def test_creates_case_folder(tmp_path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 1B. Sanitiza case_id para nombre de carpeta Windows-safe
+# ---------------------------------------------------------------------------
+def test_case_folder_sanitizes_windows_forbidden_chars_without_mutating_asset_id(tmp_path) -> None:
+    base_dir = tmp_path / "cases"
+    packet = _minimal_packet()
+    packet["asset"]["asset_id"] = "case:s1:owner:001"
+
+    manifest = write_service_1_case_delivery_folder_v1(packet, base_dir=str(base_dir))
+    case_dir = Path(manifest["case_dir"])
+
+    assert case_dir.exists()
+    assert case_dir.name == "case_case_s1_owner_001"
+    assert manifest["case_id"] == "case_case_s1_owner_001"
+    assert packet["asset"]["asset_id"] == "case:s1:owner:001"
+
+
+# ---------------------------------------------------------------------------
 # 2. Escribe owner_message.md
 # ---------------------------------------------------------------------------
 def test_writes_owner_message_md(tmp_path) -> None:

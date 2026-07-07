@@ -17,6 +17,20 @@ from typing import Any
 SCHEMA_VERSION = "1.0"
 SERVICE_NAME = "SERVICE_1"
 
+_WINDOWS_FORBIDDEN_PATH_CHARS = frozenset('<>:"/\\|?*')
+
+
+def _safe_case_dir_name(raw_case_id: Any) -> str:
+    """Return a filesystem-safe case directory name without changing the logical case id."""
+    text = str(raw_case_id or "unknown").strip() or "unknown"
+    sanitized = "".join(
+        "_" if char in _WINDOWS_FORBIDDEN_PATH_CHARS or ord(char) < 32 else char
+        for char in text
+    )
+    sanitized = sanitized.strip(" ._") or "unknown"
+    return f"case_{sanitized}"
+
+
 _README_TEXT = (
     "Servicio 1 — Carpeta de caso asistido local\n"
     "===========================================\n\n"
@@ -100,7 +114,7 @@ def write_service_1_case_delivery_folder_v1(
     """
     asset = packet.get("asset", {}) or {}
     asset_id = asset.get("asset_id", "unknown")
-    case_id = f"case_{asset_id}" if asset_id else "case_unknown"
+    case_id = _safe_case_dir_name(asset_id)
 
     base = Path(base_dir)
     case_dir = base / case_id
