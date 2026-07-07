@@ -27,7 +27,7 @@ No reemplaza criterio humano. No autoriza entrega autónoma.
 ## OPERATOR PRINCIPLE
 
 La IA conversa.
-PymIA computa.
+La FSM gobierna.
 Las tools ejecutan.
 Los archivos son el producto.
 El operador humano controla la entrega.
