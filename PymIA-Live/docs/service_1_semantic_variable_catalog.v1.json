@@ -1,0 +1,228 @@
+{
+  "catalog_version": "1.0",
+  "artifact_type": "service_1_semantic_variable_catalog",
+  "base_ref": "origin/main/fa5c359",
+  "status": "CATALOG_ONLY_NOT_RUNTIME",
+  "runtime_connection_allowed": false,
+  "phase_5_allowed": false,
+  "source_catalog": "PymIA-Live/docs/formula_catalog.v1.json",
+  "derivation_rule": "Unique required_variables from formula_catalog.v1.json.",
+  "variable_count": 43,
+  "variables": [
+    {
+      "variable_name": "accounts_receivable",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "amortization",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "annual_operating_cost",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "automated_time",
+      "required_data_type": "number",
+      "unit": "time"
+    },
+    {
+      "variable_name": "average_sales",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "average_stock",
+      "required_data_type": "number",
+      "unit": "quantity"
+    },
+    {
+      "variable_name": "client_direct_costs",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "client_revenue",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "client_service_costs",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "closing_index",
+      "required_data_type": "number",
+      "unit": "index"
+    },
+    {
+      "variable_name": "collected_amount",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "cost_of_goods_sold",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "costs",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "current_assets",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "current_liabilities",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "days",
+      "required_data_type": "number",
+      "unit": "time"
+    },
+    {
+      "variable_name": "depreciation",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "dpo",
+      "required_data_type": "number",
+      "unit": "time"
+    },
+    {
+      "variable_name": "dso",
+      "required_data_type": "number",
+      "unit": "time"
+    },
+    {
+      "variable_name": "ebitda",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "expected_collections",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "expected_payments",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "initial_balance",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "initial_investment",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "interest_expense",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "lead_time",
+      "required_data_type": "number",
+      "unit": "time"
+    },
+    {
+      "variable_name": "main_sku_sales",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "manual_time",
+      "required_data_type": "number",
+      "unit": "time"
+    },
+    {
+      "variable_name": "market_price",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "monthly_savings",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "net_income",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "origin_index",
+      "required_data_type": "number",
+      "unit": "index"
+    },
+    {
+      "variable_name": "origin_value",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "own_price",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "owner_decisions",
+      "required_data_type": "number",
+      "unit": "count"
+    },
+    {
+      "variable_name": "safety_stock",
+      "required_data_type": "number",
+      "unit": "quantity"
+    },
+    {
+      "variable_name": "sale_price",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "sales",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "sold_amount",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "taxes",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "total_decisions",
+      "required_data_type": "number",
+      "unit": "count"
+    },
+    {
+      "variable_name": "total_sales",
+      "required_data_type": "number",
+      "unit": "currency"
+    },
+    {
+      "variable_name": "working_capital_change",
+      "required_data_type": "number",
+      "unit": "currency"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "catalog_version": "1.0",
+  "artifact_type": "pathology_catalog_enriched",
+  "base_ref": "origin/main/fa5c359",
+  "status": "CATALOG_ONLY_NOT_RUNTIME",
+  "runtime_connection_allowed": false,
+  "phase_5_allowed": false,
+  "source_catalog": "PymIA-Live/docs/pathology_catalog.v1.json",
+  "scope_policy": {
+    "scope_fixed": true,
+    "scope_not_reopened": true,
+    "baseline_semantic_only_codes": [
+      "SAL_001",
+      "STK_001",
+      "CST_001",
+      "CSH_001"
+    ]
+  },
+  "pathologies": [
+    {
+      "pathology_code": "REN_001",
+      "name": "Margen Invisible",
+      "category": "rentabilidad",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ]
+    },
+    {
+      "pathology_code": "LIQ_001",
+      "name": "Descalce de Ventas y Cobranzas",
+      "category": "liquidez",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "sold_amount",
+        "collected_amount"
+      ]
+    },
+    {
+      "pathology_code": "SAL_001",
+      "name": "Baseline semantica de ventas",
+      "category": "ventas",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    },
+    {
+      "pathology_code": "STK_001",
+      "name": "Baseline semantica de stock",
+      "category": "inventario",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    },
+    {
+      "pathology_code": "CST_001",
+      "name": "Baseline semantica de costos",
+      "category": "costos",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    },
+    {
+      "pathology_code": "CSH_001",
+      "name": "Baseline semantica de caja",
+      "category": "caja",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    }
+  ]
+}

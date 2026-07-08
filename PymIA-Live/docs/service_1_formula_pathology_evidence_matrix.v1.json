@@ -1,0 +1,107 @@
+{
+  "catalog_version": "1.0",
+  "artifact_type": "service_1_formula_pathology_evidence_matrix",
+  "base_ref": "origin/main/fa5c359",
+  "status": "CATALOG_ONLY_NOT_RUNTIME",
+  "runtime_connection_allowed": false,
+  "phase_5_allowed": false,
+  "source_catalogs": [
+    "PymIA-Live/docs/formula_catalog.v1.json",
+    "PymIA-Live/docs/pathology_catalog.enriched.v1.json",
+    "PymIA-Live/docs/service_1_semantic_variable_catalog.v1.json"
+  ],
+  "entries": [
+    {
+      "pathology_code": "REN_001",
+      "formula_refs": [
+        "REN_001_margen_neto_real"
+      ],
+      "required_variables": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ],
+      "semantic_bindings": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "costos_directos",
+        "impuestos_y_comisiones"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true
+    },
+    {
+      "pathology_code": "LIQ_001",
+      "formula_refs": [
+        "LIQ_001_vendido_cobrado"
+      ],
+      "required_variables": [
+        "sold_amount",
+        "collected_amount"
+      ],
+      "semantic_bindings": [
+        "sold_amount",
+        "collected_amount"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "cobranzas_del_periodo",
+        "cuentas_corrientes_clientes"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true
+    },
+    {
+      "pathology_code": "SAL_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true
+    },
+    {
+      "pathology_code": "STK_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true
+    },
+    {
+      "pathology_code": "CST_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true
+    },
+    {
+      "pathology_code": "CSH_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true
+    }
+  ]
+}
