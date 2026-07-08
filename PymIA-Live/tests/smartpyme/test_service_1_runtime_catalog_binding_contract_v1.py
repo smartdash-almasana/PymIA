@@ -1,0 +1,365 @@
+"""
+Tests for SERVICE_1_RUNTIME_CATALOG_BINDING_CONTRACT_V1
+
+These tests validate the contract boundary governing:
+  pathology_code -> formula_refs -> required_variables -> required_evidence -> readiness_status
+
+This is a pure, fail-closed, non-executing contract boundary. It does not authorize
+runtime connection, mapper changes, engine changes, CLI changes, CASE_001 patching,
+JSON mutation, Phase 5, or product-ready claims.
+
+Mode: TEST ONLY (documental/catalogal validation)
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# Input artifacts consumed by the contract
+VARIABLE_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/service_1_semantic_variable_catalog.v1.json"
+ENRICHED_PATHOLOGY_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/pathology_catalog.enriched.v1.json"
+MATRIX_PATH = REPO_ROOT / "PymIA-Live/docs/service_1_formula_pathology_evidence_matrix.v1.json"
+FORMULA_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/formula_catalog.v1.json"
+
+# Contract documentation
+CONTRACT_DOC_PATH = REPO_ROOT / "docs/auditoria/SERVICE_1_RUNTIME_CATALOG_BINDING_CONTRACT_V1.md"
+TEST_PLAN_DOC_PATH = REPO_ROOT / "docs/auditoria/SERVICE_1_RUNTIME_CATALOG_BINDING_CONTRACT_TEST_PLAN_V1.md"
+
+# Fixed scope: six-code baseline
+EXPECTED_PATHOLOGY_CODES = ("REN_001", "LIQ_001", "SAL_001", "STK_001", "CST_001", "CSH_001")
+EXPECTED_FORMULA_REFS = {
+    "REN_001": ["REN_001_margen_neto_real"],
+    "LIQ_001": ["LIQ_001_vendido_cobrado"],
+    "SAL_001": [],
+    "STK_001": [],
+    "CST_001": [],
+    "CSH_001": [],
+}
+
+# Allowed readiness statuses per contract section 7
+ALLOWED_READINESS_STATUSES = {
+    "CATALOG_BINDING_READY_CANDIDATE",
+    "MISSING_FORMULA_REFS",
+    "UNKNOWN_PATHOLOGY_CODE",
+    "FORMULA_REF_NOT_FOUND",
+    "REQUIRED_VARIABLE_NOT_FOUND",
+    "REQUIRED_EVIDENCE_MISSING",
+    "OWNER_CONFIRMATION_REQUIRED",
+    "RUNTIME_BLOCKED_BY_POLICY",
+}
+
+
+def _load_json(path: Path) -> dict:
+    """Load and parse a JSON artifact file."""
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_contract_input_artifacts_exist() -> None:
+    """
+    Test 1: All four input artifacts consumed by the contract must exist.
+    
+    The contract consumes exactly:
+      - pathology_catalog.enriched.v1.json
+      - formula_catalog.v1.json
+      - service_1_semantic_variable_catalog.v1.json
+      - service_1_formula_pathology_evidence_matrix.v1.json
+    """
+    assert VARIABLE_CATALOG_PATH.exists(), f"Variable catalog missing: {VARIABLE_CATALOG_PATH}"
+    assert ENRICHED_PATHOLOGY_CATALOG_PATH.exists(), f"Enriched pathology catalog missing: {ENRICHED_PATHOLOGY_CATALOG_PATH}"
+    assert MATRIX_PATH.exists(), f"Evidence matrix missing: {MATRIX_PATH}"
+    assert FORMULA_CATALOG_PATH.exists(), f"Formula catalog missing: {FORMULA_CATALOG_PATH}"
+
+
+def test_six_code_baseline_is_fixed() -> None:
+    """
+    Test 2: Six-code baseline is fixed per contract invariant I10.
+    
+    The baseline codes are: REN_001, LIQ_001, SAL_001, STK_001, CST_001, CSH_001.
+    """
+    enriched_catalog = _load_json(ENRICHED_PATHOLOGY_CATALOG_PATH)
+    matrix = _load_json(MATRIX_PATH)
+    
+    enriched_codes = tuple(p["pathology_code"] for p in enriched_catalog["pathologies"])
+    matrix_codes = tuple(e["pathology_code"] for e in matrix["entries"])
+    
+    assert enriched_codes == EXPECTED_PATHOLOGY_CODES, \
+        f"Enriched catalog codes {enriched_codes} do not match baseline {EXPECTED_PATHOLOGY_CODES}"
+    assert matrix_codes == EXPECTED_PATHOLOGY_CODES, \
+        f"Matrix codes {matrix_codes} do not match baseline {EXPECTED_PATHOLOGY_CODES}"
+
+
+def test_ren_001_formula_refs_resolve() -> None:
+    """
+    Test 3: REN_001 formula_refs resolve in formula_catalog.v1.json.
+    
+    REN_001 has formula_refs = ["REN_001_margen_neto_real"] which must exist in formula catalog.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    formula_catalog = _load_json(FORMULA_CATALOG_PATH)
+    
+    ren_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "REN_001")
+    formula_ids = {f["formula_id"] for f in formula_catalog["formulas"]}
+    
+    assert ren_001_entry["formula_refs"] == ["REN_001_margen_neto_real"]
+    assert "REN_001_margen_neto_real" in formula_ids, \
+        "REN_001_margen_neto_real not found in formula catalog"
+
+
+def test_liq_001_formula_refs_resolve() -> None:
+    """
+    Test 4: LIQ_001 formula_refs resolve in formula_catalog.v1.json.
+    
+    LIQ_001 has formula_refs = ["LIQ_001_vendido_cobrado"] which must exist in formula catalog.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    formula_catalog = _load_json(FORMULA_CATALOG_PATH)
+    
+    liq_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "LIQ_001")
+    formula_ids = {f["formula_id"] for f in formula_catalog["formulas"]}
+    
+    assert liq_001_entry["formula_refs"] == ["LIQ_001_vendido_cobrado"]
+    assert "LIQ_001_vendido_cobrado" in formula_ids, \
+        "LIQ_001_vendido_cobrado not found in formula catalog"
+
+
+def test_sal_001_missing_formula_refs_fails_closed() -> None:
+    """
+    Test 5: SAL_001 has empty formula_refs and must emit MISSING_FORMULA_REFS.
+    
+    SAL_001 exists in runtime triage but not in allowed-computation and not in JSON
+    pathology catalog. It has no formula refs and no required_variables in evidence matrix.
+    Contract must fail closed with MISSING_FORMULA_REFS.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    
+    sal_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "SAL_001")
+    
+    assert sal_001_entry["formula_refs"] == [], \
+        "SAL_001 must have empty formula_refs per contract invariant I5"
+    assert sal_001_entry["runtime_allowed"] is False, \
+        "SAL_001 runtime_allowed must be False per contract invariant I1"
+    assert sal_001_entry["phase_5_allowed"] is False, \
+        "SAL_001 phase_5_allowed must be False per contract invariant I2"
+
+
+def test_stk_001_missing_formula_refs_fails_closed() -> None:
+    """
+    Test 6: STK_001 has empty formula_refs and must emit MISSING_FORMULA_REFS.
+    
+    STK_001 is hardcoded in runtime _PATHOLOGY_TO_COMPUTATION but has no formula refs
+    in semantic baseline. Contract must not fallback to runtime hardcoding.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    
+    stk_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "STK_001")
+    
+    assert stk_001_entry["formula_refs"] == [], \
+        "STK_001 must have empty formula_refs per contract invariant I5"
+    assert stk_001_entry["runtime_allowed"] is False, \
+        "STK_001 runtime_allowed must be False per contract invariant I1"
+    assert stk_001_entry["phase_5_allowed"] is False, \
+        "STK_001 phase_5_allowed must be False per contract invariant I2"
+
+
+def test_cst_001_missing_formula_refs_fails_closed() -> None:
+    """
+    Test 7: CST_001 has empty formula_refs and must emit MISSING_FORMULA_REFS.
+    
+    CST_001 has no formula refs and no required_variables in evidence matrix.
+    Contract must fail closed with MISSING_FORMULA_REFS.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    
+    cst_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "CST_001")
+    
+    assert cst_001_entry["formula_refs"] == [], \
+        "CST_001 must have empty formula_refs per contract invariant I5"
+    assert cst_001_entry["runtime_allowed"] is False, \
+        "CST_001 runtime_allowed must be False per contract invariant I1"
+    assert cst_001_entry["phase_5_allowed"] is False, \
+        "CST_001 phase_5_allowed must be False per contract invariant I2"
+
+
+def test_csh_001_missing_formula_refs_fails_closed() -> None:
+    """
+    Test 8: CSH_001 has empty formula_refs and must emit MISSING_FORMULA_REFS.
+    
+    CSH_001 is hardcoded in runtime _PATHOLOGY_TO_COMPUTATION but has no formula refs
+    in semantic baseline. Contract must not fallback to runtime hardcoding.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    
+    csh_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "CSH_001")
+    
+    assert csh_001_entry["formula_refs"] == [], \
+        "CSH_001 must have empty formula_refs per contract invariant I5"
+    assert csh_001_entry["runtime_allowed"] is False, \
+        "CSH_001 runtime_allowed must be False per contract invariant I1"
+    assert csh_001_entry["phase_5_allowed"] is False, \
+        "CSH_001 phase_5_allowed must be False per contract invariant I2"
+
+
+def test_non_empty_formula_refs_exist_in_formula_catalog() -> None:
+    """
+    Test 9: All non-empty formula_refs in matrix must exist in formula_catalog.v1.json.
+    
+    Contract invariant: never invent formula ref.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    formula_catalog = _load_json(FORMULA_CATALOG_PATH)
+    
+    formula_ids = {f["formula_id"] for f in formula_catalog["formulas"]}
+    
+    for entry in matrix["entries"]:
+        for formula_ref in entry["formula_refs"]:
+            assert formula_ref in formula_ids, \
+                f"Formula ref {formula_ref} for {entry['pathology_code']} not found in formula catalog"
+
+
+def test_required_variables_exist_in_semantic_variable_catalog() -> None:
+    """
+    Test 10: All required_variables in matrix must exist in service_1_semantic_variable_catalog.v1.json.
+    
+    Contract invariant: never invent variable.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    variable_catalog = _load_json(VARIABLE_CATALOG_PATH)
+    
+    variable_names = {v["variable_name"] for v in variable_catalog["variables"]}
+    
+    for entry in matrix["entries"]:
+        for variable in entry["required_variables"]:
+            assert variable in variable_names, \
+                f"Required variable {variable} for {entry['pathology_code']} not found in variable catalog"
+
+
+def test_runtime_and_phase_5_flags_remain_false() -> None:
+    """
+    Test 11: All input artifacts have runtime_allowed=false and phase_5_allowed=false.
+    
+    Contract invariants I1 and I2: runtime_allowed and phase_5_allowed are always false.
+    """
+    enriched_catalog = _load_json(ENRICHED_PATHOLOGY_CATALOG_PATH)
+    matrix = _load_json(MATRIX_PATH)
+    
+    assert enriched_catalog["runtime_connection_allowed"] is False
+    assert enriched_catalog["phase_5_allowed"] is False
+    
+    assert matrix["runtime_connection_allowed"] is False
+    assert matrix["phase_5_allowed"] is False
+    
+    for entry in matrix["entries"]:
+        assert entry["runtime_allowed"] is False, \
+            f"{entry['pathology_code']} runtime_allowed must be False"
+        assert entry["phase_5_allowed"] is False, \
+            f"{entry['pathology_code']} phase_5_allowed must be False"
+
+
+def test_no_runtime_authorization_claim_in_contract_docs() -> None:
+    """
+    Test 12: Contract documentation must not claim runtime authorization.
+    
+    Contract non-goal: does not authorize runtime execution.
+    Note: docs may mention "product-ready" in non-goal context (e.g., "does not authorize
+    product-ready claims"), so we check for affirmative authorization statements.
+    """
+    contract_text = CONTRACT_DOC_PATH.read_text(encoding="utf-8")
+    test_plan_text = TEST_PLAN_DOC_PATH.read_text(encoding="utf-8")
+    
+    # Must not contain affirmative runtime authorization language
+    # (excludes non-goal mentions like "does not authorize product-ready claims")
+    forbidden_phrases = [
+        "authorizes runtime",
+        "runtime authorized",
+        "runtime connection allowed",
+        "phase_5_allowed = true",
+        "runtime_allowed = true",
+        "is product ready",
+        "is production ready",
+        "product is ready",
+    ]
+    
+    for phrase in forbidden_phrases:
+        assert phrase.lower() not in contract_text.lower(), \
+            f"Contract doc contains forbidden phrase: {phrase}"
+        assert phrase.lower() not in test_plan_text.lower(), \
+            f"Test plan doc contains forbidden phrase: {phrase}"
+
+
+def test_allowed_computation_hardcoding_not_used_as_catalog_authority() -> None:
+    """
+    Test 13: Contract must not use runtime _PATHOLOGY_TO_COMPUTATION as catalog authority.
+    
+    Contract invariant I3: No new hardcoding of pathology-to-computation mappings.
+    Contract invariant I4: No expansion of _PATHOLOGY_TO_COMPUTATION to make catalog gaps disappear.
+    
+    STK_001 and CSH_001 are hardcoded in runtime but have empty formula_refs in catalog.
+    Contract must not fallback to runtime hardcoding.
+    """
+    matrix = _load_json(MATRIX_PATH)
+    
+    # STK_001 and CSH_001 have empty formula_refs despite runtime hardcoding
+    stk_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "STK_001")
+    csh_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "CSH_001")
+    
+    assert stk_001_entry["formula_refs"] == [], \
+        "STK_001 must have empty formula_refs; contract must not fallback to runtime hardcoding"
+    assert csh_001_entry["formula_refs"] == [], \
+        "CSH_001 must have empty formula_refs; contract must not fallback to runtime hardcoding"
+    
+    # SAL_001 and CST_001 also have empty formula_refs
+    sal_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "SAL_001")
+    cst_001_entry = next(e for e in matrix["entries"] if e["pathology_code"] == "CST_001")
+    
+    assert sal_001_entry["formula_refs"] == []
+    assert cst_001_entry["formula_refs"] == []
+
+
+def test_case_001_not_referenced_as_passing_runtime_case() -> None:
+    """
+    Test 14: Contract documentation must not reference CASE_001 as passing runtime case.
+    
+    Contract non-goal: does not force CASE_001 to pass.
+    Contract non-goal: does not declare product-ready status.
+    Note: docs may mention "product-ready" in non-goal context (e.g., "does not declare
+    product-ready status"), so we check for affirmative declarations only.
+    """
+    contract_text = CONTRACT_DOC_PATH.read_text(encoding="utf-8")
+    test_plan_text = TEST_PLAN_DOC_PATH.read_text(encoding="utf-8")
+    
+    # Must not contain CASE_001 success language
+    forbidden_case_001_phrases = [
+        "case_001 passes",
+        "case_001 passing",
+        "case_001 resolved",
+        "case_001 fixed",
+        "case_001 complete",
+        "case 001 passes",
+        "case 001 passing",
+        "case 001 resolved",
+    ]
+    
+    for phrase in forbidden_case_001_phrases:
+        assert phrase.lower() not in contract_text.lower(), \
+            f"Contract doc contains CASE_001 success reference: {phrase}"
+        assert phrase.lower() not in test_plan_text.lower(), \
+            f"Test plan doc contains CASE_001 success reference: {phrase}"
+    
+    # Must not contain affirmative product-ready declarations
+    # (excludes non-goal mentions like "does not declare product-ready status")
+    forbidden_product_phrases = [
+        "is product ready",
+        "is production ready",
+        "product is ready",
+        "ready for production",
+        "production ready status",
+    ]
+    
+    for phrase in forbidden_product_phrases:
+        assert phrase.lower() not in contract_text.lower(), \
+            f"Contract doc contains product-ready claim: {phrase}"
+        assert phrase.lower() not in test_plan_text.lower(), \
+            f"Test plan doc contains product-ready claim: {phrase}"
