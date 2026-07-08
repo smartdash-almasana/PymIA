@@ -363,3 +363,337 @@ def test_case_001_not_referenced_as_passing_runtime_case() -> None:
             f"Contract doc contains product-ready claim: {phrase}"
         assert phrase.lower() not in test_plan_text.lower(), \
             f"Test plan doc contains product-ready claim: {phrase}"
+
+
+# ============================================================================
+# CONTRACT IMPLEMENTATION TESTS
+# ============================================================================
+# These tests validate the actual implementation of the contract boundary.
+# They import and call the pure resolver function to verify fail-closed behavior.
+
+from pymia.smartpyme.service_1_runtime_catalog_binding_contract_v1 import (
+    build_service_1_runtime_catalog_binding_result_v1,
+    load_service_1_runtime_catalog_binding_inputs_v1,
+    CATALOG_BINDING_READY_CANDIDATE,
+    MISSING_FORMULA_REFS,
+    UNKNOWN_PATHOLOGY_CODE,
+    FORMULA_REF_NOT_FOUND,
+    REQUIRED_VARIABLE_NOT_FOUND,
+    REQUIRED_EVIDENCE_MISSING,
+    OWNER_CONFIRMATION_REQUIRED,
+    RUNTIME_BLOCKED_BY_POLICY,
+)
+
+
+def test_contract_resolver_unknown_pathology_code() -> None:
+    """
+    Test: Unknown pathology code emits UNKNOWN_PATHOLOGY_CODE.
+    
+    Scenario: pathology_code not in enriched catalog.
+    Expected: readiness_status = UNKNOWN_PATHOLOGY_CODE, runtime_allowed=False, phase_5_allowed=False.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="UNKNOWN_999",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    assert result.pathology_code == "UNKNOWN_999"
+    assert result.readiness_status == UNKNOWN_PATHOLOGY_CODE
+    assert result.runtime_allowed is False
+    assert result.phase_5_allowed is False
+    assert "pathology_code_not_in_enriched_catalog" in result.blocking_reasons
+
+
+def test_contract_resolver_sal_001_missing_formula_refs() -> None:
+    """
+    Test: SAL_001 emits MISSING_FORMULA_REFS (fail-closed).
+    
+    Scenario: SAL_001 has empty formula_refs in evidence matrix.
+    Expected: readiness_status = MISSING_FORMULA_REFS, runtime_allowed=False.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="SAL_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    assert result.pathology_code == "SAL_001"
+    assert result.readiness_status == MISSING_FORMULA_REFS
+    assert result.formula_refs == ()
+    assert result.runtime_allowed is False
+    assert result.phase_5_allowed is False
+    assert "formula_refs_empty" in result.blocking_reasons
+
+
+def test_contract_resolver_stk_001_missing_formula_refs() -> None:
+    """
+    Test: STK_001 emits MISSING_FORMULA_REFS (fail-closed).
+    
+    Scenario: STK_001 has empty formula_refs despite runtime hardcoding.
+    Expected: readiness_status = MISSING_FORMULA_REFS, no fallback to runtime.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="STK_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    assert result.pathology_code == "STK_001"
+    assert result.readiness_status == MISSING_FORMULA_REFS
+    assert result.formula_refs == ()
+    assert result.runtime_allowed is False
+    assert "formula_refs_empty" in result.blocking_reasons
+
+
+def test_contract_resolver_cst_001_missing_formula_refs() -> None:
+    """
+    Test: CST_001 emits MISSING_FORMULA_REFS (fail-closed).
+    
+    Scenario: CST_001 has empty formula_refs.
+    Expected: readiness_status = MISSING_FORMULA_REFS.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="CST_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    assert result.pathology_code == "CST_001"
+    assert result.readiness_status == MISSING_FORMULA_REFS
+    assert result.formula_refs == ()
+    assert result.runtime_allowed is False
+
+
+def test_contract_resolver_csh_001_missing_formula_refs() -> None:
+    """
+    Test: CSH_001 emits MISSING_FORMULA_REFS (fail-closed).
+    
+    Scenario: CSH_001 has empty formula_refs despite runtime hardcoding.
+    Expected: readiness_status = MISSING_FORMULA_REFS, no fallback to runtime.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="CSH_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    assert result.pathology_code == "CSH_001"
+    assert result.readiness_status == MISSING_FORMULA_REFS
+    assert result.formula_refs == ()
+    assert result.runtime_allowed is False
+
+
+def test_contract_resolver_ren_001_owner_confirmation_required() -> None:
+    """
+    Test: REN_001 emits OWNER_CONFIRMATION_REQUIRED.
+    
+    Scenario: REN_001 has formula_refs that resolve, variables that resolve,
+              evidence present, but owner_confirmation_required=true.
+    Expected: readiness_status = OWNER_CONFIRMATION_REQUIRED, runtime_allowed=False.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="REN_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    assert result.pathology_code == "REN_001"
+    assert result.readiness_status == OWNER_CONFIRMATION_REQUIRED
+    assert result.formula_refs == ("REN_001_margen_neto_real",)
+    assert result.resolved_formula_ids == ("REN_001_margen_neto_real",)
+    assert result.required_variables == ("sale_price", "costs", "taxes")
+    assert result.runtime_allowed is False
+    assert result.phase_5_allowed is False
+    assert result.owner_confirmation_required is True
+    assert "owner_confirmation_required_by_evidence_matrix" in result.blocking_reasons
+
+
+def test_contract_resolver_liq_001_owner_confirmation_required() -> None:
+    """
+    Test: LIQ_001 emits OWNER_CONFIRMATION_REQUIRED.
+    
+    Scenario: LIQ_001 has formula_refs that resolve, variables that resolve,
+              evidence present, but owner_confirmation_required=true.
+    Expected: readiness_status = OWNER_CONFIRMATION_REQUIRED.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="LIQ_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    assert result.pathology_code == "LIQ_001"
+    assert result.readiness_status == OWNER_CONFIRMATION_REQUIRED
+    assert result.formula_refs == ("LIQ_001_vendido_cobrado",)
+    assert result.resolved_formula_ids == ("LIQ_001_vendido_cobrado",)
+    assert result.required_variables == ("sold_amount", "collected_amount")
+    assert result.runtime_allowed is False
+    assert result.owner_confirmation_required is True
+
+
+def test_contract_resolver_invariants_always_false() -> None:
+    """
+    Test: All contract results have runtime_allowed=False and phase_5_allowed=False.
+    
+    Invariant I1: runtime_allowed is always false.
+    Invariant I2: phase_5_allowed is always false.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    # Test all six-code baseline
+    for pathology_code in EXPECTED_PATHOLOGY_CODES:
+        result = build_service_1_runtime_catalog_binding_result_v1(
+            pathology_code=pathology_code,
+            enriched_catalog=enriched_catalog,
+            formula_catalog=formula_catalog,
+            variable_catalog=variable_catalog,
+            evidence_matrix=evidence_matrix,
+        )
+        
+        assert result.runtime_allowed is False, \
+            f"{pathology_code} violates invariant I1: runtime_allowed must be False"
+        assert result.phase_5_allowed is False, \
+            f"{pathology_code} violates invariant I2: phase_5_allowed must be False"
+
+
+def test_contract_resolver_fail_closed_enriched_catalog_unavailable() -> None:
+    """
+    Test: Fail-closed when enriched catalog is unavailable.
+    
+    Scenario: enriched_catalog is None.
+    Expected: readiness_status = UNKNOWN_PATHOLOGY_CODE with blocking_reason "enriched_catalog_unavailable".
+    """
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="REN_001",
+        enriched_catalog=None,
+        formula_catalog=None,
+        variable_catalog=None,
+        evidence_matrix=None,
+    )
+    
+    assert result.readiness_status == UNKNOWN_PATHOLOGY_CODE
+    assert result.runtime_allowed is False
+    assert "enriched_catalog_unavailable" in result.blocking_reasons
+
+
+def test_contract_resolver_fail_closed_evidence_matrix_unavailable() -> None:
+    """
+    Test: Fail-closed when evidence matrix is unavailable.
+    
+    Scenario: evidence_matrix is None but enriched_catalog is available.
+    Expected: readiness_status = RUNTIME_BLOCKED_BY_POLICY with blocking_reason "evidence_matrix_unavailable".
+    """
+    enriched_catalog = _load_json(ENRICHED_PATHOLOGY_CATALOG_PATH)
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="REN_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=None,
+        variable_catalog=None,
+        evidence_matrix=None,
+    )
+    
+    assert result.readiness_status == RUNTIME_BLOCKED_BY_POLICY
+    assert result.runtime_allowed is False
+    assert "evidence_matrix_unavailable" in result.blocking_reasons
+
+
+def test_contract_resolver_output_shape_completeness() -> None:
+    """
+    Test: Contract output has all required fields per contract section 6.
+    
+    Validates that the result object contains all documented fields.
+    """
+    enriched_catalog, formula_catalog, variable_catalog, evidence_matrix = (
+        load_service_1_runtime_catalog_binding_inputs_v1(REPO_ROOT)
+    )
+    
+    result = build_service_1_runtime_catalog_binding_result_v1(
+        pathology_code="REN_001",
+        enriched_catalog=enriched_catalog,
+        formula_catalog=formula_catalog,
+        variable_catalog=variable_catalog,
+        evidence_matrix=evidence_matrix,
+    )
+    
+    # Validate all required fields exist
+    assert hasattr(result, "schema_version")
+    assert hasattr(result, "service_name")
+    assert hasattr(result, "pathology_code")
+    assert hasattr(result, "catalog_origin")
+    assert hasattr(result, "formula_refs")
+    assert hasattr(result, "resolved_formula_ids")
+    assert hasattr(result, "missing_formula_refs")
+    assert hasattr(result, "required_variables")
+    assert hasattr(result, "resolved_variables")
+    assert hasattr(result, "missing_variables")
+    assert hasattr(result, "required_evidence")
+    assert hasattr(result, "minimum_semantic_bindings")
+    assert hasattr(result, "owner_confirmation_required")
+    assert hasattr(result, "readiness_status")
+    assert hasattr(result, "blocking_reasons")
+    assert hasattr(result, "runtime_allowed")
+    assert hasattr(result, "phase_5_allowed")
+    assert hasattr(result, "metadata")
+    
+    # Validate field types
+    assert result.schema_version == "SERVICE_1_RUNTIME_CATALOG_BINDING_CONTRACT_V1"
+    assert result.service_name == "SERVICE_1"
+    assert isinstance(result.formula_refs, tuple)
+    assert isinstance(result.resolved_formula_ids, tuple)
+    assert isinstance(result.missing_formula_refs, tuple)
+    assert isinstance(result.required_variables, tuple)
+    assert isinstance(result.resolved_variables, tuple)
+    assert isinstance(result.missing_variables, tuple)
+    assert isinstance(result.required_evidence, tuple)
+    assert isinstance(result.minimum_semantic_bindings, tuple)
+    assert isinstance(result.owner_confirmation_required, bool)
+    assert isinstance(result.blocking_reasons, tuple)
+    assert isinstance(result.runtime_allowed, bool)
+    assert isinstance(result.phase_5_allowed, bool)
+    assert isinstance(result.metadata, dict)
