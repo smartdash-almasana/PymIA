@@ -7,7 +7,7 @@ and emits a non-executing adapter context for future semantic evidence binding c
 The adapter is a governance handoff, not a runtime bridge. It must preserve fail-closed statuses
 and must never convert catalog readiness into runtime authorization.
 
-Mode: TEST ONLY (adapter implementation does not exist yet; tests fail by design)
+Mode: TEST ONLY (adapter implementation exists; tests validate behavior)
 """
 from __future__ import annotations
 
@@ -88,11 +88,8 @@ def _build_upstream_result(
     )
 
 
-# Attempt to import adapter module; skip all tests if not available
-adapter_module = pytest.importorskip(
-    ADAPTER_MODULE_NAME,
-    reason=f"Adapter module {ADAPTER_MODULE_NAME} not yet implemented"
-)
+# Import adapter module (implementation exists)
+from pymia.smartpyme import service_1_runtime_catalog_binding_adapter_v1 as adapter_module
 
 
 def test_adapter_maps_unknown_pathology_to_blocked_unknown() -> None:
@@ -359,17 +356,15 @@ def test_adapter_blocks_unknown_upstream_status() -> None:
     
     Per adapter plan fail-closed rule F2: Unknown upstream readiness_status -> ADAPTER_BLOCKED_BY_POLICY.
     """
-    # Build a result with invalid status (bypass validation by direct construction)
-    upstream = Service1RuntimeCatalogBindingResultV1(
+    # Build a result with valid status first, then mutate to invalid status
+    upstream = _build_upstream_result(
         pathology_code="TEST_UNKNOWN_STATUS",
-        readiness_status="INVALID_STATUS_999",
-        runtime_allowed=False,
-        phase_5_allowed=False,
+        readiness_status=CATALOG_BINDING_READY_CANDIDATE,
     )
     
-    # Override validation by creating with valid status then checking adapter behavior
-    # Since we can't create invalid status directly, we test the adapter's handling
-    # by checking that it validates upstream status against allowed set
+    # Bypass frozen dataclass restriction to set invalid status
+    object.__setattr__(upstream, "readiness_status", "INVALID_STATUS_999")
+    
     context = adapter_module.build_service_1_runtime_catalog_binding_adapter_context_v1(upstream)
     
     # Adapter should detect invalid status and block
