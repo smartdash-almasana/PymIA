@@ -1,1 +1,6 @@
 """PymIA — Núcleo clínico-operacional soberano."""
+
+PACKAGE_FLAVOR = "PYMIA_ROOT_LEGACY"
+PACKAGE_BOUNDARY = "ROOT_PACKAGE_NOT_SERVICE_1_RUNTIME"
+
+__all__ = ["PACKAGE_FLAVOR", "PACKAGE_BOUNDARY"]
