@@ -13,7 +13,8 @@ XLSX_PHYSICAL_E2E_OFFICIAL_ENTRYPOINT: NEEDS_EVIDENCE -> PASS_WITH_LIMITS
 CASE_001_FINAL_STATE: NEEDS_OWNER_INPUT
 PRODUCT_GATE: NEEDS_SCOPE_REDUCTION
 EVIDENCE_LOOP: INTAKE_ONLY
-QA_DELIVERY_GATE: PASS (12/12)
+FOLDER_DELIVERY_STATUS: READY_FOR_DELIVERY_POLICY_GUARD
+QA_DELIVERY_GATE: PASS (10/10)
 RUNTIME_AUTHORIZED: false
 DELIVERY_AUTHORIZED: false
 AUTONOMOUS_DELIVERY_AUTHORIZED: false
@@ -26,7 +27,10 @@ Servicio 1 XLSX-first chain and produced a governed case folder with `manifest.j
 `NEEDS_OWNER_INPUT` (column confirmation pending), which is a valid PASS under the
 TaskSpec because owner-question evidence exists (`column_confirmation_packet.json`,
 12 questions). It is `PASS_WITH_LIMITS`, not full completion, because no computation /
-dry-run was executed and no delivery-ready finding was produced.
+dry-run was executed and no delivery-ready finding was produced. The folder-level
+`READY_FOR_DELIVERY_POLICY_GUARD` status does not override the case-level
+`NEEDS_OWNER_INPUT` state; it only means the generated folder can be reviewed by the
+delivery policy guard.
 
 ## Repo state (at execution time)
 
@@ -71,7 +75,7 @@ Respuesta inicial de Servicio 1
   ... owner message in Spanish, no prohibited claims ...
 Estructura detectada: 2 hojas, columnas listadas
 Confirmacion necesaria: 12 preguntas generadas
-QA delivery gate: Estado PASS, Checks 12/12, Runtime autorizado: false
+QA delivery gate: Estado PASS, Checks 10/10, Runtime autorizado: false
 Carpeta de caso: case_asset_a7e85d9a7ed2, 12 archivos
   Ruta canonica de entrega: true
   QA final: PASS
@@ -125,7 +129,8 @@ CASE_001_FINAL_STATE: NEEDS_OWNER_INPUT
 
 The case is at intake/column-confirmation stage. No computation, dry-run, or
 delivery was executed. This is an honest, reproducible, traceable end state and is a
-valid PASS under TaskSpec section 6.
+valid PASS under TaskSpec section 6. Separately, the generated folder reached
+`READY_FOR_DELIVERY_POLICY_GUARD`; that folder status is not a business-case closure.
 
 ## Artifact checklist
 
@@ -140,16 +145,17 @@ Case folder `case_asset_a7e85d9a7ed2` contained:
 | `owner_delivery_packet.json` | Yes | owner-readable packet |
 | `product_gate.json` | Yes | `NEEDS_SCOPE_REDUCTION` |
 | `delivery_policy_guard.json` | Yes | `PENDING_DELIVERY_POLICY_GUARD` |
-| `final_qa_delivery_gate.json` | Yes | `PASS`, 12/12 checks |
+| `final_qa_delivery_gate.json` | Yes | `PASS`, 10/10 checks; folder delivery status `READY_FOR_DELIVERY_POLICY_GUARD` |
 | `manifest.json` | Yes | file inventory + hashes |
-| `next_owner_question.md` | No | not required; column questions live in `column_confirmation_packet.json` |
+| `next_owner_question.md` | No | accepted substitute: column questions live in `column_confirmation_packet.json` |
 | `evidence_loop_status.json` | Yes | `INTAKE_ONLY` |
 | `detected_structure.json` | Yes | XLSX structure |
 | `column_confirmation_packet.json` | Yes | 12 pending owner questions |
 
-All TaskSpec section 4/9 required artifacts are present except `next_owner_question.md`,
-which is not required because the final state is column-confirmation (`NEEDS_OWNER_INPUT`)
-and the owner question evidence is provided via `column_confirmation_packet.json`.
+`next_owner_question.md` is absent. This is an accepted TaskSpec-equivalent substitute
+for the column-confirmation state: the owner-question evidence is provided via
+`column_confirmation_packet.json` with 12 pending questions. The folder contained 12
+generated files; the final QA gate itself contains 10 checks and all 10 passed.
 
 ## JSON key verification
 
@@ -163,6 +169,7 @@ Verified by direct inspection of `operator_packet.json` and folder artifacts:
 | `source_file_ref` | packet / file_intake | `CASE_001_ventas_junio_2026_margin_leak.xlsx` |
 | `status` | packet / product_gate | `NEEDS_SCOPE_REDUCTION` |
 | `delivery_status` | `delivery_policy_guard` | `PENDING_DELIVERY_POLICY_GUARD` |
+| `folder_delivery_status` | `manifest` / `final_qa_delivery_gate` | `READY_FOR_DELIVERY_POLICY_GUARD` |
 | `runtime_authorized` | top / manifest / qa / policy guard / product gate | `false` everywhere |
 | `delivery_authorized` | searched recursively | no `true` at any level |
 | `autonomous_delivery_authorized` | searched recursively | no `true` at any level |
