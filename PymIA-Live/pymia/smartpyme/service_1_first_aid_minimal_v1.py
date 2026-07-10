@@ -14,7 +14,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-import openpyxl
+from pymia.smartpyme.service_1_xlsx_structure_v1 import read_service_1_xlsx_structure_v1
+from pymia.smartpyme.service_1_xlsx_to_normalized_table_v1 import read_xlsx_to_normalized_table_v1
 
 
 SCHEMA_VERSION = "1.0"
@@ -146,6 +147,24 @@ def evaluate_first_aid_minimal_eligibility_v1(packet: dict[str, Any]) -> dict[st
 # 3. run_first_aid_minimal_v1
 # ---------------------------------------------------------------------------
 
+def _empty_first_aid_result(warnings: list[str]) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "service_name": SERVICE_NAME,
+        "result_type": "FIRST_AID_MINIMAL",
+        "status": "DRAFT_REVIEW_REQUIRED",
+        "runtime_authorized": False,
+        "human_review_required": True,
+        "summary": {
+            "sheet_count": 0,
+            "sheets_profiled": 0,
+            "total_findings": 0,
+        },
+        "findings": [],
+        "warnings": warnings,
+    }
+
+
 def _is_numeric_column(col_name: str, confirmed_columns: dict[str, Any]) -> bool:
     """Determine if a column is numeric based on confirmed_columns or name hints."""
     # Check confirmed_columns mapping
@@ -187,107 +206,81 @@ def run_first_aid_minimal_v1(
     else:
         confirmed_cols_map = {}
 
-    # Load workbook
     try:
-        wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+        structure = read_service_1_xlsx_structure_v1(str(path))
     except Exception as exc:
         warnings.append(f"Could not open XLSX for First Aid: {exc}")
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "service_name": SERVICE_NAME,
-            "result_type": "FIRST_AID_MINIMAL",
-            "status": "DRAFT_REVIEW_REQUIRED",
-            "runtime_authorized": False,
-            "human_review_required": True,
-            "summary": {
-                "sheet_count": 0,
-                "sheets_profiled": 0,
-                "total_findings": 0,
-            },
-            "findings": [],
-            "warnings": warnings,
-        }
+        return _empty_first_aid_result(warnings)
 
+    sheets = list(structure.get("workbook", {}).get("sheets", []))
     findings: list[dict[str, Any]] = []
     sheets_profiled = 0
 
-    for sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-        rows = list(ws.rows)
-
-        if not rows:
+    for sheet in sheets:
+        sheet_name = str(sheet.get("name", "")).strip()
+        if not sheet_name:
             continue
 
+        normalized = read_xlsx_to_normalized_table_v1(path, sheet_name=sheet_name)
+        if normalized["status"] != "OK":
+            warnings.extend(
+                f"{sheet_name}: {error}" for error in normalized["blocking_errors"]
+            )
+            continue
+
+        headers = list(normalized["headers"])
+        normalized_headers = list(normalized["normalized_headers"])
+        rows = list(normalized["rows"])
         sheets_profiled += 1
 
-        # Extract headers from first row
-        headers: list[str] = []
-        for cell in rows[0]:
-            val = cell.value
-            headers.append(str(val) if val is not None else "")
-
-        data_rows = rows[1:]
-        row_count = len(data_rows)
-        col_count = len(headers)
-
-        # Detect empty values per column
         empty_per_col: dict[str, int] = {}
         numeric_totals: dict[str, float] = {}
         numeric_counts: dict[str, int] = {}
 
-        for col_idx, col_name in enumerate(headers):
+        for col_name, normalized_col in zip(headers, normalized_headers):
             if not col_name:
                 continue
 
-            empty_count = 0
             is_numeric = _is_numeric_column(col_name, confirmed_cols_map)
+            empty_count = 0
             running_total = 0.0
             numeric_count = 0
 
-            for row in data_rows:
-                if col_idx < len(row):
-                    cell_val = row[col_idx].value
-                else:
-                    cell_val = None
-
-                if cell_val is None or (isinstance(cell_val, str) and not cell_val.strip()):
+            for row in rows:
+                cell_value = row.get(normalized_col, "")
+                if not str(cell_value).strip():
                     empty_count += 1
                 elif is_numeric:
                     try:
-                        num = float(cell_val)
-                        running_total += num
+                        running_total += float(cell_value)
                         numeric_count += 1
                     except (ValueError, TypeError):
                         pass
 
             empty_per_col[col_name] = empty_count
-
             if is_numeric and numeric_count > 0:
                 numeric_totals[col_name] = running_total
                 numeric_counts[col_name] = numeric_count
 
-        # Generate findings for this sheet
         sheet_finding: dict[str, Any] = {
             "finding_type": "sheet_profile",
             "sheet_name": sheet_name,
-            "row_count": row_count,
-            "col_count": col_count,
+            "row_count": int(normalized["row_count"]),
+            "col_count": int(normalized["column_count"]),
             "headers": headers,
             "empty_values_per_column": empty_per_col,
         }
 
         if numeric_totals:
-            simple_totals: dict[str, dict[str, Any]] = {}
-            for col_name, total in numeric_totals.items():
-                simple_totals[col_name] = {
+            sheet_finding["simple_numeric_totals"] = {
+                col_name: {
                     "sum": round(total, 2),
                     "numeric_values_count": numeric_counts[col_name],
                 }
-            sheet_finding["simple_numeric_totals"] = simple_totals
+                for col_name, total in numeric_totals.items()
+            }
 
         findings.append(sheet_finding)
-
-    wb.close()
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -297,7 +290,7 @@ def run_first_aid_minimal_v1(
         "runtime_authorized": False,
         "human_review_required": True,
         "summary": {
-            "sheet_count": len(wb.sheetnames),
+            "sheet_count": len(sheets),
             "sheets_profiled": sheets_profiled,
             "total_findings": len(findings),
         },
