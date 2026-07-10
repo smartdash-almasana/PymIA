@@ -3,10 +3,10 @@
 ## Estado
 
 ```text
-TASKSPEC_READY
-Runtime impact: PLANNED_ONLY
-Code impact: NOT_APPLIED
-Tests impact: NOT_APPLIED
+TASKSPEC_RECONCILED_AFTER_IMPLEMENTATION
+Runtime impact: NONE_FAIL_CLOSED
+Code impact: APPLIED_AS_CANDIDATE_ONLY
+Tests impact: TESTED_FOCAL
 ```
 
 ## Propósito
@@ -31,6 +31,24 @@ persistence
 recalculation
 evidence validation
 ```
+
+## Reconciliation note — 2026-07-10
+
+This TaskSpec originally described a future slice. Repository evidence now shows the candidate bridge and focal tests exist:
+
+```text
+PymIA-Live/pymia/smartpyme/service_1_column_confirmation_reentry_candidate_v1.py
+PymIA-Live/tests/smartpyme/test_service_1_column_confirmation_reentry_candidate_v1.py
+```
+
+Observed validation by this agent:
+
+```text
+python -m pytest tests/smartpyme/test_service_1_column_confirmation_reentry_candidate_v1.py -q
+13 passed in 0.93s
+```
+
+This changes only the implementation/test status of the allowed candidate-only slice. It does not authorize runtime, reexecution, recalculation, persistence, classifier, applier, case patch, runner, SaaS, API worker, dry-run, diagnosis, or delivery.
 
 ## Cadena metodológica previa
 

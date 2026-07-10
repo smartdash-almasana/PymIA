@@ -118,6 +118,18 @@ It does not support:
 - `SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1` needs sync or supersession.
 - `SEMANTIC_RUNTIME_PLAN_CANDIDATE` already has ADR + CapabilitySpec; it still needs ModuleContract, TaskSpec, tests, evidence, and checkpoint before it can become more than `EXPERIMENTAL_CANDIDATE_ONLY`.
 
+## Current anchors added after document removal
+
+The specific CASE_001 documents were removed in commit `6a5f7ad`. Current state is now anchored by:
+
+| Anchor | Meaning |
+|---|---|
+| `docs/current/SERVICE_1_CASE_001_PHYSICAL_XLSX_E2E_EVIDENCE_ANCHOR_V1.md` | Restores the current CASE_001 physical XLSX evidence boundary as `PASS_WITH_LIMITS`, based on prior committed docs, not a newly reproduced run. |
+| `docs/current/SERVICE_1_COLUMN_CONFIRMATION_REENTRY_CHECKPOINT_V1.md` | Reconciles the reentry bridge as implemented/tested but candidate-only and fail-closed. |
+| `docs/current/SERVICE_1_SAFE_PRESENTATION_GUIDE_V1.md` | Defines safe and prohibited presentation language before any Servicio 1 presentation. |
+
+These anchors do not broaden Servicio 1 readiness. They narrow claims and preserve the allowed final state: candidate-only / fail-closed / `PASS_WITH_LIMITS`.
+
 ## Next step
 
 Proceed with one narrow methodological front:
