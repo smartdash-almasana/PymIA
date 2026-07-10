@@ -10,25 +10,25 @@ Servicio 1 has multiple valid but differently scoped status documents. This reco
 
 ```text
 SERVICE_1_OPERATIVE_XLSX_FIRST: CLOSED_FOR_CONTROLLED_REAL_CLIENT_USE_WITH_LIMITS
-XLSX_PHYSICAL_E2E_OFFICIAL_ENTRYPOINT: NEEDS_EVIDENCE
+XLSX_PHYSICAL_E2E_OFFICIAL_ENTRYPOINT: PASS_WITH_LIMITS
 SAAS_EXECUTION_GATE_CHAIN: SHADOW_COMPOSITION_PASS
 REAL_RUNNER: BLOCKED
 AUTONOMOUS_DELIVERY: BLOCKED
-SEMANTIC_RUNTIME_PLAN_CANDIDATE: CANDIDATE_SHADOW_ONLY
+SEMANTIC_RUNTIME_PLAN_CANDIDATE: EXPERIMENTAL_CANDIDATE_ONLY
 ```
 
-The operative XLSX-first lane is closed for controlled real-client use, but this does not mean physical XLSX end-to-end execution through the official entrypoint is certified. The SaaS lane remains shadow/composition-only: no real runner, no SaaS runtime, no API/storage/worker, and no autonomous delivery. The semantic runtime candidate added by `d303608` remains candidate/shadow-only unless a later ADR and CapabilitySpec promote it.
+The operative XLSX-first lane is closed for controlled real-client use with limits. Physical XLSX end-to-end execution through the official entrypoint is now evidenced as `PASS_WITH_LIMITS` by CASE_001: XLSX intake reached governed folder creation and policy-gate artifacts, but the case remains at owner column-confirmation stage. The SaaS lane remains shadow/composition-only: no real runner, no SaaS runtime, no API/storage/worker, and no autonomous delivery. The semantic runtime candidate added by `d303608` is now classified as `EXPERIMENTAL_CANDIDATE_ONLY` by ADR + CapabilitySpec; promotion beyond that still requires ModuleContract, TaskSpec, tests, evidence, and checkpoint.
 
 ## Normalized states
 
 | State key | Normalized state | Meaning |
 |---|---|---|
 | `SERVICE_1_OPERATIVE_XLSX_FIRST` | `CLOSED_FOR_CONTROLLED_REAL_CLIENT_USE_WITH_LIMITS` | Controlled operator use is allowed within the documented closeout limits. |
-| `XLSX_PHYSICAL_E2E_OFFICIAL_ENTRYPOINT` | `NEEDS_EVIDENCE` | A physical XLSX-to-official-entrypoint run remains unproven as a single certified evidence chain. |
+| `XLSX_PHYSICAL_E2E_OFFICIAL_ENTRYPOINT` | `PASS_WITH_LIMITS` | CASE_001 proves physical XLSX intake through the official operator entrypoint into a governed folder with manifest, policy guard, product gate, QA gate, and owner-question evidence; computation/dry-run remains pending owner column confirmations. |
 | `SAAS_EXECUTION_GATE_CHAIN` | `SHADOW_COMPOSITION_PASS` | Composition through execution gate and runner shadow is tested, but no real runner/runtime/delivery is authorized. |
 | `REAL_RUNNER` | `BLOCKED` | Runner invocation remains out of scope until a future authorized phase. |
 | `AUTONOMOUS_DELIVERY` | `BLOCKED` | No owner-facing autonomous delivery is authorized. |
-| `SEMANTIC_RUNTIME_PLAN_CANDIDATE` | `CANDIDATE_SHADOW_ONLY` | The semantic runtime plan candidate prepares a fail-closed plan candidate only. |
+| `SEMANTIC_RUNTIME_PLAN_CANDIDATE` | `EXPERIMENTAL_CANDIDATE_ONLY` | ADR + CapabilitySpec classify the semantic lane as experimental candidate only; it remains fail-closed and non-runtime. |
 
 ## Source precedence after reconciliation
 
@@ -36,11 +36,11 @@ This document does not erase prior evidence documents. It narrows how each sourc
 
 | Source | Still valid for | Not valid for |
 |---|---|---|
-| `docs/current/SERVICE_1_XLSX_RUNTIME_BRIDGE_CASE_RUN_AUDIT_V1.md` | Scoped normalized-payload bridge evidence and `PASS_WITH_LIMITS` boundary claims. | Current next-front planning or physical XLSX end-to-end certification. |
+| `docs/current/SERVICE_1_XLSX_RUNTIME_BRIDGE_CASE_RUN_AUDIT_V1.md` | Scoped normalized-payload bridge evidence and `PASS_WITH_LIMITS` boundary claims. | Superseding CASE_001 physical XLSX evidence or claiming computation/dry-run/delivery readiness. |
 | `docs/current/SERVICE_1_OPERATIVE_XLSX_FIRST_CLOSEOUT_V1.md` | Controlled-use closeout of the operative XLSX-first lane, with explicit non-promises. | Claiming SaaS, autonomous delivery, product-ready status, or physical XLSX end-to-end evidence beyond the documented limits. |
 | `docs/current/ACTIVE_ROADMAP.md` | Current SaaS shadow/composition roadmap and stop rules. | Claiming real runner invocation, SaaS runtime, API/storage/worker readiness, or autonomous delivery. |
 | `docs/current/SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1.md` | Historical checkpoint for the SaaS adapter state before execution-gate and runner-shadow tests closed. | Current next-front planning for execution-gate work already covered by later tests and `ACTIVE_ROADMAP.md`. |
-| `d303608` semantic runtime plan candidate | Candidate-only fail-closed planning evidence. | Promoting a semantic runtime capability without ADR, CapabilitySpec, ModuleContract, TaskSpec, tests, evidence, and checkpoint. |
+| `d303608` semantic runtime plan candidate | Candidate-only fail-closed planning evidence, now governed by semantic runtime ADR + CapabilitySpec. | Promoting a semantic runtime capability beyond `EXPERIMENTAL_CANDIDATE_ONLY` without ModuleContract, TaskSpec, tests, evidence, and checkpoint. |
 
 In short:
 
@@ -49,6 +49,7 @@ XLSX_AUDIT remains valid as scoped evidence.
 XLSX_AUDIT is superseded only for next-front planning.
 OPERATIVE_CLOSEOUT remains valid as controlled-use closeout.
 ACTIVE_ROADMAP remains valid for SaaS shadow/composition, not runtime/autonomous delivery.
+CASE_001_EVIDENCE supersedes the prior XLSX_PHYSICAL_E2E_OFFICIAL_ENTRYPOINT gap only up to PASS_WITH_LIMITS.
 ```
 
 ## Claim reconciliation
@@ -57,13 +58,13 @@ ACTIVE_ROADMAP remains valid for SaaS shadow/composition, not runtime/autonomous
 |---|---|---|---|---|
 | Service 1 operative XLSX-first is closed for controlled real-client use. | `docs/current/SERVICE_1_OPERATIVE_XLSX_FIRST_CLOSEOUT_V1.md` | The closeout declares `CLOSED_FOR_CONTROLLED_REAL_CLIENT_USE` and lists adapter, real-owner pilot case run, delivery packet adapter, folder smoke, safe case dir, and operator runbook as closed. | `CLOSED_FOR_CONTROLLED_REAL_CLIENT_USE_WITH_LIMITS` | Preserve the closeout, but always carry the limits in references and planning. |
 | The XLSX bridge case-run audit is complete. | `docs/current/SERVICE_1_XLSX_RUNTIME_BRIDGE_CASE_RUN_AUDIT_V1.md` | The audit declares `PASS_WITH_LIMITS`, with normalized-payload bridge coverage and explicit boundaries: no parser, no file IO, no delivery folder. | `PASS_WITH_LIMITS` | Do not expand this PASS into physical XLSX end-to-end evidence. |
-| Physical XLSX ingestion through the official entrypoint is certified. | Inferred from the broader operative closeout wording. | The bridge audit states the remaining gap was an actual XLSX file ingestion adapter; the roadmap closeout also listed real file ingestion through official entrypoint and real XLSX fixture audit as not closed at that time. | `NEEDS_EVIDENCE` | Run or document a physical XLSX end-to-end evidence chain before claiming this broader status. |
+| Physical XLSX ingestion through the official entrypoint is certified. | `SERVICE_1_CASE_001_PHYSICAL_XLSX_E2E_EVIDENCE_V1.md` | CASE_001 used a physical XLSX through the existing operator CLI and produced a governed folder with `manifest.json`, `delivery_policy_guard.json`, `product_gate.json`, `final_qa_delivery_gate.json` (`10/10` checks), and `column_confirmation_packet.json`. | `PASS_WITH_LIMITS` | Treat as physical XLSX E2E evidence through intake/folder governance only; owner column confirmations are still required before computation/dry-run. |
 | Adapter ingestion to runtime bridge is closed. | `docs/current/SERVICE_1_OPERATIVE_XLSX_FIRST_CLOSEOUT_V1.md` | Closeout lists `SERVICE_1_DOCUMENT_INGESTION_TO_XLSX_RUNTIME_BRIDGE_ADAPTER_V1` as closed at commit `f97ecd0`. | `CLOSED_COMPONENT` | Treat as a closed component, not automatically as a certified physical XLSX end-to-end scenario. |
 | Active SaaS checkpoint says execution gate chain is not certified and next. | `docs/current/SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1.md` | The checkpoint states no execution gate chain was certified and names explicit gate to execution gate as next. Current tests now cover that chain. | `STALE_CHECKPOINT_SECTION` | Regenerate or supersede the checkpoint section before using it as current planning authority. |
 | Active roadmap says execution gate chain and runner shadow are closed. | `docs/current/ACTIVE_ROADMAP.md` | The roadmap lists closed units 8 and 9 and clarifies runner shadow has no real runner, runtime, delivery, API, storage, or worker. | `SHADOW_COMPOSITION_PASS` | Keep this as the current roadmap status, with the shadow/no-runtime qualifier. |
 | SaaS execution chain is product/runtime ready. | Possible over-reading of `Execution gate chain certified`. | Tests certify composition and shadow evidence only; source tests assert no runner/pipeline/runtime/API/storage/worker/LLM imports or calls. | `NOT_PRODUCT_READY` | Do not authorize runner, SaaS runtime, API/storage/worker, or delivery from this evidence. |
-| Semantic runtime plan candidate is executable runtime. | Possible over-reading of commit `d303608`. | `service_1_semantic_runtime_plan_candidate_v1.py` states it prepares a plan candidate only and never executes computation, runtime, CLI, delivery, recalculation, reexecution, or Phase 5. Tests assert fail-closed flags. | `CANDIDATE_SHADOW_ONLY` | Freeze promotion until ADR + CapabilitySpec + ModuleContract + TaskSpec exist. |
-| More semantic runtime code can continue immediately. | Roadmap momentum after `d303608`. | AGENTS.md requires ADR/CapabilitySpec/ModuleContract/TaskSpec for new capabilities and decisions. | `BLOCKED_METHODOLOGICALLY` | Decide whether the semantic lane is experimental candidate or sanctioned capability before writing more code. |
+| Semantic runtime plan candidate is executable runtime. | Possible over-reading of commit `d303608`. | `service_1_semantic_runtime_plan_candidate_v1.py` states it prepares a plan candidate only and never executes computation, runtime, CLI, delivery, recalculation, reexecution, or Phase 5. ADR + CapabilitySpec classify the lane as `EXPERIMENTAL_CANDIDATE_ONLY`. Tests assert fail-closed flags. | `EXPERIMENTAL_CANDIDATE_ONLY` | Freeze promotion beyond candidate-only until ModuleContract + TaskSpec + tests + evidence checkpoint exist. |
+| More semantic runtime code can continue immediately. | Roadmap momentum after `d303608`. | ADR + CapabilitySpec already classify the lane as `EXPERIMENTAL_CANDIDATE_ONLY`; AGENTS.md still requires ModuleContract, TaskSpec, tests, and evidence before promotion. | `BLOCKED_METHODOLOGICALLY_BEYOND_EXPERIMENTAL_CANDIDATE` | Do not write promotion/runtime code until the remaining contract chain exists. |
 
 ## Evidence observed in this reconciliation
 
@@ -87,7 +88,7 @@ This evidence supports:
 
 It does not support:
 
-- physical XLSX end-to-end certification through the official entrypoint;
+- full CASE_001 computation/dry-run after owner column confirmations;
 - real runner invocation;
 - SaaS runtime/API/storage/worker readiness;
 - autonomous delivery;
@@ -103,26 +104,29 @@ It does not support:
 - `ACTIVE_ROADMAP.md` currently records execution gate and runner shadow units as closed while retaining stop rules before real runner, API/storage/worker, and autonomous delivery.
 - `SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1` contains stale next-front language for the execution gate chain.
 - `service_1_semantic_runtime_plan_candidate_v1.py` is fail-closed and candidate-only.
+- `SERVICE_1_CASE_001_PHYSICAL_XLSX_E2E_EVIDENCE_V1.md` closes physical XLSX E2E evidence as `PASS_WITH_LIMITS` through intake/folder governance.
+- Semantic runtime ADR + CapabilitySpec classify the lane as `EXPERIMENTAL_CANDIDATE_ONLY`.
 
 ### Hypotheses
 
-- The operative closeout may have intentionally broadened the controlled-use status after component closures, but it does not by itself prove a single physical XLSX end-to-end official-entrypoint evidence run.
-- The semantic runtime lane may be valuable as a future capability, but its authority must be made explicit before promotion.
+- The next CASE_001 run may proceed to computation/dry-run only after owner column confirmations are supplied.
+- The semantic runtime lane may be valuable as a future capability, but its authority beyond `EXPERIMENTAL_CANDIDATE_ONLY` must be made explicit before promotion.
 
 ### Gaps
 
-- `XLSX_PHYSICAL_E2E_OFFICIAL_ENTRYPOINT` still needs direct evidence.
+- CASE_001 still needs owner column confirmations before computation/dry-run.
 - `SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1` needs sync or supersession.
-- `SEMANTIC_RUNTIME_PLAN_CANDIDATE` needs ADR/CapabilitySpec/ModuleContract/TaskSpec before it can become more than candidate/shadow.
+- `SEMANTIC_RUNTIME_PLAN_CANDIDATE` already has ADR + CapabilitySpec; it still needs ModuleContract, TaskSpec, tests, evidence, and checkpoint before it can become more than `EXPERIMENTAL_CANDIDATE_ONLY`.
 
 ## Next step
 
-Choose exactly one next methodological step before writing more code:
+Proceed with one narrow methodological front:
 
-1. **Promote or freeze the semantic lane**: create an ADR and CapabilitySpec for the bounded/semantic runtime lane, or explicitly mark it experimental candidate-only.
-2. **Close physical XLSX evidence**: define and execute `CASE_001` physical XLSX end-to-end through the official entrypoint, producing folder, manifest, and `delivery_policy_guard.json` evidence.
+```text
+owner column confirmations -> re-run CASE_001 -> optional dry-run candidate
+```
 
-Do not do both in the same cycle.
+This is not authorization for runner, SaaS runtime, API/storage/worker, autonomous delivery, final diagnosis, or semantic runtime promotion. It is only the next evidence step after the CASE_001 intake/folder-governance `PASS_WITH_LIMITS`.
 
 ## Stop conditions
 
@@ -132,5 +136,5 @@ Do not do both in the same cycle.
 - No autonomous delivery.
 - No second XLSX parser.
 - No product-ready claim.
-- No promotion of semantic runtime without ADR, CapabilitySpec, ModuleContract, TaskSpec, tests, evidence, and checkpoint.
+- No promotion of semantic runtime beyond `EXPERIMENTAL_CANDIDATE_ONLY` without ModuleContract, TaskSpec, tests, evidence, and checkpoint.
 - No broad PASS statement without naming the exact evidence boundary.
