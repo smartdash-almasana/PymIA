@@ -385,6 +385,19 @@ from pymia.smartpyme.service_1_runtime_catalog_binding_contract_v1 import (
 )
 
 
+def test_contract_implementation_has_no_case_001_dependency() -> None:
+    import importlib
+
+    source = importlib.util.find_spec(
+        "pymia.smartpyme.service_1_runtime_catalog_binding_contract_v1"
+    )
+    assert source is not None
+    path = source.origin
+    with open(path, encoding="utf-8") as fh:
+        content = fh.read()
+    assert "CASE_001" not in content
+
+
 def test_contract_resolver_unknown_pathology_code() -> None:
     """
     Test: Unknown pathology code emits UNKNOWN_PATHOLOGY_CODE.

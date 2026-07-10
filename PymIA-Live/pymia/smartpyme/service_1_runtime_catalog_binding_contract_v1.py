@@ -7,7 +7,7 @@ This module implements the contract boundary governing:
   pathology_code -> formula_refs -> required_variables -> required_evidence -> readiness_status
 
 It does not authorize runtime connection, mapper changes, engine changes,
-CLI changes, CASE_001 patching, JSON mutation, Phase 5, or product-ready claims.
+CLI changes, JSON mutation, Phase 5, or product-ready claims.
 
 Mode: PURE CONTRACT ONLY
 """
