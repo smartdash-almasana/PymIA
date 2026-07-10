@@ -88,14 +88,16 @@ def test_conceptually_eligible_still_blocks_when_runtime_not_authorized():
     assert result["runtime_authorized"] is False
 
 
-def test_returns_eligible_only_when_runtime_authorized():
+def test_evaluator_never_authorizes_runtime_even_when_input_requests_it():
     result = evaluate_first_aid_tool_activation(_base_input(runtime_authorized=True))
 
-    assert result["activation_status"] == "ELIGIBLE"
-    assert result["blocking_reasons"] == []
+    assert result["activation_status"] == "BLOCKED_RUNTIME_NOT_AUTHORIZED"
+    assert result["blocking_reasons"] == [
+        "tool is conceptually eligible but runtime execution is not authorized"
+    ]
     assert result["missing_inputs"] == []
     assert result["owner_questions"] == []
-    assert result["runtime_authorized"] is True
+    assert result["runtime_authorized"] is False
 
 
 def test_blocks_formula_not_allowed_for_tool():

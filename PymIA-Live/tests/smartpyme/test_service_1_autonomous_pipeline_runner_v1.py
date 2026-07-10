@@ -143,7 +143,7 @@ def test_calls_pipeline_when_everything_is_authorized(monkeypatch, tmp_path: Pat
     ]
     assert result["status"] == "PIPELINE_RUN_COMPLETED"
     assert result["pipeline_called"] is True
-    assert result["runtime_authorized"] is True
+    assert result["runtime_authorized"] is False
     assert result["executed_tool_refs"] == ["precio_margen_basico"]
     assert result["pipeline_run_result"] == _pipeline_result(["precio_margen_basico"])
 
@@ -158,7 +158,7 @@ def test_pipeline_run_failed_if_pipeline_raises(monkeypatch, tmp_path: Path) -> 
 
     assert result["status"] == "PIPELINE_RUN_FAILED"
     assert result["pipeline_called"] is True
-    assert result["runtime_authorized"] is True
+    assert result["runtime_authorized"] is False
     assert result["pipeline_run_result"] is None
     assert str(result["blocked_reason"]).startswith("pipeline_exception:RuntimeError:boom")
 

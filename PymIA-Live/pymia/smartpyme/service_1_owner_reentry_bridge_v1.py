@@ -240,7 +240,9 @@ def _ensure_question_bundle_object(bundle: Service1QuestionBundleV1 | dict[str, 
         questions=questions,
         selected_next_question_ref=bundle.get("selected_next_question_ref"),
         runtime_authorized=bool(bundle.get("runtime_authorized", False)),
-        human_review_required=bool(bundle.get("human_review_required", True)),
+        owner_confirmation_required=bool(
+            bundle.get("owner_confirmation_required", bundle.get("human_review_required", True))
+        ),
         created_at=str(bundle["created_at"]),
         metadata=dict(bundle.get("metadata") or {}),
     )

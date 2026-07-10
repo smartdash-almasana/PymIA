@@ -121,7 +121,6 @@ def run_service_1_autonomous_pipeline_runner_v1(
             status="PIPELINE_RUN_FAILED",
             blocked_reason=f"pipeline_exception:{type(exc).__name__}:{exc}",
             pipeline_called=True,
-            runtime_authorized=True,
             notes=["Pipeline call failed inside autonomous runner."],
         )
 
@@ -130,7 +129,6 @@ def run_service_1_autonomous_pipeline_runner_v1(
         pipeline_run_result=pipeline_run_result,
         executed_tool_refs=list(pipeline_run_result.get("executed_tool_refs", [])),
         pipeline_called=True,
-        runtime_authorized=True,
         notes=["Pipeline completed through autonomous runner."],
     )
 
@@ -167,7 +165,6 @@ def _result(
     pipeline_run_result: Service1PipelineV1 | None = None,
     blocked_reason: str | None = None,
     executed_tool_refs: list[str] | None = None,
-    runtime_authorized: bool = False,
     pipeline_called: bool = False,
     notes: list[str] | None = None,
 ) -> Service1AutonomousPipelineRunnerResultV1:
@@ -178,7 +175,7 @@ def _result(
         "pipeline_run_result": pipeline_run_result,
         "blocked_reason": blocked_reason,
         "executed_tool_refs": list(executed_tool_refs or []),
-        "runtime_authorized": runtime_authorized,
+        "runtime_authorized": False,
         "pipeline_called": pipeline_called,
         "delivery_authorized": False,
         "autonomous_delivery_authorized": False,

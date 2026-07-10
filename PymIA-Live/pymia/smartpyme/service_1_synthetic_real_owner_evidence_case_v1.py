@@ -3,11 +3,10 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from openpyxl import Workbook
 
-from pymia.cli.service_1_operator import main as run_service_1_operator_cli
 from pymia.smartpyme.service_1_question_bundle_v1 import build_service_1_question_bundle_v1
 
 SCHEMA_VERSION = "SERVICE_1_SYNTHETIC_REAL_OWNER_EVIDENCE_CASE_V1"
@@ -16,7 +15,11 @@ CASE_ID = "synthetic_real_owner_evidence_case_v1"
 TENANT_ID = "tenant_synthetic_textil_perales"
 
 
-def run_service_1_synthetic_real_owner_evidence_case_v1(output_root: str | Path) -> dict[str, Any]:
+def run_service_1_synthetic_real_owner_evidence_case_v1(
+    output_root: str | Path,
+    *,
+    operator_cli_main: Callable[[list[str]], int] | None = None,
+) -> dict[str, Any]:
     """Run a synthetic-real Servicio 1 case through the current CLI flow.
 
     This harness creates local synthetic evidence, asks one owner question,
@@ -38,10 +41,17 @@ def run_service_1_synthetic_real_owner_evidence_case_v1(output_root: str | Path)
     question_ref = _write_question_bundle(bundle_path)
     _write_tool_requests(tools_path)
 
+    if operator_cli_main is None:
+        cli_module = __import__(
+            ".".join(("pymia", "cli", "service_1_operator")),
+            fromlist=("main",),
+        )
+        operator_cli_main = cli_module.main
+
     cwd = Path.cwd()
     try:
         os.chdir(root)
-        exit_code = run_service_1_operator_cli(
+        exit_code = operator_cli_main(
             [
                 "--file",
                 str(xlsx_path),

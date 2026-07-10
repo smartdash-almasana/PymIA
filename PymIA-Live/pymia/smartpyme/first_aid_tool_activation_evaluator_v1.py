@@ -48,7 +48,7 @@ def evaluate_first_aid_tool_activation(
     """Evaluate conceptual First Aid tool activation.
 
     Pure evaluator. It does not execute tools, calculate formulas, generate XLSX,
-    call LLMs, persist data, or wire into the vertical pipeline.
+    call LLMs, persist data, authorize runtime, or wire into the vertical pipeline.
     """
     contract = activation_contract or load_first_aid_tool_activation_contract()
     seed = pack_seed or load_first_aid_toolbox_pack_seed()
@@ -64,7 +64,6 @@ def evaluate_first_aid_tool_activation(
         raise ValueError("activation_input.pack_seed_status must be CANDIDATE_SEED")
 
     tool_ref = _required_str(activation_input, "tool_ref")
-    runtime_authorized = bool(activation_input.get("runtime_authorized", False))
     tool_contract = _find_tool_contract(contract, tool_ref)
     limitations = list(tool_contract.get("limitations", [])) if tool_contract else []
 
@@ -74,7 +73,7 @@ def evaluate_first_aid_tool_activation(
             "BLOCKED_COMPONENT_NOT_ALIGNED",
             [f"tool_ref {tool_ref} is not present in the First Aid pack"],
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
             escalation_hint="seed_audit_required",
         )
 
@@ -85,7 +84,7 @@ def evaluate_first_aid_tool_activation(
             "BLOCKED_COMPONENT_NOT_ALIGNED",
             [f"tool_ref {tool_ref} has no ALIGNED component mapping"],
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
             escalation_hint="seed_audit_required",
         )
 
@@ -95,7 +94,7 @@ def evaluate_first_aid_tool_activation(
             "BLOCKED_COMPONENT_NOT_ALIGNED",
             ["tool component required by activation contract does not match seed mapping"],
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
             escalation_hint="seed_audit_required",
         )
 
@@ -106,7 +105,7 @@ def evaluate_first_aid_tool_activation(
             "BLOCKED_SCOPE_MISMATCH",
             [f"service_depth {service_depth} is not allowed for First Aid activation"],
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
             escalation_hint=service_depth,
         )
 
@@ -124,7 +123,7 @@ def evaluate_first_aid_tool_activation(
             missing_inputs=unconfirmed_columns,
             owner_questions=["Confirmá qué significa cada columna computacional dudosa antes de calcular."],
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
         )
 
     requested_formulas = set(activation_input.get("requested_formula_refs", []) or [])
@@ -139,7 +138,7 @@ def evaluate_first_aid_tool_activation(
             ["requested formula requires deeper diagnostic sufficiency"],
             missing_inputs=requested_restricted,
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
             escalation_hint="DETERMINISTIC_DIAGNOSIS",
         )
     if requested_not_allowed:
@@ -149,7 +148,7 @@ def evaluate_first_aid_tool_activation(
             ["requested formula is not allowed for this First Aid tool"],
             missing_inputs=requested_not_allowed,
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
             escalation_hint="tool_contract_audit_required",
         )
 
@@ -164,7 +163,7 @@ def evaluate_first_aid_tool_activation(
             ["requested claim is forbidden for this First Aid tool"],
             missing_inputs=forbidden_requested,
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
+            runtime_authorized=False,
             escalation_hint="reformulate_or_escalate",
         )
 
@@ -179,28 +178,16 @@ def evaluate_first_aid_tool_activation(
             missing_inputs=missing_evidence,
             owner_questions=list(tool_contract.get("owner_questions_if_missing", []) or []),
             limitations=limitations,
-            runtime_authorized=runtime_authorized,
-        )
-
-    if not runtime_authorized:
-        return _blocked(
-            tool_ref,
-            "BLOCKED_RUNTIME_NOT_AUTHORIZED",
-            ["tool is conceptually eligible but runtime execution is not authorized"],
-            limitations=limitations,
             runtime_authorized=False,
         )
 
-    return {
-        "tool_ref": tool_ref,
-        "activation_status": "ELIGIBLE",
-        "blocking_reasons": [],
-        "missing_inputs": [],
-        "owner_questions": [],
-        "limitations": limitations,
-        "escalation_hint": None,
-        "runtime_authorized": True,
-    }
+    return _blocked(
+        tool_ref,
+        "BLOCKED_RUNTIME_NOT_AUTHORIZED",
+        ["tool is conceptually eligible but runtime execution is not authorized"],
+        limitations=limitations,
+        runtime_authorized=False,
+    )
 
 
 def load_first_aid_tool_activation_contract() -> dict[str, Any]:

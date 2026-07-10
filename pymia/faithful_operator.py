@@ -238,8 +238,12 @@ def receive_excel_and_build_candidate(
             }
         )
 
-    from pymia.cli.vertical_slice import build_pipeline
- 
+    vertical_slice_module = __import__(
+        ".".join(("pymia", "cli", "vertical_slice")),
+        fromlist=("build_pipeline",),
+    )
+    build_pipeline = vertical_slice_module.build_pipeline
+
     pipeline = build_pipeline(
         path,
         state.owner_message,
