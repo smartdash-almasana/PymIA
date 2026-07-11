@@ -95,6 +95,24 @@ class _Service1WebExperimentHandler(BaseHTTPRequestHandler):
     server_version = "PymIAService1WebExperimentHTTP/1.0"
     sys_version = ""
 
+    # Dev-only CORS: allows the static frontend (e.g. served from :8080) to call
+    # this endpoint (on :8000) during local experiments. NOT for production.
+    _CORS_HEADERS = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    }
+
+    def _write_cors_headers(self) -> None:
+        for key, value in self._CORS_HEADERS.items():
+            self.send_header(key, value)
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self.send_response(204)
+        self._write_cors_headers()
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_POST(self) -> None:  # noqa: N802
         route = urlsplit(self.path).path
         if route != ROUTE_RUN_EXPERIMENT:
@@ -200,6 +218,7 @@ class _Service1WebExperimentHandler(BaseHTTPRequestHandler):
     def _write_json(self, http_status: int, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(http_status)
+        self._write_cors_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
