@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PymIA Servicio 1 - Web Experiment</title>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f6f8fb;color:#0f172a}header{background:#0d1b2f;color:white;padding:18px 24px}main{width:min(1040px,calc(100% - 32px));margin:20px auto;display:grid;gap:16px}.card{background:white;border:1px solid #dbe4f0;border-radius:12px;padding:16px}label{display:block;font-weight:800;margin-bottom:8px}input,textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px;font:inherit}textarea{min-height:260px;font-family:ui-monospace,Consolas,monospace;font-size:13px}button{border:0;border-radius:10px;background:#1e66ff;color:white;padding:11px 14px;font-weight:900;cursor:pointer}.secondary{background:#e9eef8;color:#0f172a}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.muted{color:#64748b;font-size:13px}.ok{color:#047857}.bad{color:#b91c1c}pre{white-space:pre-wrap;overflow:auto;max-height:420px;background:#0b1220;color:#e2e8f0;border-radius:10px;padding:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:860px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header><h1>PymIA Servicio 1 - Web Experiment</h1><p>Frontend minimo dev-only. No parsea Excel, no usa SheetJS, no inventa preguntas. Envia archivo + payload al endpoint real.</p></header>
+<main>
+  <section class="card grid">
+    <div><label>Endpoint</label><input id="endpoint" value="http://127.0.0.1:8000/service-1/experiment/run"><p class="muted">Levantar antes: python -m pymia.cli.service_1_web_experiment_server</p></div>
+    <div><label>XLSX</label><input id="file" type="file" accept=".xlsx"><p class="muted">El navegador no lee el XLSX; solo lo transporta.</p></div>
+  </section>
+  <section class="card">
+    <label>payload_json</label><textarea id="payload" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:10px"><button id="load" type="button" class="secondary">Cargar ejemplo CASE_001</button><button id="run" type="button">Procesar</button><strong id="status" class="muted">Esperando</strong></div>
+  </section>
+  <section class="card"><label>Respuesta HTTP</label><pre id="output">Sin respuesta.</pre></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const case001Payload={owner_column_answers:{fecha:"fecha de la operacion o venta",comprobante:"numero de comprobante",producto_codigo:"codigo interno del producto",producto:"nombre del producto vendido",categoria:"categoria comercial del producto",cantidad:"cantidad vendida",precio_unitario:"precio unitario de venta",costo_unitario:"costo unitario del producto",canal:"canal de venta",venta_total:"importe total de la venta"},semantic_owner_answers:{precio_unitario:"confirmo que es precio unitario de venta",costo_unitario:"confirmo que es costo unitario real",venta_total:"confirmo que es importe total vendido"},owner_authorization:"accept",owner_validation:"accept",delivery_authorized:true,output_dir:"../.tmp/service_1_web_frontend_delivery"};
+function renderPayload(v){$("payload").value=JSON.stringify(v,null,2)}
+function setStatus(t,c){const el=$("status");el.textContent=t;el.className=c||"muted"}
+async function runExperiment(){const file=$("file").files&&$("file").files[0];if(!file){setStatus("Falta XLSX","bad");return}let payload;try{payload=JSON.parse($("payload").value)}catch(e){setStatus("payload_json invalido","bad");return}const form=new FormData();form.append("file",file,file.name);form.append("payload_json",JSON.stringify(payload));setStatus("Enviando...","muted");$("run").disabled=true;try{const response=await fetch($("endpoint").value,{method:"POST",body:form});const text=await response.text();let data;try{data=JSON.parse(text)}catch(_){data={http_status:response.status,raw:text}}$("output").textContent=JSON.stringify(data,null,2);const ok=response.ok&&String(data.status||"").includes("READY");setStatus(`${response.status} - ${data.status||"sin status"}`,ok?"ok":"bad")}catch(err){$("output").textContent=String(err&&err.stack?err.stack:err);setStatus("Error de red","bad")}finally{$("run").disabled=false}}
+$("load").onclick=()=>renderPayload(case001Payload);$("run").onclick=runExperiment;renderPayload(case001Payload);
+</script>
+</body>
+</html>
