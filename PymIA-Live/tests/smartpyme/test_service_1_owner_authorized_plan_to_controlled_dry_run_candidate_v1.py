@@ -1,8 +1,8 @@
 """
-Audit tests for SERVICE_1_OWNER_AUTHORIZED_PLAN_TO_CONTROLLED_DRY_RUN_RESULT_V1.
+Audit tests for SERVICE_1_OWNER_AUTHORIZED_PLAN_TO_CONTROLLED_DRY_RUN_CANDIDATE_V1.
 
-Scope: controlled dry-run result only (ACCEPTED authorization dialogue ->
-deterministic simulated dry-run). These tests do NOT execute external tools,
+Scope: controlled dry-run candidate only (ACCEPTED authorization dialogue ->
+deterministic analysis candidate). These tests do NOT execute external tools,
 do NOT authorize runtime/product/delivery/diagnosis, and do NOT create
 delivery. Full-chain tests use real fixtures so the dialogue reaches
 OWNER_AUTHORIZATION_ACCEPTED.
@@ -44,7 +44,7 @@ from pymia.smartpyme.service_1_plan_packet_to_owner_authorization_dialogue_v1 im
     STATUS_REQUIRED,
     build_service_1_owner_authorization_dialogue_from_plan_packet_v1 as build_dialogue,
 )
-from pymia.smartpyme.service_1_owner_authorized_plan_to_controlled_dry_run_result_v1 import (
+from pymia.smartpyme.service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1 import (
     BLOCK_INPUT_FLAGS_FORBIDDEN,
     BLOCK_INPUT_NOT_DICT,
     BLOCK_INVALID_STEP,
@@ -52,7 +52,7 @@ from pymia.smartpyme.service_1_owner_authorized_plan_to_controlled_dry_run_resul
     BLOCK_NOT_ACCEPTED,
     BLOCK_REQUEST_FLAGS_FORBIDDEN,
     STATUS_READY,
-    build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1 as build_dry_run,
+    build_service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1 as build_dry_run,
 )
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -80,8 +80,28 @@ def _assert_controlled_flags(packet: dict) -> None:
     assert packet["diagnosis_generated"] is False
     assert packet["runtime_authorized"] is False
     assert packet["tool_execution_authorized"] is False
-    # On a BLOCKED packet no simulation ran; on READY dry_run_executed is True.
-    assert packet["dry_run_executed"] is (packet["status"] == STATUS_READY)
+    # On a BLOCKED packet no analysis ran; on READY dry_run_evaluated is True.
+    assert packet["dry_run_evaluated"] is (packet["status"] == STATUS_READY)
+
+
+def _assert_no_result_or_executed_wording(packet: dict) -> None:
+    """No 'result' or 'executed' wording in packet keys except execution_executed."""
+    for key in packet:
+        key_lower = key.lower()
+        assert "result" not in key_lower, f"packet key '{key}' contains 'result'"
+        if key == "execution_executed":
+            continue
+        assert "executed" not in key_lower, f"packet key '{key}' contains 'executed'"
+    # Status string must not contain 'result'.
+    assert "result" not in packet["status"].lower(), "status contains 'result'"
+    # Step analysis entries must also be clean.
+    for entry in packet.get("analysis", []):
+        for key in entry:
+            key_lower = key.lower()
+            assert "result" not in key_lower, f"analysis key '{key}' contains 'result'"
+            if key == "execution_executed":
+                continue
+            assert "executed" not in key_lower, f"analysis key '{key}' contains 'executed'"
 
 
 @pytest.fixture()
@@ -122,31 +142,32 @@ def case_001_accepted_dialogue() -> dict:
     return dialogue
 
 
-# --- 1. Full chain -> dry-run READY ---------------------------------------
+# --- 1. Full chain -> dry-run candidate READY ------------------------------
 
-def test_case_001_accept_to_dry_run_ready(case_001_accepted_dialogue: dict) -> None:
+def test_case_001_accept_to_dry_run_candidate_ready(case_001_accepted_dialogue: dict) -> None:
     out = build_dry_run(owner_authorization_dialogue_packet=case_001_accepted_dialogue)
 
     assert out["status"] == STATUS_READY
     assert out["step_count"] == len(case_001_accepted_dialogue["planned_steps"])
-    assert out["results"], "expected simulated step results"
+    assert out["analysis"], "expected analysis entries"
     assert "operation_date" in out["roles"]  # role carried from the chain
     _assert_controlled_flags(out)
-    # Every simulated step is marked dry-run only (no real execution/delivery).
-    for result in out["results"]:
-        assert result["dry_run_executed"] is True
-        assert result["execution_executed"] is False
-        assert result["delivery_created"] is False
+    _assert_no_result_or_executed_wording(out)
+    # Every analysis entry is marked evaluated only (no real execution/delivery).
+    for entry in out["analysis"]:
+        assert entry["dry_run_evaluated"] is True
+        assert entry["execution_executed"] is False
+        assert entry["delivery_created"] is False
 
 
 def test_dry_run_is_deterministic(case_001_accepted_dialogue: dict) -> None:
     a = build_dry_run(owner_authorization_dialogue_packet=case_001_accepted_dialogue)
     b = build_dry_run(owner_authorization_dialogue_packet=case_001_accepted_dialogue)
-    assert a["results"] == b["results"]
+    assert a["analysis"] == b["analysis"]
     assert a["step_count"] == b["step_count"]
 
 
-# --- 2. reject / required -> BLOCKED --------------------------------------
+# --- 2. reject / required -> BLOCKED ----------------------------------------
 
 def test_reject_blocks(case_001_accepted_dialogue: dict) -> None:
     rejected = dict(case_001_accepted_dialogue)
@@ -154,6 +175,7 @@ def test_reject_blocks(case_001_accepted_dialogue: dict) -> None:
     out = build_dry_run(owner_authorization_dialogue_packet=rejected)
     assert out["status"] == "BLOCKED"
     assert out["blocked_reason"] == BLOCK_NOT_ACCEPTED
+    _assert_no_result_or_executed_wording(out)
 
 
 def test_required_blocks(case_001_accepted_dialogue: dict) -> None:
@@ -161,9 +183,10 @@ def test_required_blocks(case_001_accepted_dialogue: dict) -> None:
     required["status"] = STATUS_REQUIRED
     out = build_dry_run(owner_authorization_dialogue_packet=required)
     assert out["blocked_reason"] == BLOCK_NOT_ACCEPTED
+    _assert_no_result_or_executed_wording(out)
 
 
-# --- 3. Blocks ------------------------------------------------------------
+# --- 3. Blocks --------------------------------------------------------------
 
 @pytest.mark.parametrize(
     "flag",
@@ -189,11 +212,24 @@ def test_block_input_not_dict() -> None:
         _assert_controlled_flags(out)
 
 
-def test_block_input_flags_true(case_001_accepted_dialogue: dict) -> None:
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "runtime_authorized",
+        "tool_execution_authorized",
+        "product_ready",
+        "delivery_authorized",
+        "diagnosis_generated",
+        "dry_run_evaluated",
+        "execution_executed",
+    ],
+)
+def test_block_input_flags_true(case_001_accepted_dialogue: dict, flag: str) -> None:
     tainted = dict(case_001_accepted_dialogue)
-    tainted["runtime_authorized"] = True
+    tainted[flag] = True
     out = build_dry_run(owner_authorization_dialogue_packet=tainted)
     assert out["blocked_reason"] == BLOCK_INPUT_FLAGS_FORBIDDEN
+    _assert_controlled_flags(out)
 
 
 def test_block_missing_planned_steps(case_001_accepted_dialogue: dict) -> None:
@@ -210,7 +246,7 @@ def test_block_invalid_step(case_001_accepted_dialogue: dict) -> None:
     assert out["blocked_reason"] == BLOCK_INVALID_STEP
 
 
-# --- 4. Stability ---------------------------------------------------------
+# --- 4. Stability -----------------------------------------------------------
 
 def test_does_not_mutate_dialogue(case_001_accepted_dialogue: dict) -> None:
     before_status = case_001_accepted_dialogue["status"]

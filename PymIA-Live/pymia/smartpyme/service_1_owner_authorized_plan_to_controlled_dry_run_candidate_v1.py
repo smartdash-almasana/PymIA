@@ -1,20 +1,20 @@
 """
-Service 1 Owner Authorized Plan -> Controlled Dry Run Result V1
+Service 1 Owner Authorized Plan -> Controlled Dry Run Candidate V1
 
-Fail-closed, deterministic DRY-RUN result for the Servicio 1 assisted flow.
+Fail-closed, deterministic DRY-RUN candidate for the Servicio 1 assisted flow.
 
 Flow position:
 
-    owner_authorization_dialogue (ACCEPTED) -> controlled DRY-RUN result (this module)
+    owner_authorization_dialogue (ACCEPTED) -> controlled DRY-RUN candidate (this module)
 
 The module takes an ACCEPTED owner authorization dialogue and produces a
-controlled, auditable dry-run result. It performs ONLY an internal,
-deterministic simulation of the plan's steps (validate_column /
+controlled, auditable dry-run candidate. It performs ONLY an internal,
+deterministic analysis of the plan's steps (validate_column /
 prepare_computation). It NEVER executes external tools, NEVER writes files,
 NEVER creates delivery, and NEVER authorizes runtime/product/delivery/diagnosis.
 
 By contract:
-- ``dry_run_executed`` is True (the simulation ran),
+- ``dry_run_evaluated`` is True (the analysis ran),
 - ``execution_executed`` is False (no real/external execution),
 - ``delivery_created`` / ``product_ready`` / ``delivery_authorized`` /
   ``diagnosis_generated`` / ``runtime_authorized`` / ``tool_execution_authorized``
@@ -29,11 +29,11 @@ from pymia.smartpyme.service_1_plan_packet_to_owner_authorization_dialogue_v1 im
     STATUS_ACCEPTED as DIALOGUE_STATUS_ACCEPTED,
 )
 
-SCHEMA_VERSION = "SERVICE_1_OWNER_AUTHORIZED_PLAN_TO_CONTROLLED_DRY_RUN_RESULT_V1"
+SCHEMA_VERSION = "SERVICE_1_OWNER_AUTHORIZED_PLAN_TO_CONTROLLED_DRY_RUN_CANDIDATE_V1"
 SERVICE_NAME = "SERVICE_1"
-PACKET_TYPE = "OWNER_AUTHORIZED_PLAN_TO_CONTROLLED_DRY_RUN_RESULT"
+PACKET_TYPE = "OWNER_AUTHORIZED_PLAN_TO_CONTROLLED_DRY_RUN_CANDIDATE"
 
-STATUS_READY = "CONTROLLED_DRY_RUN_RESULT_READY"
+STATUS_READY = "CONTROLLED_DRY_RUN_CANDIDATE_READY"
 STATUS_BLOCKED = "BLOCKED"
 
 # Block reason constants (stable identifiers for tests and callers).
@@ -58,12 +58,14 @@ _INPUT_FORBIDDEN_FLAGS = (
     "product_ready",
     "delivery_authorized",
     "diagnosis_generated",
+    "dry_run_evaluated",
+    "execution_executed",
 )
 
 _VALID_ACTIONS: Final[set[str]] = {"validate_column", "prepare_computation"}
 
 
-def build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1(
+def build_service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1(
     *,
     owner_authorization_dialogue_packet: Any,
     runtime_authorized: bool = False,
@@ -72,10 +74,10 @@ def build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1(
     delivery_authorized: bool = False,
     diagnosis_generated: bool = False,
 ) -> dict[str, Any]:
-    """Run a controlled dry-run simulation from an ACCEPTED authorization dialogue.
+    """Produce a controlled dry-run candidate from an ACCEPTED authorization dialogue.
 
     Returns:
-        A dry-run result packet dict. Status is CONTROLLED_DRY_RUN_RESULT_READY
+        A dry-run candidate packet dict. Status is CONTROLLED_DRY_RUN_CANDIDATE_READY
         or BLOCKED (with ``blocked_reason``).
     """
     if any((runtime_authorized, tool_execution_authorized, product_ready, delivery_authorized, diagnosis_generated)):
@@ -110,7 +112,7 @@ def build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1(
             filename=owner_authorization_dialogue_packet.get("filename"),
         )
 
-    simulation_results: list[dict[str, Any]] = []
+    analysis_entries: list[dict[str, Any]] = []
     for index, step in enumerate(planned_steps):
         if not isinstance(step, dict) or "action" not in step:
             return _blocked(
@@ -127,8 +129,8 @@ def build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1(
                 source_kind=owner_authorization_dialogue_packet.get("source_kind"),
                 filename=owner_authorization_dialogue_packet.get("filename"),
             )
-        simulation_results.append(
-            _simulate_step(step_index=index, step=step)
+        analysis_entries.append(
+            _analyze_step(step_index=index, step=step)
         )
 
     return {
@@ -140,10 +142,10 @@ def build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1(
         "case_id": owner_authorization_dialogue_packet.get("case_id"),
         "source_kind": owner_authorization_dialogue_packet.get("source_kind"),
         "filename": owner_authorization_dialogue_packet.get("filename"),
-        "step_count": len(simulation_results),
+        "step_count": len(analysis_entries),
         "roles": list(owner_authorization_dialogue_packet.get("roles") or []),
-        "results": simulation_results,
-        "dry_run_executed": True,
+        "analysis": analysis_entries,
+        "dry_run_evaluated": True,
         "execution_executed": False,
         "delivery_created": False,
         "product_ready": False,
@@ -154,10 +156,10 @@ def build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1(
     }
 
 
-def _simulate_step(*, step_index: int, step: dict[str, Any]) -> dict[str, Any]:
-    """Deterministic internal simulation of a single planned step.
+def _analyze_step(*, step_index: int, step: dict[str, Any]) -> dict[str, Any]:
+    """Deterministic internal analysis of a single planned step.
 
-    No files are written; no external tool is invoked. The simulation is a pure
+    No files are written; no external tool is invoked. The analysis is a pure
     function of the step's action/target.
     """
     action = str(step.get("action"))
@@ -176,9 +178,9 @@ def _simulate_step(*, step_index: int, step: dict[str, Any]) -> dict[str, Any]:
         "step": step_index + 1,
         "action": action,
         "target": target,
-        "dry_run_outcome": outcome,
+        "dry_run_analysis": outcome,
         "detail": detail,
-        "dry_run_executed": True,
+        "dry_run_evaluated": True,
         "execution_executed": False,
         "delivery_created": False,
     }
@@ -202,8 +204,8 @@ def _blocked(
         "filename": filename,
         "step_count": 0,
         "roles": [],
-        "results": [],
-        "dry_run_executed": False,
+        "analysis": [],
+        "dry_run_evaluated": False,
         "execution_executed": False,
         "delivery_created": False,
         "product_ready": False,
@@ -226,5 +228,5 @@ __all__ = [
     "BLOCK_NOT_ACCEPTED",
     "BLOCK_MISSING_PLANNED_STEPS",
     "BLOCK_INVALID_STEP",
-    "build_service_1_owner_authorized_plan_to_controlled_dry_run_result_v1",
+    "build_service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1",
 ]
