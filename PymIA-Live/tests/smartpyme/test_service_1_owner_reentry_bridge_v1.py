@@ -57,7 +57,7 @@ def _answered_bundle() -> Service1QuestionBundleV1:
         questions=(answered_question,),
         selected_next_question_ref=None,
         runtime_authorized=False,
-        human_review_required=True,
+        owner_confirmation_required=True,
         created_at=base.created_at,
         metadata={},
     )
