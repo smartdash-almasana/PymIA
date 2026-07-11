@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PymIA Servicio 1 - Dialogo Dueño</title>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f6f8fb;color:#0f172a}header{background:#0d1b2f;color:white;padding:18px 24px}main{width:min(1120px,calc(100% - 32px));margin:20px auto;display:grid;gap:16px}.card{background:white;border:1px solid #dbe4f0;border-radius:12px;padding:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}label{display:block;font-weight:800;margin:0 0 6px}input,textarea,select{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px;font:inherit}textarea{min-height:82px}button{border:0;border-radius:10px;background:#1e66ff;color:white;padding:11px 14px;font-weight:900;cursor:pointer}.secondary{background:#e9eef8;color:#0f172a}.danger{color:#b91c1c}.ok{color:#047857}.muted{color:#64748b;font-size:13px}pre{white-space:pre-wrap;overflow:auto;max-height:360px;background:#0b1220;color:#e2e8f0;border-radius:10px;padding:12px}.question{border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}@media(max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>PymIA Servicio 1 - Dialogo del Dueño</h1>
+  <p>Frontend dev-only. No parsea Excel, no usa SheetJS, no decide. Junta respuestas y llama al endpoint real.</p>
+</header>
+<main>
+  <section class="card grid">
+    <div><label>Endpoint</label><input id="endpoint" value="http://127.0.0.1:8000/service-1/experiment/run"><p class="muted">Backend: python -m pymia.cli.service_1_web_experiment_server</p></div>
+    <div><label>XLSX</label><input id="file" type="file" accept=".xlsx"><p class="muted">Seleccionar CASE_001 u otro XLSX compatible.</p></div>
+  </section>
+
+  <section class="card">
+    <h2>1. Confirmar columnas del archivo</h2>
+    <p class="muted">Para CASE_001 estas son las columnas conocidas. Para otro archivo, editar nombres/respuestas antes de procesar.</p>
+    <div id="columns"></div>
+    <div class="row"><button class="secondary" id="presetColumns" type="button">Cargar respuestas CASE_001</button></div>
+  </section>
+
+  <section class="card">
+    <h2>2. Confirmar ambigüedades semánticas</h2>
+    <div id="semantic"></div>
+    <div class="row"><button class="secondary" id="presetSemantic" type="button">Cargar confirmaciones CASE_001</button></div>
+  </section>
+
+  <section class="card grid">
+    <div><label>Autorización del plan</label><select id="ownerAuth"><option value="accept">accept</option><option value="reject">reject</option></select></div>
+    <div><label>Validación del análisis</label><select id="ownerValidation"><option value="accept">accept</option><option value="reject">reject</option><option value="request_changes">request_changes</option></select></div>
+    <div><label>Autorizar delivery</label><select id="deliveryAuthorized"><option value="true">true</option><option value="false">false</option></select></div>
+    <div><label>output_dir</label><input id="outputDir" value="../.tmp/service_1_web_owner_dialogue_delivery"></div>
+  </section>
+
+  <section class="card">
+    <div class="row"><button id="buildPayload" class="secondary" type="button">Ver payload</button><button id="run" type="button">Procesar con PymIA</button><strong id="status" class="muted">Esperando</strong></div>
+    <pre id="payloadOut">Payload pendiente.</pre>
+    <pre id="responseOut">Respuesta pendiente.</pre>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const caseColumns=["fecha","comprobante","producto_codigo","producto","categoria","cantidad","precio_unitario","costo_unitario","canal","venta_total"];
+const defaultColumnAnswers={fecha:"fecha de la operacion o venta",comprobante:"numero de comprobante",producto_codigo:"codigo interno del producto",producto:"nombre del producto vendido",categoria:"categoria comercial del producto",cantidad:"cantidad vendida",precio_unitario:"precio unitario de venta",costo_unitario:"costo unitario del producto",canal:"canal de venta",venta_total:"importe total de la venta"};
+const semanticColumns=["precio_unitario","costo_unitario","venta_total"];
+const defaultSemanticAnswers={precio_unitario:"confirmo que es precio unitario de venta",costo_unitario:"confirmo que es costo unitario real",venta_total:"confirmo que es importe total vendido"};
+function makeInput(container,key,value){const div=document.createElement("div");div.className="question";div.innerHTML=`<label>${key}</label><textarea data-key="${key}">${value||""}</textarea>`;container.appendChild(div)}
+function renderQuestions(){const c=$("columns");c.innerHTML="";caseColumns.forEach(k=>makeInput(c,k,""));const s=$("semantic");s.innerHTML="";semanticColumns.forEach(k=>makeInput(s,k,""))}
+function fill(containerId,answers){document.querySelectorAll(`#${containerId} textarea`).forEach(t=>{t.value=answers[t.dataset.key]||""})}
+function collect(containerId){const out={};document.querySelectorAll(`#${containerId} textarea`).forEach(t=>{const v=t.value.trim();if(v)out[t.dataset.key]=v});return out}
+function buildPayload(){return {owner_column_answers:collect("columns"),semantic_owner_answers:collect("semantic"),owner_authorization:$("ownerAuth").value,owner_validation:$("ownerValidation").value,delivery_authorized:$("deliveryAuthorized").value==="true",output_dir:$("outputDir").value.trim()}}
+function showPayload(){const payload=buildPayload();$("payloadOut").textContent=JSON.stringify(payload,null,2);return payload}
+function setStatus(text,cls){const el=$("status");el.textContent=text;el.className=cls||"muted"}
+async function run(){const file=$("file").files&&$("file").files[0];if(!file){setStatus("Falta XLSX","danger");return}const payload=showPayload();const form=new FormData();form.append("file",file,file.name);form.append("payload_json",JSON.stringify(payload));setStatus("Enviando...","muted");$("run").disabled=true;try{const res=await fetch($("endpoint").value,{method:"POST",body:form});const text=await res.text();let data;try{data=JSON.parse(text)}catch(_){data={http_status:res.status,raw:text}}$("responseOut").textContent=JSON.stringify(data,null,2);const ok=res.ok&&String(data.status||"").includes("READY");setStatus(`${res.status} - ${data.status||"sin status"}`,ok?"ok":"danger")}catch(err){$("responseOut").textContent=String(err&&err.stack?err.stack:err);setStatus("Error de red","danger")}finally{$("run").disabled=false}}
+$("presetColumns").onclick=()=>fill("columns",defaultColumnAnswers);$("presetSemantic").onclick=()=>fill("semantic",defaultSemanticAnswers);$("buildPayload").onclick=showPayload;$("run").onclick=run;renderQuestions();fill("columns",defaultColumnAnswers);fill("semantic",defaultSemanticAnswers);showPayload();
+</script>
+</body>
+</html>
