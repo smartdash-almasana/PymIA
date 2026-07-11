@@ -14,8 +14,22 @@ from pymia.smartpyme.service_1_web_experiment_backend_boundary_v1 import (
     BLOCK_INVALID_EXTENSION,
     build_service_1_web_experiment_backend_boundary_v1 as run_backend,
 )
+from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
+    build_service_1_web_column_confirmation_intake_boundary_v1 as build_column_questions,
+)
+from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
+    build_service_1_canonical_ingestion_output_from_owner_confirmation_v1 as build_connector,
+)
+from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
+    build_service_1_semantic_bridge_from_canonical_ingestion_output_v1 as build_semantic_bridge,
+)
+from pymia.smartpyme.service_1_semantic_bridge_to_controlled_execution_gate_v1 import (
+    build_service_1_controlled_execution_gate_from_semantic_bridge_v1 as build_gate,
+)
 
 SCHEMA_VERSION = "SERVICE_1_WEB_EXPERIMENT_HTTP_ENDPOINT_V1"
+ROUTE_OWNER_QUESTIONS = "/service-1/experiment/questions"
+ROUTE_SEMANTIC_QUESTIONS = "/service-1/experiment/semantic-questions"
 ROUTE_RUN_EXPERIMENT = "/service-1/experiment/run"
 
 STATUS_BLOCKED = "BLOCKED"
@@ -115,7 +129,13 @@ class _Service1WebExperimentHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         route = urlsplit(self.path).path
-        if route != ROUTE_RUN_EXPERIMENT:
+        handlers = {
+            ROUTE_OWNER_QUESTIONS: self._handle_owner_questions_request,
+            ROUTE_SEMANTIC_QUESTIONS: self._handle_semantic_questions_request,
+            ROUTE_RUN_EXPERIMENT: self._handle_run_request,
+        }
+        handler = handlers.get(route)
+        if handler is None:
             self._write_json(
                 404,
                 _build_http_packet(
@@ -126,7 +146,7 @@ class _Service1WebExperimentHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            http_status, payload = self._handle_run_request()
+            http_status, payload = handler()
         except Exception:
             http_status, payload = 500, _build_http_packet(
                 status=STATUS_BLOCKED,
@@ -145,6 +165,123 @@ class _Service1WebExperimentHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
         return
+
+    def _handle_owner_questions_request(self) -> tuple[int, dict[str, Any]]:
+        parsed = self._parse_request_parts(require_payload=False)
+        if isinstance(parsed, tuple) and parsed and isinstance(parsed[0], int):
+            return parsed
+        file_part, _payload_json = parsed
+
+        packet = build_column_questions(
+            uploaded_xlsx_bytes=file_part["data"],
+            uploaded_filename=str(file_part["filename"]),
+        )
+        if packet.get("status") == STATUS_BLOCKED:
+            return 400, _build_questions_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=packet.get("blocked_reason"),
+            )
+        return 200, _build_questions_packet(
+            status="OWNER_COLUMN_QUESTIONS_READY",
+            blocked_reason=None,
+            columns=packet.get("columns"),
+            owner_questions=packet.get("owner_questions"),
+        )
+
+    def _handle_semantic_questions_request(self) -> tuple[int, dict[str, Any]]:
+        parsed = self._parse_request_parts(require_payload=True)
+        if isinstance(parsed, tuple) and parsed and isinstance(parsed[0], int):
+            return parsed
+        file_part, payload_json = parsed
+        try:
+            owner_column_answers = _load_owner_answers_payload(payload_json)["owner_column_answers"]
+        except ValueError:
+            return 400, _build_questions_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=BLOCK_INVALID_PAYLOAD_JSON,
+            )
+
+        boundary = build_column_questions(
+            uploaded_xlsx_bytes=file_part["data"],
+            uploaded_filename=str(file_part["filename"]),
+        )
+        if boundary.get("status") == STATUS_BLOCKED:
+            return 400, _build_questions_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=boundary.get("blocked_reason"),
+            )
+
+        connector = build_connector(
+            owner_question_packet=boundary,
+            owner_answers=owner_column_answers,
+        )
+        if connector.get("status") != "INGESTION_OUTPUT_READY":
+            return 200, _build_questions_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=connector.get("blocked_reason"),
+            )
+
+        bridge = build_semantic_bridge(ingestion_output=connector["ingestion_output"])
+        gate = build_gate(semantic_bridge_packet=bridge)
+        if gate.get("status") not in ("NEEDS_OWNER_CONFIRMATION", "CONTROLLED_EXECUTION_CANDIDATE_READY"):
+            return 200, _build_questions_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=gate.get("blocked_reason"),
+            )
+
+        return 200, _build_questions_packet(
+            status="SEMANTIC_OWNER_QUESTIONS_READY",
+            blocked_reason=None,
+            columns=[question.get("column_name") for question in gate.get("owner_questions", [])],
+            owner_questions=gate.get("owner_questions", []),
+            trace={
+                "boundary": boundary.get("status"),
+                "owner_confirmation_to_ingestion": connector.get("status"),
+                "semantic_bridge": bridge.get("status"),
+                "controlled_execution_gate": gate.get("status"),
+            },
+        )
+
+    def _parse_request_parts(self, *, require_payload: bool) -> Any:
+        content_type = self.headers.get("Content-Type", "")
+        if not content_type.lower().startswith("multipart/form-data"):
+            return 400, _build_http_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=BLOCK_INVALID_CONTENT_TYPE,
+            )
+
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            content_length = 0
+        raw_body = self.rfile.read(max(content_length, 0))
+
+        try:
+            parts = _parse_multipart_form_data(content_type=content_type, raw_body=raw_body)
+        except ValueError as exc:
+            return 400, _build_http_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=str(exc) or BLOCK_INVALID_MULTIPART,
+            )
+
+        file_part = parts.get("file")
+        if file_part is None or not str(file_part.get("filename") or "").strip():
+            return 400, _build_http_packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=BLOCK_MISSING_FILE,
+            )
+
+        payload_json = None
+        payload_part = parts.get("payload_json")
+        if payload_part is None:
+            if require_payload:
+                return 400, _build_http_packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=BLOCK_MISSING_PAYLOAD_JSON,
+                )
+        else:
+            payload_json = payload_part["data"]
+        return file_part, payload_json
 
     def _handle_run_request(self) -> tuple[int, dict[str, Any]]:
         content_type = self.headers.get("Content-Type", "")
@@ -249,6 +386,19 @@ def _parse_multipart_form_data(*, content_type: str, raw_body: bytes) -> dict[st
     return parts
 
 
+def _load_owner_answers_payload(raw_payload: bytes) -> dict[str, Any]:
+    try:
+        payload = json.loads(raw_payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(BLOCK_INVALID_PAYLOAD_JSON) from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError(BLOCK_INVALID_PAYLOAD_JSON)
+    if not isinstance(payload.get("owner_column_answers"), dict):
+        raise ValueError(BLOCK_INVALID_PAYLOAD_JSON)
+    return payload
+
+
 def _load_payload_json(raw_payload: bytes) -> dict[str, Any]:
     try:
         payload = json.loads(raw_payload.decode("utf-8"))
@@ -291,6 +441,27 @@ def _build_http_packet(
         "blocked_reason": blocked_reason,
         "trace": trace or {},
         "delivery_packet": _summarize_delivery_packet(delivery_packet),
+    }
+
+
+def _build_questions_packet(
+    *,
+    status: str,
+    blocked_reason: Optional[str],
+    columns: Optional[list[Any]] = None,
+    owner_questions: Optional[list[dict[str, Any]]] = None,
+    trace: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    questions = list(owner_questions or [])
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": status,
+        "blocked_reason": blocked_reason,
+        "columns": list(columns or []),
+        "question_count": len(questions),
+        "owner_questions": questions,
+        "trace": trace or {},
+        "delivery_packet": {"summary": None, "refs": []},
     }
 
 
@@ -340,6 +511,8 @@ if __name__ == "__main__":
 
 __all__ = [
     "SCHEMA_VERSION",
+    "ROUTE_OWNER_QUESTIONS",
+    "ROUTE_SEMANTIC_QUESTIONS",
     "ROUTE_RUN_EXPERIMENT",
     "STATUS_BLOCKED",
     "BLOCK_INVALID_EXTENSION",

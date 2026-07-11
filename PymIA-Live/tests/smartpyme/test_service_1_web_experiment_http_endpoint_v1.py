@@ -12,7 +12,9 @@ from pymia.cli.service_1_web_experiment_server import (
     BLOCK_INVALID_EXTENSION,
     BLOCK_MISSING_FILE,
     BLOCK_MISSING_PAYLOAD_JSON,
+    ROUTE_OWNER_QUESTIONS,
     ROUTE_RUN_EXPERIMENT,
+    ROUTE_SEMANTIC_QUESTIONS,
     STATUS_BLOCKED,
     create_service_1_web_experiment_dev_server,
 )
@@ -108,6 +110,7 @@ def _post_request(
     file_name: str | None = None,
     file_bytes: bytes | None = None,
     payload: dict[str, object] | None = None,
+    route: str = ROUTE_RUN_EXPERIMENT,
 ) -> tuple[int, dict[str, object]]:
     body, boundary = _multipart_body(
         file_name=file_name,
@@ -118,7 +121,7 @@ def _post_request(
     try:
         connection.request(
             "POST",
-            ROUTE_RUN_EXPERIMENT,
+            route,
             body=body,
             headers={
                 "Content-Type": f"multipart/form-data; boundary={boundary}",
@@ -309,3 +312,88 @@ def test_delivery_authorized_false_blocks_without_writes(
     assert body["delivery_packet"]["summary"]["delivery_created"] is False
     assert body["delivery_packet"]["refs"] == []
     assert not output_dir.exists()
+
+
+def test_dynamic_owner_question_loop_discovers_questions_then_runs_delivery(
+    dev_server: tuple[str, int],
+    case_001_path: Path,
+    tmp_path: Path,
+) -> None:
+    host, port = dev_server
+    file_bytes = case_001_path.read_bytes()
+
+    http_status, questions = _post_request(
+        host=host,
+        port=port,
+        route=ROUTE_OWNER_QUESTIONS,
+        file_name=case_001_path.name,
+        file_bytes=file_bytes,
+    )
+
+    assert http_status == 200
+    assert questions["status"] == "OWNER_COLUMN_QUESTIONS_READY"
+    assert questions["question_count"] == 10
+    assert len(questions["owner_questions"]) == 10
+    owner_answers = {
+        str(question["column_name"]): f"respuesta humana para {question['column_name']}"
+        for question in questions["owner_questions"]
+    }
+
+    http_status, semantic = _post_request(
+        host=host,
+        port=port,
+        route=ROUTE_SEMANTIC_QUESTIONS,
+        file_name=case_001_path.name,
+        file_bytes=file_bytes,
+        payload={"owner_column_answers": owner_answers},
+    )
+
+    assert http_status == 200
+    assert semantic["status"] == "SEMANTIC_OWNER_QUESTIONS_READY"
+    assert semantic["question_count"] >= 1
+    semantic_answers = {
+        str(question["column_name"]): f"confirmo rol {question['column_name']}"
+        for question in semantic["owner_questions"]
+    }
+
+    output_dir = tmp_path / "delivery"
+    http_status, body = _post_request(
+        host=host,
+        port=port,
+        file_name=case_001_path.name,
+        file_bytes=file_bytes,
+        payload={
+            "owner_column_answers": owner_answers,
+            "semantic_owner_answers": semantic_answers,
+            "owner_authorization": "accept",
+            "owner_validation": "accept",
+            "delivery_authorized": True,
+            "output_dir": str(output_dir),
+        },
+    )
+
+    assert http_status == 200
+    assert body["status"] == STATUS_READY
+    assert body["blocked_reason"] is None
+    assert body["delivery_packet"]["summary"]["deliverable_count"] == 4
+    assert all(Path(str(ref["path"])).exists() for ref in body["delivery_packet"]["refs"])
+
+
+def test_semantic_questions_require_owner_column_answers(
+    dev_server: tuple[str, int],
+    case_001_path: Path,
+) -> None:
+    host, port = dev_server
+
+    http_status, body = _post_request(
+        host=host,
+        port=port,
+        route=ROUTE_SEMANTIC_QUESTIONS,
+        file_name=case_001_path.name,
+        file_bytes=case_001_path.read_bytes(),
+        payload={"owner_column_answers": {}},
+    )
+
+    assert http_status == 200
+    assert body["status"] == STATUS_BLOCKED
+    assert body["question_count"] == 0
