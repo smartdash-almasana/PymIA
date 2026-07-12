@@ -100,7 +100,7 @@ def build_service_1_column_owner_question_view_v1(
         )
         for option in understanding.allowed_owner_answers
     )
-    question = _humanize_question(understanding.owner_question_text)
+    question = "¿Qué representa esta columna en tu negocio?"
     return Service1ColumnOwnerQuestionViewV1(
         schema_version=SCHEMA_VERSION,
         status=STATUS_QUESTION_READY,
@@ -157,16 +157,6 @@ def _primary_label(understanding: Service1ColumnUnderstandingV1) -> str:
     if understanding.primary_hypothesis is not None:
         return understanding.primary_hypothesis.semantic_role.replace("_", " ")
     return "una columna todavía no clasificada"
-
-
-def _humanize_question(question: str) -> str:
-    # The engine question is evidence-bearing. The adapter only removes the
-    # technical multiple-choice preamble because options are rendered separately.
-    marker = "Por el nombre y los datos, podria ser:"
-    if marker in question:
-        prefix = question.split(marker, 1)[0].strip()
-        return f"{prefix} ¿Qué representa esta columna en tu negocio?"
-    return question.strip()
 
 
 __all__ = [

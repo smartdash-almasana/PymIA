@@ -159,6 +159,8 @@ def test_module_has_no_frontend_io_or_orchestrator_dependencies() -> None:
         "service_1_assisted_flow_orchestrator",
         "import openai",
         "import anthropic",
+        "Por el nombre y los datos, podria ser:",
+        "_humanize_question",
     ]:
         assert token not in text, token
     assert module.SCHEMA_VERSION == SCHEMA_VERSION
