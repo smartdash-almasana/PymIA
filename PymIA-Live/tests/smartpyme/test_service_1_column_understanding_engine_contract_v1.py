@@ -560,3 +560,43 @@ def test_ambiguous_high_confidence_headers_still_require_owner_confirmation() ->
             "owner_confirmation_required_for_ambiguous_header" in evidence
             for evidence in understanding.evidence
         )
+
+
+def test_catalog_backed_cash_and_tax_headers_use_canonical_variables_and_stay_owner_confirmed() -> None:
+    cases = (
+        ("cobrado", "Cobros", [5000, 3200], ["factura", "cliente", "pendiente"], "collected_amount", "collected_amount"),
+        ("pendiente", "Cobros", [1200, 0], ["factura", "cliente", "cobrado"], "accounts_receivable_amount", "accounts_receivable"),
+        ("iva", "Compras", [441, 1260], ["subtotal", "importe_total"], "tax_amount", "taxes"),
+    )
+
+    for column_name, sheet_name, samples, co_columns, semantic_role, variable_name in cases:
+        understanding = build_column_understanding_v1(
+            column_name=column_name,
+            sheet_name=sheet_name,
+            sample_values=samples,
+            inferred_data_type="number",
+            co_column_names=co_columns,
+        )
+
+        assert understanding.primary_hypothesis is not None
+        assert understanding.primary_hypothesis.semantic_role == semantic_role
+        assert understanding.primary_hypothesis.variable_name == variable_name
+        assert understanding.owner_question_needed is True
+        assert understanding.owner_question_text
+
+
+def test_generic_monetary_headers_remain_fail_closed_after_catalog_expansion() -> None:
+    for column_name in ("monto", "valor"):
+        understanding = build_column_understanding_v1(
+            column_name=column_name,
+            sheet_name="Datos",
+            sample_values=[1000, 2000],
+            inferred_data_type="number",
+        )
+
+        assert understanding.owner_question_needed is True
+        assert understanding.owner_question_text
+        assert any(
+            "owner_confirmation_required_for_ambiguous_header" in evidence
+            for evidence in understanding.evidence
+        )

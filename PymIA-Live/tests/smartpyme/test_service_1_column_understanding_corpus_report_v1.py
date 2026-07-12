@@ -18,13 +18,13 @@ def test_report_materializes_current_corpus_metrics() -> None:
     assert report.evaluation_verdict == "READY_WITH_FIXES"
     assert report.cases_count == 6
     assert report.columns_count == 38
-    assert report.exact_matches == 18
-    assert report.safe_questions == 20
+    assert report.exact_matches == 22
+    assert report.safe_questions == 16
     assert report.safe_unknowns == 0
     assert report.false_confident == 0
     assert report.missed_questions == 0
     assert report.dangerous_errors == 0
-    assert report.exact_match_rate == 0.4737
+    assert report.exact_match_rate == 0.5789
     assert report.safe_resolution_rate == 1.0
 
 

@@ -35,7 +35,6 @@ def test_semantic_audit_surfaces_known_scope_gap_columns_without_parallel_meanin
         "cliente",
         "medio_pago",
         "proveedor",
-        "iva",
         "bonif",
     }:
         assert column_name in by_column

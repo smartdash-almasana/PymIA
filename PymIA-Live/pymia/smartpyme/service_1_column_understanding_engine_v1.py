@@ -75,7 +75,7 @@ TYPE_CONTRADICTION_PENALTY: Final[float] = 0.3
 # context to distinguish list price vs effective sale price and subtotal
 # vs final invoiced amount.
 _OWNER_CONFIRMATION_REQUIRED_HEADERS: Final[frozenset[str]] = frozenset(
-    {"precio_lista", "subtotal"}
+    {"precio_lista", "subtotal", "cobrado", "pendiente", "iva", "monto", "valor"}
 )
 
 _NON_ALNUM_RE: Final[re.Pattern[str]] = re.compile(r"[^a-z0-9_]+")
@@ -212,6 +212,54 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
         owner_label="Venta total",
         owner_question_text="¿Esta columna es el importe total de la operacion (con o sin impuestos)?",
         owner_option_description="Importe total facturado por operacion.",
+    ),
+    _RoleRule(
+        semantic_role="collected_amount",
+        variable_name="collected_amount",
+        header_keywords=("cobrado", "importe_cobrado", "monto_cobrado", "collected_amount"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"factura", "cliente", "fecha", "pendiente"}),
+        co_column_penalties=(),
+        risk_text=(
+            "Si esta columna no representa lo efectivamente cobrado, el diagnostico de "
+            "caja y cobranzas va a usar un importe equivocado."
+        ),
+        owner_label="Importe cobrado",
+        owner_question_text="¿Esta columna indica cuánto se cobró efectivamente de cada operación?",
+        owner_option_description="Importe efectivamente recibido del cliente.",
+    ),
+    _RoleRule(
+        semantic_role="accounts_receivable_amount",
+        variable_name="accounts_receivable",
+        header_keywords=("pendiente", "saldo_pendiente", "por_cobrar", "accounts_receivable"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"factura", "cliente", "fecha", "cobrado"}),
+        co_column_penalties=(),
+        risk_text=(
+            "Si esta columna no es el saldo pendiente de cobro, la deuda de clientes y "
+            "los indicadores de cobranza quedaran distorsionados."
+        ),
+        owner_label="Saldo pendiente de cobro",
+        owner_question_text="¿Esta columna indica cuánto queda pendiente de cobrar por operación?",
+        owner_option_description="Importe todavía adeudado por el cliente.",
+    ),
+    _RoleRule(
+        semantic_role="tax_amount",
+        variable_name="taxes",
+        header_keywords=("iva", "impuesto", "impuestos", "tax", "taxes"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"subtotal", "importe_total", "venta_total", "costo"}),
+        co_column_penalties=(),
+        risk_text=(
+            "Si esta columna no corresponde a impuestos, los importes netos y totales "
+            "pueden quedar mal interpretados."
+        ),
+        owner_label="Impuestos o IVA",
+        owner_question_text="¿Esta columna contiene el importe o porcentaje de IVA/impuestos?",
+        owner_option_description="Importe o tasa impositiva asociada a la operación.",
     ),
     _RoleRule(
         semantic_role="product_name",
@@ -690,6 +738,10 @@ def build_column_understanding_v1(
             confidence = top.score
             primary_rule = _find_rule(top.semantic_role)
             owner_question_needed = True
+            if normalized in _OWNER_CONFIRMATION_REQUIRED_HEADERS:
+                all_evidence.append(
+                    f"owner_confirmation_required_for_ambiguous_header: '{normalized}'"
+                )
             risk_text = primary_rule.risk_text if primary_rule is not None else (
                 "Sin una interpretacion confirmada, los calculos siguientes pueden estar sesgados."
             )
