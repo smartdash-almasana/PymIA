@@ -70,6 +70,14 @@ CO_COLUMN_BOOST: Final[float] = 0.1
 CO_COLUMN_PENALTY: Final[float] = 0.15
 TYPE_CONTRADICTION_PENALTY: Final[float] = 0.3
 
+# Headers that are semantically dangerous despite a strong lexical match.
+# They must remain owner-confirmed until the engine has enough business
+# context to distinguish list price vs effective sale price and subtotal
+# vs final invoiced amount.
+_OWNER_CONFIRMATION_REQUIRED_HEADERS: Final[frozenset[str]] = frozenset(
+    {"precio_lista", "subtotal"}
+)
+
 _NON_ALNUM_RE: Final[re.Pattern[str]] = re.compile(r"[^a-z0-9_]+")
 _UNDERSCORE_RE: Final[re.Pattern[str]] = re.compile(r"_+")
 _DATE_TEXT_RE: Final[re.Pattern[str]] = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -664,9 +672,16 @@ def build_column_understanding_v1(
             confidence = top.score
             primary_rule = _find_rule(top.semantic_role)
             owner_question_needed = (
-                top.score < HIGH_CONFIDENCE_THRESHOLD
-                and len(candidate_meanings) > 1
+                normalized in _OWNER_CONFIRMATION_REQUIRED_HEADERS
+                or (
+                    top.score < HIGH_CONFIDENCE_THRESHOLD
+                    and len(candidate_meanings) > 1
+                )
             )
+            if normalized in _OWNER_CONFIRMATION_REQUIRED_HEADERS:
+                all_evidence.append(
+                    f"owner_confirmation_required_for_ambiguous_header: '{normalized}'"
+                )
             risk_text = primary_rule.risk_text if primary_rule is not None else (
                 "Si la columna se interpreta mal, los calculos siguientes quedaran sesgados."
             )

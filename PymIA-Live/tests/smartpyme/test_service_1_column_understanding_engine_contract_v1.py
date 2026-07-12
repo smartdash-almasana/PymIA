@@ -533,3 +533,30 @@ def test_confidence_band_helper_branches() -> None:
     assert confidence_band_v1(0.6) == "medium"
     assert confidence_band_v1(0.59) == "low"
     assert confidence_band_v1(0.0001) == "low"
+
+
+def test_ambiguous_high_confidence_headers_still_require_owner_confirmation() -> None:
+    precio_lista = build_column_understanding_v1(
+        column_name="precio_lista",
+        sheet_name="Ventas_Detalle",
+        sample_values=[130, 260],
+        inferred_data_type="number",
+        co_column_names=["producto", "importe_total"],
+    )
+    subtotal = build_column_understanding_v1(
+        column_name="subtotal",
+        sheet_name="Compras",
+        sample_values=[2100, 6000],
+        inferred_data_type="number",
+        co_column_names=["fecha", "producto", "iva"],
+    )
+
+    for understanding in (precio_lista, subtotal):
+        assert understanding.primary_hypothesis is not None
+        assert understanding.confidence >= 0.8
+        assert understanding.owner_question_needed is True
+        assert understanding.owner_question_text
+        assert any(
+            "owner_confirmation_required_for_ambiguous_header" in evidence
+            for evidence in understanding.evidence
+        )

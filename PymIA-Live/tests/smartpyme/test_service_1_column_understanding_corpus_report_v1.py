@@ -15,29 +15,32 @@ def test_report_materializes_current_corpus_metrics() -> None:
 
     assert report.schema_version == SCHEMA_VERSION
     assert report.status == STATUS_READY
-    assert report.evaluation_verdict == "NOT_READY"
+    assert report.evaluation_verdict == "READY_WITH_FIXES"
     assert report.cases_count == 6
     assert report.columns_count == 38
     assert report.exact_matches == 18
-    assert report.safe_questions == 18
+    assert report.safe_questions == 20
     assert report.safe_unknowns == 0
     assert report.false_confident == 0
-    assert report.missed_questions == 2
-    assert report.dangerous_errors == 2
+    assert report.missed_questions == 0
+    assert report.dangerous_errors == 0
     assert report.exact_match_rate == 0.4737
-    assert report.safe_resolution_rate == 0.9474
+    assert report.safe_resolution_rate == 1.0
 
 
-def test_report_identifies_current_critical_columns() -> None:
+def test_report_has_no_critical_columns_after_ambiguity_fix() -> None:
     report = build_service_1_column_understanding_corpus_report_v1()
 
-    assert report.critical_columns == (
-        "S1-CUE-002:precio_lista",
-        "S1-CUE-005:subtotal",
-    )
+    assert report.critical_columns == ()
     critical = [finding for finding in report.findings if finding.priority == PRIORITY_CRITICAL]
-    assert [finding.column_name for finding in critical] == ["precio_lista", "subtotal"]
-    assert all(finding.outcome == "MISSED_QUESTION" for finding in critical)
+    assert critical == []
+    guarded = {
+        finding.column_name: finding
+        for finding in report.findings
+        if finding.column_name in {"precio_lista", "subtotal"}
+    }
+    assert set(guarded) == {"precio_lista", "subtotal"}
+    assert all(finding.outcome == "SAFE_QUESTION" for finding in guarded.values())
 
 
 def test_report_recommends_rule_expansion_and_blocks_frontend() -> None:
@@ -69,10 +72,7 @@ def test_report_preserves_all_non_exact_rows_as_findings() -> None:
     report = build_service_1_column_understanding_corpus_report_v1()
 
     assert len(report.findings) == report.columns_count - report.exact_matches
-    assert {finding.outcome for finding in report.findings} == {
-        "SAFE_QUESTION",
-        "MISSED_QUESTION",
-    }
+    assert {finding.outcome for finding in report.findings} == {"SAFE_QUESTION"}
 
 
 def test_module_has_no_io_frontend_or_orchestrator_dependencies() -> None:
