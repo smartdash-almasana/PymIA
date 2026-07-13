@@ -17,10 +17,10 @@
   "counts": {
     "EXPERIMENTAL_FROZEN": 104,
     "OBSOLETE_ELIMINABLE": 5,
-    "PRODUCTIVE": 11,
+    "PRODUCTIVE": 12,
     "SUPPORT_NECESSARY": 33
   },
-  "total_modules": 153,
+  "total_modules": 154,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -202,7 +202,8 @@
       "confidence": "HIGH",
       "imports_service_1": [
         "service_1_column_understanding_engine_v1",
-        "service_1_semantic_evidence_binding_contracts_v1"
+        "service_1_semantic_evidence_binding_contracts_v1",
+        "service_1_variable_family_bindings_v1"
       ],
       "internal_callers": [
         "service_1_assisted_flow_orchestrator_v1",
@@ -1672,7 +1673,8 @@
       "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
       "confidence": "HIGH",
       "imports_service_1": [
-        "service_1_semantic_evidence_binding_contracts_v1"
+        "service_1_semantic_evidence_binding_contracts_v1",
+        "service_1_variable_family_bindings_v1"
       ],
       "internal_callers": [
         "service_1_assisted_flow_orchestrator_v1",
@@ -1745,7 +1747,8 @@
         "service_1_column_semantic_mapper_v1",
         "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
         "service_1_semantic_bridge_to_controlled_execution_gate_v1",
-        "service_1_semantic_evidence_binding_engine_v1"
+        "service_1_semantic_evidence_binding_engine_v1",
+        "service_1_variable_family_bindings_v1"
       ],
       "canonical_root_reachable": true
     },
@@ -1924,6 +1927,21 @@
       "imports_service_1": [],
       "internal_callers": [],
       "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_variable_family_bindings_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_variable_family_bindings_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "internal_callers": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1"
+      ],
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_web_column_confirmation_closed_loop_smoke_v1",

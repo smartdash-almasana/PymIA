@@ -45,6 +45,10 @@ from pymia.smartpyme.service_1_column_understanding_engine_v1 import (
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
+from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
+    build_service_1_variable_family_bindings_v1,
+    ready_service_1_variable_family_ids_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_CANONICAL_INGESTION_OUTPUT_TO_SEMANTIC_BRIDGE_V1"
 SERVICE_NAME = "SERVICE_1"
@@ -156,6 +160,12 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
     column_candidates = tuple(
         _candidate_from_understanding(item) for item in understandings
     )
+    variable_family_bindings = build_service_1_variable_family_bindings_v1(
+        column_candidates
+    )
+    ready_variable_family_ids = ready_service_1_variable_family_ids_v1(
+        variable_family_bindings
+    )
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -169,6 +179,9 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         "columns": list(columns),
         "column_candidate_count": len(column_candidates),
         "column_candidates": column_candidates,
+        "variable_family_count": len(variable_family_bindings),
+        "variable_family_bindings": variable_family_bindings,
+        "ready_variable_family_ids": list(ready_variable_family_ids),
         "confirmation_matrix": matrix,
         "column_understandings": understandings,
         "runtime_authorized": False,
@@ -292,6 +305,9 @@ def _blocked(
         "columns": [],
         "column_candidate_count": 0,
         "column_candidates": (),
+        "variable_family_count": 0,
+        "variable_family_bindings": (),
+        "ready_variable_family_ids": [],
         "confirmation_matrix": None,
         "column_understandings": (),
         "detail": list(detail or []),

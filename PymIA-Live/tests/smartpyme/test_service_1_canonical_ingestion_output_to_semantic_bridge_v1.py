@@ -37,6 +37,11 @@ from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
 from pymia.smartpyme.service_1_semantic_evidence_binding_engine_v1 import (
     build_service_1_semantic_evidence_binding_result_v1 as build_engine_result,
 )
+from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
+    FAMILY_SALES_MARGIN,
+    STATUS_READY as FAMILY_STATUS_READY,
+    Service1VariableFamilyBindingV1,
+)
 
 
 def _assert_safety_flags_false(packet: dict) -> None:
@@ -104,6 +109,22 @@ def test_case_001_lock_is_10(case_001_ingestion_output: dict) -> None:
         == len(out["column_candidates"])
         == 10
     )
+
+
+def test_bridge_attaches_five_variable_family_bindings(
+    case_001_ingestion_output: dict,
+) -> None:
+    out = build_bridge(ingestion_output=case_001_ingestion_output)
+
+    bindings = out["variable_family_bindings"]
+    assert out["variable_family_count"] == 5
+    assert len(bindings) == 5
+    assert all(isinstance(item, Service1VariableFamilyBindingV1) for item in bindings)
+    sales_margin = next(
+        item for item in bindings if item.family_id == FAMILY_SALES_MARGIN
+    )
+    assert sales_margin.status == FAMILY_STATUS_READY
+    assert FAMILY_SALES_MARGIN in out["ready_variable_family_ids"]
 
 
 def test_at_least_one_role_is_operation_date(case_001_ingestion_output: dict) -> None:

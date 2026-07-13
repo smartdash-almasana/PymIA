@@ -277,6 +277,31 @@ BLOCKED
 
 Only `CONFIRMED` may satisfy a required formula variable.
 
+#### Family-level binding rule
+
+A confirmed column role is an evidence atom, not an executable capability. Servicio 1 must not advance by attaching one isolated variable directly to a tool.
+
+The governed unit is a coherent variable family:
+
+```text
+OPERATION_CORE
+SALES_MARGIN
+CASH_COLLECTIONS
+PURCHASES_SUPPLIERS
+INVENTORY_CONTROL
+```
+
+Each family declares required role groups, optional roles, source columns, coverage and gaps. Equivalent roles may satisfy the same requirement, such as product code or product name. Family states are:
+
+```text
+VARIABLE_FAMILY_READY
+VARIABLE_FAMILY_NEEDS_OWNER_CONFIRMATION
+VARIABLE_FAMILY_MISSING_REQUIRED_ROLES
+VARIABLE_FAMILY_NOT_OBSERVED
+```
+
+`VARIABLE_FAMILY_READY` means only that the semantic evidence set is coherent. It does not authorize tool selection, execution, diagnosis or delivery. P7 and P8 must still match the ready family against governed formulas/capabilities and case evidence.
+
 ### P7 — Pathology / formula / capability matching
 
 **Responsibility**

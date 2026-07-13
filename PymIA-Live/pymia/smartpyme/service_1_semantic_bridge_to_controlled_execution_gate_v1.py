@@ -25,6 +25,10 @@ from typing import Any, Optional
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
+from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
+    build_service_1_variable_family_bindings_v1,
+    ready_service_1_variable_family_ids_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_SEMANTIC_BRIDGE_TO_CONTROLLED_EXECUTION_GATE_V1"
 SERVICE_NAME = "SERVICE_1"
@@ -160,6 +164,12 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         )
     ]
     candidate_roles = _collect_roles(active_candidates)
+    variable_family_bindings = build_service_1_variable_family_bindings_v1(
+        active_candidates
+    )
+    ready_variable_family_ids = ready_service_1_variable_family_ids_v1(
+        variable_family_bindings
+    )
 
     # Rule 8: any active candidate requiring owner confirmation or still
     # carrying only an unknown role remains fail-closed.
@@ -181,6 +191,8 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
             filename=filename,
             candidate_count=len(candidate_list),
             candidate_roles=candidate_roles,
+            variable_family_bindings=variable_family_bindings,
+            ready_variable_family_ids=ready_variable_family_ids,
             controlled_execution_candidate=None,
             owner_questions=owner_questions,
         )
@@ -194,6 +206,8 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         "candidate_columns": [c.source_column_name for c in active_candidates],
         "candidate_roles": candidate_roles,
         "candidate_count": len(candidate_list),
+        "variable_family_bindings": variable_family_bindings,
+        "ready_variable_family_ids": list(ready_variable_family_ids),
         # Rule 10: candidate is a proposal only, never an execution authorization.
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -207,6 +221,8 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         filename=filename,
         candidate_count=len(candidate_list),
         candidate_roles=candidate_roles,
+        variable_family_bindings=variable_family_bindings,
+        ready_variable_family_ids=ready_variable_family_ids,
         controlled_execution_candidate=controlled_execution_candidate,
         owner_questions=[],
     )
@@ -255,6 +271,8 @@ def _packet(
     filename: Optional[str],
     candidate_count: int,
     candidate_roles: list[str],
+    variable_family_bindings: tuple[Any, ...],
+    ready_variable_family_ids: tuple[str, ...],
     controlled_execution_candidate: Optional[dict[str, Any]],
     owner_questions: list[dict[str, Any]],
 ) -> dict[str, Any]:
@@ -269,6 +287,9 @@ def _packet(
         "filename": filename,
         "semantic_candidate_count": candidate_count,
         "candidate_roles": candidate_roles,
+        "variable_family_count": len(variable_family_bindings),
+        "variable_family_bindings": variable_family_bindings,
+        "ready_variable_family_ids": list(ready_variable_family_ids),
         "controlled_execution_candidate": controlled_execution_candidate,
         "owner_questions": owner_questions,
         "runtime_authorized": False,
@@ -297,6 +318,9 @@ def _blocked(
         "filename": filename,
         "semantic_candidate_count": 0,
         "candidate_roles": [],
+        "variable_family_count": 0,
+        "variable_family_bindings": (),
+        "ready_variable_family_ids": [],
         "controlled_execution_candidate": None,
         "owner_questions": [],
         "runtime_authorized": False,

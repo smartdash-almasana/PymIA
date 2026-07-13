@@ -38,6 +38,10 @@ from pymia.smartpyme.service_1_semantic_bridge_to_controlled_execution_gate_v1 i
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
+from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
+    FAMILY_SALES_MARGIN,
+    Service1VariableFamilyBindingV1,
+)
 
 # --- Fixture resolution ---------------------------------------------------
 
@@ -102,6 +106,16 @@ def test_full_chain_case_001_reaches_ready_gate(case_001_bridge_packet: dict) ->
     assert out["status"] == STATUS_READY
     assert out["owner_questions"] == []
     assert out["controlled_execution_candidate"] is not None
+    assert out["variable_family_count"] == 5
+    assert all(
+        isinstance(item, Service1VariableFamilyBindingV1)
+        for item in out["variable_family_bindings"]
+    )
+    assert FAMILY_SALES_MARGIN in out["ready_variable_family_ids"]
+    assert (
+        FAMILY_SALES_MARGIN
+        in out["controlled_execution_candidate"]["ready_variable_family_ids"]
+    )
     _assert_all_flags_false(out)
 
 
