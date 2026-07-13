@@ -3,7 +3,7 @@
 **Status:** CANONICAL_METHOD_FOR_SERVICE_1_COMPLETION  
 **Scope:** XLSX ingestion, semantic understanding, owner confirmation, governed computation and delivery  
 **Supersedes as design authority:** isolated semantic micro-slices, repeated local readiness gates and chat-level redesigns  
-**Does not delete historical evidence:** prior documents remain evidence only unless explicitly listed as canonical below.
+**Historical trace:** Git conserva las versiones anteriores; los documentos superados no permanecen en el árbol activo.
 
 ---
 

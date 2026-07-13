@@ -1,22 +1,11 @@
-# Product Vision
+# PymIA — visión de producto
 
-PymIA debe evolucionar hacia un **SaaS autónomo con IA conversacional y guardrails**.
-No debe requerir de un operador humano como flujo principal de la aplicación.
+PymIA es un sistema de diagnóstico y estabilización operacional para PyMEs. Su interfaz natural es conversacional, pero la verdad del caso surge de:
 
-## Roles
+```text
+PymIA + datos + dueño PyME
+```
 
-1. **Dueño de PymIA**: Decide la visión del producto, roadmap, modelo SaaS, arquitectura aceptada y alcance. (Ninguna IA decide esto por él).
-2. **Dueño PyME**: Usuario/cliente final. Aporta sentido operativo, contexto, corrección, confirmación y evidencia. Participa activamente en el flujo del SaaS.
-3. **Operador**: Rol interno/fallback. No es parte del flujo principal del producto SaaS autónomo. Interviene solo en casos de soporte, bloqueo, auditoría interna o excepción.
+La IA conversa. PymIA computa. El dueño confirma significado. Las tools producen evidencia y archivos.
 
-## Fuente de Verdad Operativa
-
-La fuente de verdad de un caso PymIA se compone por la integración controlada de:
-
-**PYMIA + DATOS + DUEÑO PYME**
-
-- **PymIA**: Lógica computacional, reglas, gates, tools.
-- **Datos**: Evidencia documental, Excel, CSV, registros.
-- **Dueño PyME**: Sentido operativo, confirmación, contexto, corrección.
-
-*Nota: La IA conversacional NO es fuente de verdad. La IA conversacional traduce, repregunta, ordena, pide evidencia y solicita confirmación.*
+La visión final puede expresarse como software autónomo gobernado por evidencia, pero ninguna hoja de ruta SaaS, canal, operador, API o runtime alternativo autoriza código por sí mismo. Servicio 1 debe crecer sobre una única raíz productiva y conservar comportamiento fail-closed.

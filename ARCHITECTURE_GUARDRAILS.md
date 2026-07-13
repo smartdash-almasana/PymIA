@@ -1,53 +1,33 @@
-# PymIA Architecture Guardrails
+# PymIA — guardrails arquitectónicos
 
-Este documento fija los invariantes arquitectónicos para evitar la contaminación de PymIA.
+## Jerarquía de verdad
 
-## 1. SOURCE_OF_TRUTH_HIERARCHY
+1. Código físico y tests verdes.
+2. `AGENTS.md`.
+3. `docs/current/README.md` y los documentos que enumera.
+4. Evidencia técnica citada explícitamente.
+5. Memoria conversacional solo como pista.
 
-* código físico en PymIA
-* tests verdes
-* documentos físicos en PymIA/docs
-* documentos externos validados con provenance
-* memoria conversacional solo como pista, nunca como fuente
+## Invariantes
 
-## 2. PROHIBICIONES ABSOLUTAS
+- La capa conversacional comunica; PymIA decide y computa.
+- El dueño PyME aporta datos y significado operacional.
+- No LLM obligatorio ni autoridad LLM en el núcleo determinístico.
+- No segundo parser XLSX ni cadenas soberanas paralelas.
+- No runtime Hermes, jobs, workflows, APIs externas, OCR o PDF parser por inferencia documental.
+- Sin evidencia suficiente: bloquear y preguntar.
+- Las tools se ejecutan solo por recorridos explícitos y gobernados.
 
-* create_job
-* workflow orchestration
-* authorization flow
-* decision_type
-* factory imports
-* app.* imports
-* MCP legacy
-* runtime Hermes duplicado
-* LLM obligatorio en core
+## Política documental
 
-## 3. HERMES_BOUNDARY
+- No reconstruir arquitectura desde memoria.
+- No crear un archivo documental por cada slice, test o cierre.
+- Actualizar documentos rectores existentes.
+- Eliminar documentos sustituidos; Git conserva su historia.
+- Ningún archivo no listado en `docs/current/README.md` autoriza código.
 
-* Hermes conversa
-* PymIA computa
-* Hermes no decide verdad operacional
-* Hermes no crea jobs en admisión inicial
-* Hermes entra solo por `HermesAdapter`
-* `HermesAdapter` entra solo por `ClinicalConversationalPort`
+## Validación
 
-## 4. DOCUMENTATION_POLICY
-
-* no inventar documentos ausentes
-* diferenciar fuente física vs fuente externa
-* placeholders con provenance
-* no reconstruir desde memoria
-
-## 5. TEST_POLICY
-
-* todo boundary nuevo debe tener tests
-* tests deben verificar ausencia de contaminación
-* caso canónico obligatorio:
-  “RAW_OWNER_CLAIM_MARGIN_UNCERTAINTY”
-
-## 6. ACCEPTANCE_CRITERIA
-
-* pytest -q verde
-* cero imports prohibidos
-* demo offline funcionando
-* ningún output menciona job/workflow/authorization/orchestration
+- tests focales y regresión relevante verdes;
+- ausencia de imports o capacidades prohibidas;
+- claims limitados a la evidencia observada.

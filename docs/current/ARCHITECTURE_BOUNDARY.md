@@ -1,17 +1,13 @@
-# Architecture Boundary
+# PymIA — frontera arquitectónica
 
-## Flujo Rector
+## Flujo rector
 
-El flujo rector de interacción es:
+```text
+Dueño PyME ↔ capa conversacional ↔ PymIA computacional
+```
 
-**Dueño PyME ↔ IA conversacional / capa de interacción continua ↔ PymIA computacional**
+- El dueño aporta datos, contexto y significado operativo.
+- La capa conversacional pregunta, ordena y explica. No calcula, no diagnostica, no selecciona tools y no altera gates.
+- PymIA valida evidencia, gobierna estados, ejecuta tools determinísticas y produce archivos.
 
-## Límites y Responsabilidades
-
-- La **IA conversacional** NO diagnostica ni calcula como fuente soberana. Actúa como traductora, organizadora y facilitadora.
-- **PymIA (computacional)** es el motor que computa y gobierna los gates del sistema.
-- El **Dueño PyME** confirma el sentido de los datos y aporta contexto y evidencia real del negocio.
-
-## Estado Legacy
-
-El nombre y runtime activo conocido como **Hermes** queda como antecedente histórico (museo) y está oficialmente **legacy/congelado**. No debe usarse para nuevos desarrollos ni considerarse como parte activa.
+Hermes, operadores, landings, pilotos y runtimes históricos no forman parte de la autoridad productiva actual de Servicio 1.

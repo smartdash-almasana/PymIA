@@ -1,42 +1,22 @@
-# Registro de Decisión de Arquitectura (ADR)
-## ADR-007: Implementación del Sistema de Gobierno Documental y Estandarización de la Biblioteca Canónica
+# ADR-007 — Gobierno documental por autoridad mínima
 
-* **Estado**: ACEPTADO
-* **Fecha**: 2026-05-22
-* **Dueño Conceptual**: Gobierno Técnico / Biblioteca Canónica de PymIA
+**Estado:** ACEPTADO / ACTUALIZADO
 
----
+**Fecha de actualización:** 2026-07-13
 
-## 1. Contexto
-A medida que el proyecto PymIA crecía e integraba componentes heredados de la plataforma original SmartPyme, la biblioteca de documentación física (`docs/`) acumulaba ruido histórico, directrices contradictorias, y duplicidad de guías normativas de desarrollo. Esto generaba una "deuda técnica cognitiva" severa, donde desarrolladores y agentes inteligentes consultaban documentos obsoletos (como el diseño de BEM como intérprete semántico primario), derivando en arquitecturas e implementaciones divergentes de las directrices maestras actuales de PymIA.
+## Contexto
 
-## 2. Decisión
-Se establece un **Sistema de Gobierno Documental Obligatorio** para regular y certificar la biblioteca técnica de PymIA:
-* **Índice Canónico SOBERANO**: Se crea [DOCUMENTATION_INDEX.md](file:///opt/PymIA/docs/DOCUMENTATION_INDEX.md) como el catálogo maestro centralizado. Todo documento de la biblioteca debe estar clasificado y listado de forma unívoca en este índice.
-* **Separación de Ciclo de Vida**: Se clasifican los documentos en 5 categorías con roles claros:
-  * **VIGENTE**: Rige y guía de forma obligatoria e incondicional el desarrollo de código en runtime.
-  * **CANDIDATO**: Propuesta útil, pero requiere validación técnica o contable antes de guiar código.
-  * **SUPERADO**: Decisiones reemplazadas o contradichas por diseños vigentes más recientes.
-  * **ARCHIVO**: Información histórico-teórica valiosa (provenance, arqueología legacy), pero sin injerencia directa en la codificación actual.
-  * **BORRAR_PROPUESTO**: Duplicados o archivos basura candidatos a remoción física del repositorio.
-* **Registro de Deprecación**: Se crea [DEPRECATED_DOCS.md](file:///opt/PymIA/docs/DEPRECATED_DOCS.md) para encapsular todos los archivos clasificados como `SUPERADO`, `ARCHIVO` o `BORRAR_PROPUESTO`, con explicaciones explícitas de su deprecación y advertencias de no uso en runtime.
+El sistema anterior clasificaba cientos de documentos como vigentes, candidatos, archivo, superados o museo. Aunque preservaba historia, mantenía físicamente presentes fuentes contradictorias y produjo deuda cognitiva.
 
-## 3. Consecuencias
-* **Positivas**:
-  * Eliminación del ruido cognitivo para desarrolladores humanos y agentes de inteligencia.
-  * Unificación lógica del estado de diseño del sistema.
-  * Mayor control en auditorías, certificando que sólo la documentación `VIGENTE` guíe el código.
-* **Negativas / Desafíos**:
-  * Requiere de mantenimiento riguroso: todo cambio de diseño que supere o reemplace un archivo debe actualizar de forma simultánea el Índice Canónico y el Registro de Deprecación.
+## Decisión
 
-## 4. Qué Queda Prohibido
-* **PROHIBIDO** guiar implementaciones, refactorizaciones o lógica de pruebas basándose en documentos clasificados como `SUPERADO`, `ARCHIVO` o `BORRAR_PROPUESTO`.
-* **PROHIBIDO** crear nuevos archivos documentales sin registrarlos de forma inmediata en el Índice General de Gobernanza.
-* **PROHIBIDO** mantener reglas o criterios normativos de desarrollo duplicados o fragmentados entre documentos activos.
+- `docs/current/README.md` enumera toda la autoridad documental vigente.
+- Solo los documentos allí citados gobiernan arquitectura o implementación.
+- La documentación obsoleta, duplicada o sustituida se elimina del árbol activo.
+- Git conserva la historia y permite recuperar decisiones anteriores.
+- La evidencia técnica permanece en tests, commits y artefactos necesarios; no requiere un closeout documental por cada microciclo.
+- Nuevas reglas deben incorporarse a un documento rector existente. Solo se crea un documento nuevo cuando representa una autoridad estable que no cabe en los documentos actuales.
 
-## 5. Trazabilidad
+## Consecuencia
 
-### Documentos Relacionados
-* [DOCUMENTATION_INDEX.md](file:///opt/PymIA/docs/DOCUMENTATION_INDEX.md) — Índice de Gobernanza Documental de PymIA.
-* [DEPRECATED_DOCS.md](file:///opt/PymIA/docs/DEPRECATED_DOCS.md) — Registro de documentos no vigentes.
-* [README.md](file:///opt/PymIA/docs/README.md) — Raíz documental.
+El objetivo es comprender PymIA y Servicio 1 leyendo menos de diez documentos rectores, sin reconstruir la arquitectura desde auditorías, roadmaps o checkpoints vencidos.
