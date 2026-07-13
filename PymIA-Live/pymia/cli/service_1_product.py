@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
+
+from pydantic import BaseModel
 
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1,
@@ -21,7 +24,7 @@ def _load_json_object(path: str | Path, *, label: str) -> dict[str, Any]:
     resolved = Path(path)
     if not resolved.exists():
         raise FileNotFoundError(f"{label} file not found: {resolved}")
-    payload = json.loads(resolved.read_text(encoding="utf-8"))
+    payload = json.loads(resolved.read_text(encoding="utf-8-sig"))
     if not isinstance(payload, dict):
         raise ValueError(f"{label} must be a JSON object")
     return payload
@@ -31,7 +34,7 @@ def _load_tool_requests(path: str | Path) -> list[dict[str, Any]]:
     resolved = Path(path)
     if not resolved.exists():
         raise FileNotFoundError(f"tool requests file not found: {resolved}")
-    payload = json.loads(resolved.read_text(encoding="utf-8"))
+    payload = json.loads(resolved.read_text(encoding="utf-8-sig"))
     if not isinstance(payload, list) or not payload:
         raise ValueError("tool requests must be a non-empty JSON list")
     return payload
@@ -84,6 +87,23 @@ def run_service_1_product_entrypoint_v1(
     }
 
 
+def _json_default(value: Any) -> Any:
+    """Serialize domain records only at the CLI JSON boundary."""
+    to_dict = getattr(value, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    if isinstance(value, BaseModel):
+        model_dump = getattr(value, "model_dump", None)
+        if callable(model_dump):
+            return model_dump(mode="json")
+        return value.dict()
+    if is_dataclass(value):
+        return asdict(value)
+    if isinstance(value, Path):
+        return str(value)
+    raise TypeError(f"Object of type {value.__class__.__name__} is not JSON serializable")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Canonical Service 1 product CLI")
     parser.add_argument("--xlsx", required=True)
@@ -119,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"status": "BLOCKED", "blocked_reason": str(exc)}, ensure_ascii=False))
         return 2
 
-    payload = json.dumps(result, ensure_ascii=False, indent=2)
+    payload = json.dumps(result, ensure_ascii=False, indent=2, default=_json_default)
     if args.result_json:
         target = Path(args.result_json)
         target.parent.mkdir(parents=True, exist_ok=True)

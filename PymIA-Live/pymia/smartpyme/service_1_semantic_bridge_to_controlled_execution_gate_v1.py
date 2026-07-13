@@ -150,13 +150,26 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
                 filename=filename,
             )
 
-    candidate_roles = _collect_roles(candidate_list)
-
-    # Rule 8: any candidate requiring owner confirmation -> NEEDS_OWNER_CONFIRMATION.
-    needs_confirmation = [
+    active_candidates = [
         candidate
         for candidate in candidate_list
+        if not bool(
+            (getattr(candidate, "metadata", {}) or {}).get(
+                "owner_ignored_not_relevant"
+            )
+        )
+    ]
+    candidate_roles = _collect_roles(active_candidates)
+
+    # Rule 8: any active candidate requiring owner confirmation or still
+    # carrying only an unknown role remains fail-closed.
+    needs_confirmation = [
+        candidate
+        for candidate in active_candidates
         if getattr(candidate, "owner_confirmation_required", False)
+        or not tuple(getattr(candidate, "candidate_semantic_roles", ()) or ())
+        or "unknown"
+        in tuple(getattr(candidate, "candidate_semantic_roles", ()) or ())
     ]
 
     if needs_confirmation:
@@ -178,7 +191,7 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         "case_id": case_id,
         "source_kind": source_kind,
         "filename": filename,
-        "candidate_columns": [c.source_column_name for c in candidate_list],
+        "candidate_columns": [c.source_column_name for c in active_candidates],
         "candidate_roles": candidate_roles,
         "candidate_count": len(candidate_list),
         # Rule 10: candidate is a proposal only, never an execution authorization.
@@ -213,17 +226,21 @@ def _owner_questions(candidates: list[Any]) -> list[dict[str, Any]]:
     questions: list[dict[str, Any]] = []
     for candidate in candidates:
         column = getattr(candidate, "source_column_name", "")
-        roles = list(getattr(candidate, "candidate_semantic_roles", ()) or ())
+        roles = [
+            role
+            for role in (getattr(candidate, "candidate_semantic_roles", ()) or ())
+            if role != "unknown"
+        ]
+        metadata = dict(getattr(candidate, "metadata", {}) or {})
         questions.append(
             {
                 "column_name": column,
                 "candidate_roles": roles,
+                "allowed_answers": roles + ["IGNORED_NOT_RELEVANT"],
                 "ambiguity_reason": getattr(candidate, "ambiguity_reason", None),
-                "question": (
-                    f"\u00bfConfirm\u00e1s el rol sem\u00e1ntico de la columna "
-                    f"'{column}'?"
-                ),
-                "answer_type": "confirm_column_semantic_role",
+                "question": metadata.get("owner_question_text")
+                or f"¿Qué función cumple la columna '{column}' en tu negocio?",
+                "answer_type": "select_canonical_semantic_role_or_ignore",
                 "required": True,
             }
         )

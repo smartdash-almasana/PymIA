@@ -47,9 +47,9 @@ from pymia.smartpyme.service_1_controlled_execution_candidate_to_owner_confirmat
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PARENT_ROOT = _REPO_ROOT.parent
 
-_CASE_001_CANDIDATES = [
-    _PARENT_ROOT / "prueba_excels" / "CASE_001_ventas_junio_2026_margin_leak.xlsx",
-    _REPO_ROOT / "prueba_excels" / "CASE_001_ventas_junio_2026_margin_leak.xlsx",
+_AMBIGUOUS_XLSX_CANDIDATES = [
+    _REPO_ROOT / "prueba_excels" / "cafeteria_abc.xlsx",
+    _PARENT_ROOT / "prueba_excels" / "cafeteria_abc.xlsx",
 ]
 
 
@@ -70,7 +70,7 @@ def _assert_all_flags_false(packet: dict) -> None:
 
 @pytest.fixture()
 def case_001_gate_packet() -> dict:
-    fixture = _first_existing(_CASE_001_CANDIDATES)
+    fixture = _first_existing(_AMBIGUOUS_XLSX_CANDIDATES)
     packet = build_intake(local_xlsx_path=str(fixture))
     answers = {column: f"significado de {column}" for column in packet["columns"]}
     connector = build_conn(owner_question_packet=packet, owner_answers=answers)

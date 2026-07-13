@@ -92,17 +92,16 @@ def case_001_bridge_packet() -> dict:
     return bridge
 
 
-# --- 1. Full chain: CASE_001 -> NEEDS_OWNER_CONFIRMATION -------------------
+# --- 1. Full chain: CASE_001 is resolved by the understanding engine -------
 
-def test_full_chain_case_001_needs_owner_confirmation(case_001_bridge_packet: dict) -> None:
+def test_full_chain_case_001_reaches_ready_gate(case_001_bridge_packet: dict) -> None:
     out = build_gate(semantic_bridge_packet=case_001_bridge_packet)
 
     assert case_001_bridge_packet["column_candidate_count"] == 10  # lock
     assert out["semantic_candidate_count"] == 10
-    assert out["status"] == STATUS_NEEDS_OWNER_CONFIRMATION
-    assert out["owner_questions"], "expected owner questions for ambiguous candidates"
-    # No controlled execution prepared while confirmation pending.
-    assert out["controlled_execution_candidate"] is None
+    assert out["status"] == STATUS_READY
+    assert out["owner_questions"] == []
+    assert out["controlled_execution_candidate"] is not None
     _assert_all_flags_false(out)
 
 

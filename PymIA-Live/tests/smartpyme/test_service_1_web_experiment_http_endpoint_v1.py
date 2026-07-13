@@ -320,20 +320,24 @@ def test_dynamic_owner_question_loop_discovers_questions_then_runs_delivery(
     tmp_path: Path,
 ) -> None:
     host, port = dev_server
-    file_bytes = case_001_path.read_bytes()
+    ambiguous_path = _first_existing([
+        _REPO_ROOT / "prueba_excels" / "cafeteria_abc.xlsx",
+        _PARENT_ROOT / "prueba_excels" / "cafeteria_abc.xlsx",
+    ])
+    file_bytes = ambiguous_path.read_bytes()
 
     http_status, questions = _post_request(
         host=host,
         port=port,
         route=ROUTE_OWNER_QUESTIONS,
-        file_name=case_001_path.name,
+        file_name=ambiguous_path.name,
         file_bytes=file_bytes,
     )
 
     assert http_status == 200
     assert questions["status"] == "OWNER_COLUMN_QUESTIONS_READY"
-    assert questions["question_count"] == 10
-    assert len(questions["owner_questions"]) == 10
+    assert questions["question_count"] == 11
+    assert len(questions["owner_questions"]) == 11
     owner_answers = {
         str(question["column_name"]): f"respuesta humana para {question['column_name']}"
         for question in questions["owner_questions"]
@@ -343,7 +347,7 @@ def test_dynamic_owner_question_loop_discovers_questions_then_runs_delivery(
         host=host,
         port=port,
         route=ROUTE_SEMANTIC_QUESTIONS,
-        file_name=case_001_path.name,
+        file_name=ambiguous_path.name,
         file_bytes=file_bytes,
         payload={"owner_column_answers": owner_answers},
     )
@@ -352,7 +356,11 @@ def test_dynamic_owner_question_loop_discovers_questions_then_runs_delivery(
     assert semantic["status"] == "SEMANTIC_OWNER_QUESTIONS_READY"
     assert semantic["question_count"] >= 1
     semantic_answers = {
-        str(question["column_name"]): f"confirmo rol {question['column_name']}"
+        str(question["column_name"]): (
+            question["candidate_roles"][0]
+            if question.get("candidate_roles")
+            else "IGNORED_NOT_RELEVANT"
+        )
         for question in semantic["owner_questions"]
     }
 
@@ -360,7 +368,7 @@ def test_dynamic_owner_question_loop_discovers_questions_then_runs_delivery(
     http_status, body = _post_request(
         host=host,
         port=port,
-        file_name=case_001_path.name,
+        file_name=ambiguous_path.name,
         file_bytes=file_bytes,
         payload={
             "owner_column_answers": owner_answers,

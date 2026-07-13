@@ -39,8 +39,11 @@ from pymia.contracts.column_confirmation_v1 import (
     ColumnConfirmationMatrix,
     ConfirmationStatus,
 )
-from pymia.smartpyme.service_1_column_semantic_mapper_v1 import (
-    build_service_1_column_semantic_candidates_from_matrix_v1,
+from pymia.smartpyme.service_1_column_understanding_engine_v1 import (
+    build_column_understandings_from_matrix_v1,
+)
+from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
+    Service1ColumnSemanticCandidateV1,
 )
 
 SCHEMA_VERSION = "SERVICE_1_CANONICAL_INGESTION_OUTPUT_TO_SEMANTIC_BRIDGE_V1"
@@ -137,14 +140,22 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
             filename=filename,
         )
 
+    matrix_owner_values = dict(input_values)
+    matrix_owner_values["__column_evidence__"] = (
+        ingestion_output.get("column_evidence") or {}
+    )
+    effective_sheet_name = str(ingestion_output.get("sheet_name") or sheet_name)
     matrix = _build_confirmation_matrix(
         filename=filename or "uploaded.xlsx",
-        sheet_name=sheet_name,
+        sheet_name=effective_sheet_name,
         columns=columns,
-        owner_values=input_values,
+        owner_values=matrix_owner_values,
     )
 
-    column_candidates = build_service_1_column_semantic_candidates_from_matrix_v1(matrix)
+    understandings = build_column_understandings_from_matrix_v1(matrix)
+    column_candidates = tuple(
+        _candidate_from_understanding(item) for item in understandings
+    )
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -159,6 +170,7 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         "column_candidate_count": len(column_candidates),
         "column_candidates": column_candidates,
         "confirmation_matrix": matrix,
+        "column_understandings": understandings,
         "runtime_authorized": False,
         "product_ready": False,
         "delivery_authorized": False,
@@ -172,18 +184,66 @@ def _build_confirmation_matrix(
     columns: list[str],
     owner_values: dict[str, Any],
 ) -> ColumnConfirmationMatrix:
-    entries = [
-        ColumnConfirmationEntry(
-            original_column_name=column,
-            sheet_name=sheet_name,
-            sample_values=[owner_values.get(column)],
-            suggested_semantic_role="unknown",
-            owner_confirmed_role=str(owner_values.get(column)).strip() or None,
-            confirmation_status=ConfirmationStatus.CONFIRMED,
+    evidence = owner_values.get("__column_evidence__", {})
+    entries: list[ColumnConfirmationEntry] = []
+    for column in columns:
+        item = evidence.get(column, {}) if isinstance(evidence, dict) else {}
+        entries.append(
+            ColumnConfirmationEntry(
+                original_column_name=column,
+                sheet_name=sheet_name,
+                sample_values=list(item.get("sample_values") or []),
+                inferred_type=item.get("inferred_type") or "unknown",
+                suggested_semantic_role="unknown",
+                owner_confirmed_role=str(owner_values.get(column)).strip() or None,
+                confirmation_status=ConfirmationStatus.CONFIRMED,
+            )
         )
-        for column in columns
-    ]
     return ColumnConfirmationMatrix(file_name=filename, entries=entries)
+
+
+def _candidate_from_understanding(
+    understanding: Any,
+) -> Service1ColumnSemanticCandidateV1:
+    hypotheses = tuple(understanding.candidate_meanings or ())
+    roles = tuple(item.semantic_role for item in hypotheses) or ("unknown",)
+    variables = tuple(item.variable_name for item in hypotheses) or ("unknown",)
+    primary = understanding.primary_hypothesis
+
+    return Service1ColumnSemanticCandidateV1(
+        source_column_name=understanding.column_name,
+        normalized_column_name=understanding.normalized_header,
+        sheet_name=understanding.sheet_name,
+        observed_data_type=understanding.inferred_data_type,
+        sample_values=tuple(understanding.sample_values),
+        candidate_semantic_roles=roles,
+        candidate_variable_names=variables,
+        confidence=understanding.confidence,
+        ambiguity_reason=(
+            understanding.risk_if_wrong
+            if understanding.owner_question_needed
+            else None
+        ),
+        owner_confirmation_required=bool(understanding.owner_question_needed),
+        runtime_authorized=False,
+        tool_execution_authorized=False,
+        delivery_authorized=False,
+        diagnosis_generated=False,
+        metadata={
+            "source_engine": "service_1_column_understanding_engine_v1",
+            "primary_semantic_role": (
+                primary.semantic_role if primary is not None else None
+            ),
+            "primary_variable_name": (
+                primary.variable_name if primary is not None else None
+            ),
+            "owner_question_text": understanding.owner_question_text,
+            "allowed_owner_answers": [
+                option.to_dict() for option in understanding.allowed_owner_answers
+            ],
+            "evidence": list(understanding.evidence),
+        },
+    )
 
 
 def _extract_columns(ingestion_output: dict[str, Any]) -> list[str]:
@@ -233,6 +293,7 @@ def _blocked(
         "column_candidate_count": 0,
         "column_candidates": (),
         "confirmation_matrix": None,
+        "column_understandings": (),
         "detail": list(detail or []),
         "runtime_authorized": False,
         "product_ready": False,

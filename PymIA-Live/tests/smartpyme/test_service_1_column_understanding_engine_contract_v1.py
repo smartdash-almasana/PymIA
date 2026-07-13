@@ -604,3 +604,25 @@ def test_generic_monetary_headers_remain_fail_closed_after_catalog_expansion() -
             "owner_confirmation_required_for_ambiguous_header" in evidence
             for evidence in understanding.evidence
         )
+
+
+def test_excel_serial_date_samples_require_date_header_context() -> None:
+    date_understanding = build_column_understanding_v1(
+        column_name="Fecha",
+        sheet_name="Ventas",
+        sample_values=[46176, 46178, 46180],
+        inferred_data_type=None,
+        co_column_names=["producto", "cantidad", "precio_unitario"],
+    )
+    amount_understanding = build_column_understanding_v1(
+        column_name="Importe",
+        sheet_name="Ventas",
+        sample_values=[46176, 46178, 46180],
+        inferred_data_type=None,
+        co_column_names=["producto", "cantidad"],
+    )
+
+    assert date_understanding.inferred_data_type == "date"
+    assert date_understanding.primary_hypothesis is not None
+    assert date_understanding.primary_hypothesis.semantic_role == "operation_date"
+    assert amount_understanding.inferred_data_type == "number"

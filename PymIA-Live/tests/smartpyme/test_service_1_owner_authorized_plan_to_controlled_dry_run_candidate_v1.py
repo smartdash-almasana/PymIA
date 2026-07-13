@@ -106,8 +106,6 @@ def _assert_no_result_or_executed_wording(packet: dict) -> None:
 
 @pytest.fixture()
 def case_001_accepted_dialogue() -> dict:
-    from dataclasses import replace
-
     fixture = _first_existing(_CASE_001_CANDIDATES)
     packet = build_intake(local_xlsx_path=str(fixture))
     answers = {column: f"significado de {column}" for column in packet["columns"]}
@@ -115,26 +113,8 @@ def case_001_accepted_dialogue() -> dict:
     bridge = build_bridge(ingestion_output=connector["ingestion_output"])
     assert bridge["status"] == BRIDGE_READY
     gate = build_gate(semantic_bridge_packet=bridge)
-    assert gate["status"] == "NEEDS_OWNER_CONFIRMATION"
-    pending = [q["column_name"] for q in gate["owner_questions"]]
-    loop = build_loop(gate_packet=gate, owner_answers={c: f"rol {c}" for c in pending})
-    assert loop["status"] == STATUS_OWNER_CONFIRMATION_RECHECK_READY
-
-    re_candidates = []
-    for c in bridge["column_candidates"]:
-        column = str(c.source_column_name).strip()
-        if column in loop["confirmed_answers"] and getattr(c, "owner_confirmation_required", False):
-            md = dict(c.metadata or {})
-            md["owner_confirmed"] = True
-            re_candidates.append(replace(c, owner_confirmation_required=False, metadata=md))
-        else:
-            re_candidates.append(c)
-    re_bridge = dict(bridge)
-    re_bridge["column_candidates"] = tuple(re_candidates)
-    re_bridge.pop("semantic_candidate_count", None)
-
-    ready_gate = build_gate(semantic_bridge_packet=re_bridge)
-    assert ready_gate["status"] == GATE_READY
+    assert gate["status"] == GATE_READY
+    ready_gate = gate
     plan = build_plan(gate_packet=ready_gate)
     assert plan["status"] == PLAN_READY
     dialogue = build_dialogue(plan_packet=plan, owner_authorization=AUTH_ACCEPT)

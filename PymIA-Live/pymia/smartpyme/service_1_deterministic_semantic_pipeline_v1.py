@@ -84,6 +84,16 @@ def run_owner_reentry(
     if not isinstance(owner_answers, dict) or not owner_answers:
         return _packet(status=STATUS_BLOCKED_PIPELINE, blocked_reason="OWNER_ANSWERS_REQUIRED")
 
+    invalid_answers = _invalid_owner_answers(
+        previous_run.get("owner_questions") or [], owner_answers
+    )
+    if invalid_answers:
+        return _packet(
+            status=STATUS_BLOCKED_PIPELINE,
+            blocked_reason="INVALID_OWNER_SEMANTIC_ANSWERS",
+            owner_questions=list(previous_run.get("owner_questions") or []),
+        )
+
     loop = build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         gate_packet=gate,
         owner_answers=owner_answers,
@@ -118,6 +128,36 @@ def run_owner_reentry(
         owner_loop_packet=loop,
         reentry_packet=reinjected,
     )
+
+
+def _invalid_owner_answers(
+    owner_questions: list[Any],
+    owner_answers: dict[Any, Any],
+) -> list[str]:
+    allowed_by_column: dict[str, set[str]] = {}
+    for question in owner_questions:
+        if not isinstance(question, dict):
+            continue
+        column = str(question.get("column_name") or "").strip()
+        allowed = {
+            str(item).strip()
+            for item in (question.get("allowed_answers") or [])
+            if str(item).strip()
+        }
+        if column:
+            allowed_by_column[column] = allowed
+
+    answer_columns = {str(key).strip() for key in owner_answers}
+    if answer_columns != set(allowed_by_column):
+        return ["ANSWER_KEYS_MUST_MATCH_PENDING_COLUMNS"]
+
+    invalid: list[str] = []
+    for key, value in owner_answers.items():
+        column = str(key).strip()
+        answer = str(value).strip()
+        if not answer or answer not in allowed_by_column.get(column, set()):
+            invalid.append(column)
+    return invalid
 
 
 def _packet(

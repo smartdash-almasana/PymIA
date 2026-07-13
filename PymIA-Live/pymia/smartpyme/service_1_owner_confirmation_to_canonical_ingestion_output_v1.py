@@ -184,6 +184,13 @@ def build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
     case_id = packet.get("case_id")
     source_kind = packet.get("source_kind")
     filename = packet.get("filename")
+    normalized_table = packet.get("normalized_table")
+    column_evidence = _column_evidence(normalized_table, detected)
+    selected_sheet_name = (
+        normalized_table.get("sheet_name")
+        if isinstance(normalized_table, dict)
+        else None
+    )
 
     # 6. Build ingestion_output in the shape the runtime-bridge adapter reads.
     ingestion_output: dict[str, Any] = {
@@ -196,6 +203,8 @@ def build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
         "input_values": dict(normalized_answers),
         "normalized_values": dict(normalized_answers),
         "column_meaning_confirmations": list(confirmed_columns),
+        "column_evidence": column_evidence,
+        "sheet_name": selected_sheet_name,
         "declared_data_sources": [filename] if filename else [],
         "provenance": {
             "origin_schema_version": BOUNDARY_SCHEMA_VERSION,
@@ -222,6 +231,52 @@ def build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
         "runtime_authorized": False,
         "product_ready": False,
         "delivery_authorized": False,
+    }
+
+
+def _column_evidence(
+    normalized_table: Any,
+    detected_columns: list[str],
+) -> dict[str, dict[str, Any]]:
+    if not isinstance(normalized_table, dict):
+        return {
+            column: {"sample_values": [], "inferred_type": None}
+            for column in detected_columns
+        }
+
+    headers = list(normalized_table.get("headers") or [])
+    normalized_headers = list(normalized_table.get("normalized_headers") or [])
+    rows = list(normalized_table.get("rows") or [])
+    by_original: dict[str, dict[str, Any]] = {}
+
+    for index, raw_column in enumerate(headers):
+        column = str(raw_column).strip()
+        normalized = (
+            normalized_headers[index]
+            if index < len(normalized_headers)
+            else column
+        )
+        samples: list[Any] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            value = row.get(normalized, row.get(column))
+            if value is None or (isinstance(value, str) and not value.strip()):
+                continue
+            samples.append(value)
+            if len(samples) >= 5:
+                break
+        by_original[column] = {
+            "sample_values": samples,
+            "inferred_type": None,
+        }
+
+    return {
+        column: by_original.get(
+            column,
+            {"sample_values": [], "inferred_type": None},
+        )
+        for column in detected_columns
     }
 
 

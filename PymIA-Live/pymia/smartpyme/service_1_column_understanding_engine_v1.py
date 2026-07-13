@@ -80,7 +80,9 @@ _OWNER_CONFIRMATION_REQUIRED_HEADERS: Final[frozenset[str]] = frozenset(
 
 _NON_ALNUM_RE: Final[re.Pattern[str]] = re.compile(r"[^a-z0-9_]+")
 _UNDERSCORE_RE: Final[re.Pattern[str]] = re.compile(r"_+")
-_DATE_TEXT_RE: Final[re.Pattern[str]] = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_DATE_TEXT_RE: Final[re.Pattern[str]] = re.compile(
+    r"^\d{4}-\d{2}-\d{2}(?:[ T].*)?$"
+)
 _SLASH_DATE_RE: Final[re.Pattern[str]] = re.compile(r"^\d{1,2}/\d{1,2}/\d{2,4}$")
 _INT_RE: Final[re.Pattern[str]] = re.compile(r"^-?\d+$")
 _FLOAT_RE: Final[re.Pattern[str]] = re.compile(r"^-?\d+(?:\.\d+)?$")
@@ -280,7 +282,7 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
     _RoleRule(
         semantic_role="product_identifier",
         variable_name="product_id",
-        header_keywords=("sku", "codigo", "producto_codigo", "codigo_producto", "product_code", "cod"),
+        header_keywords=("sku", "codigo", "producto_id", "product_id", "producto_codigo", "codigo_producto", "product_code", "cod"),
         expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT, INFERRED_DATA_TYPE_NUMBER}),
         contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE}),
         co_column_boosts=frozenset({"producto", "precio_venta", "costo_unitario", "cantidad"}),
@@ -354,9 +356,10 @@ def normalize_service_1_column_understanding_header_v1(column_name: object) -> s
     """
     if not isinstance(column_name, str):
         return ""
-    text = column_name.strip().lower()
-    if not text:
+    raw_text = column_name.strip()
+    if not raw_text:
         return ""
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", raw_text).lower()
     decomposed = unicodedata.normalize("NFKD", text)
     without_accents = "".join(char for char in decomposed if not unicodedata.combining(char))
     underscored = re.sub(r"\s+", "_", without_accents)
@@ -428,6 +431,21 @@ def _infer_data_type_from_samples(samples: tuple[Any, ...]) -> str:
     if text / total >= 0.6:
         return INFERRED_DATA_TYPE_TEXT
     return INFERRED_DATA_TYPE_MIXED
+
+
+def _looks_like_excel_serial_dates(samples: tuple[Any, ...]) -> bool:
+    if not samples:
+        return False
+    parsed: list[float] = []
+    for value in samples:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return False
+        if not number.is_integer() or number < 1 or number > 100000:
+            return False
+        parsed.append(number)
+    return bool(parsed)
 
 
 def _coerce_co_columns(co_columns: object) -> tuple[str, ...]:
@@ -657,7 +675,18 @@ def build_column_understanding_v1(
     if not normalized:
         raise ValueError("normalized_header could not be derived from column_name")
 
-    inferred = _coerce_inferred_data_type(inferred_data_type) if inferred_data_type else _infer_data_type_from_samples(sample_tuple_final)
+    inferred = (
+        _coerce_inferred_data_type(inferred_data_type)
+        if inferred_data_type
+        else _infer_data_type_from_samples(sample_tuple_final)
+    )
+    if (
+        inferred == INFERRED_DATA_TYPE_NUMBER
+        and normalized
+        in {"fecha", "fecha_venta", "fecha_operacion", "date", "fecha_emision"}
+        and _looks_like_excel_serial_dates(sample_tuple_final)
+    ):
+        inferred = INFERRED_DATA_TYPE_DATE
     co_columns = _coerce_co_columns(co_column_names)
     effective_sheet = (sheet_context or sheet_name or "").strip() or "unknown_sheet"
 
@@ -832,7 +861,11 @@ def build_column_understanding_from_entry_v1(
         column_name=entry.original_column_name,
         sheet_name=entry.sheet_name or "unknown_sheet",
         sample_values=entry.sample_values,
-        inferred_data_type=entry.inferred_type,
+        inferred_data_type=(
+            None
+            if str(entry.inferred_type or "").strip().lower() == "unknown"
+            else entry.inferred_type
+        ),
         co_column_names=co_column_names,
     )
 

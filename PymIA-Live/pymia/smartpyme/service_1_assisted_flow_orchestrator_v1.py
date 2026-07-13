@@ -187,22 +187,28 @@ def build_service_1_assisted_flow_orchestrator_v1(
     if gate.get("status") not in ("CONTROLLED_EXECUTION_CANDIDATE_READY", "NEEDS_OWNER_CONFIRMATION"):
         return _fail(gate.get("blocked_reason", "GATE_FAILED"), at_link=LINK_GATE, packet=gate)
 
-    # 5) Confirmation loop (requires the semantic owner answers).
-    loop = build_loop(gate_packet=gate, owner_answers=semantic_owner_answers)
-    trace[LINK_CONFIRMATION_LOOP] = loop.get("status")
-    if loop.get("status") != "OWNER_CONFIRMATION_RECHECK_READY":
-        return _fail(loop.get("blocked_reason", "CONFIRMATION_LOOP_FAILED"), at_link=LINK_CONFIRMATION_LOOP, packet=loop)
+    # 5/6) Confirmation is conditional. A high-confidence gate may already be
+    # READY; in that case there is nothing to ask or reinject. Ambiguous cases
+    # still require the complete owner-confirmation loop and fail closed.
+    if gate.get("status") == "CONTROLLED_EXECUTION_CANDIDATE_READY":
+        trace[LINK_CONFIRMATION_LOOP] = "SKIPPED_NOT_REQUIRED"
+        trace[LINK_REINJECTION] = "SKIPPED_NOT_REQUIRED"
+        gate_recheck = gate
+    else:
+        loop = build_loop(gate_packet=gate, owner_answers=semantic_owner_answers)
+        trace[LINK_CONFIRMATION_LOOP] = loop.get("status")
+        if loop.get("status") != "OWNER_CONFIRMATION_RECHECK_READY":
+            return _fail(loop.get("blocked_reason", "CONFIRMATION_LOOP_FAILED"), at_link=LINK_CONFIRMATION_LOOP, packet=loop)
 
-    # 6) Reinjection -> re-run gate (produces a READY gate-equivalent packet).
-    reinject = build_reinject(semantic_bridge_packet=bridge, owner_confirmation_loop_packet=loop)
-    trace[LINK_REINJECTION] = reinject.get("status")
-    if reinject.get("status") != "CONTROLLED_EXECUTION_CANDIDATE_READY":
-        return _fail(reinject.get("blocked_reason", "REINJECTION_FAILED"), at_link=LINK_REINJECTION, packet=reinject)
+        reinject = build_reinject(
+            semantic_bridge_packet=bridge,
+            owner_confirmation_loop_packet=loop,
+        )
+        trace[LINK_REINJECTION] = reinject.get("status")
+        if reinject.get("status") != "CONTROLLED_EXECUTION_CANDIDATE_READY":
+            return _fail(reinject.get("blocked_reason", "REINJECTION_FAILED"), at_link=LINK_REINJECTION, packet=reinject)
+        gate_recheck = reinject
 
-    # The reinjection module already re-ran the gate; its output is a READY
-    # gate-equivalent packet (status CONTROLLED_EXECUTION_CANDIDATE_READY) that
-    # feeds the plan builder directly. (No separate re-gate re-run needed.)
-    gate_recheck = reinject
     trace[LINK_GATE_RECHECK] = gate_recheck.get("status")
 
     # 7) Plan packet.

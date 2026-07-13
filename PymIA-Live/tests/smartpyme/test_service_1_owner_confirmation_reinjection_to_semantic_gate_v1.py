@@ -48,8 +48,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PARENT_ROOT = _REPO_ROOT.parent
 
 _CASE_001_CANDIDATES = [
-    _PARENT_ROOT / "prueba_excels" / "CASE_001_ventas_junio_2026_margin_leak.xlsx",
-    _REPO_ROOT / "prueba_excels" / "CASE_001_ventas_junio_2026_margin_leak.xlsx",
+    _PARENT_ROOT / "prueba_excels" / "cafeteria_abc.xlsx",
+    _REPO_ROOT / "prueba_excels" / "cafeteria_abc.xlsx",
 ]
 
 
@@ -70,7 +70,7 @@ def _assert_all_flags_false(packet: dict) -> None:
 
 @pytest.fixture()
 def case_001_chain() -> dict:
-    """Returns bridge + loop(RECHECK_READY) for CASE_001 with full answers."""
+    """Returns a real ambiguous cafeteria bridge plus canonical reentry answers."""
     fixture = _first_existing(_CASE_001_CANDIDATES)
     packet = build_intake(local_xlsx_path=str(fixture))
     answers = {column: f"significado de {column}" for column in packet["columns"]}
@@ -79,8 +79,11 @@ def case_001_chain() -> dict:
     assert bridge["status"] == BRIDGE_READY
     gate = build_gate(semantic_bridge_packet=bridge)
     assert gate["status"] == "NEEDS_OWNER_CONFIRMATION"
-    pending = [q["column_name"] for q in gate["owner_questions"]]
-    loop = build_loop(gate_packet=gate, owner_answers={c: f"rol {c}" for c in pending})
+    canonical_answers = {
+        question["column_name"]: question["allowed_answers"][0]
+        for question in gate["owner_questions"]
+    }
+    loop = build_loop(gate_packet=gate, owner_answers=canonical_answers)
     assert loop["status"] == STATUS_OWNER_CONFIRMATION_RECHECK_READY
     return {"bridge": bridge, "loop": loop}
 
@@ -98,7 +101,7 @@ def test_case_001_reinject_then_gate_ready(case_001_chain: dict) -> None:
     )
 
     assert out["status"] == STATUS_READY
-    assert out["semantic_candidate_count"] == 10  # lock CASE_001
+    assert out["semantic_candidate_count"] == 11  # cafeteria fixture lock
     assert "operation_date" in out["candidate_roles"]
     # Input bridge must NOT be mutated.
     assert case_001_chain["bridge"]["status"] == bridge_snapshot["status"]
@@ -228,7 +231,12 @@ def test_block_missing_answers(case_001_chain: dict) -> None:
         semantic_bridge_packet=case_001_chain["bridge"],
         owner_confirmation_loop_packet=loop,
     )
-    assert out["blocked_reason"] == BLOCK_MISSING_ANSWERS
+    expected = (
+        BLOCK_LOOP_NO_ANSWERS
+        if not answers
+        else BLOCK_MISSING_ANSWERS
+    )
+    assert out["blocked_reason"] == expected
 
 
 # --- helper removed: re-packed bridge is internal to the connector ---

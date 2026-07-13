@@ -101,7 +101,7 @@ def test_owner_reentry_can_unlock_physical_execution(tmp_path: Path) -> None:
         output_dir=tmp_path,
     )
     question = first["owner_questions"][0]
-    answer = question["candidate_roles"][0]
+    answer = question["allowed_answers"][0]
 
     out = run_service_1_product_pipeline_v1(
         ingestion_output=_ambiguous_ingestion(),

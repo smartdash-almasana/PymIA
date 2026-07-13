@@ -266,16 +266,38 @@ def _reinject(
     for candidate in candidate_list:
         column = str(candidate.source_column_name).strip()
         if column in cleaned:
+            answer = cleaned[column]
             new_metadata = dict(candidate.metadata or {})
             new_metadata["owner_confirmed"] = True
-            new_metadata["owner_confirmation_answer"] = cleaned[column]
-            result.append(
-                replace(
-                    candidate,
-                    owner_confirmation_required=False,
-                    metadata=new_metadata,
+            new_metadata["owner_confirmation_answer"] = answer
+
+            if answer == "IGNORED_NOT_RELEVANT":
+                new_metadata["owner_ignored_not_relevant"] = True
+                result.append(
+                    replace(
+                        candidate,
+                        candidate_semantic_roles=(),
+                        candidate_variable_names=(),
+                        owner_confirmation_required=False,
+                        ambiguity_reason=None,
+                        metadata=new_metadata,
+                    )
                 )
-            )
+            else:
+                roles = tuple(candidate.candidate_semantic_roles or ())
+                variables = tuple(candidate.candidate_variable_names or ())
+                index = roles.index(answer)
+                variable = variables[index] if index < len(variables) else "unknown"
+                result.append(
+                    replace(
+                        candidate,
+                        candidate_semantic_roles=(answer,),
+                        candidate_variable_names=(variable,),
+                        owner_confirmation_required=False,
+                        ambiguity_reason=None,
+                        metadata=new_metadata,
+                    )
+                )
         else:
             result.append(candidate)
     return result

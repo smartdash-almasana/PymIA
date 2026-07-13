@@ -46,9 +46,7 @@ def test_owner_question_round_trip_reaches_confirmed_bindings_when_needed() -> N
         return
 
     answers = {
-        question["column_name"]: question["candidate_roles"][0]
-        if question["candidate_roles"]
-        else "unknown"
+        question["column_name"]: question["allowed_answers"][0]
         for question in first["owner_questions"]
     }
     out = run_owner_reentry(previous_run=first, owner_answers=answers)

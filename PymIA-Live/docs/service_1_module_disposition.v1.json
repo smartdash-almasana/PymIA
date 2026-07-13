@@ -15,10 +15,10 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 103,
+    "EXPERIMENTAL_FROZEN": 104,
     "OBSOLETE_ELIMINABLE": 5,
-    "PRODUCTIVE": 10,
-    "SUPPORT_NECESSARY": 35
+    "PRODUCTIVE": 11,
+    "SUPPORT_NECESSARY": 33
   },
   "total_modules": 153,
   "modules": [
@@ -201,7 +201,8 @@
       "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
       "confidence": "HIGH",
       "imports_service_1": [
-        "service_1_column_semantic_mapper_v1"
+        "service_1_column_understanding_engine_v1",
+        "service_1_semantic_evidence_binding_contracts_v1"
       ],
       "internal_callers": [
         "service_1_assisted_flow_orchestrator_v1",
@@ -370,16 +371,14 @@
     {
       "module": "service_1_column_semantic_mapper_v1",
       "path": "PymIA-Live/pymia/smartpyme/service_1_column_semantic_mapper_v1.py",
-      "disposition": "PRODUCTIVE",
-      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
-      "confidence": "HIGH",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
       "imports_service_1": [
         "service_1_semantic_evidence_binding_contracts_v1"
       ],
-      "internal_callers": [
-        "service_1_canonical_ingestion_output_to_semantic_bridge_v1"
-      ],
-      "canonical_root_reachable": true
+      "internal_callers": [],
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_column_understanding_canonical_extension_gate_v1",
@@ -435,31 +434,32 @@
     {
       "module": "service_1_column_understanding_engine_contract_v1",
       "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_engine_contract_v1.py",
-      "disposition": "SUPPORT_NECESSARY",
-      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
-      "confidence": "MEDIUM",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
       "imports_service_1": [],
       "internal_callers": [
         "service_1_column_understanding_engine_v1",
         "service_1_column_understanding_owner_question_adapter_v1"
       ],
-      "canonical_root_reachable": false
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_column_understanding_engine_v1",
       "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_engine_v1.py",
-      "disposition": "SUPPORT_NECESSARY",
-      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
-      "confidence": "MEDIUM",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
       "imports_service_1": [
         "service_1_column_understanding_engine_contract_v1"
       ],
       "internal_callers": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
         "service_1_column_understanding_corpus_evaluation_v1",
         "service_1_column_understanding_owner_question_corpus_audit_v1",
         "service_1_column_understanding_owner_question_semantic_audit_v1"
       ],
-      "canonical_root_reachable": false
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_column_understanding_owner_question_adapter_v1",
@@ -1741,6 +1741,7 @@
       "confidence": "HIGH",
       "imports_service_1": [],
       "internal_callers": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
         "service_1_column_semantic_mapper_v1",
         "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
         "service_1_semantic_bridge_to_controlled_execution_gate_v1",
