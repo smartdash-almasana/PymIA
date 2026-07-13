@@ -12,8 +12,8 @@ La autoridad operativa está en:
 
 ```text
 docs/current/
-PymIA-Live/pymia/smartpyme/
-PymIA-Live/pymia/contracts/
+pymia/smartpyme/
+pymia/contracts/
 ```
 
 ## Único smoke permitido

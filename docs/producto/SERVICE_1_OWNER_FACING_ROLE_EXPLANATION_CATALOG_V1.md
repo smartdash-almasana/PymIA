@@ -34,13 +34,13 @@ Este catálogo cierra esa fuente básica.
 ## Archivo runtime
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_owner_facing_role_explanation_catalog_v1.py
+pymia/smartpyme/service_1_owner_facing_role_explanation_catalog_v1.py
 ```
 
 ## Test
 
 ```text
-PymIA-Live/tests/smartpyme/test_service_1_owner_facing_role_explanation_catalog_v1.py
+tests/smartpyme/test_service_1_owner_facing_role_explanation_catalog_v1.py
 ```
 
 ## Funciones públicas

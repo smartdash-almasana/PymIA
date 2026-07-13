@@ -15,16 +15,11 @@ Pymia-memoria/
 conversa-engine/.conversation_state/
 
 docs/mermaid/
-
 # pytest temp artifacts
 .tmp_pytest_*
 docs/pymia/infografia_pymia.html
-
 .tmp/
 _local_quarantine/
-
-PymIA-Live/.tmp_smoke_owner_alignment/
-
 # local operator artifacts
 .agents/
 .opencode/
@@ -35,3 +30,16 @@ prueba_excels/*_RUN_OUTPUT/
 prueba_excels/*_AUDITABLE/
 prueba_excels/*_AUDITABLE.zip
 .atl/
+*$py.class
+.ipynb_checkpoints
+# pytest / temporales
+vertical_slice_storage/
+# Entornos virtuales
+ENV/
+# Construcción
+build/
+dist/
+*.egg-info/
+
+# Canonical tracked validation fixture
+!prueba_excels/CASE_001_ventas_junio_2026_margin_leak.xlsx

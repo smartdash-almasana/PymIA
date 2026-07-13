@@ -5,18 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pymia"
 version = "0.1.0"
-description = "PymIA — Núcleo clínico-operacional soberano para PyMEs"
+description = "PymIA — núcleo operativo canónico para Servicio 1"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0",
     "openpyxl>=3.1",
     "pandas>=2.2",
-    "mcp>=1.0",
+    "exceland-factory @ file:../../exeland2",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
+    "pytest>=7.0"
 ]
 
 [tool.setuptools.packages.find]

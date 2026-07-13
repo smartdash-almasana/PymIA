@@ -9,8 +9,8 @@ IMPLEMENTED_MINIMAL_SPECIFIC_CONTRACT
 FILES_CREATED:
 
 ```text
-PymIA-Live/pymia/smartpyme/mercado_pago_reconciliation_contract_v1.py
-PymIA-Live/tests/smartpyme/test_mercado_pago_reconciliation_contract_v1.py
+pymia/smartpyme/mercado_pago_reconciliation_contract_v1.py
+tests/smartpyme/test_mercado_pago_reconciliation_contract_v1.py
 docs/producto/SERVICE_1_MERCADO_PAGO_RECONCILIATION_CONTRACT_V1.md
 ```
 

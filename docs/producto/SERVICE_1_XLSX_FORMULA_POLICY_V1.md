@@ -51,8 +51,8 @@ Pero NO pertenece al delivery genérico actual ni al carril First Aid asistido l
 
 Los siguientes módulos quedan explícitamente congelados como **no-fórmulas**:
 
-- `PymIA-Live/pymia/smartpyme/service_1_xlsx_delivery_v1.py`
-- `PymIA-Live/pymia/smartpyme/first_aid_xlsx_delivery_v1.py`
+- `pymia/smartpyme/service_1_xlsx_delivery_v1.py`
+- `pymia/smartpyme/first_aid_xlsx_delivery_v1.py`
 
 Su rol es:
 

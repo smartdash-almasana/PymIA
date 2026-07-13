@@ -488,4 +488,4 @@ Se rechaza si:
 AUDITORIA_CONTRACTUAL_DEL_GRAFO_FUNCIONAL
 ```
 
-Este documento no habilita código, tests, schemas Pydantic, runtime, modificación de `PymIA-Live`, creación de packs activos ni cambios en el motor diagnóstico.
+Este documento no habilita código, tests, schemas Pydantic, runtime, modificación de `PymIA`, creación de packs activos ni cambios en el motor diagnóstico.

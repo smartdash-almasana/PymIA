@@ -20,13 +20,13 @@ Doc:
 docs/producto/SERVICE_1_ACCOUNTING_CONTRACTS_V1.md
 
 Runtime contract:
-PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py
+pymia/smartpyme/service_1_accounting_contracts_v1.py
 
 Tests:
-PymIA-Live/tests/smartpyme/test_service_1_accounting_contracts_v1.py
+tests/smartpyme/test_service_1_accounting_contracts_v1.py
 
 Commit:
-92509d2 feat(pymia-live): add service 1 accounting contracts
+92509d2 feat(pymia): add service 1 accounting contracts
 ```
 
 SPECIFIC CONTRACTS:
@@ -34,33 +34,33 @@ SPECIFIC CONTRACTS:
 ```text
 1. Bank reconciliation
    Doc: docs/producto/SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1.md
-   Runtime contract: PymIA-Live/pymia/smartpyme/bank_reconciliation_contract_v1.py
-   Tests: PymIA-Live/tests/smartpyme/test_bank_reconciliation_contract_v1.py
-   Commit: a3be116 feat(pymia-live): add service 1 bank reconciliation contract
+   Runtime contract: pymia/smartpyme/bank_reconciliation_contract_v1.py
+   Tests: tests/smartpyme/test_bank_reconciliation_contract_v1.py
+   Commit: a3be116 feat(pymia): add service 1 bank reconciliation contract
 
 2. Payment platform reconciliation
    Doc: docs/producto/SERVICE_1_MERCADO_PAGO_RECONCILIATION_CONTRACT_V1.md
-   Runtime contract: PymIA-Live/pymia/smartpyme/mercado_pago_reconciliation_contract_v1.py
-   Tests: PymIA-Live/tests/smartpyme/test_mercado_pago_reconciliation_contract_v1.py
-   Commit: 4fb1f16 feat(pymia-live): add service 1 mercado pago reconciliation contract
+   Runtime contract: pymia/smartpyme/mercado_pago_reconciliation_contract_v1.py
+   Tests: tests/smartpyme/test_mercado_pago_reconciliation_contract_v1.py
+   Commit: 4fb1f16 feat(pymia): add service 1 mercado pago reconciliation contract
 
 3. Invoice collection matching
    Doc: docs/producto/SERVICE_1_INVOICE_COLLECTION_MATCHING_CONTRACT_V1.md
-   Runtime contract: PymIA-Live/pymia/smartpyme/invoice_collection_matching_contract_v1.py
-   Tests: PymIA-Live/tests/smartpyme/test_invoice_collection_matching_contract_v1.py
-   Commit: f2cf519 feat(pymia-live): add service 1 invoice collection matching contract
+   Runtime contract: pymia/smartpyme/invoice_collection_matching_contract_v1.py
+   Tests: tests/smartpyme/test_invoice_collection_matching_contract_v1.py
+   Commit: f2cf519 feat(pymia): add service 1 invoice collection matching contract
 
 4. Supplier purchase review
    Doc: docs/producto/SERVICE_1_SUPPLIER_PURCHASE_REVIEW_CONTRACT_V1.md
-   Runtime contract: PymIA-Live/pymia/smartpyme/supplier_purchase_review_contract_v1.py
-   Tests: PymIA-Live/tests/smartpyme/test_supplier_purchase_review_contract_v1.py
-   Commit: 9ba3386 feat(pymia-live): add service 1 supplier purchase review contract
+   Runtime contract: pymia/smartpyme/supplier_purchase_review_contract_v1.py
+   Tests: tests/smartpyme/test_supplier_purchase_review_contract_v1.py
+   Commit: 9ba3386 feat(pymia): add service 1 supplier purchase review contract
 
 5. Accounting workpaper
    Doc: docs/producto/SERVICE_1_ACCOUNTING_WORKPAPER_CONTRACT_V1.md
-   Runtime contract: PymIA-Live/pymia/smartpyme/accounting_workpaper_contract_v1.py
-   Tests: PymIA-Live/tests/smartpyme/test_accounting_workpaper_contract_v1.py
-   Commit: 8016073 feat(pymia-live): add service 1 accounting workpaper contract
+   Runtime contract: pymia/smartpyme/accounting_workpaper_contract_v1.py
+   Tests: tests/smartpyme/test_accounting_workpaper_contract_v1.py
+   Commit: 8016073 feat(pymia): add service 1 accounting workpaper contract
 ```
 
 FAMILY CLOSURE:

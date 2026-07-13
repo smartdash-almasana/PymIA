@@ -21,8 +21,8 @@ La confirmación del dueño no es una revisión posterior a la entrega. Es evide
 ## Única raíz productiva
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_product_pipeline_v1.py
-PymIA-Live/pymia/cli/service_1_product.py
+pymia/smartpyme/service_1_product_pipeline_v1.py
+pymia/cli/service_1_product.py
 ```
 
 ## Recorrido autorizado

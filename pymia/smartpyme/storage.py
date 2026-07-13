@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
-
-from pymia.smartpyme.intake import IntakeEvidenceRequest, IntakeRecord
-from pymia.smartpyme.reception import ReceptionRecord
 
 
 def _safe_join(base_dir: Path, tenant_id: str) -> Path:
@@ -29,10 +25,22 @@ def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Pat
     results_dir = tenant_root / "results"
     receptions_jsonl = tenant_root / "receptions.jsonl"
     intakes_jsonl = tenant_root / "intakes.jsonl"
+    anamnesis_jsonl = tenant_root / "anamnesis.jsonl"
+    investigations_jsonl = tenant_root / "investigations.jsonl"
+    owner_answers_jsonl = tenant_root / "owner_answers.jsonl"
+    evidence_requests_jsonl = tenant_root / "evidence_requests.jsonl"
     evidences_jsonl = tenant_root / "evidences.jsonl"
     for d in (tenant_root, evidence_dir, reports_dir, results_dir):
         d.mkdir(parents=True, exist_ok=True)
-    for jsonl in (receptions_jsonl, intakes_jsonl, evidences_jsonl):
+    for jsonl in (
+        receptions_jsonl,
+        intakes_jsonl,
+        anamnesis_jsonl,
+        investigations_jsonl,
+        owner_answers_jsonl,
+        evidence_requests_jsonl,
+        evidences_jsonl,
+    ):
         if not jsonl.exists():
             jsonl.write_text("", encoding="utf-8")
     return {
@@ -42,6 +50,10 @@ def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Pat
         "results_dir": results_dir,
         "receptions_jsonl": receptions_jsonl,
         "intakes_jsonl": intakes_jsonl,
+        "anamnesis_jsonl": anamnesis_jsonl,
+        "investigations_jsonl": investigations_jsonl,
+        "owner_answers_jsonl": owner_answers_jsonl,
+        "evidence_requests_jsonl": evidence_requests_jsonl,
         "evidences_jsonl": evidences_jsonl,
     }
 
@@ -53,53 +65,28 @@ def _write_jsonl_line(target: Path, payload: dict[str, Any]) -> Path:
     return target
 
 
-def append_reception_jsonl(base_dir: str | Path, record: ReceptionRecord) -> Path:
-    paths = ensure_tenant_storage(base_dir, record.tenant_id)
-    return _write_jsonl_line(paths["receptions_jsonl"], asdict(record))
+def _record_to_dict(record: Any, *, record_name: str) -> dict[str, Any]:
+    if hasattr(record, "to_dict") and callable(record.to_dict):
+        return record.to_dict()
+    if isinstance(record, dict):
+        return record.copy()
+    raise ValueError(f"{record_name} must be a supported record or dict")
 
 
-def append_intake_jsonl(base_dir: str | Path, record: IntakeRecord) -> Path:
-    paths = ensure_tenant_storage(base_dir, record.tenant_id)
-    return _write_jsonl_line(paths["intakes_jsonl"], record.to_dict())
-
-
-# ---------------------------------------------------------------------------
-# Contrato aprobado: save_intake_record
-# ---------------------------------------------------------------------------
-def save_intake_record(
+def save_anamnesis_record(
     tenant_id: str,
     record: Any,
     *,
     base_dir: str | Path | None = None,
 ) -> Path:
-    """Persiste un IntakeRecord o dict en <base_dir>/<tenant_id>/intakes.jsonl.
-
-    Contrato aprobado:
-        save_intake_record(tenant_id, record, *, base_dir=None) -> Path
-
-    Validaciones fail-closed:
-        - tenant_id no vacío
-        - record es IntakeRecord (con to_dict()) o dict
-        - record["tenant_id"] existe
-        - record["tenant_id"] == tenant_id
-        - campos core requeridos presentes
-        - tipos de campos core correctos
-    """
+    """Persiste un AnamnesisRecord o dict en <base_dir>/<tenant_id>/anamnesis.jsonl."""
     if not tenant_id or not tenant_id.strip():
         raise ValueError("tenant_id is required")
-
     if base_dir is None:
         raise ValueError("base_dir is required")
 
-    # Convertir record a dict
-    if hasattr(record, "to_dict") and callable(record.to_dict):
-        record_dict = record.to_dict()
-    elif isinstance(record, dict):
-        record_dict = record.copy()
-    else:
-        raise ValueError("record must be IntakeRecord or dict")
+    record_dict = _record_to_dict(record, record_name="record")
 
-    # Validar tenant_id en record
     if "tenant_id" not in record_dict:
         raise ValueError("record missing tenant_id field")
     if record_dict["tenant_id"] != tenant_id:
@@ -108,134 +95,191 @@ def save_intake_record(
             f"argument tenant_id ({tenant_id})"
         )
 
-    # Validar campos core requeridos
     required_fields = [
-        "intake_id",
+        "anamnesis_id",
         "tenant_id",
-        "raw_input",
-        "structured_selectors",
-        "interrogation_result",
-        "tank_selection_result",
-        "evidence_requests",
-        "intake_state",
-        "suggested_next_state",
-        "warnings",
-        "audit_notes",
+        "intake_id",
+        "raw_owner_message",
+        "business_taxonomy",
+        "declared_pains",
+        "owner_hypotheses",
+        "declared_documents",
+        "requested_documents",
+        "status",
         "created_at",
+        "metadata",
     ]
     for field in required_fields:
         if field not in record_dict:
             raise ValueError(f"record missing required field: {field}")
 
-    # Validar tipos de campos core
-    dict_fields = ["structured_selectors", "interrogation_result", "tank_selection_result"]
-    for field in dict_fields:
-        if not isinstance(record_dict[field], dict):
-            raise ValueError(f"field {field} must be dict")
-
-    list_fields = ["evidence_requests", "warnings", "audit_notes"]
-    for field in list_fields:
+    if not isinstance(record_dict["business_taxonomy"], dict):
+        raise ValueError("field business_taxonomy must be dict")
+    if not isinstance(record_dict["metadata"], dict):
+        raise ValueError("field metadata must be dict")
+    for field in (
+        "declared_pains",
+        "owner_hypotheses",
+        "declared_documents",
+        "requested_documents",
+    ):
         if not isinstance(record_dict[field], list):
             raise ValueError(f"field {field} must be list")
 
-    # Escribir JSONL
     paths = ensure_tenant_storage(base_dir, tenant_id)
-    return _write_jsonl_line(paths["intakes_jsonl"], record_dict)
+    return _write_jsonl_line(paths["anamnesis_jsonl"], record_dict)
 
 
-# ---------------------------------------------------------------------------
-# Contrato aprobado: load_intake_records
-# ---------------------------------------------------------------------------
-def load_intake_records(
+def save_investigation_record(
     tenant_id: str,
+    record: Any,
     *,
     base_dir: str | Path | None = None,
-) -> list[dict]:
-    """Carga todos los IntakeRecords de un tenant como list[dict].
-
-    Contrato aprobado:
-        load_intake_records(tenant_id, *, base_dir=None) -> list[dict]
-
-    Comportamiento:
-        - valida tenant_id no vacío
-        - retorna [] si intakes.jsonl no existe
-        - retorna list[dict] (no IntakeRecord)
-        - preserva orden de inserción
-        - ValueError en JSON malformado
-        - ValueError en línea que no es dict
-    """
+) -> Path:
+    """Persiste un InvestigationRecord o dict en <base_dir>/<tenant_id>/investigations.jsonl."""
     if not tenant_id or not tenant_id.strip():
         raise ValueError("tenant_id is required")
-
     if base_dir is None:
         raise ValueError("base_dir is required")
 
+    record_dict = _record_to_dict(record, record_name="record")
+
+    if "tenant_id" not in record_dict:
+        raise ValueError("record missing tenant_id field")
+    if record_dict["tenant_id"] != tenant_id:
+        raise ValueError(
+            f"record tenant_id ({record_dict['tenant_id']}) does not match "
+            f"argument tenant_id ({tenant_id})"
+        )
+
+    required_fields = [
+        "investigation_id",
+        "tenant_id",
+        "intake_id",
+        "anamnesis_id",
+        "owner_prompt",
+        "investigation_axis",
+        "declared_question",
+        "status",
+        "evidence_required",
+        "pathology_candidates",
+        "formula_candidates",
+        "created_at",
+        "metadata",
+    ]
+    for field in required_fields:
+        if field not in record_dict:
+            raise ValueError(f"record missing required field: {field}")
+
+    if not isinstance(record_dict["metadata"], dict):
+        raise ValueError("field metadata must be dict")
+    for field in (
+        "evidence_required",
+        "pathology_candidates",
+        "formula_candidates",
+    ):
+        if not isinstance(record_dict[field], list):
+            raise ValueError(f"field {field} must be list")
+
     paths = ensure_tenant_storage(base_dir, tenant_id)
-    intakes_jsonl = paths["intakes_jsonl"]
-
-    if not intakes_jsonl.exists():
-        return []
-
-    content = intakes_jsonl.read_text(encoding="utf-8").strip()
-    if not content:
-        return []
-
-    records: list[dict] = []
-    for line_num, line in enumerate(content.splitlines(), start=1):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"malformed JSON at line {line_num}") from e
-
-        if not isinstance(obj, dict):
-            raise ValueError(f"line {line_num} is not a dict")
-
-        records.append(obj)
-
-    return records
+    return _write_jsonl_line(paths["investigations_jsonl"], record_dict)
 
 
-# ---------------------------------------------------------------------------
-# Contrato aprobado: load_intake_record_by_id
-# ---------------------------------------------------------------------------
-def load_intake_record_by_id(
+def save_owner_answer_record(
     tenant_id: str,
-    intake_id: str,
+    record: Any,
     *,
     base_dir: str | Path | None = None,
-) -> dict | None:
-    """Busca un IntakeRecord por intake_id dentro de un tenant.
-
-    Contrato aprobado:
-        load_intake_record_by_id(tenant_id, intake_id, *, base_dir=None) -> dict | None
-
-    Comportamiento:
-        - valida tenant_id no vacío
-        - valida intake_id no vacío
-        - retorna dict si existe
-        - retorna None si no existe
-        - no cruza boundaries de tenant
-    """
+) -> Path:
+    """Persiste un OwnerAnswerRecord o dict en <base_dir>/<tenant_id>/owner_answers.jsonl."""
     if not tenant_id or not tenant_id.strip():
         raise ValueError("tenant_id is required")
+    if base_dir is None:
+        raise ValueError("base_dir is required")
 
-    if not intake_id or not intake_id.strip():
-        raise ValueError("intake_id is required")
+    record_dict = _record_to_dict(record, record_name="record")
 
-    records = load_intake_records(tenant_id, base_dir=base_dir)
-    for record in records:
-        if record.get("intake_id") == intake_id:
-            return record
+    if "tenant_id" not in record_dict:
+        raise ValueError("record missing tenant_id field")
+    if record_dict["tenant_id"] != tenant_id:
+        raise ValueError(
+            f"record tenant_id ({record_dict['tenant_id']}) does not match "
+            f"argument tenant_id ({tenant_id})"
+        )
 
-    return None
+    required_fields = [
+        "answer_id",
+        "tenant_id",
+        "intake_id",
+        "anamnesis_id",
+        "investigation_id",
+        "question_ref",
+        "raw_owner_answer",
+        "answer_kind",
+        "created_at",
+        "metadata",
+    ]
+    for field in required_fields:
+        if field not in record_dict:
+            raise ValueError(f"record missing required field: {field}")
+
+    if not isinstance(record_dict["metadata"], dict):
+        raise ValueError("field metadata must be dict")
+
+    paths = ensure_tenant_storage(base_dir, tenant_id)
+    return _write_jsonl_line(paths["owner_answers_jsonl"], record_dict)
 
 
-# ---------------------------------------------------------------------------
-# Contrato aprobado: save_evidence_record
-# ---------------------------------------------------------------------------
+def save_evidence_request_record(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    """Persiste un EvidenceRequestRecord o dict en <base_dir>/<tenant_id>/evidence_requests.jsonl."""
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+    if base_dir is None:
+        raise ValueError("base_dir is required")
+
+    record_dict = _record_to_dict(record, record_name="record")
+
+    if "tenant_id" not in record_dict:
+        raise ValueError("record missing tenant_id field")
+    if record_dict["tenant_id"] != tenant_id:
+        raise ValueError(
+            f"record tenant_id ({record_dict['tenant_id']}) does not match "
+            f"argument tenant_id ({tenant_id})"
+        )
+
+    required_fields = [
+        "request_id",
+        "tenant_id",
+        "intake_id",
+        "anamnesis_id",
+        "investigation_id",
+        "owner_answer_id",
+        "requested_evidence",
+        "request_reason",
+        "status",
+        "created_at",
+        "metadata",
+    ]
+    for field in required_fields:
+        if field not in record_dict:
+            raise ValueError(f"record missing required field: {field}")
+
+    if not isinstance(record_dict["requested_evidence"], list):
+        raise ValueError("field requested_evidence must be list")
+    if not isinstance(record_dict["metadata"], dict):
+        raise ValueError("field metadata must be dict")
+    if record_dict["owner_answer_id"] is not None and not isinstance(record_dict["owner_answer_id"], str):
+        raise ValueError("field owner_answer_id must be str or None")
+
+    paths = ensure_tenant_storage(base_dir, tenant_id)
+    return _write_jsonl_line(paths["evidence_requests_jsonl"], record_dict)
+
+
 def save_evidence_record(
     tenant_id: str,
     record: Any,
@@ -246,14 +290,6 @@ def save_evidence_record(
 
     Contrato aprobado:
         save_evidence_record(tenant_id, record, *, base_dir=None) -> Path
-
-    Validaciones fail-closed:
-        - tenant_id no vacío
-        - record es EvidenceRecord (con to_dict()) o dict
-        - record["tenant_id"] existe
-        - record["tenant_id"] == tenant_id
-        - campos core requeridos presentes
-        - tipos de campos core correctos
     """
     if not tenant_id or not tenant_id.strip():
         raise ValueError("tenant_id is required")
@@ -261,15 +297,8 @@ def save_evidence_record(
     if base_dir is None:
         raise ValueError("base_dir is required")
 
-    # Convertir record a dict
-    if hasattr(record, "to_dict") and callable(record.to_dict):
-        record_dict = record.to_dict()
-    elif isinstance(record, dict):
-        record_dict = record.copy()
-    else:
-        raise ValueError("record must be EvidenceRecord or dict")
+    record_dict = _record_to_dict(record, record_name="record")
 
-    # Validar tenant_id en record
     if "tenant_id" not in record_dict:
         raise ValueError("record missing tenant_id field")
     if record_dict["tenant_id"] != tenant_id:
@@ -278,7 +307,6 @@ def save_evidence_record(
             f"argument tenant_id ({tenant_id})"
         )
 
-    # Validar campos core requeridos
     required_fields = [
         "evidence_id",
         "tenant_id",
@@ -300,21 +328,17 @@ def save_evidence_record(
         if field not in record_dict:
             raise ValueError(f"record missing required field: {field}")
 
-    # Validar tipos de campos core
-    # notes: list, metadata: dict
     if not isinstance(record_dict["notes"], list):
         raise ValueError("field notes must be list")
     if not isinstance(record_dict["metadata"], dict):
         raise ValueError("field metadata must be dict")
 
-    # size_bytes: int | None
     if record_dict["size_bytes"] is not None:
         if not isinstance(record_dict["size_bytes"], int) or isinstance(
             record_dict["size_bytes"], bool
         ):
             raise ValueError("field size_bytes must be int or None")
 
-    # request_id, original_filename, mime_type, content_hash: str | None
     nullable_str_fields = [
         "request_id",
         "original_filename",
@@ -325,145 +349,5 @@ def save_evidence_record(
         if record_dict[field] is not None and not isinstance(record_dict[field], str):
             raise ValueError(f"field {field} must be str or None")
 
-    # Escribir JSONL
     paths = ensure_tenant_storage(base_dir, tenant_id)
     return _write_jsonl_line(paths["evidences_jsonl"], record_dict)
-
-
-# ---------------------------------------------------------------------------
-# Contrato aprobado: load_evidence_records
-# ---------------------------------------------------------------------------
-def load_evidence_records(
-    tenant_id: str,
-    *,
-    base_dir: str | Path | None = None,
-) -> list[dict]:
-    """Carga todos los EvidenceRecords de un tenant como list[dict].
-
-    Contrato aprobado:
-        load_evidence_records(tenant_id, *, base_dir=None) -> list[dict]
-
-    Comportamiento:
-        - valida tenant_id no vacío
-        - retorna [] si evidences.jsonl no existe
-        - retorna list[dict] (no EvidenceRecord)
-        - preserva orden de inserción
-        - ValueError en JSON malformado
-        - ValueError en línea que no es dict
-    """
-    if not tenant_id or not tenant_id.strip():
-        raise ValueError("tenant_id is required")
-
-    if base_dir is None:
-        raise ValueError("base_dir is required")
-
-    paths = ensure_tenant_storage(base_dir, tenant_id)
-    evidences_jsonl = paths["evidences_jsonl"]
-
-    if not evidences_jsonl.exists():
-        return []
-
-    content = evidences_jsonl.read_text(encoding="utf-8").strip()
-    if not content:
-        return []
-
-    records: list[dict] = []
-    for line_num, line in enumerate(content.splitlines(), start=1):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"malformed JSON at line {line_num}") from e
-
-        if not isinstance(obj, dict):
-            raise ValueError(f"line {line_num} is not a dict")
-
-        records.append(obj)
-
-    return records
-
-
-# ---------------------------------------------------------------------------
-# Contrato aprobado: load_evidence_records_by_intake_id
-# ---------------------------------------------------------------------------
-def load_evidence_records_by_intake_id(
-    tenant_id: str,
-    intake_id: str,
-    *,
-    base_dir: str | Path | None = None,
-) -> list[dict]:
-    """Filtra EvidenceRecords de un tenant por intake_id.
-
-    Contrato aprobado:
-        load_evidence_records_by_intake_id(tenant_id, intake_id, *, base_dir=None) -> list[dict]
-
-    Comportamiento:
-        - valida tenant_id no vacío
-        - valida intake_id no vacío
-        - retorna list[dict] filtrado
-        - preserva orden
-        - retorna [] si no hay matches
-        - no cruza boundaries de tenant
-    """
-    if not tenant_id or not tenant_id.strip():
-        raise ValueError("tenant_id is required")
-
-    if not intake_id or not intake_id.strip():
-        raise ValueError("intake_id is required")
-
-    records = load_evidence_records(tenant_id, base_dir=base_dir)
-    return [r for r in records if r.get("intake_id") == intake_id]
-
-
-# ---------------------------------------------------------------------------
-# Contrato aprobado: load_evidence_record_by_id
-# ---------------------------------------------------------------------------
-def load_evidence_record_by_id(
-    tenant_id: str,
-    evidence_id: str,
-    *,
-    base_dir: str | Path | None = None,
-) -> dict | None:
-    """Busca un EvidenceRecord por evidence_id dentro de un tenant.
-
-    Contrato aprobado:
-        load_evidence_record_by_id(tenant_id, evidence_id, *, base_dir=None) -> dict | None
-
-    Comportamiento:
-        - valida tenant_id no vacío
-        - valida evidence_id no vacío
-        - retorna dict si existe
-        - retorna None si no existe
-        - no cruza boundaries de tenant
-    """
-    if not tenant_id or not tenant_id.strip():
-        raise ValueError("tenant_id is required")
-
-    if not evidence_id or not evidence_id.strip():
-        raise ValueError("evidence_id is required")
-
-    records = load_evidence_records(tenant_id, base_dir=base_dir)
-    for record in records:
-        if record.get("evidence_id") == evidence_id:
-            return record
-
-    return None
-
-
-# ---------------------------------------------------------------------------
-# Legacy functions (mantener compatibilidad)
-# ---------------------------------------------------------------------------
-def write_result_reception(base_dir: str | Path, record: ReceptionRecord) -> Path:
-    paths = ensure_tenant_storage(base_dir, record.tenant_id)
-    target = paths["results_dir"] / "reception_record.json"
-    target.write_text(json.dumps(asdict(record), indent=2, ensure_ascii=False), encoding="utf-8")
-    return target
-
-
-def write_result_intake(base_dir: str | Path, record: IntakeRecord) -> Path:
-    paths = ensure_tenant_storage(base_dir, record.tenant_id)
-    target = paths["results_dir"] / "intake_record.json"
-    target.write_text(json.dumps(record.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
-    return target

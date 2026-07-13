@@ -67,8 +67,8 @@ parsers nuevos
 
 | Pieza existente | Rol en este protocolo |
 |---|---|
-| `PymIA-Live/pymia/smartpyme/file_intake_v1.py` | Clasificación técnica inicial del archivo |
-| `PymIA-Live/pymia/smartpyme/file_intake_taskspec_boundary_v1.py` | Traducción a patch técnico |
+| `pymia/smartpyme/file_intake_v1.py` | Clasificación técnica inicial del archivo |
+| `pymia/smartpyme/file_intake_taskspec_boundary_v1.py` | Traducción a patch técnico |
 | `docs/producto/SERVICE_1_QA_DELIVERY_CHECKLIST_V1.md` | Gate posterior a la salida, no gate de intake |
 | `docs/producto/SERVICE_1_DEVELOPMENT_AUDIT_AND_COMPLETION_ROADMAP_V1.md` | Justifica que falta tool ejecutable y cierre operativo |
 | `docs/producto/SERVICE_1_CAPABILITY_MATURITY_AUDIT_V1.md` | Justifica que falta protocolo explícito de aceptación/bloqueo |

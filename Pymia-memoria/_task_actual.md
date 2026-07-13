@@ -65,10 +65,10 @@ audit test de integridad del manifest
 ## Archivos incluidos en el commit
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_operator_delivery_package_v1.py
-PymIA-Live/tests/smartpyme/test_service_1_operator_delivery_package_v1.py
-PymIA-Live/tests/smartpyme/test_service_1_delivery_folder_smoke_v1.py
-PymIA-Live/tests/smartpyme/test_service_1_delivery_manifest_audit_v1.py
+pymia/smartpyme/service_1_operator_delivery_package_v1.py
+tests/smartpyme/test_service_1_operator_delivery_package_v1.py
+tests/smartpyme/test_service_1_delivery_folder_smoke_v1.py
+tests/smartpyme/test_service_1_delivery_manifest_audit_v1.py
 docs/producto/SERVICE_1_OPERATOR_DELIVERY_PACKAGE_BLOCK_V1.md
 ```
 

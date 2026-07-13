@@ -47,8 +47,8 @@ Excel
 ## Raíz técnica
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_product_pipeline_v1.py
-PymIA-Live/pymia/cli/service_1_product.py
+pymia/smartpyme/service_1_product_pipeline_v1.py
+pymia/cli/service_1_product.py
 ```
 
 El motor de comprensión está integrado en la raíz mediante:

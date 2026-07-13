@@ -9,8 +9,8 @@ IMPLEMENTED_MINIMAL_SPECIFIC_CONTRACT
 FILES_CREATED:
 
 ```text
-PymIA-Live/pymia/smartpyme/supplier_purchase_review_contract_v1.py
-PymIA-Live/tests/smartpyme/test_supplier_purchase_review_contract_v1.py
+pymia/smartpyme/supplier_purchase_review_contract_v1.py
+tests/smartpyme/test_supplier_purchase_review_contract_v1.py
 docs/producto/SERVICE_1_SUPPLIER_PURCHASE_REVIEW_CONTRACT_V1.md
 ```
 

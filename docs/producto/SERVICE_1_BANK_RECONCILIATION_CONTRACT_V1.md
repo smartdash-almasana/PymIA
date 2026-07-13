@@ -9,8 +9,8 @@ SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1: IMPLEMENTED_MINIMAL_SPECIFIC_CONTRACT
 FILES_CREATED:
 
 ```text
-PymIA-Live/pymia/smartpyme/bank_reconciliation_contract_v1.py
-PymIA-Live/tests/smartpyme/test_bank_reconciliation_contract_v1.py
+pymia/smartpyme/bank_reconciliation_contract_v1.py
+tests/smartpyme/test_bank_reconciliation_contract_v1.py
 docs/producto/SERVICE_1_BANK_RECONCILIATION_CONTRACT_V1.md
 ```
 

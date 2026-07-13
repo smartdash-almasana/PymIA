@@ -9,8 +9,8 @@ IMPLEMENTED_MINIMAL_SPECIFIC_CONTRACT
 FILES_CREATED:
 
 ```text
-PymIA-Live/pymia/smartpyme/invoice_collection_matching_contract_v1.py
-PymIA-Live/tests/smartpyme/test_invoice_collection_matching_contract_v1.py
+pymia/smartpyme/invoice_collection_matching_contract_v1.py
+tests/smartpyme/test_invoice_collection_matching_contract_v1.py
 docs/producto/SERVICE_1_INVOICE_COLLECTION_MATCHING_CONTRACT_V1.md
 ```
 

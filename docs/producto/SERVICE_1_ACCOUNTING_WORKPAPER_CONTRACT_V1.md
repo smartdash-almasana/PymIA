@@ -9,8 +9,8 @@ IMPLEMENTED_MINIMAL_SPECIFIC_CONTRACT
 FILES_CREATED:
 
 ```text
-PymIA-Live/pymia/smartpyme/accounting_workpaper_contract_v1.py
-PymIA-Live/tests/smartpyme/test_accounting_workpaper_contract_v1.py
+pymia/smartpyme/accounting_workpaper_contract_v1.py
+tests/smartpyme/test_accounting_workpaper_contract_v1.py
 docs/producto/SERVICE_1_ACCOUNTING_WORKPAPER_CONTRACT_V1.md
 ```
 

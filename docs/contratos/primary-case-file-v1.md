@@ -187,7 +187,7 @@ docs/contratos/primary-case-file-v1.md
 Archivos no autorizados:
 
 ```text
-PymIA-Live/**
+PymIA/**
 pymia/cli/vertical_slice.py
 pymia/services/formula_engine_service.py
 pymia/diagnostic_core/**
@@ -207,7 +207,7 @@ tests contractuales creados
 documento de contrato creado
 sin dependencias externas nuevas
 sin runtime
-sin PymIA-Live
+sin PymIA
 sin motor
 sin sufficiency
 sin extraction

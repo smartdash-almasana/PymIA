@@ -56,11 +56,11 @@ Archivos leídos por auditoría:
 ```text
 - docs/producto/SERVICE_1_CURRENT_STATE_V1.md
 - docs/producto/SERVICE_1_AGENT_BOOTSTRAP.md
-- PymIA-Live/pymia/smartpyme/service_1_normalized_table_v1.py
-- PymIA-Live/pymia/smartpyme/service_1_csv_to_normalized_table_v1.py
-- PymIA-Live/pymia/smartpyme/service_1_csv_intake_v1.py
-- PymIA-Live/pymia/smartpyme/service_1_xlsx_structure_v1.py
-- PymIA-Live/pymia/smartpyme/excel_lab_ingestion_v1.py
+- pymia/smartpyme/service_1_normalized_table_v1.py
+- pymia/smartpyme/service_1_csv_to_normalized_table_v1.py
+- pymia/smartpyme/service_1_csv_intake_v1.py
+- pymia/smartpyme/service_1_xlsx_structure_v1.py
+- pymia/smartpyme/excel_lab_ingestion_v1.py
 - tests asociados de normalized table, csv adapter y xlsx structure
 - git log confirmando dfd460c
 ```
@@ -86,8 +86,8 @@ Motivo:
 Crear sólo:
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_xlsx_to_normalized_table_v1.py
-PymIA-Live/tests/smartpyme/test_service_1_xlsx_to_normalized_table_v1.py
+pymia/smartpyme/service_1_xlsx_to_normalized_table_v1.py
+tests/smartpyme/test_service_1_xlsx_to_normalized_table_v1.py
 ```
 
 No tocar:

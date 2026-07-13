@@ -1,4 +1,4 @@
-# Keep audit/runtime noise out of Graphify, but DO include PymIA-Live and live docs.
+# Keep audit/runtime noise out of Graphify while retaining the canonical package and current docs.
 Pymia-memoria/
 _local_quarantine/
 prueba_excels/

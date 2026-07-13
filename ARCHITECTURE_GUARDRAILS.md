@@ -41,7 +41,7 @@ La raíz canónica debe reutilizar la ingesta XLSX existente, conservar evidenci
 ## 4. Política documental
 
 - Existe una sola raíz documental física: `docs/` en la raíz del repositorio.
-- `PymIA-Live/docs/` está prohibida; el subárbol ejecutable consume catálogos y registros desde la raíz documental única.
+- `PymIA/docs/` está prohibida; el subárbol ejecutable consume catálogos y registros desde la raíz documental única.
 - `docs/current/` debe contener únicamente autoridad vigente y evidencia necesaria.
 - No se conserva documentación obsoleta como “museo”, “archive” o “legacy” dentro del árbol activo cuando pueda contaminar decisiones.
 - Lo eliminado permanece recuperable mediante Git; no necesita seguir físicamente presente.

@@ -8,38 +8,41 @@ from pymia.services.formula_engine_service import FormulaEngineService
 from pymia.services.pathology_engine_service import PathologyEngineService
 
 
-def _margin_result(ventas: float, costos: float):
+def _ren_001_result(sale_price: float, costs: float, taxes: float):
     return FormulaEngineService().calculate(
-        "margen_bruto",
+        "REN_001_margen_neto_real",
         [
-            FormulaInput(name="ventas", value=ventas, source_refs=["ventas:1"]),
-            FormulaInput(name="costos", value=costos, source_refs=["costos:1"]),
+            FormulaInput(name="sale_price", value=sale_price, source_refs=["ventas:1"]),
+            FormulaInput(name="costs", value=costs, source_refs=["costos:1"]),
+            FormulaInput(name="taxes", value=taxes, source_refs=["impuestos:1"]),
         ],
     )
 
 
-def test_engine_detects_negative_margin():
+def test_engine_detects_negative_ren_001_margin():
     result = PathologyEngineService().evaluate(
-        "margen_bruto_negativo",
+        "REN_001",
         PathologyEvaluationInput(
             cliente_id="pyme_A",
             formula_result_id="fr1",
-            formula_result=_margin_result(1000, 1200),
+            formula_result=_ren_001_result(1000, 900, 200),
         ),
     )
 
     assert result.status == PathologyStatus.ACTIVE
+    assert result.pathology_id == "REN_001"
+    assert result.formula_id == "REN_001_margen_neto_real"
     assert result.cliente_id == "pyme_A"
-    assert result.source_refs == ["ventas:1", "costos:1"]
+    assert result.source_refs == ["ventas:1", "costos:1", "impuestos:1"]
 
 
-def test_engine_not_detected_for_positive_margin():
+def test_engine_not_detected_for_positive_ren_001_margin():
     result = PathologyEngineService().evaluate(
-        "margen_bruto_negativo",
+        "REN_001",
         PathologyEvaluationInput(
             cliente_id="pyme_A",
             formula_result_id="fr2",
-            formula_result=_margin_result(1000, 600),
+            formula_result=_ren_001_result(1000, 600, 100),
         ),
     )
 
@@ -48,11 +51,11 @@ def test_engine_not_detected_for_positive_margin():
 
 def test_engine_wrapper_compatibility():
     result = evaluate_pathology(
-        "margen_bruto_negativo",
+        "REN_001",
         PathologyEvaluationInput(
             cliente_id="pyme_A",
             formula_result_id="fr3",
-            formula_result=_margin_result(1000, 1200),
+            formula_result=_ren_001_result(1000, 900, 200),
         ),
     )
 
@@ -65,7 +68,7 @@ def test_engine_unknown_pathology_pending_data():
         PathologyEvaluationInput(
             cliente_id="pyme_A",
             formula_result_id="fr4",
-            formula_result=_margin_result(1000, 600),
+            formula_result=_ren_001_result(1000, 600, 100),
         ),
     )
 

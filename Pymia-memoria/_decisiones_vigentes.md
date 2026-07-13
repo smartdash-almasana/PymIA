@@ -176,16 +176,16 @@ Python runtime = carga, valida, calcula, orquesta, renderiza, falla cerrado.
 
 ```text
 Repo git real: E:\BuenosPasos\smartbridge\PymIA
-Subcarpeta viva: PymIA-Live
-No tratar PymIA-Live como repo git independiente.
+Subcarpeta viva: PymIA
+No tratar PymIA como repo git independiente.
 ```
 
 Orden de autoridad:
 
 ```text
-1. PymIA-Live ejecutable y tests validados.
-7. Código runtime vivo bajo PymIA-Live/pymia/.
-8. Contratos JSON vivos bajo PymIA-Live/pymia/contracts/.
+1. PymIA ejecutable y tests validados.
+7. Código runtime vivo bajo pymia/.
+8. Contratos JSON vivos bajo pymia/contracts/.
 9. Documentos vivos explícitamente promovidos.
 10. Museo histórico catalogado, sólo como contexto.
 ```
@@ -194,8 +194,8 @@ Commits recientes aceptados:
 
 ```text
 716c6d7 docs(producto): define excel treatment lab concept
-f924c27 feat(pymia-live): add first aid entrypoint helper
-dd0e659 feat(pymia-live): add first aid owner output helper
+f924c27 feat(pymia): add first aid entrypoint helper
+dd0e659 feat(pymia): add first aid owner output helper
 67db189 chore(graphify): include pymia live in architecture graph
 ```
 
@@ -257,13 +257,13 @@ Los futuros canales deben invocar una frontera de aplicación común sólo cuand
 Frontera de aplicación vigente:
 
 ```text
-PymIA-Live/pymia/application/vertical_pipeline.py
+pymia/application/vertical_pipeline.py
 ```
 
 CLI vigente:
 
 ```text
-PymIA-Live/pymia/cli/vertical_slice.py
+pymia/cli/vertical_slice.py
 ```
 
 Distribución vigente de responsabilidades:
@@ -369,7 +369,7 @@ service_depth.py clasifica profundidad proporcional, pero no debe actuar como or
 ```text
 .tmp/ no se versiona.
 _local_quarantine/ no se versiona.
-PymIA-Live/.tmp_smoke_owner_alignment/ no se versiona salvo decisión explícita de evidencia sanitizada.
+PymIA/.tmp_smoke_owner_alignment/ no se versiona salvo decisión explícita de evidencia sanitizada.
 graphify-out/ queda regenerable y untracked intencional.
 MUSEUM_CATALOG.md no gobierna runtime; sólo puede catalogar frontera museo/vivo.
 ROLE_PLAYING_ONBOARDING_FINDINGS.md es hallazgo experimental hasta promoción explícita.
@@ -456,7 +456,7 @@ Lectura/auditoría puede hacerse sólo cuando el usuario la autoriza o el frente
 
 ```text
 No agregar .tmp/
-No agregar PymIA-Live/.tmp_smoke_owner_alignment/
+No agregar PymIA/.tmp_smoke_owner_alignment/
 No agregar _local_quarantine/
 No commitear museo ni documentación no intencional.
 No mezclar memoria, museo, smoke y runtime en un mismo commit.
@@ -487,5 +487,5 @@ Reglas y controles de frontera para evitar derivas metodológicas en la IA:
 ## Frase rectora actual
 
 ```text
-PymIA-Live debe quedar pequeño, trazable, multicanal-ready, gobernado por contratos declarativos y guiado por preguntas explícitas antes que por adivinación.
+PymIA debe quedar pequeño, trazable, multicanal-ready, gobernado por contratos declarativos y guiado por preguntas explícitas antes que por adivinación.
 ```

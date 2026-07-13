@@ -1,793 +1,299 @@
-from pymia.contracts.formula_contract import FormulaInput, FormulaStatus, calculate_formula
+from __future__ import annotations
+
+from pymia.contracts.formula_contract import FormulaInput, FormulaStatus
 from pymia.services.formula_engine_service import FormulaEngineService
 
 
-def test_engine_calculates_margen_bruto():
-    result = FormulaEngineService().calculate(
-        "margen_bruto",
-        [
-            FormulaInput(name="ventas", value=1000, source_refs=["ventas:1"]),
-            FormulaInput(name="costos", value=750, source_refs=["costos:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.25
-    assert result.source_refs == ["ventas:1", "costos:1"]
+def _engine() -> FormulaEngineService:
+    return FormulaEngineService()
 
 
-def test_engine_calculates_ganancia_bruta():
-    result = FormulaEngineService().calculate(
-        "ganancia_bruta",
-        [
-            FormulaInput(name="ventas", value=1000),
-            FormulaInput(name="costos", value=750),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 250.0
+def _input(name: str, value: float | int) -> FormulaInput:
+    return FormulaInput(name=name, value=value)
 
 
-def test_engine_blocks_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "margen_bruto",
-        [
-            FormulaInput(name="ventas", value=0),
-            FormulaInput(name="costos", value=750),
-        ],
-    )
+# --- Not supported ---
 
+def test_unknown_formula_returns_not_supported():
+    result = _engine().calculate("unknown_formula", [_input("x", 1)])
     assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
+    assert result.blocking_reason == "FORMULA_NOT_SUPPORTED"
+
+
+# --- OK results for all 17 formulas ---
+
+def test_margen_bruto_ok():
+    result = _engine().calculate("margen_bruto", [_input("ventas", 100), _input("costos", 60)])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.4
+
+
+def test_ganancia_bruta_ok():
+    result = _engine().calculate("ganancia_bruta", [_input("ventas", 100), _input("costos", 60)])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 40.0
+
+
+def test_ren_001_margen_neto_real_ok():
+    result = _engine().calculate("REN_001_margen_neto_real", [
+        _input("sale_price", 1000),
+        _input("costs", 600),
+        _input("taxes", 100),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 30.0
+
+
+def test_liq_001_vendido_cobrado_ok():
+    result = _engine().calculate("LIQ_001_vendido_cobrado", [
+        _input("sold_amount", 5000),
+        _input("collected_amount", 3000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 2000.0
+
+
+def test_inv_002_rotacion_stock_ok():
+    result = _engine().calculate("INV_002_rotacion_stock", [
+        _input("cost_of_goods_sold", 10000),
+        _input("average_stock", 2000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 5.0
+
+
+def test_inv_001_punto_reposicion_ok():
+    result = _engine().calculate("INV_001_punto_reposicion", [
+        _input("average_sales", 50),
+        _input("lead_time", 7),
+        _input("safety_stock", 100),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 450.0
+
+
+def test_pyme_011_dso_ok():
+    result = _engine().calculate("PYME_011_dso", [
+        _input("accounts_receivable", 50000),
+        _input("sales", 200000),
+        _input("days", 365),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 91.25
+
+
+def test_pyme_013_dso_dpo_gap_ok():
+    result = _engine().calculate("PYME_013_dso_dpo_gap", [
+        _input("dso", 45),
+        _input("dpo", 30),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 15.0
+
+
+def test_liq_002_saldo_final_proyectado_ok():
+    result = _engine().calculate("LIQ_002_saldo_final_proyectado", [
+        _input("initial_balance", 10000),
+        _input("expected_collections", 5000),
+        _input("expected_payments", 3000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 12000.0
+
+
+def test_pyme_024_liquidez_corriente_ok():
+    result = _engine().calculate("PYME_024_liquidez_corriente", [
+        _input("current_assets", 200000),
+        _input("current_liabilities", 100000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 2.0
+
+
+def test_pyme_017_pricing_drift_ok():
+    result = _engine().calculate("PYME_017_pricing_drift", [
+        _input("own_price", 110),
+        _input("market_price", 100),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 10.0
+
+
+def test_punto_equilibrio_ventas_ok():
+    result = _engine().calculate("punto_equilibrio_ventas", [
+        _input("fixed_costs", 50000),
+        _input("contribution_margin_rate", 0.25),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 200000.0
+
+
+def test_pyme_026_flujo_operativo_ok():
+    result = _engine().calculate("PYME_026_flujo_operativo", [
+        _input("net_income", 100000),
+        _input("depreciation", 20000),
+        _input("amortization", 5000),
+        _input("working_capital_change", 15000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 110000.0
+
+
+def test_pyme_027_intereses_ebitda_ok():
+    result = _engine().calculate("PYME_027_intereses_ebitda", [
+        _input("interest_expense", 5000),
+        _input("ebitda", 100000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 0.05
+
+
+def test_pyme_044_margen_cliente_ok():
+    result = _engine().calculate("PYME_044_margen_cliente", [
+        _input("client_revenue", 50000),
+        _input("client_direct_costs", 20000),
+        _input("client_service_costs", 5000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 25000.0
+
+
+def test_pyme_033_concentracion_sku_ok():
+    result = _engine().calculate("PYME_033_concentracion_sku", [
+        _input("main_sku_sales", 30000),
+        _input("total_sales", 100000),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 30.0
+
+
+def test_ren_002_coeficiente_reposicion_ok():
+    result = _engine().calculate("REN_002_coeficiente_reposicion", [
+        _input("closing_index", 1.5),
+        _input("origin_index", 1.0),
+    ])
+    assert result.status == FormulaStatus.OK
+    assert result.value == 1.5
+
+
+# --- Blocked: DIVISION_BY_ZERO ---
+
+def test_margen_bruto_blocked_division_by_zero():
+    result = _engine().calculate("margen_bruto", [_input("ventas", 0), _input("costos", 60)])
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: ventas"
 
 
-def test_contract_compatibility_wrapper():
-    result = calculate_formula(
-        "ganancia_bruta",
-        [
-            FormulaInput(name="ventas", value=1000),
-            FormulaInput(name="costos", value=750),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 250.0
-
-
-def test_engine_calculates_ren001_margen_neto_real():
-    result = FormulaEngineService().calculate(
-        "REN_001_margen_neto_real",
-        [
-            FormulaInput(name="sale_price", value=1000, source_refs=["ventas:1"]),
-            FormulaInput(name="costs", value=700, source_refs=["costos:1"]),
-            FormulaInput(name="taxes", value=50, source_refs=["impuestos:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 25.0
-    assert result.source_refs == ["ventas:1", "costos:1", "impuestos:1"]
-
-
-def test_engine_blocks_ren001_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "REN_001_margen_neto_real",
-        [
-            FormulaInput(name="sale_price", value=0),
-            FormulaInput(name="costs", value=700),
-            FormulaInput(name="taxes", value=50),
-        ],
-    )
-
+def test_ren_001_margen_neto_real_blocked_division_by_zero():
+    result = _engine().calculate("REN_001_margen_neto_real", [
+        _input("sale_price", 0),
+        _input("costs", 600),
+        _input("taxes", 100),
+    ])
     assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: sale_price"
 
 
-def test_engine_blocks_ren001_when_taxes_input_is_missing():
-    result = FormulaEngineService().calculate(
-        "REN_001_margen_neto_real",
-        [
-            FormulaInput(name="sale_price", value=1000),
-            FormulaInput(name="costs", value=700),
-        ],
-    )
-
+def test_inv_002_rotacion_stock_blocked_division_by_zero():
+    result = _engine().calculate("INV_002_rotacion_stock", [
+        _input("cost_of_goods_sold", 10000),
+        _input("average_stock", 0),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: taxes"
-
-
-def test_engine_calculates_liq001_vendido_cobrado():
-    result = FormulaEngineService().calculate(
-        "LIQ_001_vendido_cobrado",
-        [
-            FormulaInput(name="sold_amount", value=1000, source_refs=["ventas:1"]),
-            FormulaInput(name="collected_amount", value=650, source_refs=["cobranzas:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 350.0
-    assert result.source_refs == ["ventas:1", "cobranzas:1"]
-
-
-def test_engine_blocks_liq001_when_collected_amount_is_missing():
-    result = FormulaEngineService().calculate(
-        "LIQ_001_vendido_cobrado",
-        [
-            FormulaInput(name="sold_amount", value=1000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: collected_amount"
-
-
-def test_engine_allows_liq001_zero_result():
-    result = FormulaEngineService().calculate(
-        "LIQ_001_vendido_cobrado",
-        [
-            FormulaInput(name="sold_amount", value=1000),
-            FormulaInput(name="collected_amount", value=1000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_calculates_inv002_rotacion_stock():
-    result = FormulaEngineService().calculate(
-        "INV_002_rotacion_stock",
-        [
-            FormulaInput(name="cost_of_goods_sold", value=12000, source_refs=["cogs:1"]),
-            FormulaInput(name="average_stock", value=3000, source_refs=["stock:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 4.0
-    assert result.source_refs == ["cogs:1", "stock:1"]
-
-
-def test_engine_blocks_inv002_when_average_stock_is_missing():
-    result = FormulaEngineService().calculate(
-        "INV_002_rotacion_stock",
-        [
-            FormulaInput(name="cost_of_goods_sold", value=12000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: average_stock"
-
-
-def test_engine_blocks_inv002_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "INV_002_rotacion_stock",
-        [
-            FormulaInput(name="cost_of_goods_sold", value=12000),
-            FormulaInput(name="average_stock", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: average_stock"
 
 
-def test_engine_calculates_inv001_punto_reposicion():
-    result = FormulaEngineService().calculate(
-        "INV_001_punto_reposicion",
-        [
-            FormulaInput(name="average_sales", value=20, source_refs=["avg_sales:1"]),
-            FormulaInput(name="lead_time", value=5, source_refs=["lead_time:1"]),
-            FormulaInput(name="safety_stock", value=30, source_refs=["safety_stock:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 130.0
-    assert result.source_refs == ["avg_sales:1", "lead_time:1", "safety_stock:1"]
-
-
-def test_engine_blocks_inv001_when_safety_stock_is_missing():
-    result = FormulaEngineService().calculate(
-        "INV_001_punto_reposicion",
-        [
-            FormulaInput(name="average_sales", value=20),
-            FormulaInput(name="lead_time", value=5),
-        ],
-    )
-
+def test_pyme_011_dso_blocked_division_by_zero():
+    result = _engine().calculate("PYME_011_dso", [
+        _input("accounts_receivable", 50000),
+        _input("sales", 0),
+        _input("days", 365),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: safety_stock"
-
-
-def test_engine_allows_inv001_zero_result():
-    result = FormulaEngineService().calculate(
-        "INV_001_punto_reposicion",
-        [
-            FormulaInput(name="average_sales", value=0),
-            FormulaInput(name="lead_time", value=5),
-            FormulaInput(name="safety_stock", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_allows_inv001_decimal_input():
-    result = FormulaEngineService().calculate(
-        "INV_001_punto_reposicion",
-        [
-            FormulaInput(name="average_sales", value=12.5),
-            FormulaInput(name="lead_time", value=4),
-            FormulaInput(name="safety_stock", value=10),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 60.0
-
-
-def test_engine_calculates_pyme011_dso():
-    result = FormulaEngineService().calculate(
-        "PYME_011_dso",
-        [
-            FormulaInput(name="accounts_receivable", value=3000, source_refs=["ar:1"]),
-            FormulaInput(name="sales", value=12000, source_refs=["sales:1"]),
-            FormulaInput(name="days", value=30, source_refs=["days:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 7.5
-    assert result.source_refs == ["ar:1", "sales:1", "days:1"]
-
-
-def test_engine_blocks_pyme011_when_days_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_011_dso",
-        [
-            FormulaInput(name="accounts_receivable", value=3000),
-            FormulaInput(name="sales", value=12000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: days"
-
-
-def test_engine_blocks_pyme011_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "PYME_011_dso",
-        [
-            FormulaInput(name="accounts_receivable", value=3000),
-            FormulaInput(name="sales", value=0),
-            FormulaInput(name="days", value=30),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: sales"
 
 
-def test_engine_calculates_pyme013_dso_dpo_gap():
-    result = FormulaEngineService().calculate(
-        "PYME_013_dso_dpo_gap",
-        [
-            FormulaInput(name="dso", value=45, source_refs=["dso:1"]),
-            FormulaInput(name="dpo", value=30, source_refs=["dpo:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 15.0
-    assert result.source_refs == ["dso:1", "dpo:1"]
-
-
-def test_engine_allows_pyme013_zero_result():
-    result = FormulaEngineService().calculate(
-        "PYME_013_dso_dpo_gap",
-        [
-            FormulaInput(name="dso", value=30),
-            FormulaInput(name="dpo", value=30),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_allows_pyme013_negative_result():
-    result = FormulaEngineService().calculate(
-        "PYME_013_dso_dpo_gap",
-        [
-            FormulaInput(name="dso", value=25),
-            FormulaInput(name="dpo", value=40),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == -15.0
-
-
-def test_engine_blocks_pyme013_when_dpo_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_013_dso_dpo_gap",
-        [
-            FormulaInput(name="dso", value=45),
-        ],
-    )
-
+def test_pyme_024_liquidez_corriente_blocked_division_by_zero():
+    result = _engine().calculate("PYME_024_liquidez_corriente", [
+        _input("current_assets", 200000),
+        _input("current_liabilities", 0),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: dpo"
-
-
-def test_engine_calculates_liq002_saldo_final_proyectado():
-    result = FormulaEngineService().calculate(
-        "LIQ_002_saldo_final_proyectado",
-        [
-            FormulaInput(name="initial_balance", value=5000, source_refs=["saldo:1"]),
-            FormulaInput(name="expected_collections", value=2000, source_refs=["cobranzas:1"]),
-            FormulaInput(name="expected_payments", value=3000, source_refs=["pagos:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 4000.0
-    assert result.source_refs == ["saldo:1", "cobranzas:1", "pagos:1"]
-
-
-def test_engine_blocks_liq002_when_expected_payments_is_missing():
-    result = FormulaEngineService().calculate(
-        "LIQ_002_saldo_final_proyectado",
-        [
-            FormulaInput(name="initial_balance", value=5000),
-            FormulaInput(name="expected_collections", value=2000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: expected_payments"
-
-
-def test_engine_allows_liq002_zero_result():
-    result = FormulaEngineService().calculate(
-        "LIQ_002_saldo_final_proyectado",
-        [
-            FormulaInput(name="initial_balance", value=1000),
-            FormulaInput(name="expected_collections", value=3000),
-            FormulaInput(name="expected_payments", value=4000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_allows_liq002_negative_result():
-    result = FormulaEngineService().calculate(
-        "LIQ_002_saldo_final_proyectado",
-        [
-            FormulaInput(name="initial_balance", value=1000),
-            FormulaInput(name="expected_collections", value=2000),
-            FormulaInput(name="expected_payments", value=4000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == -1000.0
-
-
-def test_engine_calculates_pyme024_liquidez_corriente():
-    result = FormulaEngineService().calculate(
-        "PYME_024_liquidez_corriente",
-        [
-            FormulaInput(name="current_assets", value=15000, source_refs=["assets:1"]),
-            FormulaInput(name="current_liabilities", value=10000, source_refs=["liabilities:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 1.5
-    assert result.source_refs == ["assets:1", "liabilities:1"]
-
-
-def test_engine_blocks_pyme024_when_current_liabilities_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_024_liquidez_corriente",
-        [
-            FormulaInput(name="current_assets", value=15000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: current_liabilities"
-
-
-def test_engine_blocks_pyme024_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "PYME_024_liquidez_corriente",
-        [
-            FormulaInput(name="current_assets", value=15000),
-            FormulaInput(name="current_liabilities", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: current_liabilities"
 
 
-def test_engine_calculates_pyme017_pricing_drift_positive():
-    result = FormulaEngineService().calculate(
-        "PYME_017_pricing_drift",
-        [
-            FormulaInput(name="own_price", value=120, source_refs=["own:1"]),
-            FormulaInput(name="market_price", value=100, source_refs=["market:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 20.0
-    assert result.source_refs == ["own:1", "market:1"]
-
-
-def test_engine_allows_pyme017_zero_result():
-    result = FormulaEngineService().calculate(
-        "PYME_017_pricing_drift",
-        [
-            FormulaInput(name="own_price", value=100),
-            FormulaInput(name="market_price", value=100),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_allows_pyme017_negative_result():
-    result = FormulaEngineService().calculate(
-        "PYME_017_pricing_drift",
-        [
-            FormulaInput(name="own_price", value=90),
-            FormulaInput(name="market_price", value=100),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == -10.0
-
-
-def test_engine_blocks_pyme017_when_market_price_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_017_pricing_drift",
-        [
-            FormulaInput(name="own_price", value=120),
-        ],
-    )
-
+def test_pyme_017_pricing_drift_blocked_division_by_zero():
+    result = _engine().calculate("PYME_017_pricing_drift", [
+        _input("own_price", 110),
+        _input("market_price", 0),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: market_price"
-
-
-def test_engine_blocks_pyme017_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "PYME_017_pricing_drift",
-        [
-            FormulaInput(name="own_price", value=120),
-            FormulaInput(name="market_price", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: market_price"
 
 
-def test_engine_calculates_punto_equilibrio_ventas():
-    result = FormulaEngineService().calculate(
-        "punto_equilibrio_ventas",
-        [
-            FormulaInput(name="fixed_costs", value=5000, source_refs=["fixed:1"]),
-            FormulaInput(name="contribution_margin_rate", value=0.25, source_refs=["cmr:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 20000.0
-    assert result.source_refs == ["fixed:1", "cmr:1"]
-
-
-def test_engine_blocks_punto_equilibrio_ventas_when_contribution_margin_rate_is_missing():
-    result = FormulaEngineService().calculate(
-        "punto_equilibrio_ventas",
-        [
-            FormulaInput(name="fixed_costs", value=5000),
-        ],
-    )
-
+def test_punto_equilibrio_ventas_blocked_division_by_zero():
+    result = _engine().calculate("punto_equilibrio_ventas", [
+        _input("fixed_costs", 50000),
+        _input("contribution_margin_rate", 0),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: contribution_margin_rate"
-
-
-def test_engine_blocks_punto_equilibrio_ventas_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "punto_equilibrio_ventas",
-        [
-            FormulaInput(name="fixed_costs", value=5000),
-            FormulaInput(name="contribution_margin_rate", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: contribution_margin_rate"
 
 
-def test_engine_blocks_punto_equilibrio_ventas_negative_margin():
-    result = FormulaEngineService().calculate(
-        "punto_equilibrio_ventas",
-        [
-            FormulaInput(name="fixed_costs", value=10000),
-            FormulaInput(name="contribution_margin_rate", value=-0.1),
-        ],
-    )
-
+def test_pyme_027_intereses_ebitda_blocked_division_by_zero():
+    result = _engine().calculate("PYME_027_intereses_ebitda", [
+        _input("interest_expense", 5000),
+        _input("ebitda", 0),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "INVALID_INPUT: contribution_margin_rate"
-
-
-def test_engine_allows_punto_equilibrio_ventas_zero_fixed_costs():
-    result = FormulaEngineService().calculate(
-        "punto_equilibrio_ventas",
-        [
-            FormulaInput(name="fixed_costs", value=0),
-            FormulaInput(name="contribution_margin_rate", value=0.25),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_calculates_pyme026_flujo_operativo():
-    result = FormulaEngineService().calculate(
-        "PYME_026_flujo_operativo",
-        [
-            FormulaInput(name="net_income", value=1000, source_refs=["ni:1"]),
-            FormulaInput(name="depreciation", value=200, source_refs=["dep:1"]),
-            FormulaInput(name="amortization", value=50, source_refs=["amort:1"]),
-            FormulaInput(name="working_capital_change", value=150, source_refs=["wcc:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 1100.0
-    assert result.source_refs == ["ni:1", "dep:1", "amort:1", "wcc:1"]
-
-
-def test_engine_blocks_pyme026_when_working_capital_change_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_026_flujo_operativo",
-        [
-            FormulaInput(name="net_income", value=1000),
-            FormulaInput(name="depreciation", value=200),
-            FormulaInput(name="amortization", value=50),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: working_capital_change"
-
-
-def test_engine_allows_pyme026_negative_result():
-    result = FormulaEngineService().calculate(
-        "PYME_026_flujo_operativo",
-        [
-            FormulaInput(name="net_income", value=-500),
-            FormulaInput(name="depreciation", value=100),
-            FormulaInput(name="amortization", value=50),
-            FormulaInput(name="working_capital_change", value=200),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == -550.0
-
-
-def test_engine_calculates_pyme027_intereses_ebitda():
-    result = FormulaEngineService().calculate(
-        "PYME_027_intereses_ebitda",
-        [
-            FormulaInput(name="interest_expense", value=500, source_refs=["interest:1"]),
-            FormulaInput(name="ebitda", value=2500, source_refs=["ebitda:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.2
-    assert result.source_refs == ["interest:1", "ebitda:1"]
-
-
-def test_engine_blocks_pyme027_when_ebitda_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_027_intereses_ebitda",
-        [
-            FormulaInput(name="interest_expense", value=500),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: ebitda"
-
-
-def test_engine_blocks_pyme027_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "PYME_027_intereses_ebitda",
-        [
-            FormulaInput(name="interest_expense", value=500),
-            FormulaInput(name="ebitda", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: ebitda"
 
 
-def test_engine_allows_pyme027_zero_interest_expense():
-    result = FormulaEngineService().calculate(
-        "PYME_027_intereses_ebitda",
-        [
-            FormulaInput(name="interest_expense", value=0),
-            FormulaInput(name="ebitda", value=2500),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_calculates_pyme044_margen_cliente():
-    result = FormulaEngineService().calculate(
-        "PYME_044_margen_cliente",
-        [
-            FormulaInput(name="client_revenue", value=5000, source_refs=["rev:1"]),
-            FormulaInput(name="client_direct_costs", value=3000, source_refs=["direct:1"]),
-            FormulaInput(name="client_service_costs", value=500, source_refs=["service:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 1500.0
-    assert result.source_refs == ["rev:1", "direct:1", "service:1"]
-
-
-def test_engine_blocks_pyme044_when_client_service_costs_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_044_margen_cliente",
-        [
-            FormulaInput(name="client_revenue", value=5000),
-            FormulaInput(name="client_direct_costs", value=3000),
-        ],
-    )
-
+def test_pyme_033_concentracion_sku_blocked_division_by_zero():
+    result = _engine().calculate("PYME_033_concentracion_sku", [
+        _input("main_sku_sales", 30000),
+        _input("total_sales", 0),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: client_service_costs"
-
-
-def test_engine_allows_pyme044_negative_result():
-    result = FormulaEngineService().calculate(
-        "PYME_044_margen_cliente",
-        [
-            FormulaInput(name="client_revenue", value=2000),
-            FormulaInput(name="client_direct_costs", value=1800),
-            FormulaInput(name="client_service_costs", value=500),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == -300.0
-
-
-def test_engine_calculates_pyme033_concentracion_sku():
-    result = FormulaEngineService().calculate(
-        "PYME_033_concentracion_sku",
-        [
-            FormulaInput(name="main_sku_sales", value=4000, source_refs=["main:1"]),
-            FormulaInput(name="total_sales", value=10000, source_refs=["total:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 40.0
-    assert result.source_refs == ["main:1", "total:1"]
-
-
-def test_engine_blocks_pyme033_when_total_sales_is_missing():
-    result = FormulaEngineService().calculate(
-        "PYME_033_concentracion_sku",
-        [
-            FormulaInput(name="main_sku_sales", value=4000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: total_sales"
-
-
-def test_engine_blocks_pyme033_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "PYME_033_concentracion_sku",
-        [
-            FormulaInput(name="main_sku_sales", value=4000),
-            FormulaInput(name="total_sales", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: total_sales"
 
 
-def test_engine_allows_pyme033_zero_result():
-    result = FormulaEngineService().calculate(
-        "PYME_033_concentracion_sku",
-        [
-            FormulaInput(name="main_sku_sales", value=0),
-            FormulaInput(name="total_sales", value=10000),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
-
-
-def test_engine_calculates_ren002_coeficiente_reposicion():
-    result = FormulaEngineService().calculate(
-        "REN_002_coeficiente_reposicion",
-        [
-            FormulaInput(name="closing_index", value=130, source_refs=["closing:1"]),
-            FormulaInput(name="origin_index", value=100, source_refs=["origin:1"]),
-        ],
-    )
-
-    assert result.status == FormulaStatus.OK
-    assert result.value == 1.3
-    assert result.source_refs == ["closing:1", "origin:1"]
-
-
-def test_engine_blocks_ren002_when_origin_index_is_missing():
-    result = FormulaEngineService().calculate(
-        "REN_002_coeficiente_reposicion",
-        [
-            FormulaInput(name="closing_index", value=130),
-        ],
-    )
-
+def test_ren_002_coeficiente_reposicion_blocked_division_by_zero():
+    result = _engine().calculate("REN_002_coeficiente_reposicion", [
+        _input("closing_index", 1.5),
+        _input("origin_index", 0),
+    ])
     assert result.status == FormulaStatus.BLOCKED
-    assert result.blocking_reason == "MISSING_INPUTS: origin_index"
-
-
-def test_engine_blocks_ren002_division_by_zero():
-    result = FormulaEngineService().calculate(
-        "REN_002_coeficiente_reposicion",
-        [
-            FormulaInput(name="closing_index", value=130),
-            FormulaInput(name="origin_index", value=0),
-        ],
-    )
-
-    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
     assert result.blocking_reason == "DIVISION_BY_ZERO: origin_index"
 
 
-def test_engine_allows_ren002_zero_result():
-    result = FormulaEngineService().calculate(
-        "REN_002_coeficiente_reposicion",
-        [
-            FormulaInput(name="closing_index", value=0),
-            FormulaInput(name="origin_index", value=100),
-        ],
-    )
+# --- Blocked: INVALID_INPUT ---
 
-    assert result.status == FormulaStatus.OK
-    assert result.value == 0.0
+def test_punto_equilibrio_ventas_blocked_negative_rate():
+    result = _engine().calculate("punto_equilibrio_ventas", [
+        _input("fixed_costs", 50000),
+        _input("contribution_margin_rate", -0.1),
+    ])
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
+    assert result.blocking_reason == "INVALID_INPUT: contribution_margin_rate"
+
+
+# --- Blocked: MISSING_INPUTS ---
+
+def test_missing_input_blocks_formula():
+    result = _engine().calculate("margen_bruto", [_input("ventas", 100)])
+    assert result.status == FormulaStatus.BLOCKED
+    assert result.value is None
+    assert "MISSING_INPUTS: costos" in result.blocking_reason

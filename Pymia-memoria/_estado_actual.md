@@ -98,7 +98,7 @@ E:\BuenosPasos\smartbridge\PymIA
 Subcarpeta viva:
 
 ```text
-PymIA-Live
+PymIA
 ```
 
 GitHub:
@@ -115,7 +115,7 @@ smartdash-almasana/PymIA
 af9c54e docs(pymia): productize service 1 assisted delivery
 001087c docs(pymia): close service 1 stage 5 normalized table intake
 a5a0444 memoria: stage 5 csv xlsx next checkpoint
-69fc176 feat(pymia-live): add service 1 xlsx normalized table adapter
+69fc176 feat(pymia): add service 1 xlsx normalized table adapter
 dfd460c feat(pymia): add service 1 csv normalized table adapter
 PUSH: SUCCESS
 WORKING_TREE: CLEAN
@@ -126,22 +126,22 @@ Commits relevantes de la cadena Servicio 1 First Aid:
 
 ```text
 fe582c1 service 1 operator delivery package block
-c586e6d test(pymia-live): audit service 1 operator harness outputs
-33be021 feat(pymia-live): add service 1 operator harness
-bca683e feat(pymia-live): add service 1 first aid pipeline
+c586e6d test(pymia): audit service 1 operator harness outputs
+33be021 feat(pymia): add service 1 operator harness
+bca683e feat(pymia): add service 1 first aid pipeline
 22e420d docs(pymia): close service 1 first aid manual lane
-b3f16b8 feat(pymia-live): add service 1 semi-real first aid case
+b3f16b8 feat(pymia): add service 1 semi-real first aid case
 6b6f6a1 docs(pymia): add service 1 manual operator runbook
-017a9a7 feat(pymia-live): add service 1 manual first aid smoke case
-0f247fa fix(pymia-live): avoid first aid delivery filename collisions
-97f0a5d feat(pymia-live): add service 1 manual first aid delivery flow
-496ddff feat(pymia-live): add first aid delivery aggregate
-9e03833 feat(pymia-live): add first aid xlsx delivery
+017a9a7 feat(pymia): add service 1 manual first aid smoke case
+0f247fa fix(pymia): avoid first aid delivery filename collisions
+97f0a5d feat(pymia): add service 1 manual first aid delivery flow
+496ddff feat(pymia): add first aid delivery aggregate
+9e03833 feat(pymia): add first aid xlsx delivery
 eb8b124 docs(pymia): close first aid minimal toolset
-368fed4 feat(pymia-live): add first aid stock alerts tool
-b436a9e feat(pymia-live): add first aid daily cash triage tool
-6ecdce2 feat(pymia-live): add first aid price margin tool
-fe7dc79 feat(pymia-live): add first aid tool result contract
+368fed4 feat(pymia): add first aid stock alerts tool
+b436a9e feat(pymia): add first aid daily cash triage tool
+6ecdce2 feat(pymia): add first aid price margin tool
+fe7dc79 feat(pymia): add first aid tool result contract
 ```
 
 ## Capacidad cerrada actual

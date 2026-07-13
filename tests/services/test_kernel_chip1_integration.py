@@ -11,18 +11,19 @@ from pymia.services.pathology_adapters import pathology_finding_to_finding_recor
 from pymia.services.pathology_engine_service import PathologyEngineService
 
 
-def test_chip1_end_to_end_passes_with_negative_margin():
+def test_chip1_end_to_end_passes_with_negative_ren_001_margin():
     formula_result = FormulaEngineService().calculate(
-        "margen_bruto",
+        "REN_001_margen_neto_real",
         [
-            FormulaInput(name="ventas", value=1000, source_refs=["ventas:1"]),
-            FormulaInput(name="costos", value=1200, source_refs=["costos:1"]),
+            FormulaInput(name="sale_price", value=1000, source_refs=["ventas:1"]),
+            FormulaInput(name="costs", value=900, source_refs=["costos:1"]),
+            FormulaInput(name="taxes", value=200, source_refs=["impuestos:1"]),
         ],
     )
     assert formula_result.status == FormulaStatus.OK
 
     pathology = PathologyEngineService().evaluate(
-        "margen_bruto_negativo",
+        "REN_001",
         PathologyEvaluationInput(
             cliente_id="pyme_A",
             formula_result_id="fr1",
@@ -35,7 +36,7 @@ def test_chip1_end_to_end_passes_with_negative_margin():
     report = DiagnosticReportService().create_report(
         case_id="case-1",
         cliente_id="pyme_A",
-        hypothesis="Investigar si el margen bruto es negativo.",
+        hypothesis="Investigar si el margen neto real es negativo.",
         findings=[finding],
         evidence_used=finding.evidence_used,
         formulas_used=[formula_result.formula_id],
@@ -49,22 +50,23 @@ def test_chip1_end_to_end_passes_with_negative_margin():
 
     assert report.kernel_state == KernelState.PASS
     assert report.diagnosis_status == DiagnosisStatus.CONFIRMED
-    assert report.findings[0].finding_type == "margen_bruto_negativo"
-    assert report.evidence_used == ["ventas:1", "costos:1"]
+    assert report.findings[0].finding_type == "REN_001"
+    assert report.evidence_used == ["ventas:1", "costos:1", "impuestos:1"]
 
 
 def test_chip1_blocks_when_formula_cannot_calculate():
     formula_result = FormulaEngineService().calculate(
-        "margen_bruto",
+        "REN_001_margen_neto_real",
         [
-            FormulaInput(name="ventas", value=0, source_refs=["ventas:1"]),
-            FormulaInput(name="costos", value=1200, source_refs=["costos:1"]),
+            FormulaInput(name="sale_price", value=0, source_refs=["ventas:1"]),
+            FormulaInput(name="costs", value=900, source_refs=["costos:1"]),
+            FormulaInput(name="taxes", value=200, source_refs=["impuestos:1"]),
         ],
     )
     assert formula_result.status == FormulaStatus.BLOCKED
 
     pathology = PathologyEngineService().evaluate(
-        "margen_bruto_negativo",
+        "REN_001",
         PathologyEvaluationInput(
             cliente_id="pyme_A",
             formula_result_id="fr-blocked",
@@ -73,4 +75,4 @@ def test_chip1_blocks_when_formula_cannot_calculate():
     )
 
     assert pathology.status == PathologyStatus.PENDING_DATA
-    assert pathology.metadata["blocking_reason"] == "DIVISION_BY_ZERO: ventas"
+    assert pathology.metadata["blocking_reason"] == "DIVISION_BY_ZERO: sale_price"

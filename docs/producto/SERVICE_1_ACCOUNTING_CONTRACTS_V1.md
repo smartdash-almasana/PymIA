@@ -9,8 +9,8 @@ SERVICE_1_ACCOUNTING_CONTRACTS_V1: IMPLEMENTED_MINIMAL_CONTRACT_LAYER
 FILES_CREATED:
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py
-PymIA-Live/tests/smartpyme/test_service_1_accounting_contracts_v1.py
+pymia/smartpyme/service_1_accounting_contracts_v1.py
+tests/smartpyme/test_service_1_accounting_contracts_v1.py
 docs/producto/SERVICE_1_ACCOUNTING_CONTRACTS_V1.md
 ```
 

@@ -33,8 +33,8 @@ Un documento no listado aquí queda sin autoridad y debe ser evaluado para elimi
 La autoridad operativa está en:
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_product_pipeline_v1.py
-PymIA-Live/pymia/cli/service_1_product.py
+pymia/smartpyme/service_1_product_pipeline_v1.py
+pymia/cli/service_1_product.py
 docs/service_1_module_disposition.v1.json
 docs/current/SERVICE_1_STATUS.md
 docs/current/SERVICE_1_CANONICAL_AXIS.md

@@ -29,7 +29,7 @@ SERVICE_1_XLSX_DELIVERY_GENERALIZATION_V1: IMPLEMENTED
 Se creó un delivery genérico:
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_xlsx_delivery_v1.py
+pymia/smartpyme/service_1_xlsx_delivery_v1.py
 ```
 
 y `first_aid_xlsx_delivery_v1.py` quedó como wrapper compatible sobre el delivery general.
@@ -144,15 +144,15 @@ python -m pytest tests/smartpyme/test_service_1_pipeline_v1.py tests/smartpyme/t
 ## Archivos creados
 
 ```text
-PymIA-Live/pymia/smartpyme/service_1_xlsx_delivery_v1.py
-PymIA-Live/tests/smartpyme/test_service_1_xlsx_delivery_v1.py
+pymia/smartpyme/service_1_xlsx_delivery_v1.py
+tests/smartpyme/test_service_1_xlsx_delivery_v1.py
 docs/producto/SERVICE_1_XLSX_DELIVERY_GENERALIZATION_V1.md
 ```
 
 ## Archivos modificados
 
 ```text
-PymIA-Live/pymia/smartpyme/first_aid_xlsx_delivery_v1.py
+pymia/smartpyme/first_aid_xlsx_delivery_v1.py
 ```
 
 ---

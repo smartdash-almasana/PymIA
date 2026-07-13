@@ -1,37 +1,37 @@
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
 from pymia.contracts.evidence_v1 import StructuredEvidence
 
 from .models import DiagnosticCoreInput
 
-_FORMULA_VARIABLE_ALIASES: dict[str, dict[str, list[str]]] = {
-    "REN_001_margen_neto_real": {
-        "sale_price": ["sale_price", "ventas_total"],
-        "costs": ["costs", "costos_total"],
-        "taxes": ["taxes", "impuestos_total"],
-    },
-    "LIQ_001_vendido_cobrado": {
-        "sold_amount": ["sold_amount", "ventas_total"],
-        "collected_amount": ["collected_amount", "cobranzas_total"],
-    },
-    "INV_002_rotacion_stock": {
-        "cost_of_goods_sold": ["cost_of_goods_sold", "costos_total"],
-        "average_stock": ["average_stock", "stock_promedio"],
-    },
-    "PYME_044_margen_cliente": {
-        "client_revenue": ["client_revenue", "ingresos_cliente"],
-        "client_direct_costs": ["client_direct_costs", "costos_directos_cliente"],
-        "client_service_costs": ["client_service_costs", "costos_servicio_cliente"],
-    },
-    "PYME_033_concentracion_sku": {
-        "main_sku_sales": ["main_sku_sales", "ventas_sku_principal"],
-        "total_sales": ["total_sales", "ventas_total"],
-    },
-    "REN_002_coeficiente_reposicion": {
-        "closing_index": ["closing_index", "indice_cierre"],
-        "origin_index": ["origin_index", "indice_origen"],
-    },
-}
+
+@lru_cache(maxsize=1)
+def _load_formula_variable_aliases() -> dict[str, dict[str, list[str]]]:
+    catalog_path = Path(__file__).resolve().parents[1] / "contracts" / "formula_aliases_v1.json"
+    data = json.loads(catalog_path.read_text(encoding="utf-8"))
+    aliases_by_formula = data.get("aliases_by_formula")
+    if not isinstance(aliases_by_formula, dict):
+        return {}
+
+    clean: dict[str, dict[str, list[str]]] = {}
+    for formula_id, variable_aliases in aliases_by_formula.items():
+        if not isinstance(formula_id, str) or not isinstance(variable_aliases, dict):
+            continue
+        clean_variables: dict[str, list[str]] = {}
+        for variable_name, aliases in variable_aliases.items():
+            if not isinstance(variable_name, str) or not isinstance(aliases, list):
+                continue
+            clean_aliases = [str(alias) for alias in aliases if str(alias).strip()]
+            if clean_aliases:
+                clean_variables[variable_name] = clean_aliases
+        if clean_variables:
+            clean[formula_id] = clean_variables
+    return clean
 
 
 def build_diagnostic_core_input_from_structured_evidence(
@@ -45,9 +45,10 @@ def build_diagnostic_core_input_from_structured_evidence(
     computed = evidence.computed_variables or {}
     variables: dict[str, float | int | None] = {}
     evidence_refs: dict[str, list[str]] = {}
+    aliases_by_formula = _load_formula_variable_aliases()
 
     for formula_id in formula_ids:
-        for target_name, aliases in _FORMULA_VARIABLE_ALIASES.get(formula_id, {}).items():
+        for target_name, aliases in aliases_by_formula.get(formula_id, {}).items():
             value, matched_alias = _pick_first_available(computed, aliases)
             if value is None:
                 continue
@@ -66,6 +67,7 @@ def build_diagnostic_core_input_from_structured_evidence(
         evidence_status="STRUCTURED_EVIDENCE_BOUND",
         metadata={
             "binding_source": "StructuredEvidence.computed_variables",
+            "formula_aliases_source": "pymia/contracts/formula_aliases_v1.json",
             "document_type": evidence.document_type,
             "file_name": evidence.file_name,
         },
@@ -96,6 +98,9 @@ def _source_refs_for(
         for key in (canonical_name, matched_alias):
             refs = variable_refs.get(key)
             if isinstance(refs, list):
-                return [str(ref) for ref in refs if str(ref).strip()]
+                clean_refs = [str(ref) for ref in refs if str(ref).strip()]
+                if clean_refs:
+                    return clean_refs
 
-    return []
+    file_name = evidence.file_name or "structured_evidence"
+    return [f"{file_name}:{matched_alias}"]

@@ -45,7 +45,7 @@ No sugerir tratamientos.
 No redactar salida final para el dueño.
 No priorizar ejecución matemática.
 No planificar cadenas de cálculo.
-No modificar PymIA-Live desde este contrato.
+No modificar PymIA desde este contrato.
 ```
 
 ## Semántica contractual obligatoria
@@ -397,4 +397,4 @@ Se rechaza si el pack:
 AUDITORIA_CONTRACTUAL_DEL_PACK
 ```
 
-Este documento no habilita código, tests, schemas Pydantic, runtime, modificación de `PymIA-Live`, creación de packs activos ni cambios en el motor diagnóstico.
+Este documento no habilita código, tests, schemas Pydantic, runtime, modificación de `PymIA`, creación de packs activos ni cambios en el motor diagnóstico.
