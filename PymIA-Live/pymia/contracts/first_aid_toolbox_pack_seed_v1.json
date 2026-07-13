@@ -814,7 +814,7 @@
   "notes": [
     "Este seed no autoriza runtime.",
     "Este seed no reemplaza first_aid_toolbox_v1.json; lo complementa con la capa de pack que faltaba.",
-    "Este seed sirve para reconciliar contrato documental (FIRST_AID_TOOLBOX_PACK_CONTRACT_V1.md) y contrato de componentes (first_aid_toolbox_v1.json).",
+    "Este seed es la fuente contractual autocontenida del pack y se contrasta con first_aid_toolbox_v1.json.",
     "Próximo paso posterior: crear tests de contrato para este seed que validen presencia de todos los campos obligatorios y consistencia de refs.",
     "El seed conserva todos los 27 componentes originales y agrega 2 nuevos (gastos_triage, proveedores_precio_variacion_triage) para un total de 29. No rompe compatibilidad con el loader existente.",
     "Los 2 tool_refs que tenían mapping_status MISSING_COMPONENT (gastos_triage, proveedores_precio_variacion_triage) ahora tienen componentes nuevos específicos creados para triage FIRST_AID. No se reutilizaron control_de_gastos ni compras_y_proveedores (NOT_FOR_PHASE_1_PHASE_2). Decisión documentada en FIRST_AID_TRIAGE_COMPONENTS_DECISION_V1.md."

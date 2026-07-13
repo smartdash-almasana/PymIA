@@ -13,7 +13,7 @@ from pymia.smartpyme.service_1_column_understanding_canonical_gap_audit_v1 impor
 
 
 def _canonical_names() -> tuple[str, ...]:
-    path = Path(__file__).parents[2] / "docs" / "service_1_semantic_variable_catalog.v1.json"
+    path = Path(__file__).resolve().parents[3] / "docs" / "service_1_semantic_variable_catalog.v1.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     return tuple(item["variable_name"] for item in payload["variables"])
 

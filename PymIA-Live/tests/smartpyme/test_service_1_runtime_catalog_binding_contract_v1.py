@@ -21,10 +21,10 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Input artifacts consumed by the contract
-VARIABLE_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/service_1_semantic_variable_catalog.v1.json"
-ENRICHED_PATHOLOGY_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/pathology_catalog.enriched.v1.json"
-MATRIX_PATH = REPO_ROOT / "PymIA-Live/docs/service_1_formula_pathology_evidence_matrix.v1.json"
-FORMULA_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/formula_catalog.v1.json"
+VARIABLE_CATALOG_PATH = REPO_ROOT / "docs/service_1_semantic_variable_catalog.v1.json"
+ENRICHED_PATHOLOGY_CATALOG_PATH = REPO_ROOT / "docs/pathology_catalog.enriched.v1.json"
+MATRIX_PATH = REPO_ROOT / "docs/service_1_formula_pathology_evidence_matrix.v1.json"
+FORMULA_CATALOG_PATH = REPO_ROOT / "docs/formula_catalog.v1.json"
 
 # Physical contract implementation; obsolete documentary mirrors were removed.
 CONTRACT_SOURCE_PATH = (

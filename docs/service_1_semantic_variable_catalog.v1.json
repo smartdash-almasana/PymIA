@@ -5,7 +5,7 @@
   "status": "CATALOG_ONLY_NOT_RUNTIME",
   "runtime_connection_allowed": false,
   "phase_5_allowed": false,
-  "source_catalog": "PymIA-Live/docs/formula_catalog.v1.json",
+  "source_catalog": "docs/formula_catalog.v1.json",
   "derivation_rule": "Unique required_variables from formula_catalog.v1.json.",
   "variable_count": 43,
   "variables": [

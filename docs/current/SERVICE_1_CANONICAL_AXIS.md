@@ -90,7 +90,7 @@ FREE-TEXT SEMANTIC REENTRY: BLOCKED
 docs/current/README.md
 docs/current/SERVICE_1_STATUS.md
 docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
-PymIA-Live/docs/service_1_module_disposition.v1.json
+docs/service_1_module_disposition.v1.json
 ```
 
 Cualquier documento no citado por `docs/current/README.md` carece de autoridad sobre Servicio 1.

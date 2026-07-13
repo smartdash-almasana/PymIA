@@ -6,9 +6,9 @@
   "runtime_connection_allowed": false,
   "phase_5_allowed": false,
   "source_catalogs": [
-    "PymIA-Live/docs/formula_catalog.v1.json",
-    "PymIA-Live/docs/pathology_catalog.enriched.v1.json",
-    "PymIA-Live/docs/service_1_semantic_variable_catalog.v1.json"
+    "docs/formula_catalog.v1.json",
+    "docs/pathology_catalog.enriched.v1.json",
+    "docs/service_1_semantic_variable_catalog.v1.json"
   ],
   "entries": [
     {

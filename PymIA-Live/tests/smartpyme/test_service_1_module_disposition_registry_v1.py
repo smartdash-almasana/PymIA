@@ -21,7 +21,7 @@ def _repo_root() -> Path:
 
 
 def _registry() -> dict:
-    path = _repo_root() / "docs" / "service_1_module_disposition.v1.json"
+    path = _repo_root().parent / "docs" / "service_1_module_disposition.v1.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 

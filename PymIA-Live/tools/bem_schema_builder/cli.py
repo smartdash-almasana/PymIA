@@ -9,7 +9,7 @@ from .owner_questions_builder import OwnerQuestionsBuilder
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return Path(__file__).resolve().parents[3]
 
 
 def _write_json(path: Path, payload: dict) -> None:

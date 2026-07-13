@@ -70,8 +70,8 @@ def test_formula_rules_have_blocking_metadata_for_known_divisions():
 
 
 def test_formula_rules_do_not_include_unimplemented_catalog_formulas():
-    # Read docs/formula_catalog.v1.json
-    catalog_path = Path(__file__).resolve().parents[2] / "docs" / "formula_catalog.v1.json"
+    # Read the repository-level canonical formula catalog.
+    catalog_path = Path(__file__).resolve().parents[3] / "docs" / "formula_catalog.v1.json"
     assert catalog_path.exists()
     catalog_data = json.loads(catalog_path.read_text(encoding="utf-8"))
 
@@ -107,7 +107,7 @@ def test_formula_rules_mark_engine_only_formulas():
 
 def test_formula_rules_catalog_metadata_matches_formula_catalog_for_catalog_matches():
     rules_path = Path(__file__).resolve().parents[2] / "pymia" / "contracts" / "formula_rules_v1.json"
-    catalog_path = Path(__file__).resolve().parents[2] / "docs" / "formula_catalog.v1.json"
+    catalog_path = Path(__file__).resolve().parents[3] / "docs" / "formula_catalog.v1.json"
 
     rules_data = json.loads(rules_path.read_text(encoding="utf-8"))
     catalog_data = json.loads(catalog_path.read_text(encoding="utf-8"))

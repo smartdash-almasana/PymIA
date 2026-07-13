@@ -33,7 +33,12 @@ def _load_evidence_requirement_aliases() -> dict[str, Any]:
 
 
 def _docs_root() -> Path:
-    return Path(__file__).resolve().parents[2] / "docs"
+    """Return the repository-wide documentation root.
+
+    ``pymia`` still lives under the transitional ``PymIA-Live`` subtree, but
+    runtime catalogs have a single authority at ``PymIA/docs``.
+    """
+    return Path(__file__).resolve().parents[3] / "docs"
 
 
 def _load_catalog_json(path: Path) -> dict[str, Any]:

@@ -104,10 +104,10 @@ def load_service_1_runtime_catalog_binding_inputs_v1(
         Tuple of (enriched_pathology_catalog, formula_catalog, variable_catalog, evidence_matrix)
         Each element is None if the artifact cannot be loaded.
     """
-    enriched_path = repo_root / "PymIA-Live/docs/pathology_catalog.enriched.v1.json"
-    formula_path = repo_root / "PymIA-Live/docs/formula_catalog.v1.json"
-    variable_path = repo_root / "PymIA-Live/docs/service_1_semantic_variable_catalog.v1.json"
-    matrix_path = repo_root / "PymIA-Live/docs/service_1_formula_pathology_evidence_matrix.v1.json"
+    enriched_path = repo_root / "docs/pathology_catalog.enriched.v1.json"
+    formula_path = repo_root / "docs/formula_catalog.v1.json"
+    variable_path = repo_root / "docs/service_1_semantic_variable_catalog.v1.json"
+    matrix_path = repo_root / "docs/service_1_formula_pathology_evidence_matrix.v1.json"
     
     enriched_catalog = _load_json(enriched_path)
     formula_catalog = _load_json(formula_path)

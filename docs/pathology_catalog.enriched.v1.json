@@ -5,7 +5,7 @@
   "status": "CATALOG_ONLY_NOT_RUNTIME",
   "runtime_connection_allowed": false,
   "phase_5_allowed": false,
-  "source_catalog": "PymIA-Live/docs/pathology_catalog.v1.json",
+  "source_catalog": "docs/pathology_catalog.v1.json",
   "scope_policy": {
     "scope_fixed": true,
     "scope_not_reopened": true,

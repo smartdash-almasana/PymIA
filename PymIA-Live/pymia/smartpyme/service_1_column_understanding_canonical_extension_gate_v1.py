@@ -62,8 +62,8 @@ def build_service_1_column_understanding_canonical_extension_gate_v1(
     *, repo_root: Path | None = None,
 ) -> Service1CanonicalExtensionGateV1:
     root = repo_root or Path(__file__).resolve().parents[3]
-    variable_path = root / "PymIA-Live/docs/service_1_semantic_variable_catalog.v1.json"
-    formula_path = root / "PymIA-Live/docs/formula_catalog.v1.json"
+    variable_path = root / "docs/service_1_semantic_variable_catalog.v1.json"
+    formula_path = root / "docs/formula_catalog.v1.json"
 
     variable_catalog = json.loads(variable_path.read_text(encoding="utf-8"))
     formula_catalog = json.loads(formula_path.read_text(encoding="utf-8"))

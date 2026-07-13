@@ -184,11 +184,6 @@ Orden de autoridad:
 
 ```text
 1. PymIA-Live ejecutable y tests validados.
-2. PymIA-Live/docs/pymia/LIVE_DOCUMENT_PRIORITY_MAP.md.
-3. PymIA-Live/docs/pymia/LIVE_CODE_FREEZE_LEDGER.md.
-4. docs/producto/PYMIA_PRODUCT_UNIVERSE_AND_SERVICE_DEPTH_MODEL_FINAL.md.
-5. PymIA-Live/docs/pymia/PYMIA_LIVE_TARGET_ARCHITECTURE_V1.md.
-6. PymIA-Live/docs/pymia/PYMIA_LIVE_CORE_MANIFEST.md.
 7. Código runtime vivo bajo PymIA-Live/pymia/.
 8. Contratos JSON vivos bajo PymIA-Live/pymia/contracts/.
 9. Documentos vivos explícitamente promovidos.
@@ -240,7 +235,6 @@ Sólo reabrir application wiring si existe canal consumidor real, caso piloto re
 Checkpoint:
 
 ```text
-PymIA-Live/docs/pymia/FIRST_AID_LATENT_HELPERS_CHECKPOINT.md
 ```
 
 Estado:
