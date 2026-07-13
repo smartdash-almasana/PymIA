@@ -1,11 +1,42 @@
-# PymIA — visión de producto
+# Visión de producto PymIA
 
-PymIA es un sistema de diagnóstico y estabilización operacional para PyMEs. Su interfaz natural es conversacional, pero la verdad del caso surge de:
+## Propósito
+
+PymIA debe ayudar al dueño de una PyME a comprender y estabilizar su operación a partir de datos reales, significado operativo confirmado y herramientas determinísticas.
+
+## Servicio 1
+
+Servicio 1 es un laboratorio operativo de archivos tabulares. Su flujo rector es:
 
 ```text
-PymIA + datos + dueño PyME
+archivo real
+→ lectura estructural
+→ comprensión de columnas
+→ preguntas al dueño cuando falta significado
+→ confirmación semántica
+→ análisis determinístico
+→ archivo de entrega
 ```
 
-La IA conversa. PymIA computa. El dueño confirma significado. Las tools producen evidencia y archivos.
+## Roles
 
-La visión final puede expresarse como software autónomo gobernado por evidencia, pero ninguna hoja de ruta SaaS, canal, operador, API o runtime alternativo autoriza código por sí mismo. Servicio 1 debe crecer sobre una única raíz productiva y conservar comportamiento fail-closed.
+- El dueño PyME aporta archivos, contexto y significado operativo.
+- La capa conversacional pregunta, explica y traduce.
+- PymIA valida, gobierna estados y decide cuándo puede computar.
+- Las tools ejecutan cálculos y generan archivos.
+
+## Invariantes
+
+```text
+La IA conversa.
+La FSM gobierna.
+Las tools ejecutan.
+Los archivos son el producto.
+El dueño confirma durante la lectura.
+```
+
+La capa conversacional no diagnostica ni calcula como fuente soberana. No existe un operador humano obligatorio en el flujo normal.
+
+## Estado
+
+La columna vertebral canónica de Servicio 1 está integrada y probada sobre XLSX reales. La expansión pendiente consiste en conectar más patologías, fórmulas y herramientas al mismo flujo, sin abrir cadenas paralelas.

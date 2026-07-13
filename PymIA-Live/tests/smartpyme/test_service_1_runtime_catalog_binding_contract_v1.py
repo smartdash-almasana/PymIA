@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -24,9 +26,11 @@ ENRICHED_PATHOLOGY_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/pathology_catalog
 MATRIX_PATH = REPO_ROOT / "PymIA-Live/docs/service_1_formula_pathology_evidence_matrix.v1.json"
 FORMULA_CATALOG_PATH = REPO_ROOT / "PymIA-Live/docs/formula_catalog.v1.json"
 
-# Contract documentation
-CONTRACT_DOC_PATH = REPO_ROOT / "docs/auditoria/SERVICE_1_RUNTIME_CATALOG_BINDING_CONTRACT_V1.md"
-TEST_PLAN_DOC_PATH = REPO_ROOT / "docs/auditoria/SERVICE_1_RUNTIME_CATALOG_BINDING_CONTRACT_TEST_PLAN_V1.md"
+# Physical contract implementation; obsolete documentary mirrors were removed.
+CONTRACT_SOURCE_PATH = (
+    REPO_ROOT
+    / "PymIA-Live/pymia/smartpyme/service_1_runtime_catalog_binding_contract_v1.py"
+)
 
 # Fixed scope: six-code baseline
 EXPECTED_PATHOLOGY_CODES = ("REN_001", "LIQ_001", "SAL_001", "STK_001", "CST_001", "CSH_001")
@@ -258,35 +262,13 @@ def test_runtime_and_phase_5_flags_remain_false() -> None:
             f"{entry['pathology_code']} phase_5_allowed must be False"
 
 
-def test_no_runtime_authorization_claim_in_contract_docs() -> None:
-    """
-    Test 12: Contract documentation must not claim runtime authorization.
-    
-    Contract non-goal: does not authorize runtime execution.
-    Note: docs may mention "product-ready" in non-goal context (e.g., "does not authorize
-    product-ready claims"), so we check for affirmative authorization statements.
-    """
-    contract_text = CONTRACT_DOC_PATH.read_text(encoding="utf-8")
-    test_plan_text = TEST_PLAN_DOC_PATH.read_text(encoding="utf-8")
-    
-    # Must not contain affirmative runtime authorization language
-    # (excludes non-goal mentions like "does not authorize product-ready claims")
-    forbidden_phrases = [
-        "authorizes runtime",
-        "runtime authorized",
-        "runtime connection allowed",
-        "phase_5_allowed = true",
-        "runtime_allowed = true",
-        "is product ready",
-        "is production ready",
-        "product is ready",
-    ]
-    
-    for phrase in forbidden_phrases:
-        assert phrase.lower() not in contract_text.lower(), \
-            f"Contract doc contains forbidden phrase: {phrase}"
-        assert phrase.lower() not in test_plan_text.lower(), \
-            f"Test plan doc contains forbidden phrase: {phrase}"
+def test_contract_rejects_runtime_authorization_flags() -> None:
+    """Test 12: the executable contract must reject authorization flags."""
+    with pytest.raises(ValueError, match="runtime_allowed must be False"):
+        Service1RuntimeCatalogBindingResultV1(runtime_allowed=True)
+
+    with pytest.raises(ValueError, match="phase_5_allowed must be False"):
+        Service1RuntimeCatalogBindingResultV1(phase_5_allowed=True)
 
 
 def test_allowed_computation_hardcoding_not_used_as_catalog_authority() -> None:
@@ -318,51 +300,13 @@ def test_allowed_computation_hardcoding_not_used_as_catalog_authority() -> None:
     assert cst_001_entry["formula_refs"] == []
 
 
-def test_case_001_not_referenced_as_passing_runtime_case() -> None:
-    """
-    Test 14: Contract documentation must not reference CASE_001 as passing runtime case.
-    
-    Contract non-goal: does not force CASE_001 to pass.
-    Contract non-goal: does not declare product-ready status.
-    Note: docs may mention "product-ready" in non-goal context (e.g., "does not declare
-    product-ready status"), so we check for affirmative declarations only.
-    """
-    contract_text = CONTRACT_DOC_PATH.read_text(encoding="utf-8")
-    test_plan_text = TEST_PLAN_DOC_PATH.read_text(encoding="utf-8")
-    
-    # Must not contain CASE_001 success language
-    forbidden_case_001_phrases = [
-        "case_001 passes",
-        "case_001 passing",
-        "case_001 resolved",
-        "case_001 fixed",
-        "case_001 complete",
-        "case 001 passes",
-        "case 001 passing",
-        "case 001 resolved",
-    ]
-    
-    for phrase in forbidden_case_001_phrases:
-        assert phrase.lower() not in contract_text.lower(), \
-            f"Contract doc contains CASE_001 success reference: {phrase}"
-        assert phrase.lower() not in test_plan_text.lower(), \
-            f"Test plan doc contains CASE_001 success reference: {phrase}"
-    
-    # Must not contain affirmative product-ready declarations
-    # (excludes non-goal mentions like "does not declare product-ready status")
-    forbidden_product_phrases = [
-        "is product ready",
-        "is production ready",
-        "product is ready",
-        "ready for production",
-        "production ready status",
-    ]
-    
-    for phrase in forbidden_product_phrases:
-        assert phrase.lower() not in contract_text.lower(), \
-            f"Contract doc contains product-ready claim: {phrase}"
-        assert phrase.lower() not in test_plan_text.lower(), \
-            f"Test plan doc contains product-ready claim: {phrase}"
+def test_contract_source_has_no_case_001_or_product_ready_dependency() -> None:
+    """Test 14: the contract source remains case-agnostic and non-product-ready."""
+    contract_source = CONTRACT_SOURCE_PATH.read_text(encoding="utf-8").lower()
+
+    assert "case_001" not in contract_source
+    assert "product is ready" not in contract_source
+    assert "ready for production" not in contract_source
 
 
 # ============================================================================
@@ -372,6 +316,7 @@ def test_case_001_not_referenced_as_passing_runtime_case() -> None:
 # They import and call the pure resolver function to verify fail-closed behavior.
 
 from pymia.smartpyme.service_1_runtime_catalog_binding_contract_v1 import (
+    Service1RuntimeCatalogBindingResultV1,
     build_service_1_runtime_catalog_binding_result_v1,
     load_service_1_runtime_catalog_binding_inputs_v1,
     CATALOG_BINDING_READY_CANDIDATE,
