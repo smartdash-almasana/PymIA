@@ -1,0 +1,2112 @@
+{
+  "schema_version": "SERVICE_1_MODULE_DISPOSITION_V1",
+  "canonical_product_root": "service_1_product_pipeline_v1",
+  "classification_policy": {
+    "PRODUCTIVE": "Reachable from the canonical product root through static internal imports.",
+    "SUPPORT_NECESSARY": "Required engineering measurement, catalog, ingestion, delivery, or domain support outside the direct root closure.",
+    "EXPERIMENTAL_FROZEN": "Not authorized for extension or productive invocation until explicitly absorbed.",
+    "OBSOLETE_ELIMINABLE": "Superseded or contradictory candidate; may be deleted only after caller and regression audit."
+  },
+  "safety_rules": [
+    "Every Service 1 module must appear exactly once.",
+    "New modules fail registry validation until classified.",
+    "Only PRODUCTIVE modules may form the canonical execution path.",
+    "EXPERIMENTAL_FROZEN and OBSOLETE_ELIMINABLE modules must not be imported by the canonical root closure.",
+    "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
+  ],
+  "counts": {
+    "EXPERIMENTAL_FROZEN": 103,
+    "OBSOLETE_ELIMINABLE": 5,
+    "PRODUCTIVE": 10,
+    "SUPPORT_NECESSARY": 35
+  },
+  "total_modules": 153,
+  "modules": [
+    {
+      "module": "excel_treatment_lab_v1",
+      "path": "PymIA-Live/pymia/smartpyme/excel_treatment_lab_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_delivery_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "exceland_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/exceland_bridge_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_delivery_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_abort_rollback_result_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_abort_rollback_result_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_accounting_contracts_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_accounting_contracts_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_delivery_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_aligned_owner_prompt_display_packet_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_aligned_owner_prompt_display_packet_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_prompt_batch_to_question_bundle_alignment_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_assisted_flow_orchestrator_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_assisted_flow_orchestrator_v1.py",
+      "disposition": "OBSOLETE_ELIMINABLE",
+      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+        "service_1_controlled_execution_ready_to_plan_packet_v1",
+        "service_1_controlled_execution_result_to_delivery_packet_v1",
+        "service_1_dry_run_candidate_to_owner_validation_dialogue_v1",
+        "service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+        "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
+        "service_1_owner_validated_dry_run_to_controlled_execution_result_v1",
+        "service_1_plan_packet_to_owner_authorization_dialogue_v1",
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+        "service_1_web_column_confirmation_intake_boundary_v1"
+      ],
+      "internal_callers": [
+        "service_1_web_experiment_backend_boundary_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_audit_log_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_audit_log_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_auto_tool_plan_candidate_model_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_auto_tool_plan_candidate_model_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_bounded_engine_to_allowed_computation_adapter_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_bounded_engine_to_allowed_computation_adapter_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_bounded_semantic_engine_implementation_v1",
+        "service_1_pathology_to_allowed_computation_candidate_v1"
+      ],
+      "internal_callers": [
+        "service_1_semantic_runtime_plan_candidate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_bounded_semantic_engine_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_bounded_semantic_engine_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_bounded_semantic_engine_invocation_port_v1"
+      ],
+      "internal_callers": [
+        "service_1_bounded_semantic_engine_implementation_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_bounded_semantic_engine_implementation_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_bounded_semantic_engine_implementation_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_bounded_semantic_engine_contract_v1"
+      ],
+      "internal_callers": [
+        "service_1_bounded_engine_to_allowed_computation_adapter_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_bounded_semantic_engine_invocation_port_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_bounded_semantic_engine_invocation_port_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_binding_bounded_invocation_v1"
+      ],
+      "internal_callers": [
+        "service_1_bounded_semantic_engine_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_candidate_tools_to_controlled_execution_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_candidate_tools_to_controlled_execution_bridge_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_evidence_profile_to_candidate_tools_contract_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_canonical_ingestion_output_to_semantic_bridge_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_column_semantic_mapper_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_case_delivery_folder_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_case_delivery_folder_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_real_owner_pilot_to_delivery_packet_adapter_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_case_folder_manifest_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_case_folder_manifest_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_synthetic_real_case_pilot_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_case_reentry_read_model_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_case_reentry_read_model_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_owner_reentry_bridge_v1",
+        "service_1_owner_reentry_closed_loop_v1",
+        "service_1_reentry_projection_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_case_truth_integration_model_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_case_truth_integration_model_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_confirmation_applier_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_confirmation_applier_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_classifier_v1"
+      ],
+      "internal_callers": [
+        "service_1_column_confirmation_case_patch_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_confirmation_case_patch_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_confirmation_case_patch_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_applier_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_confirmation_classifier_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_confirmation_classifier_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_column_confirmation_applier_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_confirmation_owner_prompt_batch_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_confirmation_owner_prompt_batch_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_interpretation_to_owner_prompt_bridge_v1"
+      ],
+      "internal_callers": [
+        "service_1_document_curation_report_to_owner_prompt_batch_bridge_v1",
+        "service_1_owner_prompt_batch_display_model_v1",
+        "service_1_owner_prompt_batch_to_question_bundle_alignment_v1",
+        "service_1_xlsx_structure_to_column_confirmation_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_confirmation_owner_prompt_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_confirmation_owner_prompt_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_column_interpretation_to_owner_prompt_bridge_v1",
+        "service_1_owner_column_confirmation_answer_intake_v1",
+        "service_1_owner_prompt_batch_display_model_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_confirmation_packet_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_confirmation_packet_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_confirmation_reentry_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_confirmation_reentry_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_question_bundle_v1",
+        "service_1_reentry_projection_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_interpretation_to_owner_prompt_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_interpretation_to_owner_prompt_bridge_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_owner_prompt_v1",
+        "service_1_owner_facing_role_explanation_catalog_v1"
+      ],
+      "internal_callers": [
+        "service_1_column_confirmation_owner_prompt_batch_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_semantic_mapper_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_semantic_mapper_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "internal_callers": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_column_understanding_canonical_extension_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_canonical_extension_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_canonical_gap_audit_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_canonical_gap_audit_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_corpus_evaluation_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_corpus_evaluation_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_understanding_engine_v1"
+      ],
+      "internal_callers": [
+        "service_1_column_understanding_canonical_gap_audit_v1",
+        "service_1_column_understanding_corpus_report_v1",
+        "service_1_column_understanding_owner_question_corpus_audit_v1",
+        "service_1_column_understanding_owner_question_semantic_audit_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_corpus_report_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_corpus_report_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_engine_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_engine_contract_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_column_understanding_engine_v1",
+        "service_1_column_understanding_owner_question_adapter_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_engine_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_engine_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_understanding_engine_contract_v1"
+      ],
+      "internal_callers": [
+        "service_1_column_understanding_corpus_evaluation_v1",
+        "service_1_column_understanding_owner_question_corpus_audit_v1",
+        "service_1_column_understanding_owner_question_semantic_audit_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_owner_question_adapter_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_owner_question_adapter_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_understanding_engine_contract_v1"
+      ],
+      "internal_callers": [
+        "service_1_column_understanding_owner_question_corpus_audit_v1",
+        "service_1_column_understanding_owner_question_semantic_audit_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_owner_question_corpus_audit_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_owner_question_corpus_audit_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1",
+        "service_1_column_understanding_engine_v1",
+        "service_1_column_understanding_owner_question_adapter_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_owner_question_semantic_audit_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_column_understanding_owner_question_semantic_audit_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1",
+        "service_1_column_understanding_engine_v1",
+        "service_1_column_understanding_owner_question_adapter_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_common_normalization_router_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_common_normalization_router_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_csv_to_normalized_table_v1",
+        "service_1_normalized_table_v1",
+        "service_1_xlsx_to_normalized_table_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_controlled_computation_plan_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_controlled_computation_plan_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pathology_evidence_readiness_gate_v1"
+      ],
+      "internal_callers": [
+        "service_1_pathology_first_aid_dry_run_candidate_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_controlled_delivery_demo_harness_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_controlled_delivery_demo_harness_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pipeline_v1"
+      ],
+      "internal_callers": [
+        "service_1_owner_delivery_package_v1",
+        "service_1_synthetic_real_case_pilot_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_controlled_delivery_review_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_controlled_delivery_review_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_controlled_execution_ready_to_plan_packet_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_controlled_execution_ready_to_plan_packet_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_plan_packet_to_owner_authorization_dialogue_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_controlled_execution_result_to_delivery_packet_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_controlled_execution_result_to_delivery_packet_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_validated_dry_run_to_controlled_execution_result_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_conversational_owner_bridge_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_conversational_owner_bridge_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_cost_and_rate_limit_guard_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_cost_and_rate_limit_guard_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_csv_intake_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_csv_intake_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_csv_to_normalized_table_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_csv_to_normalized_table_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_normalized_table_v1"
+      ],
+      "internal_callers": [
+        "service_1_common_normalization_router_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_delivery_manifest_audit_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_delivery_manifest_audit_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_synthetic_real_case_pilot_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_deterministic_semantic_pipeline_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_deterministic_semantic_pipeline_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1"
+      ],
+      "internal_callers": [
+        "service_1_product_pipeline_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_document_curation_report_to_owner_prompt_batch_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_document_curation_report_to_owner_prompt_batch_bridge_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_owner_prompt_batch_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_runtime_bridge_v1"
+      ],
+      "internal_callers": [
+        "service_1_real_owner_pilot_case_run_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_dry_run_candidate_to_owner_validation_dialogue_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_dry_run_candidate_to_owner_validation_dialogue_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_owner_validated_dry_run_to_controlled_execution_result_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_dual_package_boundary_repair_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_dual_package_boundary_repair_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_evidence_profile_to_candidate_tools_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_evidence_profile_to_candidate_tools_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_rectified_evidence_profile_v1"
+      ],
+      "internal_callers": [
+        "service_1_candidate_tools_to_controlled_execution_bridge_v1",
+        "service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_excel_triage_report_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_excel_triage_report_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_executable_entrypoint_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_executable_entrypoint_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_explicit_request_to_pipeline_request_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_explicit_request_to_pipeline_request_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_failure_recovery_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_failure_recovery_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_final_owner_release_decision_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_final_owner_release_decision_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_final_release_to_owner_handoff_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_final_release_to_owner_handoff_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_first_aid_minimal_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_first_aid_minimal_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_structure_v1",
+        "service_1_xlsx_to_normalized_table_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_fsm_decision_patch_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_fsm_decision_patch_v1.py",
+      "disposition": "OBSOLETE_ELIMINABLE",
+      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_taskspec_contract_v1",
+        "service_1_taskspec_vocabulary_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_manual_first_aid_delivery_flow_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_manual_first_aid_delivery_flow_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_manual_first_aid_smoke_case_v1",
+        "service_1_pipeline_v1",
+        "service_1_semi_real_first_aid_case_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_manual_first_aid_smoke_case_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_manual_first_aid_smoke_case_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_manual_first_aid_delivery_flow_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_answers_to_column_confirmation_matrix_application_v1",
+        "service_1_owner_rectified_evidence_profile_v1"
+      ],
+      "internal_callers": [
+        "service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_microservice_activation_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_microservice_activation_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_microservice_registry_contract_v1"
+      ],
+      "internal_callers": [
+        "service_1_synthetic_real_case_pilot_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_microservice_registry_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_microservice_registry_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_microservice_activation_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_next_owner_question_view_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_next_owner_question_view_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_normalized_table_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_normalized_table_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_common_normalization_router_v1",
+        "service_1_csv_to_normalized_table_v1",
+        "service_1_xlsx_to_normalized_table_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_operational_finding_owner_view_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_operational_finding_owner_view_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pathology_first_aid_dry_run_candidate_v1"
+      ],
+      "internal_callers": [
+        "service_1_pathology_finding_delivery_policy_guard_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_answer_reentry_persistence_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_answer_reentry_persistence_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_owner_reentry_bridge_v1",
+        "service_1_owner_reentry_closed_loop_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_answer_reentry_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_answer_reentry_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_owner_reentry_bridge_v1",
+        "service_1_owner_reentry_closed_loop_v1",
+        "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+        "service_1_pathology_anamnesis_triage_loop_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_answers_to_column_confirmation_matrix_application_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_answers_to_column_confirmation_matrix_application_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_column_confirmation_answer_intake_v1"
+      ],
+      "internal_callers": [
+        "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_plan_packet_to_owner_authorization_dialogue_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_dry_run_candidate_to_owner_validation_dialogue_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_column_confirmation_answer_intake_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_column_confirmation_answer_intake_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_owner_prompt_v1",
+        "service_1_owner_prompt_batch_display_model_v1"
+      ],
+      "internal_callers": [
+        "service_1_owner_answers_to_column_confirmation_matrix_application_v1",
+        "service_1_web_column_confirmation_closed_loop_smoke_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_confirmation_boundary_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_confirmation_boundary_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_pipeline_readiness_gate_v1",
+        "service_1_runtime_catalog_pipeline_composition_v1",
+        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_confirmation_reinjection_to_semantic_gate_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_deterministic_semantic_pipeline_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_confirmation_to_canonical_ingestion_output_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_web_column_confirmation_intake_boundary_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_delivery_package_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_delivery_package_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_controlled_delivery_demo_harness_v1"
+      ],
+      "internal_callers": [
+        "service_1_synthetic_real_case_pilot_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_facing_role_explanation_catalog_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_facing_role_explanation_catalog_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_column_interpretation_to_owner_prompt_bridge_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_feedback_to_case_truth_patch_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_feedback_to_case_truth_patch_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_prompt_batch_display_model_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_prompt_batch_display_model_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_owner_prompt_batch_v1",
+        "service_1_column_confirmation_owner_prompt_v1"
+      ],
+      "internal_callers": [
+        "service_1_owner_column_confirmation_answer_intake_v1",
+        "service_1_web_column_confirmation_closed_loop_smoke_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_prompt_batch_to_question_bundle_alignment_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_prompt_batch_to_question_bundle_alignment_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_owner_prompt_batch_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_aligned_owner_prompt_display_packet_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_question_router_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_question_router_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_evidence_profile_to_candidate_tools_contract_v1",
+        "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_rectified_evidence_profile_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_rectified_evidence_profile_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_evidence_profile_to_candidate_tools_contract_v1",
+        "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_reentry_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_reentry_bridge_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_case_reentry_read_model_v1",
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1",
+        "service_1_reentry_projection_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_reentry_closed_loop_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_reentry_closed_loop_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_case_reentry_read_model_v1",
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1",
+        "service_1_reentry_projection_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_release_action_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_release_action_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_synthetic_real_case_pilot_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_validated_dry_run_to_controlled_execution_result_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_owner_validated_dry_run_to_controlled_execution_result_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_dry_run_candidate_to_owner_validation_dialogue_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_controlled_execution_result_to_delivery_packet_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_anamnesis_triage_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_anamnesis_triage_contract_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+        "service_1_pathology_to_allowed_computation_candidate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_anamnesis_triage_entrypoint_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pathology_anamnesis_triage_loop_composition_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_pathology_evidence_readiness_gate_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_anamnesis_triage_intake_bridge_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_answer_reentry_v1",
+        "service_1_pathology_anamnesis_triage_contract_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_pathology_anamnesis_triage_loop_composition_v1",
+        "service_1_pathology_anamnesis_triage_question_bundle_output_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_anamnesis_triage_loop_composition_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_anamnesis_triage_loop_composition_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_answer_reentry_v1",
+        "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+        "service_1_pathology_anamnesis_triage_question_bundle_output_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_anamnesis_triage_question_bundle_output_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_anamnesis_triage_question_bundle_output_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_pathology_anamnesis_triage_loop_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_evidence_readiness_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_evidence_readiness_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1",
+        "service_1_pathology_to_allowed_computation_candidate_v1"
+      ],
+      "internal_callers": [
+        "service_1_controlled_computation_plan_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_finding_delivery_package_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_finding_delivery_package_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pathology_finding_delivery_policy_guard_v1"
+      ],
+      "internal_callers": [
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_finding_delivery_policy_guard_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_finding_delivery_policy_guard_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_operational_finding_owner_view_v1"
+      ],
+      "internal_callers": [
+        "service_1_pathology_finding_delivery_package_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_first_aid_dry_run_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_first_aid_dry_run_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_controlled_computation_plan_v1"
+      ],
+      "internal_callers": [
+        "service_1_operational_finding_owner_view_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pathology_to_allowed_computation_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pathology_to_allowed_computation_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_pathology_anamnesis_triage_contract_v1"
+      ],
+      "internal_callers": [
+        "service_1_bounded_engine_to_allowed_computation_adapter_v1",
+        "service_1_pathology_evidence_readiness_gate_v1",
+        "service_1_semantic_runtime_plan_candidate_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pipeline_readiness_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pipeline_readiness_gate_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_confirmation_boundary_v1",
+        "service_1_runtime_catalog_binding_adapter_v1",
+        "service_1_runtime_catalog_binding_contract_v1",
+        "service_1_runtime_catalog_to_semantic_binding_handoff_v1"
+      ],
+      "internal_callers": [
+        "service_1_runtime_catalog_pipeline_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pipeline_request_execution_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pipeline_request_execution_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pipeline_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_pipeline_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_manual_first_aid_delivery_flow_v1"
+      ],
+      "internal_callers": [
+        "service_1_controlled_delivery_demo_harness_v1",
+        "service_1_product_pipeline_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_plan_packet_to_owner_authorization_dialogue_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_plan_packet_to_owner_authorization_dialogue_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_controlled_execution_ready_to_plan_packet_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_post_tool_owner_delivery_summary_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_post_tool_owner_delivery_summary_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_product_pipeline_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_product_pipeline_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_pipeline_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_qa_delivery_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_qa_delivery_gate_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_question_bundle_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_question_bundle_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_case_reentry_read_model_v1",
+        "service_1_column_confirmation_reentry_candidate_v1",
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_owner_answer_reentry_v1",
+        "service_1_owner_prompt_batch_to_question_bundle_alignment_v1",
+        "service_1_owner_reentry_bridge_v1",
+        "service_1_owner_reentry_closed_loop_v1",
+        "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1",
+        "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+        "service_1_pathology_anamnesis_triage_loop_composition_v1",
+        "service_1_pathology_anamnesis_triage_question_bundle_output_v1",
+        "service_1_reentry_projection_v1",
+        "service_1_synthetic_real_owner_evidence_case_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_real_client_xlsx_first_pilot_pack_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_real_client_xlsx_first_pilot_pack_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "internal_callers": [
+        "service_1_xlsx_runtime_bridge_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_real_owner_pilot_case_run_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_real_owner_pilot_case_run_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1"
+      ],
+      "internal_callers": [
+        "service_1_real_owner_pilot_to_delivery_packet_adapter_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_real_owner_pilot_to_delivery_packet_adapter_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_real_owner_pilot_to_delivery_packet_adapter_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_case_delivery_folder_v1",
+        "service_1_real_owner_pilot_case_run_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_reentry_projection_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_reentry_projection_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_case_reentry_read_model_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [
+        "service_1_column_confirmation_reentry_candidate_v1",
+        "service_1_owner_reentry_bridge_v1",
+        "service_1_owner_reentry_closed_loop_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_runtime_catalog_binding_adapter_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_runtime_catalog_binding_adapter_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_runtime_catalog_binding_contract_v1"
+      ],
+      "internal_callers": [
+        "service_1_pipeline_readiness_gate_v1",
+        "service_1_runtime_catalog_pipeline_composition_v1",
+        "service_1_runtime_catalog_to_semantic_binding_handoff_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_runtime_catalog_binding_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_runtime_catalog_binding_contract_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_pipeline_readiness_gate_v1",
+        "service_1_runtime_catalog_binding_adapter_v1",
+        "service_1_runtime_catalog_pipeline_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_runtime_catalog_pipeline_composition_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_runtime_catalog_pipeline_composition_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_confirmation_boundary_v1",
+        "service_1_pipeline_readiness_gate_v1",
+        "service_1_runtime_catalog_binding_adapter_v1",
+        "service_1_runtime_catalog_binding_contract_v1",
+        "service_1_runtime_catalog_to_semantic_binding_handoff_v1"
+      ],
+      "internal_callers": [
+        "service_1_semantic_binding_activation_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_runtime_catalog_to_semantic_binding_handoff_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_runtime_catalog_to_semantic_binding_handoff_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_runtime_catalog_binding_adapter_v1"
+      ],
+      "internal_callers": [
+        "service_1_pipeline_readiness_gate_v1",
+        "service_1_runtime_catalog_pipeline_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_runtime_release_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_runtime_release_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_binding_activation_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_binding_activation_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_runtime_catalog_pipeline_composition_v1"
+      ],
+      "internal_callers": [
+        "service_1_semantic_binding_execution_harness_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_binding_bounded_invocation_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_binding_bounded_invocation_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_binding_execution_harness_v1"
+      ],
+      "internal_callers": [
+        "service_1_bounded_semantic_engine_invocation_port_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_binding_execution_harness_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_binding_execution_harness_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_binding_activation_v1"
+      ],
+      "internal_callers": [
+        "service_1_semantic_binding_bounded_invocation_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_bridge_to_controlled_execution_gate_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+        "service_1_controlled_execution_ready_to_plan_packet_v1",
+        "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_semantic_catalog_loader_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_catalog_loader_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_semantic_evidence_binding_engine_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_concept_catalog_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_concept_catalog_candidate_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_concept_catalog_contract_v1"
+      ],
+      "internal_callers": [
+        "service_1_semantic_concept_catalog_readiness_gate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_concept_catalog_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_concept_catalog_contract_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_semantic_concept_catalog_candidate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_concept_catalog_readiness_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_concept_catalog_readiness_gate_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_concept_catalog_candidate_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_evidence_binding_contracts_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_evidence_binding_contracts_v1.py",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_column_semantic_mapper_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+        "service_1_semantic_evidence_binding_engine_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_semantic_evidence_binding_engine_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_evidence_binding_engine_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_semantic_catalog_loader_v1",
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_plan_to_xlsx_bridge_composition_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_plan_to_xlsx_bridge_composition_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_confirmation_boundary_v1",
+        "service_1_semantic_runtime_plan_candidate_v1",
+        "service_1_xlsx_runtime_bridge_v1"
+      ],
+      "internal_callers": [
+        "service_1_runtime_release_gate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_runtime_plan_candidate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semantic_runtime_plan_candidate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_bounded_engine_to_allowed_computation_adapter_v1",
+        "service_1_pathology_to_allowed_computation_candidate_v1"
+      ],
+      "internal_callers": [
+        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semi_real_first_aid_case_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_semi_real_first_aid_case_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_manual_first_aid_delivery_flow_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_stock_movement_evidence_packet_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_stock_movement_evidence_packet_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_stock_movement_semantic_contract_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_stock_movement_semantic_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_stock_movement_semantic_contract_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_stock_movement_evidence_packet_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_synthetic_case_bank_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_synthetic_case_bank_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_synthetic_controlled_case_candidate_chain_composition_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_synthetic_controlled_case_candidate_chain_composition_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_synthetic_controlled_case_candidate_model_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_synthetic_controlled_case_candidate_model_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_synthetic_real_case_pilot_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_synthetic_real_case_pilot_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_case_folder_manifest_contract_v1",
+        "service_1_controlled_delivery_demo_harness_v1",
+        "service_1_delivery_manifest_audit_contract_v1",
+        "service_1_microservice_activation_contract_v1",
+        "service_1_owner_delivery_package_v1",
+        "service_1_owner_release_action_gate_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_synthetic_real_owner_evidence_case_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_synthetic_real_owner_evidence_case_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_question_bundle_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_taskspec_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_taskspec_contract_v1.py",
+      "disposition": "OBSOLETE_ELIMINABLE",
+      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_taskspec_vocabulary_v1"
+      ],
+      "internal_callers": [
+        "service_1_fsm_decision_patch_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_taskspec_vocabulary_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_taskspec_vocabulary_v1.py",
+      "disposition": "OBSOLETE_ELIMINABLE",
+      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_fsm_decision_patch_v1",
+        "service_1_taskspec_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_tool_plan_to_explicit_requests_gate_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_tool_plan_to_explicit_requests_gate_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_web_column_confirmation_closed_loop_smoke_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_web_column_confirmation_closed_loop_smoke_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_owner_column_confirmation_answer_intake_v1",
+        "service_1_owner_prompt_batch_display_model_v1",
+        "service_1_xlsx_structure_extraction_to_adapter_chain_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_web_column_confirmation_intake_boundary_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_web_column_confirmation_intake_boundary_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_to_normalized_table_v1"
+      ],
+      "internal_callers": [
+        "service_1_assisted_flow_orchestrator_v1",
+        "service_1_owner_confirmation_to_canonical_ingestion_output_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_web_experiment_backend_boundary_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_web_experiment_backend_boundary_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_assisted_flow_orchestrator_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_web_test_route_registry_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_web_test_route_registry_v1.py",
+      "disposition": "OBSOLETE_ELIMINABLE",
+      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_delivery_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_delivery_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "excel_treatment_lab_v1",
+        "exceland_bridge_v1",
+        "service_1_accounting_contracts_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_first_product_entrypoint_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_first_product_entrypoint_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_controlled_computation_plan_v1",
+        "service_1_operational_finding_owner_view_v1",
+        "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1",
+        "service_1_pathology_evidence_readiness_gate_v1",
+        "service_1_pathology_finding_delivery_package_v1",
+        "service_1_pathology_finding_delivery_policy_guard_v1",
+        "service_1_pathology_first_aid_dry_run_candidate_v1",
+        "service_1_pathology_to_allowed_computation_candidate_v1"
+      ],
+      "internal_callers": [
+        "service_1_real_client_xlsx_first_pilot_pack_v1",
+        "service_1_xlsx_runtime_bridge_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_normalization_source_of_truth_lock_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_normalization_source_of_truth_lock_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_runtime_bridge_contract_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_runtime_bridge_contract_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_structure_v1",
+        "service_1_xlsx_to_normalized_table_v1"
+      ],
+      "internal_callers": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_runtime_bridge_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_real_client_xlsx_first_pilot_pack_v1",
+        "service_1_xlsx_first_product_entrypoint_v1"
+      ],
+      "internal_callers": [
+        "service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1",
+        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_structure_extraction_to_adapter_chain_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_structure_extraction_to_adapter_chain_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_xlsx_structure_to_column_confirmation_v1"
+      ],
+      "internal_callers": [
+        "service_1_web_column_confirmation_closed_loop_smoke_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_structure_to_column_confirmation_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_structure_to_column_confirmation_v1.py",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_column_confirmation_owner_prompt_batch_v1"
+      ],
+      "internal_callers": [
+        "service_1_xlsx_structure_extraction_to_adapter_chain_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_structure_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_structure_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [],
+      "internal_callers": [
+        "service_1_first_aid_minimal_v1",
+        "service_1_xlsx_runtime_bridge_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_to_normalized_table_v1",
+      "path": "PymIA-Live/pymia/smartpyme/service_1_xlsx_to_normalized_table_v1.py",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
+      "confidence": "MEDIUM",
+      "imports_service_1": [
+        "service_1_normalized_table_v1"
+      ],
+      "internal_callers": [
+        "service_1_common_normalization_router_v1",
+        "service_1_first_aid_minimal_v1",
+        "service_1_web_column_confirmation_intake_boundary_v1",
+        "service_1_xlsx_runtime_bridge_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    }
+  ]
+}

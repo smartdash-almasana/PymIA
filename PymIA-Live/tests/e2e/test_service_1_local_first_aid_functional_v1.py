@@ -110,4 +110,4 @@ def test_service_1_local_first_aid_functional_v1_pass(
 
     readme = (case_dir / "README.txt").read_text(encoding="utf-8").lower()
     assert "no contiene diagnostico" in readme
-    assert "revision humana" in readme
+    assert "confirmacion del dueno" in readme

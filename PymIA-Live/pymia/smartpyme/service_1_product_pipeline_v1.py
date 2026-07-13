@@ -1,0 +1,113 @@
+"""Single product application root for Servicio 1.
+
+Connects the canonical deterministic semantic pipeline to the existing
+physical First Aid pipeline. It does not parse files, infer tools, or duplicate
+delivery logic.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, Sequence
+
+from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
+    STATUS_CONFIRMED_BINDINGS,
+    STATUS_OWNER_QUESTIONS,
+    run_initial_pass,
+    run_owner_reentry,
+)
+from pymia.smartpyme.service_1_pipeline_v1 import (
+    Service1PipelineToolRequestV1,
+    run_service_1_pipeline_v1,
+)
+
+SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
+STATUS_READY = "PRODUCT_PIPELINE_READY"
+STATUS_NEEDS_OWNER = "NEEDS_OWNER_CONFIRMATION"
+STATUS_BLOCKED = "BLOCKED"
+
+
+def run_service_1_product_pipeline_v1(
+    *,
+    ingestion_output: Any,
+    tool_requests: Sequence[Service1PipelineToolRequestV1],
+    output_dir: str | Path,
+    sheet_name: str = "sheet1",
+    owner_answers: Any = None,
+) -> dict[str, Any]:
+    """Run semantic confirmation before explicit physical tool execution.
+
+    Tool selection remains explicit. No tool or delivery runs unless semantic
+    bindings are confirmed by the deterministic semantic pipeline.
+    """
+    semantic_run = run_initial_pass(
+        ingestion_output=ingestion_output,
+        sheet_name=sheet_name,
+    )
+
+    if semantic_run.get("status") == STATUS_OWNER_QUESTIONS:
+        if not isinstance(owner_answers, dict) or not owner_answers:
+            return _packet(
+                status=STATUS_NEEDS_OWNER,
+                semantic_run=semantic_run,
+                owner_questions=list(semantic_run.get("owner_questions") or []),
+            )
+        semantic_run = run_owner_reentry(
+            previous_run=semantic_run,
+            owner_answers=owner_answers,
+        )
+
+    if semantic_run.get("status") != STATUS_CONFIRMED_BINDINGS:
+        return _packet(
+            status=STATUS_BLOCKED,
+            blocked_reason=semantic_run.get("blocked_reason")
+            or "SEMANTIC_BINDINGS_NOT_CONFIRMED",
+            semantic_run=semantic_run,
+        )
+
+    physical_run = run_service_1_pipeline_v1(
+        tool_requests=tool_requests,
+        output_dir=output_dir,
+    )
+    return _packet(
+        status=STATUS_READY,
+        semantic_run=semantic_run,
+        physical_run=physical_run,
+    )
+
+
+def _packet(
+    *,
+    status: str,
+    blocked_reason: str | None = None,
+    semantic_run: Any = None,
+    physical_run: Any = None,
+    owner_questions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "service_name": "SERVICE_1",
+        "status": status,
+        "blocked_reason": blocked_reason,
+        "semantic_run": semantic_run,
+        "physical_run": physical_run,
+        "owner_questions": list(owner_questions or []),
+        "semantic_bindings_confirmed": bool(
+            isinstance(semantic_run, dict)
+            and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
+        ),
+        "tools_executed": bool(isinstance(physical_run, dict)),
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
+
+
+__all__ = [
+    "SCHEMA_VERSION",
+    "STATUS_READY",
+    "STATUS_NEEDS_OWNER",
+    "STATUS_BLOCKED",
+    "run_service_1_product_pipeline_v1",
+]

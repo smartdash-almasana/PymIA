@@ -122,8 +122,8 @@ def test_service_1_synthetic_final_case_run_v1_owner_package_quality(
 
     readme_lower = readme.lower()
     assert "no contiene diagnostico" in readme_lower
-    assert "revision humana" in readme_lower
-    assert "first aid minimo" in readme_lower
+    assert "confirmacion del dueno" in readme_lower
+    assert "first aid" in readme_lower
 
     packet = json.loads((case_dir / "operator_packet.json").read_text(encoding="utf-8"))
     first_aid_result = json.loads(

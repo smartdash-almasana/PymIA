@@ -361,12 +361,16 @@ CLOSED_CHAIN_MODULES = [
 
 
 def test_engine_does_not_import_any_closed_chain_link() -> None:
+    """Assert source-level isolation independently of pytest import order."""
     engine_module = sys.modules["pymia.smartpyme.service_1_column_understanding_engine_v1"]
-    loaded_names = set(sys.modules.keys())
+    module_source_path = getattr(engine_module, "__file__", "") or ""
+    assert module_source_path
+    source = open(module_source_path, encoding="utf-8", errors="ignore").read()
+
     for closed in CLOSED_CHAIN_MODULES:
-        assert closed not in loaded_names or sys.modules.get(closed) is None, (
-            f"closed chain module already imported: {closed}"
-        )
+        assert f"import {closed}" not in source
+        assert f"from {closed} import" not in source
+
     for name in dir(engine_module):
         attr = getattr(engine_module, name)
         module_name = getattr(attr, "__module__", "")
