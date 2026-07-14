@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 68,
+    "EXPERIMENTAL_FROZEN": 67,
     "PRODUCTIVE": 14,
     "SUPPORT_NECESSARY": 32
   },
-  "total_modules": 114,
+  "total_modules": 113,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -192,16 +192,6 @@
         "service_1_owner_reentry_closed_loop_v1",
         "service_1_reentry_projection_v1"
       ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_case_truth_integration_model_v1",
-      "path": "pymia/smartpyme/service_1_case_truth_integration_model_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {
