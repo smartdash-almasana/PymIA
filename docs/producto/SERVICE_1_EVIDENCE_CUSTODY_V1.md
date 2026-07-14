@@ -291,8 +291,6 @@ known_risks = [REAL_IDENTIFIER_NOT_REMOVED]
 | `SERVICE_1_EVIDENCE_CUSTODY_V1` | define cómo rastrear la evidencia de esos casos |
 | `SERVICE_1_XLSX_ACCEPTANCE_AND_BLOCKING_PROTOCOL_V1` | define si el archivo/caso entra o no |
 | `SERVICE_1_REVIEW_CHECKLIST_V1` | define si la corrida puede seguir o bloquearse |
-| `service_1_case_folder_manifest_contract_v1.py` | contrato downstream más tardío para manifests de caso |
-| `service_1_delivery_manifest_audit_contract_v1.py` | gate downstream antes de delivery |
 
 ## PASS / FAIL
 

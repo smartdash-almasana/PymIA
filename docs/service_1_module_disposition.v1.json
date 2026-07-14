@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 82,
+    "EXPERIMENTAL_FROZEN": 74,
     "PRODUCTIVE": 14,
     "SUPPORT_NECESSARY": 32
   },
-  "total_modules": 128,
+  "total_modules": 120,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -175,18 +175,6 @@
       "imports_service_1": [],
       "internal_callers": [
         "service_1_real_owner_pilot_to_delivery_packet_adapter_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_case_folder_manifest_contract_v1",
-      "path": "pymia/smartpyme/service_1_case_folder_manifest_contract_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [
-        "service_1_synthetic_real_case_pilot_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -489,21 +477,6 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_controlled_delivery_demo_harness_v1",
-      "path": "pymia/smartpyme/service_1_controlled_delivery_demo_harness_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_pipeline_v1"
-      ],
-      "internal_callers": [
-        "service_1_owner_delivery_package_v1",
-        "service_1_synthetic_real_case_pilot_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
       "path": "pymia/smartpyme/service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1.py",
       "disposition": "PRODUCTIVE",
@@ -539,18 +512,6 @@
       ],
       "internal_callers": [
         "service_1_common_normalization_router_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_delivery_manifest_audit_contract_v1",
-      "path": "pymia/smartpyme/service_1_delivery_manifest_audit_contract_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [
-        "service_1_synthetic_real_case_pilot_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -701,32 +662,6 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_microservice_activation_contract_v1",
-      "path": "pymia/smartpyme/service_1_microservice_activation_contract_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_microservice_registry_contract_v1"
-      ],
-      "internal_callers": [
-        "service_1_synthetic_real_case_pilot_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_microservice_registry_contract_v1",
-      "path": "pymia/smartpyme/service_1_microservice_registry_contract_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [
-        "service_1_microservice_activation_contract_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_next_owner_question_view_v1",
       "path": "pymia/smartpyme/service_1_next_owner_question_view_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
@@ -873,20 +808,6 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_owner_delivery_package_v1",
-      "path": "pymia/smartpyme/service_1_owner_delivery_package_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_controlled_delivery_demo_harness_v1"
-      ],
-      "internal_callers": [
-        "service_1_synthetic_real_case_pilot_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_owner_facing_role_explanation_catalog_v1",
       "path": "pymia/smartpyme/service_1_owner_facing_role_explanation_catalog_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
@@ -995,18 +916,6 @@
         "service_1_reentry_projection_v1"
       ],
       "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_owner_release_action_gate_v1",
-      "path": "pymia/smartpyme/service_1_owner_release_action_gate_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [
-        "service_1_synthetic_real_case_pilot_v1"
-      ],
       "canonical_root_reachable": false
     },
     {
@@ -1191,7 +1100,6 @@
         "service_1_manual_first_aid_delivery_flow_v1"
       ],
       "internal_callers": [
-        "service_1_controlled_delivery_demo_harness_v1",
         "service_1_product_pipeline_v1"
       ],
       "canonical_root_reachable": true
@@ -1603,23 +1511,6 @@
       "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
       "confidence": "MEDIUM",
       "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_synthetic_real_case_pilot_v1",
-      "path": "pymia/smartpyme/service_1_synthetic_real_case_pilot_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_case_folder_manifest_contract_v1",
-        "service_1_controlled_delivery_demo_harness_v1",
-        "service_1_delivery_manifest_audit_contract_v1",
-        "service_1_microservice_activation_contract_v1",
-        "service_1_owner_delivery_package_v1",
-        "service_1_owner_release_action_gate_v1"
-      ],
       "internal_callers": [],
       "canonical_root_reachable": false
     },
