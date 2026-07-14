@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 53,
+    "EXPERIMENTAL_FROZEN": 50,
     "PRODUCTIVE": 14,
     "SUPPORT_NECESSARY": 32
   },
-  "total_modules": 99,
+  "total_modules": 96,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -457,8 +457,7 @@
         "service_1_owner_rectified_evidence_profile_v1"
       ],
       "internal_callers": [
-        "service_1_candidate_tools_to_controlled_execution_bridge_v1",
-        "service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1"
+        "service_1_candidate_tools_to_controlled_execution_bridge_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -496,21 +495,6 @@
         "service_1_pipeline_v1"
       ],
       "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1",
-      "path": "pymia/smartpyme/service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_owner_answers_to_column_confirmation_matrix_application_v1",
-        "service_1_owner_rectified_evidence_profile_v1"
-      ],
-      "internal_callers": [
-        "service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1"
-      ],
-      "canonical_root_reachable": false
     },
     {
       "module": "service_1_next_owner_question_view_v1",
@@ -586,20 +570,6 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_owner_answers_to_column_confirmation_matrix_application_v1",
-      "path": "pymia/smartpyme/service_1_owner_answers_to_column_confirmation_matrix_application_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_owner_column_confirmation_answer_intake_v1"
-      ],
-      "internal_callers": [
-        "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_owner_column_confirmation_answer_intake_v1",
       "path": "pymia/smartpyme/service_1_owner_column_confirmation_answer_intake_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
@@ -610,7 +580,6 @@
         "service_1_owner_prompt_batch_display_model_v1"
       ],
       "internal_callers": [
-        "service_1_owner_answers_to_column_confirmation_matrix_application_v1",
         "service_1_web_column_confirmation_closed_loop_smoke_v1"
       ],
       "canonical_root_reachable": false
@@ -701,19 +670,6 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1",
-      "path": "pymia/smartpyme/service_1_owner_rectified_evidence_profile_to_candidate_tools_gate_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_evidence_profile_to_candidate_tools_contract_v1",
-        "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1"
-      ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_owner_rectified_evidence_profile_v1",
       "path": "pymia/smartpyme/service_1_owner_rectified_evidence_profile_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
@@ -721,8 +677,7 @@
       "confidence": "MEDIUM",
       "imports_service_1": [],
       "internal_callers": [
-        "service_1_evidence_profile_to_candidate_tools_contract_v1",
-        "service_1_matrix_application_to_owner_rectified_evidence_profile_bridge_v1"
+        "service_1_evidence_profile_to_candidate_tools_contract_v1"
       ],
       "canonical_root_reachable": false
     },
