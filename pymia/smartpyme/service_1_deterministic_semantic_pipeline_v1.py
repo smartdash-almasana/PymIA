@@ -21,6 +21,8 @@ from pymia.smartpyme.service_1_semantic_bridge_to_controlled_execution_gate_v1 i
     build_service_1_controlled_execution_gate_from_semantic_bridge_v1,
 )
 from pymia.smartpyme.service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1 import (
+    STATUS_OWNER_CONFIRMATION_RECHECK_READY,
+    STATUS_OWNER_FOLLOWUP_REQUIRED as LOOP_STATUS_OWNER_FOLLOWUP_REQUIRED,
     build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1,
 )
 from pymia.smartpyme.service_1_owner_confirmation_reinjection_to_semantic_gate_v1 import (
@@ -51,6 +53,7 @@ from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
 SCHEMA_VERSION = "SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_V1"
 STATUS_CONFIRMED_BINDINGS = "CONFIRMED_BINDINGS"
 STATUS_OWNER_QUESTIONS = "OWNER_QUESTIONS"
+STATUS_OWNER_FOLLOWUP = "OWNER_FOLLOWUP_REQUIRED"
 STATUS_BLOCKED_PIPELINE = "BLOCKED"
 
 COMPUTATION_PLAN_SCHEMA_VERSION = "SERVICE_1_COMPUTATION_PLAN_V1"
@@ -120,20 +123,30 @@ def run_owner_reentry(
     if not isinstance(owner_answers, dict) or not owner_answers:
         return _packet(status=STATUS_BLOCKED_PIPELINE, blocked_reason="OWNER_ANSWERS_REQUIRED")
 
-    invalid_answers = _invalid_owner_answers(
-        previous_run.get("owner_questions") or [], owner_answers
-    )
-    if invalid_answers:
-        return _packet(
-            status=STATUS_BLOCKED_PIPELINE,
-            blocked_reason="INVALID_OWNER_SEMANTIC_ANSWERS",
-            owner_questions=list(previous_run.get("owner_questions") or []),
-        )
-
     loop = build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         gate_packet=gate,
         owner_answers=owner_answers,
     )
+    if loop.get("status") == LOOP_STATUS_OWNER_FOLLOWUP_REQUIRED:
+        return _packet(
+            status=STATUS_OWNER_FOLLOWUP,
+            bridge_packet=bridge,
+            gate_packet=gate,
+            owner_loop_packet=loop,
+            owner_questions=list(loop.get("owner_questions") or []),
+            owner_followup=list(loop.get("owner_followup") or []),
+        )
+    if loop.get("status") != STATUS_OWNER_CONFIRMATION_RECHECK_READY:
+        return _packet(
+            status=STATUS_BLOCKED_PIPELINE,
+            blocked_reason=loop.get("blocked_reason")
+            or "OWNER_CONFIRMATION_LOOP_BLOCKED",
+            bridge_packet=bridge,
+            gate_packet=gate,
+            owner_loop_packet=loop,
+            owner_questions=list(previous_run.get("owner_questions") or []),
+        )
+
     reinjected = build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
         semantic_bridge_packet=bridge,
         owner_confirmation_loop_packet=loop,
@@ -694,35 +707,6 @@ def _computation_plan_packet(
     }
 
 
-def _invalid_owner_answers(
-    owner_questions: list[Any],
-    owner_answers: dict[Any, Any],
-) -> list[str]:
-    allowed_by_column: dict[str, set[str]] = {}
-    for question in owner_questions:
-        if not isinstance(question, dict):
-            continue
-        column = str(question.get("column_name") or "").strip()
-        allowed = {
-            str(item).strip()
-            for item in (question.get("allowed_answers") or [])
-            if str(item).strip()
-        }
-        if column:
-            allowed_by_column[column] = allowed
-
-    answer_columns = {str(key).strip() for key in owner_answers}
-    if answer_columns != set(allowed_by_column):
-        return ["ANSWER_KEYS_MUST_MATCH_PENDING_COLUMNS"]
-
-    invalid: list[str] = []
-    for key, value in owner_answers.items():
-        column = str(key).strip()
-        answer = str(value).strip()
-        if not answer or answer not in allowed_by_column.get(column, set()):
-            invalid.append(column)
-    return invalid
-
 
 def _packet(
     *,
@@ -733,6 +717,7 @@ def _packet(
     owner_loop_packet: Any = None,
     reentry_packet: Any = None,
     owner_questions: list[dict[str, Any]] | None = None,
+    owner_followup: list[dict[str, Any]] | None = None,
     confirmed_candidate: Any = None,
 ) -> dict[str, Any]:
     return {
@@ -745,6 +730,7 @@ def _packet(
         "owner_loop_packet": owner_loop_packet,
         "reentry_packet": reentry_packet,
         "owner_questions": list(owner_questions or []),
+        "owner_followup": [dict(item) for item in (owner_followup or [])],
         "confirmed_candidate": confirmed_candidate,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -758,6 +744,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "STATUS_CONFIRMED_BINDINGS",
     "STATUS_OWNER_QUESTIONS",
+    "STATUS_OWNER_FOLLOWUP",
     "STATUS_BLOCKED_PIPELINE",
     "COMPUTATION_PLAN_SCHEMA_VERSION",
     "STATUS_READY_FOR_COMPUTATION",

@@ -225,3 +225,15 @@ def test_block_columns_values_mismatch() -> None:
     )
     assert out["blocked_reason"] == BLOCK_COLUMNS_VALUES_MISMATCH
     _assert_safety_flags_false(out)
+
+def test_bridge_builds_owner_question_views_from_same_understandings(
+    case_001_ingestion_output: dict,
+) -> None:
+    out = build_bridge(ingestion_output=case_001_ingestion_output)
+
+    assert len(out["owner_question_views"]) == len(out["column_understandings"])
+    assert [view.column_name for view in out["owner_question_views"]] == [
+        understanding.column_name for understanding in out["column_understandings"]
+    ]
+    assert all(view.runtime_authorized is False for view in out["owner_question_views"])
+    assert all(view.delivery_authorized is False for view in out["owner_question_views"])

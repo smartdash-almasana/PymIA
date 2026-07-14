@@ -14,8 +14,10 @@ The loop consumes the packet produced by
   ALREADY_READY (nothing to ask),
 - if the gate reported NEEDS_OWNER_CONFIRMATION and no answers were supplied,
   emits an owner confirmation question packet (OWNER_CONFIRMATION_REQUIRED),
-- if valid, complete owner answers are supplied, reports
-  OWNER_CONFIRMATION_RECHECK_READY (the caller may re-run the gate),
+- if valid, complete option-ID answers are supplied, translates them through
+  the gate's internal bindings and reports OWNER_CONFIRMATION_RECHECK_READY,
+- if the owner chooses OTHER, captures optional free text and reports
+  OWNER_FOLLOWUP_REQUIRED without creating semantic truth,
 - otherwise BLOCKED.
 
 The loop NEVER executes tools, NEVER creates delivery, NEVER authorizes
@@ -39,6 +41,7 @@ PACKET_TYPE = "CONTROLLED_EXECUTION_CANDIDATE_TO_OWNER_CONFIRMATION_LOOP"
 STATUS_ALREADY_READY = "ALREADY_READY"
 STATUS_OWNER_CONFIRMATION_REQUIRED = "OWNER_CONFIRMATION_REQUIRED"
 STATUS_OWNER_CONFIRMATION_RECHECK_READY = "OWNER_CONFIRMATION_RECHECK_READY"
+STATUS_OWNER_FOLLOWUP_REQUIRED = "OWNER_FOLLOWUP_REQUIRED"
 STATUS_BLOCKED = "BLOCKED"
 
 # Block reason constants (stable identifiers for tests and callers).
@@ -52,6 +55,11 @@ BLOCK_NO_QUESTIONS = "NO_OWNER_QUESTIONS"
 BLOCK_MISSING_ANSWERS = "MISSING_ANSWERS"
 BLOCK_UNKNOWN_ANSWERS = "UNKNOWN_ANSWERS"
 BLOCK_EMPTY_ANSWERS = "EMPTY_ANSWERS"
+BLOCK_OWNER_ANSWER_BINDINGS_INVALID = "OWNER_ANSWER_BINDINGS_INVALID"
+BLOCK_INVALID_OPTION_ID = "INVALID_OWNER_OPTION_ID"
+BLOCK_CONFLICTING_OWNER_ANSWER = "CONFLICTING_OWNER_ANSWER"
+
+OWNER_OPTION_OTHER = "OTHER"
 
 _GATE_FORBIDDEN_FLAGS = (
     "runtime_authorized",
@@ -76,16 +84,16 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
 
     Args:
         gate_packet: Output of the controlled execution gate.
-        owner_answers: Optional mapping ``{column_name: answer_text}``. When
-            omitted for a NEEDS_OWNER_CONFIRMATION gate, the loop emits the
-            question packet. When supplied, all pending questions must be
-            answered with non-empty text.
+        owner_answers: Optional mapping ``{column_name: option_id}``. ``OTHER``
+            may be submitted as ``{"option_id": "OTHER", "free_text": "..."}``.
+            When omitted for a NEEDS_OWNER_CONFIRMATION gate, the loop emits
+            the owner-safe question packet. Every pending column must be answered.
         runtime_authorized / ...: Must remain False; any True is blocking.
 
     Returns:
         A loop packet dict. Status is one of ALREADY_READY,
-        OWNER_CONFIRMATION_REQUIRED, OWNER_CONFIRMATION_RECHECK_READY, or
-        BLOCKED (with ``blocked_reason``).
+        OWNER_CONFIRMATION_REQUIRED, OWNER_CONFIRMATION_RECHECK_READY,
+        OWNER_FOLLOWUP_REQUIRED, or BLOCKED (with ``blocked_reason``).
     """
     if (
         runtime_authorized
@@ -187,18 +195,73 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             detail=sorted(set(unknown)),
         )
 
+    raw_bindings = gate_packet.get("owner_answer_bindings")
+    if not isinstance(raw_bindings, dict):
+        return _blocked(
+            BLOCK_OWNER_ANSWER_BINDINGS_INVALID,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
+
     confirmed: dict[str, str] = {}
+    followup: list[dict[str, Any]] = []
     missing: list[str] = []
     empty: list[str] = []
+    invalid_options: list[str] = []
+    conflicting_answers: list[str] = []
+    questions_by_column = {
+        str(question.get("column_name") or "").strip(): question
+        for question in questions
+        if isinstance(question, dict)
+    }
     for column in pending_columns:
         raw = _answer_for(owner_answers, column)
         if raw is None:
             missing.append(column)
             continue
-        if not raw.strip():
+        option_id, free_text = _parse_owner_answer(raw)
+        if not option_id:
             empty.append(column)
             continue
-        confirmed[column] = raw.strip()
+
+        question = questions_by_column.get(column, {})
+        allowed_option_ids = {
+            str(value).strip()
+            for value in question.get("allowed_option_ids", [])
+            if str(value).strip()
+        }
+        column_bindings = raw_bindings.get(column)
+        if not allowed_option_ids or not isinstance(column_bindings, dict):
+            return _blocked(
+                BLOCK_OWNER_ANSWER_BINDINGS_INVALID,
+                case_id=case_id,
+                source_kind=source_kind,
+                filename=filename,
+                detail=[column],
+            )
+        if option_id not in allowed_option_ids:
+            invalid_options.append(column)
+            continue
+        if free_text and option_id != OWNER_OPTION_OTHER:
+            conflicting_answers.append(column)
+            continue
+        if option_id == OWNER_OPTION_OTHER:
+            followup.append(
+                {
+                    "column_name": column,
+                    "option_id": OWNER_OPTION_OTHER,
+                    "owner_free_text": free_text,
+                    "normalization_required": True,
+                }
+            )
+            continue
+
+        canonical_answer = str(column_bindings.get(option_id) or "").strip()
+        if not canonical_answer:
+            invalid_options.append(column)
+            continue
+        confirmed[column] = canonical_answer
 
     if empty:
         return _blocked(
@@ -216,6 +279,32 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             filename=filename,
             detail=missing,
         )
+    if conflicting_answers:
+        return _blocked(
+            BLOCK_CONFLICTING_OWNER_ANSWER,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+            detail=conflicting_answers,
+        )
+    if invalid_options:
+        return _blocked(
+            BLOCK_INVALID_OPTION_ID,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+            detail=invalid_options,
+        )
+    if followup:
+        return _packet(
+            status=STATUS_OWNER_FOLLOWUP_REQUIRED,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+            owner_questions=_followup_questions(followup),
+            confirmed_answers={},
+            owner_followup=followup,
+        )
 
     return _packet(
         status=STATUS_OWNER_CONFIRMATION_RECHECK_READY,
@@ -227,11 +316,53 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
     )
 
 
-def _answer_for(owner_answers: dict[Any, Any], column: str) -> Optional[str]:
+def _answer_for(owner_answers: dict[Any, Any], column: str) -> Any:
     for key, value in owner_answers.items():
         if str(key).strip() == column:
-            return "" if value is None else str(value)
+            return value
     return None
+
+
+def _parse_owner_answer(value: Any) -> tuple[str, str | None]:
+    if isinstance(value, str):
+        return value.strip(), None
+    if isinstance(value, dict):
+        option_id = str(value.get("option_id") or "").strip()
+        raw_free_text = value.get("free_text", value.get("owner_free_text"))
+        free_text = None
+        if raw_free_text is not None:
+            free_text = str(raw_free_text).strip() or None
+        return option_id, free_text
+    return "", None
+
+
+def _followup_questions(
+    followup: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    questions: list[dict[str, Any]] = []
+    for item in followup:
+        column = str(item.get("column_name") or "").strip()
+        owner_free_text = item.get("owner_free_text")
+        if owner_free_text:
+            question = (
+                "Tu descripción quedó registrada, pero PymIA todavía no puede "
+                "convertirla en una opción gobernada ni usarla en cálculos."
+            )
+            answer_type = "semantic_normalization_required"
+        else:
+            question = f"Contame brevemente qué representa la columna '{column}' en tu negocio."
+            answer_type = "owner_free_text"
+        questions.append(
+            {
+                "column_name": column,
+                "question": question,
+                "answer_type": answer_type,
+                "required": True,
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+            }
+        )
+    return questions
 
 
 def _packet(
@@ -242,6 +373,7 @@ def _packet(
     filename: Optional[str],
     owner_questions: list[Any],
     confirmed_answers: dict[str, str],
+    owner_followup: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -255,6 +387,7 @@ def _packet(
         "owner_questions": owner_questions,
         "owner_question_count": len(owner_questions),
         "confirmed_answers": confirmed_answers,
+        "owner_followup": [dict(item) for item in (owner_followup or [])],
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -283,6 +416,7 @@ def _blocked(
         "owner_questions": [],
         "owner_question_count": 0,
         "confirmed_answers": {},
+        "owner_followup": [],
         "detail": list(detail or []),
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -299,6 +433,7 @@ __all__ = [
     "STATUS_ALREADY_READY",
     "STATUS_OWNER_CONFIRMATION_REQUIRED",
     "STATUS_OWNER_CONFIRMATION_RECHECK_READY",
+    "STATUS_OWNER_FOLLOWUP_REQUIRED",
     "STATUS_BLOCKED",
     "BLOCK_REQUEST_FLAGS_FORBIDDEN",
     "BLOCK_GATE_NOT_DICT",
@@ -310,5 +445,8 @@ __all__ = [
     "BLOCK_MISSING_ANSWERS",
     "BLOCK_UNKNOWN_ANSWERS",
     "BLOCK_EMPTY_ANSWERS",
+    "BLOCK_OWNER_ANSWER_BINDINGS_INVALID",
+    "BLOCK_INVALID_OPTION_ID",
+    "BLOCK_CONFLICTING_OWNER_ANSWER",
     "build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1",
 ]

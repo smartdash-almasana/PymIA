@@ -3,10 +3,20 @@ from __future__ import annotations
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_BLOCKED_PIPELINE,
     STATUS_CONFIRMED_BINDINGS,
+    STATUS_OWNER_FOLLOWUP,
     STATUS_OWNER_QUESTIONS,
     run_initial_pass,
     run_owner_reentry,
 )
+
+
+
+def _first_semantic_option_id(question: dict) -> str:
+    return next(
+        item["option_id"]
+        for item in question["options"]
+        if item["option_id"] not in {"OTHER", "IGNORE"}
+    )
 
 
 def _ingestion_output() -> dict:
@@ -46,7 +56,7 @@ def test_owner_question_round_trip_reaches_confirmed_bindings_when_needed() -> N
         return
 
     answers = {
-        question["column_name"]: question["allowed_answers"][0]
+        question["column_name"]: _first_semantic_option_id(question)
         for question in first["owner_questions"]
     }
     out = run_owner_reentry(previous_run=first, owner_answers=answers)
@@ -84,4 +94,37 @@ def test_reentry_requires_answers() -> None:
     out = run_owner_reentry(previous_run=first, owner_answers={})
     assert out["status"] == STATUS_BLOCKED_PIPELINE
     assert out["blocked_reason"] == "OWNER_ANSWERS_REQUIRED"
+    _assert_closed(out)
+
+def test_other_owner_answer_never_creates_semantic_truth() -> None:
+    first = run_initial_pass(
+        ingestion_output={
+            "case_id": "case_other",
+            "source_kind": "xlsx",
+            "filename": "ambiguous.xlsx",
+            "columns": ["valor"],
+            "input_values": {"valor": "dato del negocio"},
+            "column_evidence": {
+                "valor": {"sample_values": [100, 200], "inferred_type": "number"}
+            },
+        },
+        sheet_name="Ventas",
+    )
+    assert first["status"] == STATUS_OWNER_QUESTIONS
+    question = first["owner_questions"][0]
+
+    out = run_owner_reentry(
+        previous_run=first,
+        owner_answers={
+            question["column_name"]: {
+                "option_id": "OTHER",
+                "free_text": "Es un dato interno no catalogado.",
+            }
+        },
+    )
+
+    assert out["status"] == STATUS_OWNER_FOLLOWUP
+    assert out["confirmed_candidate"] is None
+    assert out["reentry_packet"] is None
+    assert out["owner_followup"][0]["normalization_required"] is True
     _assert_closed(out)

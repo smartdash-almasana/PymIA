@@ -212,20 +212,37 @@ def test_real_cafeteria_xlsx_cli_blocks_then_executes_after_canonical_reentry(
             str(first_result_path),
         ]
     )
-    first = json.loads(first_result_path.read_text(encoding="utf-8"))
+    first_text = first_result_path.read_text(encoding="utf-8")
+    first = json.loads(first_text)
     first_product = first["product_pipeline"]
 
     assert first_exit == 2
     assert first["status"] == "NEEDS_OWNER_CONFIRMATION"
     assert first_product["tools_executed"] is False
+    assert "owner_answer_bindings" not in first_text
+    assert "candidate_semantic_roles" not in first_text
+    assert "gate_packet" not in first_product["semantic_run"]
+    assert "bridge_packet" not in first_product["semantic_run"]
     assert not list(output_dir.glob("*.xlsx"))
 
     semantic_answers = {
-        question["column_name"]: question["allowed_answers"][0]
+        question["column_name"]: next(
+            option_id
+            for option_id in question["allowed_option_ids"]
+            if option_id not in {"OTHER", "IGNORE"}
+        )
         for question in first_product["owner_questions"]
     }
     assert semantic_answers
-    assert all(value != "unknown" for value in semantic_answers.values())
+    rendered_questions = json.dumps(
+        first_product["owner_questions"], ensure_ascii=False
+    ).lower()
+    for internal_term in (
+        "unit_sale_price",
+        "unit_cost_candidate",
+        "ignored_not_relevant",
+    ):
+        assert internal_term not in rendered_questions
     semantic_answers_path.write_text(
         json.dumps(semantic_answers, ensure_ascii=False), encoding="utf-8"
     )
@@ -307,7 +324,7 @@ def test_real_cafeteria_xlsx_rejects_free_text_semantic_reentry(tmp_path: Path) 
     )
 
     assert blocked["status"] == "BLOCKED"
-    assert blocked["blocked_reason"] == "INVALID_OWNER_SEMANTIC_ANSWERS"
+    assert blocked["blocked_reason"] == "INVALID_OWNER_OPTION_ID"
     assert blocked["product_pipeline"]["tools_executed"] is False
     assert not list(tmp_path.glob("*.xlsx"))
 
@@ -497,11 +514,14 @@ def test_real_xlsx_cli_builds_liq_001_plan_without_execution(tmp_path: Path) -> 
 
     semantic_answers = {}
     for question in questions:
-        allowed = question["allowed_answers"]
-        semantic_answers[question["column_name"]] = (
-            "collected_amount"
-            if "collected_amount" in allowed
-            else next(item for item in allowed if item != "IGNORED_NOT_RELEVANT")
+        semantic_answers[question["column_name"]] = next(
+            option["option_id"]
+            for option in question["options"]
+            if option["label"] == "Importe cobrado"
+        ) if question["column_name"] == "cobrado" else next(
+            option_id
+            for option_id in question["allowed_option_ids"]
+            if option_id not in {"OTHER", "IGNORE"}
         )
     semantic_answers_path.write_text(
         json.dumps(semantic_answers, ensure_ascii=False), encoding="utf-8"

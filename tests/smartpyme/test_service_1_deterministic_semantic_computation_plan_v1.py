@@ -20,6 +20,20 @@ from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
 )
 
 
+def _option_id_for_label(question: dict, expected_text: str) -> str:
+    expected = expected_text.lower()
+    for item in question["options"]:
+        if item["option_id"] in {"OTHER", "IGNORE"}:
+            continue
+        if expected in item["label"].lower():
+            return item["option_id"]
+    return next(
+        item["option_id"]
+        for item in question["options"]
+        if item["option_id"] not in {"OTHER", "IGNORE"}
+    )
+
+
 def _cash_ingestion(*, include_collected: bool = True) -> dict:
     columns = ["fecha", "venta_total"]
     input_values = {
@@ -61,21 +75,17 @@ def _confirmed_cash_run(*, include_collected: bool = True) -> dict:
     )
     if first["status"] == STATUS_CONFIRMED_BINDINGS:
         return first
-    preferred = {
-        "fecha": "operation_date",
-        "venta_total": "sales_amount",
-        "cobrado": "collected_amount",
+    preferred_labels = {
+        "fecha": "fecha",
+        "venta_total": "venta total",
+        "cobrado": "cobrado",
     }
-    answers = {}
-    for question in first["owner_questions"]:
-        column = question["column_name"]
-        allowed = list(question["allowed_answers"])
-        answer = preferred.get(column)
-        if answer not in allowed:
-            answer = next(
-                item for item in allowed if item != "IGNORED_NOT_RELEVANT"
-            )
-        answers[column] = answer
+    answers = {
+        question["column_name"]: _option_id_for_label(
+            question, preferred_labels.get(question["column_name"], "")
+        )
+        for question in first["owner_questions"]
+    }
     out = run_owner_reentry(previous_run=first, owner_answers=answers)
     assert out["status"] == STATUS_CONFIRMED_BINDINGS
     return out

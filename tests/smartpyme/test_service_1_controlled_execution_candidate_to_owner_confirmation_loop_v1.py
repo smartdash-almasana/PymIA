@@ -29,7 +29,9 @@ from pymia.smartpyme.service_1_semantic_bridge_to_controlled_execution_gate_v1 i
 )
 from pymia.smartpyme.service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1 import (
     BLOCK_ANSWERS_NOT_DICT,
+    BLOCK_CONFLICTING_OWNER_ANSWER,
     BLOCK_EMPTY_ANSWERS,
+    BLOCK_INVALID_OPTION_ID,
     BLOCK_GATE_BLOCKED,
     BLOCK_GATE_FLAGS_FORBIDDEN,
     BLOCK_GATE_NOT_DICT,
@@ -39,6 +41,7 @@ from pymia.smartpyme.service_1_controlled_execution_candidate_to_owner_confirmat
     STATUS_ALREADY_READY,
     STATUS_OWNER_CONFIRMATION_RECHECK_READY,
     STATUS_OWNER_CONFIRMATION_REQUIRED,
+    STATUS_OWNER_FOLLOWUP_REQUIRED,
     build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1 as build_loop,
 )
 
@@ -58,6 +61,15 @@ def _first_existing(candidates: list[Path]) -> Path:
         if candidate.exists():
             return candidate
     pytest.skip(f"No fixture found among: {[str(c) for c in candidates]}")
+
+
+
+def _first_semantic_option_id(question: dict) -> str:
+    return next(
+        item["option_id"]
+        for item in question["options"]
+        if item["option_id"] not in {"OTHER", "IGNORE"}
+    )
 
 
 def _assert_all_flags_false(packet: dict) -> None:
@@ -110,13 +122,21 @@ def test_case_001_loop_owner_confirmation_required(case_001_gate_packet: dict) -
 # --- 2. CASE_001 + complete answers -> recheck ready ----------------------
 
 def test_case_001_complete_answers_recheck_ready(case_001_gate_packet: dict) -> None:
-    pending = [q["column_name"] for q in case_001_gate_packet["owner_questions"]]
-    answers = {column: f"rol confirmado {column}" for column in pending}
+    questions = case_001_gate_packet["owner_questions"]
+    pending = [q["column_name"] for q in questions]
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in questions
+    }
 
     out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
 
     assert out["status"] == STATUS_OWNER_CONFIRMATION_RECHECK_READY
     assert set(out["confirmed_answers"].keys()) == set(pending)
+    for column, option_id in answers.items():
+        assert out["confirmed_answers"][column] == (
+            case_001_gate_packet["owner_answer_bindings"][column][option_id]
+        )
     _assert_all_flags_false(out)
 
 
@@ -174,7 +194,10 @@ def test_block_answers_not_dict(case_001_gate_packet: dict) -> None:
 
 def test_block_missing_answers(case_001_gate_packet: dict) -> None:
     pending = [q["column_name"] for q in case_001_gate_packet["owner_questions"]]
-    answers = {column: "ok" for column in pending}
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in case_001_gate_packet["owner_questions"]
+    }
     answers.pop(pending[0])
     out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
     assert out["blocked_reason"] == BLOCK_MISSING_ANSWERS
@@ -182,15 +205,21 @@ def test_block_missing_answers(case_001_gate_packet: dict) -> None:
 
 def test_block_unknown_answers(case_001_gate_packet: dict) -> None:
     pending = [q["column_name"] for q in case_001_gate_packet["owner_questions"]]
-    answers = {column: "ok" for column in pending}
-    answers["ZZZ_no_pending"] = "algo"
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in case_001_gate_packet["owner_questions"]
+    }
+    answers["ZZZ_no_pending"] = "A"
     out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
     assert out["blocked_reason"] == BLOCK_UNKNOWN_ANSWERS
 
 
 def test_block_empty_answers(case_001_gate_packet: dict) -> None:
     pending = [q["column_name"] for q in case_001_gate_packet["owner_questions"]]
-    answers = {column: "ok" for column in pending}
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in case_001_gate_packet["owner_questions"]
+    }
     answers[pending[0]] = "   "  # whitespace-only -> empty
     out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
     assert out["blocked_reason"] == BLOCK_EMPTY_ANSWERS
@@ -212,3 +241,86 @@ def test_does_not_mutate_gate_packet(case_001_gate_packet: dict) -> None:
     assert set(case_001_gate_packet.keys()) == before_keys
     assert case_001_gate_packet["status"] == before_status
     assert len(case_001_gate_packet["owner_questions"]) == before_questions
+
+def test_invalid_option_id_blocks(case_001_gate_packet: dict) -> None:
+    questions = case_001_gate_packet["owner_questions"]
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in questions
+    }
+    answers[questions[0]["column_name"]] = "NOT_AN_OPTION"
+
+    out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
+
+    assert out["status"] == "BLOCKED"
+    assert out["blocked_reason"] == BLOCK_INVALID_OPTION_ID
+    assert out["confirmed_answers"] == {}
+    _assert_all_flags_false(out)
+
+
+def test_other_option_routes_to_fail_closed_followup(case_001_gate_packet: dict) -> None:
+    questions = case_001_gate_packet["owner_questions"]
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in questions
+    }
+    column = questions[0]["column_name"]
+    answers[column] = {
+        "option_id": "OTHER",
+        "free_text": "Es un indicador interno distinto.",
+    }
+
+    out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
+
+    assert out["status"] == STATUS_OWNER_FOLLOWUP_REQUIRED
+    assert out["confirmed_answers"] == {}
+    assert out["owner_followup"] == [
+        {
+            "column_name": column,
+            "option_id": "OTHER",
+            "owner_free_text": "Es un indicador interno distinto.",
+            "normalization_required": True,
+        }
+    ]
+    assert out["owner_questions"][0]["answer_type"] == "semantic_normalization_required"
+    _assert_all_flags_false(out)
+
+
+def test_other_without_text_requests_owner_free_text(case_001_gate_packet: dict) -> None:
+    questions = case_001_gate_packet["owner_questions"]
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in questions
+    }
+    column = questions[0]["column_name"]
+    answers[column] = "OTHER"
+
+    out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
+
+    assert out["status"] == STATUS_OWNER_FOLLOWUP_REQUIRED
+    assert out["confirmed_answers"] == {}
+    assert out["owner_followup"][0]["owner_free_text"] is None
+    assert out["owner_questions"][0]["answer_type"] == "owner_free_text"
+    _assert_all_flags_false(out)
+
+
+def test_free_text_with_semantic_option_blocks_as_conflicting(
+    case_001_gate_packet: dict,
+) -> None:
+    questions = case_001_gate_packet["owner_questions"]
+    answers = {
+        question["column_name"]: _first_semantic_option_id(question)
+        for question in questions
+    }
+    column = questions[0]["column_name"]
+    answers[column] = {
+        "option_id": _first_semantic_option_id(questions[0]),
+        "free_text": "Pero significa otra cosa.",
+    }
+
+    out = build_loop(gate_packet=case_001_gate_packet, owner_answers=answers)
+
+    assert out["status"] == "BLOCKED"
+    assert out["blocked_reason"] == BLOCK_CONFLICTING_OWNER_ANSWER
+    assert out["confirmed_answers"] == {}
+    _assert_all_flags_false(out)

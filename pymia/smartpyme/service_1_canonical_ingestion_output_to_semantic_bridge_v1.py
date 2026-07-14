@@ -5,14 +5,16 @@ Minimal, deterministic connector for the Servicio 1 assisted flow.
 
 Flow implemented (connector only):
 
-    canonical ingestion_output -> existing column-semantic mapper
+    canonical ingestion_output -> column understanding engine
+                               -> owner-facing question projection
                                -> semantic column candidates
                                (ready input for the semantic evidence
                                 binding engine)
 
 This module reuses existing modules and DUPLICATES NO LOGIC:
 - pymia.contracts.column_confirmation_v1 (ColumnConfirmationEntry / Matrix)
-- pymia.smartpyme.service_1_column_semantic_mapper_v1 (candidate builder)
+- pymia.smartpyme.service_1_column_understanding_engine_v1
+- pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1
 
 It consumes the ingestion_output produced by
 ``service_1_owner_confirmation_to_canonical_ingestion_output_v1`` and produces
@@ -41,6 +43,9 @@ from pymia.contracts.column_confirmation_v1 import (
 )
 from pymia.smartpyme.service_1_column_understanding_engine_v1 import (
     build_column_understandings_from_matrix_v1,
+)
+from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 import (
+    build_service_1_column_owner_question_views_v1,
 )
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
@@ -157,6 +162,7 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
     )
 
     understandings = build_column_understandings_from_matrix_v1(matrix)
+    owner_question_views = build_service_1_column_owner_question_views_v1(understandings)
     column_candidates = tuple(
         _candidate_from_understanding(item) for item in understandings
     )
@@ -184,6 +190,7 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         "ready_variable_family_ids": list(ready_variable_family_ids),
         "confirmation_matrix": matrix,
         "column_understandings": understandings,
+        "owner_question_views": owner_question_views,
         "runtime_authorized": False,
         "product_ready": False,
         "delivery_authorized": False,
@@ -310,6 +317,7 @@ def _blocked(
         "ready_variable_family_ids": [],
         "confirmation_matrix": None,
         "column_understandings": (),
+        "owner_question_views": (),
         "detail": list(detail or []),
         "runtime_authorized": False,
         "product_ready": False,

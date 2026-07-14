@@ -60,6 +60,15 @@ def _first_existing(candidates: list[Path]) -> Path:
     pytest.skip(f"No fixture found among: {[str(c) for c in candidates]}")
 
 
+
+def _first_semantic_option_id(question: dict) -> str:
+    return next(
+        item["option_id"]
+        for item in question["options"]
+        if item["option_id"] not in {"OTHER", "IGNORE"}
+    )
+
+
 def _assert_all_flags_false(packet: dict) -> None:
     assert packet["runtime_authorized"] is False
     assert packet["tool_execution_authorized"] is False
@@ -80,7 +89,7 @@ def case_001_chain() -> dict:
     gate = build_gate(semantic_bridge_packet=bridge)
     assert gate["status"] == "NEEDS_OWNER_CONFIRMATION"
     canonical_answers = {
-        question["column_name"]: question["allowed_answers"][0]
+        question["column_name"]: _first_semantic_option_id(question)
         for question in gate["owner_questions"]
     }
     loop = build_loop(gate_packet=gate, owner_answers=canonical_answers)

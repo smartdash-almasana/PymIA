@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from pathlib import Path
 
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
@@ -9,6 +11,25 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_READY,
     run_service_1_product_pipeline_v1,
 )
+
+
+
+def _first_semantic_option_id(question: dict) -> str:
+    return next(
+        item["option_id"]
+        for item in question["options"]
+        if item["option_id"] not in {"OTHER", "IGNORE"}
+    )
+
+
+def _option_id_for_label(question: dict, expected_text: str) -> str:
+    expected = expected_text.lower()
+    for item in question["options"]:
+        if item["option_id"] in {"OTHER", "IGNORE"}:
+            continue
+        if expected and expected in item["label"].lower():
+            return item["option_id"]
+    return _first_semantic_option_id(question)
 
 
 def _clear_ingestion() -> dict:
@@ -32,6 +53,9 @@ def _ambiguous_ingestion() -> dict:
         "filename": "ambiguous.xlsx",
         "columns": ["valor"],
         "input_values": {"valor": "dato del negocio"},
+        "column_evidence": {
+            "valor": {"sample_values": [100, 200], "inferred_type": "number"}
+        },
         "runtime_authorized": False,
     }
 
@@ -61,7 +85,7 @@ def test_confirmed_semantics_execute_existing_physical_pipeline(tmp_path: Path) 
         sheet_name="Ventas",
     )
     owner_answers = {
-        question["column_name"]: question["candidate_roles"][0]
+        question["column_name"]: _first_semantic_option_id(question)
         for question in first["owner_questions"]
     }
     out = run_service_1_product_pipeline_v1(
@@ -89,6 +113,30 @@ def test_owner_questions_block_before_any_tool_or_delivery(tmp_path: Path) -> No
 
     assert out["status"] == STATUS_NEEDS_OWNER
     assert out["owner_questions"]
+    rendered = json.dumps(out["owner_questions"], ensure_ascii=False)
+    for internal_token in (
+        "unit_sale_price",
+        "unit_cost_candidate",
+        "tax_amount",
+        "IGNORED_NOT_RELEVANT",
+    ):
+        assert internal_token not in rendered
+    assert all(question["options"] for question in out["owner_questions"])
+    assert set(out["semantic_run"]) == {
+        "schema_version",
+        "service_name",
+        "status",
+        "blocked_reason",
+        "owner_questions",
+        "owner_followup",
+        "runtime_authorized",
+        "tool_execution_authorized",
+        "product_ready",
+        "delivery_authorized",
+        "diagnosis_generated",
+    }
+    assert "gate_packet" not in out["semantic_run"]
+    assert "bridge_packet" not in out["semantic_run"]
     assert out["physical_run"] is None
     assert out["tools_executed"] is False
     assert list(tmp_path.iterdir()) == []
@@ -102,7 +150,7 @@ def test_owner_reentry_can_unlock_physical_execution(tmp_path: Path) -> None:
         output_dir=tmp_path,
     )
     question = first["owner_questions"][0]
-    answer = question["allowed_answers"][0]
+    answer = _first_semantic_option_id(question)
 
     out = run_service_1_product_pipeline_v1(
         ingestion_output=_ambiguous_ingestion(),
@@ -168,15 +216,14 @@ def test_product_root_builds_plan_without_executing_tools(tmp_path: Path) -> Non
         requested_capability="sold_vs_collected_gap",
         sheet_name="Ventas",
     )
+    preferred_labels = {
+        "fecha": "fecha",
+        "venta_total": "venta total",
+        "cobrado": "cobrado",
+    }
     answers = {
-        question["column_name"]: (
-            "collected_amount"
-            if "collected_amount" in question["allowed_answers"]
-            else next(
-                item
-                for item in question["allowed_answers"]
-                if item != "IGNORED_NOT_RELEVANT"
-            )
+        question["column_name"]: _option_id_for_label(
+            question, preferred_labels.get(question["column_name"], "")
         )
         for question in first["owner_questions"]
     }
@@ -195,5 +242,56 @@ def test_product_root_builds_plan_without_executing_tools(tmp_path: Path) -> Non
     assert out["computation_plan"]["formula_id"] == "LIQ_001_vendido_cobrado"
     assert out["physical_run"] is None
     assert out["tools_executed"] is False
+    assert list(tmp_path.iterdir()) == []
+    _assert_closed(out)
+
+def test_other_free_text_never_executes_tools(tmp_path: Path) -> None:
+    first = run_service_1_product_pipeline_v1(
+        ingestion_output=_ambiguous_ingestion(),
+        tool_requests=_tool_requests(),
+        output_dir=tmp_path,
+    )
+    question = first["owner_questions"][0]
+
+    out = run_service_1_product_pipeline_v1(
+        ingestion_output=_ambiguous_ingestion(),
+        tool_requests=_tool_requests(),
+        output_dir=tmp_path,
+        owner_answers={
+            question["column_name"]: {
+                "option_id": "OTHER",
+                "free_text": "Es un indicador interno distinto.",
+            }
+        },
+    )
+
+    assert out["status"] == STATUS_NEEDS_OWNER
+    assert out["semantic_bindings_confirmed"] is False
+    assert out["tools_executed"] is False
+    assert out["physical_run"] is None
+    assert out["owner_followup"][0]["normalization_required"] is True
+    assert list(tmp_path.iterdir()) == []
+    _assert_closed(out)
+
+
+def test_ignore_all_blocks_without_execution(tmp_path: Path) -> None:
+    first = run_service_1_product_pipeline_v1(
+        ingestion_output=_ambiguous_ingestion(),
+        tool_requests=_tool_requests(),
+        output_dir=tmp_path,
+    )
+    question = first["owner_questions"][0]
+
+    out = run_service_1_product_pipeline_v1(
+        ingestion_output=_ambiguous_ingestion(),
+        tool_requests=_tool_requests(),
+        output_dir=tmp_path,
+        owner_answers={question["column_name"]: "IGNORE"},
+    )
+
+    assert out["status"] == STATUS_BLOCKED
+    assert out["blocked_reason"] == "NO_ACTIVE_SEMANTIC_CANDIDATES"
+    assert out["tools_executed"] is False
+    assert out["physical_run"] is None
     assert list(tmp_path.iterdir()) == []
     _assert_closed(out)

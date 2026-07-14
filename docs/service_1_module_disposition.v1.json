@@ -16,8 +16,8 @@
   ],
   "counts": {
     "EXPERIMENTAL_FROZEN": 50,
-    "PRODUCTIVE": 14,
-    "SUPPORT_NECESSARY": 32
+    "PRODUCTIVE": 15,
+    "SUPPORT_NECESSARY": 31
   },
   "total_modules": 96,
   "modules": [
@@ -100,6 +100,7 @@
       "confidence": "HIGH",
       "imports_service_1": [
         "service_1_column_understanding_engine_v1",
+        "service_1_column_understanding_owner_question_adapter_v1",
         "service_1_semantic_evidence_binding_contracts_v1",
         "service_1_variable_family_bindings_v1"
       ],
@@ -292,17 +293,18 @@
     {
       "module": "service_1_column_understanding_owner_question_adapter_v1",
       "path": "pymia/smartpyme/service_1_column_understanding_owner_question_adapter_v1.py",
-      "disposition": "SUPPORT_NECESSARY",
-      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
-      "confidence": "MEDIUM",
+      "disposition": "PRODUCTIVE",
+      "reason": "Owner-facing projection now consumed by the canonical semantic bridge and product root.",
+      "confidence": "HIGH",
       "imports_service_1": [
         "service_1_column_understanding_engine_contract_v1"
       ],
       "internal_callers": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
         "service_1_column_understanding_owner_question_corpus_audit_v1",
         "service_1_column_understanding_owner_question_semantic_audit_v1"
       ],
-      "canonical_root_reachable": false
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_column_understanding_owner_question_corpus_audit_v1",

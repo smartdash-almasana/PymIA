@@ -22,6 +22,9 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 import (
+    Service1ColumnOwnerQuestionViewV1,
+)
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
@@ -47,8 +50,15 @@ BLOCK_BRIDGE_NOT_DICT = "BRIDGE_PACKET_NOT_DICT"
 BLOCK_BRIDGE_WRONG_STATUS = "BRIDGE_WRONG_STATUS"
 BLOCK_BRIDGE_FLAGS_FORBIDDEN = "BRIDGE_SAFETY_FLAGS_FORBIDDEN"
 BLOCK_NO_CANDIDATES = "NO_SEMANTIC_CANDIDATES"
+BLOCK_NO_ACTIVE_CANDIDATES = "NO_ACTIVE_SEMANTIC_CANDIDATES"
 BLOCK_INVALID_CANDIDATE = "INVALID_CANDIDATE_OBJECT"
 BLOCK_CANDIDATE_FLAGS_FORBIDDEN = "CANDIDATE_SAFETY_FLAGS_FORBIDDEN"
+BLOCK_OWNER_QUESTION_VIEW_MISSING = "OWNER_QUESTION_VIEW_MISSING"
+BLOCK_OWNER_QUESTION_VIEW_INVALID = "OWNER_QUESTION_VIEW_INVALID"
+BLOCK_OWNER_QUESTION_SURFACE_UNSAFE = "OWNER_QUESTION_SURFACE_UNSAFE"
+
+OWNER_OPTION_OTHER = "OTHER"
+OWNER_OPTION_IGNORE = "IGNORE"
 
 _CANDIDATE_FORBIDDEN_FLAGS = (
     "runtime_authorized",
@@ -163,6 +173,13 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
             )
         )
     ]
+    if not active_candidates:
+        return _blocked(
+            BLOCK_NO_ACTIVE_CANDIDATES,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
     candidate_roles = _collect_roles(active_candidates)
     variable_family_bindings = build_service_1_variable_family_bindings_v1(
         active_candidates
@@ -183,7 +200,17 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
     ]
 
     if needs_confirmation:
-        owner_questions = _owner_questions(needs_confirmation)
+        owner_questions, owner_answer_bindings, owner_question_error = _owner_questions(
+            semantic_bridge_packet=packet,
+            candidates=needs_confirmation,
+        )
+        if owner_question_error is not None:
+            return _blocked(
+                owner_question_error,
+                case_id=case_id,
+                source_kind=source_kind,
+                filename=filename,
+            )
         return _packet(
             status=STATUS_NEEDS_OWNER_CONFIRMATION,
             case_id=case_id,
@@ -195,6 +222,7 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
             ready_variable_family_ids=ready_variable_family_ids,
             controlled_execution_candidate=None,
             owner_questions=owner_questions,
+            owner_answer_bindings=owner_answer_bindings,
         )
 
     # Rule 9: all safe and no confirmation required -> READY (still no execution).
@@ -225,6 +253,7 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         ready_variable_family_ids=ready_variable_family_ids,
         controlled_execution_candidate=controlled_execution_candidate,
         owner_questions=[],
+        owner_answer_bindings={},
     )
 
 
@@ -238,29 +267,114 @@ def _collect_roles(candidates: list[Any]) -> list[str]:
     return roles
 
 
-def _owner_questions(candidates: list[Any]) -> list[dict[str, Any]]:
+def _owner_questions(
+    *,
+    semantic_bridge_packet: dict[str, Any],
+    candidates: list[Any],
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, str]], str | None]:
+    raw_views = semantic_bridge_packet.get("owner_question_views")
+    if not isinstance(raw_views, (list, tuple)):
+        return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
+
+    views_by_column: dict[str, Service1ColumnOwnerQuestionViewV1] = {}
+    for view in raw_views:
+        if not isinstance(view, Service1ColumnOwnerQuestionViewV1):
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+        if view.question_required:
+            views_by_column[view.column_name] = view
+
     questions: list[dict[str, Any]] = []
+    bindings_by_column: dict[str, dict[str, str]] = {}
     for candidate in candidates:
-        column = getattr(candidate, "source_column_name", "")
-        roles = [
-            role
-            for role in (getattr(candidate, "candidate_semantic_roles", ()) or ())
-            if role != "unknown"
-        ]
+        column = str(getattr(candidate, "source_column_name", "") or "").strip()
+        view = views_by_column.get(column)
+        if view is None or not view.question or not view.options:
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
+
         metadata = dict(getattr(candidate, "metadata", {}) or {})
-        questions.append(
+        raw_options = metadata.get("allowed_owner_answers")
+        if not isinstance(raw_options, list):
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+
+        internal_bindings: dict[str, str] = {}
+        for option in raw_options:
+            if not isinstance(option, dict):
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            option_id = str(option.get("option_id") or "").strip()
+            linked = option.get("linked_hypothesis")
+            if option_id == OWNER_OPTION_OTHER:
+                continue
+            if not option_id or not isinstance(linked, dict):
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            semantic_role = str(linked.get("semantic_role") or "").strip()
+            if not semantic_role:
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            if semantic_role == "unknown":
+                continue
+            internal_bindings[option_id] = semantic_role
+
+        safe_options = [
+            option.to_dict()
+            for option in view.options
+            if option.option_id in internal_bindings
+            or option.option_id == OWNER_OPTION_OTHER
+        ]
+        safe_options.append(
             {
-                "column_name": column,
-                "candidate_roles": roles,
-                "allowed_answers": roles + ["IGNORED_NOT_RELEVANT"],
-                "ambiguity_reason": getattr(candidate, "ambiguity_reason", None),
-                "question": metadata.get("owner_question_text")
-                or f"¿Qué función cumple la columna '{column}' en tu negocio?",
-                "answer_type": "select_canonical_semantic_role_or_ignore",
-                "required": True,
+                "option_id": OWNER_OPTION_IGNORE,
+                "label": "No usar esta columna",
+                "description": (
+                    "La columna no es necesaria para este análisis y queda fuera "
+                    "sin modificar el archivo original."
+                ),
             }
         )
-    return questions
+        question = {
+            "column_name": column,
+            "sheet_name": view.sheet_name,
+            "title": view.title,
+            "context": view.context,
+            "question": view.question,
+            "options": safe_options,
+            "allowed_option_ids": [item["option_id"] for item in safe_options],
+            "free_text_option_id": OWNER_OPTION_OTHER,
+            "risk_note": view.risk_note,
+            "confidence_note": view.confidence_note,
+            "answer_type": "select_owner_option_id",
+            "required": True,
+        }
+        if not _owner_question_surface_is_safe(question, candidate):
+            return [], {}, BLOCK_OWNER_QUESTION_SURFACE_UNSAFE
+
+        internal_bindings[OWNER_OPTION_IGNORE] = "IGNORED_NOT_RELEVANT"
+        questions.append(question)
+        bindings_by_column[column] = internal_bindings
+
+    return questions, bindings_by_column, None
+
+
+def _owner_question_surface_is_safe(
+    question: dict[str, Any], candidate: Any
+) -> bool:
+    generated_surface = {
+        "options": question.get("options", []),
+        "answer_type": question.get("answer_type"),
+        "free_text_option_id": question.get("free_text_option_id"),
+    }
+    rendered = str(generated_surface).lower()
+    internal_tokens = {
+        str(role).strip().lower()
+        for role in (getattr(candidate, "candidate_semantic_roles", ()) or ())
+        if str(role).strip()
+    }
+    internal_tokens.update(
+        {
+            "ignored_not_relevant",
+            "owner_rectified_function",
+            "computed_variables",
+        }
+    )
+    return not any(token in rendered for token in internal_tokens)
 
 
 def _packet(
@@ -275,6 +389,7 @@ def _packet(
     ready_variable_family_ids: tuple[str, ...],
     controlled_execution_candidate: Optional[dict[str, Any]],
     owner_questions: list[dict[str, Any]],
+    owner_answer_bindings: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -292,6 +407,10 @@ def _packet(
         "ready_variable_family_ids": list(ready_variable_family_ids),
         "controlled_execution_candidate": controlled_execution_candidate,
         "owner_questions": owner_questions,
+        "owner_answer_bindings": {
+            column: dict(bindings)
+            for column, bindings in owner_answer_bindings.items()
+        },
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -323,6 +442,7 @@ def _blocked(
         "ready_variable_family_ids": [],
         "controlled_execution_candidate": None,
         "owner_questions": [],
+        "owner_answer_bindings": {},
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -344,7 +464,13 @@ __all__ = [
     "BLOCK_BRIDGE_WRONG_STATUS",
     "BLOCK_BRIDGE_FLAGS_FORBIDDEN",
     "BLOCK_NO_CANDIDATES",
+    "BLOCK_NO_ACTIVE_CANDIDATES",
     "BLOCK_INVALID_CANDIDATE",
     "BLOCK_CANDIDATE_FLAGS_FORBIDDEN",
+    "BLOCK_OWNER_QUESTION_VIEW_MISSING",
+    "BLOCK_OWNER_QUESTION_VIEW_INVALID",
+    "BLOCK_OWNER_QUESTION_SURFACE_UNSAFE",
+    "OWNER_OPTION_OTHER",
+    "OWNER_OPTION_IGNORE",
     "build_service_1_controlled_execution_gate_from_semantic_bridge_v1",
 ]

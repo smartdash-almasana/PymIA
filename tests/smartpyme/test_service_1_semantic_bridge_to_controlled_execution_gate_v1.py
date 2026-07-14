@@ -9,6 +9,8 @@ test uses real fixtures; the READY path uses synthetic all-safe candidates.
 
 from __future__ import annotations
 
+import json
+
 from pathlib import Path
 
 import pytest
@@ -29,6 +31,7 @@ from pymia.smartpyme.service_1_semantic_bridge_to_controlled_execution_gate_v1 i
     BLOCK_CANDIDATE_FLAGS_FORBIDDEN,
     BLOCK_INVALID_CANDIDATE,
     BLOCK_NO_CANDIDATES,
+    BLOCK_OWNER_QUESTION_VIEW_MISSING,
     BLOCK_REQUEST_FLAGS_FORBIDDEN,
     EXPECTED_BRIDGE_STATUS,
     STATUS_NEEDS_OWNER_CONFIRMATION,
@@ -242,3 +245,60 @@ def test_candidate_count_matches_input(case_001_bridge_packet: dict) -> None:
 def test_roles_include_operation_date_in_case_001(case_001_bridge_packet: dict) -> None:
     out = build_gate(semantic_bridge_packet=case_001_bridge_packet)
     assert "operation_date" in out["candidate_roles"]
+
+def test_owner_question_surface_uses_safe_option_ids() -> None:
+    bridge = build_bridge(
+        ingestion_output={
+            "case_id": "case_safe_surface",
+            "source_kind": "xlsx",
+            "filename": "ambiguous.xlsx",
+            "columns": ["valor"],
+            "input_values": {"valor": "dato del negocio"},
+            "column_evidence": {
+                "valor": {"sample_values": [100, 200], "inferred_type": "number"}
+            },
+        },
+        sheet_name="Ventas",
+    )
+
+    out = build_gate(semantic_bridge_packet=bridge)
+
+    assert out["status"] == STATUS_NEEDS_OWNER_CONFIRMATION
+    question = out["owner_questions"][0]
+    rendered = json.dumps(question, ensure_ascii=False)
+    assert question["allowed_option_ids"] == ["A", "B", "C", "OTHER", "IGNORE"]
+    assert [item["option_id"] for item in question["options"]] == question["allowed_option_ids"]
+    for internal_token in (
+        "unit_sale_price",
+        "unit_cost_candidate",
+        "tax_amount",
+        "IGNORED_NOT_RELEVANT",
+    ):
+        assert internal_token not in rendered
+    assert out["owner_answer_bindings"]["valor"] == {
+        "A": "unit_sale_price",
+        "B": "unit_cost_candidate",
+        "C": "tax_amount",
+        "IGNORE": "IGNORED_NOT_RELEVANT",
+    }
+    _assert_all_flags_false(out)
+
+
+def test_pending_candidate_without_owner_view_blocks() -> None:
+    bridge = {
+        "status": EXPECTED_BRIDGE_STATUS,
+        "case_id": "case_missing_view",
+        "source_kind": "xlsx",
+        "filename": "missing_view.xlsx",
+        "column_candidates": (
+            _safe_candidate(
+                "valor", "unit_sale_price", owner_confirmation_required=True
+            ),
+        ),
+    }
+
+    out = build_gate(semantic_bridge_packet=bridge)
+
+    assert out["status"] == "BLOCKED"
+    assert out["blocked_reason"] == BLOCK_OWNER_QUESTION_VIEW_MISSING
+    _assert_all_flags_false(out)

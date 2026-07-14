@@ -7,9 +7,9 @@ For every column in a ``ColumnConfirmationMatrix`` (or in an isolated
 input dict), the engine emits a ``Service1ColumnUnderstandingV1`` whose
 shape is fixed by ``service_1_column_understanding_engine_contract_v1``.
 
-The engine is **separate from the 13 closed Service 1 chain links and
-from the orchestrator**. It must be invoked manually during CASE_001
-rehearsal; nothing wires it into the production chain yet.
+The engine remains a pure component, but its matrix entrypoint is consumed by
+the canonical Servicio 1 semantic bridge. Composition, owner dialogue and
+execution authorization remain outside this module.
 
 Design rules:
 

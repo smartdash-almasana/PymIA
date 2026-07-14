@@ -213,6 +213,8 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
         "filename": semantic_bridge_packet.get("filename"),
         "column_candidates": tuple(reinjected),
         "semantic_candidate_count": len(reinjected),
+        "column_understandings": semantic_bridge_packet.get("column_understandings", ()),
+        "owner_question_views": semantic_bridge_packet.get("owner_question_views", ()),
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,

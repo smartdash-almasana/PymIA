@@ -11,6 +11,7 @@ from typing import Any, Sequence
 
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
+    STATUS_OWNER_FOLLOWUP,
     STATUS_OWNER_QUESTIONS,
     STATUS_READY_FOR_COMPUTATION,
     build_computation_plan,
@@ -60,6 +61,13 @@ def run_service_1_product_pipeline_v1(
             previous_run=semantic_run,
             owner_answers=owner_answers,
         )
+        if semantic_run.get("status") == STATUS_OWNER_FOLLOWUP:
+            return _packet(
+                status=STATUS_NEEDS_OWNER,
+                semantic_run=semantic_run,
+                owner_questions=list(semantic_run.get("owner_questions") or []),
+                owner_followup=list(semantic_run.get("owner_followup") or []),
+            )
 
     if semantic_run.get("status") != STATUS_CONFIRMED_BINDINGS:
         return _packet(
@@ -108,21 +116,44 @@ def _packet(
     physical_run: Any = None,
     computation_plan: Any = None,
     owner_questions: list[dict[str, Any]] | None = None,
+    owner_followup: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "service_name": "SERVICE_1",
         "status": status,
         "blocked_reason": blocked_reason,
-        "semantic_run": semantic_run,
+        "semantic_run": _public_semantic_run(semantic_run),
         "physical_run": physical_run,
         "computation_plan": computation_plan,
         "owner_questions": list(owner_questions or []),
+        "owner_followup": [dict(item) for item in (owner_followup or [])],
         "semantic_bindings_confirmed": bool(
             isinstance(semantic_run, dict)
             and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
         ),
         "tools_executed": bool(isinstance(physical_run, dict)),
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
+
+
+def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
+    """Project the internal semantic trace onto the product-safe surface."""
+    if not isinstance(semantic_run, dict):
+        return None
+    return {
+        "schema_version": semantic_run.get("schema_version"),
+        "service_name": semantic_run.get("service_name"),
+        "status": semantic_run.get("status"),
+        "blocked_reason": semantic_run.get("blocked_reason"),
+        "owner_questions": list(semantic_run.get("owner_questions") or []),
+        "owner_followup": [
+            dict(item) for item in (semantic_run.get("owner_followup") or [])
+        ],
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,

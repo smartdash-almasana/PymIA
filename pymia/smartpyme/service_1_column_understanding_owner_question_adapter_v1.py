@@ -1,7 +1,8 @@
 """Service 1 — Column Understanding Owner Question Adapter V1.
 
-Pure owner-facing projection of Service1ColumnUnderstandingV1.
-No frontend wiring, no I/O, no orchestration, no runtime authorization.
+Pure owner-facing projection of Service1ColumnUnderstandingV1, consumed by
+the canonical semantic bridge. No frontend I/O, orchestration, tool execution
+or runtime authorization.
 """
 
 from __future__ import annotations
