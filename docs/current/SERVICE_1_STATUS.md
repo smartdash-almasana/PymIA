@@ -2,9 +2,9 @@
 
 **Fecha de corte:** 2026-07-14
 
-**Baseline estructural comprometida:** `c4834a8`
+**Baseline funcional comprometida:** `5fec9ff`
 
-**Regresión del corte P7/P8:** `2823 passed, 1 skipped` en Python 3.11 limpio
+**Regresión posterior al saneamiento 001:** `2694 passed, 1 skipped` en Python 3.11 limpio
 
 ## Estado
 
@@ -104,12 +104,25 @@ DIAGNOSIS_GENERATED: false
 - No hay LLM con autoridad de decisión dentro del pipeline.
 - No hay autorización para una cadena paralela, un segundo parser XLSX ni una arquitectura SaaS alternativa.
 
+## Saneamiento posterior a P7/P8
+
+```text
+LOTE 001: CERRADO TÉCNICAMENTE
+→ 9 módulos paralelos eliminados
+→ 9 tests asociados eliminados
+→ cadena histórica plan → autorización → dry-run → validación → ejecución → delivery removida
+→ gates aislados de auto-tool removidos
+→ registro: 139 módulos
+→ productivos: 14
+→ congelados: 93
+```
+
 ## Próximo frente
 
 ```text
-P9_CONTROLLED_FORMULA_EXECUTION
-→ consumir exclusivamente un plan READY_FOR_COMPUTATION
-→ ejecutar LIQ_001 con el motor determinístico existente
-→ conservar runtime_authorized=false y diagnosis_generated=false
-→ producir resultado computacional trazable, todavía sin delivery automático
+SANITATION_BATCH_002
+→ auditar componentes congelados aislados por clausura completa
+→ eliminar solo componentes sin callers productivos ni autoridad documental
+→ conservar P7/P8 y la ruta canónica sin cambios
+→ no abrir ejecución de LIQ_001 hasta cerrar el saneamiento estructural
 ```

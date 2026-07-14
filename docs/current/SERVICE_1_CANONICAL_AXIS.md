@@ -71,8 +71,8 @@ B. TOOL REQUEST EXPLÍCITA
 ## Evidencia vigente
 
 ```text
-BASELINE ESTRUCTURAL: c4834a8
-REGRESIÓN P7/P8: 2823 passed, 1 skipped
+BASELINE FUNCIONAL: 5fec9ff
+REGRESIÓN POST-SANEAMIENTO 001: 2694 passed, 1 skipped
 PYTHON LIMPIO: 3.11
 REAL XLSX PLAN-ONLY: PASS
 FIRST PASS: NEEDS_OWNER_CONFIRMATION
@@ -104,9 +104,18 @@ FREE-TEXT SEMANTIC REENTRY: BLOCKED
 - ruta explícita de tools y generación física de XLSX;
 - serialización CLI y compatibilidad con JSON de PowerShell con BOM.
 
+### Saneamiento certificado en este corte
+
+- eliminada la cadena paralela plan → autorización → dry-run → validación → ejecución → delivery;
+- eliminados tres gates aislados de auto-tool y ejecución especulativa;
+- eliminados nueve módulos y sus nueve tests propios;
+- registro reducido a 139 módulos: 14 productivos, 32 de soporte y 93 congelados;
+- clausura productiva P7/P8 preservada sin cambios.
+
 ### Pendiente
 
-- ejecutar de forma controlada un plan `READY_FOR_COMPUTATION` mediante el motor determinístico existente;
+- continuar el saneamiento por componentes completos, sin borrado individual por nombre;
+- ejecutar de forma controlada un plan `READY_FOR_COMPUTATION` solo después del cierre estructural;
 - ampliar capacidades formulaicas una por una, con vocabulario y política explícitos;
 - conectar el universo restante de patologías, fórmulas y capacidades a esta raíz;
 - completar la experiencia conversacional sobre la misma raíz;
