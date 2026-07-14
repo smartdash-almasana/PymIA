@@ -16,8 +16,8 @@
   ],
   "counts": {
     "EXPERIMENTAL_FROZEN": 102,
-    "PRODUCTIVE": 12,
-    "SUPPORT_NECESSARY": 34
+    "PRODUCTIVE": 14,
+    "SUPPORT_NECESSARY": 32
   },
   "total_modules": 148,
   "modules": [
@@ -30,7 +30,9 @@
       "imports_service_1": [
         "service_1_xlsx_delivery_v1"
       ],
-      "internal_callers": [],
+      "internal_callers": [
+        "excel_treatment_lab_completion_slice_v1"
+      ],
       "canonical_root_reachable": false
     },
     {
@@ -42,7 +44,10 @@
       "imports_service_1": [
         "service_1_xlsx_delivery_v1"
       ],
-      "internal_callers": [],
+      "internal_callers": [
+        "excel_treatment_lab_completion_slice_v1",
+        "exceland_execution_flow_v1"
+      ],
       "canonical_root_reachable": false
     },
     {
@@ -64,7 +69,13 @@
       "imports_service_1": [
         "service_1_xlsx_delivery_v1"
       ],
-      "internal_callers": [],
+      "internal_callers": [
+        "accounting_workpaper_contract_v1",
+        "bank_reconciliation_contract_v1",
+        "invoice_collection_matching_contract_v1",
+        "mercado_pago_reconciliation_contract_v1",
+        "supplier_purchase_review_contract_v1"
+      ],
       "canonical_root_reachable": false
     },
     {
@@ -639,7 +650,11 @@
         "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
         "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
         "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
-        "service_1_semantic_bridge_to_controlled_execution_gate_v1"
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+        "service_1_semantic_catalog_loader_v1",
+        "service_1_semantic_evidence_binding_contracts_v1",
+        "service_1_semantic_evidence_binding_engine_v1",
+        "service_1_variable_family_bindings_v1"
       ],
       "internal_callers": [
         "service_1_product_pipeline_v1"
@@ -1626,14 +1641,15 @@
     {
       "module": "service_1_semantic_catalog_loader_v1",
       "path": "pymia/smartpyme/service_1_semantic_catalog_loader_v1.py",
-      "disposition": "SUPPORT_NECESSARY",
-      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
-      "confidence": "MEDIUM",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
       "imports_service_1": [],
       "internal_callers": [
+        "service_1_deterministic_semantic_pipeline_v1",
         "service_1_semantic_evidence_binding_engine_v1"
       ],
-      "canonical_root_reachable": false
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_semantic_concept_catalog_candidate_v1",
@@ -1683,6 +1699,7 @@
       "internal_callers": [
         "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
         "service_1_column_semantic_mapper_v1",
+        "service_1_deterministic_semantic_pipeline_v1",
         "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
         "service_1_semantic_bridge_to_controlled_execution_gate_v1",
         "service_1_semantic_evidence_binding_engine_v1",
@@ -1693,15 +1710,17 @@
     {
       "module": "service_1_semantic_evidence_binding_engine_v1",
       "path": "pymia/smartpyme/service_1_semantic_evidence_binding_engine_v1.py",
-      "disposition": "SUPPORT_NECESSARY",
-      "reason": "Retained measurement, catalog, ingestion, delivery, or domain support; not a parallel product root.",
-      "confidence": "MEDIUM",
+      "disposition": "PRODUCTIVE",
+      "reason": "Transitive dependency of the canonical Service 1 product pipeline root.",
+      "confidence": "HIGH",
       "imports_service_1": [
         "service_1_semantic_catalog_loader_v1",
         "service_1_semantic_evidence_binding_contracts_v1"
       ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
+      "internal_callers": [
+        "service_1_deterministic_semantic_pipeline_v1"
+      ],
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_semantic_plan_to_xlsx_bridge_composition_v1",
@@ -1862,6 +1881,7 @@
       ],
       "internal_callers": [
         "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_deterministic_semantic_pipeline_v1",
         "service_1_semantic_bridge_to_controlled_execution_gate_v1"
       ],
       "canonical_root_reachable": true
@@ -1902,8 +1922,13 @@
       "confidence": "MEDIUM",
       "imports_service_1": [],
       "internal_callers": [
+        "accounting_workpaper_completion_slice_v1",
+        "bank_reconciliation_sandbox_completion_slice_v1",
+        "excel_treatment_lab_completion_slice_v1",
         "excel_treatment_lab_v1",
         "exceland_bridge_v1",
+        "first_aid_xlsx_delivery_v1",
+        "invoice_collection_matching_sandbox_completion_slice_v1",
         "service_1_accounting_contracts_v1"
       ],
       "canonical_root_reachable": false

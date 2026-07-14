@@ -2,7 +2,7 @@
 
 ## Propósito
 
-Este documento define una sola orientación para Servicio 1. Sustituye las hojas de ruta, checkpoints y cadenas documentales anteriores que presentaban recorridos paralelos o estados ya superados.
+Este documento define una sola orientación para Servicio 1. Sustituye hojas de ruta, checkpoints y cadenas documentales anteriores que presentaban recorridos paralelos o estados superados.
 
 ## Definición
 
@@ -16,7 +16,7 @@ Los archivos son el producto.
 El dueño confirma significado durante la lectura.
 ```
 
-La confirmación del dueño no es una revisión posterior a la entrega. Es evidencia de entrada dentro del proceso de comprensión.
+La confirmación del dueño no es revisión posterior a la entrega. Es evidencia de entrada dentro del proceso de comprensión.
 
 ## Única raíz productiva
 
@@ -34,33 +34,56 @@ XLSX real
 → comprensión semántica de columnas
 → confirmación del dueño, solo si existe duda
 → reentrada semántica validada
-→ vínculo de evidencia
+→ familias de variables
 → gate de seguridad y computabilidad
-→ tool determinística explícita
-→ QA y archivo XLSX de entrega
+```
+
+Desde ese punto existen dos salidas gobernadas:
+
+```text
+A. CAPACIDAD EXPLÍCITA
+→ matriz fórmula–patología–evidencia
+→ binding semántico de variables
+→ plan READY_FOR_COMPUTATION
+→ sin ejecución, sin diagnóstico y sin delivery automático
+
+B. TOOL REQUEST EXPLÍCITA
+→ tool determinística permitida
+→ QA
+→ archivo XLSX de entrega
 ```
 
 ## Reglas obligatorias
 
 - Una sola raíz productiva.
-- Un solo lector/normalizador XLSX canónico.
+- Un solo lector y normalizador XLSX canónico.
 - Ninguna respuesta libre puede desbloquear un rol semántico desconocido.
 - `unknown` permanece bloqueado hasta recibir una opción canónica o ser marcado `IGNORED_NOT_RELEVANT`.
+- La confirmación explícita del dueño prevalece sobre hipótesis secundarias del matcher.
+- Una familia incompleta no puede producir una fórmula lista.
+- Una relación de catálogo no autoriza runtime por existir.
+- `READY_FOR_COMPUTATION` no significa `runtime_authorized`, `tool_execution_authorized`, `delivery_authorized` ni `diagnosis_generated`.
 - La capa conversacional no selecciona tools, no diagnostica y no altera gates.
 - No se infiere ejecución por entusiasmo, nombre de archivo o texto del dueño.
-- No se crean nuevas cadenas soberanas alrededor de piezas ya existentes.
+- No se crean nuevas cadenas soberanas alrededor de piezas existentes.
 - Los documentos antiguos no autorizan código.
 
 ## Evidencia vigente
 
 ```text
-COMMIT: cfea59f
-REGRESIÓN: 2857 passed, 1 skipped
-REAL XLSX E2E: cafeteria_abc.xlsx
-FIRST PASS: NEEDS_OWNER_CONFIRMATION / tools_executed=false
+BASELINE ESTRUCTURAL: c4834a8
+REGRESIÓN P7/P8: 2823 passed, 1 skipped
+PYTHON LIMPIO: 3.11
+REAL XLSX PLAN-ONLY: PASS
+FIRST PASS: NEEDS_OWNER_CONFIRMATION
 CANONICAL REENTRY: PASS
-EXPLICIT TOOL EXECUTION: PASS
-PHYSICAL XLSX OUTPUT: PASS
+READY FAMILY: CASH_COLLECTIONS
+REQUESTED CAPABILITY: sold_vs_collected_gap
+FORMULA: LIQ_001_vendido_cobrado
+SOURCE BINDINGS: venta_total + cobrado
+COMPUTATION PLAN: READY_FOR_COMPUTATION
+COMPUTATION EXECUTED: false
+EXPLICIT TOOL EXECUTION PATH: PASS
 FREE-TEXT SEMANTIC REENTRY: BLOCKED
 ```
 
@@ -72,17 +95,22 @@ FREE-TEXT SEMANTIC REENTRY: BLOCKED
 - comprensión de columnas integrada;
 - preguntas semánticas limitadas;
 - reentrada segura;
-- gate fail-closed;
-- ejecución explícita de tools permitidas;
-- generación física de XLSX;
+- confirmación del dueño prioritaria en el matcher;
+- familias de variables integradas;
+- loader de catálogos integrado en la raíz;
+- motor de evidencia semántica integrado en la raíz;
+- relación gobernada `CASH_COLLECTIONS → LIQ_001_vendido_cobrado`;
+- plan computable sin ejecución;
+- ruta explícita de tools y generación física de XLSX;
 - serialización CLI y compatibilidad con JSON de PowerShell con BOM.
 
 ### Pendiente
 
-- conectar el universo completo de patologías, fórmulas y capacidades a esta raíz;
-- derivar planes de análisis desde evidencia confirmada sin hardcode ni cadenas paralelas;
-- completar la experiencia conversacional sobre esta misma raíz;
-- mantener CI, build y dependencias reproducibles después de la consolidación física.
+- ejecutar de forma controlada un plan `READY_FOR_COMPUTATION` mediante el motor determinístico existente;
+- ampliar capacidades formulaicas una por una, con vocabulario y política explícitos;
+- conectar el universo restante de patologías, fórmulas y capacidades a esta raíz;
+- completar la experiencia conversacional sobre la misma raíz;
+- conservar CI, build y dependencias reproducibles.
 
 ## Documentación rectora relacionada
 
@@ -91,6 +119,7 @@ docs/current/README.md
 docs/current/SERVICE_1_STATUS.md
 docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
 docs/service_1_module_disposition.v1.json
+docs/service_1_formula_pathology_evidence_matrix.v1.json
 ```
 
-Cualquier documento no citado por `docs/current/README.md` carece de autoridad sobre Servicio 1.
+Cualquier documento no listado en `docs/current/README.md` ni citado expresamente como evidencia técnica por un documento rector carece de autoridad sobre Servicio 1.

@@ -34,7 +34,12 @@
       "runtime_allowed": false,
       "phase_5_allowed": false,
       "readiness_status": "not_runtime_ready",
-      "owner_confirmation_required": true
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "net_margin_real"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": false
     },
     {
       "pathology_code": "LIQ_001",
@@ -57,7 +62,12 @@
       "runtime_allowed": false,
       "phase_5_allowed": false,
       "readiness_status": "not_runtime_ready",
-      "owner_confirmation_required": true
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "sold_vs_collected_gap"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true
     },
     {
       "pathology_code": "SAL_001",
@@ -68,7 +78,10 @@
       "runtime_allowed": false,
       "phase_5_allowed": false,
       "readiness_status": "not_runtime_ready",
-      "owner_confirmation_required": true
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
     },
     {
       "pathology_code": "STK_001",
@@ -79,7 +92,10 @@
       "runtime_allowed": false,
       "phase_5_allowed": false,
       "readiness_status": "not_runtime_ready",
-      "owner_confirmation_required": true
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
     },
     {
       "pathology_code": "CST_001",
@@ -90,7 +106,10 @@
       "runtime_allowed": false,
       "phase_5_allowed": false,
       "readiness_status": "not_runtime_ready",
-      "owner_confirmation_required": true
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
     },
     {
       "pathology_code": "CSH_001",
@@ -101,7 +120,12 @@
       "runtime_allowed": false,
       "phase_5_allowed": false,
       "readiness_status": "not_runtime_ready",
-      "owner_confirmation_required": true
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
     }
-  ]
+  ],
+  "semantic_binding_candidate_allowed": true,
+  "computation_candidate_planning_allowed": true
 }

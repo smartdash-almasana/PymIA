@@ -9,6 +9,7 @@ from pymia.smartpyme.service_1_semantic_catalog_loader_v1 import (
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     BINDING_STATUS_AMBIGUOUS,
     BINDING_STATUS_BOUND_CANDIDATE,
+    BINDING_STATUS_BOUND_CONFIRMED,
     BINDING_STATUS_MISSING_REQUIRED_COLUMN,
     BINDING_STATUS_NEEDS_OWNER_CONFIRMATION,
     PATHOLOGY_FORMULA_STATUS_NEEDS_OWNER_CONFIRMATION,
@@ -59,11 +60,13 @@ def build_service_1_column_variable_bindings_v1(
             bindings.append(_missing_binding(variable_name=variable_name, formula_id=formula_entry.formula_id))
             continue
 
-        binding_status = (
-            BINDING_STATUS_NEEDS_OWNER_CONFIRMATION
-            if candidate.owner_confirmation_required
-            else BINDING_STATUS_BOUND_CANDIDATE
-        )
+        owner_confirmed = bool((candidate.metadata or {}).get("owner_confirmed"))
+        if candidate.owner_confirmation_required:
+            binding_status = BINDING_STATUS_NEEDS_OWNER_CONFIRMATION
+        elif owner_confirmed:
+            binding_status = BINDING_STATUS_BOUND_CONFIRMED
+        else:
+            binding_status = BINDING_STATUS_BOUND_CANDIDATE
         bindings.append(
             Service1ColumnVariableBindingV1(
                 source_column_name=candidate.source_column_name,
@@ -72,7 +75,7 @@ def build_service_1_column_variable_bindings_v1(
                 binding_status=binding_status,
                 semantic_role=_first_text(candidate.candidate_semantic_roles),
                 confidence=candidate.confidence,
-                owner_confirmed=False,
+                owner_confirmed=owner_confirmed,
                 blocking_reason="owner_confirmation_required"
                 if binding_status == BINDING_STATUS_NEEDS_OWNER_CONFIRMATION
                 else None,
@@ -151,6 +154,7 @@ def build_service_1_pathology_formula_candidate_v1(
         for binding in bindings
         if binding.binding_status
         in {
+            BINDING_STATUS_BOUND_CONFIRMED,
             BINDING_STATUS_BOUND_CANDIDATE,
             BINDING_STATUS_NEEDS_OWNER_CONFIRMATION,
             BINDING_STATUS_AMBIGUOUS,
@@ -287,10 +291,24 @@ def _find_candidate_for_variable(
     column_candidates: tuple[Service1ColumnSemanticCandidateV1, ...],
     variable_name: str,
 ) -> Service1ColumnSemanticCandidateV1 | None:
-    for candidate in column_candidates:
-        if variable_name in candidate.candidate_variable_names:
-            return candidate
-    return None
+    matches = [
+        candidate
+        for candidate in column_candidates
+        if variable_name in candidate.candidate_variable_names
+    ]
+    if not matches:
+        return None
+
+    def _rank(candidate: Service1ColumnSemanticCandidateV1) -> tuple[int, int, int, float]:
+        metadata = dict(candidate.metadata or {})
+        return (
+            int(bool(metadata.get("owner_confirmed"))),
+            int(str(metadata.get("primary_variable_name") or "") == variable_name),
+            int(tuple(candidate.candidate_variable_names) == (variable_name,)),
+            float(candidate.confidence),
+        )
+
+    return max(matches, key=_rank)
 
 
 def _missing_binding(*, variable_name: str, formula_id: str) -> Service1ColumnVariableBindingV1:

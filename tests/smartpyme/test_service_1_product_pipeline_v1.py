@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
+    STATUS_COMPUTATION_PLAN_READY,
     STATUS_NEEDS_OWNER,
     STATUS_READY,
     run_service_1_product_pipeline_v1,
@@ -126,5 +127,73 @@ def test_invalid_semantic_input_blocks_without_execution(tmp_path: Path) -> None
     assert out["status"] == STATUS_BLOCKED
     assert out["blocked_reason"] == "INGESTION_OUTPUT_NOT_DICT"
     assert out["physical_run"] is None
+    assert list(tmp_path.iterdir()) == []
+    _assert_closed(out)
+
+
+def _cash_collection_ingestion() -> dict:
+    return {
+        "case_id": "case_product_cash_plan",
+        "source_kind": "xlsx",
+        "filename": "ventas_cobros.xlsx",
+        "columns": ["fecha", "venta_total", "cobrado"],
+        "input_values": {
+            "fecha": "fecha de la operación",
+            "venta_total": "importe total vendido",
+            "cobrado": "importe efectivamente cobrado",
+        },
+        "column_evidence": {
+            "fecha": {
+                "sample_values": ["2026-06-01", "2026-06-02"],
+                "inferred_type": "date",
+            },
+            "venta_total": {
+                "sample_values": [1000, 2000],
+                "inferred_type": "number",
+            },
+            "cobrado": {
+                "sample_values": [800, 1500],
+                "inferred_type": "number",
+            },
+        },
+        "runtime_authorized": False,
+    }
+
+
+def test_product_root_builds_plan_without_executing_tools(tmp_path: Path) -> None:
+    first = run_service_1_product_pipeline_v1(
+        ingestion_output=_cash_collection_ingestion(),
+        tool_requests=[],
+        output_dir=tmp_path,
+        requested_capability="sold_vs_collected_gap",
+        sheet_name="Ventas",
+    )
+    answers = {
+        question["column_name"]: (
+            "collected_amount"
+            if "collected_amount" in question["allowed_answers"]
+            else next(
+                item
+                for item in question["allowed_answers"]
+                if item != "IGNORED_NOT_RELEVANT"
+            )
+        )
+        for question in first["owner_questions"]
+    }
+    out = run_service_1_product_pipeline_v1(
+        ingestion_output=_cash_collection_ingestion(),
+        tool_requests=[],
+        output_dir=tmp_path,
+        requested_capability="sold_vs_collected_gap",
+        owner_answers=answers,
+        sheet_name="Ventas",
+    )
+
+    assert out["status"] == STATUS_COMPUTATION_PLAN_READY
+    assert out["semantic_bindings_confirmed"] is True
+    assert out["computation_plan"]["status"] == "READY_FOR_COMPUTATION"
+    assert out["computation_plan"]["formula_id"] == "LIQ_001_vendido_cobrado"
+    assert out["physical_run"] is None
+    assert out["tools_executed"] is False
     assert list(tmp_path.iterdir()) == []
     _assert_closed(out)
