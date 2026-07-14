@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 50,
+    "EXPERIMENTAL_FROZEN": 47,
     "PRODUCTIVE": 15,
     "SUPPORT_NECESSARY": 31
   },
-  "total_modules": 96,
+  "total_modules": 93,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -149,7 +149,6 @@
       ],
       "internal_callers": [
         "service_1_document_curation_report_to_owner_prompt_batch_bridge_v1",
-        "service_1_owner_prompt_batch_display_model_v1",
         "service_1_owner_prompt_batch_to_question_bundle_alignment_v1",
         "service_1_xlsx_structure_to_column_confirmation_v1"
       ],
@@ -163,9 +162,7 @@
       "confidence": "MEDIUM",
       "imports_service_1": [],
       "internal_callers": [
-        "service_1_column_interpretation_to_owner_prompt_bridge_v1",
-        "service_1_owner_column_confirmation_answer_intake_v1",
-        "service_1_owner_prompt_batch_display_model_v1"
+        "service_1_column_interpretation_to_owner_prompt_bridge_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -572,21 +569,6 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_owner_column_confirmation_answer_intake_v1",
-      "path": "pymia/smartpyme/service_1_owner_column_confirmation_answer_intake_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_column_confirmation_owner_prompt_v1",
-        "service_1_owner_prompt_batch_display_model_v1"
-      ],
-      "internal_callers": [
-        "service_1_web_column_confirmation_closed_loop_smoke_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_owner_confirmation_boundary_v1",
       "path": "pymia/smartpyme/service_1_owner_confirmation_boundary_v1.py",
       "disposition": "SUPPORT_NECESSARY",
@@ -637,22 +619,6 @@
       "imports_service_1": [],
       "internal_callers": [
         "service_1_column_interpretation_to_owner_prompt_bridge_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_owner_prompt_batch_display_model_v1",
-      "path": "pymia/smartpyme/service_1_owner_prompt_batch_display_model_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_column_confirmation_owner_prompt_batch_v1",
-        "service_1_column_confirmation_owner_prompt_v1"
-      ],
-      "internal_callers": [
-        "service_1_owner_column_confirmation_answer_intake_v1",
-        "service_1_web_column_confirmation_closed_loop_smoke_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -1241,20 +1207,6 @@
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_web_column_confirmation_closed_loop_smoke_v1",
-      "path": "pymia/smartpyme/service_1_web_column_confirmation_closed_loop_smoke_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_owner_column_confirmation_answer_intake_v1",
-        "service_1_owner_prompt_batch_display_model_v1",
-        "service_1_xlsx_structure_extraction_to_adapter_chain_v1"
-      ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_web_column_confirmation_intake_boundary_v1",
       "path": "pymia/smartpyme/service_1_web_column_confirmation_intake_boundary_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
@@ -1356,9 +1308,7 @@
       "imports_service_1": [
         "service_1_xlsx_structure_to_column_confirmation_v1"
       ],
-      "internal_callers": [
-        "service_1_web_column_confirmation_closed_loop_smoke_v1"
-      ],
+      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {
