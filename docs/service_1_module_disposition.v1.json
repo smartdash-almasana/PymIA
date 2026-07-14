@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 63,
+    "EXPERIMENTAL_FROZEN": 53,
     "PRODUCTIVE": 14,
     "SUPPORT_NECESSARY": 32
   },
-  "total_modules": 109,
+  "total_modules": 99,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -78,63 +78,6 @@
         "service_1_owner_prompt_batch_to_question_bundle_alignment_v1"
       ],
       "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_bounded_engine_to_allowed_computation_adapter_v1",
-      "path": "pymia/smartpyme/service_1_bounded_engine_to_allowed_computation_adapter_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_bounded_semantic_engine_implementation_v1",
-        "service_1_pathology_to_allowed_computation_candidate_v1"
-      ],
-      "internal_callers": [
-        "service_1_semantic_runtime_plan_candidate_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_bounded_semantic_engine_contract_v1",
-      "path": "pymia/smartpyme/service_1_bounded_semantic_engine_contract_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_bounded_semantic_engine_invocation_port_v1"
-      ],
-      "internal_callers": [
-        "service_1_bounded_semantic_engine_implementation_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_bounded_semantic_engine_implementation_v1",
-      "path": "pymia/smartpyme/service_1_bounded_semantic_engine_implementation_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_bounded_semantic_engine_contract_v1"
-      ],
-      "internal_callers": [
-        "service_1_bounded_engine_to_allowed_computation_adapter_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_bounded_semantic_engine_invocation_port_v1",
-      "path": "pymia/smartpyme/service_1_bounded_semantic_engine_invocation_port_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_semantic_binding_bounded_invocation_v1"
-      ],
-      "internal_callers": [
-        "service_1_bounded_semantic_engine_contract_v1"
-      ],
       "canonical_root_reachable": false
     },
     {
@@ -681,8 +624,7 @@
       "imports_service_1": [],
       "internal_callers": [
         "service_1_pipeline_readiness_gate_v1",
-        "service_1_runtime_catalog_pipeline_composition_v1",
-        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
+        "service_1_runtime_catalog_pipeline_composition_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -964,9 +906,7 @@
         "service_1_pathology_anamnesis_triage_contract_v1"
       ],
       "internal_callers": [
-        "service_1_bounded_engine_to_allowed_computation_adapter_v1",
         "service_1_pathology_evidence_readiness_gate_v1",
-        "service_1_semantic_runtime_plan_candidate_v1",
         "service_1_xlsx_first_product_entrypoint_v1"
       ],
       "canonical_root_reachable": false
@@ -1160,9 +1100,7 @@
         "service_1_runtime_catalog_binding_contract_v1",
         "service_1_runtime_catalog_to_semantic_binding_handoff_v1"
       ],
-      "internal_callers": [
-        "service_1_semantic_binding_activation_v1"
-      ],
+      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {
@@ -1177,60 +1115,6 @@
       "internal_callers": [
         "service_1_pipeline_readiness_gate_v1",
         "service_1_runtime_catalog_pipeline_composition_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_runtime_release_gate_v1",
-      "path": "pymia/smartpyme/service_1_runtime_release_gate_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
-      ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_semantic_binding_activation_v1",
-      "path": "pymia/smartpyme/service_1_semantic_binding_activation_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_runtime_catalog_pipeline_composition_v1"
-      ],
-      "internal_callers": [
-        "service_1_semantic_binding_execution_harness_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_semantic_binding_bounded_invocation_v1",
-      "path": "pymia/smartpyme/service_1_semantic_binding_bounded_invocation_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_semantic_binding_execution_harness_v1"
-      ],
-      "internal_callers": [
-        "service_1_bounded_semantic_engine_invocation_port_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_semantic_binding_execution_harness_v1",
-      "path": "pymia/smartpyme/service_1_semantic_binding_execution_harness_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_semantic_binding_activation_v1"
-      ],
-      "internal_callers": [
-        "service_1_semantic_binding_bounded_invocation_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -1334,37 +1218,6 @@
         "service_1_deterministic_semantic_pipeline_v1"
       ],
       "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_semantic_plan_to_xlsx_bridge_composition_v1",
-      "path": "pymia/smartpyme/service_1_semantic_plan_to_xlsx_bridge_composition_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_owner_confirmation_boundary_v1",
-        "service_1_semantic_runtime_plan_candidate_v1",
-        "service_1_xlsx_runtime_bridge_v1"
-      ],
-      "internal_callers": [
-        "service_1_runtime_release_gate_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_semantic_runtime_plan_candidate_v1",
-      "path": "pymia/smartpyme/service_1_semantic_runtime_plan_candidate_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_bounded_engine_to_allowed_computation_adapter_v1",
-        "service_1_pathology_to_allowed_computation_candidate_v1"
-      ],
-      "internal_callers": [
-        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
-      ],
-      "canonical_root_reachable": false
     },
     {
       "module": "service_1_stock_movement_evidence_packet_v1",
@@ -1533,8 +1386,7 @@
         "service_1_xlsx_first_product_entrypoint_v1"
       ],
       "internal_callers": [
-        "service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1",
-        "service_1_semantic_plan_to_xlsx_bridge_composition_v1"
+        "service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1"
       ],
       "canonical_root_reachable": false
     },
