@@ -72,6 +72,24 @@ def _write_confirmed_columns(tmp_path: Path) -> Path:
     return cc_path
 
 
+def _patch_fake_exceland_factory(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Inject the optional Exceland boundary for deterministic CLI tests."""
+    from openpyxl import Workbook
+    import pymia.smartpyme.exceland_runtime_v1 as runtime_module
+
+    def fake_build_product(product_ref: str, *, output_path: str | Path) -> None:
+        workbook = Workbook()
+        workbook.active.title = "DATOS"
+        workbook.active["A1"] = product_ref
+        workbook.save(Path(output_path))
+
+    monkeypatch.setattr(
+        runtime_module,
+        "_load_build_product",
+        lambda: fake_build_product,
+    )
+
+
 # ---------------------------------------------------------------------------
 # 1. CLI acepta --run-tools con 5 tools explícitas
 # ---------------------------------------------------------------------------
@@ -387,6 +405,7 @@ def test_cli_run_factory_success(
     tmp_path, monkeypatch, capsys
 ) -> None:
     xlsx_path = _find_xlsx_fixture()
+    _patch_fake_exceland_factory(monkeypatch)
     monkeypatch.chdir(tmp_path)
 
     from pymia.cli.service_1_operator import main
@@ -483,6 +502,7 @@ def test_cli_run_factory_custom_output_filename(
     tmp_path, monkeypatch, capsys
 ) -> None:
     xlsx_path = _find_xlsx_fixture()
+    _patch_fake_exceland_factory(monkeypatch)
     monkeypatch.chdir(tmp_path)
 
     from pymia.cli.service_1_operator import main
@@ -499,11 +519,15 @@ def test_cli_run_factory_custom_output_filename(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "OK" in captured.out
+    assert "Factor\u00eda Excel" in captured.out
 
     case_dir = tmp_path / ".tmp" / "service_1_cases"
     case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
-    factory_result = json.loads((case_folders[0] / "factory_result.json").read_text(encoding="utf-8"))
+    factory_result = json.loads(
+        (case_folders[0] / "factory_result.json").read_text(encoding="utf-8")
+    )
+    assert factory_result["status"] == "OK"
+    assert factory_result["artifact_exists"] is True
     assert "mi_caja_personalizada.xlsx" in factory_result["output_path"]
 
 
@@ -512,6 +536,7 @@ def test_cli_factory_and_tools_can_coexist(
 ) -> None:
     xlsx_path = _find_xlsx_fixture()
     tools_path = _write_five_tool_requests(tmp_path)
+    _patch_fake_exceland_factory(monkeypatch)
     monkeypatch.chdir(tmp_path)
 
     from pymia.cli.service_1_operator import main
@@ -529,10 +554,14 @@ def test_cli_factory_and_tools_can_coexist(
     assert exit_code == 0
     assert "Pipeline de herramientas First Aid" in captured.out
     assert "Factor\u00eda Excel" in captured.out
-    assert "OK" in captured.out
 
     case_dir = tmp_path / ".tmp" / "service_1_cases"
     case_folders = [d for d in case_dir.iterdir() if d.is_dir()]
     assert len(case_folders) == 1
-    assert (case_folders[0] / "pipeline_result.json").exists()
-    assert (case_folders[0] / "factory_result.json").exists()
+    pipeline_path = case_folders[0] / "pipeline_result.json"
+    factory_path = case_folders[0] / "factory_result.json"
+    assert pipeline_path.exists()
+    assert factory_path.exists()
+    factory_result = json.loads(factory_path.read_text(encoding="utf-8"))
+    assert factory_result["status"] == "OK"
+    assert factory_result["artifact_exists"] is True

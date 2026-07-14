@@ -15,12 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 103,
-    "OBSOLETE_ELIMINABLE": 5,
+    "EXPERIMENTAL_FROZEN": 102,
     "PRODUCTIVE": 12,
-    "SUPPORT_NECESSARY": 33
+    "SUPPORT_NECESSARY": 34
   },
-  "total_modules": 153,
+  "total_modules": 148,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -78,31 +77,6 @@
         "service_1_owner_prompt_batch_to_question_bundle_alignment_v1"
       ],
       "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_assisted_flow_orchestrator_v1",
-      "path": "pymia/smartpyme/service_1_assisted_flow_orchestrator_v1.py",
-      "disposition": "OBSOLETE_ELIMINABLE",
-      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
-        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
-        "service_1_controlled_execution_ready_to_plan_packet_v1",
-        "service_1_controlled_execution_result_to_delivery_packet_v1",
-        "service_1_dry_run_candidate_to_owner_validation_dialogue_v1",
-        "service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1",
-        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
-        "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
-        "service_1_owner_validated_dry_run_to_controlled_execution_result_v1",
-        "service_1_plan_packet_to_owner_authorization_dialogue_v1",
-        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
-        "service_1_web_column_confirmation_intake_boundary_v1"
-      ],
-      "internal_callers": [
-        "service_1_web_experiment_backend_boundary_v1"
-      ],
       "canonical_root_reachable": false
     },
     {
@@ -206,7 +180,6 @@
         "service_1_variable_family_bindings_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_deterministic_semantic_pipeline_v1",
         "service_1_owner_confirmation_reinjection_to_semantic_gate_v1"
       ],
@@ -569,7 +542,6 @@
         "service_1_semantic_bridge_to_controlled_execution_gate_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_deterministic_semantic_pipeline_v1",
         "service_1_owner_confirmation_reinjection_to_semantic_gate_v1"
       ],
@@ -585,7 +557,6 @@
         "service_1_semantic_bridge_to_controlled_execution_gate_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_plan_packet_to_owner_authorization_dialogue_v1"
       ],
       "canonical_root_reachable": false
@@ -599,9 +570,7 @@
       "imports_service_1": [
         "service_1_owner_validated_dry_run_to_controlled_execution_result_v1"
       ],
-      "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1"
-      ],
+      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {
@@ -713,7 +682,6 @@
         "service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_owner_validated_dry_run_to_controlled_execution_result_v1"
       ],
       "canonical_root_reachable": false
@@ -802,19 +770,6 @@
       "imports_service_1": [
         "service_1_xlsx_structure_v1",
         "service_1_xlsx_to_normalized_table_v1"
-      ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_fsm_decision_patch_v1",
-      "path": "pymia/smartpyme/service_1_fsm_decision_patch_v1.py",
-      "disposition": "OBSOLETE_ELIMINABLE",
-      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_taskspec_contract_v1",
-        "service_1_taskspec_vocabulary_v1"
       ],
       "internal_callers": [],
       "canonical_root_reachable": false
@@ -983,7 +938,6 @@
         "service_1_plan_packet_to_owner_authorization_dialogue_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_dry_run_candidate_to_owner_validation_dialogue_v1"
       ],
       "canonical_root_reachable": false
@@ -1031,7 +985,6 @@
         "service_1_semantic_evidence_binding_contracts_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_deterministic_semantic_pipeline_v1"
       ],
       "canonical_root_reachable": true
@@ -1045,9 +998,7 @@
       "imports_service_1": [
         "service_1_web_column_confirmation_intake_boundary_v1"
       ],
-      "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1"
-      ],
+      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {
@@ -1207,7 +1158,6 @@
         "service_1_dry_run_candidate_to_owner_validation_dialogue_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_controlled_execution_result_to_delivery_packet_v1"
       ],
       "canonical_root_reachable": false
@@ -1419,7 +1369,6 @@
         "service_1_controlled_execution_ready_to_plan_packet_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_owner_authorized_plan_to_controlled_dry_run_candidate_v1"
       ],
       "canonical_root_reachable": false
@@ -1667,7 +1616,6 @@
         "service_1_variable_family_bindings_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
         "service_1_controlled_execution_ready_to_plan_packet_v1",
         "service_1_deterministic_semantic_pipeline_v1",
@@ -1882,29 +1830,14 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_taskspec_contract_v1",
-      "path": "pymia/smartpyme/service_1_taskspec_contract_v1.py",
-      "disposition": "OBSOLETE_ELIMINABLE",
-      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_taskspec_vocabulary_v1"
-      ],
-      "internal_callers": [
-        "service_1_fsm_decision_patch_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_taskspec_vocabulary_v1",
       "path": "pymia/smartpyme/service_1_taskspec_vocabulary_v1.py",
-      "disposition": "OBSOLETE_ELIMINABLE",
-      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
-      "confidence": "MEDIUM",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Retained vocabulary required by the existing file-intake to TaskSpec boundary; not part of the canonical product-root closure.",
+      "confidence": "HIGH",
       "imports_service_1": [],
       "internal_callers": [
-        "service_1_fsm_decision_patch_v1",
-        "service_1_taskspec_contract_v1"
+        "file_intake_taskspec_boundary_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -1957,31 +1890,8 @@
         "service_1_xlsx_to_normalized_table_v1"
       ],
       "internal_callers": [
-        "service_1_assisted_flow_orchestrator_v1",
         "service_1_owner_confirmation_to_canonical_ingestion_output_v1"
       ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_web_experiment_backend_boundary_v1",
-      "path": "pymia/smartpyme/service_1_web_experiment_backend_boundary_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_assisted_flow_orchestrator_v1"
-      ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_web_test_route_registry_v1",
-      "path": "pymia/smartpyme/service_1_web_test_route_registry_v1.py",
-      "disposition": "OBSOLETE_ELIMINABLE",
-      "reason": "Superseded or contradictory architecture/vocabulary; removal requires caller and regression proof.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {

@@ -5,9 +5,31 @@ from pathlib import Path
 
 import pytest
 
+import openpyxl
+
+import pymia.smartpyme.exceland_execution_flow_v1 as flow_module
 from pymia.smartpyme.exceland_execution_flow_v1 import (
     run_exceland_execution_flow_v1,
 )
+
+
+@pytest.fixture(autouse=True)
+def _portable_runtime_boundary(monkeypatch: pytest.MonkeyPatch):
+    def fake_runtime(*, product_ref, output_dir, output_filename=None):
+        target = Path(output_dir) / (output_filename or f"{product_ref}.xlsx")
+        workbook = openpyxl.Workbook()
+        workbook.active.title = "BIENVENIDA"
+        workbook.save(target)
+        return {
+            "status": "OK",
+            "product_ref": product_ref,
+            "output_path": str(target),
+            "artifact_exists": True,
+            "error_message": None,
+            "runtime_authorized": False,
+            "notes": ["portable test boundary"],
+        }
+    monkeypatch.setattr(flow_module, "run_exceland_runtime_v1", fake_runtime)
 
 
 def _bridge_input(template_ref: str) -> dict:

@@ -2,9 +2,9 @@
 
 **Fecha de corte:** 2026-07-13
 
-**Commit certificado:** `5c920c6`
+**Commit certificado:** `cfea59f`
 
-**Regresión reportada por el dueño:** `2454 passed, 1 skipped`
+**Regresión certificada:** `2857 passed, 1 skipped`
 
 ## Estado
 
@@ -14,7 +14,7 @@ CLI CANÓNICO: ACTIVO
 XLSX REAL → COMPRENSIÓN → CONFIRMACIÓN → TOOL → XLSX: PROBADO
 FAIL-CLOSED SEMÁNTICO: PROBADO
 SERVICIO 1 COMPLETO EN TODA SU AMPLITUD: NO
-SANEAMIENTO DOCUMENTAL: EN CURSO
+CONSOLIDACIÓN FÍSICA DEL REPOSITORIO: CERRADA
 ```
 
 ## Qué hace hoy
@@ -64,13 +64,14 @@ service_1_column_understanding_engine_v1.py
 - El universo completo de patologías, fórmulas y microservicios todavía no está conectado a la raíz productiva.
 - No hay LLM con autoridad de decisión dentro del pipeline.
 - No hay autorización para una cadena paralela, un segundo parser XLSX ni una arquitectura SaaS alternativa.
-- La documentación histórica todavía contiene contradicciones y se está eliminando por lotes.
+- La raíz física ya está consolidada; permanecen deuda de integración funcional y documentación no rectora por depurar.
 
 ## Próximo frente
 
 ```text
-SANEAMIENTO_DOCUMENTAL_CONTROLADO
-→ reducir autoridad a pocos documentos
-→ eliminar contradicciones físicas
-→ continuar conectando capacidades a la única raíz productiva
+ENDURECIMIENTO_P0_POST_CONSOLIDACION
+→ CI reproducible y build limpio
+→ dependencias externas fail-closed
+→ eliminar módulos obsoletos con prueba de callers
+→ conectar capacidades solo a la raíz productiva
 ```

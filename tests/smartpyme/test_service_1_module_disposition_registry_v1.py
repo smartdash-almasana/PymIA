@@ -78,3 +78,7 @@ def test_registry_keeps_active_denominator_materially_smaller_than_repository() 
         "SUPPORT_NECESSARY", 0
     )
     assert active < payload["total_modules"] / 2
+
+def test_registry_has_no_known_obsolete_eliminable_modules() -> None:
+    payload = _registry()
+    assert payload["counts"].get("OBSOLETE_ELIMINABLE", 0) == 0

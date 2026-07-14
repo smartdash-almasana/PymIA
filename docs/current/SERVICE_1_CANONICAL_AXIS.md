@@ -54,8 +54,8 @@ XLSX real
 ## Evidencia vigente
 
 ```text
-COMMIT: 5c920c6
-REGRESIÓN: 2454 passed, 1 skipped
+COMMIT: cfea59f
+REGRESIÓN: 2857 passed, 1 skipped
 REAL XLSX E2E: cafeteria_abc.xlsx
 FIRST PASS: NEEDS_OWNER_CONFIRMATION / tools_executed=false
 CANONICAL REENTRY: PASS
@@ -82,7 +82,7 @@ FREE-TEXT SEMANTIC REENTRY: BLOCKED
 - conectar el universo completo de patologías, fórmulas y capacidades a esta raíz;
 - derivar planes de análisis desde evidencia confirmada sin hardcode ni cadenas paralelas;
 - completar la experiencia conversacional sobre esta misma raíz;
-- terminar la purga documental.
+- mantener CI, build y dependencias reproducibles después de la consolidación física.
 
 ## Documentación rectora relacionada
 
