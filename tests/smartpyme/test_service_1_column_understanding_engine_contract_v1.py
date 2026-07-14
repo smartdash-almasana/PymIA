@@ -339,7 +339,7 @@ def test_output_has_no_delivery_or_llm_flags() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Isolation from the 13 closed Service 1 chain links
+# Isolation from closed legacy Service 1 chain links
 # ---------------------------------------------------------------------------
 
 
@@ -350,13 +350,10 @@ CLOSED_CHAIN_MODULES = [
     "pymia.smartpyme.service_1_owner_facing_role_explanation_catalog_v1",
     "pymia.smartpyme.service_1_xlsx_runtime_bridge_v1",
     "pymia.smartpyme.service_1_column_confirmation_packet_v1",
-    "pymia.smartpyme.service_1_column_confirmation_classifier_v1",
-    "pymia.smartpyme.service_1_column_confirmation_applier_v1",
     "pymia.smartpyme.service_1_column_confirmation_owner_prompt_v1",
     "pymia.smartpyme.service_1_column_interpretation_to_owner_prompt_bridge_v1",
     "pymia.smartpyme.service_1_column_confirmation_reentry_candidate_v1",
     "pymia.smartpyme.service_1_column_confirmation_owner_prompt_batch_v1",
-    "pymia.smartpyme.service_1_column_confirmation_case_patch_v1",
 ]
 
 

@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 73,
+    "EXPERIMENTAL_FROZEN": 70,
     "PRODUCTIVE": 14,
     "SUPPORT_NECESSARY": 32
   },
-  "total_modules": 119,
+  "total_modules": 116,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -202,44 +202,6 @@
       "confidence": "MEDIUM",
       "imports_service_1": [],
       "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_confirmation_applier_v1",
-      "path": "pymia/smartpyme/service_1_column_confirmation_applier_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_column_confirmation_classifier_v1"
-      ],
-      "internal_callers": [
-        "service_1_column_confirmation_case_patch_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_confirmation_case_patch_v1",
-      "path": "pymia/smartpyme/service_1_column_confirmation_case_patch_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_column_confirmation_applier_v1"
-      ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_confirmation_classifier_v1",
-      "path": "pymia/smartpyme/service_1_column_confirmation_classifier_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [
-        "service_1_column_confirmation_applier_v1"
-      ],
       "canonical_root_reachable": false
     },
     {
