@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 90,
+    "EXPERIMENTAL_FROZEN": 82,
     "PRODUCTIVE": 14,
     "SUPPORT_NECESSARY": 32
   },
-  "total_modules": 136,
+  "total_modules": 128,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -51,16 +51,6 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_abort_rollback_result_candidate_v1",
-      "path": "pymia/smartpyme/service_1_abort_rollback_result_candidate_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_accounting_contracts_v1",
       "path": "pymia/smartpyme/service_1_accounting_contracts_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
@@ -87,16 +77,6 @@
       "imports_service_1": [
         "service_1_owner_prompt_batch_to_question_bundle_alignment_v1"
       ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_audit_log_v1",
-      "path": "pymia/smartpyme/service_1_audit_log_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
       "internal_callers": [],
       "canonical_root_reachable": false
     },
@@ -539,26 +519,6 @@
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_conversational_owner_bridge_contract_v1",
-      "path": "pymia/smartpyme/service_1_conversational_owner_bridge_contract_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_cost_and_rate_limit_guard_v1",
-      "path": "pymia/smartpyme/service_1_cost_and_rate_limit_guard_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_csv_intake_v1",
       "path": "pymia/smartpyme/service_1_csv_intake_v1.py",
       "disposition": "SUPPORT_NECESSARY",
@@ -679,16 +639,6 @@
     {
       "module": "service_1_explicit_request_to_pipeline_request_gate_v1",
       "path": "pymia/smartpyme/service_1_explicit_request_to_pipeline_request_gate_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_failure_recovery_v1",
-      "path": "pymia/smartpyme/service_1_failure_recovery_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
       "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
       "confidence": "MEDIUM",
@@ -987,16 +937,6 @@
       "internal_callers": [
         "service_1_aligned_owner_prompt_display_packet_v1"
       ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_owner_question_router_v1",
-      "path": "pymia/smartpyme/service_1_owner_question_router_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {
@@ -1659,26 +1599,6 @@
     {
       "module": "service_1_synthetic_case_bank_v1",
       "path": "pymia/smartpyme/service_1_synthetic_case_bank_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_synthetic_controlled_case_candidate_chain_composition_v1",
-      "path": "pymia/smartpyme/service_1_synthetic_controlled_case_candidate_chain_composition_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_synthetic_controlled_case_candidate_model_v1",
-      "path": "pymia/smartpyme/service_1_synthetic_controlled_case_candidate_model_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
       "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
       "confidence": "MEDIUM",
