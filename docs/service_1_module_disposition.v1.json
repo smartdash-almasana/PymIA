@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 40,
+    "EXPERIMENTAL_FROZEN": 39,
     "PRODUCTIVE": 15,
     "SUPPORT_NECESSARY": 31
   },
-  "total_modules": 86,
+  "total_modules": 85,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -136,7 +136,6 @@
         "service_1_column_interpretation_to_owner_prompt_bridge_v1"
       ],
       "internal_callers": [
-        "service_1_document_curation_report_to_owner_prompt_batch_bridge_v1",
         "service_1_owner_prompt_batch_to_question_bundle_alignment_v1"
       ],
       "canonical_root_reachable": false
@@ -393,18 +392,6 @@
         "service_1_product_pipeline_v1"
       ],
       "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_document_curation_report_to_owner_prompt_batch_bridge_v1",
-      "path": "pymia/smartpyme/service_1_document_curation_report_to_owner_prompt_batch_bridge_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_column_confirmation_owner_prompt_batch_v1"
-      ],
-      "internal_callers": [],
-      "canonical_root_reachable": false
     },
     {
       "module": "service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1",
