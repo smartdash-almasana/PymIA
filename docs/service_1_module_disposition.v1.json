@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 41,
+    "EXPERIMENTAL_FROZEN": 40,
     "PRODUCTIVE": 15,
     "SUPPORT_NECESSARY": 31
   },
-  "total_modules": 87,
+  "total_modules": 86,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -160,19 +160,6 @@
       "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
       "confidence": "MEDIUM",
       "imports_service_1": [],
-      "internal_callers": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_confirmation_reentry_candidate_v1",
-      "path": "pymia/smartpyme/service_1_column_confirmation_reentry_candidate_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_question_bundle_v1",
-        "service_1_reentry_projection_v1"
-      ],
       "internal_callers": [],
       "canonical_root_reachable": false
     },
@@ -868,7 +855,6 @@
       "imports_service_1": [],
       "internal_callers": [
         "service_1_case_reentry_read_model_v1",
-        "service_1_column_confirmation_reentry_candidate_v1",
         "service_1_owner_answer_reentry_persistence_v1",
         "service_1_owner_answer_reentry_v1",
         "service_1_owner_prompt_batch_to_question_bundle_alignment_v1",
@@ -935,7 +921,6 @@
         "service_1_question_bundle_v1"
       ],
       "internal_callers": [
-        "service_1_column_confirmation_reentry_candidate_v1",
         "service_1_owner_reentry_bridge_v1",
         "service_1_owner_reentry_closed_loop_v1"
       ],

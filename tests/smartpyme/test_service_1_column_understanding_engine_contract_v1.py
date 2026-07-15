@@ -351,7 +351,6 @@ CLOSED_CHAIN_MODULES = [
     "pymia.smartpyme.service_1_column_confirmation_packet_v1",
     "pymia.smartpyme.service_1_column_confirmation_owner_prompt_v1",
     "pymia.smartpyme.service_1_column_interpretation_to_owner_prompt_bridge_v1",
-    "pymia.smartpyme.service_1_column_confirmation_reentry_candidate_v1",
     "pymia.smartpyme.service_1_column_confirmation_owner_prompt_batch_v1",
 ]
 
