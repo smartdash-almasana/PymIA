@@ -1,6 +1,6 @@
 # SERVICE 1 — BATCH 016 MULTISHEET PARITY REAUDIT V1
 
-> Historical pre-implementation audit. Its gaps triggered the canonical multisheet implementation documented in `SERVICE_1_CANONICAL_MULTISHEET_INGESTION_IMPLEMENTATION_V1.md`. The preservation verdict remains in force until regression and a fresh deletion audit pass.
+> Historical pre-implementation audit. Its gaps triggered the canonical multisheet implementation documented in `SERVICE_1_CANONICAL_MULTISHEET_INGESTION_IMPLEMENTATION_V1.md`. The preservation verdict was superseded after canonical multisheet regression and fresh deletion audit passed.
 
 ## Verdict
 
@@ -125,3 +125,13 @@ Deletion may be reconsidered only after one canonical path demonstrates all of t
 - Do not wire either module into the product root.
 - Do not delete either module.
 - The next implementation front, when authorized, is canonical multisheet identity and ingestion parity—not further cleanup of these two modules.
+
+## Supersession
+
+This audit was correct at its baseline. It was superseded after canonical multisheet ingestion absorbed the previously exclusive behavior and the complete regression reported:
+
+```text
+2125 passed, 1 skipped
+```
+
+The two preserved modules were then eligible for deletion because they had no productive callers and remained isolated from the canonical product root.

@@ -124,3 +124,20 @@ Before commit and before reconsidering the two frozen modules:
    - `service_1_xlsx_structure_extraction_to_adapter_chain_v1.py`;
    - `service_1_xlsx_structure_to_column_confirmation_v1.py`.
 5. Delete those modules only if no capability remains exclusive.
+
+## Post-regression deletion audit
+
+After commit `247a309`, canonical multisheet ingestion passed the complete regression reported by the operator:
+
+```text
+2125 passed, 1 skipped
+```
+
+The preserved legacy multisheet structure chain was then reaudited:
+
+- `service_1_xlsx_structure_extraction_to_adapter_chain_v1.py` had zero productive callers;
+- `service_1_xlsx_structure_to_column_confirmation_v1.py` was only called by that extraction adapter;
+- their exclusive multisheet identity behavior had been absorbed by the canonical intake path;
+- focal deletion-registry validation is required before commit.
+
+Deletion is now authorized for both frozen modules and their dedicated tests.
