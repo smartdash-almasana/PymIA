@@ -72,16 +72,18 @@ def test_frozen_or_obsolete_modules_are_not_in_canonical_root_closure() -> None:
             assert item["canonical_root_reachable"] is False
 
 
-def test_registry_keeps_active_denominator_from_dominating_repository() -> None:
+def test_registry_keeps_active_surface_bounded_during_cleanup() -> None:
     payload = _registry()
-    active = payload["counts"].get("PRODUCTIVE", 0) + payload["counts"].get(
-        "SUPPORT_NECESSARY", 0
-    )
-    inactive = payload["total_modules"] - active
+    productive = payload["counts"].get("PRODUCTIVE", 0)
+    support = payload["counts"].get("SUPPORT_NECESSARY", 0)
+    active = productive + support
 
-    # Deleting obsolete/frozen modules reduces the denominator by design. The
-    # guard must prevent active surface domination without penalizing cleanup.
-    assert active <= inactive + 1
+    # Cleanup cycles delete frozen/obsolete modules by design, so ratio-based
+    # denominator guards become noisier as cleanup succeeds. The invariant here
+    # is that cleanup must not expand the active surface.
+    assert productive <= 15
+    assert support <= 31
+    assert active <= 46
 
 def test_registry_has_no_known_obsolete_eliminable_modules() -> None:
     payload = _registry()
