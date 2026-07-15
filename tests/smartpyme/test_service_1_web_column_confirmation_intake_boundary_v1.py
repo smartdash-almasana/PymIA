@@ -19,6 +19,7 @@ from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import
     BLOCK_NO_SOURCE,
     BLOCK_READER_FAILED,
     BLOCK_RUNTIME_FLAG_FORBIDDEN,
+    BLOCK_SHEET_SELECTION_CONFLICT,
     build_service_1_web_column_confirmation_intake_boundary_v1 as build_intake,
 )
 
@@ -175,6 +176,20 @@ def test_authorization_flag_true_blocks(local_xlsx: Path, flag: str) -> None:
     assert packet["status"] == "BLOCKED"
     assert packet["blocked_reason"] == BLOCK_RUNTIME_FLAG_FORBIDDEN
     # Even when blocked, output flags must remain False.
+    assert packet["runtime_authorized"] is False
+    assert packet["product_ready"] is False
+    assert packet["delivery_authorized"] is False
+
+
+def test_sheet_selection_modes_are_mutually_exclusive(local_xlsx: Path) -> None:
+    packet = build_intake(
+        local_xlsx_path=local_xlsx,
+        sheet_name="Ventas",
+        include_all_sheets=True,
+    )
+
+    assert packet["status"] == "BLOCKED"
+    assert packet["blocked_reason"] == BLOCK_SHEET_SELECTION_CONFLICT
     assert packet["runtime_authorized"] is False
     assert packet["product_ready"] is False
     assert packet["delivery_authorized"] is False

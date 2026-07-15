@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from openpyxl import load_workbook
 
@@ -10,35 +10,97 @@ from pymia.smartpyme.service_1_normalized_table_v1 import (
     build_normalized_table_v1,
 )
 
+_EMPTY_SHEET_ERROR = "XLSX sheet has no non-empty rows."
+
 
 def read_xlsx_to_normalized_table_v1(
     xlsx_path: str | Path,
     *,
     sheet_name: str | None = None,
 ) -> NormalizedTableV1:
+    """Read one worksheet through the canonical XLSX parser.
+
+    With ``sheet_name`` omitted, the first non-empty worksheet is returned,
+    preserving the historical single-sheet contract. The workbook is always
+    closed before this function returns.
+    """
+    selected = (sheet_name,) if sheet_name is not None else None
+    tables = read_xlsx_to_normalized_tables_v1(xlsx_path, sheet_names=selected)
+    if not tables:
+        return _blocked(str(Path(xlsx_path)), sheet_name, "XLSX workbook has no readable sheets.")
+    return tables[0]
+
+
+def read_xlsx_to_normalized_tables_v1(
+    xlsx_path: str | Path,
+    *,
+    sheet_names: Iterable[str] | None = None,
+) -> list[NormalizedTableV1]:
+    """Read every selected non-empty worksheet using one canonical parser.
+
+    ``sheet_names=None`` means all non-empty workbook sheets in workbook order.
+    Explicit selection preserves the requested order and fails closed when a
+    requested sheet is missing, duplicated or empty.
+    """
     path = Path(xlsx_path)
     source_path = str(path)
 
     if not path.exists() or not path.is_file():
-        return _blocked(source_path, sheet_name, "File not found.")
+        return [_blocked(source_path, None, "File not found.")]
     if path.suffix.lower() != ".xlsx":
-        return _blocked(source_path, sheet_name, "Only .xlsx files are accepted.")
+        return [_blocked(source_path, None, "Only .xlsx files are accepted.")]
+
+    normalized_selection: tuple[str, ...] | None = None
+    if sheet_names is not None:
+        cleaned = tuple(str(name).strip() for name in sheet_names if str(name).strip())
+        if not cleaned:
+            return [_blocked(source_path, None, "At least one sheet name is required.")]
+        if len(set(cleaned)) != len(cleaned):
+            return [_blocked(source_path, None, "Duplicate sheet names are not allowed.")]
+        normalized_selection = cleaned
 
     try:
         workbook = load_workbook(path, data_only=True, read_only=True)
     except Exception as exc:
-        return _blocked(source_path, sheet_name, str(exc))
+        return [_blocked(source_path, None, str(exc))]
 
-    if sheet_name is not None and sheet_name not in workbook.sheetnames:
-        return _blocked(source_path, sheet_name, f"Sheet not found: {sheet_name}")
+    try:
+        if normalized_selection is not None:
+            missing = [name for name in normalized_selection if name not in workbook.sheetnames]
+            if missing:
+                return [
+                    _blocked(
+                        source_path,
+                        missing[0],
+                        "Sheet not found: " + ", ".join(missing),
+                    )
+                ]
+            worksheets = [workbook[name] for name in normalized_selection]
+            return [
+                _normalize_worksheet(source_path=source_path, worksheet=worksheet)
+                for worksheet in worksheets
+            ]
 
-    worksheet = workbook[sheet_name] if sheet_name is not None else _select_default_sheet(workbook)
+        tables: list[NormalizedTableV1] = []
+        for worksheet in workbook.worksheets:
+            table = _normalize_worksheet(source_path=source_path, worksheet=worksheet)
+            if _EMPTY_SHEET_ERROR in table["blocking_errors"]:
+                continue
+            tables.append(table)
+        if tables:
+            return tables
+        return [_blocked(source_path, None, "XLSX workbook has no non-empty rows.")]
+    finally:
+        workbook.close()
+
+
+def _normalize_worksheet(*, source_path: str, worksheet: Any) -> NormalizedTableV1:
     selected_sheet_name = worksheet.title
     materialized_rows = [list(row) for row in worksheet.iter_rows(values_only=True)]
     header_index = _first_non_empty_row_index(materialized_rows)
 
     if header_index is None:
-        return _blocked(source_path, selected_sheet_name, "XLSX workbook has no non-empty rows.")
+        return _blocked(source_path, selected_sheet_name, _EMPTY_SHEET_ERROR)
 
     raw_headers = _trim_trailing_empty(materialized_rows[header_index])
     headers = [_clean(value) for value in raw_headers]
@@ -56,13 +118,17 @@ def read_xlsx_to_normalized_table_v1(
     warnings: list[str] = []
     width = len(headers)
 
-    for row_number, raw_row in enumerate(materialized_rows[header_index + 1 :], start=header_index + 2):
+    for row_number, raw_row in enumerate(
+        materialized_rows[header_index + 1 :], start=header_index + 2
+    ):
         if _is_empty_row(raw_row):
             continue
         if _last_non_empty_index(raw_row[:width]) < width - 1:
             warnings.append(f"Row {row_number} has fewer cells than headers.")
         if any(_clean(value) for value in raw_row[width:]):
-            warnings.append(f"Row {row_number} has more cells than headers; extra cells ignored.")
+            warnings.append(
+                f"Row {row_number} has more cells than headers; extra cells ignored."
+            )
         fitted = _fit_width(raw_row, width)
         rows.append({headers[index]: _clean(fitted[index]) for index in range(width)})
 
@@ -85,14 +151,6 @@ def _blocked(source_path: str, sheet_name: str | None, message: str) -> Normaliz
         rows=[],
         blocking_errors=[message],
     )
-
-
-def _select_default_sheet(workbook: Any) -> Any:
-    for worksheet in workbook.worksheets:
-        rows = [list(row) for row in worksheet.iter_rows(values_only=True)]
-        if _first_non_empty_row_index(rows) is not None:
-            return worksheet
-    return workbook.worksheets[0]
 
 
 def _first_non_empty_row_index(rows: list[list[Any]]) -> int | None:
@@ -128,3 +186,9 @@ def _fit_width(row: list[Any], width: int) -> list[Any]:
 
 def _clean(value: Any) -> str:
     return "" if value is None else str(value).strip()
+
+
+__all__ = [
+    "read_xlsx_to_normalized_table_v1",
+    "read_xlsx_to_normalized_tables_v1",
+]

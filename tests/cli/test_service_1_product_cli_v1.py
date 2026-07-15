@@ -564,3 +564,179 @@ def test_real_xlsx_cli_builds_liq_001_plan_without_execution(tmp_path: Path) -> 
     assert plan["tool_execution_authorized"] is False
     assert plan["computation_executed"] is False
     assert not list(output_dir.glob("*.xlsx"))
+
+
+def test_product_entrypoint_surfaces_boundary_sheet_selection_block(
+    tmp_path: Path, monkeypatch
+) -> None:
+    xlsx = tmp_path / "case.xlsx"
+    xlsx.write_bytes(b"xlsx")
+    captured: dict[str, object] = {}
+
+    def fake_boundary(**kwargs):
+        captured.update(kwargs)
+        return {"status": "BLOCKED", "blocked_reason": "SHEET_SELECTION_CONFLICT"}
+
+    monkeypatch.setattr(
+        cli,
+        "build_service_1_web_column_confirmation_intake_boundary_v1",
+        fake_boundary,
+    )
+    monkeypatch.setattr(
+        cli,
+        "build_service_1_canonical_ingestion_output_from_owner_confirmation_v1",
+        lambda **_: (_ for _ in ()).throw(AssertionError("connector must not run")),
+    )
+
+    result = cli.run_service_1_product_entrypoint_v1(
+        xlsx_path=xlsx,
+        owner_column_answers={},
+        semantic_owner_answers=None,
+        tool_requests=[{"tool_ref": "gastos_triage", "inputs": {}}],
+        output_dir=tmp_path / "out",
+        sheet_name="Ventas",
+        include_all_sheets=True,
+    )
+
+    assert result["status"] == "BLOCKED"
+    assert result["blocked_reason"] == "SHEET_SELECTION_CONFLICT"
+    assert result["connector"] is None
+    assert captured["sheet_name"] == "Ventas"
+    assert captured["include_all_sheets"] is True
+
+
+def test_main_repeated_sheet_name_routes_selected_multisheet(
+    tmp_path: Path, monkeypatch
+) -> None:
+    xlsx = tmp_path / "case.xlsx"
+    xlsx.write_bytes(b"xlsx")
+    owner_answers = tmp_path / "owner.json"
+    owner_answers.write_text("{}", encoding="utf-8")
+    tool_requests = tmp_path / "tools.json"
+    tool_requests.write_text(
+        '[{"tool_ref": "gastos_triage", "inputs": {}}]',
+        encoding="utf-8",
+    )
+    result_json = tmp_path / "result.json"
+    captured: dict[str, object] = {}
+
+    def fake_entrypoint(**kwargs):
+        captured.update(kwargs)
+        return {"status": cli.STATUS_READY, "blocked_reason": None}
+
+    monkeypatch.setattr(cli, "run_service_1_product_entrypoint_v1", fake_entrypoint)
+
+    exit_code = cli.main(
+        [
+            "--xlsx",
+            str(xlsx),
+            "--owner-column-answers",
+            str(owner_answers),
+            "--tool-requests",
+            str(tool_requests),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--sheet-name",
+            "Ventas",
+            "--sheet-name",
+            "Cobros",
+            "--result-json",
+            str(result_json),
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["sheet_name"] is None
+    assert captured["sheet_names"] == ("Ventas", "Cobros")
+    assert captured["include_all_sheets"] is False
+
+
+def test_main_all_sheets_routes_explicit_workbook_scope(
+    tmp_path: Path, monkeypatch
+) -> None:
+    xlsx = tmp_path / "case.xlsx"
+    xlsx.write_bytes(b"xlsx")
+    owner_answers = tmp_path / "owner.json"
+    owner_answers.write_text("{}", encoding="utf-8")
+    tool_requests = tmp_path / "tools.json"
+    tool_requests.write_text(
+        '[{"tool_ref": "gastos_triage", "inputs": {}}]',
+        encoding="utf-8",
+    )
+    captured: dict[str, object] = {}
+
+    def fake_entrypoint(**kwargs):
+        captured.update(kwargs)
+        return {"status": cli.STATUS_READY, "blocked_reason": None}
+
+    monkeypatch.setattr(cli, "run_service_1_product_entrypoint_v1", fake_entrypoint)
+
+    exit_code = cli.main(
+        [
+            "--xlsx",
+            str(xlsx),
+            "--owner-column-answers",
+            str(owner_answers),
+            "--tool-requests",
+            str(tool_requests),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--all-sheets",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["sheet_name"] is None
+    assert captured["sheet_names"] is None
+    assert captured["include_all_sheets"] is True
+
+
+def test_product_entrypoint_empty_column_answers_emits_intake_questions(
+    tmp_path: Path, monkeypatch
+) -> None:
+    xlsx = tmp_path / "case.xlsx"
+    xlsx.write_bytes(b"xlsx")
+    boundary = {
+        "status": "NEEDS_OWNER_CONFIRMATION",
+        "question_count": 2,
+        "owner_questions": [
+            {
+                "question_id": "col_confirm_001",
+                "field_id": "col_confirm_001",
+                "sheet_name": "Ventas",
+                "column_name": "monto",
+            },
+            {
+                "question_id": "col_confirm_002",
+                "field_id": "col_confirm_002",
+                "sheet_name": "Cobros",
+                "column_name": "monto",
+            },
+        ],
+    }
+
+    monkeypatch.setattr(
+        cli,
+        "build_service_1_web_column_confirmation_intake_boundary_v1",
+        lambda **_: boundary,
+    )
+    monkeypatch.setattr(
+        cli,
+        "build_service_1_canonical_ingestion_output_from_owner_confirmation_v1",
+        lambda **_: (_ for _ in ()).throw(AssertionError("connector must not run")),
+    )
+
+    result = cli.run_service_1_product_entrypoint_v1(
+        xlsx_path=xlsx,
+        owner_column_answers={},
+        semantic_owner_answers=None,
+        tool_requests=[{"tool_ref": "gastos_triage", "inputs": {}}],
+        output_dir=tmp_path / "out",
+        include_all_sheets=True,
+    )
+
+    assert result["status"] == "NEEDS_OWNER_CONFIRMATION"
+    assert result["blocked_reason"] is None
+    assert result["boundary"] == boundary
+    assert result["connector"] is None
+    assert result["product_pipeline"] is None

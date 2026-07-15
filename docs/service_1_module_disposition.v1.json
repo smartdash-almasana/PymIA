@@ -1303,7 +1303,7 @@
       "module": "service_1_xlsx_structure_extraction_to_adapter_chain_v1",
       "path": "pymia/smartpyme/service_1_xlsx_structure_extraction_to_adapter_chain_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Preserved frozen because it is the only current path that converts every workbook sheet into one sheet-qualified confirmation matrix; canonical product intake selects one sheet and cannot represent repeated column names across sheets.",
+      "reason": "Preserved frozen pending regression and a fresh deletion audit. Canonical intake now supports selected/all-sheet identity, but this module must remain until parity is proven and no exclusive behavior remains.",
       "confidence": "HIGH",
       "imports_service_1": [
         "service_1_xlsx_structure_to_column_confirmation_v1"
@@ -1315,7 +1315,7 @@
       "module": "service_1_xlsx_structure_to_column_confirmation_v1",
       "path": "pymia/smartpyme/service_1_xlsx_structure_to_column_confirmation_v1.py",
       "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Preserved frozen because it retains sheet-qualified entries, repeated headers across sheets, per-sheet co-column context, and optional multisheet sample/type inference that canonical ingestion has not absorbed.",
+      "reason": "Preserved frozen pending regression and a fresh deletion audit. Canonical ingestion now carries sheet-qualified entries, repeated cross-sheet headers, samples and types; removal still requires demonstrated behavioral parity.",
       "confidence": "HIGH",
       "imports_service_1": [
         "service_1_column_confirmation_owner_prompt_batch_v1"

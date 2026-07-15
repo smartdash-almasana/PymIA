@@ -232,6 +232,7 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         "source_kind": source_kind,
         "filename": filename,
         "candidate_columns": [c.source_column_name for c in active_candidates],
+        "candidate_refs": [_candidate_ref_id(c) for c in active_candidates],
         "candidate_roles": candidate_roles,
         "candidate_count": len(candidate_list),
         "variable_family_bindings": variable_family_bindings,
@@ -276,18 +277,25 @@ def _owner_questions(
     if not isinstance(raw_views, (list, tuple)):
         return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
 
-    views_by_column: dict[str, Service1ColumnOwnerQuestionViewV1] = {}
+    views_by_identity: dict[tuple[str, str], Service1ColumnOwnerQuestionViewV1] = {}
     for view in raw_views:
         if not isinstance(view, Service1ColumnOwnerQuestionViewV1):
             return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
         if view.question_required:
-            views_by_column[view.column_name] = view
+            identity = (str(view.sheet_name).strip(), str(view.column_name).strip())
+            if identity in views_by_identity:
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            views_by_identity[identity] = view
 
     questions: list[dict[str, Any]] = []
-    bindings_by_column: dict[str, dict[str, str]] = {}
+    bindings_by_ref: dict[str, dict[str, str]] = {}
     for candidate in candidates:
         column = str(getattr(candidate, "source_column_name", "") or "").strip()
-        view = views_by_column.get(column)
+        sheet = str(getattr(candidate, "sheet_name", "") or "").strip()
+        ref_id = _candidate_ref_id(candidate)
+        if not ref_id:
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+        view = views_by_identity.get((sheet, column))
         if view is None or not view.question or not view.options:
             return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
 
@@ -330,6 +338,8 @@ def _owner_questions(
             }
         )
         question = {
+            "question_id": ref_id,
+            "field_id": ref_id,
             "column_name": column,
             "sheet_name": view.sheet_name,
             "title": view.title,
@@ -348,9 +358,21 @@ def _owner_questions(
 
         internal_bindings[OWNER_OPTION_IGNORE] = "IGNORED_NOT_RELEVANT"
         questions.append(question)
-        bindings_by_column[column] = internal_bindings
+        if ref_id in bindings_by_ref:
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+        bindings_by_ref[ref_id] = internal_bindings
 
-    return questions, bindings_by_column, None
+    return questions, bindings_by_ref, None
+
+
+def _candidate_ref_id(candidate: Any) -> str:
+    metadata = dict(getattr(candidate, "metadata", {}) or {})
+    return str(
+        metadata.get("column_ref_id")
+        or metadata.get("question_id")
+        or getattr(candidate, "source_column_name", "")
+        or ""
+    ).strip()
 
 
 def _owner_question_surface_is_safe(

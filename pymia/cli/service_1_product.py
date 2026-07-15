@@ -48,7 +48,9 @@ def run_service_1_product_entrypoint_v1(
     semantic_owner_answers: dict[str, Any] | None,
     tool_requests: list[dict[str, Any]],
     output_dir: str | Path,
-    sheet_name: str = "sheet1",
+    sheet_name: str | None = None,
+    sheet_names: list[str] | tuple[str, ...] | None = None,
+    include_all_sheets: bool = False,
     requested_capability: str | None = None,
 ) -> dict[str, Any]:
     source = Path(xlsx_path)
@@ -57,7 +59,30 @@ def run_service_1_product_entrypoint_v1(
 
     boundary = build_service_1_web_column_confirmation_intake_boundary_v1(
         local_xlsx_path=source,
+        sheet_name=sheet_name,
+        sheet_names=sheet_names,
+        include_all_sheets=include_all_sheets,
     )
+    if boundary.get("status") != "NEEDS_OWNER_CONFIRMATION":
+        return {
+            "schema_version": "SERVICE_1_PRODUCT_ENTRYPOINT_V1",
+            "status": "BLOCKED",
+            "blocked_reason": boundary.get("blocked_reason") or "CANONICAL_INTAKE_BLOCKED",
+            "boundary": boundary,
+            "connector": None,
+            "product_pipeline": None,
+        }
+
+    if not owner_column_answers and boundary.get("owner_questions"):
+        return {
+            "schema_version": "SERVICE_1_PRODUCT_ENTRYPOINT_V1",
+            "status": "NEEDS_OWNER_CONFIRMATION",
+            "blocked_reason": None,
+            "boundary": boundary,
+            "connector": None,
+            "product_pipeline": None,
+        }
+
     connector = build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
         owner_question_packet=boundary,
         owner_answers=owner_column_answers,
@@ -76,7 +101,7 @@ def run_service_1_product_entrypoint_v1(
         ingestion_output=connector["ingestion_output"],
         tool_requests=tool_requests,
         output_dir=output_dir,
-        sheet_name=sheet_name,
+        sheet_name=sheet_name or "sheet1",
         owner_answers=semantic_owner_answers,
         requested_capability=requested_capability,
     )
@@ -115,7 +140,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tool-requests", default=None)
     parser.add_argument("--requested-capability", default=None)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--sheet-name", default="sheet1")
+    parser.add_argument(
+        "--sheet-name",
+        action="append",
+        default=None,
+        help="Worksheet to ingest; repeat to select multiple sheets.",
+    )
+    parser.add_argument(
+        "--all-sheets",
+        action="store_true",
+        help="Ingest every non-empty worksheet in workbook order.",
+    )
     parser.add_argument("--result-json", default=None)
     args = parser.parse_args(argv)
 
@@ -137,13 +172,21 @@ def main(argv: list[str] | None = None) -> int:
         )
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        selected_sheet_names = tuple(args.sheet_name or ())
+        selected_sheet_name = (
+            selected_sheet_names[0] if len(selected_sheet_names) == 1 else None
+        )
         result = run_service_1_product_entrypoint_v1(
             xlsx_path=args.xlsx,
             owner_column_answers=owner_column_answers,
             semantic_owner_answers=semantic_owner_answers,
             tool_requests=tool_requests,
             output_dir=output_dir,
-            sheet_name=args.sheet_name,
+            sheet_name=selected_sheet_name,
+            sheet_names=(
+                selected_sheet_names if len(selected_sheet_names) > 1 else None
+            ),
+            include_all_sheets=bool(args.all_sheets),
             requested_capability=args.requested_capability,
         )
     except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:

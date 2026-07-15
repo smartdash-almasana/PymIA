@@ -148,16 +148,21 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
             filename=semantic_bridge_packet.get("filename"),
         )
 
-    source_columns = {str(c.source_column_name).strip() for c in candidate_list}
-    # Pending columns = bridge candidates that still require owner confirmation.
-    pending_columns = {
-        str(c.source_column_name).strip()
+    candidate_refs = {_candidate_ref_id(c) for c in candidate_list}
+    if "" in candidate_refs or len(candidate_refs) != len(candidate_list):
+        return _blocked(
+            BLOCK_BRIDGE_WRONG_STATUS,
+            case_id=semantic_bridge_packet.get("case_id"),
+            source_kind=semantic_bridge_packet.get("source_kind"),
+            filename=semantic_bridge_packet.get("filename"),
+        )
+    pending_refs = {
+        _candidate_ref_id(c)
         for c in candidate_list
         if getattr(c, "owner_confirmation_required", False)
     }
 
-    # Unknown answers (for columns not present in the bridge) are blocking.
-    unknown = sorted(set(str(k).strip() for k in confirmed_answers.keys()) - source_columns)
+    unknown = sorted(set(str(k).strip() for k in confirmed_answers.keys()) - candidate_refs)
     if unknown:
         return _blocked(
             BLOCK_UNKNOWN_ANSWERS,
@@ -170,18 +175,18 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
     cleaned: dict[str, str] = {}
     missing: list[str] = []
     empty: list[str] = []
-    for column in sorted(pending_columns):
-        if column not in confirmed_answers:
+    for ref_id in sorted(pending_refs):
+        if ref_id not in confirmed_answers:
             # Answer key entirely absent -> missing.
-            missing.append(column)
+            missing.append(ref_id)
             continue
-        raw = confirmed_answers.get(column)
+        raw = confirmed_answers.get(ref_id)
         text = "" if raw is None else str(raw)
         if not text.strip():
             # Key present but blank/whitespace -> empty.
-            empty.append(column)
+            empty.append(ref_id)
             continue
-        cleaned[column] = text.strip()
+        cleaned[ref_id] = text.strip()
 
     if missing:
         return _blocked(
@@ -213,6 +218,7 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
         "filename": semantic_bridge_packet.get("filename"),
         "column_candidates": tuple(reinjected),
         "semantic_candidate_count": len(reinjected),
+        "column_refs": semantic_bridge_packet.get("column_refs", []),
         "column_understandings": semantic_bridge_packet.get("column_understandings", ()),
         "owner_question_views": semantic_bridge_packet.get("owner_question_views", ()),
         "runtime_authorized": False,
@@ -263,6 +269,16 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
     }
 
 
+def _candidate_ref_id(candidate: Service1ColumnSemanticCandidateV1) -> str:
+    metadata = dict(candidate.metadata or {})
+    return str(
+        metadata.get("column_ref_id")
+        or metadata.get("question_id")
+        or candidate.source_column_name
+        or ""
+    ).strip()
+
+
 def _reinject(
     candidate_list: list[Service1ColumnSemanticCandidateV1],
     cleaned: dict[str, str],
@@ -270,9 +286,9 @@ def _reinject(
     """Return NEW candidate objects with owner answers applied (no mutation)."""
     result: list[Service1ColumnSemanticCandidateV1] = []
     for candidate in candidate_list:
-        column = str(candidate.source_column_name).strip()
-        if column in cleaned:
-            answer = cleaned[column]
+        ref_id = _candidate_ref_id(candidate)
+        if ref_id in cleaned:
+            answer = cleaned[ref_id]
             new_metadata = dict(candidate.metadata or {})
             new_metadata["owner_confirmed"] = True
             new_metadata["owner_confirmation_answer"] = answer

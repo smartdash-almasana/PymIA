@@ -6,6 +6,7 @@ from openpyxl import Workbook, load_workbook
 
 from pymia.smartpyme.service_1_xlsx_to_normalized_table_v1 import (
     read_xlsx_to_normalized_table_v1,
+    read_xlsx_to_normalized_tables_v1,
 )
 
 
@@ -18,6 +19,7 @@ def _save_workbook(path: Path, rows_by_sheet: dict[str, list[list[object | None]
         for row in rows:
             worksheet.append(row)
     workbook.save(path)
+    workbook.close()
 
 
 def test_file_not_found_is_blocked(tmp_path: Path) -> None:
@@ -199,3 +201,54 @@ def test_reads_formula_cached_values_without_executing_formulas(tmp_path: Path) 
     assert path.exists()
     assert load_workbook(path, data_only=False).active["A2"].value == "=1+1"
 
+
+
+def test_reads_all_non_empty_sheets_in_workbook_order(tmp_path: Path) -> None:
+    path = tmp_path / "multi_all.xlsx"
+    _save_workbook(
+        path,
+        {
+            "Vacia": [[None]],
+            "Ventas": [["Fecha", "Importe"], ["2026-07-01", 100]],
+            "Cobros": [["Fecha", "Cobrado"], ["2026-07-02", 80]],
+        },
+    )
+
+    tables = read_xlsx_to_normalized_tables_v1(path)
+
+    assert [table["sheet_name"] for table in tables] == ["Ventas", "Cobros"]
+    assert all(table["status"] == "OK" for table in tables)
+    assert tables[0]["rows"] == [{"fecha": "2026-07-01", "importe": "100"}]
+    assert tables[1]["rows"] == [{"fecha": "2026-07-02", "cobrado": "80"}]
+
+
+def test_reads_explicit_sheet_subset_in_requested_order(tmp_path: Path) -> None:
+    path = tmp_path / "multi_selected.xlsx"
+    _save_workbook(
+        path,
+        {
+            "Ventas": [["Fecha"], ["2026-07-01"]],
+            "Cobros": [["Fecha"], ["2026-07-02"]],
+            "Stock": [["Producto"], ["Yerba"]],
+        },
+    )
+
+    tables = read_xlsx_to_normalized_tables_v1(
+        path,
+        sheet_names=("Stock", "Ventas"),
+    )
+
+    assert [table["sheet_name"] for table in tables] == ["Stock", "Ventas"]
+    assert all(table["status"] == "OK" for table in tables)
+
+
+def test_reader_releases_workbook_handle_on_windows(tmp_path: Path) -> None:
+    path = tmp_path / "release.xlsx"
+    _save_workbook(path, {"Ventas": [["Fecha"], ["2026-07-01"]]})
+
+    result = read_xlsx_to_normalized_table_v1(path)
+    assert result["status"] == "OK"
+
+    renamed = tmp_path / "released.xlsx"
+    path.rename(renamed)
+    assert renamed.exists()

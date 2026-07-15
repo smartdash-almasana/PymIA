@@ -1,5 +1,7 @@
 # SERVICE 1 — BATCH 016 MULTISHEET PARITY REAUDIT V1
 
+> Historical pre-implementation audit. Its gaps triggered the canonical multisheet implementation documented in `SERVICE_1_CANONICAL_MULTISHEET_INGESTION_IMPLEMENTATION_V1.md`. The preservation verdict remains in force until regression and a fresh deletion audit pass.
+
 ## Verdict
 
 **HOLD_PRESERVE_BOTH**

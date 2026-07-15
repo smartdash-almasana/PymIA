@@ -84,7 +84,8 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
 
     Args:
         gate_packet: Output of the controlled execution gate.
-        owner_answers: Optional mapping ``{column_name: option_id}``. ``OTHER``
+        owner_answers: Optional mapping ``{question_id: option_id}``. For
+            historical single-sheet packets, ``question_id`` equals column_name. ``OTHER``
             may be submitted as ``{"option_id": "OTHER", "free_text": "..."}``.
             When omitted for a NEEDS_OWNER_CONFIRMATION gate, the loop emits
             the owner-safe question packet. Every pending column must be answered.
@@ -156,11 +157,18 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             filename=filename,
         )
 
-    pending_columns = [
-        str(q.get("column_name")).strip()
+    pending_refs = [
+        _question_ref_id(q)
         for q in questions
-        if isinstance(q, dict) and str(q.get("column_name") or "").strip()
+        if isinstance(q, dict) and _question_ref_id(q)
     ]
+    if len(set(pending_refs)) != len(pending_refs):
+        return _blocked(
+            BLOCK_NO_QUESTIONS,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
 
     # No answers yet -> emit the confirmation question packet.
     if owner_answers is None:
@@ -182,7 +190,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         )
 
     answer_keys = [str(key).strip() for key in owner_answers.keys()]
-    pending_set = set(pending_columns)
+    pending_set = set(pending_refs)
 
     # Unknown answers (for columns not pending) are blocking.
     unknown = [key for key in answer_keys if key not in pending_set]
@@ -210,58 +218,69 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
     empty: list[str] = []
     invalid_options: list[str] = []
     conflicting_answers: list[str] = []
-    questions_by_column = {
-        str(question.get("column_name") or "").strip(): question
+    questions_by_ref = {
+        _question_ref_id(question): question
         for question in questions
-        if isinstance(question, dict)
+        if isinstance(question, dict) and _question_ref_id(question)
     }
-    for column in pending_columns:
-        raw = _answer_for(owner_answers, column)
+    for ref_id in pending_refs:
+        raw = _answer_for(owner_answers, ref_id)
         if raw is None:
-            missing.append(column)
+            missing.append(ref_id)
             continue
         option_id, free_text = _parse_owner_answer(raw)
         if not option_id:
-            empty.append(column)
+            empty.append(ref_id)
             continue
 
-        question = questions_by_column.get(column, {})
+        question = questions_by_ref.get(ref_id, {})
         allowed_option_ids = {
             str(value).strip()
             for value in question.get("allowed_option_ids", [])
             if str(value).strip()
         }
-        column_bindings = raw_bindings.get(column)
+        column_bindings = raw_bindings.get(ref_id)
         if not allowed_option_ids or not isinstance(column_bindings, dict):
             return _blocked(
                 BLOCK_OWNER_ANSWER_BINDINGS_INVALID,
                 case_id=case_id,
                 source_kind=source_kind,
                 filename=filename,
-                detail=[column],
+                detail=[ref_id],
             )
         if option_id not in allowed_option_ids:
-            invalid_options.append(column)
+            invalid_options.append(ref_id)
             continue
         if free_text and option_id != OWNER_OPTION_OTHER:
-            conflicting_answers.append(column)
+            conflicting_answers.append(ref_id)
             continue
         if option_id == OWNER_OPTION_OTHER:
-            followup.append(
-                {
-                    "column_name": column,
-                    "option_id": OWNER_OPTION_OTHER,
-                    "owner_free_text": free_text,
-                    "normalization_required": True,
-                }
-            )
+            column = str(question.get("column_name") or "").strip()
+            followup_item: dict[str, Any] = {
+                "column_name": column,
+                "option_id": OWNER_OPTION_OTHER,
+                "owner_free_text": free_text,
+                "normalization_required": True,
+            }
+            # Preserve the legacy single-sheet public shape. Multisheet or
+            # synthetic refs need the stable ref identifiers to avoid merging
+            # homonymous columns.
+            if ref_id != column:
+                followup_item.update(
+                    {
+                        "question_id": ref_id,
+                        "field_id": ref_id,
+                        "sheet_name": str(question.get("sheet_name") or "").strip(),
+                    }
+                )
+            followup.append(followup_item)
             continue
 
         canonical_answer = str(column_bindings.get(option_id) or "").strip()
         if not canonical_answer:
-            invalid_options.append(column)
+            invalid_options.append(ref_id)
             continue
-        confirmed[column] = canonical_answer
+        confirmed[ref_id] = canonical_answer
 
     if empty:
         return _blocked(
@@ -316,6 +335,15 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
     )
 
 
+def _question_ref_id(question: dict[str, Any]) -> str:
+    return str(
+        question.get("question_id")
+        or question.get("field_id")
+        or question.get("column_name")
+        or ""
+    ).strip()
+
+
 def _answer_for(owner_answers: dict[Any, Any], column: str) -> Any:
     for key, value in owner_answers.items():
         if str(key).strip() == column:
@@ -341,7 +369,9 @@ def _followup_questions(
 ) -> list[dict[str, Any]]:
     questions: list[dict[str, Any]] = []
     for item in followup:
+        ref_id = str(item.get("question_id") or item.get("field_id") or "").strip()
         column = str(item.get("column_name") or "").strip()
+        sheet = str(item.get("sheet_name") or "").strip()
         owner_free_text = item.get("owner_free_text")
         if owner_free_text:
             question = (
@@ -350,11 +380,17 @@ def _followup_questions(
             )
             answer_type = "semantic_normalization_required"
         else:
-            question = f"Contame brevemente qué representa la columna '{column}' en tu negocio."
+            question = (
+                f"Contame brevemente qué representa la columna '{column}' "
+                f"de la hoja '{sheet}' en tu negocio."
+            )
             answer_type = "owner_free_text"
         questions.append(
             {
+                "question_id": ref_id,
+                "field_id": ref_id,
                 "column_name": column,
+                "sheet_name": sheet,
                 "question": question,
                 "answer_type": answer_type,
                 "required": True,
