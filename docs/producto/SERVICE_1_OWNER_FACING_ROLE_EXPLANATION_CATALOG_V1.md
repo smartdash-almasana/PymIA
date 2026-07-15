@@ -164,7 +164,7 @@ NO landing/browser
 ## Próximo frente permitido
 
 ```text
-SERVICE_1_COLUMN_INTERPRETATION_TO_OWNER_PROMPT_BRIDGE_V1
+SERVICE_1_OWNER_FACING_ROLE_EXPLANATION_CATALOG_V1
 ```
 
 Objetivo futuro:
