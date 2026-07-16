@@ -1,128 +1,61 @@
 # Servicio 1 — estado actual
 
-**Fecha de corte:** 2026-07-14
+**Fecha de corte:** 2026-07-16
 
-**Baseline funcional comprometida:** `5fec9ff`
+**Baseline funcional comprometida:** `4dc4bf3`
 
-**Regresión posterior al saneamiento 001:** `2694 passed, 1 skipped` en Python 3.11 limpio
+**Regresión posterior al saneamiento estructural:** `1558 passed` en Python 3.11 limpio
 
 ## Estado
 
 ```text
+SERVICE_1_PRODUCT_COMPLETION_GATE: PASS
+SERVICIO 1 MVP DETERMINÍSTICO ASISTIDO: COMPLETO
 RAÍZ PRODUCTIVA CANÓNICA: ACTIVA
 CLI CANÓNICO: ACTIVO
-XLSX REAL → COMPRENSIÓN → CONFIRMACIÓN → PLAN COMPUTABLE: PROBADO
-CASH_COLLECTIONS → LIQ_001_vendido_cobrado: PROBADO
-PLAN COMPUTABLE SIN EJECUCIÓN: PROBADO
-RUTA EXPLÍCITA TOOL → XLSX: CONSERVADA
-FAIL-CLOSED SEMÁNTICO Y DE POLÍTICA: PROBADO
-SERVICIO 1 COMPLETO EN TODA SU AMPLITUD: NO
+XLSX REAL → CONFIRMACIÓN → SEMÁNTICA → PLAN/EJECUCIÓN EXPLÍCITA: PROBADO
+EXPERIMENTAL_FROZEN: 0
+OPERATOR LEGACY: ELIMINADO
+RUNTIME LEGACY: ELIMINADO
+EXCELAND/LAB LEGACY: ELIMINADO
+SERVICIO 1 EN TODA SU AMPLITUD FUTURA: NO
 ```
 
-## Qué hace hoy
+## Alcance completo declarado
 
-Servicio 1 puede:
+Servicio 1 está completo como MVP para:
 
-- leer un XLSX real por la ruta canónica;
-- conservar encabezados, muestras y contexto de hoja;
-- proponer significados semánticos mediante el motor de comprensión de columnas;
-- bloquear y preguntar al dueño cuando existe ambigüedad;
-- aceptar únicamente una opción semántica canónica o `IGNORED_NOT_RELEVANT`;
-- hacer prevalecer una confirmación explícita del dueño sobre hipótesis secundarias del matcher;
-- agrupar evidencia confirmada en familias de variables;
-- recibir una capacidad empresarial explícita y buscar una única relación gobernada familia–patología–fórmula;
-- construir un plan computable para `sold_vs_collected_gap` mediante `LIQ_001_vendido_cobrado`;
-- conservar la ruta anterior de tools explícitamente solicitadas y generación física XLSX.
+- leer XLSX real por la CLI oficial;
+- preguntar al dueño por columnas cuando falta confirmación;
+- construir salida canónica de ingesta;
+- pasar por comprensión semántica determinística;
+- pedir confirmación semántica cuando la evidencia no alcanza;
+- rechazar reentry semántico de texto libre;
+- ejecutar una tool explícitamente solicitada y permitida;
+- construir plan computable gobernado para `sold_vs_collected_gap` / `LIQ_001_vendido_cobrado` sin ejecución;
+- mantener flags de autorización en falso salvo autorización explícita futura;
+- producir salida trazable.
 
-## Recorridos actuales
-
-### Plan computable, sin ejecución
+## Evidencia rectora
 
 ```text
-Excel
-→ lectura estructural
-→ comprensión de columnas
-→ confirmación del dueño, solo cuando hace falta
-→ familia de variables confirmada
-→ capacidad empresarial solicitada
-→ matriz gobernada fórmula–patología–evidencia
-→ binding semántico de variables
-→ plan READY_FOR_COMPUTATION
-→ computation_executed=false
-```
-
-### Ejecución física explícita existente
-
-```text
-Excel
-→ comprensión y confirmación
-→ tool request explícita y permitida
-→ ejecución determinística
-→ archivo XLSX de entrega
+docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md
+docs/service_1_product_completion_gate.v1.json
+tests/smartpyme/test_service_1_product_completion_gate_v1.py
+tests/cli/test_service_1_product_cli_v1.py
 ```
 
 ## Raíz técnica
 
 ```text
-pymia/smartpyme/service_1_product_pipeline_v1.py
 pymia/cli/service_1_product.py
-```
-
-P7/P8 se integra en esa raíz mediante:
-
-```text
-service_1_deterministic_semantic_pipeline_v1.py
-service_1_variable_family_bindings_v1.py
-service_1_semantic_catalog_loader_v1.py
-service_1_semantic_evidence_binding_engine_v1.py
-docs/service_1_formula_pathology_evidence_matrix.v1.json
-```
-
-## Evidencia P7/P8
-
-```text
-FAMILIA: CASH_COLLECTIONS
-CAPACIDAD: sold_vs_collected_gap
-PATOLOGÍA: LIQ_001
-FÓRMULA: LIQ_001_vendido_cobrado
-VARIABLES: sold_amount + collected_amount
-BINDINGS: venta_total + cobrado
-ESTADO: READY_FOR_COMPUTATION
-RUNTIME_AUTHORIZED: false
-TOOL_EXECUTION_AUTHORIZED: false
-COMPUTATION_EXECUTED: false
-DIAGNOSIS_GENERATED: false
+pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
 ## Límites honestos
 
-- `READY_FOR_COMPUTATION` no autoriza runtime, ejecución, entrega ni diagnóstico.
-- Solo `sold_vs_collected_gap` está habilitada como capacidad formulaica computable en este corte.
-- `REN_001_margen_neto_real` puede considerarse semánticamente, pero permanece bloqueada como candidato computable por política y vocabulario incompleto.
-- No existe todavía selección automática de tool a partir del contenido del Excel.
-- El universo completo de patologías, fórmulas y microservicios no está conectado a la raíz productiva.
-- No hay LLM con autoridad de decisión dentro del pipeline.
-- No hay autorización para una cadena paralela, un segundo parser XLSX ni una arquitectura SaaS alternativa.
-
-## Saneamiento posterior a P7/P8
-
-```text
-LOTE 001: CERRADO TÉCNICAMENTE
-→ 9 módulos paralelos eliminados
-→ 9 tests asociados eliminados
-→ cadena histórica plan → autorización → dry-run → validación → ejecución → delivery removida
-→ gates aislados de auto-tool removidos
-→ registro: 139 módulos
-→ productivos: 14
-→ congelados: 93
-```
-
-## Próximo frente
-
-```text
-SANITATION_BATCH_002
-→ auditar componentes congelados aislados por clausura completa
-→ eliminar solo componentes sin callers productivos ni autoridad documental
-→ conservar P7/P8 y la ruta canónica sin cambios
-→ no abrir ejecución de LIQ_001 hasta cerrar el saneamiento estructural
-```
+- Completo no significa CRM, SaaS, Servicio 2/3 ni automatización LLM.
+- Completo no significa que todas las patologías/fórmulas futuras estén conectadas.
+- `LIQ_001_vendido_cobrado` queda como plan computable, no ejecución automática.
+- No existe selección automática de tool desde el contenido del Excel.
+- La confirmación del dueño sigue siendo parte del producto, no un gap.
