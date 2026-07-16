@@ -2,14 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from pymia.contracts.column_confirmation_v1 import (
-    CalculationRelevance,
-    ColumnConfirmationEntry,
-    ColumnConfirmationMatrix,
-)
-from pymia.smartpyme.service_1_column_semantic_mapper_v1 import (
-    build_service_1_column_semantic_candidates_from_matrix_v1,
-)
 from pymia.smartpyme.service_1_semantic_catalog_loader_v1 import (
     Service1NormalizedFormulaCatalogEntryV1,
     Service1NormalizedPathologyCatalogEntryV1,
@@ -23,6 +15,7 @@ from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     PATHOLOGY_FORMULA_STATUS_READY_CANDIDATE,
     STATUS_NEEDS_OWNER_COLUMN_CONFIRMATION,
     STATUS_READY_FOR_COMPUTATION_CANDIDATE,
+    Service1ColumnSemanticCandidateV1,
 )
 from pymia.smartpyme.service_1_semantic_evidence_binding_engine_v1 import (
     build_service_1_column_variable_bindings_v1,
@@ -32,36 +25,110 @@ from pymia.smartpyme.service_1_semantic_evidence_binding_engine_v1 import (
 )
 
 
-def _entry(column_name: str, *, sample_values: list[object] | None = None) -> ColumnConfirmationEntry:
-    return ColumnConfirmationEntry(
-        original_column_name=column_name,
+
+def _semantic_candidate(
+    *,
+    source_column_name: str,
+    semantic_role: str,
+    variable_name: str,
+    sample_values: tuple[object, ...] = (),
+    owner_confirmation_required: bool = False,
+    confidence_label: str = "mapped",
+    confidence: float = 1.0,
+) -> Service1ColumnSemanticCandidateV1:
+    return Service1ColumnSemanticCandidateV1(
+        source_column_name=source_column_name,
+        normalized_column_name=source_column_name,
         sheet_name="Ventas_Junio_2026",
-        sample_values=sample_values or [],
-        inferred_type="unknown",
-        suggested_semantic_role="unknown",
-        suggested_data_type="unknown",
-        calculation_relevance=CalculationRelevance.INFORMATIONAL,
+        observed_data_type="unknown",
+        sample_values=sample_values,
+        candidate_semantic_roles=(semantic_role,),
+        candidate_variable_names=(variable_name,),
+        confidence=confidence,
+        ambiguity_reason="Owner confirmation is required before semantic binding"
+        if owner_confirmation_required
+        else None,
+        owner_confirmation_required=owner_confirmation_required,
+        runtime_authorized=False,
+        tool_execution_authorized=False,
+        delivery_authorized=False,
+        diagnosis_generated=False,
+        metadata={"confidence_label": confidence_label},
     )
 
 
-def _case_001_candidates():
-    matrix = ColumnConfirmationMatrix(
-        file_name="CASE_001_ventas_junio_2026.xlsx",
-        entries=[
-            _entry("fecha", sample_values=["2026-06-01"]),
-            _entry("comprobante", sample_values=["A-0001"]),
-            _entry("producto_codigo", sample_values=["SKU-001"]),
-            _entry("producto", sample_values=["Producto A"]),
-            _entry("categoria", sample_values=["Categoria A"]),
-            _entry("cantidad", sample_values=[10]),
-            _entry("precio_unitario", sample_values=[100]),
-            _entry("costo_unitario", sample_values=[60]),
-            _entry("canal", sample_values=["local"]),
-            _entry("venta_total", sample_values=[1000]),
-        ],
+def _case_001_candidates() -> tuple[Service1ColumnSemanticCandidateV1, ...]:
+    return (
+        _semantic_candidate(
+            source_column_name="fecha",
+            semantic_role="operation_date",
+            variable_name="business_period",
+            sample_values=("2026-06-01",),
+        ),
+        _semantic_candidate(
+            source_column_name="comprobante",
+            semantic_role="document_reference",
+            variable_name="document_ref",
+            sample_values=("A-0001",),
+        ),
+        _semantic_candidate(
+            source_column_name="producto_codigo",
+            semantic_role="product_identifier",
+            variable_name="product_id",
+            sample_values=("SKU-001",),
+        ),
+        _semantic_candidate(
+            source_column_name="producto",
+            semantic_role="product_name",
+            variable_name="product",
+            sample_values=("Producto A",),
+        ),
+        _semantic_candidate(
+            source_column_name="categoria",
+            semantic_role="commercial_category",
+            variable_name="segment",
+            sample_values=("Categoria A",),
+        ),
+        _semantic_candidate(
+            source_column_name="cantidad",
+            semantic_role="quantity",
+            variable_name="volume_sold",
+            sample_values=(10,),
+        ),
+        _semantic_candidate(
+            source_column_name="precio_unitario",
+            semantic_role="unit_sale_price",
+            variable_name="sale_price",
+            sample_values=(100,),
+            owner_confirmation_required=True,
+            confidence_label="ambiguous",
+            confidence=0.6,
+        ),
+        _semantic_candidate(
+            source_column_name="costo_unitario",
+            semantic_role="unit_cost_candidate",
+            variable_name="cost",
+            sample_values=(60,),
+            owner_confirmation_required=True,
+            confidence_label="ambiguous",
+            confidence=0.6,
+        ),
+        _semantic_candidate(
+            source_column_name="canal",
+            semantic_role="sales_channel",
+            variable_name="segment",
+            sample_values=("local",),
+        ),
+        _semantic_candidate(
+            source_column_name="venta_total",
+            semantic_role="sales_amount",
+            variable_name="sold_amount",
+            sample_values=(1000,),
+            owner_confirmation_required=True,
+            confidence_label="ambiguous",
+            confidence=0.6,
+        ),
     )
-    return build_service_1_column_semantic_candidates_from_matrix_v1(matrix)
-
 
 def _formula(
     *,

@@ -344,7 +344,6 @@ def test_output_has_no_delivery_or_llm_flags() -> None:
 
 
 CLOSED_CHAIN_MODULES = [
-    "pymia.smartpyme.service_1_column_semantic_mapper_v1",
     "pymia.smartpyme.service_1_semantic_evidence_binding_engine_v1",
     "pymia.smartpyme.service_1_xlsx_runtime_bridge_v1",
     "pymia.smartpyme.service_1_column_confirmation_packet_v1",

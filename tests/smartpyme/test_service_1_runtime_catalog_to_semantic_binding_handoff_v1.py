@@ -156,7 +156,6 @@ def test_handoff_has_no_forbidden_imports():
 
     forbidden = {
         "service_1_xlsx_first_product_entrypoint_v1",
-        "service_1_column_semantic_mapper_v1",
         "service_1_semantic_evidence_binding_engine_v1",
         "service_1_pathology_to_allowed_computation_candidate_v1",
         "pymia.cli",
