@@ -15,9 +15,9 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 30,
+    "EXPERIMENTAL_FROZEN": 28,
     "PRODUCTIVE": 15,
-    "SUPPORT_NECESSARY": 31
+    "SUPPORT_NECESSARY": 33
   },
   "total_modules": 76,
   "modules": [
@@ -480,9 +480,9 @@
     {
       "module": "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
       "path": "pymia/smartpyme/service_1_owner_confirmation_to_canonical_ingestion_output_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Required by pymia/cli/service_1_product.py to convert owner column confirmations into canonical ingestion output before the product pipeline.",
+      "confidence": "HIGH",
       "imports_service_1": [
         "service_1_web_column_confirmation_intake_boundary_v1"
       ],
@@ -1014,9 +1014,9 @@
     {
       "module": "service_1_web_column_confirmation_intake_boundary_v1",
       "path": "pymia/smartpyme/service_1_web_column_confirmation_intake_boundary_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
+      "disposition": "SUPPORT_NECESSARY",
+      "reason": "Required by pymia/cli/service_1_product.py as the XLSX column-confirmation intake boundary outside the canonical product root closure.",
+      "confidence": "HIGH",
       "imports_service_1": [
         "service_1_xlsx_to_normalized_table_v1"
       ],
