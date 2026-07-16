@@ -5,9 +5,8 @@
   "source_registry": "docs/service_1_module_disposition.v1.json",
   "source_architecture_lock": "docs/service_1_architecture_lock.v1.json",
   "service": "SERVICE_1",
-  "frozen_module_count": 26,
+  "frozen_module_count": 24,
   "decision_counts": {
-    "FROZEN_LABORATORY": 2,
     "LEGACY_OPERATOR_CLUSTER_CANDIDATE": 8,
     "RUNTIME_LEGACY_CLUSTER_CANDIDATE": 14,
     "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE": 2
@@ -29,83 +28,6 @@
     ]
   },
   "entries": [
-    {
-      "module": "excel_treatment_lab_v1",
-      "path": "pymia/smartpyme/excel_treatment_lab_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "FROZEN_LABORATORY",
-      "decision_reason": "Frozen laboratory module; retain or delete by explicit laboratory decision.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 0,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 1,
-        "test_refs": 2,
-        "current_doc_refs": 1,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [
-          "pymia/smartpyme/excel_treatment_lab_completion_slice_v1.py"
-        ],
-        "test_refs": [
-          "tests/smartpyme/test_excel_treatment_lab_v1.py",
-          "tests/smartpyme/test_service_1_module_disposition_registry_v1.py"
-        ],
-        "current_doc_refs": [
-          "docs/current/SERVICE_1_ARCHITECTURE_LOCK.md"
-        ],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
-    {
-      "module": "exceland_bridge_v1",
-      "path": "pymia/smartpyme/exceland_bridge_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "FROZEN_LABORATORY",
-      "decision_reason": "Frozen laboratory module; retain or delete by explicit laboratory decision.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 0,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 2,
-        "test_refs": 2,
-        "current_doc_refs": 1,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [
-          "pymia/smartpyme/excel_treatment_lab_completion_slice_v1.py",
-          "pymia/smartpyme/exceland_execution_flow_v1.py"
-        ],
-        "test_refs": [
-          "tests/smartpyme/test_exceland_bridge_v1.py",
-          "tests/smartpyme/test_service_1_module_disposition_registry_v1.py"
-        ],
-        "current_doc_refs": [
-          "docs/current/SERVICE_1_ARCHITECTURE_LOCK.md"
-        ],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
     {
       "module": "service_1_case_reentry_read_model_v1",
       "path": "pymia/smartpyme/service_1_case_reentry_read_model_v1.py",
@@ -1065,5 +987,20 @@
       ]
     },
     "rule": "Modules referenced only through legacy reentry remain legacy-operator cluster candidates; modules also referenced by pathology/anamnesis runtime legacy are shared legacy candidates and must not be cut in an operator-only deletion cycle."
-  }
+  },
+  "removed_clusters": [
+    {
+      "cycle": "CYCLE_023_REMOVE_FROZEN_LABORATORY_PLUS_UNREGISTERED_EXCELAND_CLUSTER",
+      "removed_decision": "FROZEN_LABORATORY",
+      "removed_registry_modules": [
+        "excel_treatment_lab_v1",
+        "exceland_bridge_v1"
+      ],
+      "removed_unregistered_modules": [
+        "excel_treatment_lab_completion_slice_v1",
+        "exceland_execution_flow_v1",
+        "exceland_runtime_v1"
+      ]
+    }
+  ]
 }

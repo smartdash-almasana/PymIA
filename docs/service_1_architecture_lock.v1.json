@@ -100,16 +100,11 @@
       "service_1_xlsx_first_product_entrypoint_v1"
     ]
   },
-  "frozen_laboratory_modules": [
-    "excel_treatment_lab_v1",
-    "exceland_bridge_v1"
-  ],
+  "frozen_laboratory_modules": [],
   "non_authoritative_surfaces": [
     "pymia/cli/service_1_operator.py",
     "pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
-    "pymia/smartpyme/service_1_xlsx_first_product_entrypoint_v1.py",
-    "pymia/smartpyme/excel_treatment_lab_v1.py",
-    "pymia/smartpyme/exceland_bridge_v1.py"
+    "pymia/smartpyme/service_1_xlsx_first_product_entrypoint_v1.py"
   ],
   "governance_rules": [
     "No new Service 1 product root may bypass service_1_product_pipeline_v1.",
@@ -117,5 +112,19 @@
     "Frozen clusters must be removed, absorbed, or explicitly reclassified as clusters; no isolated module deletion by name.",
     "Transitional support may not authorize runtime, diagnosis, delivery, or tool selection outside canonical gates.",
     "Documentation not indexed by docs/current/README.md cannot authorize Service 1 architecture."
+  ],
+  "retired_clusters": [
+    {
+      "cycle": "CYCLE_023_REMOVE_FROZEN_LABORATORY_PLUS_UNREGISTERED_EXCELAND_CLUSTER",
+      "decision": "REMOVED",
+      "modules": [
+        "excel_treatment_lab_completion_slice_v1",
+        "excel_treatment_lab_v1",
+        "exceland_bridge_v1",
+        "exceland_execution_flow_v1",
+        "exceland_runtime_v1"
+      ],
+      "reason": "Frozen laboratory plus unregistered Exceland side cluster had no official CLI, product root, or runtime bridge authority."
+    }
   ]
 }

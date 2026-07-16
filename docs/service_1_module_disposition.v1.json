@@ -15,41 +15,12 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 26,
+    "EXPERIMENTAL_FROZEN": 24,
     "PRODUCTIVE": 15,
     "SUPPORT_NECESSARY": 35
   },
-  "total_modules": 76,
+  "total_modules": 74,
   "modules": [
-    {
-      "module": "excel_treatment_lab_v1",
-      "path": "pymia/smartpyme/excel_treatment_lab_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_xlsx_delivery_v1"
-      ],
-      "internal_callers": [
-        "excel_treatment_lab_completion_slice_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "exceland_bridge_v1",
-      "path": "pymia/smartpyme/exceland_bridge_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_xlsx_delivery_v1"
-      ],
-      "internal_callers": [
-        "excel_treatment_lab_completion_slice_v1",
-        "exceland_execution_flow_v1"
-      ],
-      "canonical_root_reachable": false
-    },
     {
       "module": "service_1_accounting_contracts_v1",
       "path": "pymia/smartpyme/service_1_accounting_contracts_v1.py",
@@ -1029,15 +1000,12 @@
       "module": "service_1_xlsx_delivery_v1",
       "path": "pymia/smartpyme/service_1_xlsx_delivery_v1.py",
       "disposition": "SUPPORT_NECESSARY",
-      "reason": "Required as the retained deterministic XLSX delivery contract used by accounting contracts, Excel treatment lab, Exceland bridge, and first-aid delivery support modules.",
+      "reason": "Required as the retained deterministic XLSX delivery contract used by accounting contracts and first-aid delivery support modules.",
       "confidence": "HIGH",
       "imports_service_1": [],
       "internal_callers": [
         "accounting_workpaper_completion_slice_v1",
         "bank_reconciliation_sandbox_completion_slice_v1",
-        "excel_treatment_lab_completion_slice_v1",
-        "excel_treatment_lab_v1",
-        "exceland_bridge_v1",
         "first_aid_xlsx_delivery_v1",
         "invoice_collection_matching_sandbox_completion_slice_v1",
         "service_1_accounting_contracts_v1"

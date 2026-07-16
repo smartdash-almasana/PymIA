@@ -175,7 +175,6 @@ def test_decision_counts_sum_to_frozen_module_count_without_manual_review() -> N
 
     assert sum(matrix["decision_counts"].values()) == matrix["frozen_module_count"]
     assert matrix["decision_counts"] == {
-        "FROZEN_LABORATORY": 2,
         "LEGACY_OPERATOR_CLUSTER_CANDIDATE": 8,
         "RUNTIME_LEGACY_CLUSTER_CANDIDATE": 14,
         "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE": 2,

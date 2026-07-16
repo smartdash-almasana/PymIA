@@ -67,11 +67,10 @@ Este bloque no gobierna el producto. Sólo puede ser eliminado, absorbido o recl
 ## Laboratorio congelado
 
 ```text
-excel_treatment_lab_v1
-exceland_bridge_v1
+REMOVED_IN_CYCLE_023
 ```
 
-No gobiernan Servicio 1. Pueden quedar como laboratorio congelado o ser removidos en ciclos posteriores; no pueden transformarse en producto por acumulación de referencias.
+El laboratorio Excel/Exceland fue removido como cluster ampliado, incluyendo sus módulos laterales no registrados. No gobierna Servicio 1 y no queda como superficie activa.
 
 ## Reglas de bloqueo
 

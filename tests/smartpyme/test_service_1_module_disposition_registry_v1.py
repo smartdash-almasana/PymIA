@@ -10,8 +10,6 @@ _ALLOWED = {
     "OBSOLETE_ELIMINABLE",
 }
 _SPECIAL = {
-    "excel_treatment_lab_v1",
-    "exceland_bridge_v1",
     "accounting_human_review_gate_v1",
 }
 
