@@ -69,3 +69,27 @@ COMANDO OFICIAL: python -m pymia.cli.service_1_product
 RUNBOOK: docs/current/SERVICE_1_OPERABILITY_PACKET.md
 PAQUETE VERIFICABLE: docs/service_1_operability_packet.v1.json
 ```
+
+
+## Primer caso operatorless
+
+```text
+PRIMER CASO OPERATORLESS: PASS
+CICLO: CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE
+CLI: python -m pymia.cli.service_1_product
+FIXTURE: prueba_excels/cafeteria_abc.xlsx
+SHEET: Ventas
+PRIMER PASE: NEEDS_OWNER_CONFIRMATION
+SEGUNDO PASE: PRODUCT_PIPELINE_READY
+TOOL EJECUTADA: precio_margen_basico
+SALIDA XLSX: first_aid_001_precio_margen_basico.xlsx
+```
+
+La evidencia rectora está en:
+
+```text
+docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md
+docs/service_1_first_operatorless_case.v1.json
+tests/smartpyme/test_service_1_first_operatorless_case_v1.py
+```
+

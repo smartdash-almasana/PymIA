@@ -44,6 +44,7 @@ docs/current/SERVICE_1_CANONICAL_AXIS.md
 docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
 docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md
 docs/current/SERVICE_1_OPERABILITY_PACKET.md
+docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md
 ```
 
 La carpeta `landing/` no gobierna Servicio 1.

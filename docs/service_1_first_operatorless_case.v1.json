@@ -1,0 +1,85 @@
+{
+  "schema_version": "SERVICE_1_FIRST_OPERATORLESS_CASE_V1",
+  "status": "PASS_OPERATORLESS_CASE_RUN",
+  "cycle": "CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE",
+  "date": "2026-07-16",
+  "baseline": "9ccfeef",
+  "source_evidence": {
+    "schema_version": "SERVICE_1_OPERATORLESS_CASE_RUN_V1",
+    "cycle": "CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE",
+    "status": "PASS",
+    "work_dir": ".tmp\\service_1_operatorless_case",
+    "official_cli": "python -m pymia.cli.service_1_product",
+    "fixture": "prueba_excels/cafeteria_abc.xlsx",
+    "sheet_name": "Ventas",
+    "first_pass": {
+      "returncode": 2,
+      "result_json": ".tmp\\service_1_operatorless_case\\first_pass.json",
+      "status": "NEEDS_OWNER_CONFIRMATION",
+      "owner_questions_count": 6,
+      "tools_executed": false
+    },
+    "semantic_owner_answers": {
+      "path": ".tmp\\service_1_operatorless_case\\semantic_owner_answers.json",
+      "count": 6,
+      "source_rule": "selected from product_pipeline.owner_questions[].allowed_option_ids; no free text"
+    },
+    "final_pass": {
+      "returncode": 0,
+      "result_json": ".tmp\\service_1_operatorless_case\\final_pass.json",
+      "status": "PRODUCT_PIPELINE_READY",
+      "semantic_bindings_confirmed": true,
+      "tools_executed": true,
+      "executed_tool_refs": [
+        "precio_margen_basico"
+      ],
+      "xlsx_outputs": [
+        "first_aid_001_precio_margen_basico.xlsx"
+      ]
+    },
+    "checks": {
+      "first_returncode_is_2": true,
+      "first_status_needs_owner": true,
+      "first_tools_not_executed": true,
+      "semantic_answers_from_allowed_ids": true,
+      "final_returncode_is_0": true,
+      "final_status_ready": true,
+      "semantic_confirmed": true,
+      "tools_executed": true,
+      "expected_tool_executed": true,
+      "xlsx_output_exists": true
+    },
+    "limits": [
+      "Run uses explicit tool request; it does not claim automatic tool selection.",
+      "Run uses deterministic owner confirmations; it does not give LLM runtime authority.",
+      "Run proves operatorless operation of the packaged MVP path, not Servicio 2/3."
+    ]
+  },
+  "acceptance_claim": "Servicio 1 MVP can be operated from the packaged runbook with the official CLI, without legacy operator/runtime bridge and without internal conversational knowledge.",
+  "operatorless_constraints": {
+    "official_cli_only": "python -m pymia.cli.service_1_product",
+    "runbook_used": "docs/current/SERVICE_1_OPERABILITY_PACKET.md",
+    "legacy_operator_absent": "pymia/cli/service_1_operator.py",
+    "legacy_runtime_bridge_absent": "pymia/cli/service_1_xlsx_runtime_bridge.py",
+    "no_free_text_semantic_reentry": true,
+    "semantic_answers_source": "allowed_option_ids emitted in first_pass.json",
+    "explicit_tool_request_only": true
+  },
+  "pass_criteria": {
+    "first_pass_status": "NEEDS_OWNER_CONFIRMATION",
+    "first_pass_tools_executed": false,
+    "semantic_answers_are_allowed_option_ids": true,
+    "final_pass_status": "PRODUCT_PIPELINE_READY",
+    "semantic_bindings_confirmed": true,
+    "tools_executed": true,
+    "executed_tool_refs": [
+      "precio_margen_basico"
+    ],
+    "xlsx_output_exists": true
+  },
+  "known_limits": [
+    "Run uses explicit tool request; it does not claim automatic tool selection.",
+    "Run uses deterministic owner confirmations; it does not give LLM runtime authority.",
+    "Run proves operatorless operation of the packaged MVP path, not Servicio 2/3."
+  ]
+}
