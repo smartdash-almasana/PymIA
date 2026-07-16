@@ -1,7 +1,7 @@
 # Servicio 1 — First Operatorless Case V1
 
-**Ciclo:** `CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE`  
-**Fecha:** 2026-07-16  
+**Ciclo:** `CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE`
+**Fecha:** 2026-07-16
 **Estado:** `PASS_OPERATORLESS_CASE_RUN`
 
 ## Declaración
