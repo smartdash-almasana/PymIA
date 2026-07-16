@@ -15,11 +15,11 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "EXPERIMENTAL_FROZEN": 32,
+    "EXPERIMENTAL_FROZEN": 31,
     "PRODUCTIVE": 15,
     "SUPPORT_NECESSARY": 31
   },
-  "total_modules": 78,
+  "total_modules": 77,
   "modules": [
     {
       "module": "excel_treatment_lab_v1",
@@ -750,8 +750,7 @@
         "service_1_pathology_anamnesis_triage_intake_bridge_v1",
         "service_1_pathology_anamnesis_triage_loop_composition_v1",
         "service_1_pathology_anamnesis_triage_question_bundle_output_v1",
-        "service_1_reentry_projection_v1",
-        "service_1_synthetic_real_owner_evidence_case_v1"
+        "service_1_reentry_projection_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -995,18 +994,6 @@
       "internal_callers": [
         "service_1_stock_movement_evidence_packet_v1"
       ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_synthetic_real_owner_evidence_case_v1",
-      "path": "pymia/smartpyme/service_1_synthetic_real_owner_evidence_case_v1.py",
-      "disposition": "EXPERIMENTAL_FROZEN",
-      "reason": "Not reachable from the canonical product root and not required as retained engineering support.",
-      "confidence": "MEDIUM",
-      "imports_service_1": [
-        "service_1_question_bundle_v1"
-      ],
-      "internal_callers": [],
       "canonical_root_reachable": false
     },
     {
