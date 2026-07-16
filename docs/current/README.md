@@ -17,6 +17,7 @@ La memoria conversacional, documentos no listados, landings, pilotos, auditoría
 - `PRODUCT_VISION.md` — visión final del producto.
 - `SERVICE_1_STATUS.md` — estado verificable actual.
 - `SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.
+- `SERVICE_1_ARCHITECTURE_LOCK.md` — superficie oficial, soporte retenido, legacy y laboratorio congelado de Servicio 1.
 - `SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md` — método de ingeniería del pipeline.
 - `FACTORY_AND_ADN_AXIS.md` — separación metodológica de Factoría/ADN.
 - `HERMES_AXIS.md` — Hermes no gobierna Servicio 1.
@@ -38,6 +39,7 @@ pymia/cli/service_1_product.py
 docs/service_1_module_disposition.v1.json
 docs/current/SERVICE_1_STATUS.md
 docs/current/SERVICE_1_CANONICAL_AXIS.md
+docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
 ```
 
 La carpeta `landing/` no gobierna Servicio 1.

@@ -1,0 +1,121 @@
+{
+  "schema_version": "SERVICE_1_ARCHITECTURE_LOCK_V1",
+  "status": "ACTIVE",
+  "cycle": "CYCLE_018_ARCHITECTURE_LOCK",
+  "locked_on": "2026-07-16",
+  "service": "SERVICE_1",
+  "software_objective": "A deterministic PyME Excel service that reads real evidence, asks the owner to confirm operational meaning during understanding, builds canonical semantic state, applies deterministic gates, executes only explicitly authorized tools, and produces traceable delivery files.",
+  "official_entrypoints": [
+    {
+      "id": "service_1_product_cli",
+      "path": "pymia/cli/service_1_product.py",
+      "authority": "ONLY_OFFICIAL_USER_FACING_CLI"
+    }
+  ],
+  "canonical_product_root": {
+    "module": "service_1_product_pipeline_v1",
+    "path": "pymia/smartpyme/service_1_product_pipeline_v1.py",
+    "authority": "ONLY_CANONICAL_PRODUCT_ROOT"
+  },
+  "productive_nucleus_modules": [
+    "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+    "service_1_column_understanding_engine_contract_v1",
+    "service_1_column_understanding_engine_v1",
+    "service_1_column_understanding_owner_question_adapter_v1",
+    "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+    "service_1_deterministic_semantic_pipeline_v1",
+    "service_1_manual_first_aid_delivery_flow_v1",
+    "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+    "service_1_pipeline_v1",
+    "service_1_product_pipeline_v1",
+    "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+    "service_1_semantic_catalog_loader_v1",
+    "service_1_semantic_evidence_binding_contracts_v1",
+    "service_1_semantic_evidence_binding_engine_v1",
+    "service_1_variable_family_bindings_v1"
+  ],
+  "retained_support_decisions": [
+    {
+      "module": "service_1_web_column_confirmation_intake_boundary_v1",
+      "decision": "RETAIN_SUPPORT",
+      "reason": "Column-confirmation intake boundary used by the official product CLI before canonical ingestion."
+    },
+    {
+      "module": "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
+      "decision": "RETAIN_SUPPORT",
+      "reason": "Converts owner confirmations into canonical ingestion output for the official product CLI."
+    },
+    {
+      "module": "service_1_xlsx_delivery_v1",
+      "decision": "RETAIN_SUPPORT",
+      "reason": "Deterministic XLSX delivery contract retained for explicit tool delivery and accounting support."
+    },
+    {
+      "module": "service_1_accounting_contracts_v1",
+      "decision": "RETAIN_SUPPORT",
+      "reason": "Accounting contract family foundation retained as support, not as a product root."
+    }
+  ],
+  "transitional_support_not_product_root": [
+    {
+      "module": "service_1_xlsx_runtime_bridge_v1",
+      "path": "pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
+      "decision": "TRANSITIONAL_SUPPORT_NOT_PRODUCT_ROOT",
+      "next_decision": "ABSORB_OR_REMOVE_AFTER_CANONICAL_SURFACE_CLOSURE"
+    }
+  ],
+  "legacy_operator_cluster": {
+    "entrypoint_path": "pymia/cli/service_1_operator.py",
+    "decision": "LEGACY_ELIMINATION_CANDIDATE_NOT_PRODUCT_AUTHORITY",
+    "modules": [
+      "service_1_case_reentry_read_model_v1",
+      "service_1_column_confirmation_packet_v1",
+      "service_1_executable_entrypoint_v1",
+      "service_1_first_aid_minimal_v1",
+      "service_1_next_owner_question_view_v1",
+      "service_1_owner_answer_reentry_persistence_v1",
+      "service_1_owner_answer_reentry_v1",
+      "service_1_owner_reentry_bridge_v1",
+      "service_1_question_bundle_v1",
+      "service_1_reentry_projection_v1"
+    ]
+  },
+  "runtime_legacy_cluster": {
+    "bridge_module": "service_1_xlsx_runtime_bridge_v1",
+    "decision": "FROZEN_LEGACY_DEPENDENCY_CLUSTER_NOT_PRODUCT_AUTHORITY",
+    "modules": [
+      "service_1_controlled_computation_plan_v1",
+      "service_1_operational_finding_owner_view_v1",
+      "service_1_pathology_anamnesis_triage_contract_v1",
+      "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1",
+      "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+      "service_1_pathology_anamnesis_triage_loop_composition_v1",
+      "service_1_pathology_anamnesis_triage_question_bundle_output_v1",
+      "service_1_pathology_evidence_readiness_gate_v1",
+      "service_1_pathology_finding_delivery_package_v1",
+      "service_1_pathology_finding_delivery_policy_guard_v1",
+      "service_1_pathology_first_aid_dry_run_candidate_v1",
+      "service_1_pathology_to_allowed_computation_candidate_v1",
+      "service_1_real_client_xlsx_first_pilot_pack_v1",
+      "service_1_xlsx_first_product_entrypoint_v1"
+    ]
+  },
+  "frozen_laboratory_modules": [
+    "excel_treatment_lab_v1",
+    "exceland_bridge_v1"
+  ],
+  "non_authoritative_surfaces": [
+    "pymia/cli/service_1_operator.py",
+    "pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
+    "pymia/smartpyme/service_1_xlsx_first_product_entrypoint_v1.py",
+    "pymia/smartpyme/excel_treatment_lab_v1.py",
+    "pymia/smartpyme/exceland_bridge_v1.py"
+  ],
+  "governance_rules": [
+    "No new Service 1 product root may bypass service_1_product_pipeline_v1.",
+    "No CLI other than pymia/cli/service_1_product.py may be treated as the official user-facing entrypoint.",
+    "Frozen clusters must be removed, absorbed, or explicitly reclassified as clusters; no isolated module deletion by name.",
+    "Transitional support may not authorize runtime, diagnosis, delivery, or tool selection outside canonical gates.",
+    "Documentation not indexed by docs/current/README.md cannot authorize Service 1 architecture."
+  ]
+}
