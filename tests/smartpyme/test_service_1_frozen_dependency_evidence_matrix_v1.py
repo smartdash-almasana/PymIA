@@ -138,3 +138,45 @@ def test_no_frozen_module_is_referenced_by_official_cli() -> None:
 
     assert all(not entry["references"]["official_cli_refs"] for entry in matrix["entries"])
     assert matrix["decision_counts"].get("BLOCKED_PRODUCT_CLI_REF", 0) == 0
+
+
+def test_manual_review_modules_are_resolved_to_evidence_backed_decisions() -> None:
+    matrix = _read_json("docs/service_1_frozen_dependency_evidence_matrix.v1.json")
+    by_module = {entry["module"]: entry for entry in matrix["entries"]}
+
+    assert "NEEDS_MANUAL_REVIEW" not in matrix["decision_counts"]
+    assert matrix["resolved_manual_review"]["resolved_count"] == 5
+
+    legacy_reentry_only = {
+        "service_1_case_reentry_read_model_v1",
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_reentry_projection_v1",
+    }
+    shared_reentry_runtime = {
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1",
+    }
+
+    for module in legacy_reentry_only:
+        entry = by_module[module]
+        assert entry["architecture_lock_decision"] == "LEGACY_OPERATOR_CLUSTER_CANDIDATE"
+        assert not entry["references"]["official_cli_refs"]
+        assert entry["references"]["other_source_refs"]
+
+    for module in shared_reentry_runtime:
+        entry = by_module[module]
+        assert entry["architecture_lock_decision"] == "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE"
+        assert not entry["references"]["official_cli_refs"]
+        assert any("pathology_anamnesis" in path for path in entry["references"]["other_source_refs"])
+
+
+def test_decision_counts_sum_to_frozen_module_count_without_manual_review() -> None:
+    matrix = _read_json("docs/service_1_frozen_dependency_evidence_matrix.v1.json")
+
+    assert sum(matrix["decision_counts"].values()) == matrix["frozen_module_count"]
+    assert matrix["decision_counts"] == {
+        "FROZEN_LABORATORY": 2,
+        "LEGACY_OPERATOR_CLUSTER_CANDIDATE": 8,
+        "RUNTIME_LEGACY_CLUSTER_CANDIDATE": 14,
+        "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE": 2,
+    }

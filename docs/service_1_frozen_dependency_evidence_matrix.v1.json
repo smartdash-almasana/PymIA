@@ -8,9 +8,9 @@
   "frozen_module_count": 26,
   "decision_counts": {
     "FROZEN_LABORATORY": 2,
-    "LEGACY_OPERATOR_CLUSTER_CANDIDATE": 5,
-    "NEEDS_MANUAL_REVIEW": 5,
-    "RUNTIME_LEGACY_CLUSTER_CANDIDATE": 14
+    "LEGACY_OPERATOR_CLUSTER_CANDIDATE": 8,
+    "RUNTIME_LEGACY_CLUSTER_CANDIDATE": 14,
+    "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE": 2
   },
   "method": {
     "token": "exact module name string search across pymia/, tests/, and docs/ for .py/.md/.json files",
@@ -111,14 +111,14 @@
       "path": "pymia/smartpyme/service_1_case_reentry_read_model_v1.py",
       "registry_disposition": "EXPERIMENTAL_FROZEN",
       "canonical_root_reachable": false,
-      "architecture_lock_decision": "NEEDS_MANUAL_REVIEW",
-      "decision_reason": "References do not match a declared cluster; inspect before changing.",
+      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
+      "decision_reason": "Resolved in CYCLE_021: referenced by legacy reentry modules and tests only; no official CLI reference. Treat as legacy operator reentry cluster candidate, not as isolated deletion.",
       "reference_counts": {
         "official_cli_refs": 0,
         "legacy_operator_refs": 0,
         "runtime_bridge_refs": 0,
         "other_source_refs": 2,
-        "test_refs": 6,
+        "test_refs": 7,
         "current_doc_refs": 0,
         "registry_refs": 2,
         "other_doc_refs": 0
@@ -135,6 +135,7 @@
           "tests/e2e/test_service_1_operator_cli_v1.py",
           "tests/smartpyme/test_service_1_case_reentry_read_model_v1.py",
           "tests/smartpyme/test_service_1_executable_entrypoint_v1.py",
+          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
           "tests/smartpyme/test_service_1_qa_delivery_gate_v1.py",
           "tests/smartpyme/test_service_1_reentry_projection_v1.py",
           "tests/smartpyme/test_service_1_xlsx_structure_v1.py"
@@ -368,14 +369,14 @@
       "path": "pymia/smartpyme/service_1_owner_answer_reentry_persistence_v1.py",
       "registry_disposition": "EXPERIMENTAL_FROZEN",
       "canonical_root_reachable": false,
-      "architecture_lock_decision": "NEEDS_MANUAL_REVIEW",
-      "decision_reason": "References do not match a declared cluster; inspect before changing.",
+      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
+      "decision_reason": "Resolved in CYCLE_021: referenced by service_1_owner_reentry_bridge_v1 and tests only; no official CLI reference. Treat as legacy operator reentry cluster candidate, not as isolated deletion.",
       "reference_counts": {
         "official_cli_refs": 0,
         "legacy_operator_refs": 0,
         "runtime_bridge_refs": 0,
         "other_source_refs": 1,
-        "test_refs": 7,
+        "test_refs": 8,
         "current_doc_refs": 0,
         "registry_refs": 2,
         "other_doc_refs": 0
@@ -391,6 +392,7 @@
           "tests/e2e/test_service_1_operator_cli_v1.py",
           "tests/smartpyme/test_service_1_case_reentry_read_model_v1.py",
           "tests/smartpyme/test_service_1_executable_entrypoint_v1.py",
+          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
           "tests/smartpyme/test_service_1_owner_answer_reentry_persistence_v1.py",
           "tests/smartpyme/test_service_1_qa_delivery_gate_v1.py",
           "tests/smartpyme/test_service_1_reentry_projection_v1.py",
@@ -409,14 +411,14 @@
       "path": "pymia/smartpyme/service_1_owner_answer_reentry_v1.py",
       "registry_disposition": "EXPERIMENTAL_FROZEN",
       "canonical_root_reachable": false,
-      "architecture_lock_decision": "NEEDS_MANUAL_REVIEW",
-      "decision_reason": "References do not match a declared cluster; inspect before changing.",
+      "architecture_lock_decision": "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE",
+      "decision_reason": "Resolved in CYCLE_021: shared by legacy owner reentry modules and pathology/anamnesis runtime-legacy modules; not safe as operator-only deletion. Resolve with combined legacy reentry plus runtime-legacy cluster decision.",
       "reference_counts": {
         "official_cli_refs": 0,
         "legacy_operator_refs": 0,
         "runtime_bridge_refs": 0,
         "other_source_refs": 4,
-        "test_refs": 13,
+        "test_refs": 14,
         "current_doc_refs": 0,
         "registry_refs": 2,
         "other_doc_refs": 0
@@ -438,6 +440,7 @@
           "tests/smartpyme/test_service_1_column_confirmation_packet_v1.py",
           "tests/smartpyme/test_service_1_executable_entrypoint_v1.py",
           "tests/smartpyme/test_service_1_first_aid_minimal_v1.py",
+          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
           "tests/smartpyme/test_service_1_owner_answer_reentry_persistence_v1.py",
           "tests/smartpyme/test_service_1_owner_answer_reentry_v1.py",
           "tests/smartpyme/test_service_1_pathology_anamnesis_triage_intake_bridge_v1.py",
@@ -877,14 +880,14 @@
       "path": "pymia/smartpyme/service_1_question_bundle_v1.py",
       "registry_disposition": "EXPERIMENTAL_FROZEN",
       "canonical_root_reachable": false,
-      "architecture_lock_decision": "NEEDS_MANUAL_REVIEW",
-      "decision_reason": "References do not match a declared cluster; inspect before changing.",
+      "architecture_lock_decision": "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE",
+      "decision_reason": "Resolved in CYCLE_021: shared by legacy owner reentry modules and pathology/anamnesis runtime-legacy modules; not safe as operator-only deletion. Resolve with combined legacy reentry plus runtime-legacy cluster decision.",
       "reference_counts": {
         "official_cli_refs": 0,
         "legacy_operator_refs": 0,
         "runtime_bridge_refs": 0,
         "other_source_refs": 9,
-        "test_refs": 11,
+        "test_refs": 12,
         "current_doc_refs": 0,
         "registry_refs": 2,
         "other_doc_refs": 0
@@ -907,6 +910,7 @@
         "test_refs": [
           "tests/smartpyme/test_service_1_architecture_lock_v1.py",
           "tests/smartpyme/test_service_1_case_reentry_read_model_v1.py",
+          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
           "tests/smartpyme/test_service_1_owner_answer_reentry_persistence_v1.py",
           "tests/smartpyme/test_service_1_owner_answer_reentry_v1.py",
           "tests/smartpyme/test_service_1_owner_evidence_reentry_cli_wiring_v1.py",
@@ -967,14 +971,14 @@
       "path": "pymia/smartpyme/service_1_reentry_projection_v1.py",
       "registry_disposition": "EXPERIMENTAL_FROZEN",
       "canonical_root_reachable": false,
-      "architecture_lock_decision": "NEEDS_MANUAL_REVIEW",
-      "decision_reason": "References do not match a declared cluster; inspect before changing.",
+      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
+      "decision_reason": "Resolved in CYCLE_021: referenced by service_1_owner_reentry_bridge_v1 and its own test only; no official CLI reference. Treat as legacy operator reentry cluster candidate, not as isolated deletion.",
       "reference_counts": {
         "official_cli_refs": 0,
         "legacy_operator_refs": 0,
         "runtime_bridge_refs": 0,
         "other_source_refs": 1,
-        "test_refs": 1,
+        "test_refs": 2,
         "current_doc_refs": 0,
         "registry_refs": 2,
         "other_doc_refs": 0
@@ -987,6 +991,7 @@
           "pymia/smartpyme/service_1_owner_reentry_bridge_v1.py"
         ],
         "test_refs": [
+          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
           "tests/smartpyme/test_service_1_reentry_projection_v1.py"
         ],
         "current_doc_refs": [],
@@ -1043,5 +1048,22 @@
         "other_doc_refs": []
       }
     }
-  ]
+  ],
+  "resolved_manual_review": {
+    "cycle": "CYCLE_021_RESOLVE_MANUAL_REVIEW_FROZEN_MODULES",
+    "previous_decision": "NEEDS_MANUAL_REVIEW",
+    "resolved_count": 5,
+    "resolved_to": {
+      "LEGACY_OPERATOR_CLUSTER_CANDIDATE": [
+        "service_1_case_reentry_read_model_v1",
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_reentry_projection_v1"
+      ],
+      "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE": [
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1"
+      ]
+    },
+    "rule": "Modules referenced only through legacy reentry remain legacy-operator cluster candidates; modules also referenced by pathology/anamnesis runtime legacy are shared legacy candidates and must not be cut in an operator-only deletion cycle."
+  }
 }
