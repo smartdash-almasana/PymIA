@@ -1,0 +1,129 @@
+{
+  "schema_version": "SERVICE_1_OPERABILITY_PACKET_V1",
+  "status": "ACTIVE",
+  "cycle": "CYCLE_030_OPERABILITY_PACKET_FOR_SERVICE_1",
+  "locked_on": "2026-07-16",
+  "service": "SERVICE_1",
+  "product_status": "MVP_DETERMINISTIC_ASSISTED_COMPLETE",
+  "official_command_module": "pymia.cli.service_1_product",
+  "official_entrypoint_path": "pymia/cli/service_1_product.py",
+  "canonical_product_root": "pymia/smartpyme/service_1_product_pipeline_v1.py",
+  "fixture": {
+    "path": "prueba_excels/cafeteria_abc.xlsx",
+    "sheet": "Ventas"
+  },
+  "operator_inputs": {
+    "owner_column_answers_json": {
+      "VentaID": "identificador único de la venta",
+      "Fecha": "fecha en que se realizó la venta",
+      "Hora": "hora en que se realizó la venta",
+      "SucursalID": "identificador de la sucursal",
+      "ProductoID": "identificador del producto vendido",
+      "Cantidad": "cantidad de unidades vendidas",
+      "PrecioUnitario": "precio de venta por unidad",
+      "MetodoPago": "medio de pago utilizado",
+      "CanalVenta": "canal por el que se realizó la venta",
+      "Descuento": "descuento aplicado a la venta",
+      "Empleado": "empleado que registró o realizó la venta"
+    },
+    "tool_requests_json": [
+      {
+        "tool_ref": "precio_margen_basico",
+        "inputs": {
+          "precio_venta": 1200,
+          "costo_unitario": 800
+        }
+      }
+    ],
+    "semantic_owner_answers_rule": "After first pass, create an object whose keys are product_pipeline.owner_questions[*].column_name and whose values are one allowed option id from product_pipeline.owner_questions[*].allowed_option_ids; do not use free text."
+  },
+  "commands": {
+    "first_pass_explicit_tool": [
+      "python",
+      "-m",
+      "pymia.cli.service_1_product",
+      "--xlsx",
+      "prueba_excels/cafeteria_abc.xlsx",
+      "--owner-column-answers",
+      ".tmp/service_1_ops/owner_column_answers.json",
+      "--tool-requests",
+      ".tmp/service_1_ops/tool_requests.json",
+      "--output-dir",
+      ".tmp/service_1_ops/output",
+      "--sheet-name",
+      "Ventas",
+      "--result-json",
+      ".tmp/service_1_ops/first_pass.json"
+    ],
+    "final_pass_explicit_tool": [
+      "python",
+      "-m",
+      "pymia.cli.service_1_product",
+      "--xlsx",
+      "prueba_excels/cafeteria_abc.xlsx",
+      "--owner-column-answers",
+      ".tmp/service_1_ops/owner_column_answers.json",
+      "--semantic-owner-answers",
+      ".tmp/service_1_ops/semantic_owner_answers.json",
+      "--tool-requests",
+      ".tmp/service_1_ops/tool_requests.json",
+      "--output-dir",
+      ".tmp/service_1_ops/output",
+      "--sheet-name",
+      "Ventas",
+      "--result-json",
+      ".tmp/service_1_ops/final_pass.json"
+    ],
+    "plan_only_liq_001": [
+      "python",
+      "-m",
+      "pymia.cli.service_1_product",
+      "--xlsx",
+      "<ventas_cobros.xlsx>",
+      "--owner-column-answers",
+      "<owner_column_answers.json>",
+      "--semantic-owner-answers",
+      "<semantic_owner_answers.json>",
+      "--requested-capability",
+      "sold_vs_collected_gap",
+      "--output-dir",
+      "<output_dir>",
+      "--sheet-name",
+      "Ventas",
+      "--result-json",
+      "<result.json>"
+    ]
+  },
+  "expected_statuses": {
+    "first_pass_without_semantic_answers": "NEEDS_OWNER_CONFIRMATION",
+    "final_pass_with_semantic_answers": "PRODUCT_PIPELINE_READY",
+    "plan_only_final_status": "COMPUTATION_PLAN_READY",
+    "invalid_free_text_semantic_reentry": "BLOCKED"
+  },
+  "output_contract": {
+    "first_pass_result": "JSON at --result-json; must include product_pipeline.owner_questions when status is NEEDS_OWNER_CONFIRMATION.",
+    "final_pass_result": "JSON at --result-json; must include product_pipeline.tools_executed=true for explicit tool mode.",
+    "delivery_artifact": "At least one .xlsx file under --output-dir after final explicit tool pass.",
+    "plan_only_result": "JSON at --result-json; product_pipeline.computation_plan.status must be READY_FOR_COMPUTATION and tools_executed must be false."
+  },
+  "pass_criteria": [
+    "The first pass blocks with NEEDS_OWNER_CONFIRMATION when semantic owner answers are absent.",
+    "Semantic answers use only allowed option ids from owner_questions.",
+    "The final explicit-tool pass returns PRODUCT_PIPELINE_READY.",
+    "The final explicit-tool pass writes at least one XLSX artifact.",
+    "The plan-only LIQ_001 path returns COMPUTATION_PLAN_READY without execution."
+  ],
+  "blocked_criteria": [
+    "Missing XLSX file.",
+    "Invalid JSON input.",
+    "Missing owner column answers when column confirmation is required.",
+    "Free-text semantic owner answers instead of allowed option ids.",
+    "Supplying both --tool-requests and --requested-capability.",
+    "Supplying neither --tool-requests nor --requested-capability."
+  ],
+  "forbidden_claims": [
+    "No automatic tool selection from workbook content.",
+    "No LLM runtime authority.",
+    "No LIQ_001 execution in this MVP; LIQ_001 reaches plan only."
+  ]
+}

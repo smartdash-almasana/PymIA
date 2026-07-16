@@ -59,3 +59,13 @@ pymia/smartpyme/service_1_product_pipeline_v1.py
 - `LIQ_001_vendido_cobrado` queda como plan computable, no ejecución automática.
 - No existe selección automática de tool desde el contenido del Excel.
 - La confirmación del dueño sigue siendo parte del producto, no un gap.
+
+
+## Operabilidad MVP
+
+```text
+OPERABILITY PACKET: ACTIVO
+COMANDO OFICIAL: python -m pymia.cli.service_1_product
+RUNBOOK: docs/current/SERVICE_1_OPERABILITY_PACKET.md
+PAQUETE VERIFICABLE: docs/service_1_operability_packet.v1.json
+```
