@@ -79,12 +79,12 @@ def test_registry_keeps_active_surface_bounded_during_cleanup() -> None:
     active = productive + support
 
     # Cleanup cycles delete frozen/obsolete modules by design, so ratio-based
-    # denominator guards become noisier as cleanup succeeds. CYCLE_016 corrects
-    # two product-CLI support modules that had been misclassified as frozen; this
-    # is a registry truth correction, not a runtime surface expansion.
+    # denominator guards become noisier as cleanup succeeds. CYCLE_016 and CYCLE_017 correct
+    # retained support modules that had been misclassified as frozen; these
+    # are registry truth corrections, not runtime surface expansions.
     assert productive <= 15
-    assert support <= 33
-    assert active <= 48
+    assert support <= 35
+    assert active <= 50
 
 def test_registry_has_no_known_obsolete_eliminable_modules() -> None:
     payload = _registry()
