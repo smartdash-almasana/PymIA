@@ -43,7 +43,7 @@ service_1_xlsx_delivery_v1
 service_1_accounting_contracts_v1
 ```
 
-`service_1_xlsx_runtime_bridge_v1` queda como soporte transicional. No es entrada oficial, no es raíz productiva y no autoriza una cadena soberana.
+`service_1_xlsx_runtime_bridge_v1` fue removido en `CYCLE_028` junto con su adapter de payload normalizado, pilot/delivery packet legacy y runtime/pathology-anamnesis congelado. No queda soporte transicional runtime.
 
 ## Legacy eliminable
 
@@ -56,13 +56,10 @@ El CLI legacy `pymia/cli/service_1_operator.py` y su shell de reentry operator-o
 ## Runtime legacy congelado
 
 ```text
-service_1_xlsx_first_product_entrypoint_v1
-service_1_real_client_xlsx_first_pilot_pack_v1
-pathology/anamnesis stack
-controlled computation legacy stack
+REMOVED_IN_CYCLE_028
 ```
 
-Este bloque no gobierna el producto. Sólo puede ser eliminado, absorbido o reclasificado por decisión explícita de cluster.
+El runtime legacy, pathology/anamnesis y el bridge transicional fueron removidos como cluster. No gobiernan Servicio 1 y no quedan como superficie activa.
 
 ## Laboratorio congelado
 

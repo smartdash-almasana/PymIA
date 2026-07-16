@@ -82,15 +82,14 @@ def test_retained_support_decisions_are_support_not_product_roots() -> None:
         assert item["canonical_root_reachable"] is False
 
 
-def test_transitional_runtime_bridge_is_support_but_not_authority() -> None:
-    by_module = _registry_by_module()
-    entries = _lock()["transitional_support_not_product_root"]
+def test_transitional_runtime_bridge_was_removed_as_retired_cluster() -> None:
+    lock = _lock()
 
-    assert [entry["module"] for entry in entries] == ["service_1_xlsx_runtime_bridge_v1"]
-    item = by_module["service_1_xlsx_runtime_bridge_v1"]
-    assert item["disposition"] == "SUPPORT_NECESSARY"
-    assert item["canonical_root_reachable"] is False
-    assert entries[0]["decision"] == "TRANSITIONAL_SUPPORT_NOT_PRODUCT_ROOT"
+    assert lock["transitional_support_not_product_root"] == []
+    retired = {entry["cycle"]: entry for entry in lock.get("retired_clusters", [])}
+    cycle = "CYCLE_028_REMOVE_TRANSITIONAL_RUNTIME_BRIDGE_AND_RUNTIME_LEGACY_CLUSTER"
+    assert cycle in retired
+    assert "service_1_xlsx_runtime_bridge_v1" in retired[cycle]["modules"]
 
 
 def test_all_remaining_frozen_modules_are_accounted_for_by_locked_clusters() -> None:
@@ -118,18 +117,15 @@ def test_non_authoritative_surfaces_are_not_official_entrypoints() -> None:
         assert (root / path).exists()
 
 
-def test_legacy_operator_shell_is_removed_and_shared_reentry_is_retained() -> None:
+def test_legacy_operator_shell_and_shared_reentry_are_removed() -> None:
     root = _repo_root()
     lock = _lock()
     cluster = lock["legacy_operator_cluster"]
 
     assert cluster["entrypoint_path"] == "pymia/cli/service_1_operator.py"
     assert not (root / cluster["entrypoint_path"]).exists()
-    assert cluster["decision"] == "REMOVED_OPERATOR_ONLY_SHELL_RETAIN_SHARED_RUNTIME_DEPENDENCIES"
-    assert set(cluster["modules"]) == {
-        "service_1_owner_answer_reentry_v1",
-        "service_1_question_bundle_v1",
-    }
-    removed = set(cluster["removed_operator_only_modules"])
-    assert "service_1_owner_reentry_bridge_v1" in removed
-    assert "service_1_question_bundle_v1" not in removed
+    assert cluster["decision"] == "REMOVED_IN_CYCLE_025_AND_SHARED_PRIMITIVES_REMOVED_IN_CYCLE_028"
+    assert cluster["modules"] == []
+    retired = {entry["cycle"]: entry for entry in lock.get("retired_clusters", [])}
+    assert "CYCLE_025_REMOVE_LEGACY_OPERATOR_CLI_AND_OPERATOR_ONLY_REENTRY_SHELL" in retired
+    assert "CYCLE_028_REMOVE_TRANSITIONAL_RUNTIME_BRIDGE_AND_RUNTIME_LEGACY_CLUSTER" in retired

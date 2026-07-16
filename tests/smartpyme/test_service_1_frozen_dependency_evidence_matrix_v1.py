@@ -140,36 +140,18 @@ def test_no_frozen_module_is_referenced_by_official_cli() -> None:
     assert matrix["decision_counts"].get("BLOCKED_PRODUCT_CLI_REF", 0) == 0
 
 
-def test_manual_review_resolution_retains_only_shared_runtime_dependencies() -> None:
+def test_manual_review_resolution_is_preserved_after_runtime_legacy_removal() -> None:
     matrix = _read_json("docs/service_1_frozen_dependency_evidence_matrix.v1.json")
-    by_module = {entry["module"]: entry for entry in matrix["entries"]}
 
     assert "NEEDS_MANUAL_REVIEW" not in matrix["decision_counts"]
     assert matrix["resolved_manual_review"]["resolved_count"] == 5
-
-    removed = next(
-        cluster for cluster in matrix["removed_clusters"]
-        if cluster["cycle"] == "CYCLE_025_REMOVE_LEGACY_OPERATOR_CLI_AND_OPERATOR_ONLY_REENTRY_SHELL"
-    )
-    assert set(removed["retained_shared_modules"]) == {
-        "service_1_owner_answer_reentry_v1",
-        "service_1_question_bundle_v1",
-    }
-    for module in removed["removed_registry_modules"]:
-        assert module not in by_module
-
-    for module in removed["retained_shared_modules"]:
-        entry = by_module[module]
-        assert entry["architecture_lock_decision"] == "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE"
-        assert not entry["references"]["official_cli_refs"]
-        assert any("pathology_anamnesis" in path for path in entry["references"]["other_source_refs"])
+    retired = {entry["cycle"]: entry for entry in matrix.get("removed_clusters", [])}
+    assert "CYCLE_025_REMOVE_LEGACY_OPERATOR_CLI_AND_OPERATOR_ONLY_REENTRY_SHELL" in retired
+    assert "CYCLE_028_REMOVE_TRANSITIONAL_RUNTIME_BRIDGE_AND_RUNTIME_LEGACY_CLUSTER" in retired
 
 
 def test_decision_counts_sum_to_frozen_module_count_without_manual_review() -> None:
     matrix = _read_json("docs/service_1_frozen_dependency_evidence_matrix.v1.json")
 
     assert sum(matrix["decision_counts"].values()) == matrix["frozen_module_count"]
-    assert matrix["decision_counts"] == {
-        "RUNTIME_LEGACY_CLUSTER_CANDIDATE": 14,
-        "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE": 2,
-    }
+    assert matrix["decision_counts"] == {}

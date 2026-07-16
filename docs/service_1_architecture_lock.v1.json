@@ -56,21 +56,11 @@
       "reason": "Accounting contract family foundation retained as support, not as a product root."
     }
   ],
-  "transitional_support_not_product_root": [
-    {
-      "module": "service_1_xlsx_runtime_bridge_v1",
-      "path": "pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
-      "decision": "TRANSITIONAL_SUPPORT_NOT_PRODUCT_ROOT",
-      "next_decision": "ABSORB_OR_REMOVE_AFTER_CANONICAL_SURFACE_CLOSURE"
-    }
-  ],
+  "transitional_support_not_product_root": [],
   "legacy_operator_cluster": {
     "entrypoint_path": "pymia/cli/service_1_operator.py",
-    "decision": "REMOVED_OPERATOR_ONLY_SHELL_RETAIN_SHARED_RUNTIME_DEPENDENCIES",
-    "modules": [
-      "service_1_owner_answer_reentry_v1",
-      "service_1_question_bundle_v1"
-    ],
+    "decision": "REMOVED_IN_CYCLE_025_AND_SHARED_PRIMITIVES_REMOVED_IN_CYCLE_028",
+    "modules": [],
     "retained_shared_modules": [
       "service_1_owner_answer_reentry_v1",
       "service_1_question_bundle_v1"
@@ -88,29 +78,11 @@
   },
   "runtime_legacy_cluster": {
     "bridge_module": "service_1_xlsx_runtime_bridge_v1",
-    "decision": "FROZEN_LEGACY_DEPENDENCY_CLUSTER_NOT_PRODUCT_AUTHORITY",
-    "modules": [
-      "service_1_controlled_computation_plan_v1",
-      "service_1_operational_finding_owner_view_v1",
-      "service_1_pathology_anamnesis_triage_contract_v1",
-      "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1",
-      "service_1_pathology_anamnesis_triage_intake_bridge_v1",
-      "service_1_pathology_anamnesis_triage_loop_composition_v1",
-      "service_1_pathology_anamnesis_triage_question_bundle_output_v1",
-      "service_1_pathology_evidence_readiness_gate_v1",
-      "service_1_pathology_finding_delivery_package_v1",
-      "service_1_pathology_finding_delivery_policy_guard_v1",
-      "service_1_pathology_first_aid_dry_run_candidate_v1",
-      "service_1_pathology_to_allowed_computation_candidate_v1",
-      "service_1_real_client_xlsx_first_pilot_pack_v1",
-      "service_1_xlsx_first_product_entrypoint_v1"
-    ]
+    "decision": "REMOVED_IN_CYCLE_028",
+    "modules": []
   },
   "frozen_laboratory_modules": [],
-  "non_authoritative_surfaces": [
-    "pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
-    "pymia/smartpyme/service_1_xlsx_first_product_entrypoint_v1.py"
-  ],
+  "non_authoritative_surfaces": [],
   "governance_rules": [
     "No new Service 1 product root may bypass service_1_product_pipeline_v1.",
     "No CLI other than pymia/cli/service_1_product.py may be treated as the official user-facing entrypoint.",
@@ -151,6 +123,39 @@
         "service_1_question_bundle_v1"
       ],
       "reason": "Legacy operator CLI and operator-only reentry shell had no official CLI authority after Exceland removal; shared reentry primitives remain only for runtime-legacy pathology/anamnesis references."
+    },
+    {
+      "cycle": "CYCLE_028_REMOVE_TRANSITIONAL_RUNTIME_BRIDGE_AND_RUNTIME_LEGACY_CLUSTER",
+      "decision": "REMOVED",
+      "modules": [
+        "service_1_case_delivery_folder_v1",
+        "service_1_controlled_computation_plan_v1",
+        "service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1",
+        "service_1_operational_finding_owner_view_v1",
+        "service_1_owner_answer_reentry_v1",
+        "service_1_pathology_anamnesis_triage_contract_v1",
+        "service_1_pathology_anamnesis_triage_entrypoint_candidate_v1",
+        "service_1_pathology_anamnesis_triage_intake_bridge_v1",
+        "service_1_pathology_anamnesis_triage_loop_composition_v1",
+        "service_1_pathology_anamnesis_triage_question_bundle_output_v1",
+        "service_1_pathology_evidence_readiness_gate_v1",
+        "service_1_pathology_finding_delivery_package_v1",
+        "service_1_pathology_finding_delivery_policy_guard_v1",
+        "service_1_pathology_first_aid_dry_run_candidate_v1",
+        "service_1_pathology_to_allowed_computation_candidate_v1",
+        "service_1_question_bundle_v1",
+        "service_1_real_client_xlsx_first_pilot_pack_v1",
+        "service_1_real_owner_pilot_case_run_v1",
+        "service_1_real_owner_pilot_to_delivery_packet_adapter_v1",
+        "service_1_xlsx_first_product_entrypoint_v1",
+        "service_1_xlsx_runtime_bridge_contract_v1",
+        "service_1_xlsx_runtime_bridge_v1",
+        "service_1_xlsx_structure_v1"
+      ],
+      "entrypoints": [
+        "pymia/cli/service_1_xlsx_runtime_bridge.py"
+      ],
+      "reason": "The transitional runtime bridge, normalized-payload adapter, pilot/delivery packet shell, pathology/anamnesis legacy, and shared reentry primitives had zero official product CLI references and were superseded by service_1_product.py plus service_1_product_pipeline_v1."
     }
   ]
 }

@@ -4,12 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 
 CANONICAL_RUNTIME_TABLE_READER = "service_1_xlsx_to_normalized_table_v1.py"
-CANONICAL_STRUCTURAL_READER = "service_1_xlsx_structure_v1.py"
 CANONICAL_CURATION_PIPELINE = "excel_lab_ingestion_v1.py"
 CANONICAL_DOCUMENT_INGESTION_SHIM = "tools/document_ingestion.py"
 ALLOWED_LOAD_WORKBOOK_FILES = {
     CANONICAL_RUNTIME_TABLE_READER,
-    CANONICAL_STRUCTURAL_READER,
 }
 
 
@@ -39,14 +37,6 @@ def test_only_sanctioned_smartpyme_modules_open_xlsx_workbooks() -> None:
 
 def test_legacy_first_aid_minimal_module_is_removed() -> None:
     assert not (_smartpyme_root() / "service_1_first_aid_minimal_v1.py").exists()
-
-
-def test_runtime_bridge_contract_uses_normalized_table_reader() -> None:
-    source = _read(_smartpyme_root() / "service_1_xlsx_runtime_bridge_contract_v1.py")
-
-    assert "read_xlsx_to_normalized_table_v1" in source
-    assert "load_workbook" not in source
-    assert "openpyxl" not in source
 
 
 def test_document_ingestion_shim_delegates_to_excel_lab_ingestion() -> None:

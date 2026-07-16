@@ -30,10 +30,6 @@ from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_
     STATUS_READY,
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1 as build_conn,
 )
-from pymia.smartpyme.service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1 import (
-    build_service_1_document_ingestion_to_xlsx_runtime_bridge_adapter_v1 as build_adapter,
-)
-
 # --- Fixture resolution ---------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]          # PymIA/
@@ -91,28 +87,15 @@ def test_case_001_lock_is_10(case_001_packet: dict, full_answers: dict) -> None:
     )
 
 
-# --- ingestion_output compatible with the existing runtime-bridge adapter --
+# --- ingestion_output stays canonical and runtime-independent -----------
 
-def test_ingestion_output_compatible_with_adapter(case_001_packet: dict, full_answers: dict) -> None:
+def test_ingestion_output_is_canonical_and_runtime_independent(case_001_packet: dict, full_answers: dict) -> None:
     out = build_conn(owner_question_packet=case_001_packet, owner_answers=full_answers)
 
-    result = build_adapter(
-        case_id="c1",
-        tenant_id="t1",
-        intake_id="i1",
-        run_id="r1",
-        owner_ref="o1",
-        raw_owner_narrative="narrativa de prueba",
-        ingestion_output=out["ingestion_output"],
-    )
-
-    assert len(result.available_data_fields) == 10
-    assert len(result.input_values) == 10
-    # The adapter must not be blocked for missing/invalid ingestion output.
-    assert result.status not in (
-        "ADAPTER_BLOCKED_MISSING_INGESTION_OUTPUT",
-        "ADAPTER_BLOCKED_INVALID_INGESTION_OUTPUT",
-    )
+    ingestion_output = out["ingestion_output"]
+    assert len(ingestion_output["available_data_fields"]) == 10
+    assert len(ingestion_output["input_values"]) == 10
+    assert ingestion_output["runtime_authorized"] is False
 
 
 # --- safety flags always False --------------------------------------------
