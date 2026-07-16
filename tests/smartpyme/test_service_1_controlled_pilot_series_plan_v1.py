@@ -1,0 +1,52 @@
+from __future__ import annotations
+import json
+from pathlib import Path
+import openpyxl
+
+def _root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+def _plan() -> dict:
+    return json.loads((_root()/"docs"/"service_1_controlled_pilot_series_plan.v1.json").read_text(encoding="utf-8"))
+
+def test_controlled_pilot_series_is_active_and_excel_based() -> None:
+    plan=_plan()
+    assert plan["schema_version"]=="SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN_V1"
+    assert plan["status"]=="ACTIVE"
+    assert plan["source_folder"]=="prueba_excels"
+    assert len(plan["pilot_sequence"])==8
+    assert plan["next_execution_order"][0]=="S1-PILOT-002"
+
+def test_all_active_pilot_files_exist_and_have_primary_headers() -> None:
+    root=_root()
+    for pilot in _plan()["pilot_sequence"]:
+        path=root/pilot["file"]
+        assert path.exists(), pilot["file"]
+        wb=openpyxl.load_workbook(path,read_only=True,data_only=True)
+        assert pilot["primary_sheet"] in wb.sheetnames
+        ws=wb[pilot["primary_sheet"]]
+        headers=[str(c).strip() for c in next(ws.iter_rows(min_row=1,max_row=1,values_only=True)) if c is not None and str(c).strip()]
+        assert headers, pilot["file"]
+        for expected in pilot["observed_headers"]:
+            assert expected in headers
+        wb.close()
+
+def test_quarantined_inputs_are_not_active_pilots() -> None:
+    plan=_plan()
+    active={p["file"] for p in plan["pilot_sequence"]}
+    quarantined={q["file"] for q in plan["quarantined_inputs"]}
+    assert active.isdisjoint(quarantined)
+    assert "prueba_excels/cobros_marzo_2026.xlsx" in quarantined
+    assert "prueba_excels/ventas_marzo_2026.xlsx" in quarantined
+
+def test_plan_preserves_product_boundaries() -> None:
+    rules="\n".join(_plan()["policy"]["rules"])
+    assert "selección automática de tool" in rules
+    assert "tool_requests explícitos" in rules
+    assert "capacidades formulaicas" in rules
+
+def test_current_readme_lists_controlled_pilot_series_doc() -> None:
+    root=_root()
+    readme=(root/"docs"/"current"/"README.md").read_text(encoding="utf-8")
+    assert "SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md" in readme
+    assert (root/"docs"/"current"/"SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md").exists()

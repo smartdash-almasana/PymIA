@@ -21,6 +21,7 @@ La memoria conversacional, documentos no listados, landings, pilotos, auditoría
 - `SERVICE_1_PRODUCT_COMPLETION_GATE.md` — cierre verificable del MVP determinístico asistido de Servicio 1.
 - `SERVICE_1_OPERABILITY_PACKET.md` — runbook operativo del MVP de Servicio 1.
 - `SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md` — método de ingeniería del pipeline.
+- `SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — serie de pilotos controlados basada en los Excel existentes de `prueba_excels/`.
 - `FACTORY_AND_ADN_AXIS.md` — separación metodológica de Factoría/ADN.
 - `HERMES_AXIS.md` — Hermes no gobierna Servicio 1.
 - `SMARTPYME_PRODUCT_AXIS.md` — separación entre memoria de producto y autoridad técnica.

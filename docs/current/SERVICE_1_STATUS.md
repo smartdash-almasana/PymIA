@@ -92,3 +92,13 @@ docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md
 docs/service_1_first_operatorless_case.v1.json
 tests/smartpyme/test_service_1_first_operatorless_case_v1.py
 ```
+
+## Serie de pilotos controlados
+
+```text
+CYCLE_032: ACTIVE
+Fuente: prueba_excels/
+Documento: docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md
+Pilotos activos: 8
+Primer próximo piloto: S1-PILOT-002 simple_bem_test.xlsx
+```
