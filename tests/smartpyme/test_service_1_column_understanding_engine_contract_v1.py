@@ -349,7 +349,6 @@ CLOSED_CHAIN_MODULES = [
     "pymia.smartpyme.service_1_owner_facing_role_explanation_catalog_v1",
     "pymia.smartpyme.service_1_xlsx_runtime_bridge_v1",
     "pymia.smartpyme.service_1_column_confirmation_packet_v1",
-    "pymia.smartpyme.service_1_column_confirmation_owner_prompt_v1",
 ]
 
 

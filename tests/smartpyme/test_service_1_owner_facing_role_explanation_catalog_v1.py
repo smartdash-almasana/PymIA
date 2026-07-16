@@ -6,9 +6,6 @@ from pymia.contracts.column_confirmation_v1 import (
     _SEGMENTATION_LABELS,
     CalculationRelevance,
 )
-from pymia.smartpyme.service_1_column_confirmation_owner_prompt_v1 import (
-    build_service_1_column_confirmation_owner_prompt_v1,
-)
 from pymia.smartpyme.service_1_owner_facing_role_explanation_catalog_v1 import (
     SCHEMA_VERSION,
     UNKNOWN_ROLE,
@@ -117,23 +114,6 @@ def test_to_dict_is_serializable_and_stable() -> None:
     assert data["semantic_role"] == "saldo"
     assert data["owner_label"] == "Saldo"
     assert data["known_role"] is True
-
-
-def test_catalog_output_can_feed_owner_prompt_without_integration() -> None:
-    explanation = explain_owner_facing_semantic_role_v1("venta_total")
-
-    prompt = build_service_1_column_confirmation_owner_prompt_v1(
-        file_name="ventas.xlsx",
-        sheet_name="Ventas",
-        column_name="Total",
-        suggested_semantic_role=explanation.semantic_role,
-        owner_facing_role_explanation=explanation.owner_facing_role_explanation,
-    )
-
-    assert "Interpretación de PymIA:" in prompt.prompt_text
-    assert explanation.owner_facing_role_explanation in prompt.prompt_text
-    assert "venta_total" not in prompt.prompt_text
-    assert prompt.allowed_owner_responses == ("SÍ", "NO", "TU_RESPUESTA")
 
 
 def test_every_known_role_has_owner_label_and_explanation() -> None:

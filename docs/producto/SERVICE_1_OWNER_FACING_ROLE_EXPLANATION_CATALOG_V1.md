@@ -24,8 +24,7 @@ sin integrar todavía con ingestion, prompt builder, storage ni pipeline.
 La investigación detectó un gap real:
 
 ```text
-service_1_column_confirmation_owner_prompt_v1.py
-requiere owner_facing_role_explanation como input obligatorio,
+la cadena legacy de owner_prompt requería owner_facing_role_explanation como input obligatorio,
 pero no existía productor upstream formal para ese texto.
 ```
 
@@ -131,7 +130,7 @@ Este slice no hace:
 
 ```text
 NO ingestion integration
-NO owner_prompt modification
+NO owner_prompt legacy integration
 NO ColumnSemanticClassifier modification
 NO ColumnConfirmationMatrix modification
 NO classifier modification
@@ -157,22 +156,13 @@ NO landing/browser
 - normaliza None/blanco/mayúsculas
 - preserva flags de seguridad
 - to_dict estable
-- puede alimentar owner_prompt_v1 sin integrarlo
 - cada rol conocido tiene label y explicación
 ```
 
 ## Próximo frente permitido
 
 ```text
-SERVICE_1_OWNER_FACING_ROLE_EXPLANATION_CATALOG_V1
-```
-
-Objetivo futuro:
-
-```text
-ColumnConfirmationEntry
-+ catalog explanation
-→ service_1_column_confirmation_owner_prompt_v1
+Mantener el catálogo como soporte semántico owner-facing.
 ```
 
 Todavía sin recalculation, sin persistence y sin pipeline integration.
