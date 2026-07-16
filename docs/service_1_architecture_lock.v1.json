@@ -66,17 +66,23 @@
   ],
   "legacy_operator_cluster": {
     "entrypoint_path": "pymia/cli/service_1_operator.py",
-    "decision": "LEGACY_ELIMINATION_CANDIDATE_NOT_PRODUCT_AUTHORITY",
+    "decision": "REMOVED_OPERATOR_ONLY_SHELL_RETAIN_SHARED_RUNTIME_DEPENDENCIES",
     "modules": [
+      "service_1_owner_answer_reentry_v1",
+      "service_1_question_bundle_v1"
+    ],
+    "retained_shared_modules": [
+      "service_1_owner_answer_reentry_v1",
+      "service_1_question_bundle_v1"
+    ],
+    "removed_operator_only_modules": [
       "service_1_case_reentry_read_model_v1",
       "service_1_column_confirmation_packet_v1",
       "service_1_executable_entrypoint_v1",
       "service_1_first_aid_minimal_v1",
       "service_1_next_owner_question_view_v1",
       "service_1_owner_answer_reentry_persistence_v1",
-      "service_1_owner_answer_reentry_v1",
       "service_1_owner_reentry_bridge_v1",
-      "service_1_question_bundle_v1",
       "service_1_reentry_projection_v1"
     ]
   },
@@ -102,7 +108,6 @@
   },
   "frozen_laboratory_modules": [],
   "non_authoritative_surfaces": [
-    "pymia/cli/service_1_operator.py",
     "pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
     "pymia/smartpyme/service_1_xlsx_first_product_entrypoint_v1.py"
   ],
@@ -125,6 +130,27 @@
         "exceland_runtime_v1"
       ],
       "reason": "Frozen laboratory plus unregistered Exceland side cluster had no official CLI, product root, or runtime bridge authority."
+    },
+    {
+      "cycle": "CYCLE_025_REMOVE_LEGACY_OPERATOR_CLI_AND_OPERATOR_ONLY_REENTRY_SHELL",
+      "decision": "REMOVED",
+      "entrypoint_path": "pymia/cli/service_1_operator.py",
+      "modules": [
+        "service_1_operator",
+        "service_1_case_reentry_read_model_v1",
+        "service_1_column_confirmation_packet_v1",
+        "service_1_executable_entrypoint_v1",
+        "service_1_first_aid_minimal_v1",
+        "service_1_next_owner_question_view_v1",
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_owner_reentry_bridge_v1",
+        "service_1_reentry_projection_v1"
+      ],
+      "retained_shared_modules": [
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1"
+      ],
+      "reason": "Legacy operator CLI and operator-only reentry shell had no official CLI authority after Exceland removal; shared reentry primitives remain only for runtime-legacy pathology/anamnesis references."
     }
   ]
 }

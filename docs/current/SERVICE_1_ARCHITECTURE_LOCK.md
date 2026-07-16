@@ -48,10 +48,10 @@ service_1_accounting_contracts_v1
 ## Legacy eliminable
 
 ```text
-pymia/cli/service_1_operator.py
+REMOVED_IN_CYCLE_025
 ```
 
-Este CLI y su cluster de reentry quedan como candidatos de eliminación/absorción por cluster completo. No se deben seguir extendiendo.
+El CLI legacy `pymia/cli/service_1_operator.py` y su shell de reentry operator-only fueron removidos. Quedan sólo primitivas compartidas con runtime legacy (`service_1_owner_answer_reentry_v1`, `service_1_question_bundle_v1`) hasta resolver el cluster pathology/anamnesis.
 
 ## Runtime legacy congelado
 

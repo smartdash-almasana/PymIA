@@ -118,11 +118,18 @@ def test_non_authoritative_surfaces_are_not_official_entrypoints() -> None:
         assert (root / path).exists()
 
 
-def test_legacy_operator_cluster_is_explicitly_not_product_authority() -> None:
+def test_legacy_operator_shell_is_removed_and_shared_reentry_is_retained() -> None:
+    root = _repo_root()
     lock = _lock()
     cluster = lock["legacy_operator_cluster"]
 
     assert cluster["entrypoint_path"] == "pymia/cli/service_1_operator.py"
-    assert cluster["decision"] == "LEGACY_ELIMINATION_CANDIDATE_NOT_PRODUCT_AUTHORITY"
-    assert "service_1_owner_reentry_bridge_v1" in cluster["modules"]
-    assert "service_1_question_bundle_v1" in cluster["modules"]
+    assert not (root / cluster["entrypoint_path"]).exists()
+    assert cluster["decision"] == "REMOVED_OPERATOR_ONLY_SHELL_RETAIN_SHARED_RUNTIME_DEPENDENCIES"
+    assert set(cluster["modules"]) == {
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1",
+    }
+    removed = set(cluster["removed_operator_only_modules"])
+    assert "service_1_owner_reentry_bridge_v1" in removed
+    assert "service_1_question_bundle_v1" not in removed

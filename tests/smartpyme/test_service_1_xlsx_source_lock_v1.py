@@ -37,12 +37,8 @@ def test_only_sanctioned_smartpyme_modules_open_xlsx_workbooks() -> None:
     assert _detected_load_workbook_files() == ALLOWED_LOAD_WORKBOOK_FILES
 
 
-def test_first_aid_minimal_uses_normalized_reader_not_openpyxl() -> None:
-    source = _read(_smartpyme_root() / "service_1_first_aid_minimal_v1.py")
-
-    assert "read_xlsx_to_normalized_table_v1" in source
-    assert "openpyxl" not in source
-    assert "load_workbook" not in source
+def test_legacy_first_aid_minimal_module_is_removed() -> None:
+    assert not (_smartpyme_root() / "service_1_first_aid_minimal_v1.py").exists()
 
 
 def test_runtime_bridge_contract_uses_normalized_table_reader() -> None:

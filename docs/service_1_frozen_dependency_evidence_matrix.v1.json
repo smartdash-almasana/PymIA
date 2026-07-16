@@ -5,9 +5,8 @@
   "source_registry": "docs/service_1_module_disposition.v1.json",
   "source_architecture_lock": "docs/service_1_architecture_lock.v1.json",
   "service": "SERVICE_1",
-  "frozen_module_count": 24,
+  "frozen_module_count": 16,
   "decision_counts": {
-    "LEGACY_OPERATOR_CLUSTER_CANDIDATE": 8,
     "RUNTIME_LEGACY_CLUSTER_CANDIDATE": 14,
     "SHARED_LEGACY_OPERATOR_RUNTIME_CANDIDATE": 2
   },
@@ -28,84 +27,6 @@
     ]
   },
   "entries": [
-    {
-      "module": "service_1_case_reentry_read_model_v1",
-      "path": "pymia/smartpyme/service_1_case_reentry_read_model_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Resolved in CYCLE_021: referenced by legacy reentry modules and tests only; no official CLI reference. Treat as legacy operator reentry cluster candidate, not as isolated deletion.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 0,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 2,
-        "test_refs": 7,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [
-          "pymia/smartpyme/service_1_owner_reentry_bridge_v1.py",
-          "pymia/smartpyme/service_1_reentry_projection_v1.py"
-        ],
-        "test_refs": [
-          "tests/e2e/test_service_1_operator_cli_v1.py",
-          "tests/smartpyme/test_service_1_case_reentry_read_model_v1.py",
-          "tests/smartpyme/test_service_1_executable_entrypoint_v1.py",
-          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
-          "tests/smartpyme/test_service_1_qa_delivery_gate_v1.py",
-          "tests/smartpyme/test_service_1_reentry_projection_v1.py",
-          "tests/smartpyme/test_service_1_xlsx_structure_v1.py"
-        ],
-        "current_doc_refs": [],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
-    {
-      "module": "service_1_column_confirmation_packet_v1",
-      "path": "pymia/smartpyme/service_1_column_confirmation_packet_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Belongs to the architecture-lock legacy operator cluster and is referenced by the legacy operator CLI.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 1,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 0,
-        "test_refs": 2,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [
-          "pymia/cli/service_1_operator.py"
-        ],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [],
-        "test_refs": [
-          "tests/smartpyme/test_service_1_column_confirmation_packet_v1.py",
-          "tests/smartpyme/test_service_1_column_understanding_engine_contract_v1.py"
-        ],
-        "current_doc_refs": [],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
     {
       "module": "service_1_controlled_computation_plan_v1",
       "path": "pymia/smartpyme/service_1_controlled_computation_plan_v1.py",
@@ -137,110 +58,6 @@
           "tests/smartpyme/test_service_1_pathology_finding_delivery_policy_guard_v1.py",
           "tests/smartpyme/test_service_1_pathology_first_aid_dry_run_candidate_v1.py"
         ],
-        "current_doc_refs": [],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
-    {
-      "module": "service_1_executable_entrypoint_v1",
-      "path": "pymia/smartpyme/service_1_executable_entrypoint_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Belongs to the architecture-lock legacy operator cluster and is referenced by the legacy operator CLI.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 1,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 0,
-        "test_refs": 1,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [
-          "pymia/cli/service_1_operator.py"
-        ],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [],
-        "test_refs": [
-          "tests/smartpyme/test_service_1_executable_entrypoint_v1.py"
-        ],
-        "current_doc_refs": [],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
-    {
-      "module": "service_1_first_aid_minimal_v1",
-      "path": "pymia/smartpyme/service_1_first_aid_minimal_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Belongs to the architecture-lock legacy operator cluster and is referenced by the legacy operator CLI.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 1,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 0,
-        "test_refs": 2,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [
-          "pymia/cli/service_1_operator.py"
-        ],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [],
-        "test_refs": [
-          "tests/smartpyme/test_service_1_first_aid_minimal_v1.py",
-          "tests/smartpyme/test_service_1_xlsx_source_lock_v1.py"
-        ],
-        "current_doc_refs": [],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
-    {
-      "module": "service_1_next_owner_question_view_v1",
-      "path": "pymia/smartpyme/service_1_next_owner_question_view_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Belongs to the architecture-lock legacy operator cluster and is referenced by the legacy operator CLI.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 1,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 0,
-        "test_refs": 0,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [
-          "pymia/cli/service_1_operator.py"
-        ],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [],
-        "test_refs": [],
         "current_doc_refs": [],
         "registry_refs": [
           "docs/service_1_architecture_lock.v1.json",
@@ -287,48 +104,6 @@
       }
     },
     {
-      "module": "service_1_owner_answer_reentry_persistence_v1",
-      "path": "pymia/smartpyme/service_1_owner_answer_reentry_persistence_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Resolved in CYCLE_021: referenced by service_1_owner_reentry_bridge_v1 and tests only; no official CLI reference. Treat as legacy operator reentry cluster candidate, not as isolated deletion.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 0,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 1,
-        "test_refs": 8,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [
-          "pymia/smartpyme/service_1_owner_reentry_bridge_v1.py"
-        ],
-        "test_refs": [
-          "tests/e2e/test_service_1_operator_cli_v1.py",
-          "tests/smartpyme/test_service_1_case_reentry_read_model_v1.py",
-          "tests/smartpyme/test_service_1_executable_entrypoint_v1.py",
-          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
-          "tests/smartpyme/test_service_1_owner_answer_reentry_persistence_v1.py",
-          "tests/smartpyme/test_service_1_qa_delivery_gate_v1.py",
-          "tests/smartpyme/test_service_1_reentry_projection_v1.py",
-          "tests/smartpyme/test_service_1_xlsx_structure_v1.py"
-        ],
-        "current_doc_refs": [],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
-    {
       "module": "service_1_owner_answer_reentry_v1",
       "path": "pymia/smartpyme/service_1_owner_answer_reentry_v1.py",
       "registry_disposition": "EXPERIMENTAL_FROZEN",
@@ -339,9 +114,9 @@
         "official_cli_refs": 0,
         "legacy_operator_refs": 0,
         "runtime_bridge_refs": 0,
-        "other_source_refs": 4,
-        "test_refs": 14,
-        "current_doc_refs": 0,
+        "other_source_refs": 2,
+        "test_refs": 8,
+        "current_doc_refs": 1,
         "registry_refs": 2,
         "other_doc_refs": 0
       },
@@ -350,64 +125,22 @@
         "legacy_operator_refs": [],
         "runtime_bridge_refs": [],
         "other_source_refs": [
-          "pymia/smartpyme/service_1_owner_answer_reentry_persistence_v1.py",
-          "pymia/smartpyme/service_1_owner_reentry_bridge_v1.py",
           "pymia/smartpyme/service_1_pathology_anamnesis_triage_intake_bridge_v1.py",
           "pymia/smartpyme/service_1_pathology_anamnesis_triage_loop_composition_v1.py"
         ],
         "test_refs": [
-          "tests/e2e/test_service_1_operator_cli_v1.py",
+          "tests/smartpyme/test_service_1_architecture_lock_v1.py",
           "tests/smartpyme/test_service_1_case_delivery_folder_v1.py",
-          "tests/smartpyme/test_service_1_case_reentry_read_model_v1.py",
-          "tests/smartpyme/test_service_1_column_confirmation_packet_v1.py",
-          "tests/smartpyme/test_service_1_executable_entrypoint_v1.py",
-          "tests/smartpyme/test_service_1_first_aid_minimal_v1.py",
           "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
-          "tests/smartpyme/test_service_1_owner_answer_reentry_persistence_v1.py",
           "tests/smartpyme/test_service_1_owner_answer_reentry_v1.py",
           "tests/smartpyme/test_service_1_pathology_anamnesis_triage_intake_bridge_v1.py",
           "tests/smartpyme/test_service_1_pathology_anamnesis_triage_loop_composition_v1.py",
           "tests/smartpyme/test_service_1_qa_delivery_gate_v1.py",
-          "tests/smartpyme/test_service_1_reentry_projection_v1.py",
           "tests/smartpyme/test_service_1_xlsx_structure_v1.py"
         ],
-        "current_doc_refs": [],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
+        "current_doc_refs": [
+          "docs/current/SERVICE_1_ARCHITECTURE_LOCK.md"
         ],
-        "other_doc_refs": []
-      }
-    },
-    {
-      "module": "service_1_owner_reentry_bridge_v1",
-      "path": "pymia/smartpyme/service_1_owner_reentry_bridge_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Belongs to the architecture-lock legacy operator cluster and is referenced by the legacy operator CLI.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 1,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 0,
-        "test_refs": 2,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [
-          "pymia/cli/service_1_operator.py"
-        ],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [],
-        "test_refs": [
-          "tests/smartpyme/test_service_1_architecture_lock_v1.py",
-          "tests/smartpyme/test_service_1_owner_reentry_bridge_v1.py"
-        ],
-        "current_doc_refs": [],
         "registry_refs": [
           "docs/service_1_architecture_lock.v1.json",
           "docs/service_1_module_disposition.v1.json"
@@ -808,9 +541,9 @@
         "official_cli_refs": 0,
         "legacy_operator_refs": 0,
         "runtime_bridge_refs": 0,
-        "other_source_refs": 9,
-        "test_refs": 12,
-        "current_doc_refs": 0,
+        "other_source_refs": 5,
+        "test_refs": 7,
+        "current_doc_refs": 1,
         "registry_refs": 2,
         "other_doc_refs": 0
       },
@@ -819,31 +552,24 @@
         "legacy_operator_refs": [],
         "runtime_bridge_refs": [],
         "other_source_refs": [
-          "pymia/smartpyme/service_1_case_reentry_read_model_v1.py",
-          "pymia/smartpyme/service_1_owner_answer_reentry_persistence_v1.py",
           "pymia/smartpyme/service_1_owner_answer_reentry_v1.py",
-          "pymia/smartpyme/service_1_owner_reentry_bridge_v1.py",
           "pymia/smartpyme/service_1_pathology_anamnesis_triage_entrypoint_candidate_v1.py",
           "pymia/smartpyme/service_1_pathology_anamnesis_triage_intake_bridge_v1.py",
           "pymia/smartpyme/service_1_pathology_anamnesis_triage_loop_composition_v1.py",
-          "pymia/smartpyme/service_1_pathology_anamnesis_triage_question_bundle_output_v1.py",
-          "pymia/smartpyme/service_1_reentry_projection_v1.py"
+          "pymia/smartpyme/service_1_pathology_anamnesis_triage_question_bundle_output_v1.py"
         ],
         "test_refs": [
           "tests/smartpyme/test_service_1_architecture_lock_v1.py",
-          "tests/smartpyme/test_service_1_case_reentry_read_model_v1.py",
           "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
-          "tests/smartpyme/test_service_1_owner_answer_reentry_persistence_v1.py",
           "tests/smartpyme/test_service_1_owner_answer_reentry_v1.py",
-          "tests/smartpyme/test_service_1_owner_evidence_reentry_cli_wiring_v1.py",
-          "tests/smartpyme/test_service_1_owner_reentry_bridge_v1.py",
           "tests/smartpyme/test_service_1_pathology_anamnesis_triage_intake_bridge_v1.py",
           "tests/smartpyme/test_service_1_pathology_anamnesis_triage_loop_composition_v1.py",
           "tests/smartpyme/test_service_1_pathology_anamnesis_triage_question_bundle_output_v1.py",
-          "tests/smartpyme/test_service_1_question_bundle_v1.py",
-          "tests/smartpyme/test_service_1_reentry_projection_v1.py"
+          "tests/smartpyme/test_service_1_question_bundle_v1.py"
         ],
-        "current_doc_refs": [],
+        "current_doc_refs": [
+          "docs/current/SERVICE_1_ARCHITECTURE_LOCK.md"
+        ],
         "registry_refs": [
           "docs/service_1_architecture_lock.v1.json",
           "docs/service_1_module_disposition.v1.json"
@@ -881,42 +607,6 @@
         "current_doc_refs": [
           "docs/current/SERVICE_1_ARCHITECTURE_LOCK.md"
         ],
-        "registry_refs": [
-          "docs/service_1_architecture_lock.v1.json",
-          "docs/service_1_module_disposition.v1.json"
-        ],
-        "other_doc_refs": []
-      }
-    },
-    {
-      "module": "service_1_reentry_projection_v1",
-      "path": "pymia/smartpyme/service_1_reentry_projection_v1.py",
-      "registry_disposition": "EXPERIMENTAL_FROZEN",
-      "canonical_root_reachable": false,
-      "architecture_lock_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
-      "decision_reason": "Resolved in CYCLE_021: referenced by service_1_owner_reentry_bridge_v1 and its own test only; no official CLI reference. Treat as legacy operator reentry cluster candidate, not as isolated deletion.",
-      "reference_counts": {
-        "official_cli_refs": 0,
-        "legacy_operator_refs": 0,
-        "runtime_bridge_refs": 0,
-        "other_source_refs": 1,
-        "test_refs": 2,
-        "current_doc_refs": 0,
-        "registry_refs": 2,
-        "other_doc_refs": 0
-      },
-      "references": {
-        "official_cli_refs": [],
-        "legacy_operator_refs": [],
-        "runtime_bridge_refs": [],
-        "other_source_refs": [
-          "pymia/smartpyme/service_1_owner_reentry_bridge_v1.py"
-        ],
-        "test_refs": [
-          "tests/smartpyme/test_service_1_frozen_dependency_evidence_matrix_v1.py",
-          "tests/smartpyme/test_service_1_reentry_projection_v1.py"
-        ],
-        "current_doc_refs": [],
         "registry_refs": [
           "docs/service_1_architecture_lock.v1.json",
           "docs/service_1_module_disposition.v1.json"
@@ -1000,6 +690,25 @@
         "excel_treatment_lab_completion_slice_v1",
         "exceland_execution_flow_v1",
         "exceland_runtime_v1"
+      ]
+    },
+    {
+      "cycle": "CYCLE_025_REMOVE_LEGACY_OPERATOR_CLI_AND_OPERATOR_ONLY_REENTRY_SHELL",
+      "removed_decision": "LEGACY_OPERATOR_CLUSTER_CANDIDATE",
+      "removed_entrypoint": "pymia/cli/service_1_operator.py",
+      "removed_registry_modules": [
+        "service_1_case_reentry_read_model_v1",
+        "service_1_column_confirmation_packet_v1",
+        "service_1_executable_entrypoint_v1",
+        "service_1_first_aid_minimal_v1",
+        "service_1_next_owner_question_view_v1",
+        "service_1_owner_answer_reentry_persistence_v1",
+        "service_1_owner_reentry_bridge_v1",
+        "service_1_reentry_projection_v1"
+      ],
+      "retained_shared_modules": [
+        "service_1_owner_answer_reentry_v1",
+        "service_1_question_bundle_v1"
       ]
     }
   ]
