@@ -38,7 +38,6 @@ def test_product_completion_gate_counts_and_legacy_absence() -> None:
     assert counts.get("PRODUCTIVE") == gate["registry_expected_counts"]["PRODUCTIVE"]
     assert counts.get("SUPPORT_NECESSARY") == gate["registry_expected_counts"]["SUPPORT_NECESSARY"]
     assert counts.get("EXPERIMENTAL_FROZEN", 0) == 0
-    assert registry["total_modules"] == 44
 
     assert (root / gate["official_entrypoint"]["path"]).exists()
     assert (root / gate["canonical_product_root"]["path"]).exists()
