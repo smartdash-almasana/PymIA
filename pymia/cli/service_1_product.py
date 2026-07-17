@@ -97,8 +97,13 @@ def run_service_1_product_entrypoint_v1(
             "product_pipeline": None,
         }
 
+    ingestion_output = dict(connector["ingestion_output"])
+    normalized_tables = boundary.get("normalized_tables")
+    if isinstance(normalized_tables, list):
+        ingestion_output["normalized_tables"] = normalized_tables
+
     product = run_service_1_product_pipeline_v1(
-        ingestion_output=connector["ingestion_output"],
+        ingestion_output=ingestion_output,
         tool_requests=tool_requests,
         output_dir=output_dir,
         sheet_name=sheet_name or "sheet1",
