@@ -12,9 +12,11 @@ from pymia.smartpyme.service_1_liq_001_evaluator_v1 import (
     CLASS_SALES_PENDING_COLLECTION,
     PLAN_VALIDATED,
     STATUS_EVALUATED,
+    STATUS_EVIDENCE_BLOCKED,
     STATUS_INVALID_INPUT,
     STATUS_PLAN_BLOCKED,
     evaluate_liq_001_from_computation_plan_v1,
+    evaluate_liq_001_from_normalized_tables_v1,
     evaluate_liq_001_v1,
 )
 
@@ -27,6 +29,10 @@ def _ready_plan() -> dict[str, object]:
         "pathology_code": "LIQ_001",
         "formula_id": "LIQ_001_vendido_cobrado",
         "required_variables": ["sold_amount", "collected_amount"],
+        "source_bindings": {
+            "sold_amount": "Venta Total",
+            "collected_amount": "Cobrado",
+        },
         "computation_candidate_ready": True,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -34,6 +40,33 @@ def _ready_plan() -> dict[str, object]:
         "delivery_authorized": False,
         "diagnosis_generated": False,
     }
+
+
+def _normalized_tables() -> list[dict[str, object]]:
+    return [
+        {
+            "sheet_name": "Ventas",
+            "rows": [
+                {"venta_total": "1000", "cobrado": "800"},
+                {"venta_total": "2000.50", "cobrado": "1500.25"},
+            ],
+        }
+    ]
+
+
+def _column_refs() -> list[dict[str, str]]:
+    return [
+        {
+            "sheet_name": "Ventas",
+            "column_name": "Venta Total",
+            "normalized_column_name": "venta_total",
+        },
+        {
+            "sheet_name": "Ventas",
+            "column_name": "Cobrado",
+            "normalized_column_name": "cobrado",
+        },
+    ]
 
 
 def test_positive_gap_means_sales_pending_collection() -> None:
@@ -185,3 +218,80 @@ def test_plan_evaluation_rejects_missing_or_unknown_inputs() -> None:
     assert "missing required input: collected_amount." in result["errors"]
     assert "unknown input: unexpected." in result["errors"]
     assert result["plan_validation"]["status"] == PLAN_VALIDATED
+
+
+def test_normalized_rows_are_fully_aggregated_without_samples() -> None:
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=_ready_plan(),
+        normalized_tables=_normalized_tables(),
+        column_refs=_column_refs(),
+    )
+
+    assert result["status"] == STATUS_EVALUATED
+    assert result["inputs"] == {
+        "sold_amount": 3000.5,
+        "collected_amount": 2300.25,
+    }
+    assert result["computed"]["gap_amount"] == 700.25
+    assert result["aggregation"]["status"] == "AGGREGATED"
+    assert result["aggregation"]["row_count"] == 2
+    assert result["aggregation"]["sample_based"] is False
+
+
+def test_normalized_aggregation_rejects_blank_values_instead_of_partial_sum() -> None:
+    tables = _normalized_tables()
+    tables[0]["rows"][1]["cobrado"] = ""
+
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=_ready_plan(),
+        normalized_tables=tables,
+        column_refs=_column_refs(),
+    )
+
+    assert result["status"] == STATUS_EVIDENCE_BLOCKED
+    assert "Ventas.cobrado row 2: value is required." in result["errors"]
+    assert result["computed"] == {}
+
+
+def test_normalized_aggregation_rejects_ambiguous_column_resolution() -> None:
+    refs = _column_refs() + [dict(_column_refs()[0])]
+
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=_ready_plan(),
+        normalized_tables=_normalized_tables(),
+        column_refs=refs,
+    )
+
+    assert result["status"] == STATUS_EVIDENCE_BLOCKED
+    assert (
+        "source binding for sold_amount must resolve exactly once: Venta Total."
+        in result["errors"]
+    )
+
+
+def test_normalized_aggregation_rejects_negative_and_non_numeric_values() -> None:
+    tables = _normalized_tables()
+    tables[0]["rows"][0]["venta_total"] = "no-number"
+    tables[0]["rows"][1]["cobrado"] = "-1"
+
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=_ready_plan(),
+        normalized_tables=tables,
+        column_refs=_column_refs(),
+    )
+
+    assert result["status"] == STATUS_EVIDENCE_BLOCKED
+    assert "Ventas.venta_total row 1: value must be numeric." in result["errors"]
+    assert "Ventas.cobrado row 2: value must be greater than or equal to 0." in result["errors"]
+
+
+def test_normalized_aggregation_keeps_all_authority_flags_closed() -> None:
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=_ready_plan(),
+        normalized_tables=_normalized_tables(),
+        column_refs=_column_refs(),
+    )
+
+    assert result["runtime_authorized"] is False
+    assert result["delivery_authorized"] is False
+    assert result["diagnosis_generated"] is False
