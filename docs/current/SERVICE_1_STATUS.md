@@ -72,7 +72,7 @@ PAQUETE VERIFICABLE: docs/service_1_operability_packet.v1.json
 ## Primer caso sin intermediario obligatorio
 
 ```text
-ESTADO: PASS
+PRIMER CASO OPERATORLESS: PASS
 CICLO: CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE
 CLI: python -m pymia.cli.service_1_product
 FIXTURE: prueba_excels/cafeteria_abc.xlsx
