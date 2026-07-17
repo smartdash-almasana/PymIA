@@ -10,10 +10,30 @@ from pymia.smartpyme.service_1_liq_001_evaluator_v1 import (
     CLASS_NO_ACTIVITY,
     CLASS_NO_GAP,
     CLASS_SALES_PENDING_COLLECTION,
+    PLAN_VALIDATED,
     STATUS_EVALUATED,
     STATUS_INVALID_INPUT,
+    STATUS_PLAN_BLOCKED,
+    evaluate_liq_001_from_computation_plan_v1,
     evaluate_liq_001_v1,
 )
+
+
+def _ready_plan() -> dict[str, object]:
+    return {
+        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
+        "status": "READY_FOR_COMPUTATION",
+        "requested_capability": "sold_vs_collected_gap",
+        "pathology_code": "LIQ_001",
+        "formula_id": "LIQ_001_vendido_cobrado",
+        "required_variables": ["sold_amount", "collected_amount"],
+        "computation_candidate_ready": True,
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
 
 
 def test_positive_gap_means_sales_pending_collection() -> None:
@@ -107,3 +127,61 @@ def test_packet_exposes_formula_and_mathematical_boundaries() -> None:
     assert result["mathematical_limits"]["sold_amount_min_inclusive"] == 0.0
     assert result["mathematical_limits"]["collected_amount_min_inclusive"] == 0.0
     assert result["mathematical_limits"]["ratios_defined_when"] == "sold_amount > 0"
+
+
+def test_ready_plan_with_explicit_inputs_is_evaluated() -> None:
+    result = evaluate_liq_001_from_computation_plan_v1(
+        computation_plan=_ready_plan(),
+        inputs={"sold_amount": 3000, "collected_amount": 2300},
+    )
+
+    assert result["status"] == STATUS_EVALUATED
+    assert result["classification"] == CLASS_SALES_PENDING_COLLECTION
+    assert result["computed"]["gap_amount"] == 700.0
+    assert result["plan_validation"] == {
+        "status": PLAN_VALIDATED,
+        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
+        "requested_capability": "sold_vs_collected_gap",
+        "pathology_code": "LIQ_001",
+        "formula_id": "LIQ_001_vendido_cobrado",
+        "required_variables": ["sold_amount", "collected_amount"],
+    }
+
+
+def test_plan_identity_drift_is_blocked() -> None:
+    plan = _ready_plan()
+    plan["formula_id"] = "REN_001_margen_neto_real"
+
+    result = evaluate_liq_001_from_computation_plan_v1(
+        computation_plan=plan,
+        inputs={"sold_amount": 3000, "collected_amount": 2300},
+    )
+
+    assert result["status"] == STATUS_PLAN_BLOCKED
+    assert result["computed"] == {}
+    assert "computation_plan formula_id must equal LIQ_001_vendido_cobrado." in result["errors"]
+
+
+def test_non_ready_plan_is_blocked() -> None:
+    plan = _ready_plan()
+    plan["status"] = "NEEDS_EVIDENCE"
+
+    result = evaluate_liq_001_from_computation_plan_v1(
+        computation_plan=plan,
+        inputs={"sold_amount": 3000, "collected_amount": 2300},
+    )
+
+    assert result["status"] == STATUS_PLAN_BLOCKED
+    assert "computation_plan status must equal READY_FOR_COMPUTATION." in result["errors"]
+
+
+def test_plan_evaluation_rejects_missing_or_unknown_inputs() -> None:
+    result = evaluate_liq_001_from_computation_plan_v1(
+        computation_plan=_ready_plan(),
+        inputs={"sold_amount": 3000, "unexpected": 1},
+    )
+
+    assert result["status"] == STATUS_INVALID_INPUT
+    assert "missing required input: collected_amount." in result["errors"]
+    assert "unknown input: unexpected." in result["errors"]
+    assert result["plan_validation"]["status"] == PLAN_VALIDATED
