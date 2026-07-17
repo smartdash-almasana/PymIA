@@ -131,3 +131,15 @@ segundo pase: PRODUCT_PIPELINE_READY
 tool ejecutada explicitamente: precio_margen_basico
 limite: no declara diagnostico integral de taller, stock, clientes ni repuestos
 ```
+
+## CYCLE_036 — S1-PILOT-007 constructora
+
+```text
+status: PASS
+fixture: prueba_excels/constructora_nueva_era_srl.xlsx
+sheet: OBRAS
+primer pase: NEEDS_OWNER_CONFIRMATION
+segundo pase: PRODUCT_PIPELINE_READY
+tool explícita ejecutada: precio_margen_basico
+límite: no declara diagnóstico integral de obra
+```

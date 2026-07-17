@@ -1,0 +1,169 @@
+{
+  "schema_version": "SERVICE_1_PILOT_007_CONSTRUCTORA_RUN_V1",
+  "cycle": "CYCLE_036_RUN_S1_PILOT_007_CONSTRUCTORA",
+  "status": "PASS",
+  "work_dir": ".tmp/service_1_pilot_007_constructora",
+  "official_cli": "python -m pymia.cli.service_1_product",
+  "fixture": "prueba_excels/constructora_nueva_era_srl.xlsx",
+  "sheet_name": "OBRAS",
+  "first_pass": {
+    "returncode": 2,
+    "status": "NEEDS_OWNER_CONFIRMATION",
+    "owner_questions_count": 16,
+    "tools_executed": false
+  },
+  "semantic_owner_answers": {
+    "count": 16,
+    "source_rule": "selected from product_pipeline.owner_questions[].allowed_option_ids; no free text",
+    "selected": {
+      "obra_id": "A",
+      "nombre_obra": "A",
+      "tipo_obra": "A",
+      "ubicacion": "A",
+      "mes_ejecucion": "A",
+      "presupuesto_materiales": "A",
+      "gasto_real_materiales": "A",
+      "presupuesto_mano_obra": "A",
+      "gasto_real_mano_obra": "A",
+      "presupuesto_equipos": "A",
+      "gasto_real_equipos": "A",
+      "presupuesto_subcontratos": "A",
+      "gasto_real_subcontratos": "A",
+      "presupuesto_imprevistos": "A",
+      "gasto_real_imprevistos": "A",
+      "certificacion_cobrada": "A"
+    },
+    "allowed_option_sources": {
+      "obra_id": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "nombre_obra": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "tipo_obra": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "ubicacion": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "mes_ejecucion": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "presupuesto_materiales": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "gasto_real_materiales": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "presupuesto_mano_obra": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "gasto_real_mano_obra": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "presupuesto_equipos": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "gasto_real_equipos": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "presupuesto_subcontratos": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "gasto_real_subcontratos": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "presupuesto_imprevistos": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "gasto_real_imprevistos": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "certificacion_cobrada": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ]
+    }
+  },
+  "final_pass": {
+    "returncode": 0,
+    "status": "PRODUCT_PIPELINE_READY",
+    "blocked_reason": null,
+    "semantic_bindings_confirmed": true,
+    "tools_executed": true,
+    "executed_tool_refs": [
+      "precio_margen_basico"
+    ],
+    "xlsx_outputs": [
+      "first_aid_001_precio_margen_basico.xlsx"
+    ]
+  },
+  "limits": [
+    "Run uses explicit tool request; it does not claim automatic tool selection.",
+    "Run validates product path on a constructora workbook with obra, presupuestos, gastos and certificacion/cobro, not full construction project diagnosis.",
+    "Any presupuesto vs gasto, obra profitability, imprevistos or certification advanced analysis remains a future governed capability unless explicitly added."
+  ]
+}
