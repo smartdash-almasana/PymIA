@@ -47,9 +47,9 @@ def run_service_1_product_pipeline_v1(
     """Run semantic confirmation before governed computation or tool execution.
 
     A requested capability must first resolve to a governed computation plan.
-    LIQ_001 is then evaluated only from complete normalized rows and exact
-    owner-confirmed column references. Other governed capabilities remain at the
-    plan boundary. The explicit-tool path remains unchanged.
+    LIQ_001 is evaluated when complete normalized rows and exact confirmed column
+    references are present. A caller that supplies semantic evidence only keeps
+    the certified plan-only boundary. The explicit-tool path remains unchanged.
     """
     semantic_run = run_initial_pass(
         ingestion_output=ingestion_output,
@@ -99,12 +99,20 @@ def run_service_1_product_pipeline_v1(
             )
 
         computation_result = None
-        if requested_capability == LIQ_001_CAPABILITY_REF:
-            evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
+        evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
+        normalized_tables = evidence.get("normalized_tables")
+        column_refs = evidence.get("column_refs")
+        has_complete_row_evidence = (
+            isinstance(normalized_tables, list)
+            and bool(normalized_tables)
+            and isinstance(column_refs, list)
+            and bool(column_refs)
+        )
+        if requested_capability == LIQ_001_CAPABILITY_REF and has_complete_row_evidence:
             computation_result = evaluate_liq_001_from_normalized_tables_v1(
                 computation_plan=computation_plan,
-                normalized_tables=evidence.get("normalized_tables"),
-                column_refs=evidence.get("column_refs"),
+                normalized_tables=normalized_tables,
+                column_refs=column_refs,
             )
             if computation_result.get("status") != LIQ_001_STATUS_EVALUATED:
                 return _packet(
