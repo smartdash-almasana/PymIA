@@ -103,3 +103,17 @@ Pilotos activos: 8
 Primer próximo piloto: S1-PILOT-003 pyme_textil_compleja.xlsx
 Guarda anti-deriva: simple_bem_test.xlsx queda excluido aunque tenga headers válidos; era fixture BEM descartado.
 ```
+
+## CYCLE_033 — Pilot 003 Textil Compleja
+
+```text
+Estado: PASS
+Archivo: prueba_excels/pyme_textil_compleja.xlsx
+Sheet: VENTAS
+Primer pase: NEEDS_OWNER_CONFIRMATION
+Preguntas semánticas: 2
+Segundo pase: PRODUCT_PIPELINE_READY
+Tool ejecutada: precio_margen_basico, explícita por tool_requests
+Salida: first_aid_001_precio_margen_basico.xlsx
+Límite: no prueba diagnóstico textil completo ni selección automática de tool.
+```
