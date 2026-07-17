@@ -7,6 +7,7 @@ diagnosis. The owner-confirmed semantic layer remains responsible for bindings.
 from __future__ import annotations
 
 import math
+from decimal import Decimal, InvalidOperation
 from typing import Any, Final
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_LIQ_001_EVALUATION_V1"
@@ -18,6 +19,7 @@ CAPABILITY_REF: Final[str] = "sold_vs_collected_gap"
 STATUS_EVALUATED: Final[str] = "EVALUATED"
 STATUS_INVALID_INPUT: Final[str] = "INVALID_INPUT"
 STATUS_PLAN_BLOCKED: Final[str] = "PLAN_BLOCKED"
+STATUS_EVIDENCE_BLOCKED: Final[str] = "EVIDENCE_BLOCKED"
 PLAN_STATUS_READY: Final[str] = "READY_FOR_COMPUTATION"
 PLAN_VALIDATED: Final[str] = "VALIDATED"
 
@@ -28,6 +30,148 @@ CLASS_COLLECTIONS_EXCEED_PERIOD_SALES: Final[str] = "COLLECTIONS_EXCEED_PERIOD_S
 CLASS_COLLECTIONS_WITHOUT_PERIOD_SALES: Final[str] = "COLLECTIONS_WITHOUT_PERIOD_SALES"
 
 _REQUIRED_VARIABLES: Final[tuple[str, str]] = ("sold_amount", "collected_amount")
+
+
+def evaluate_liq_001_from_normalized_tables_v1(
+    *, computation_plan: object, normalized_tables: object, column_refs: object
+) -> dict[str, object]:
+    """Aggregate every normalized row selected by the governed LIQ_001 plan.
+
+    Resolution is exact and deterministic:
+    - the plan must be a validated LIQ_001 computation candidate;
+    - each required variable must resolve to exactly one confirmed column ref;
+    - the referenced sheet and normalized header must exist exactly once;
+    - every participating row value must be present, numeric, finite and non-negative.
+
+    No sample values, aliases, thresholds or inferred mappings are accepted here.
+    """
+    plan_errors = _validate_computation_plan(computation_plan)
+    if plan_errors:
+        return _packet(
+            status=STATUS_PLAN_BLOCKED,
+            classification=None,
+            inputs={},
+            errors=plan_errors,
+            plan_validation={"status": STATUS_PLAN_BLOCKED},
+        )
+    if not isinstance(normalized_tables, list) or not normalized_tables:
+        return _evidence_blocked(
+            computation_plan,
+            ["normalized_tables must be a non-empty list."],
+        )
+    if not isinstance(column_refs, list) or not column_refs:
+        return _evidence_blocked(
+            computation_plan,
+            ["column_refs must be a non-empty list."],
+        )
+
+    plan = computation_plan
+    source_bindings = plan.get("source_bindings")
+    if not isinstance(source_bindings, dict):
+        return _evidence_blocked(
+            computation_plan,
+            ["computation_plan source_bindings must be an object."],
+        )
+
+    tables_by_sheet: dict[str, dict[str, Any]] = {}
+    table_errors: list[str] = []
+    for raw_table in normalized_tables:
+        if not isinstance(raw_table, dict):
+            table_errors.append("normalized table entries must be objects.")
+            continue
+        sheet_name = str(raw_table.get("sheet_name") or "").strip()
+        if not sheet_name:
+            table_errors.append("normalized table sheet_name is required.")
+            continue
+        if sheet_name in tables_by_sheet:
+            table_errors.append(f"duplicate normalized table for sheet: {sheet_name}.")
+            continue
+        tables_by_sheet[sheet_name] = raw_table
+    if table_errors:
+        return _evidence_blocked(computation_plan, table_errors)
+
+    totals: dict[str, float] = {}
+    aggregation_sources: dict[str, dict[str, object]] = {}
+    errors: list[str] = []
+    expected_row_count: int | None = None
+
+    for variable_name in _REQUIRED_VARIABLES:
+        source_column = str(source_bindings.get(variable_name) or "").strip()
+        if not source_column:
+            errors.append(f"missing source binding for {variable_name}.")
+            continue
+        matches = [
+            ref
+            for ref in column_refs
+            if isinstance(ref, dict)
+            and str(ref.get("column_name") or "").strip() == source_column
+        ]
+        if len(matches) != 1:
+            errors.append(
+                f"source binding for {variable_name} must resolve exactly once: {source_column}."
+            )
+            continue
+        ref = matches[0]
+        sheet_name = str(ref.get("sheet_name") or "").strip()
+        normalized_column = str(
+            ref.get("normalized_column_name") or ref.get("column_name") or ""
+        ).strip()
+        table = tables_by_sheet.get(sheet_name)
+        if table is None:
+            errors.append(f"normalized table missing for sheet: {sheet_name}.")
+            continue
+        rows = table.get("rows")
+        if not isinstance(rows, list):
+            errors.append(f"normalized rows must be a list for sheet: {sheet_name}.")
+            continue
+        if expected_row_count is None:
+            expected_row_count = len(rows)
+        elif len(rows) != expected_row_count:
+            errors.append("LIQ_001 source columns must cover the same row count.")
+            continue
+
+        total = Decimal("0")
+        for row_index, row in enumerate(rows, start=1):
+            if not isinstance(row, dict):
+                errors.append(f"row {row_index} in {sheet_name} must be an object.")
+                continue
+            raw_value = row.get(normalized_column)
+            value, value_error = _parse_normalized_amount(raw_value)
+            if value_error:
+                errors.append(
+                    f"{sheet_name}.{normalized_column} row {row_index}: {value_error}"
+                )
+                continue
+            total += value
+        totals[variable_name] = float(total)
+        aggregation_sources[variable_name] = {
+            "sheet_name": sheet_name,
+            "column_name": source_column,
+            "normalized_column_name": normalized_column,
+            "row_count": len(rows),
+        }
+
+    if errors:
+        return _evidence_blocked(
+            computation_plan,
+            errors,
+            aggregation={
+                "sources": aggregation_sources,
+                "row_count": expected_row_count,
+            },
+        )
+
+    result = evaluate_liq_001_from_computation_plan_v1(
+        computation_plan=computation_plan,
+        inputs=totals,
+    )
+    result["aggregation"] = {
+        "status": "AGGREGATED",
+        "sources": aggregation_sources,
+        "row_count": expected_row_count,
+        "sample_based": False,
+    }
+    return result
 
 
 def evaluate_liq_001_from_computation_plan_v1(
@@ -141,6 +285,40 @@ def evaluate_liq_001_v1(*, sold_amount: object, collected_amount: object) -> dic
     )
 
 
+def _parse_normalized_amount(value: object) -> tuple[Decimal, str | None]:
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return Decimal("0"), "value is required."
+    if isinstance(value, bool):
+        return Decimal("0"), "value must be numeric."
+    text = str(value).strip()
+    try:
+        number = Decimal(text)
+    except (InvalidOperation, ValueError):
+        return Decimal("0"), "value must be numeric."
+    if not number.is_finite():
+        return Decimal("0"), "value must be finite."
+    if number < 0:
+        return Decimal("0"), "value must be greater than or equal to 0."
+    return number, None
+
+
+def _evidence_blocked(
+    computation_plan: object,
+    errors: list[str],
+    *,
+    aggregation: dict[str, object] | None = None,
+) -> dict[str, object]:
+    packet = _packet(
+        status=STATUS_EVIDENCE_BLOCKED,
+        classification=None,
+        inputs={},
+        errors=errors,
+        plan_validation=_validated_plan_projection(computation_plan),
+    )
+    packet["aggregation"] = dict(aggregation or {})
+    return packet
+
+
 def _validate_computation_plan(computation_plan: object) -> list[str]:
     if not isinstance(computation_plan, dict):
         return ["computation_plan must be an object."]
@@ -252,8 +430,10 @@ __all__ = [
     "PLAN_VALIDATED",
     "SCHEMA_VERSION",
     "STATUS_EVALUATED",
+    "STATUS_EVIDENCE_BLOCKED",
     "STATUS_INVALID_INPUT",
     "STATUS_PLAN_BLOCKED",
     "evaluate_liq_001_from_computation_plan_v1",
+    "evaluate_liq_001_from_normalized_tables_v1",
     "evaluate_liq_001_v1",
 ]
