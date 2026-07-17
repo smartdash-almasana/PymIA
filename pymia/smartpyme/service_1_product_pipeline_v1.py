@@ -18,6 +18,11 @@ from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     run_initial_pass,
     run_owner_reentry,
 )
+from pymia.smartpyme.service_1_liq_001_evaluator_v1 import (
+    CAPABILITY_REF as LIQ_001_CAPABILITY_REF,
+    STATUS_EVALUATED as LIQ_001_STATUS_EVALUATED,
+    evaluate_liq_001_from_normalized_tables_v1,
+)
 from pymia.smartpyme.service_1_pipeline_v1 import (
     Service1PipelineToolRequestV1,
     run_service_1_pipeline_v1,
@@ -39,11 +44,12 @@ def run_service_1_product_pipeline_v1(
     owner_answers: Any = None,
     requested_capability: str | None = None,
 ) -> dict[str, Any]:
-    """Run semantic confirmation before planning or explicit tool execution.
+    """Run semantic confirmation before governed computation or tool execution.
 
-    When ``requested_capability`` is provided, the pipeline stops at the
-    governed P7/P8 computation plan and executes no tool. Without it, the
-    previously certified explicit-tool path remains unchanged.
+    A requested capability must first resolve to a governed computation plan.
+    LIQ_001 is then evaluated only from complete normalized rows and exact
+    owner-confirmed column references. Other governed capabilities remain at the
+    plan boundary. The explicit-tool path remains unchanged.
     """
     semantic_run = run_initial_pass(
         ingestion_output=ingestion_output,
@@ -91,10 +97,30 @@ def run_service_1_product_pipeline_v1(
                 semantic_run=semantic_run,
                 computation_plan=computation_plan,
             )
+
+        computation_result = None
+        if requested_capability == LIQ_001_CAPABILITY_REF:
+            evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
+            computation_result = evaluate_liq_001_from_normalized_tables_v1(
+                computation_plan=computation_plan,
+                normalized_tables=evidence.get("normalized_tables"),
+                column_refs=evidence.get("column_refs"),
+            )
+            if computation_result.get("status") != LIQ_001_STATUS_EVALUATED:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=computation_result.get("status")
+                    or "LIQ_001_COMPUTATION_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                )
+
         return _packet(
             status=STATUS_COMPUTATION_PLAN_READY,
             semantic_run=semantic_run,
             computation_plan=computation_plan,
+            computation_result=computation_result,
         )
 
     physical_run = run_service_1_pipeline_v1(
@@ -115,6 +141,7 @@ def _packet(
     semantic_run: Any = None,
     physical_run: Any = None,
     computation_plan: Any = None,
+    computation_result: Any = None,
     owner_questions: list[dict[str, Any]] | None = None,
     owner_followup: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -126,6 +153,7 @@ def _packet(
         "semantic_run": _public_semantic_run(semantic_run),
         "physical_run": physical_run,
         "computation_plan": computation_plan,
+        "computation_result": computation_result,
         "owner_questions": list(owner_questions or []),
         "owner_followup": [dict(item) for item in (owner_followup or [])],
         "semantic_bindings_confirmed": bool(
@@ -133,6 +161,10 @@ def _packet(
             and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
         ),
         "tools_executed": bool(isinstance(physical_run, dict)),
+        "computation_executed": bool(
+            isinstance(computation_result, dict)
+            and computation_result.get("status") == LIQ_001_STATUS_EVALUATED
+        ),
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
