@@ -15,7 +15,19 @@ def test_controlled_pilot_series_is_active_and_excel_based() -> None:
     assert plan["status"]=="ACTIVE"
     assert plan["source_folder"]=="prueba_excels"
     assert len(plan["pilot_sequence"])==7
-    assert plan["next_execution_order"][0]=="S1-PILOT-003"
+    assert plan["next_execution_order"]==["S1-PILOT-008", "S1-PILOT-005"]
+
+def test_controlled_pilot_execution_status_is_current() -> None:
+    status=_plan()["execution_status"]
+    assert status=={
+        "S1-PILOT-001": "PASS",
+        "S1-PILOT-003": "PASS",
+        "S1-PILOT-004": "PASS",
+        "S1-PILOT-005": "PLANNED_AFTER_008",
+        "S1-PILOT-006": "PASS",
+        "S1-PILOT-007": "PASS",
+        "S1-PILOT-008": "NEXT",
+    }
 
 def test_all_active_pilot_files_exist_and_have_primary_headers() -> None:
     root=_root()
@@ -60,7 +72,6 @@ def test_headers_do_not_grant_productive_pilot_authority() -> None:
     assert "prueba_excels/simple_bem_test.xlsx" in disqualified
     assert disqualified["prueba_excels/simple_bem_test.xlsx"]["trap"]=="perfil_superficial_de_columnas"
 
-
 def test_disqualified_bem_fixture_cannot_be_next_or_active_even_with_headers() -> None:
     root=_root()
     plan=_plan()
@@ -68,8 +79,6 @@ def test_disqualified_bem_fixture_cannot_be_next_or_active_even_with_headers() -
     next_ids=set(plan["next_execution_order"])
     assert "prueba_excels/simple_bem_test.xlsx" not in active
     assert "S1-PILOT-002" not in next_ids
-
-    # The trap is explicit: the workbook has headers, but that does not grant authority.
     path=root/"prueba_excels/simple_bem_test.xlsx"
     wb=openpyxl.load_workbook(path,read_only=True,data_only=True)
     ws=wb["Sheet1"]
@@ -78,7 +87,6 @@ def test_disqualified_bem_fixture_cannot_be_next_or_active_even_with_headers() -
     assert {"fecha","producto","cantidad","precio_unitario","venta_total"}.issubset(set(headers))
     quarantined={q["file"] for q in plan["quarantined_inputs"]}
     assert "prueba_excels/simple_bem_test.xlsx" in quarantined
-
 
 def test_markdown_explains_bem_trap_and_forbids_superficial_promotion() -> None:
     root=_root()
