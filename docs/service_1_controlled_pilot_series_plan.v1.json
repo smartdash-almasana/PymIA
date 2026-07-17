@@ -12,8 +12,28 @@
       "Un XLSX vacío o de salida generada no puede ser piloto activo.",
       "No hay selección automática de tool desde Excel.",
       "Las tools se ejecutan sólo con tool_requests explícitos.",
-      "Las capacidades formulaicas sólo se declaran cuando el product gate actual las soporta."
-    ]
+      "Las capacidades formulaicas sólo se declaran cuando el product gate actual las soporta.",
+      "Tener headers válidos no autoriza un piloto: la autoridad depende de origen productivo vigente, no de forma tabular.",
+      "Fixtures BEM, legacy, sintéticos descartados o artefactos históricos no pueden promoverse a piloto activo por perfil superficial.",
+      "Toda promoción desde cuarentena requiere evidencia nueva explícita y actualización del plan con test de no-deriva."
+    ],
+    "anti_drift_guard": {
+      "principle": "La documentación de pilotos no puede inferir autoridad productiva desde columnas observadas, sheet names o tamaño del Excel.",
+      "active_pilot_requires": [
+        "XLSX existente en prueba_excels.",
+        "No estar en cuarentena.",
+        "No ser fixture BEM descartado, legacy sintético ni salida generada.",
+        "Tener objetivo operativo compatible con el product gate vigente.",
+        "Tener modo permitido explícito sin selección automática de tool."
+      ],
+      "known_disqualified_inputs": [
+        {
+          "file": "prueba_excels/simple_bem_test.xlsx",
+          "reason": "Tiene headers tabulares, pero es fixture BEM descartado; no es autoridad productiva de Servicio 1.",
+          "trap": "perfil_superficial_de_columnas"
+        }
+      ]
+    }
   },
   "pilot_sequence": [
     {
@@ -35,21 +55,6 @@
       ],
       "business_case": "cafetería ventas/productos/sucursales",
       "reason": "baseline operatorless ya PASS",
-      "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
-    },
-    {
-      "pilot_id": "S1-PILOT-002",
-      "file": "prueba_excels/simple_bem_test.xlsx",
-      "primary_sheet": "Sheet1",
-      "observed_headers": [
-        "fecha",
-        "producto",
-        "cantidad",
-        "precio_unitario",
-        "venta_total"
-      ],
-      "business_case": "ventas mínima",
-      "reason": "primer piloto nuevo",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
     },
     {
@@ -185,6 +190,10 @@
   ],
   "quarantined_inputs": [
     {
+      "file": "prueba_excels/simple_bem_test.xlsx",
+      "reason": "BEM test fixture previamente descartado; no gobierna Servicio 1 productivo ni debe usarse como piloto activo."
+    },
+    {
       "file": "prueba_excels/CASE_001_ventas_junio_2026_margin_leak.xlsx",
       "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
     },
@@ -214,7 +223,6 @@
     }
   ],
   "next_execution_order": [
-    "S1-PILOT-002",
     "S1-PILOT-003",
     "S1-PILOT-004",
     "S1-PILOT-006",

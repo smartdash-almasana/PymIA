@@ -19,12 +19,27 @@ Las capacidades formulaicas sólo se declaran cuando el product gate actual las 
 Un XLSX vacío o de salida generada no puede ser piloto activo.
 ```
 
+## Guarda anti-deriva
+
+```text
+Tener headers válidos no autoriza un piloto.
+La autoridad depende de origen productivo vigente, no de forma tabular.
+Fixtures BEM, legacy, sintéticos descartados o salidas generadas no pueden promoverse por perfil superficial.
+Toda promoción desde cuarentena requiere evidencia nueva explícita y test de no-deriva.
+```
+
+Caso trampa registrado:
+
+```text
+simple_bem_test.xlsx tiene columnas válidas, pero es fixture BEM descartado.
+Por lo tanto queda en cuarentena y no puede ser próximo piloto.
+```
+
 ## Pilotos activos
 
 | Piloto | Archivo | Hoja primaria | Caso | Motivo |
 |---|---|---|---|---|
 | S1-PILOT-001 | `cafeteria_abc.xlsx` | `Ventas` | cafetería ventas/productos/sucursales | baseline operatorless ya PASS |
-| S1-PILOT-002 | `simple_bem_test.xlsx` | `Sheet1` | ventas mínima | primer piloto nuevo |
 | S1-PILOT-003 | `pyme_textil_compleja.xlsx` | `VENTAS` | textil ventas/costos/margen | stress margen descuento canal |
 | S1-PILOT-004 | `distribuidora_mayorista_compleja.xlsx` | `OPERACION` | distribuidora ruta/SKU/margen | stress comercial 5000 filas |
 | S1-PILOT-005 | `fabrica_industrial_compleja.xlsx` | `PRODUCCION` | producción/scrap/OEE | límite semántico sin fórmula inventada |
@@ -35,13 +50,12 @@ Un XLSX vacío o de salida generada no puede ser piloto activo.
 ## Orden de ejecución
 
 ```text
-1. S1-PILOT-002 simple_bem_test.xlsx
-2. S1-PILOT-003 pyme_textil_compleja.xlsx
-3. S1-PILOT-004 distribuidora_mayorista_compleja.xlsx
-4. S1-PILOT-006 taller_mecanico_lubricar_srl.xlsx
-5. S1-PILOT-007 constructora_nueva_era_srl.xlsx
-6. S1-PILOT-008 la_textil_cosida_srl_mar_abr_may_2026.xlsx
-7. S1-PILOT-005 fabrica_industrial_compleja.xlsx
+1. S1-PILOT-003 pyme_textil_compleja.xlsx
+2. S1-PILOT-004 distribuidora_mayorista_compleja.xlsx
+3. S1-PILOT-006 taller_mecanico_lubricar_srl.xlsx
+4. S1-PILOT-007 constructora_nueva_era_srl.xlsx
+5. S1-PILOT-008 la_textil_cosida_srl_mar_abr_may_2026.xlsx
+6. S1-PILOT-005 fabrica_industrial_compleja.xlsx
 ```
 
 `S1-PILOT-001` queda como control de regresión ya probado.
@@ -49,6 +63,7 @@ Un XLSX vacío o de salida generada no puede ser piloto activo.
 ## Cuarentena
 
 ```text
+simple_bem_test.xlsx — fixture BEM descartado; no gobierna Servicio 1 productivo.
 CASE_001_ventas_junio_2026_margin_leak.xlsx
 cobros_marzo_2026.xlsx
 ventas_marzo_2026.xlsx
@@ -58,11 +73,11 @@ SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx
 SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE/...xlsx
 ```
 
-Motivo: perfil reporta hojas vacías o legacy sintético. No entran como pilotos activos hasta reparar o reexportar.
+Motivo: fixture BEM descartado, hojas vacías o legacy sintético. No entran como pilotos activos hasta reparar, reexportar o demostrar autoridad productiva actual.
 
 ## Próximo ciclo
 
 ```text
 CYCLE_033:
-RUN_S1_PILOT_002_SIMPLE_BEM_TEST
+RUN_S1_PILOT_003_TEXTIL_COMPLEJA
 ```

@@ -100,5 +100,6 @@ CYCLE_032: ACTIVE
 Fuente: prueba_excels/
 Documento: docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md
 Pilotos activos: 8
-Primer próximo piloto: S1-PILOT-002 simple_bem_test.xlsx
+Primer próximo piloto: S1-PILOT-003 pyme_textil_compleja.xlsx
+Guarda anti-deriva: simple_bem_test.xlsx queda excluido aunque tenga headers válidos; era fixture BEM descartado.
 ```

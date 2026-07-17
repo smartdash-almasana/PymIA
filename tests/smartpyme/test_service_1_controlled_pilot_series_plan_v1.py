@@ -14,8 +14,8 @@ def test_controlled_pilot_series_is_active_and_excel_based() -> None:
     assert plan["schema_version"]=="SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN_V1"
     assert plan["status"]=="ACTIVE"
     assert plan["source_folder"]=="prueba_excels"
-    assert len(plan["pilot_sequence"])==8
-    assert plan["next_execution_order"][0]=="S1-PILOT-002"
+    assert len(plan["pilot_sequence"])==7
+    assert plan["next_execution_order"][0]=="S1-PILOT-003"
 
 def test_all_active_pilot_files_exist_and_have_primary_headers() -> None:
     root=_root()
@@ -38,6 +38,7 @@ def test_quarantined_inputs_are_not_active_pilots() -> None:
     assert active.isdisjoint(quarantined)
     assert "prueba_excels/cobros_marzo_2026.xlsx" in quarantined
     assert "prueba_excels/ventas_marzo_2026.xlsx" in quarantined
+    assert "prueba_excels/simple_bem_test.xlsx" in quarantined
 
 def test_plan_preserves_product_boundaries() -> None:
     rules="\n".join(_plan()["policy"]["rules"])
@@ -50,3 +51,39 @@ def test_current_readme_lists_controlled_pilot_series_doc() -> None:
     readme=(root/"docs"/"current"/"README.md").read_text(encoding="utf-8")
     assert "SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md" in readme
     assert (root/"docs"/"current"/"SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md").exists()
+
+def test_headers_do_not_grant_productive_pilot_authority() -> None:
+    plan=_plan()
+    guard=plan["policy"]["anti_drift_guard"]
+    assert "columnas observadas" in guard["principle"] or "sheet names" in guard["principle"]
+    disqualified={item["file"]: item for item in guard["known_disqualified_inputs"]}
+    assert "prueba_excels/simple_bem_test.xlsx" in disqualified
+    assert disqualified["prueba_excels/simple_bem_test.xlsx"]["trap"]=="perfil_superficial_de_columnas"
+
+
+def test_disqualified_bem_fixture_cannot_be_next_or_active_even_with_headers() -> None:
+    root=_root()
+    plan=_plan()
+    active={p["file"] for p in plan["pilot_sequence"]}
+    next_ids=set(plan["next_execution_order"])
+    assert "prueba_excels/simple_bem_test.xlsx" not in active
+    assert "S1-PILOT-002" not in next_ids
+
+    # The trap is explicit: the workbook has headers, but that does not grant authority.
+    path=root/"prueba_excels/simple_bem_test.xlsx"
+    wb=openpyxl.load_workbook(path,read_only=True,data_only=True)
+    ws=wb["Sheet1"]
+    headers=[str(c).strip() for c in next(ws.iter_rows(min_row=1,max_row=1,values_only=True)) if c is not None and str(c).strip()]
+    wb.close()
+    assert {"fecha","producto","cantidad","precio_unitario","venta_total"}.issubset(set(headers))
+    quarantined={q["file"] for q in plan["quarantined_inputs"]}
+    assert "prueba_excels/simple_bem_test.xlsx" in quarantined
+
+
+def test_markdown_explains_bem_trap_and_forbids_superficial_promotion() -> None:
+    root=_root()
+    doc=(root/"docs"/"current"/"SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md").read_text(encoding="utf-8")
+    assert "Guarda anti-deriva" in doc
+    assert "Tener headers válidos no autoriza un piloto" in doc
+    assert "simple_bem_test.xlsx tiene columnas válidas" in doc
+    assert "fixture BEM descartado" in doc
