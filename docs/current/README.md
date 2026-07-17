@@ -53,3 +53,4 @@ docs/current/SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md
 La carpeta `landing/` no gobierna Servicio 1.
 
 - `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md` — ejecución registrada del piloto distribuidora mayorista.
+- `SERVICE_1_PILOT_006_TALLER_MECANICO.md` — ejecución registrada del piloto taller mecánico.

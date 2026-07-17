@@ -1,0 +1,124 @@
+{
+  "schema_version": "SERVICE_1_PILOT_006_TALLER_MECANICO_RUN_V1",
+  "cycle": "CYCLE_035_RUN_S1_PILOT_006_TALLER_MECANICO",
+  "status": "PASS",
+  "work_dir": ".tmp\\service_1_pilot_006_taller_mecanico",
+  "official_cli": "python -m pymia.cli.service_1_product",
+  "fixture": "prueba_excels/taller_mecanico_lubricar_srl.xlsx",
+  "sheet_name": "ORDENES_TRABAJO",
+  "first_pass": {
+    "returncode": 2,
+    "status": "NEEDS_OWNER_CONFIRMATION",
+    "owner_questions_count": 9,
+    "tools_executed": false
+  },
+  "semantic_owner_answers": {
+    "path": ".tmp\\service_1_pilot_006_taller_mecanico\\semantic_owner_answers.json",
+    "count": 9,
+    "source_rule": "selected from product_pipeline.owner_questions[].allowed_option_ids; no free text",
+    "selected": {
+      "orden_id": "A",
+      "cliente": "A",
+      "tipo_reparacion": "A",
+      "horas_mano_obra": "A",
+      "valor_hora": "A",
+      "ingreso_mano_obra": "A",
+      "margen_mano_obra": "A",
+      "servicios_tercerizados": "A",
+      "forma_pago": "A"
+    },
+    "allowed_option_sources": {
+      "orden_id": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "cliente": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "tipo_reparacion": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "horas_mano_obra": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "valor_hora": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "ingreso_mano_obra": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "margen_mano_obra": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "servicios_tercerizados": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "forma_pago": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ]
+    }
+  },
+  "final_pass": {
+    "returncode": 0,
+    "status": "PRODUCT_PIPELINE_READY",
+    "blocked_reason": null,
+    "semantic_bindings_confirmed": true,
+    "tools_executed": true,
+    "executed_tool_refs": [
+      "precio_margen_basico"
+    ],
+    "xlsx_outputs": [
+      "first_aid_001_precio_margen_basico.xlsx"
+    ]
+  },
+  "checks": {
+    "first_status_needs_owner": true,
+    "first_tools_not_executed": true,
+    "semantic_answers_from_allowed_ids": true,
+    "final_status_ready": true,
+    "semantic_confirmed": true,
+    "tools_executed": true,
+    "expected_tool_executed": true,
+    "xlsx_output_exists": true
+  },
+  "limits": [
+    "Run uses explicit tool request; it does not claim automatic tool selection.",
+    "Run validates product path on a taller mecanico workbook with ordenes de trabajo, mano de obra and pagos, not full workshop profitability diagnosis.",
+    "Any stock, client, repuestos or service profitability advanced analysis remains a future governed capability unless explicitly added."
+  ]
+}

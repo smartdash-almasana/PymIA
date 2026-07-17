@@ -119,3 +119,15 @@ Límite: no prueba diagnóstico textil completo ni selección automática de too
 ```
 
 Último piloto nuevo: S1-PILOT-004 distribuidora_mayorista_compleja.xlsx — PASS
+
+## CYCLE_035 — piloto taller mecánico
+
+```text
+S1-PILOT-006 taller mecanico: PASS
+fixture: prueba_excels/taller_mecanico_lubricar_srl.xlsx
+sheet: ORDENES_TRABAJO
+primer pase: NEEDS_OWNER_CONFIRMATION
+segundo pase: PRODUCT_PIPELINE_READY
+tool ejecutada explicitamente: precio_margen_basico
+limite: no declara diagnostico integral de taller, stock, clientes ni repuestos
+```
