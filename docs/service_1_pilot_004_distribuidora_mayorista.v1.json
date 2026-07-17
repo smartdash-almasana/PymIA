@@ -1,0 +1,77 @@
+{
+  "schema_version": "SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA_RUN_V1",
+  "cycle": "CYCLE_034_RUN_S1_PILOT_004_DISTRIBUIDORA_MAYORISTA",
+  "status": "PASS",
+  "work_dir": ".tmp\\service_1_pilot_004_distribuidora_mayorista",
+  "official_cli": "python -m pymia.cli.service_1_product",
+  "fixture": "prueba_excels/distribuidora_mayorista_compleja.xlsx",
+  "sheet_name": "OPERACION",
+  "first_pass": {
+    "returncode": 2,
+    "status": "NEEDS_OWNER_CONFIRMATION",
+    "owner_questions_count": 3,
+    "tools_executed": false
+  },
+  "semantic_owner_answers": {
+    "path": ".tmp\\service_1_pilot_004_distribuidora_mayorista\\semantic_owner_answers.json",
+    "count": 3,
+    "source_rule": "selected from product_pipeline.owner_questions[].allowed_option_ids; no free text",
+    "selected": {
+      "cliente": "A",
+      "ruta": "A",
+      "margen": "A"
+    },
+    "allowed_option_sources": {
+      "cliente": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "ruta": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ],
+      "margen": [
+        "A",
+        "B",
+        "C",
+        "OTHER",
+        "IGNORE"
+      ]
+    }
+  },
+  "final_pass": {
+    "returncode": 0,
+    "status": "PRODUCT_PIPELINE_READY",
+    "blocked_reason": null,
+    "semantic_bindings_confirmed": true,
+    "tools_executed": true,
+    "executed_tool_refs": [
+      "precio_margen_basico"
+    ],
+    "xlsx_outputs": [
+      "first_aid_001_precio_margen_basico.xlsx"
+    ]
+  },
+  "checks": {
+    "first_status_needs_owner": true,
+    "first_tools_not_executed": true,
+    "semantic_answers_from_allowed_ids": true,
+    "final_status_ready": true,
+    "semantic_confirmed": true,
+    "tools_executed": true,
+    "expected_tool_executed": true,
+    "xlsx_output_exists": true
+  },
+  "limits": [
+    "Run uses explicit tool request; it does not claim automatic tool selection.",
+    "Run validates product path on a distribuidora workbook with cliente/ruta/SKU/margen, not full route profitability diagnosis.",
+    "Any route, SKU, client or margin advanced analysis remains a future governed capability unless explicitly added."
+  ],
+  "recorded_on": "2026-07-17"
+}

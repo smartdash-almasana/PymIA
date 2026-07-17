@@ -117,3 +117,5 @@ Tool ejecutada: precio_margen_basico, explícita por tool_requests
 Salida: first_aid_001_precio_margen_basico.xlsx
 Límite: no prueba diagnóstico textil completo ni selección automática de tool.
 ```
+
+Último piloto nuevo: S1-PILOT-004 distribuidora_mayorista_compleja.xlsx — PASS
