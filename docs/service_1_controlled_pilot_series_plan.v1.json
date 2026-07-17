@@ -4,6 +4,7 @@
   "status": "ACTIVE",
   "source_folder": "prueba_excels",
   "created_on": "2026-07-16",
+  "updated_on": "2026-07-17",
   "policy": {
     "primary_goal": "Madurar Servicio 1 usando los Excel existentes como casos controlados, sin abrir Servicio 2 ni inventar capacidades no soportadas.",
     "rules": [
@@ -40,19 +41,7 @@
       "pilot_id": "S1-PILOT-001",
       "file": "prueba_excels/cafeteria_abc.xlsx",
       "primary_sheet": "Ventas",
-      "observed_headers": [
-        "VentaID",
-        "Fecha",
-        "Hora",
-        "SucursalID",
-        "ProductoID",
-        "Cantidad",
-        "PrecioUnitario",
-        "MetodoPago",
-        "CanalVenta",
-        "Descuento",
-        "Empleado"
-      ],
+      "observed_headers": ["VentaID", "Fecha", "Hora", "SucursalID", "ProductoID", "Cantidad", "PrecioUnitario", "MetodoPago", "CanalVenta", "Descuento", "Empleado"],
       "business_case": "cafetería ventas/productos/sucursales",
       "reason": "baseline operatorless ya PASS",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
@@ -61,17 +50,7 @@
       "pilot_id": "S1-PILOT-003",
       "file": "prueba_excels/pyme_textil_compleja.xlsx",
       "primary_sheet": "VENTAS",
-      "observed_headers": [
-        "fecha",
-        "factura",
-        "canal",
-        "sku",
-        "cantidad",
-        "venta",
-        "descuento",
-        "costo",
-        "margen"
-      ],
+      "observed_headers": ["fecha", "factura", "canal", "sku", "cantidad", "venta", "descuento", "costo", "margen"],
       "business_case": "textil ventas/costos/margen",
       "reason": "stress margen descuento canal",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
@@ -80,16 +59,7 @@
       "pilot_id": "S1-PILOT-004",
       "file": "prueba_excels/distribuidora_mayorista_compleja.xlsx",
       "primary_sheet": "OPERACION",
-      "observed_headers": [
-        "fecha",
-        "cliente",
-        "ruta",
-        "sku",
-        "cantidad",
-        "venta",
-        "costo",
-        "margen"
-      ],
+      "observed_headers": ["fecha", "cliente", "ruta", "sku", "cantidad", "venta", "costo", "margen"],
       "business_case": "distribuidora ruta/SKU/margen",
       "reason": "stress comercial 5000 filas",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
@@ -98,16 +68,7 @@
       "pilot_id": "S1-PILOT-005",
       "file": "prueba_excels/fabrica_industrial_compleja.xlsx",
       "primary_sheet": "PRODUCCION",
-      "observed_headers": [
-        "fecha",
-        "orden",
-        "maquina",
-        "operario",
-        "horas",
-        "unidades",
-        "scrap",
-        "oee"
-      ],
+      "observed_headers": ["fecha", "orden", "maquina", "operario", "horas", "unidades", "scrap", "oee"],
       "business_case": "producción/scrap/OEE",
       "reason": "límite semántico sin fórmula inventada",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
@@ -116,22 +77,7 @@
       "pilot_id": "S1-PILOT-006",
       "file": "prueba_excels/taller_mecanico_lubricar_srl.xlsx",
       "primary_sheet": "ORDENES_TRABAJO",
-      "observed_headers": [
-        "orden_id",
-        "fecha",
-        "cliente",
-        "tipo_reparacion",
-        "horas_mano_obra",
-        "valor_hora",
-        "costo_hora_real",
-        "ingreso_mano_obra",
-        "costo_mano_obra",
-        "margen_mano_obra",
-        "repuestos_cobrados",
-        "servicios_tercerizados",
-        "precio_final_cobrado",
-        "forma_pago"
-      ],
+      "observed_headers": ["orden_id", "fecha", "cliente", "tipo_reparacion", "horas_mano_obra", "valor_hora", "costo_hora_real", "ingreso_mano_obra", "costo_mano_obra", "margen_mano_obra", "repuestos_cobrados", "servicios_tercerizados", "precio_final_cobrado", "forma_pago"],
       "business_case": "taller servicios/stock",
       "reason": "PyME servicios multihoja",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
@@ -140,27 +86,7 @@
       "pilot_id": "S1-PILOT-007",
       "file": "prueba_excels/constructora_nueva_era_srl.xlsx",
       "primary_sheet": "OBRAS",
-      "observed_headers": [
-        "obra_id",
-        "nombre_obra",
-        "tipo_obra",
-        "ubicacion",
-        "fecha_inicio",
-        "fecha_estimada_cierre",
-        "fecha_cierre_real",
-        "mes_ejecucion",
-        "presupuesto_materiales",
-        "gasto_real_materiales",
-        "presupuesto_mano_obra",
-        "gasto_real_mano_obra",
-        "presupuesto_equipos",
-        "gasto_real_equipos",
-        "presupuesto_subcontratos",
-        "gasto_real_subcontratos",
-        "presupuesto_imprevistos",
-        "gasto_real_imprevistos",
-        "certificacion_cobrada"
-      ],
+      "observed_headers": ["obra_id", "nombre_obra", "tipo_obra", "ubicacion", "fecha_inicio", "fecha_estimada_cierre", "fecha_cierre_real", "mes_ejecucion", "presupuesto_materiales", "gasto_real_materiales", "presupuesto_mano_obra", "gasto_real_mano_obra", "presupuesto_equipos", "gasto_real_equipos", "presupuesto_subcontratos", "gasto_real_subcontratos", "presupuesto_imprevistos", "gasto_real_imprevistos", "certificacion_cobrada"],
       "business_case": "constructora presupuesto/gasto/cobro",
       "reason": "costos reales y cobros",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
@@ -169,65 +95,30 @@
       "pilot_id": "S1-PILOT-008",
       "file": "prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx",
       "primary_sheet": "ventas",
-      "observed_headers": [
-        "fecha",
-        "comprobante",
-        "canal",
-        "cliente",
-        "sku",
-        "producto",
-        "cantidad",
-        "precio_unitario_vendido",
-        "descuento_pct",
-        "medio_cobro",
-        "plazo_cobro_dias",
-        "importe_total"
-      ],
+      "observed_headers": ["fecha", "comprobante", "canal", "cliente", "sku", "producto", "cantidad", "precio_unitario_vendido", "descuento_pct", "medio_cobro", "plazo_cobro_dias", "importe_total"],
       "business_case": "textil completa multihoja",
       "reason": "late-stage workbook completo",
       "allowed_mode": "owner confirmation first; explicit tool execution only with explicit tool_requests; no auto tool selection"
     }
   ],
+  "execution_status": {
+    "S1-PILOT-001": "PASS",
+    "S1-PILOT-003": "PASS",
+    "S1-PILOT-004": "PASS",
+    "S1-PILOT-005": "PLANNED_AFTER_008",
+    "S1-PILOT-006": "PASS",
+    "S1-PILOT-007": "PASS",
+    "S1-PILOT-008": "NEXT"
+  },
   "quarantined_inputs": [
-    {
-      "file": "prueba_excels/simple_bem_test.xlsx",
-      "reason": "BEM test fixture previamente descartado; no gobierna Servicio 1 productivo ni debe usarse como piloto activo."
-    },
-    {
-      "file": "prueba_excels/CASE_001_ventas_junio_2026_margin_leak.xlsx",
-      "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
-    },
-    {
-      "file": "prueba_excels/cobros_marzo_2026.xlsx",
-      "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
-    },
-    {
-      "file": "prueba_excels/ventas_marzo_2026.xlsx",
-      "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
-    },
-    {
-      "file": "prueba_excels/first_aid_pilot_002_lista_precios_costos_demo.xlsx",
-      "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
-    },
-    {
-      "file": "prueba_excels/first_aid_pilot_003_stock_inventory_demo.xlsx",
-      "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
-    },
-    {
-      "file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx",
-      "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
-    },
-    {
-      "file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx",
-      "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"
-    }
+    {"file": "prueba_excels/simple_bem_test.xlsx", "reason": "BEM test fixture previamente descartado; no gobierna Servicio 1 productivo ni debe usarse como piloto activo."},
+    {"file": "prueba_excels/CASE_001_ventas_junio_2026_margin_leak.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
+    {"file": "prueba_excels/cobros_marzo_2026.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
+    {"file": "prueba_excels/ventas_marzo_2026.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
+    {"file": "prueba_excels/first_aid_pilot_002_lista_precios_costos_demo.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
+    {"file": "prueba_excels/first_aid_pilot_003_stock_inventory_demo.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
+    {"file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
+    {"file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"}
   ],
-  "next_execution_order": [
-    "S1-PILOT-003",
-    "S1-PILOT-004",
-    "S1-PILOT-006",
-    "S1-PILOT-007",
-    "S1-PILOT-008",
-    "S1-PILOT-005"
-  ]
+  "next_execution_order": ["S1-PILOT-008", "S1-PILOT-005"]
 }
