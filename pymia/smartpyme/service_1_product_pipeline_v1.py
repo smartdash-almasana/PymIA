@@ -43,6 +43,7 @@ def run_service_1_product_pipeline_v1(
     sheet_name: str = "sheet1",
     owner_answers: Any = None,
     requested_capability: str | None = None,
+    deliver_result: bool = False,
 ) -> dict[str, Any]:
     semantic_run = run_initial_pass(ingestion_output=ingestion_output, sheet_name=sheet_name)
 
@@ -120,20 +121,21 @@ def run_service_1_product_pipeline_v1(
                     computation_result=computation_result,
                     bounded_outcome=bounded_outcome,
                 )
-            delivery_result = deliver_liq_001_outcome_xlsx_v1(
-                outcome=bounded_outcome,
-                output_dir=output_dir,
-            )
-            if delivery_result.get("status") != "DELIVERED":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=delivery_result.get("blocked_reason") or "LIQ_001_DELIVERY_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                    delivery_result=delivery_result,
+            if deliver_result:
+                delivery_result = deliver_liq_001_outcome_xlsx_v1(
+                    outcome=bounded_outcome,
+                    output_dir=output_dir,
                 )
+                if delivery_result.get("status") != "DELIVERED":
+                    return _packet(
+                        status=STATUS_BLOCKED,
+                        blocked_reason=delivery_result.get("blocked_reason") or "LIQ_001_DELIVERY_BLOCKED",
+                        semantic_run=semantic_run,
+                        computation_plan=computation_plan,
+                        computation_result=computation_result,
+                        bounded_outcome=bounded_outcome,
+                        delivery_result=delivery_result,
+                    )
 
         return _packet(
             status=STATUS_COMPUTATION_PLAN_READY,
@@ -142,6 +144,13 @@ def run_service_1_product_pipeline_v1(
             computation_result=computation_result,
             bounded_outcome=bounded_outcome,
             delivery_result=delivery_result,
+        )
+
+    if deliver_result:
+        return _packet(
+            status=STATUS_BLOCKED,
+            blocked_reason="DELIVERY_REQUIRES_REQUESTED_CAPABILITY",
+            semantic_run=semantic_run,
         )
 
     physical_run = run_service_1_pipeline_v1(tool_requests=tool_requests, output_dir=output_dir)
