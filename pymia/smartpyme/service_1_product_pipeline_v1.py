@@ -1,9 +1,4 @@
-"""Single product application root for Servicio 1.
-
-Connects the canonical deterministic semantic pipeline to the existing
-physical First Aid pipeline. It does not parse files, infer tools, or duplicate
-delivery logic.
-"""
+"""Single product application root for Servicio 1."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -22,6 +17,11 @@ from pymia.smartpyme.service_1_liq_001_evaluator_v1 import (
     CAPABILITY_REF as LIQ_001_CAPABILITY_REF,
     STATUS_EVALUATED as LIQ_001_STATUS_EVALUATED,
     evaluate_liq_001_from_normalized_tables_v1,
+)
+from pymia.smartpyme.service_1_liq_001_outcome_v1 import (
+    STATUS_READY as LIQ_001_OUTCOME_READY,
+    build_liq_001_outcome_v1,
+    deliver_liq_001_outcome_xlsx_v1,
 )
 from pymia.smartpyme.service_1_pipeline_v1 import (
     Service1PipelineToolRequestV1,
@@ -44,17 +44,7 @@ def run_service_1_product_pipeline_v1(
     owner_answers: Any = None,
     requested_capability: str | None = None,
 ) -> dict[str, Any]:
-    """Run semantic confirmation before governed computation or tool execution.
-
-    A requested capability must first resolve to a governed computation plan.
-    LIQ_001 is evaluated when complete normalized rows and exact confirmed column
-    references are present. A caller that supplies semantic evidence only keeps
-    the certified plan-only boundary. The explicit-tool path remains unchanged.
-    """
-    semantic_run = run_initial_pass(
-        ingestion_output=ingestion_output,
-        sheet_name=sheet_name,
-    )
+    semantic_run = run_initial_pass(ingestion_output=ingestion_output, sheet_name=sheet_name)
 
     if semantic_run.get("status") == STATUS_OWNER_QUESTIONS:
         if not isinstance(owner_answers, dict) or not owner_answers:
@@ -63,10 +53,7 @@ def run_service_1_product_pipeline_v1(
                 semantic_run=semantic_run,
                 owner_questions=list(semantic_run.get("owner_questions") or []),
             )
-        semantic_run = run_owner_reentry(
-            previous_run=semantic_run,
-            owner_answers=owner_answers,
-        )
+        semantic_run = run_owner_reentry(previous_run=semantic_run, owner_answers=owner_answers)
         if semantic_run.get("status") == STATUS_OWNER_FOLLOWUP:
             return _packet(
                 status=STATUS_NEEDS_OWNER,
@@ -78,8 +65,7 @@ def run_service_1_product_pipeline_v1(
     if semantic_run.get("status") != STATUS_CONFIRMED_BINDINGS:
         return _packet(
             status=STATUS_BLOCKED,
-            blocked_reason=semantic_run.get("blocked_reason")
-            or "SEMANTIC_BINDINGS_NOT_CONFIRMED",
+            blocked_reason=semantic_run.get("blocked_reason") or "SEMANTIC_BINDINGS_NOT_CONFIRMED",
             semantic_run=semantic_run,
         )
 
@@ -99,6 +85,8 @@ def run_service_1_product_pipeline_v1(
             )
 
         computation_result = None
+        bounded_outcome = None
+        delivery_result = None
         evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
         normalized_tables = evidence.get("normalized_tables")
         column_refs = evidence.get("column_refs")
@@ -117,11 +105,34 @@ def run_service_1_product_pipeline_v1(
             if computation_result.get("status") != LIQ_001_STATUS_EVALUATED:
                 return _packet(
                     status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status")
-                    or "LIQ_001_COMPUTATION_BLOCKED",
+                    blocked_reason=computation_result.get("status") or "LIQ_001_COMPUTATION_BLOCKED",
                     semantic_run=semantic_run,
                     computation_plan=computation_plan,
                     computation_result=computation_result,
+                )
+            bounded_outcome = build_liq_001_outcome_v1(computation_result=computation_result)
+            if bounded_outcome.get("status") != LIQ_001_OUTCOME_READY:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=bounded_outcome.get("blocked_reason") or "LIQ_001_OUTCOME_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+            delivery_result = deliver_liq_001_outcome_xlsx_v1(
+                outcome=bounded_outcome,
+                output_dir=output_dir,
+            )
+            if delivery_result.get("status") != "DELIVERED":
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=delivery_result.get("blocked_reason") or "LIQ_001_DELIVERY_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                    delivery_result=delivery_result,
                 )
 
         return _packet(
@@ -129,17 +140,12 @@ def run_service_1_product_pipeline_v1(
             semantic_run=semantic_run,
             computation_plan=computation_plan,
             computation_result=computation_result,
+            bounded_outcome=bounded_outcome,
+            delivery_result=delivery_result,
         )
 
-    physical_run = run_service_1_pipeline_v1(
-        tool_requests=tool_requests,
-        output_dir=output_dir,
-    )
-    return _packet(
-        status=STATUS_READY,
-        semantic_run=semantic_run,
-        physical_run=physical_run,
-    )
+    physical_run = run_service_1_pipeline_v1(tool_requests=tool_requests, output_dir=output_dir)
+    return _packet(status=STATUS_READY, semantic_run=semantic_run, physical_run=physical_run)
 
 
 def _packet(
@@ -150,6 +156,8 @@ def _packet(
     physical_run: Any = None,
     computation_plan: Any = None,
     computation_result: Any = None,
+    bounded_outcome: Any = None,
+    delivery_result: Any = None,
     owner_questions: list[dict[str, Any]] | None = None,
     owner_followup: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -162,16 +170,24 @@ def _packet(
         "physical_run": physical_run,
         "computation_plan": computation_plan,
         "computation_result": computation_result,
+        "bounded_outcome": bounded_outcome,
+        "delivery_result": delivery_result,
         "owner_questions": list(owner_questions or []),
         "owner_followup": [dict(item) for item in (owner_followup or [])],
         "semantic_bindings_confirmed": bool(
-            isinstance(semantic_run, dict)
-            and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
+            isinstance(semantic_run, dict) and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
         ),
         "tools_executed": bool(isinstance(physical_run, dict)),
         "computation_executed": bool(
             isinstance(computation_result, dict)
             and computation_result.get("status") == LIQ_001_STATUS_EVALUATED
+        ),
+        "bounded_finding_generated": bool(
+            isinstance(bounded_outcome, dict)
+            and bounded_outcome.get("bounded_finding_generated") is True
+        ),
+        "delivery_generated": bool(
+            isinstance(delivery_result, dict) and delivery_result.get("status") == "DELIVERED"
         ),
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -182,7 +198,6 @@ def _packet(
 
 
 def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
-    """Project the internal semantic trace onto the product-safe surface."""
     if not isinstance(semantic_run, dict):
         return None
     return {
@@ -191,9 +206,7 @@ def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
         "status": semantic_run.get("status"),
         "blocked_reason": semantic_run.get("blocked_reason"),
         "owner_questions": list(semantic_run.get("owner_questions") or []),
-        "owner_followup": [
-            dict(item) for item in (semantic_run.get("owner_followup") or [])
-        ],
+        "owner_followup": [dict(item) for item in (semantic_run.get("owner_followup") or [])],
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
