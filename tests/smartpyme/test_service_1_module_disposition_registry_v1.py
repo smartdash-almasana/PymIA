@@ -70,19 +70,22 @@ def test_frozen_or_obsolete_modules_are_not_in_canonical_root_closure() -> None:
             assert item["canonical_root_reachable"] is False
 
 
-def test_registry_keeps_active_surface_bounded_during_cleanup() -> None:
+def test_productive_disposition_matches_canonical_root_reachability() -> None:
     payload = _registry()
-    productive = payload["counts"].get("PRODUCTIVE", 0)
-    support = payload["counts"].get("SUPPORT_NECESSARY", 0)
-    active = productive + support
+    productive = {
+        item["module"]
+        for item in payload["modules"]
+        if item["disposition"] == "PRODUCTIVE"
+    }
+    reachable = {
+        item["module"]
+        for item in payload["modules"]
+        if item["canonical_root_reachable"] is True
+    }
 
-    # Cleanup cycles delete frozen/obsolete modules by design, so ratio-based
-    # denominator guards become noisier as cleanup succeeds. CYCLE_016 and CYCLE_017 correct
-    # retained support modules that had been misclassified as frozen; these
-    # are registry truth corrections, not runtime surface expansions.
-    assert productive <= 15
-    assert support <= 35
-    assert active <= 50
+    assert productive == reachable
+    assert payload["counts"].get("PRODUCTIVE", 0) == len(reachable)
+
 
 def test_registry_has_no_known_obsolete_eliminable_modules() -> None:
     payload = _registry()
