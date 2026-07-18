@@ -113,6 +113,7 @@ def evaluate_ren_001_v1(
         status=STATUS_EVALUATED,
         classification=classification,
         inputs=normalized,
+        errors=[],
         computed={
             "net_margin_amount": margin_amount,
             "net_margin_percentage": margin_percentage,
