@@ -39,7 +39,13 @@
         "net_margin_real"
       ],
       "semantic_binding_candidate_allowed": true,
-      "computation_candidate_allowed": false
+      "computation_candidate_allowed": true,
+      "computation_preconditions": [
+        "sale_price > 0",
+        "costs >= 0",
+        "taxes >= 0",
+        "all required values are finite numeric evidence"
+      ]
     },
     {
       "pathology_code": "LIQ_001",
