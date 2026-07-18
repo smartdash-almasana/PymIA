@@ -52,6 +52,7 @@ def run_service_1_product_entrypoint_v1(
     sheet_names: list[str] | tuple[str, ...] | None = None,
     include_all_sheets: bool = False,
     requested_capability: str | None = None,
+    deliver_result: bool = False,
 ) -> dict[str, Any]:
     source = Path(xlsx_path)
     if not source.exists():
@@ -109,6 +110,7 @@ def run_service_1_product_entrypoint_v1(
         sheet_name=sheet_name or "sheet1",
         owner_answers=semantic_owner_answers,
         requested_capability=requested_capability,
+        deliver_result=deliver_result,
     )
     return {
         "schema_version": "SERVICE_1_PRODUCT_ENTRYPOINT_V1",
@@ -121,7 +123,6 @@ def run_service_1_product_entrypoint_v1(
 
 
 def _json_default(value: Any) -> Any:
-    """Serialize domain records only at the CLI JSON boundary."""
     to_dict = getattr(value, "to_dict", None)
     if callable(to_dict):
         return to_dict()
@@ -144,6 +145,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--semantic-owner-answers", default=None)
     parser.add_argument("--tool-requests", default=None)
     parser.add_argument("--requested-capability", default=None)
+    parser.add_argument(
+        "--deliver-result",
+        action="store_true",
+        help="Generate the bounded XLSX result for a supported requested capability.",
+    )
     parser.add_argument("--output-dir", required=True)
     parser.add_argument(
         "--sheet-name",
@@ -169,18 +175,14 @@ def main(argv: list[str] | None = None) -> int:
             else None
         )
         if bool(args.tool_requests) == bool(args.requested_capability):
-            raise ValueError(
-                "provide exactly one of --tool-requests or --requested-capability"
-            )
-        tool_requests = (
-            _load_tool_requests(args.tool_requests) if args.tool_requests else []
-        )
+            raise ValueError("provide exactly one of --tool-requests or --requested-capability")
+        if args.deliver_result and not args.requested_capability:
+            raise ValueError("--deliver-result requires --requested-capability")
+        tool_requests = _load_tool_requests(args.tool_requests) if args.tool_requests else []
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         selected_sheet_names = tuple(args.sheet_name or ())
-        selected_sheet_name = (
-            selected_sheet_names[0] if len(selected_sheet_names) == 1 else None
-        )
+        selected_sheet_name = selected_sheet_names[0] if len(selected_sheet_names) == 1 else None
         result = run_service_1_product_entrypoint_v1(
             xlsx_path=args.xlsx,
             owner_column_answers=owner_column_answers,
@@ -188,11 +190,10 @@ def main(argv: list[str] | None = None) -> int:
             tool_requests=tool_requests,
             output_dir=output_dir,
             sheet_name=selected_sheet_name,
-            sheet_names=(
-                selected_sheet_names if len(selected_sheet_names) > 1 else None
-            ),
+            sheet_names=selected_sheet_names if len(selected_sheet_names) > 1 else None,
             include_all_sheets=bool(args.all_sheets),
             requested_capability=args.requested_capability,
+            deliver_result=bool(args.deliver_result),
         )
     except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "BLOCKED", "blocked_reason": str(exc)}, ensure_ascii=False))
@@ -205,11 +206,7 @@ def main(argv: list[str] | None = None) -> int:
         target.write_text(payload + "\n", encoding="utf-8")
     else:
         print(payload)
-    return (
-        0
-        if result.get("status") in {STATUS_READY, STATUS_COMPUTATION_PLAN_READY}
-        else 2
-    )
+    return 0 if result.get("status") in {STATUS_READY, STATUS_COMPUTATION_PLAN_READY} else 2
 
 
 if __name__ == "__main__":
