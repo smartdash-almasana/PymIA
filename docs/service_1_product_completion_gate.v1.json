@@ -5,7 +5,7 @@
   "locked_on": "2026-07-16",
   "baseline_after_sanitation": "4dc4bf3",
   "service": "SERVICE_1",
-  "completion_scope": "Assisted deterministic Servicio 1 MVP for real XLSX intake, owner column confirmation, semantic owner confirmation, governed deterministic computation or explicit tool execution, and traceable output.",
+  "completion_scope": "Assisted deterministic Servicio 1 MVP for real XLSX intake, owner column confirmation, semantic owner confirmation, governed deterministic computation or explicit tool execution, bounded findings, and traceable output.",
   "completion_claim": "Servicio 1 MVP completo para el alcance definido; no declara completo el universo futuro de patologias, formulas, CRM, SaaS, Servicio 2/3 ni automatizacion LLM.",
   "official_entrypoint": {
     "path": "pymia/cli/service_1_product.py",
@@ -26,15 +26,17 @@
       "expected_artifact": "xlsx output file"
     },
     {
-      "id": "real_xlsx_liq_001_computation",
+      "id": "real_xlsx_liq_001_bounded_delivery",
       "fixture": "synthetic ventas/cobros workbook built in test",
       "requested_capability": "sold_vs_collected_gap",
+      "delivery_flag": "--deliver-result",
       "expected_final_status": "COMPUTATION_PLAN_READY",
       "expected_formula": "LIQ_001_vendido_cobrado",
       "expected_result_status": "EVALUATED",
       "expected_execution": true,
-      "expected_delivery": false,
-      "expected_diagnosis": false
+      "expected_bounded_finding": true,
+      "expected_delivery": true,
+      "expected_causal_diagnosis": false
     }
   ],
   "required_guards": {
@@ -47,21 +49,23 @@
     "no_auto_tool_selection_claim": true
   },
   "registry_expected_counts": {
-    "total_modules": 44,
-    "PRODUCTIVE": 16,
-    "SUPPORT_NECESSARY": 28,
+    "total_modules": 45,
+    "PRODUCTIVE": 18,
+    "SUPPORT_NECESSARY": 27,
     "EXPERIMENTAL_FROZEN": 0
   },
   "acceptance_tests": [
     "tests/cli/test_service_1_product_cli_v1.py::test_real_cafeteria_xlsx_cli_blocks_then_executes_after_canonical_reentry",
     "tests/cli/test_service_1_product_cli_v1.py::test_real_xlsx_cli_builds_liq_001_plan_without_execution",
     "tests/smartpyme/test_service_1_liq_001_product_wiring_v1.py",
+    "tests/smartpyme/test_service_1_liq_001_outcome_v1.py",
     "tests/smartpyme/test_service_1_product_completion_gate_v1.py"
   ],
   "known_limits": [
     "No LLM runtime authority.",
     "No automatic tool selection from workbook content.",
-    "LIQ_001 produces bounded mathematical evidence only; no autonomous diagnosis or delivery.",
+    "LIQ_001 emits a bounded finding and deterministic treatment; it does not attribute a causal diagnosis.",
+    "XLSX delivery requires an explicit --deliver-result request.",
     "No Servicio 2 or Servicio 3 scope.",
     "No claim that all future pathology/formula families are connected."
   ]
