@@ -27,6 +27,17 @@ from pymia.smartpyme.service_1_pipeline_v1 import (
     Service1PipelineToolRequestV1,
     run_service_1_pipeline_v1,
 )
+from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
+    CAPABILITY_REF as REN_001_CAPABILITY_REF,
+    STATUS_EVALUATED as REN_001_STATUS_EVALUATED,
+)
+from pymia.smartpyme.service_1_ren_001_normalized_evidence_v1 import (
+    evaluate_ren_001_from_normalized_tables_v1,
+)
+from pymia.smartpyme.service_1_ren_001_outcome_v1 import (
+    STATUS_READY as REN_001_OUTCOME_READY,
+    build_ren_001_outcome_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
@@ -97,6 +108,7 @@ def run_service_1_product_pipeline_v1(
             and isinstance(column_refs, list)
             and bool(column_refs)
         )
+
         if requested_capability == LIQ_001_CAPABILITY_REF and has_complete_row_evidence:
             computation_result = evaluate_liq_001_from_normalized_tables_v1(
                 computation_plan=computation_plan,
@@ -136,6 +148,40 @@ def run_service_1_product_pipeline_v1(
                         bounded_outcome=bounded_outcome,
                         delivery_result=delivery_result,
                     )
+
+        elif requested_capability == REN_001_CAPABILITY_REF and has_complete_row_evidence:
+            computation_result = evaluate_ren_001_from_normalized_tables_v1(
+                computation_plan=computation_plan,
+                normalized_tables=normalized_tables,
+                column_refs=column_refs,
+            )
+            if computation_result.get("status") != REN_001_STATUS_EVALUATED:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=computation_result.get("status") or "REN_001_COMPUTATION_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                )
+            bounded_outcome = build_ren_001_outcome_v1(computation_result=computation_result)
+            if bounded_outcome.get("status") != REN_001_OUTCOME_READY:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=bounded_outcome.get("blocked_reason") or "REN_001_OUTCOME_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+            if deliver_result:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="REN_001_DELIVERY_NOT_AUTHORIZED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
 
         return _packet(
             status=STATUS_COMPUTATION_PLAN_READY,
@@ -189,7 +235,10 @@ def _packet(
         "tools_executed": bool(isinstance(physical_run, dict)),
         "computation_executed": bool(
             isinstance(computation_result, dict)
-            and computation_result.get("status") == LIQ_001_STATUS_EVALUATED
+            and computation_result.get("status") in {
+                LIQ_001_STATUS_EVALUATED,
+                REN_001_STATUS_EVALUATED,
+            }
         ),
         "bounded_finding_generated": bool(
             isinstance(bounded_outcome, dict)
