@@ -1,7 +1,7 @@
 # Servicio 1 — Product Completion Gate V1
 
 **Ciclo:** `CYCLE_029_SERVICE_1_PRODUCT_COMPLETION_GATE`  
-**Fecha:** 2026-07-16  
+**Fecha de reconciliación:** 2026-07-20  
 **Estado:** `PASS_PRODUCT_MVP_COMPLETE`
 
 ## Declaración
@@ -14,7 +14,9 @@ XLSX real
 → salida canónica de ingesta
 → comprensión semántica determinística
 → confirmación semántica del dueño cuando hace falta
-→ plan gobernado o ejecución explícita de tool
+→ plan gobernado
+→ cálculo absorbido o ejecución explícita de tool
+→ hallazgo acotado cuando corresponda
 → salida trazable
 ```
 
@@ -31,7 +33,7 @@ No hay otra entrada oficial de Servicio 1.
 
 ## Evidencia aceptada
 
-### Recorrido 1 — XLSX real con ejecución explícita
+### Recorrido 1 — XLSX real con ejecución explícita de tool
 
 ```text
 fixture: prueba_excels/cafeteria_abc.xlsx
@@ -43,17 +45,37 @@ tool ejecutada: precio_margen_basico
 artifact: XLSX generado
 ```
 
-### Recorrido 2 — XLSX real con plan gobernado sin ejecución
+### Recorrido 2 — LIQ_001 absorbido por la raíz
 
 ```text
 capability: sold_vs_collected_gap
 estado final: COMPUTATION_PLAN_READY
 formula: LIQ_001_vendido_cobrado
-familia: CASH_COLLECTIONS
-computation_executed: false
+computation_executed: true
+bounded_finding_generated: true
+causal diagnosis: false
+delivery: sólo con --deliver-result
 runtime_authorized: false
 tool_execution_authorized: false
+product_ready: false
+delivery_authorized: false
+diagnosis_generated: false
 ```
+
+El hallazgo LIQ_001 cuantifica la diferencia entre vendido y cobrado. No atribuye morosidad, fraude, error contable, incobrabilidad ni responsabilidad causal.
+
+### Evidencia fuera del gate productivo — REN_001
+
+```text
+module: service_1_ren_001_evaluator_v1
+classification: SUPPORT_NECESSARY
+isolated evaluator tests: PASS
+reachable from canonical root: false
+CLI connected: false
+product capability accepted: false
+```
+
+REN_001 no amplía el alcance del gate y no puede ser conectado sin un ciclo documental explícito.
 
 ## Guardas obligatorias
 
@@ -62,6 +84,8 @@ EXPERIMENTAL_FROZEN: 0
 operator legacy: ausente
 runtime bridge legacy: ausente
 Exceland/lab legacy: ausente
+una sola raíz productiva
+una sola CLI oficial
 ```
 
 ## Límites honestos
@@ -69,7 +93,9 @@ Exceland/lab legacy: ausente
 ```text
 No hay autoridad LLM en runtime.
 No hay selección automática de tool desde el Excel.
-LIQ_001 llega a plan computable, no a ejecución.
+LIQ_001 produce evidencia y hallazgo acotado, no diagnóstico causal.
+La entrega LIQ_001 exige --deliver-result.
+REN_001 permanece fuera de la raíz productiva.
 Servicio 2/3 queda fuera de alcance.
 No se declara conectado todo el universo futuro de patologías y fórmulas.
 ```
@@ -82,6 +108,11 @@ El gate pasa sólo si:
 1. El registry tiene cero EXPERIMENTAL_FROZEN.
 2. La CLI oficial existe y las entradas legacy no existen.
 3. El caso real cafeteria_abc.xlsx bloquea primero y ejecuta después de reentry.
-4. El plan LIQ_001 se construye sin ejecución.
-5. Los tests focales y la regresión completa pasan.
+4. LIQ_001 calcula únicamente con bindings confirmados y filas completas.
+5. El hallazgo LIQ_001 permanece acotado y sin atribución causal.
+6. La entrega LIQ_001 requiere solicitud explícita.
+7. Los módulos de soporte no aparecen en la clausura productiva.
+8. Los tests focales y la regresión completa pasan.
 ```
+
+**Última regresión completa observada:** `1644 passed in 175.30s`.
