@@ -2,7 +2,7 @@
 
 **Fecha de corte:** 2026-07-20
 
-**Última regresión completa observada:** `1644 passed in 120s`, ejecutada por el usuario en PowerShell local.
+**Última regresión completa observada:** `1653 passed in 120s`, ejecutada por el usuario en PowerShell local antes del cierre documental del Piloto 005.
 
 ## Estado
 
@@ -13,7 +13,9 @@ RAÍZ PRODUCTIVA CANÓNICA: ACTIVA
 CLI CANÓNICO: ACTIVO
 LIQ_001: CÁLCULO + HALLAZGO ACOTADO + ENTREGA XLSX EXPLÍCITA
 REN_001: EVALUADOR AISLADO DE SOPORTE, NO CONECTADO A RAÍZ
+S1-PILOT-005 FÁBRICA INDUSTRIAL: PASS
 S1-PILOT-008 TEXTIL COMPLETA: PASS
+SERIE CONTROLADA PLANIFICADA: COMPLETA
 EXPERIMENTAL_FROZEN: 0
 OPERATOR LEGACY: ELIMINADO
 RUNTIME LEGACY: ELIMINADO
@@ -103,10 +105,36 @@ tests/smartpyme/test_service_1_first_operatorless_case_v1.py
 ## Serie de pilotos controlados
 
 ```text
-SERIE: ACTIVE
+SERIE: COMPLETE
 FUENTE: prueba_excels/
-CASOS PASS: S1-PILOT-001, 003, 004, 006, 007, 008
-NEXT: S1-PILOT-005
+CASOS PASS: S1-PILOT-001, 003, 004, 005, 006, 007, 008
+PILOTOS PLANIFICADOS PENDIENTES: 0
+```
+
+### S1-PILOT-005 — fábrica industrial
+
+```text
+Estado: PASS
+Ciclo: CYCLE_038_RUN_S1_PILOT_005_FABRICA_INDUSTRIAL
+Archivo: prueba_excels/fabrica_industrial_compleja.xlsx
+Sheet: PRODUCCION
+Headers: fecha, orden, maquina, operario, horas, unidades, scrap, oee
+Primer pase: NEEDS_OWNER_CONFIRMATION
+Preguntas al dueño: 7
+Segundo pase: PRODUCT_PIPELINE_READY
+Bindings confirmados: true
+Tool ejecutada explícitamente: precio_margen_basico
+Salida: first_aid_001_precio_margen_basico.xlsx
+```
+
+Límite: prueba el recorrido canónico sobre evidencia industrial. No declara diagnóstico industrial integral ni promueve scrap, OEE, eficiencia de máquina, paradas o pérdidas productivas a capacidades soportadas.
+
+Evidencia:
+
+```text
+docs/current/SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md
+docs/service_1_pilot_005_fabrica_industrial.v1.json
+tests/smartpyme/test_service_1_pilot_005_fabrica_industrial_v1.py
 ```
 
 ### S1-PILOT-008 — textil completa
@@ -126,14 +154,6 @@ Salida: first_aid_001_precio_margen_basico.xlsx
 ```
 
 Límite: prueba el recorrido canónico sobre un workbook textil completo multihoja; no declara diagnóstico textil integral, selección automática de tool ni nuevas fórmulas. `REN_001` permanece fuera de la raíz.
-
-Evidencia:
-
-```text
-docs/current/SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md
-docs/service_1_pilot_008_textil_completa.v1.json
-tests/smartpyme/test_service_1_pilot_008_textil_completa_v1.py
-```
 
 ## Evidencia rectora
 
@@ -155,13 +175,11 @@ tests/smartpyme/test_service_1_architecture_lock_v1.py
 - No existe selección automática de tool desde el contenido del Excel.
 - La confirmación del dueño sigue siendo parte del producto.
 - REN_001 permanece fuera de la raíz productiva hasta autorización documental explícita.
+- El cierre de la serie de pilotos no autoriza por sí mismo nuevas capacidades.
 
 ## Próximo paso autorizado
 
 ```text
-CYCLE_038_RUN_S1_PILOT_005_FABRICA_INDUSTRIAL
-fixture: prueba_excels/fabrica_industrial_compleja.xlsx
-sheet primaria: PRODUCCION
-modo: confirmación del dueño + tool request explícito
-prohibido: agregar fórmulas, seleccionar tools automáticamente o declarar diagnóstico industrial, scrap u OEE
+NO HAY CICLO FUNCIONAL SIGUIENTE AUTORIZADO.
+Antes de agregar capacidad debe definirse un nuevo ciclo documental explícito.
 ```
