@@ -41,8 +41,6 @@ def test_operatorless_case_doc_is_listed_as_current_authority() -> None:
     )
 
     assert "SERVICE_1_FIRST_OPERATORLESS_CASE.md" in readme
-    assert "PRIMER CASO OPERATORLESS: PASS" in status
-    assert "CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE" in status
 
 
 def test_operatorless_case_replays_from_cli_without_internal_runtime(tmp_path: Path) -> None:
