@@ -57,6 +57,7 @@ Los siguientes documentos registran ejecuciones observadas. Son evidencia de la 
 
 - `SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md` — ejecución registrada del piloto textil complejo.
 - `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md` — ejecución registrada del piloto distribuidora mayorista.
+- `SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md` — ejecución registrada del piloto de fábrica industrial.
 - `SERVICE_1_PILOT_006_TALLER_MECANICO.md` — ejecución registrada del piloto taller mecánico.
 - `SERVICE_1_PILOT_007_CONSTRUCTORA.md` — ejecución registrada del piloto constructora.
 - `SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md` — ejecución registrada del piloto textil completo multihoja.
