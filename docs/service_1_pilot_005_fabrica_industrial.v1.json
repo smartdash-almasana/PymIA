@@ -1,0 +1,34 @@
+{
+  "schema_version": "SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL_RUN_V1",
+  "cycle": "CYCLE_038_RUN_S1_PILOT_005_FABRICA_INDUSTRIAL",
+  "status": "PASS",
+  "observation_source": ".tmp/service_1_pilot_005_fabrica_industrial/observed_run.json",
+  "official_cli": "python -m pymia.cli.service_1_product",
+  "fixture": "prueba_excels/fabrica_industrial_compleja.xlsx",
+  "sheet_name": "PRODUCCION",
+  "headers": ["fecha", "orden", "maquina", "operario", "horas", "unidades", "scrap", "oee"],
+  "first_pass": {
+    "status": "NEEDS_OWNER_CONFIRMATION",
+    "owner_questions_count": 7,
+    "tools_executed": false
+  },
+  "semantic_owner_answers": {
+    "count": 7,
+    "source_rule": "selected from product_pipeline.owner_questions[].allowed_option_ids; no free text",
+    "selection_rule": "first canonical option; observed selections were option A"
+  },
+  "final_pass": {
+    "status": "PRODUCT_PIPELINE_READY",
+    "blocked_reason": null,
+    "semantic_bindings_confirmed": true,
+    "tools_executed": true,
+    "executed_tool_refs": ["precio_margen_basico"],
+    "xlsx_outputs": ["first_aid_001_precio_margen_basico.xlsx"]
+  },
+  "limits": [
+    "Run uses an explicit tool request and does not claim automatic tool selection.",
+    "Run validates the canonical product path on the PRODUCCION sheet; it does not claim full industrial diagnosis.",
+    "Scrap, OEE, machine efficiency, stoppages and production losses remain unsupported as governed diagnoses or formulas.",
+    "No new formula, pathology, semantic capability or runtime authority is introduced by this pilot."
+  ]
+}
