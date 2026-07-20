@@ -2,7 +2,7 @@
 
 **Fecha de corte:** 2026-07-20
 
-**Última regresión completa observada:** `1653 passed in 120s`, ejecutada por el usuario en PowerShell local antes del cierre documental del Piloto 005.
+**Última regresión completa observada:** `1661 passed in 114s`, ejecutada por el usuario en PowerShell local después del cierre del Piloto 005.
 
 ## Estado
 
@@ -12,10 +12,11 @@ SERVICIO 1 MVP DETERMINÍSTICO ASISTIDO: COMPLETO
 RAÍZ PRODUCTIVA CANÓNICA: ACTIVA
 CLI CANÓNICO: ACTIVO
 LIQ_001: CÁLCULO + HALLAZGO ACOTADO + ENTREGA XLSX EXPLÍCITA
-REN_001: EVALUADOR AISLADO DE SOPORTE, NO CONECTADO A RAÍZ
+REN_001: EVALUADOR AISLADO; INTEGRACIÓN PRODUCTIVA AUTORIZADA, NO EJECUTADA
 S1-PILOT-005 FÁBRICA INDUSTRIAL: PASS
 S1-PILOT-008 TEXTIL COMPLETA: PASS
 SERIE CONTROLADA PLANIFICADA: COMPLETA
+DECISIÓN POST-PILOTOS: CYCLE_039 DECIDED
 EXPERIMENTAL_FROZEN: 0
 OPERATOR LEGACY: ELIMINADO
 RUNTIME LEGACY: ELIMINADO
@@ -64,14 +65,19 @@ margen monetario = sale_price - costs - taxes
 margen porcentual = margen monetario / sale_price * 100
 ```
 
-Su clasificación actual en `docs/service_1_module_disposition.v1.json` es `SUPPORT_NECESSARY`.
+Su clasificación actual en `docs/service_1_module_disposition.v1.json` sigue siendo `SUPPORT_NECESSARY` hasta completar `CYCLE_040`.
 
-Por lo tanto:
+Estado exacto:
 
-- no forma parte de la clausura productiva;
-- no está conectado a la CLI oficial;
-- no genera hallazgo, tratamiento ni XLSX;
-- no autoriza ampliar la raíz sin un ciclo documental explícito posterior.
+- está presente en los catálogos de patologías y fórmulas;
+- valida un plan gobernado;
+- exige valores numéricos explícitos;
+- distingue margen positivo, equilibrio y margen negativo;
+- posee límites matemáticos e inputs inválidos;
+- no está conectado todavía a la raíz ni a la CLI;
+- no genera todavía hallazgo, tratamiento ni XLSX productivos.
+
+La integración productiva fue autorizada documentalmente por `CYCLE_039_SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION`, pero no queda certificada hasta completar código, tests, ejecución observada y regresión completa.
 
 ## Raíz técnica
 
@@ -153,7 +159,20 @@ Tool ejecutada explícitamente: precio_margen_basico
 Salida: first_aid_001_precio_margen_basico.xlsx
 ```
 
-Límite: prueba el recorrido canónico sobre un workbook textil completo multihoja; no declara diagnóstico textil integral, selección automática de tool ni nuevas fórmulas. `REN_001` permanece fuera de la raíz.
+Límite: prueba el recorrido canónico sobre un workbook textil completo multihoja; no declara diagnóstico textil integral, selección automática de tool ni nuevas fórmulas.
+
+## Decisión de próxima capacidad
+
+```text
+CYCLE_039_SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION: DECIDED
+1. CONNECT_REN_001_TO_PRODUCTIVE_ROOT
+2. COMPLETE_12_PRODUCTIVE_PATHOLOGIES
+3. DESIGN_INDUSTRIAL_SCRAP_OEE_CAPABILITIES
+```
+
+La meta de 12 patologías no se satisface por presencia en catálogo. Cada patología deberá cerrar fórmula, evidencia, límites, evaluación, hallazgo, tratamiento, integración, entrega cuando aplique, tests y ejecución observada.
+
+Scrap/OEE permanece bloqueado hasta disponer de contratos matemáticos, evidencia mínima y reglas explícitas para disponibilidad, rendimiento, calidad, datos faltantes, paradas y reproceso.
 
 ## Evidencia rectora
 
@@ -161,11 +180,14 @@ Límite: prueba el recorrido canónico sobre un workbook textil completo multiho
 docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md
 docs/current/SERVICE_1_CANONICAL_AXIS.md
 docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
+docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md
 docs/service_1_product_completion_gate.v1.json
 docs/service_1_architecture_lock.v1.json
 docs/service_1_module_disposition.v1.json
+docs/service_1_next_productive_capability_decision.v1.json
 tests/smartpyme/test_service_1_product_completion_gate_v1.py
 tests/smartpyme/test_service_1_architecture_lock_v1.py
+tests/smartpyme/test_service_1_next_productive_capability_decision_v1.py
 ```
 
 ## Límites honestos
@@ -174,12 +196,23 @@ tests/smartpyme/test_service_1_architecture_lock_v1.py
 - Completo no significa que todas las patologías y fórmulas estén conectadas.
 - No existe selección automática de tool desde el contenido del Excel.
 - La confirmación del dueño sigue siendo parte del producto.
-- REN_001 permanece fuera de la raíz productiva hasta autorización documental explícita.
+- `REN_001` permanece fuera de la raíz hasta que `CYCLE_040` cierre con evidencia completa.
 - El cierre de la serie de pilotos no autoriza por sí mismo nuevas capacidades.
+- Scrap y OEE no son capacidades soportadas actualmente.
 
 ## Próximo paso autorizado
 
 ```text
-NO HAY CICLO FUNCIONAL SIGUIENTE AUTORIZADO.
-Antes de agregar capacidad debe definirse un nuevo ciclo documental explícito.
+CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT
+```
+
+Alcance:
+
+```text
+Integrar el evaluador existente de REN_001 en la raíz oficial.
+Requerir request explícito de capacidad y valores confirmados por el dueño.
+Producir evaluación determinística y hallazgo acotado.
+Agregar tratamiento y entrega sólo bajo gobierno explícito equivalente a LIQ_001.
+Actualizar locks, gates, disposición modular y tests.
+Prohibido: selección automática, diagnóstico causal, scrap/OEE u otras patologías simultáneas.
 ```
