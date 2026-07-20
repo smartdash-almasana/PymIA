@@ -1,0 +1,61 @@
+{
+  "schema_version": "SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION_V1",
+  "cycle": "CYCLE_039_SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION",
+  "status": "DECIDED",
+  "decision_date": "2026-07-20",
+  "priority_order": [
+    "CONNECT_REN_001_TO_PRODUCTIVE_ROOT",
+    "COMPLETE_12_PRODUCTIVE_PATHOLOGIES",
+    "DESIGN_INDUSTRIAL_SCRAP_OEE_CAPABILITIES"
+  ],
+  "next_authorized_cycle": "CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT",
+  "ren_001_readiness": {
+    "pathology_catalogued": true,
+    "formula_catalogued": true,
+    "required_variables": ["sale_price", "costs", "taxes"],
+    "deterministic_evaluator_exists": true,
+    "mathematical_limits_exist": true,
+    "governed_plan_validation_exists": true,
+    "currently_root_reachable": false,
+    "currently_cli_reachable": false
+  },
+  "productive_pathology_completion_criteria": [
+    "stable pathology definition",
+    "deterministic formula and output unit",
+    "required variables and evidence",
+    "positive zero negative and invalid mathematical limits when applicable",
+    "governed computation plan",
+    "deterministic evaluation",
+    "bounded non-causal finding",
+    "deterministic treatment",
+    "explicit delivery when applicable",
+    "official root integration",
+    "focal neighboring and anti-drift tests",
+    "current documentation and observed execution evidence"
+  ],
+  "industrial_preconditions": [
+    "canonical scrap numerator denominator period and unit",
+    "distinction between physical monetary and percentage scrap",
+    "availability performance and quality definitions for OEE",
+    "rules for missing data planned downtime rework and good production",
+    "mathematical limits and invalid states",
+    "minimum evidence by machine work order and period",
+    "no causal diagnosis from isolated indicators"
+  ],
+  "cycle_040_allowed_scope": [
+    "integrate the existing REN_001 evaluator into service_1_product_pipeline_v1.py",
+    "require an explicit capability request",
+    "consume owner-confirmed values only",
+    "produce deterministic evaluation and bounded finding",
+    "add treatment and delivery only under the same explicit governance used by LIQ_001",
+    "update locks gates module disposition and tests"
+  ],
+  "cycle_040_forbidden_scope": [
+    "automatic capability selection from XLSX content",
+    "causal diagnosis",
+    "automatic delivery",
+    "simultaneous implementation of other pathologies",
+    "scrap or OEE implementation",
+    "formula catalog changes without explicit evidence"
+  ]
+}
