@@ -1,0 +1,48 @@
+{
+  "schema_version": "SERVICE_1_PILOT_008_TEXTIL_COMPLETA_RUN_V1",
+  "cycle": "CYCLE_037_RUN_S1_PILOT_008_TEXTIL_COMPLETA",
+  "status": "PASS",
+  "observation_source": ".tmp/service_1_pilot_008_textil_completa/observed_run.json",
+  "official_cli": "python -m pymia.cli.service_1_product",
+  "fixture": "prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+  "sheet_name": "ventas",
+  "first_pass": {
+    "status": "NEEDS_OWNER_CONFIRMATION",
+    "owner_questions_count": 4,
+    "owner_question_columns": [
+      "cliente",
+      "descuento_pct",
+      "medio_cobro",
+      "plazo_cobro_dias"
+    ],
+    "tools_executed": false
+  },
+  "semantic_owner_answers": {
+    "count": 4,
+    "source_rule": "selected from product_pipeline.owner_questions[].allowed_option_ids; no free text",
+    "selected": {
+      "cliente": "A",
+      "descuento_pct": "A",
+      "medio_cobro": "A",
+      "plazo_cobro_dias": "A"
+    }
+  },
+  "final_pass": {
+    "status": "PRODUCT_PIPELINE_READY",
+    "blocked_reason": null,
+    "semantic_bindings_confirmed": true,
+    "tools_executed": true,
+    "executed_tool_refs": [
+      "precio_margen_basico"
+    ],
+    "xlsx_outputs": [
+      "first_aid_001_precio_margen_basico.xlsx"
+    ]
+  },
+  "limits": [
+    "Run uses an explicit tool request and does not claim automatic tool selection.",
+    "Run validates the canonical product path on the ventas sheet of a multi-sheet textile workbook; it does not claim full textile diagnosis.",
+    "No new formula, pathology, semantic capability or runtime authority is introduced by this pilot.",
+    "REN_001 remains an isolated SUPPORT_NECESSARY evaluator and is not promoted by this execution."
+  ]
+}
