@@ -22,6 +22,7 @@ La memoria conversacional, documentos no listados, landings, pilotos, auditoría
 - `SERVICE_1_OPERABILITY_PACKET.md` — runbook operativo del MVP de Servicio 1.
 - `SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md` — método de ingeniería del recorrido determinístico.
 - `SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — serie, orden, estados y límites de los pilotos controlados basados en `prueba_excels/`.
+- `SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — prioridad posterior a los pilotos y autorización de `CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT`.
 - `FACTORY_AND_ADN_AXIS.md` — separación metodológica de Factoría/ADN.
 - `HERMES_AXIS.md` — Hermes no gobierna Servicio 1.
 - `SMARTPYME_PRODUCT_AXIS.md` — separación entre memoria de producto y autoridad técnica.
@@ -47,6 +48,7 @@ docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md
 docs/current/SERVICE_1_OPERABILITY_PACKET.md
 docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md
 docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md
+docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md
 ```
 
 La carpeta `landing/` no gobierna Servicio 1.
