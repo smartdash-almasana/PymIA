@@ -4,7 +4,7 @@
   "status": "ACTIVE",
   "source_folder": "prueba_excels",
   "created_on": "2026-07-16",
-  "updated_on": "2026-07-17",
+  "updated_on": "2026-07-20",
   "policy": {
     "primary_goal": "Madurar Servicio 1 usando los Excel existentes como casos controlados, sin abrir Servicio 2 ni inventar capacidades no soportadas.",
     "rules": [
@@ -105,10 +105,18 @@
     "S1-PILOT-001": "PASS",
     "S1-PILOT-003": "PASS",
     "S1-PILOT-004": "PASS",
-    "S1-PILOT-005": "PLANNED_AFTER_008",
+    "S1-PILOT-005": "NEXT",
     "S1-PILOT-006": "PASS",
     "S1-PILOT-007": "PASS",
-    "S1-PILOT-008": "NEXT"
+    "S1-PILOT-008": "PASS"
+  },
+  "certified_evidence": {
+    "S1-PILOT-008": {
+      "cycle": "CYCLE_037_RUN_S1_PILOT_008_TEXTIL_COMPLETA",
+      "record": "docs/service_1_pilot_008_textil_completa.v1.json",
+      "current_doc": "docs/current/SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md",
+      "test": "tests/smartpyme/test_service_1_pilot_008_textil_completa_v1.py"
+    }
   },
   "quarantined_inputs": [
     {"file": "prueba_excels/simple_bem_test.xlsx", "reason": "BEM test fixture previamente descartado; no gobierna Servicio 1 productivo ni debe usarse como piloto activo."},
@@ -120,5 +128,5 @@
     {"file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
     {"file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"}
   ],
-  "next_execution_order": ["S1-PILOT-008", "S1-PILOT-005"]
+  "next_execution_order": ["S1-PILOT-005"]
 }
