@@ -15,7 +15,7 @@ def test_controlled_pilot_series_is_active_and_excel_based() -> None:
     assert plan["status"]=="ACTIVE"
     assert plan["source_folder"]=="prueba_excels"
     assert len(plan["pilot_sequence"])==7
-    assert plan["next_execution_order"]==["S1-PILOT-008", "S1-PILOT-005"]
+    assert plan["next_execution_order"]==["S1-PILOT-005"]
 
 def test_controlled_pilot_execution_status_is_current() -> None:
     status=_plan()["execution_status"]
@@ -23,10 +23,10 @@ def test_controlled_pilot_execution_status_is_current() -> None:
         "S1-PILOT-001": "PASS",
         "S1-PILOT-003": "PASS",
         "S1-PILOT-004": "PASS",
-        "S1-PILOT-005": "PLANNED_AFTER_008",
+        "S1-PILOT-005": "NEXT",
         "S1-PILOT-006": "PASS",
         "S1-PILOT-007": "PASS",
-        "S1-PILOT-008": "NEXT",
+        "S1-PILOT-008": "PASS",
     }
 
 def test_all_active_pilot_files_exist_and_have_primary_headers() -> None:
