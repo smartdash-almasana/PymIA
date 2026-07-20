@@ -2,7 +2,7 @@
 
 **Fecha de corte:** 2026-07-20
 
-**Última regresión completa observada:** `1644 passed in 175.30s`, ejecutada por el usuario en PowerShell local.
+**Última regresión completa observada:** `1644 passed in 120s`, ejecutada por el usuario en PowerShell local.
 
 ## Estado
 
@@ -13,6 +13,7 @@ RAÍZ PRODUCTIVA CANÓNICA: ACTIVA
 CLI CANÓNICO: ACTIVO
 LIQ_001: CÁLCULO + HALLAZGO ACOTADO + ENTREGA XLSX EXPLÍCITA
 REN_001: EVALUADOR AISLADO DE SOPORTE, NO CONECTADO A RAÍZ
+S1-PILOT-008 TEXTIL COMPLETA: PASS
 EXPERIMENTAL_FROZEN: 0
 OPERATOR LEGACY: ELIMINADO
 RUNTIME LEGACY: ELIMINADO
@@ -99,6 +100,41 @@ docs/service_1_first_operatorless_case.v1.json
 tests/smartpyme/test_service_1_first_operatorless_case_v1.py
 ```
 
+## Serie de pilotos controlados
+
+```text
+SERIE: ACTIVE
+FUENTE: prueba_excels/
+CASOS PASS: S1-PILOT-001, 003, 004, 006, 007, 008
+NEXT: S1-PILOT-005
+```
+
+### S1-PILOT-008 — textil completa
+
+```text
+Estado: PASS
+Ciclo: CYCLE_037_RUN_S1_PILOT_008_TEXTIL_COMPLETA
+Archivo: prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx
+Sheet: ventas
+Primer pase: NEEDS_OWNER_CONFIRMATION
+Preguntas al dueño: 4
+Columnas: cliente, descuento_pct, medio_cobro, plazo_cobro_dias
+Segundo pase: PRODUCT_PIPELINE_READY
+Bindings confirmados: true
+Tool ejecutada explícitamente: precio_margen_basico
+Salida: first_aid_001_precio_margen_basico.xlsx
+```
+
+Límite: prueba el recorrido canónico sobre un workbook textil completo multihoja; no declara diagnóstico textil integral, selección automática de tool ni nuevas fórmulas. `REN_001` permanece fuera de la raíz.
+
+Evidencia:
+
+```text
+docs/current/SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md
+docs/service_1_pilot_008_textil_completa.v1.json
+tests/smartpyme/test_service_1_pilot_008_textil_completa_v1.py
+```
+
 ## Evidencia rectora
 
 ```text
@@ -122,12 +158,10 @@ tests/smartpyme/test_service_1_architecture_lock_v1.py
 
 ## Próximo paso autorizado
 
-Se conserva como próximo ciclo operativo rector:
-
 ```text
-CYCLE_037_RUN_S1_PILOT_008_TEXTIL_COMPLETA
-fixture: prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx
-sheet primaria: ventas
+CYCLE_038_RUN_S1_PILOT_005_FABRICA_INDUSTRIAL
+fixture: prueba_excels/fabrica_industrial_compleja.xlsx
+sheet primaria: PRODUCCION
 modo: confirmación del dueño + tool request explícito
-prohibido: agregar fórmulas, seleccionar tools automáticamente o declarar diagnóstico textil integral
+prohibido: agregar fórmulas, seleccionar tools automáticamente o declarar diagnóstico industrial, scrap u OEE
 ```
