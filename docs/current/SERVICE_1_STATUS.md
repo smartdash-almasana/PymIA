@@ -77,6 +77,28 @@ pymia/cli/service_1_product.py
 pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
+## Primer caso sin intermediario obligatorio
+
+```text
+PRIMER CASO OPERATORLESS: PASS
+CYCLE_031_RUN_FIRST_OPERATORLESS_SERVICE_1_CASE
+CLI: python -m pymia.cli.service_1_product
+FIXTURE: prueba_excels/cafeteria_abc.xlsx
+SHEET: Ventas
+PRIMER PASE: NEEDS_OWNER_CONFIRMATION
+SEGUNDO PASE: PRODUCT_PIPELINE_READY
+TOOL EJECUTADA: precio_margen_basico
+SALIDA XLSX: first_aid_001_precio_margen_basico.xlsx
+```
+
+La evidencia rectora permanece en:
+
+```text
+docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md
+docs/service_1_first_operatorless_case.v1.json
+tests/smartpyme/test_service_1_first_operatorless_case_v1.py
+```
+
 ## Evidencia rectora
 
 ```text
