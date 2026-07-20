@@ -43,12 +43,33 @@ Por lo tanto queda en cuarentena y no puede ser próximo piloto.
 | S1-PILOT-001 | `cafeteria_abc.xlsx` | `Ventas` | cafetería ventas/productos/sucursales | `PASS` |
 | S1-PILOT-003 | `pyme_textil_compleja.xlsx` | `VENTAS` | textil ventas/costos/margen | `PASS` |
 | S1-PILOT-004 | `distribuidora_mayorista_compleja.xlsx` | `OPERACION` | distribuidora ruta/SKU/margen | `PASS` |
-| S1-PILOT-005 | `fabrica_industrial_compleja.xlsx` | `PRODUCCION` | producción/scrap/OEE | `NEXT` |
+| S1-PILOT-005 | `fabrica_industrial_compleja.xlsx` | `PRODUCCION` | producción/scrap/OEE | `PASS` |
 | S1-PILOT-006 | `taller_mecanico_lubricar_srl.xlsx` | `ORDENES_TRABAJO` | taller servicios/stock | `PASS` |
 | S1-PILOT-007 | `constructora_nueva_era_srl.xlsx` | `OBRAS` | constructora presupuesto/gasto/cobro | `PASS` |
 | S1-PILOT-008 | `la_textil_cosida_srl_mar_abr_may_2026.xlsx` | `ventas` | textil completa multihoja | `PASS` |
 
 `S1-PILOT-001` permanece como control de regresión ya probado.
+
+## Piloto 005 cerrado
+
+```text
+Ciclo: CYCLE_038_RUN_S1_PILOT_005_FABRICA_INDUSTRIAL
+Primer pase: NEEDS_OWNER_CONFIRMATION
+Preguntas al dueño: 7
+Segundo pase: PRODUCT_PIPELINE_READY
+Tool explícita: precio_margen_basico
+Salida: first_aid_001_precio_margen_basico.xlsx
+```
+
+La evidencia está en:
+
+```text
+docs/current/SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md
+docs/service_1_pilot_005_fabrica_industrial.v1.json
+tests/smartpyme/test_service_1_pilot_005_fabrica_industrial_v1.py
+```
+
+El piloto prueba el recorrido canónico sobre la hoja `PRODUCCION`. No declara diagnóstico industrial integral ni promueve scrap, OEE, eficiencia de máquina, paradas o pérdidas productivas a capacidades soportadas.
 
 ## Piloto 008 cerrado
 
@@ -69,16 +90,6 @@ docs/service_1_pilot_008_textil_completa.v1.json
 tests/smartpyme/test_service_1_pilot_008_textil_completa_v1.py
 ```
 
-El piloto prueba el recorrido canónico sobre la hoja `ventas` de un workbook textil completo multihoja. No declara diagnóstico textil integral, selección automática de tool ni nuevas fórmulas.
-
-## Orden pendiente
-
-```text
-1. S1-PILOT-005 fabrica_industrial_compleja.xlsx
-```
-
-El Piloto 005 conserva explícitamente el límite de no inventar diagnóstico de scrap/OEE ni incorporar fórmulas industriales no soportadas.
-
 ## Cuarentena
 
 ```text
@@ -94,20 +105,12 @@ SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE/...xlsx
 
 Motivo: fixture BEM descartado, hojas vacías o legacy sintético. No entran como pilotos activos hasta reparar, reexportar o demostrar autoridad productiva actual.
 
-## Próximo ciclo autorizado
+## Estado de la serie
 
 ```text
-CYCLE_038:
-RUN_S1_PILOT_005_FABRICA_INDUSTRIAL
+CYCLE_038: CLOSED
+S1-PILOT-005: PASS
+PILOTOS PLANIFICADOS PENDIENTES: 0
 ```
 
-Alcance permitido:
-
-```text
-Ejecutar el recorrido canónico sobre la hoja PRODUCCION.
-Registrar primer pase, preguntas del dueño, reentry canónico y segundo pase.
-Ejecutar únicamente una tool solicitada explícitamente y ya soportada.
-No declarar diagnóstico industrial integral, scrap u OEE.
-No seleccionar tools automáticamente.
-No agregar fórmulas ni capacidades durante el piloto.
-```
+El cierre de la serie no autoriza por sí mismo nuevas fórmulas, diagnósticos ni expansión de la raíz productiva. El próximo ciclo deberá definirse documentalmente antes de agregar capacidad.
