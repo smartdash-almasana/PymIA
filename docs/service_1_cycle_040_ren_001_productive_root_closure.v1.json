@@ -1,0 +1,45 @@
+{
+  "schema_version": "SERVICE_1_CYCLE_040_REN_001_PRODUCTIVE_ROOT_CLOSURE_V1",
+  "cycle": "CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT",
+  "status": "CLOSED_PASS",
+  "validated_regression": {
+    "tests_passed": 1671,
+    "tests_failed": 0,
+    "source": "user-observed local full suite",
+    "working_tree_after_registry_alignment": "clean"
+  },
+  "productive_capability": {
+    "pathology_code": "REN_001",
+    "capability_ref": "net_margin_real",
+    "formula_ref": "REN_001_margen_neto_real",
+    "required_variables": ["sale_price", "costs", "taxes"],
+    "product_root": "pymia/smartpyme/service_1_product_pipeline_v1.py",
+    "evaluator": "pymia/smartpyme/service_1_ren_001_evaluator_v1.py",
+    "outcome": "pymia/smartpyme/service_1_ren_001_outcome_v1.py",
+    "normalized_evidence_adapter": "pymia/smartpyme/service_1_ren_001_normalized_evidence_v1.py"
+  },
+  "certified_behavior": [
+    "The capability is executed only after an explicit net_margin_real request.",
+    "The governed computation plan must be ready and semantic bindings confirmed.",
+    "Each required variable must resolve deterministically from normalized evidence.",
+    "The evaluator computes net margin amount and percentage.",
+    "The evaluator classifies positive margin, break-even or negative margin.",
+    "A bounded finding and deterministic treatment are produced without causal attribution."
+  ],
+  "safety_invariants": {
+    "automatic_capability_selection": false,
+    "runtime_authorized": false,
+    "tool_execution_authorized": false,
+    "product_ready": false,
+    "delivery_authorized": false,
+    "diagnosis_generated": false,
+    "ren_001_xlsx_delivery": false
+  },
+  "explicit_limits": [
+    "REN_001 does not infer why a margin is positive, zero or negative.",
+    "REN_001 does not identify responsibility, fraud, pricing error or accounting error.",
+    "REN_001 XLSX delivery remains unauthorized.",
+    "The cycle does not add other pathologies, scrap or OEE capabilities."
+  ],
+  "next_authorized_cycle": "CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP"
+}
