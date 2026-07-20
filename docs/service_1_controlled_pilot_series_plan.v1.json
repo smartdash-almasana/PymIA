@@ -105,12 +105,18 @@
     "S1-PILOT-001": "PASS",
     "S1-PILOT-003": "PASS",
     "S1-PILOT-004": "PASS",
-    "S1-PILOT-005": "NEXT",
+    "S1-PILOT-005": "PASS",
     "S1-PILOT-006": "PASS",
     "S1-PILOT-007": "PASS",
     "S1-PILOT-008": "PASS"
   },
   "certified_evidence": {
+    "S1-PILOT-005": {
+      "cycle": "CYCLE_038_RUN_S1_PILOT_005_FABRICA_INDUSTRIAL",
+      "record": "docs/service_1_pilot_005_fabrica_industrial.v1.json",
+      "current_doc": "docs/current/SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md",
+      "test": "tests/smartpyme/test_service_1_pilot_005_fabrica_industrial_v1.py"
+    },
     "S1-PILOT-008": {
       "cycle": "CYCLE_037_RUN_S1_PILOT_008_TEXTIL_COMPLETA",
       "record": "docs/service_1_pilot_008_textil_completa.v1.json",
@@ -128,5 +134,5 @@
     {"file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"},
     {"file": "prueba_excels/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN_AUDITABLE/SERVICE_1_SYNTHETIC_CASE_001_CAFETERIA_CASH_MARGIN.xlsx", "reason": "perfil reporta hojas vacías o legacy sintético; fuera de piloto activo hasta reparar/reexportar"}
   ],
-  "next_execution_order": ["S1-PILOT-005"]
+  "next_execution_order": []
 }
