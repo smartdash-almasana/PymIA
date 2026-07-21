@@ -68,10 +68,11 @@ pymia/smartpyme/service_1_variable_family_bindings_v1.py
 tests/smartpyme/test_service_1_pyme_011_productive_root_v1.py
 ```
 
-## Próximo ciclo autorizado
+## Transición arquitectónica posterior
 
 ```text
-CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT
+CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT: SUSPENDED_BY_ARCHITECTURAL_DECISION
+CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE: ARCHITECTURE_DECIDED_NO_PRODUCTIVE_CODE
 ```
 
-Este ciclo siguiente conecta `PYME_013` (DSO-DPO gap) a la raíz productiva. Debe reutilizar la raíz, plan, guards y contratos existentes, sin implementar otras patologías ni autorizar entrega XLSX sin decisión explícita del propio ciclo.
+`PYME_013` permanece diferida como primera capacidad `COMPOSITE`. El ciclo autorizado define la arquitectura del Generic Productive Capability Kernel; no conecta `PYME_013`, no modifica la raíz productiva y no implementa código productivo.

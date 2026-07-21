@@ -32,7 +32,12 @@
     "DSO_EQUALS_PERIOD",
     "DSO_EXCEEDS_PERIOD"
   ],
-  "authorized_next_cycle": "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT",
+  "architecture_transition": {
+    "previous_authorization": "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT",
+    "previous_authorization_status": "SUSPENDED_BY_ARCHITECTURAL_DECISION",
+    "authorized_cycle": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE",
+    "authorized_cycle_status": "ARCHITECTURE_DECIDED_NO_PRODUCTIVE_CODE"
+  },
   "limits": [
     "No automatic capability selection",
     "No causal attribution",

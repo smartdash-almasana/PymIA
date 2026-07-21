@@ -56,15 +56,22 @@ def test_cycle_041_requires_complete_contract_fields_for_new_pathologies() -> No
         assert item["expression"]
         assert item["required_variables"]
         assert item["required_evidence"]
-        assert item["calculation_state"] in {"CALCULABLE", "CALCULABLE_CON_SUPUESTOS"}
+        assert item["calculation_state"] in {
+            "CALCULABLE",
+            "CALCULABLE_CON_SUPUESTOS",
+            "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY",
+        }
 
 
-def test_cycle_041_authorizes_only_liq_002_next() -> None:
+def test_cycle_041_defers_pyme_013_and_authorizes_kernel_architecture_next() -> None:
     roadmap = _roadmap()
-    assert roadmap["next_cycle"] == "CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT"
-    assert roadmap["roadmap"][0]["pathology_code"] == "LIQ_002"
-    assert roadmap["roadmap"][0]["implementation_cycle"] == roadmap["next_cycle"]
-    assert all("implementation_cycle" not in item for item in roadmap["roadmap"][1:])
+    transition = roadmap["architecture_transition"]
+
+    assert roadmap["next_cycle"] == "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE"
+    assert roadmap["roadmap"][0]["pathology_code"] == "PYME_013"
+    assert roadmap["roadmap"][0]["calculation_state"] == "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY"
+    assert transition["previous_authorization"] == "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT"
+    assert transition["previous_authorization_status"] == "SUSPENDED_BY_ARCHITECTURAL_DECISION"
 
 
 def test_cycle_041_guards_prevent_batch_implementation_and_scope_drift() -> None:
@@ -76,12 +83,14 @@ def test_cycle_041_guards_prevent_batch_implementation_and_scope_drift() -> None
         "causal_diagnosis_authorized": False,
         "scrap_oee_included": False,
         "llm_runtime_authorized": False,
+        "second_productive_root_authorized": False,
     }
 
 
 def test_cycle_041_current_document_states_limits_and_next_cycle() -> None:
     content = ROADMAP_MD.read_text(encoding="utf-8")
     assert "CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP" in content
-    assert "CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT" in content
+    assert "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT` queda `SUSPENDED_BY_ARCHITECTURAL_DECISION" in content
+    assert "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE" in content
     assert "Scrap y OEE quedan fuera" in content
-    assert "No se implementan las diez patologías en este ciclo" in content
+    assert "No implementar código productivo" in content
