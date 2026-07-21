@@ -23,6 +23,7 @@ FAMILY_CASH_COLLECTIONS: Final[str] = "CASH_COLLECTIONS"
 FAMILY_PURCHASES_SUPPLIERS: Final[str] = "PURCHASES_SUPPLIERS"
 FAMILY_INVENTORY_CONTROL: Final[str] = "INVENTORY_CONTROL"
 FAMILY_CASH_PROJECTION: Final[str] = "CASH_PROJECTION"
+FAMILY_RECEIVABLES_DSO: Final[str] = "RECEIVABLES_DSO"
 
 STATUS_READY: Final[str] = "VARIABLE_FAMILY_READY"
 STATUS_NEEDS_OWNER_CONFIRMATION: Final[str] = "VARIABLE_FAMILY_NEEDS_OWNER_CONFIRMATION"
@@ -163,6 +164,15 @@ VARIABLE_FAMILY_DEFINITIONS: Final[tuple[Service1VariableFamilyDefinitionV1, ...
         target_variable_names=("initial_balance", "expected_collections", "expected_payments"),
         target_capabilities=("projected_closing_cash_balance",),
     ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_RECEIVABLES_DSO,
+        owner_label="Plazo de cuentas por cobrar",
+        priority=7,
+        required_role_groups=(("accounts_receivable_amount",), ("sales_amount",), ("period_days", "days")),
+        optional_roles=("operation_date", "due_date", "document_reference", "customer_name"),
+        target_variable_names=("accounts_receivable", "sales", "days"),
+        target_capabilities=("dso",),
+    ),
 )
 
 
@@ -294,6 +304,7 @@ __all__ = [
     "FAMILY_PURCHASES_SUPPLIERS",
     "FAMILY_INVENTORY_CONTROL",
     "FAMILY_CASH_PROJECTION",
+    "FAMILY_RECEIVABLES_DSO",
     "STATUS_READY",
     "STATUS_NEEDS_OWNER_CONFIRMATION",
     "STATUS_MISSING_REQUIRED_ROLES",
