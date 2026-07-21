@@ -61,4 +61,5 @@ def test_current_readme_lists_next_productive_capability_decision() -> None:
     readme = (root / "docs" / "current" / "README.md").read_text(encoding="utf-8")
     status = (root / "docs" / "current" / "SERVICE_1_STATUS.md").read_text(encoding="utf-8")
     assert "SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md" in readme
-    assert "CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT" in status
+    assert "12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS" in status
+    assert "KERNEL GENÉRICO PRODUCTIVO: ACTIVO" in status

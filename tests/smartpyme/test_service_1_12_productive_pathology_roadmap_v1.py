@@ -63,15 +63,15 @@ def test_cycle_041_requires_complete_contract_fields_for_new_pathologies() -> No
         }
 
 
-def test_cycle_041_defers_pyme_013_and_authorizes_kernel_architecture_next() -> None:
+def test_cycle_053_completes_twelve_pathologies_and_next_cycle_is_pending() -> None:
     roadmap = _roadmap()
     transition = roadmap["architecture_transition"]
 
-    assert roadmap["next_cycle"] == "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE"
-    assert roadmap["roadmap"][0]["pathology_code"] == "PYME_013"
-    assert roadmap["roadmap"][0]["calculation_state"] == "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY"
-    assert transition["previous_authorization"] == "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT"
-    assert transition["previous_authorization_status"] == "SUSPENDED_BY_ARCHITECTURAL_DECISION"
+    assert roadmap["next_cycle"] == "PENDING_ASSIGNMENT"
+    assert not roadmap["roadmap"]
+    assert len(roadmap["already_productive"]) == 12
+    assert transition["previous_authorization"] == "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE"
+    assert transition["previous_authorization_status"] == "COMPLETED"
 
 
 def test_cycle_041_guards_prevent_batch_implementation_and_scope_drift() -> None:
@@ -87,10 +87,10 @@ def test_cycle_041_guards_prevent_batch_implementation_and_scope_drift() -> None
     }
 
 
-def test_cycle_041_current_document_states_limits_and_next_cycle() -> None:
+def test_cycle_053_document_completed_twelve_pathologies() -> None:
     content = ROADMAP_MD.read_text(encoding="utf-8")
-    assert "CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP" in content
-    assert "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT` queda `SUSPENDED_BY_ARCHITECTURAL_DECISION" in content
-    assert "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE" in content
-    assert "Scrap y OEE quedan fuera" in content
-    assert "No implementar código productivo" in content
+    assert "CYCLE_053_GLOBAL_12_PATHOLOGY_CLOSURE" in content
+    assert "12 patologías productivas conectadas" in content or "12/12" in content
+    assert "PENDIENTE DE ASIGNACIÓN" in content
+    assert "Scrap y OEE no soportados" in content
+    assert "entrega no autorizada" in content.lower() or "no autorizada" in content

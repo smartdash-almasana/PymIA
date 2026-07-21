@@ -15,35 +15,24 @@ def _load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_roadmap_has_unique_pathology_codes_and_four_productive_entries() -> None:
+def test_roadmap_completed_twelve_productive_entries() -> None:
     payload = _load(ROADMAP_JSON)
     productive = payload["already_productive"]
     remaining = payload["roadmap"]
-    codes = [item["pathology_code"] for item in productive + remaining]
+    codes = [item["pathology_code"] for item in productive]
 
-    assert len(productive) == 4
-    assert {item["pathology_code"] for item in productive} == {
-        "LIQ_001",
-        "REN_001",
-        "LIQ_002",
-        "PYME_011",
-    }
+    assert len(productive) == 12
+    assert len(remaining) == 0
     assert len(codes) == len(set(codes)) == 12
 
 
-def test_roadmap_authorizes_architecture_cycle_and_defers_pyme_013() -> None:
+def test_roadmap_transition_is_completed_and_no_deferred_capabilities() -> None:
     payload = _load(ROADMAP_JSON)
     transition = payload["architecture_transition"]
-    pyme_013 = next(item for item in payload["roadmap"] if item["pathology_code"] == "PYME_013")
 
-    assert payload["next_cycle"] == "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE"
-    assert transition == {
-        "previous_authorization": "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT",
-        "previous_authorization_status": "SUSPENDED_BY_ARCHITECTURAL_DECISION",
-        "authorized_cycle": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE",
-        "pyme_013_status": "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY",
-    }
-    assert pyme_013["calculation_state"] == "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY"
+    assert payload["next_cycle"] == "PENDING_ASSIGNMENT"
+    assert transition["previous_authorization"] == "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE"
+    assert transition["previous_authorization_status"] == "COMPLETED"
 
 
 def test_kernel_boundary_and_exclusions_are_explicit() -> None:
@@ -109,12 +98,11 @@ def test_safety_prohibitions_remain_closed() -> None:
     assert all(value is False for value in authorizations.values())
 
 
-def test_human_documents_do_not_duplicate_pyme_013_and_match_status() -> None:
+def test_human_documents_reflect_twelve_productive_pathologies() -> None:
     roadmap_text = ROADMAP_MD.read_text(encoding="utf-8")
     status_text = STATUS_MD.read_text(encoding="utf-8")
 
-    assert roadmap_text.count("| 5 | `PYME_013` |") == 1
-    assert "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE" in roadmap_text
-    assert "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT: SUSPENDED_BY_ARCHITECTURAL_DECISION" in status_text
-    assert "PATOLOGÍAS PRODUCTIVAS ACTUALES: 4 DE 12" in status_text
-    assert "NO_PRODUCTIVE_CODE" in status_text
+    assert "CYCLE_053_GLOBAL_12_PATHOLOGY_CLOSURE" in roadmap_text or "CYCLE_053" in roadmap_text
+    assert "12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS" in status_text
+    assert "SIN LLM RUNTIME" in status_text
+    assert "SIN DIAGNÓSTICO CAUSAL" in status_text

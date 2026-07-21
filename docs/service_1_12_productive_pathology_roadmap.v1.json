@@ -1,8 +1,8 @@
 {
   "schema_version": "SERVICE_1_12_PRODUCTIVE_PATHOLOGY_ROADMAP_V1",
-  "cycle": "CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP",
-  "status": "DECIDED",
-  "date": "2026-07-20",
+  "cycle": "CYCLE_053_GLOBAL_12_PATHOLOGY_CLOSURE",
+  "status": "COMPLETED",
+  "date": "2026-07-21",
   "target_productive_pathology_count": 12,
   "already_productive": [
     {
@@ -32,87 +32,70 @@
       "capability_ref": "dso",
       "implementation_cycle": "CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT",
       "delivery_status": "XLSX_NOT_AUTHORIZED"
-    }
-  ],
-  "roadmap": [
+    },
     {
       "order": 5,
       "pathology_code": "PYME_013",
-      "formula_id": "PYME_013_dso_dpo_gap",
-      "expression": "dso - dpo",
-      "required_variables": ["dso", "dpo"],
-      "required_evidence": ["dso_calculado", "dpo_calculado"],
-      "calculation_state": "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY"
+      "capability_ref": "payment_collection_gap",
+      "implementation_cycle": "CYCLE_045B_PYME_013_COMPOSITE",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 6,
       "pathology_code": "INV_001",
-      "formula_id": "INV_001_punto_reposicion",
-      "expression": "(average_sales * lead_time) + safety_stock",
-      "required_variables": ["average_sales", "lead_time", "safety_stock"],
-      "required_evidence": ["historial_ventas_sku", "lead_time_proveedor", "politica_stock_seguridad"],
-      "calculation_state": "CALCULABLE"
+      "capability_ref": "reorder_point",
+      "implementation_cycle": "CYCLE_046_INV_001_REORDER_POINT",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 7,
       "pathology_code": "INV_002",
-      "formula_id": "INV_002_rotacion_stock",
-      "expression": "cost_of_goods_sold / average_stock",
-      "required_variables": ["cost_of_goods_sold", "average_stock"],
-      "required_evidence": ["cmv_periodo", "inventario_inicial", "inventario_final"],
-      "calculation_state": "CALCULABLE"
+      "capability_ref": "inventory_turnover",
+      "implementation_cycle": "CYCLE_047_INV_002_INVENTORY_TURNOVER",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 8,
       "pathology_code": "PYME_024",
-      "formula_id": "PYME_024_liquidez_corriente",
-      "expression": "current_assets / current_liabilities",
-      "required_variables": ["current_assets", "current_liabilities"],
-      "required_evidence": ["balance_general", "saldos_activo_corriente", "saldos_pasivo_corriente"],
-      "calculation_state": "CALCULABLE"
+      "capability_ref": "current_ratio",
+      "implementation_cycle": "CYCLE_048_IMPLEMENT_PYME_024_CURRENT_RATIO",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 9,
       "pathology_code": "PYME_033",
-      "formula_id": "PYME_033_concentracion_sku",
-      "expression": "main_sku_sales / total_sales * 100",
-      "required_variables": ["main_sku_sales", "total_sales"],
-      "required_evidence": ["ventas_por_sku", "ventas_totales"],
-      "calculation_state": "CALCULABLE"
+      "capability_ref": "sales_concentration",
+      "implementation_cycle": "CYCLE_049_IMPLEMENT_PYME_033_SALES_CONCENTRATION",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 10,
       "pathology_code": "REN_002",
-      "formula_id": "REN_002_coeficiente_reposicion",
-      "expression": "closing_index / origin_index",
-      "required_variables": ["closing_index", "origin_index"],
-      "required_evidence": ["indice_origen", "indice_cierre", "fecha_origen", "fecha_cierre"],
-      "calculation_state": "CALCULABLE"
+      "capability_ref": "index_update_ratio",
+      "implementation_cycle": "CYCLE_050_IMPLEMENT_REN_002_INDEX_UPDATE_RATIO",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 11,
       "pathology_code": "PYME_027",
-      "formula_id": "PYME_027_intereses_ebitda",
-      "expression": "interest_expense / ebitda",
-      "required_variables": ["interest_expense", "ebitda"],
-      "required_evidence": ["estado_resultados", "detalle_intereses", "calculo_ebitda"],
-      "calculation_state": "CALCULABLE"
+      "capability_ref": "interest_burden_ratio",
+      "implementation_cycle": "CYCLE_051_IMPLEMENT_PYME_027_INTEREST_BURDEN_RATIO",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 12,
       "pathology_code": "PYME_026",
-      "formula_id": "PYME_026_flujo_operativo",
-      "expression": "net_income + depreciation + amortization - working_capital_change",
-      "required_variables": ["net_income", "depreciation", "amortization", "working_capital_change"],
-      "required_evidence": ["estado_resultados", "balance_dos_periodos"],
-      "calculation_state": "CALCULABLE_CON_SUPUESTOS"
+      "capability_ref": "adjusted_operating_cash_flow",
+      "implementation_cycle": "CYCLE_052_IMPLEMENT_PYME_026_ADJUSTED_OPERATING_CASH_FLOW",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     }
   ],
+  "roadmap": [],
   "architecture_transition": {
-    "previous_authorization": "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT",
-    "previous_authorization_status": "SUSPENDED_BY_ARCHITECTURAL_DECISION",
-    "authorized_cycle": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE",
-    "pyme_013_status": "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY"
+    "previous_authorization": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE",
+    "previous_authorization_status": "COMPLETED",
+    "authorized_cycle": "CYCLE_053_GLOBAL_12_PATHOLOGY_CLOSURE",
+    "pyme_013_status": "CONNECTED_AS_COMPOSITE"
   },
   "global_guards": {
     "one_pathology_per_cycle": true,
@@ -136,5 +119,5 @@
     "observed authorized execution",
     "locks, gates, disposition and status update"
   ],
-  "next_cycle": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE"
+  "next_cycle": "PENDING_ASSIGNMENT"
 }
