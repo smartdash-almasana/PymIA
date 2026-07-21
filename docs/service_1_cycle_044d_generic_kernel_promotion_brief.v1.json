@@ -1,0 +1,101 @@
+{
+  "schema_version": "SERVICE_1_CYCLE_044D_GENERIC_KERNEL_PROMOTION_BRIEF_V1",
+  "cycle": "CYCLE_044D_PROMOTE_GENERIC_KERNEL",
+  "status": "AUTHORIZED_FOR_IMPLEMENTATION",
+  "base_cycle": "CYCLE_044C_RUN_GENERIC_SHADOW_EQUIVALENCE",
+  "base_cycle_status": "CLOSED_PASS",
+  "base_regression": "1723 passed",
+  "rollback_ref": "9b0de91",
+  "single_product_root": "pymia/smartpyme/service_1_product_pipeline_v1.py",
+  "promoted_capabilities": [
+    {
+      "capability_ref": "projected_closing_cash_balance",
+      "pathology_code": "LIQ_002"
+    },
+    {
+      "capability_ref": "dso",
+      "pathology_code": "PYME_011"
+    }
+  ],
+  "promotion_strategy": {
+    "root_calls_generic_kernel_directly": true,
+    "legacy_modules_remain_importable": true,
+    "legacy_modules_rewritten_as_wrappers": false,
+    "parallel_productive_execution": false,
+    "second_product_root": false,
+    "legacy_role": [
+      "PUBLIC_API_COMPATIBILITY",
+      "ROLLBACK_REFERENCE",
+      "HISTORICAL_TEST_COVERAGE"
+    ]
+  },
+  "required_plan_state": {
+    "status": "READY_FOR_COMPUTATION",
+    "explicit_capability_request": true,
+    "complete_normalized_evidence": true,
+    "confirmed_bindings": true,
+    "safety_flags_must_be_explicitly_false": true
+  },
+  "required_safety_flags": [
+    "runtime_authorized",
+    "tool_execution_authorized",
+    "product_ready",
+    "delivery_authorized",
+    "diagnosis_generated"
+  ],
+  "root_output_invariants": {
+    "success_status": "COMPUTATION_PLAN_READY",
+    "computation_executed": true,
+    "bounded_finding_generated": true,
+    "delivery_generated": false,
+    "diagnosis_generated": false,
+    "runtime_authorized": false,
+    "delivery_authorized": false
+  },
+  "bounded_outcome_required_fields": [
+    "status",
+    "capability_ref",
+    "classification",
+    "finding",
+    "treatment_actions",
+    "limitations",
+    "forbidden_claims",
+    "inputs_used",
+    "computed_results",
+    "bounded_finding_generated",
+    "causal_diagnosis_generated",
+    "runtime_authorized",
+    "delivery_authorized"
+  ],
+  "delivery_policy": {
+    "LIQ_002": "LIQ_002_DELIVERY_NOT_AUTHORIZED",
+    "PYME_011": "PYME_011_DELIVERY_NOT_AUTHORIZED"
+  },
+  "forbidden_changes": [
+    "CONNECT_PYME_013",
+    "MODIFY_LIQ_001",
+    "MODIFY_REN_001",
+    "DELETE_LEGACY_MODULES",
+    "PARALLEL_LEGACY_AND_GENERIC_EXECUTION",
+    "SECOND_PRODUCT_ROOT",
+    "AUTOMATIC_CAPABILITY_SELECTION",
+    "LLM_RUNTIME",
+    "CAUSAL_DIAGNOSIS",
+    "AUTHORIZE_XLSX_FOR_LIQ_002_OR_PYME_011",
+    "EXPAND_FORMULA_AST",
+    "ADD_NEW_REGISTERED_PATHOLOGIES"
+  ],
+  "acceptance_criteria": [
+    "PRODUCT_ROOT_EXECUTES_GENERIC_KERNEL_FOR_LIQ_002_AND_PYME_011",
+    "LEGACY_ADAPTERS_ARE_NOT_ROOT_CALLERS_FOR_PROMOTED_CAPABILITIES",
+    "LEGACY_PUBLIC_APIS_REMAIN_IMPORTABLE",
+    "ONE_EXECUTION_PER_REQUEST",
+    "SHADOW_EQUIVALENCE_REMAINS_GREEN",
+    "RESULT_AND_CLASSIFICATION_EQUIVALENCE",
+    "SAFETY_FLAGS_EXPLICITLY_FALSE",
+    "DELIVERY_REMAINS_BLOCKED_WITH_PUBLIC_CODES",
+    "SINGLE_PRODUCT_ROOT_REMAINS",
+    "FULL_REGRESSION_GREEN"
+  ],
+  "next_cycle_if_pass": "CYCLE_045_CONNECT_PYME_013_USING_GENERIC_KERNEL"
+}
