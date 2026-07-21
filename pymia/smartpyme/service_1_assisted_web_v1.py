@@ -34,9 +34,9 @@ _STYLES_PATH = _MODULE_DIR / "static" / "service_1_assisted_web_v1.css"
 
 _REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
     ("sold_vs_collected_gap", "Ventas y cobros", "Compará lo vendido con lo cobrado en el período."),
+    ("net_margin_real", "Margen neto real", "Compará el margen real estimado a partir del precio, los costos y los impuestos."),
     ("projected_closing_cash_balance", "Saldo de caja proyectado", "Calculá un saldo de cierre a partir de movimientos confirmados."),
     ("dso", "Tiempo de cobro", "Conocé la relación entre cuentas por cobrar, ventas y días del período."),
-    ("dpo", "Tiempo de pago", "Conocé la relación entre cuentas por pagar, compras y días del período."),
     ("payment_collection_gap", "Cobros y pagos", "Compará los tiempos ya calculados de cobro y de pago."),
     ("reorder_point", "Punto de reposición", "Calculá cuándo conviene revisar la reposición según datos confirmados."),
     ("inventory_turnover", "Rotación de inventario", "Mostrá la relación entre inventario y costo registrado."),

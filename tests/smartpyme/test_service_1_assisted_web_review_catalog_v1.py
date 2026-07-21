@@ -10,6 +10,6 @@ def test_assisted_web_exposes_exactly_the_twelve_productive_reviews() -> None:
     assert len(visible_refs) == 12
     assert len(set(visible_refs)) == 12
     assert "net_margin_real" in visible_refs
-    assert "Margen neto" in visible_titles
+    assert "Margen neto real" in visible_titles
     assert "dpo" not in visible_refs
     assert "Tiempo de pago" not in visible_titles
