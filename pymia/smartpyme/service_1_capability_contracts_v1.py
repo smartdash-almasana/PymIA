@@ -31,6 +31,8 @@ class VariableRequirementV1:
     maximum: Decimal | None = None
     maximum_inclusive: bool = True
     unit: str | None = None
+    source_capability_ref: str | None = None
+    source_result_key: str | None = None
 
 
 @dataclass(frozen=True)

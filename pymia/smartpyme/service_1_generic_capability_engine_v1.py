@@ -15,7 +15,7 @@ COMPUTATION_PLAN_SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPUTATION_PLAN_V1"
 
 
 def execute_generic_capability_v1(
-    *, capability_ref: str, computation_plan: object, normalized_tables: object, column_refs: object
+    *, capability_ref: str, computation_plan: object, normalized_tables: object, column_refs: object, governed_results: object = None
 ) -> dict[str, object]:
     definition = get_capability_definition_v1(capability_ref)
     if definition is None:
@@ -28,6 +28,7 @@ def execute_generic_capability_v1(
         computation_plan=computation_plan,
         normalized_tables=normalized_tables,
         column_refs=column_refs,
+        governed_results=governed_results,
     )
     if evidence_errors:
         return _blocked(evidence_errors, definition=definition, aggregation={"sources": sources, "sample_based": False})
@@ -103,6 +104,23 @@ def _validate_plan(definition: CapabilityDefinitionV1, plan: object) -> list[str
 
 
 def _resolve_inputs(
+    *, definition: CapabilityDefinitionV1, computation_plan: object, normalized_tables: object, column_refs: object, governed_results: object
+) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
+    if definition.kind == "COMPOSITE":
+        return _resolve_composite_inputs(
+            definition=definition,
+            computation_plan=computation_plan,
+            governed_results=governed_results,
+        )
+    return _resolve_atomic_inputs(
+        definition=definition,
+        computation_plan=computation_plan,
+        normalized_tables=normalized_tables,
+        column_refs=column_refs,
+    )
+
+
+def _resolve_atomic_inputs(
     *, definition: CapabilityDefinitionV1, computation_plan: object, normalized_tables: object, column_refs: object
 ) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
     if not isinstance(computation_plan, dict):
@@ -173,6 +191,92 @@ def _resolve_inputs(
             "aggregation_mode": requirement.aggregation,
         }
     return inputs, sources, errors
+
+
+def _resolve_composite_inputs(
+    *, definition: CapabilityDefinitionV1, computation_plan: object, governed_results: object
+) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
+    if not isinstance(computation_plan, dict):
+        return {}, {}, ["computation_plan must be an object."]
+    if not isinstance(governed_results, list) or not governed_results:
+        return {}, {}, ["governed_results must be a non-empty list for a composite capability."]
+    bindings = computation_plan.get("source_bindings")
+    if not isinstance(bindings, dict):
+        return {}, {}, ["computation_plan source_bindings must be an object."]
+
+    inputs: dict[str, Decimal] = {}
+    sources: dict[str, dict[str, object]] = {}
+    errors: list[str] = []
+    for requirement in definition.variables:
+        expected_capability = requirement.source_capability_ref
+        expected_result_key = requirement.source_result_key
+        if not expected_capability or not expected_result_key:
+            errors.append(f"composite requirement {requirement.name} has no governed source contract.")
+            continue
+        expected_binding = {"capability_ref": expected_capability, "result_key": expected_result_key}
+        if bindings.get(requirement.name) != expected_binding:
+            errors.append(f"source binding for {requirement.name} must equal its governed source contract.")
+            continue
+        matches = [
+            result
+            for result in governed_results
+            if isinstance(result, dict) and result.get("capability_ref") == expected_capability
+        ]
+        if len(matches) != 1:
+            errors.append(f"governed result for {requirement.name} must resolve exactly once: {expected_capability}.")
+            continue
+        source = matches[0]
+        source_errors, value = _validate_governed_result(
+            source=source,
+            capability_ref=expected_capability,
+            result_key=expected_result_key,
+        )
+        if source_errors:
+            errors.extend(f"{requirement.name}: {error}" for error in source_errors)
+            continue
+        assert value is not None
+        inputs[requirement.name] = value
+        sources[requirement.name] = {
+            "source_kind": "GOVERNED_RESULT",
+            "capability_ref": expected_capability,
+            "result_key": expected_result_key,
+            "aggregation_mode": requirement.aggregation,
+        }
+    return inputs, sources, errors
+
+
+def _validate_governed_result(
+    *, source: dict[str, Any], capability_ref: str, result_key: str
+) -> tuple[list[str], Decimal | None]:
+    errors: list[str] = []
+    if source.get("status") != STATUS_EVALUATED:
+        errors.append("status must equal EVALUATED.")
+    if source.get("capability_ref") != capability_ref:
+        errors.append(f"capability_ref must equal {capability_ref}.")
+    if any(source.get(flag) is not False for flag in _closed_flags(False)):
+        errors.append("safety flags must be explicitly false.")
+    outcome = source.get("outcome")
+    if isinstance(outcome, dict) and outcome.get("causal_diagnosis_generated") is True:
+        errors.append("causal diagnosis must remain disabled.")
+    computed = source.get("computed")
+    if not isinstance(computed, dict):
+        return [*errors, "computed must be an object."], None
+    main_value, main_error = _number(computed.get(result_key))
+    if main_error:
+        errors.append(f"{result_key} {main_error}")
+    typed_result = computed.get("typed_result")
+    if not isinstance(typed_result, dict):
+        return [*errors, "typed_result must be an object."], None
+    typed_value, typed_error = _number(typed_result.get("value"))
+    if typed_error:
+        errors.append(f"typed_result.value {typed_error}")
+    if typed_result.get("unit") != "days":
+        errors.append("typed_result.unit must equal days.")
+    if main_error or typed_error:
+        return errors, None
+    if main_value != typed_value:
+        errors.append(f"{result_key} must equal typed_result.value.")
+    return errors, main_value if not errors else None
 
 
 def _validate_domains(definition: CapabilityDefinitionV1, inputs: dict[str, Decimal]) -> list[str]:

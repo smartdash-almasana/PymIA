@@ -91,6 +91,53 @@ DPO = CapabilityDefinitionV1(
     ),
 )
 
+PYME_013 = CapabilityDefinitionV1(
+    capability_ref="payment_collection_gap",
+    pathology_code="PYME_013",
+    formula_ref="PYME_013_dso_dpo_gap",
+    kind="COMPOSITE",
+    variables=(
+        VariableRequirementV1(
+            "dso_days",
+            "SINGLE_VALUE",
+            minimum=Decimal("0"),
+            unit="days",
+            source_capability_ref="dso",
+            source_result_key="dso_days",
+        ),
+        VariableRequirementV1(
+            "dpo_days",
+            "SINGLE_VALUE",
+            minimum=Decimal("0"),
+            unit="days",
+            source_capability_ref="dpo",
+            source_result_key="dpo_days",
+        ),
+    ),
+    formula=_op("SUBTRACT", _var("dso_days"), _var("dpo_days")),
+    result_key="payment_collection_gap_days",
+    result_unit="days",
+    classifications=(
+        ClassificationRuleV1("COLLECTIONS_BEFORE_PAYMENTS", "LT", reference_value=Decimal("0")),
+        ClassificationRuleV1("COLLECTIONS_MATCH_PAYMENTS", "EQ", reference_value=Decimal("0")),
+        ClassificationRuleV1("COLLECTIONS_AFTER_PAYMENTS", "GT", reference_value=Decimal("0")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("COLLECTIONS_BEFORE_PAYMENTS", "Los resultados gobernados muestran cobros antes que pagos."),
+            ("COLLECTIONS_MATCH_PAYMENTS", "Los resultados gobernados muestran cobros y pagos en la misma relación temporal."),
+            ("COLLECTIONS_AFTER_PAYMENTS", "Los resultados gobernados muestran cobros después que pagos."),
+        ),
+        treatments=(
+            ("COLLECTIONS_BEFORE_PAYMENTS", ("Mantener la relación temporal como control del período confirmado.",)),
+            ("COLLECTIONS_MATCH_PAYMENTS", ("Revisar el período confirmado antes de interpretar la coincidencia.",)),
+            ("COLLECTIONS_AFTER_PAYMENTS", ("Revisar cobranzas y pagos por separado sin atribuir una causa.",)),
+        ),
+        limitations=("La brecha DSO-DPO describe una relación temporal y no identifica causas.",),
+        forbidden_claims=("Afirmar insolvencia, mala gestión o necesidad de financiamiento sin evidencia adicional.",),
+    ),
+)
+
 PYME_011 = CapabilityDefinitionV1(
     capability_ref="dso",
     pathology_code="PYME_011",
@@ -129,6 +176,7 @@ _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     LIQ_002.capability_ref: LIQ_002,
     DPO.capability_ref: DPO,
     PYME_011.capability_ref: PYME_011,
+    PYME_013.capability_ref: PYME_013,
 }
 
 
@@ -140,4 +188,4 @@ def list_capability_refs_v1() -> tuple[str, ...]:
     return tuple(sorted(_REGISTRY))
 
 
-__all__ = ["SCHEMA_VERSION", "LIQ_002", "DPO", "PYME_011", "get_capability_definition_v1", "list_capability_refs_v1"]
+__all__ = ["SCHEMA_VERSION", "LIQ_002", "DPO", "PYME_011", "PYME_013", "get_capability_definition_v1", "list_capability_refs_v1"]

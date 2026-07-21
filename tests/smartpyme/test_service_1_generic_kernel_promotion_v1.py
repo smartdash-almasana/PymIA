@@ -292,7 +292,7 @@ def test_root_unchanged_for_liq_001_and_ren_001(monkeypatch, tmp_path) -> None:
 
 def test_registry_contains_dpo_dso_and_projected_closing() -> None:
     refs = list_capability_refs_v1()
-    assert refs == ("dpo", "dso", "projected_closing_cash_balance")
+    assert refs == ("dpo", "dso", "payment_collection_gap", "projected_closing_cash_balance")
 
 
 def test_no_pyme_013_in_registry() -> None:

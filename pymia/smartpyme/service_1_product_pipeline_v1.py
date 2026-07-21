@@ -50,6 +50,7 @@ from pymia.smartpyme.service_1_ren_001_outcome_v1 import (
 )
 
 DPO_CAPABILITY_REF: Final[str] = "dpo"
+PYME_013_CAPABILITY_REF: Final[str] = "payment_collection_gap"
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
 STATUS_COMPUTATION_PLAN_READY = "COMPUTATION_PLAN_READY"
@@ -66,6 +67,7 @@ def run_service_1_product_pipeline_v1(
     owner_answers: Any = None,
     requested_capability: str | None = None,
     deliver_result: bool = False,
+    governed_results: object = None,
 ) -> dict[str, Any]:
     semantic_run = run_initial_pass(ingestion_output=ingestion_output, sheet_name=sheet_name)
 
@@ -93,9 +95,13 @@ def run_service_1_product_pipeline_v1(
         )
 
     if requested_capability is not None:
-        computation_plan = build_computation_plan(
-            confirmed_bindings=semantic_run,
-            requested_capability=requested_capability,
+        computation_plan = (
+            _build_pyme_013_composite_plan_v1()
+            if requested_capability == PYME_013_CAPABILITY_REF
+            else build_computation_plan(
+                confirmed_bindings=semantic_run,
+                requested_capability=requested_capability,
+            )
         )
         if computation_plan.get("status") != STATUS_READY_FOR_COMPUTATION:
             return _packet(
@@ -110,6 +116,49 @@ def run_service_1_product_pipeline_v1(
         computation_result = None
         bounded_outcome = None
         delivery_result = None
+        if requested_capability == PYME_013_CAPABILITY_REF:
+            computation_result = execute_generic_capability_v1(
+                capability_ref=requested_capability,
+                computation_plan=computation_plan,
+                normalized_tables=None,
+                column_refs=None,
+                governed_results=governed_results,
+            )
+            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=computation_result.get("status") or "PYME_013_COMPUTATION_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                )
+            bounded_outcome = computation_result["outcome"]
+            if bounded_outcome.get("status") != "OUTCOME_READY":
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_013_OUTCOME_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+            if deliver_result:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="PYME_013_DELIVERY_NOT_AUTHORIZED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+            return _packet(
+                status=STATUS_COMPUTATION_PLAN_READY,
+                semantic_run=semantic_run,
+                computation_plan=computation_plan,
+                computation_result=computation_result,
+                bounded_outcome=bounded_outcome,
+            )
+
         evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
         normalized_tables = evidence.get("normalized_tables")
         column_refs = evidence.get("column_refs")
@@ -317,6 +366,27 @@ def run_service_1_product_pipeline_v1(
 
     physical_run = run_service_1_pipeline_v1(tool_requests=tool_requests, output_dir=output_dir)
     return _packet(status=STATUS_READY, semantic_run=semantic_run, physical_run=physical_run)
+
+
+def _build_pyme_013_composite_plan_v1() -> dict[str, object]:
+    return {
+        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
+        "status": "READY_FOR_COMPUTATION",
+        "requested_capability": PYME_013_CAPABILITY_REF,
+        "pathology_code": "PYME_013",
+        "formula_id": "PYME_013_dso_dpo_gap",
+        "required_variables": ["dso_days", "dpo_days"],
+        "source_bindings": {
+            "dso_days": {"capability_ref": "dso", "result_key": "dso_days"},
+            "dpo_days": {"capability_ref": "dpo", "result_key": "dpo_days"},
+        },
+        "computation_candidate_ready": True,
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
 
 
 def _packet(

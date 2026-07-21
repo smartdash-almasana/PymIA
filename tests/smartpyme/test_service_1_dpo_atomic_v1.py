@@ -58,9 +58,9 @@ def _refs(*columns: str) -> list[dict[str, str]]:
     return [{"sheet_name": "data", "column_name": c, "normalized_column_name": c} for c in columns]
 
 
-def test_dpo_registry_contains_three_capabilities() -> None:
+def test_dpo_registry_contains_explicit_capabilities() -> None:
     refs = list_capability_refs_v1()
-    assert refs == ("dpo", "dso", "projected_closing_cash_balance")
+    assert refs == ("dpo", "dso", "payment_collection_gap", "projected_closing_cash_balance")
 
 
 def test_dpo_below_period() -> None:
@@ -274,11 +274,9 @@ def test_root_blocks_dpo_delivery(monkeypatch, tmp_path) -> None:
     assert result["delivery_authorized"] is False
 
 
-def test_no_pyme_013_in_registry_or_root() -> None:
+def test_dpo_remains_an_explicit_atomic_capability() -> None:
     refs = list_capability_refs_v1()
-    assert "pyme_013" not in refs
-    assert "PYME_013" not in str(refs)
+    assert "dpo" in refs
     from pymia.smartpyme import service_1_product_pipeline_v1 as product
     source = open(product.__file__ or "", encoding="utf-8").read()
-    assert "PYME_013" not in source
-    assert "pyme_013" not in source.lower()
+    assert "DPO_CAPABILITY_REF" in source
