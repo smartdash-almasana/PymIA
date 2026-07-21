@@ -1,0 +1,81 @@
+{
+  "schema_version": "SERVICE_1_CYCLE_045A_DPO_ATOMIC_CONTRACT_V1",
+  "cycle": "CYCLE_045A_IMPLEMENT_DPO_ATOMIC",
+  "status": "DECIDED",
+  "purpose": "Implementar DPO como capacidad atomica gobernada y prerequisito de PYME_013.",
+  "capability": {
+    "capability_ref": "dpo",
+    "capability_type": "ATOMIC",
+    "pathology_code": "PYME_013_PREREQUISITE_DPO",
+    "formula_ref": "PYME_013_PREREQUISITE_dpo",
+    "expression": "(accounts_payable / purchases) * days",
+    "result_key": "dpo_days",
+    "result_unit": "days",
+    "variables": [
+      {
+        "name": "accounts_payable",
+        "aggregation": "SUM",
+        "minimum": 0,
+        "minimum_inclusive": true
+      },
+      {
+        "name": "purchases",
+        "aggregation": "SUM",
+        "minimum": 0,
+        "minimum_inclusive": false
+      },
+      {
+        "name": "days",
+        "aggregation": "SINGLE_VALUE",
+        "minimum": 0,
+        "minimum_inclusive": false
+      }
+    ],
+    "classifications": [
+      {
+        "code": "DPO_BELOW_PERIOD",
+        "comparison": "LT",
+        "reference_variable": "days"
+      },
+      {
+        "code": "DPO_EQUALS_PERIOD",
+        "comparison": "EQ",
+        "reference_variable": "days"
+      },
+      {
+        "code": "DPO_ABOVE_PERIOD",
+        "comparison": "GT",
+        "reference_variable": "days"
+      }
+    ],
+    "outcome_policy": {
+      "bounded": true,
+      "causal_diagnosis_generated": false,
+      "delivery_authorized": false,
+      "forbidden_claims": [
+        "No afirmar causalidad sobre condiciones de pago.",
+        "No inferir incumplimiento, riesgo legal o falta de liquidez.",
+        "No recomendar decisiones financieras automaticas."
+      ]
+    }
+  },
+  "root_integration": {
+    "explicit_request_only": true,
+    "single_product_root": "pymia/smartpyme/service_1_product_pipeline_v1.py",
+    "generic_kernel_only": true,
+    "automatic_selection": false,
+    "delivery_authorized": false
+  },
+  "pyme_013_state": "NOT_CONNECTED",
+  "acceptance": [
+    "DPO registrado explicitamente en el capability registry.",
+    "DPO ejecutado por el generic capability engine.",
+    "DPO accesible desde la raiz solo por solicitud explicita.",
+    "purchases y days estrictamente mayores que cero.",
+    "days resuelve a un unico valor consistente.",
+    "resultado tipado en dias y con provenance gobernada.",
+    "flags de seguridad explicitamente false.",
+    "sin entrega, sin causalidad y sin PYME_013 conectado.",
+    "tests focales, vecinos, guards y regresion completa en verde."
+  ]
+}
