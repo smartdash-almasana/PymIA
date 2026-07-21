@@ -16,12 +16,12 @@ Esta decisión no implementa nuevas capacidades. Autoriza únicamente ciclos ind
 |---|---|---|---|
 | 1 | `LIQ_001` | `sold_vs_collected_gap` | productiva con cálculo, hallazgo, tratamiento y entrega XLSX explícita |
 | 2 | `REN_001` | `net_margin_real` | productiva con cálculo, hallazgo y tratamiento; entrega XLSX no autorizada |
+| 3 | `LIQ_002` | `projected_closing_cash_balance` | productiva con cálculo, hallazgo y tratamiento; entrega XLSX no autorizada |
 
-## Diez patologías adicionales seleccionadas
+## Nueve patologías restantes seleccionadas
 
 | Prioridad | Patología | Fórmula | Variables mínimas | Evidencia mínima | Estado de fórmula |
 |---:|---|---|---|---|---|
-| 3 | `LIQ_002` | `initial_balance + expected_collections - expected_payments` | `initial_balance`, `expected_collections`, `expected_payments` | saldo inicial, cobranzas esperadas, pagos esperados | `CALCULABLE` |
 | 4 | `PYME_011` | `accounts_receivable / sales * days` | `accounts_receivable`, `sales`, `days` | cuentas por cobrar, ventas del período, días del período | `CALCULABLE` |
 | 5 | `PYME_013` | `dso - dpo` | `dso`, `dpo` | DSO calculado, DPO calculado | `CALCULABLE` |
 | 6 | `INV_001` | `(average_sales * lead_time) + safety_stock` | `average_sales`, `lead_time`, `safety_stock` | historial por SKU, lead time, política de stock | `CALCULABLE` |
@@ -76,15 +76,15 @@ Cada ciclo individual debe cerrar:
 ## Próximo ciclo autorizado
 
 ```text
-CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT
+CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT
 ```
 
 Alcance del siguiente ciclo:
 
 ```text
-Conectar exclusivamente LIQ_002.
+Conectar exclusivamente PYME_011 (DSO).
 Reutilizar la raíz, plan, guards y contrato de outcome existentes.
-Definir saldo final proyectado, clasificación y límites.
-No implementar PYME_011 ni otra patología en paralelo.
+Definir días de cobranza, clasificación y límites.
+No implementar PYME_013 ni otra patología en paralelo.
 No autorizar entrega XLSX hasta decisión explícita del propio ciclo.
 ```

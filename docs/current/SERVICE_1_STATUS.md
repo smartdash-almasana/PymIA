@@ -2,7 +2,7 @@
 
 **Fecha de corte:** 2026-07-20
 
-**Última regresión completa observada:** `1675 passed, 0 failed`, ejecutada por el usuario en PowerShell local después del cierre de `CYCLE_040`.
+**Última regresión completa observada:** `1690 passed, 0 failed`, ejecutada por el asistente en local después del cierre de `CYCLE_042`.
 
 ## Estado
 
@@ -13,10 +13,12 @@ RAÍZ PRODUCTIVA CANÓNICA: ACTIVA
 CLI CANÓNICO: ACTIVO
 LIQ_001: CÁLCULO + HALLAZGO ACOTADO + ENTREGA XLSX EXPLÍCITA
 REN_001: CÁLCULO + HALLAZGO ACOTADO; ENTREGA XLSX NO AUTORIZADA
+LIQ_002: CÁLCULO + HALLAZGO ACOTADO; ENTREGA XLSX NO AUTORIZADA
 CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT: CLOSED_PASS
 CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP: DECIDED
-PATOLOGÍAS PRODUCTIVAS ACTUALES: 2 DE 12
-SIGUIENTE PATOLOGÍA: LIQ_002
+CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT: CLOSED_PASS
+PATOLOGÍAS PRODUCTIVAS ACTUALES: 3 DE 12
+SIGUIENTE PATOLOGÍA: PYME_011
 SERIE CONTROLADA PLANIFICADA: COMPLETA
 SCRAP/OEE: NO SOPORTADO
 EXPERIMENTAL_FROZEN: 0
@@ -43,6 +45,10 @@ Servicio 1 está certificado para:
 - calcular para `REN_001` margen monetario, margen porcentual y egresos totales;
 - clasificar `REN_001` como `POSITIVE_MARGIN`, `BREAK_EVEN` o `NEGATIVE_MARGIN`;
 - producir para `REN_001` un hallazgo acotado y tratamiento determinístico sin atribución causal;
+- construir y ejecutar `projected_closing_cash_balance` / `LIQ_002_saldo_final_proyectado` ante solicitud explícita, evidencia normalizada completa y bindings confirmados para CASH_PROJECTION family;
+- calcular para `LIQ_002` saldo final proyectado;
+- clasificar `LIQ_002` como `POSITIVE_PROJECTED_BALANCE`, `ZERO_PROJECTED_BALANCE` o `NEGATIVE_PROJECTED_BALANCE`;
+- producir para `LIQ_002` un hallazgo acotado y tratamiento determinístico sin atribución causal;
 - mantener en falso `runtime_authorized`, `tool_execution_authorized`, `product_ready`, `delivery_authorized` y `diagnosis_generated`;
 - producir salida trazable.
 
@@ -87,6 +93,30 @@ Reglas y límites:
 - no genera diagnóstico causal;
 - la entrega XLSX de `REN_001` permanece bloqueada.
 
+### LIQ_002
+
+```text
+XLSX real
+→ confirmación del dueño
+→ plan gobernado (CASH_PROJECTION family)
+→ agregación determinística de filas
+→ cálculo initial_balance + expected_collections - expected_payments
+→ clasificación acotada
+→ hallazgo y tratamiento determinísticos
+```
+
+`LIQ_002` no afirma iliquidez, déficit estructural, error de caja, fraude ni responsabilidad causal sin evidencia adicional.
+
+Reglas y límites:
+
+- la capacidad se activa únicamente ante request explícito `projected_closing_cash_balance`;
+- requiere plan listo y bindings confirmados para CASH_PROJECTION family;
+- cada variable debe resolver determinísticamente desde evidencia normalizada;
+- no usa muestras ni selección automática;
+- no atribuye causas, responsabilidad, fraude, error de caja ni proyección contable;
+- no genera diagnóstico causal;
+- la entrega XLSX de `LIQ_002` permanece bloqueada.
+
 ## Raíz técnica
 
 ```text
@@ -111,9 +141,8 @@ El Piloto 005 demostró el recorrido canónico sobre evidencia industrial, pero 
 
 ```text
 CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP: DECIDED
-BASE PRODUCTIVA: LIQ_001, REN_001
+BASE PRODUCTIVA: LIQ_001, REN_001, LIQ_002
 ORDEN RESTANTE:
-3. LIQ_002
 4. PYME_011
 5. PYME_013
 6. INV_001
@@ -154,20 +183,20 @@ tests/smartpyme/test_service_1_12_productive_pathology_roadmap_v1.py
 - Scrap y OEE no son capacidades soportadas actualmente.
 - Las fórmulas contables o financieras con supuestos exigen evidencia y convenciones explícitas.
 
-## Próximo paso autorizado
+## Próximo ciclo autorizado
 
 ```text
-CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT
+CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT
 ```
 
 Alcance:
 
 ```text
-Conectar exclusivamente LIQ_002_saldo_final_proyectado.
-Requerir initial_balance, expected_collections y expected_payments.
+Conectar exclusivamente PYME_011 (DSO — Days Sales Outstanding).
+Requerir accounts_receivable, sales y days.
 Definir dominio matemático, clasificaciones, hallazgo y tratamiento acotados.
 Usar la raíz productiva única y solicitud explícita de capacidad.
-No implementar PYME_011 ni otra patología en paralelo.
+No implementar PYME_013 ni otra patología en paralelo.
 No autorizar entrega XLSX hasta decisión explícita del ciclo.
 No introducir selección automática, causalidad ni runtime autónomo.
 ```

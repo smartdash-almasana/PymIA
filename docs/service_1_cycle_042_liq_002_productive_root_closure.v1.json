@@ -1,0 +1,44 @@
+{
+  "schema_version": "SERVICE_1_CYCLE_CLOSURE_V1",
+  "cycle": "CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT",
+  "status": "CLOSED_PASS",
+  "date": "2026-07-20",
+  "regression_pass": 1690,
+  "regression_fail": 0,
+  "files_changed": [
+    "docs/pathology_catalog.enriched.v1.json",
+    "tests/smartpyme/test_service_1_canonical_ingestion_output_to_semantic_bridge_v1.py",
+    "tests/smartpyme/test_service_1_deterministic_semantic_computation_plan_v1.py",
+    "tests/smartpyme/test_service_1_owner_confirmation_reinjection_to_semantic_gate_v1.py",
+    "tests/smartpyme/test_service_1_ren_001_computation_candidate_v1.py",
+    "tests/smartpyme/test_service_1_runtime_catalog_binding_contract_v1.py",
+    "tests/smartpyme/test_service_1_semantic_bridge_to_controlled_execution_gate_v1.py",
+    "tests/smartpyme/test_service_1_semantic_catalog_consistency_v1.py",
+    "tests/smartpyme/test_service_1_variable_family_bindings_v1.py"
+  ],
+  "new_modules": [],
+  "new_family": "CASH_PROJECTION",
+  "new_pathology": "LIQ_002",
+  "classification_types": [
+    "POSITIVE_PROJECTED_BALANCE",
+    "ZERO_PROJECTED_BALANCE",
+    "NEGATIVE_PROJECTED_BALANCE"
+  ],
+  "authorized_next_cycle": "CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT",
+  "limits": [
+    "No automatic capability selection",
+    "No causal attribution",
+    "No runtime/diagnosis/delivery authorization",
+    "XLSX delivery remains blocked",
+    "No scrap/OEE incorporated"
+  ],
+  "commit": "2ebbdb8",
+  "evidence_refs": [
+    "pymia/smartpyme/service_1_liq_002_evaluator_v1.py",
+    "pymia/smartpyme/service_1_liq_002_normalized_evidence_v1.py",
+    "pymia/smartpyme/service_1_liq_002_outcome_v1.py",
+    "pymia/smartpyme/service_1_product_pipeline_v1.py",
+    "pymia/smartpyme/service_1_variable_family_bindings_v1.py",
+    "tests/smartpyme/test_service_1_liq_002_semantic_governance_v1.py"
+  ]
+}
