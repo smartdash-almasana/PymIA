@@ -38,6 +38,17 @@ from pymia.smartpyme.service_1_pipeline_v1 import (
     Service1PipelineToolRequestV1,
     run_service_1_pipeline_v1,
 )
+from pymia.smartpyme.service_1_pyme_011_evaluator_v1 import (
+    CAPABILITY_REF as PYME_011_CAPABILITY_REF,
+    STATUS_EVALUATED as PYME_011_STATUS_EVALUATED,
+)
+from pymia.smartpyme.service_1_pyme_011_normalized_evidence_v1 import (
+    evaluate_pyme_011_from_normalized_tables_v1,
+)
+from pymia.smartpyme.service_1_pyme_011_outcome_v1 import (
+    STATUS_READY as PYME_011_OUTCOME_READY,
+    build_pyme_011_outcome_v1,
+)
 from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
     CAPABILITY_REF as REN_001_CAPABILITY_REF,
     STATUS_EVALUATED as REN_001_STATUS_EVALUATED,
@@ -228,6 +239,40 @@ def run_service_1_product_pipeline_v1(
                     bounded_outcome=bounded_outcome,
                 )
 
+        elif requested_capability == PYME_011_CAPABILITY_REF and has_complete_row_evidence:
+            computation_result = evaluate_pyme_011_from_normalized_tables_v1(
+                computation_plan=computation_plan,
+                normalized_tables=normalized_tables,
+                column_refs=column_refs,
+            )
+            if computation_result.get("status") != PYME_011_STATUS_EVALUATED:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=computation_result.get("status") or "PYME_011_COMPUTATION_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                )
+            bounded_outcome = build_pyme_011_outcome_v1(computation_result=computation_result)
+            if bounded_outcome.get("status") != PYME_011_OUTCOME_READY:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_011_OUTCOME_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+            if deliver_result:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="PYME_011_DELIVERY_NOT_AUTHORIZED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+
         return _packet(
             status=STATUS_COMPUTATION_PLAN_READY,
             semantic_run=semantic_run,
@@ -280,10 +325,12 @@ def _packet(
         "tools_executed": bool(isinstance(physical_run, dict)),
         "computation_executed": bool(
             isinstance(computation_result, dict)
-            and computation_result.get("status") in {
+            and computation_result.get("status")
+            in {
                 LIQ_001_STATUS_EVALUATED,
                 REN_001_STATUS_EVALUATED,
                 LIQ_002_STATUS_EVALUATED,
+                PYME_011_STATUS_EVALUATED,
             }
         ),
         "bounded_finding_generated": bool(
