@@ -91,7 +91,14 @@ class AssistedWebApplicationV1:
         packet = state.intake_packet
         if not isinstance(packet, dict):
             return HTTPStatus.BAD_REQUEST, _error_page("Primero elegí un archivo de Excel.")
-        answers = {question["question_id"]: fields.get(f"meaning_{question['question_id']}", "").strip() for question in packet.get("owner_questions", [])}
+        if not any(key.startswith("meaning_") for key in fields):
+            return HTTPStatus.OK, _column_confirmation_page(packet)
+        answers = {
+            question["question_id"]: fields.get(
+                f"meaning_{question['question_id']}", ""
+            ).strip()
+            for question in packet.get("owner_questions", [])
+        }
         if any(not answer for answer in answers.values()):
             return HTTPStatus.BAD_REQUEST, _column_confirmation_page(packet, "Respondé cada pregunta o elegí No estoy seguro.")
         canonical = build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
