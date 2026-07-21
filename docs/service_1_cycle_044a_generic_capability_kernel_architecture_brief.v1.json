@@ -1,0 +1,94 @@
+{
+  "schema_version": "SERVICE_1_CYCLE_044A_GENERIC_CAPABILITY_KERNEL_ARCHITECTURE_BRIEF_V1",
+  "cycle": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE",
+  "status": "ARCHITECTURE_DECIDED_NO_PRODUCTIVE_CODE",
+  "kernel_boundary": {
+    "starts_after": "GOVERNED_COMPUTATION_PLAN",
+    "ends_before": "PHYSICAL_DELIVERY",
+    "includes": [
+      "evidence_resolution",
+      "governed_aggregation",
+      "mathematical_domain_validation",
+      "safe_formula_execution",
+      "classification",
+      "bounded_outcome"
+    ],
+    "excludes": [
+      "ingestion",
+      "owner_dialogue",
+      "case_fsm",
+      "cli",
+      "capability_selection",
+      "xlsx_pdf_delivery",
+      "external_connectors",
+      "llm_runtime"
+    ]
+  },
+  "principles": {
+    "explicit_capability_request_required": true,
+    "fail_closed": true,
+    "eval_allowed": false,
+    "automatic_capability_selection": false,
+    "decimal_required": true,
+    "typed_results_required": true,
+    "causal_diagnosis_authorized": false,
+    "second_productive_root_authorized": false
+  },
+  "capability_types": ["ATOMIC", "COMPOSITE"],
+  "migration_states": [
+    "LEGACY_ACTIVE",
+    "GENERIC_SHADOW",
+    "GENERIC_PRIMARY",
+    "RETIRED"
+  ],
+  "safe_operations_initial": ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE"],
+  "aggregation_strategies_initial": ["SUM", "SINGLE_VALUE"],
+  "single_value_cardinality": "EXACTLY_ONE",
+  "typed_result_fields": [
+    "value",
+    "unit",
+    "period",
+    "precision",
+    "provenance",
+    "capability_ref",
+    "pathology_code"
+  ],
+  "pilot_pathologies": ["LIQ_002", "PYME_011"],
+  "composite_first_candidate": {
+    "pathology_code": "PYME_013",
+    "formula": "dso - dpo",
+    "must_consume_governed_results": ["dso", "dpo"],
+    "implicit_reconstruction_allowed": false,
+    "full_cash_conversion_cycle_claim_allowed": false,
+    "limitation": "DSO minus DPO is not the complete cash conversion cycle without DIO"
+  },
+  "acceptance_criteria": [
+    "exact_result_equivalence",
+    "classification_equivalence",
+    "blocking_equivalence",
+    "safety_flags_false",
+    "no_automatic_selection",
+    "no_eval",
+    "single_value_rejects_non_one_cardinality",
+    "denominators_protected",
+    "full_regression_green",
+    "single_productive_root",
+    "no_legacy_removal_during_initial_extraction",
+    "differences_fail_closed_and_traceable"
+  ],
+  "future_cycles_proposed": [
+    "CYCLE_044B_IMPLEMENT_MINIMAL_GENERIC_CAPABILITY_KERNEL",
+    "CYCLE_044C_RUN_GENERIC_SHADOW_EQUIVALENCE",
+    "CYCLE_044D_PROMOTE_GENERIC_KERNEL",
+    "CYCLE_045_CONNECT_PYME_013_USING_GENERIC_KERNEL"
+  ],
+  "cycle_044a_authorizations": {
+    "productive_code": false,
+    "productive_root_modification": false,
+    "pyme_013_connection": false,
+    "legacy_module_removal": false,
+    "automatic_selection": false,
+    "llm_runtime": false,
+    "causal_diagnosis": false
+  }
+}
