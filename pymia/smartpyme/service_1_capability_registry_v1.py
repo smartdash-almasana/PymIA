@@ -308,6 +308,43 @@ PYME_033 = CapabilityDefinitionV1(
 )
 
 
+PYME_027 = CapabilityDefinitionV1(
+    capability_ref="interest_burden_ratio",
+    pathology_code="PYME_027",
+    formula_ref="PYME_027_interest_burden_ratio",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("interest_expense", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1(
+            "ebitda",
+            "SINGLE_VALUE",
+            minimum=Decimal("0"),
+            minimum_inclusive=False,
+            unit="currency",
+        ),
+    ),
+    formula=_op("DIVIDE", _var("interest_expense"), _var("ebitda")),
+    result_key="interest_burden_ratio_value",
+    result_unit="ratio",
+    classifications=(
+        ClassificationRuleV1("ZERO_INTEREST_BURDEN", "EQ", reference_value=Decimal("0")),
+        ClassificationRuleV1("POSITIVE_INTEREST_BURDEN", "GT", reference_value=Decimal("0")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("ZERO_INTEREST_BURDEN", "La evidencia confirmada muestra una carga de intereses igual a cero."),
+            ("POSITIVE_INTEREST_BURDEN", "La evidencia confirmada muestra una carga de intereses positiva respecto del EBITDA."),
+        ),
+        treatments=(
+            ("ZERO_INTEREST_BURDEN", ("Conservar el indicador como control del período confirmado.",)),
+            ("POSITIVE_INTEREST_BURDEN", ("Revisar intereses y EBITDA confirmados antes de interpretar su evolución.",)),
+        ),
+        limitations=("La razón describe una relación matemática y no confirma sostenibilidad financiera ni causas.",),
+        forbidden_claims=("Afirmar estrés financiero, insolvencia o decisiones de financiamiento sin evidencia adicional.",),
+    ),
+)
+
+
 REN_002 = CapabilityDefinitionV1(
     capability_ref="index_update_ratio",
     pathology_code="REN_002",
@@ -391,6 +428,7 @@ _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     PYME_013.capability_ref: PYME_013,
     PYME_024.capability_ref: PYME_024,
     PYME_033.capability_ref: PYME_033,
+    PYME_027.capability_ref: PYME_027,
     REN_002.capability_ref: REN_002,
 }
 
@@ -413,6 +451,7 @@ __all__ = [
     "PYME_013",
     "PYME_024",
     "PYME_033",
+    "PYME_027",
     "REN_002",
     "get_capability_definition_v1",
     "list_capability_refs_v1",
