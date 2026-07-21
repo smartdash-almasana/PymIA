@@ -23,16 +23,12 @@ from pymia.smartpyme.service_1_liq_001_outcome_v1 import (
     build_liq_001_outcome_v1,
     deliver_liq_001_outcome_xlsx_v1,
 )
+from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
+    STATUS_EVALUATED as GENERIC_STATUS_EVALUATED,
+    execute_generic_capability_v1,
+)
 from pymia.smartpyme.service_1_liq_002_evaluator_v1 import (
     CAPABILITY_REF as LIQ_002_CAPABILITY_REF,
-    STATUS_EVALUATED as LIQ_002_STATUS_EVALUATED,
-)
-from pymia.smartpyme.service_1_liq_002_normalized_evidence_v1 import (
-    evaluate_liq_002_from_normalized_tables_v1,
-)
-from pymia.smartpyme.service_1_liq_002_outcome_v1 import (
-    STATUS_READY as LIQ_002_OUTCOME_READY,
-    build_liq_002_outcome_v1,
 )
 from pymia.smartpyme.service_1_pipeline_v1 import (
     Service1PipelineToolRequestV1,
@@ -40,14 +36,6 @@ from pymia.smartpyme.service_1_pipeline_v1 import (
 )
 from pymia.smartpyme.service_1_pyme_011_evaluator_v1 import (
     CAPABILITY_REF as PYME_011_CAPABILITY_REF,
-    STATUS_EVALUATED as PYME_011_STATUS_EVALUATED,
-)
-from pymia.smartpyme.service_1_pyme_011_normalized_evidence_v1 import (
-    evaluate_pyme_011_from_normalized_tables_v1,
-)
-from pymia.smartpyme.service_1_pyme_011_outcome_v1 import (
-    STATUS_READY as PYME_011_OUTCOME_READY,
-    build_pyme_011_outcome_v1,
 )
 from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
     CAPABILITY_REF as REN_001_CAPABILITY_REF,
@@ -206,12 +194,13 @@ def run_service_1_product_pipeline_v1(
                 )
 
         elif requested_capability == LIQ_002_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = evaluate_liq_002_from_normalized_tables_v1(
+            computation_result = execute_generic_capability_v1(
+                capability_ref=requested_capability,
                 computation_plan=computation_plan,
                 normalized_tables=normalized_tables,
                 column_refs=column_refs,
             )
-            if computation_result.get("status") != LIQ_002_STATUS_EVALUATED:
+            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
                 return _packet(
                     status=STATUS_BLOCKED,
                     blocked_reason=computation_result.get("status") or "LIQ_002_COMPUTATION_BLOCKED",
@@ -219,8 +208,8 @@ def run_service_1_product_pipeline_v1(
                     computation_plan=computation_plan,
                     computation_result=computation_result,
                 )
-            bounded_outcome = build_liq_002_outcome_v1(computation_result=computation_result)
-            if bounded_outcome.get("status") != LIQ_002_OUTCOME_READY:
+            bounded_outcome = computation_result["outcome"]
+            if bounded_outcome.get("status") != "OUTCOME_READY":
                 return _packet(
                     status=STATUS_BLOCKED,
                     blocked_reason=bounded_outcome.get("blocked_reason") or "LIQ_002_OUTCOME_BLOCKED",
@@ -240,12 +229,13 @@ def run_service_1_product_pipeline_v1(
                 )
 
         elif requested_capability == PYME_011_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = evaluate_pyme_011_from_normalized_tables_v1(
+            computation_result = execute_generic_capability_v1(
+                capability_ref=requested_capability,
                 computation_plan=computation_plan,
                 normalized_tables=normalized_tables,
                 column_refs=column_refs,
             )
-            if computation_result.get("status") != PYME_011_STATUS_EVALUATED:
+            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
                 return _packet(
                     status=STATUS_BLOCKED,
                     blocked_reason=computation_result.get("status") or "PYME_011_COMPUTATION_BLOCKED",
@@ -253,8 +243,8 @@ def run_service_1_product_pipeline_v1(
                     computation_plan=computation_plan,
                     computation_result=computation_result,
                 )
-            bounded_outcome = build_pyme_011_outcome_v1(computation_result=computation_result)
-            if bounded_outcome.get("status") != PYME_011_OUTCOME_READY:
+            bounded_outcome = computation_result["outcome"]
+            if bounded_outcome.get("status") != "OUTCOME_READY":
                 return _packet(
                     status=STATUS_BLOCKED,
                     blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_011_OUTCOME_BLOCKED",
@@ -329,8 +319,7 @@ def _packet(
             in {
                 LIQ_001_STATUS_EVALUATED,
                 REN_001_STATUS_EVALUATED,
-                LIQ_002_STATUS_EVALUATED,
-                PYME_011_STATUS_EVALUATED,
+                GENERIC_STATUS_EVALUATED,
             }
         ),
         "bounded_finding_generated": bool(
