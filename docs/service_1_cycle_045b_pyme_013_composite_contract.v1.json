@@ -1,0 +1,77 @@
+{
+  "schema_version": "SERVICE_1_CYCLE_045B_PYME_013_COMPOSITE_CONTRACT_V1",
+  "cycle": "CYCLE_045B_CONNECT_PYME_013_COMPOSITE",
+  "status": "DECIDED_FOR_IMPLEMENTATION",
+  "capability": {
+    "capability_ref": "payment_collection_gap",
+    "pathology_code": "PYME_013",
+    "formula_ref": "PYME_013_dso_dpo_gap",
+    "kind": "COMPOSITE",
+    "result_key": "payment_collection_gap_days",
+    "result_unit": "days",
+    "variables": [
+      {
+        "name": "dso_days",
+        "aggregation": "SINGLE_VALUE",
+        "minimum": "0",
+        "minimum_inclusive": true,
+        "unit": "days",
+        "source": {
+          "capability_ref": "dso",
+          "result_key": "dso_days"
+        }
+      },
+      {
+        "name": "dpo_days",
+        "aggregation": "SINGLE_VALUE",
+        "minimum": "0",
+        "minimum_inclusive": true,
+        "unit": "days",
+        "source": {
+          "capability_ref": "dpo",
+          "result_key": "dpo_days"
+        }
+      }
+    ],
+    "formula": {
+      "operation": "SUBTRACT",
+      "left": {"operation": "VARIABLE", "variable_name": "dso_days"},
+      "right": {"operation": "VARIABLE", "variable_name": "dpo_days"}
+    },
+    "classifications": [
+      {"code": "COLLECTIONS_BEFORE_PAYMENTS", "comparison": "LT", "reference_value": "0"},
+      {"code": "COLLECTIONS_MATCH_PAYMENTS", "comparison": "EQ", "reference_value": "0"},
+      {"code": "COLLECTIONS_AFTER_PAYMENTS", "comparison": "GT", "reference_value": "0"}
+    ]
+  },
+  "execution_contract": {
+    "input_argument": "governed_results",
+    "atomic_uses_governed_results": false,
+    "composite_uses_normalized_tables": false,
+    "implicit_prerequisite_execution": false,
+    "automatic_capability_selection": false,
+    "required_result_status": "EVALUATED",
+    "required_unit": "days",
+    "required_flags": {
+      "runtime_authorized": false,
+      "tool_execution_authorized": false,
+      "product_ready": false,
+      "delivery_authorized": false,
+      "diagnosis_generated": false
+    }
+  },
+  "root_contract": {
+    "requested_capability": "payment_collection_gap",
+    "single_kernel_execution": true,
+    "delivery_block_reason": "PYME_013_DELIVERY_NOT_AUTHORIZED"
+  },
+  "forbidden": [
+    "read_raw_evidence_for_pyme_013",
+    "recompute_dso",
+    "recompute_dpo",
+    "execute_missing_prerequisites",
+    "second_product_root",
+    "causal_diagnosis",
+    "physical_delivery"
+  ]
+}
