@@ -61,6 +61,11 @@
       "module": "service_1_accounting_contracts_v1",
       "decision": "RETAIN_SUPPORT",
       "reason": "Accounting contract family foundation retained as support, not as a product root."
+    },
+    {
+      "module": "service_1_assisted_web_v1",
+      "decision": "RETAIN_SUPPORT",
+      "reason": "Local assisted HTML surface delegates explicitly to the canonical product root and cannot authorize delivery."
     }
   ],
   "transitional_support_not_product_root": [],
