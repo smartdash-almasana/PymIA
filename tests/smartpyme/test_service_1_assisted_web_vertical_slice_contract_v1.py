@@ -14,6 +14,10 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _visible_surface() -> str:
+    return _read(TEMPLATE) + "\n" + _read(WEB_MODULE)
+
+
 def test_assisted_web_artifacts_exist() -> None:
     assert WEB_MODULE.exists()
     assert TEMPLATE.exists()
@@ -21,7 +25,7 @@ def test_assisted_web_artifacts_exist() -> None:
 
 
 def test_visible_interface_uses_plain_spanish() -> None:
-    html = _read(TEMPLATE)
+    surface = _visible_surface()
 
     required_text = (
         "Revisar información de mi negocio",
@@ -32,7 +36,7 @@ def test_visible_interface_uses_plain_spanish() -> None:
         "Ver cómo se calculó",
     )
     for text in required_text:
-        assert text in html
+        assert text in surface
 
     forbidden_visible_terms = (
         "pipeline",
@@ -45,35 +49,34 @@ def test_visible_interface_uses_plain_spanish() -> None:
         "patología",
         "capability",
     )
-    lowered = html.lower()
+    template = _read(TEMPLATE).lower()
     for term in forbidden_visible_terms:
-        assert term not in lowered
+        assert term not in template
 
 
 def test_htmx_is_used_without_frontend_framework() -> None:
-    html = _read(TEMPLATE)
-    lowered = html.lower()
+    surface = _visible_surface().lower()
 
-    assert "htmx" in lowered
-    assert "hx-post" in lowered or "hx-get" in lowered
-    assert "hx-target" in lowered
-    assert "react" not in lowered
-    assert "vue" not in lowered
-    assert "angular" not in lowered
+    assert "htmx" in surface
+    assert "hx-post" in surface or "hx-get" in surface
+    assert "hx-target" in surface
+    assert "react" not in surface
+    assert "vue" not in surface
+    assert "angular" not in surface
 
 
 def test_accessibility_contract_is_present() -> None:
-    html = _read(TEMPLATE)
+    surface = _visible_surface().lower()
     css = _read(STYLES)
-    lowered = html.lower()
 
-    assert "<main" in lowered
-    assert "<h1" in lowered
-    assert "<label" in lowered
-    assert "aria-live" in lowered
-    assert "role=\"alert\"" in lowered or "role='alert'" in lowered
+    assert "<main" in surface
+    assert "<h1" in surface
+    assert "<label" in surface
+    assert "aria-live" in surface
+    assert "role=\"alert\"" in surface or "role='alert'" in surface
     assert ":focus-visible" in css
     assert "prefers-reduced-motion" in css
+    assert "htmx:afterswap" in surface
 
 
 def test_vertical_slice_delegates_to_product_root() -> None:
@@ -100,25 +103,25 @@ def test_interface_does_not_reimplement_governed_formulas() -> None:
 
 
 def test_only_xlsx_upload_is_advertised() -> None:
-    html = _read(TEMPLATE).lower()
+    surface = _visible_surface().lower()
 
-    assert ".xlsx" in html
-    assert "accept=\".xlsx" in html or "accept='.xlsx" in html
-    assert ".pdf" not in html
-    assert "ocr" not in html
+    assert ".xlsx" in surface
+    assert "accept=\".xlsx" in surface or "accept='.xlsx" in surface
+    assert ".pdf" not in surface
+    assert "ocr" not in surface
 
 
 def test_uncertainty_is_a_first_class_owner_answer() -> None:
-    html = _read(TEMPLATE)
+    surface = _visible_surface()
 
-    assert "No estoy seguro" in html
-    assert "value=\"not_sure\"" in html or "value='not_sure'" in html
+    assert "No estoy seguro" in surface
+    assert "value=\"not_sure\"" in surface or "value='not_sure'" in surface
 
 
 def test_result_exposes_data_and_limits_without_causal_diagnosis() -> None:
-    html = _read(TEMPLATE)
+    surface = _visible_surface()
 
-    assert "Datos utilizados" in html
-    assert "Este cálculo describe una relación matemática" in html
-    assert "No determina por sí solo" in html
-    assert "diagnóstico causal" not in html.lower()
+    assert "Datos utilizados" in surface
+    assert "Este cálculo describe una relación matemática" in surface
+    assert "No determina por sí solo" in surface
+    assert "diagnóstico causal" not in surface.lower()
