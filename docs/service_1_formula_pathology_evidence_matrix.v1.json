@@ -1,8 +1,8 @@
 {
-  "catalog_version": "1.0",
+  "catalog_version": "1.1",
   "artifact_type": "service_1_formula_pathology_evidence_matrix",
-  "base_ref": "origin/main/fa5c359",
-  "status": "CATALOG_ONLY_NOT_RUNTIME",
+  "base_ref": "origin/main/CYCLE_042",
+  "status": "GOVERNED_COMPUTATION_PLANNING_ONLY",
   "runtime_connection_allowed": false,
   "phase_5_allowed": false,
   "source_catalogs": [
@@ -13,67 +13,53 @@
   "entries": [
     {
       "pathology_code": "REN_001",
-      "formula_refs": [
-        "REN_001_margen_neto_real"
-      ],
-      "required_variables": [
-        "sale_price",
-        "costs",
-        "taxes"
-      ],
-      "semantic_bindings": [
-        "sale_price",
-        "costs",
-        "taxes"
-      ],
-      "required_evidence": [
-        "ventas_del_periodo",
-        "costos_directos",
-        "impuestos_y_comisiones"
-      ],
+      "formula_refs": ["REN_001_margen_neto_real"],
+      "required_variables": ["sale_price", "costs", "taxes"],
+      "semantic_bindings": ["sale_price", "costs", "taxes"],
+      "required_evidence": ["ventas_del_periodo", "costos_directos", "impuestos_y_comisiones"],
       "runtime_allowed": false,
       "phase_5_allowed": false,
-      "readiness_status": "not_runtime_ready",
+      "readiness_status": "governed_computation_candidate",
       "owner_confirmation_required": true,
-      "capability_refs": [
-        "net_margin_real"
-      ],
+      "capability_refs": ["net_margin_real"],
       "semantic_binding_candidate_allowed": true,
       "computation_candidate_allowed": true,
-      "computation_preconditions": [
-        "sale_price > 0",
-        "costs >= 0",
-        "taxes >= 0",
-        "all required values are finite numeric evidence"
-      ]
+      "computation_preconditions": ["sale_price > 0", "costs >= 0", "taxes >= 0", "all required values are finite numeric evidence"]
     },
     {
       "pathology_code": "LIQ_001",
-      "formula_refs": [
-        "LIQ_001_vendido_cobrado"
-      ],
-      "required_variables": [
-        "sold_amount",
-        "collected_amount"
-      ],
-      "semantic_bindings": [
-        "sold_amount",
-        "collected_amount"
-      ],
-      "required_evidence": [
-        "ventas_del_periodo",
-        "cobranzas_del_periodo",
-        "cuentas_corrientes_clientes"
-      ],
+      "formula_refs": ["LIQ_001_vendido_cobrado"],
+      "required_variables": ["sold_amount", "collected_amount"],
+      "semantic_bindings": ["sold_amount", "collected_amount"],
+      "required_evidence": ["ventas_del_periodo", "cobranzas_del_periodo", "cuentas_corrientes_clientes"],
       "runtime_allowed": false,
       "phase_5_allowed": false,
-      "readiness_status": "not_runtime_ready",
+      "readiness_status": "governed_computation_candidate",
       "owner_confirmation_required": true,
-      "capability_refs": [
-        "sold_vs_collected_gap"
-      ],
+      "capability_refs": ["sold_vs_collected_gap"],
       "semantic_binding_candidate_allowed": true,
       "computation_candidate_allowed": true
+    },
+    {
+      "pathology_code": "LIQ_002",
+      "formula_refs": ["LIQ_002_saldo_final_proyectado"],
+      "required_variables": ["initial_balance", "expected_collections", "expected_payments"],
+      "semantic_bindings": ["initial_balance", "expected_collections", "expected_payments"],
+      "required_evidence": ["saldo_inicial_caja_banco", "cobranzas_esperadas", "pagos_esperados"],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": ["projected_closing_cash_balance"],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "computation_preconditions": [
+        "initial_balance >= 0",
+        "expected_collections >= 0",
+        "expected_payments >= 0",
+        "initial_balance resolves to exactly one explicit value",
+        "all required values are finite numeric evidence"
+      ]
     },
     {
       "pathology_code": "SAL_001",
