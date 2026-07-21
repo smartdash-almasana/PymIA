@@ -1,7 +1,7 @@
 {
-  "catalog_version": "1.1",
+  "catalog_version": "1.2",
   "artifact_type": "service_1_formula_pathology_evidence_matrix",
-  "base_ref": "origin/main/CYCLE_042",
+  "base_ref": "origin/main/CYCLE_043",
   "status": "GOVERNED_COMPUTATION_PLANNING_ONLY",
   "runtime_connection_allowed": false,
   "phase_5_allowed": false,
@@ -58,6 +58,28 @@
         "expected_collections >= 0",
         "expected_payments >= 0",
         "initial_balance resolves to exactly one explicit value",
+        "all required values are finite numeric evidence"
+      ]
+    },
+    {
+      "pathology_code": "PYME_011",
+      "formula_refs": ["PYME_011_dso"],
+      "required_variables": ["accounts_receivable", "sales", "days"],
+      "semantic_bindings": ["accounts_receivable", "sales", "days"],
+      "required_evidence": ["cuentas_por_cobrar", "ventas_periodo", "periodo_dias"],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": ["dso"],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "computation_preconditions": [
+        "accounts_receivable >= 0",
+        "sales > 0",
+        "days > 0",
+        "accounts_receivable and sales share the same confirmed period",
+        "days resolves to one consistent confirmed period value",
         "all required values are finite numeric evidence"
       ]
     },
