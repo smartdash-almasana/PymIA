@@ -2,15 +2,9 @@
 
 This module groups semantic column candidates into business-capability families.
 It does not infer new column meanings, execute tools, select diagnoses, or
-authorize runtime.  It only answers a higher-level question:
-
-    Which coherent variable families are present, incomplete, ambiguous or absent?
-
-A family is evaluated from the existing canonical semantic candidates.  Required
-roles are expressed as groups so that equivalent identifiers can satisfy the
-same need (for example product code OR product name).
+authorize runtime. It only reports which coherent variable families are ready,
+incomplete, ambiguous or absent.
 """
-
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -28,14 +22,11 @@ FAMILY_SALES_MARGIN: Final[str] = "SALES_MARGIN"
 FAMILY_CASH_COLLECTIONS: Final[str] = "CASH_COLLECTIONS"
 FAMILY_PURCHASES_SUPPLIERS: Final[str] = "PURCHASES_SUPPLIERS"
 FAMILY_INVENTORY_CONTROL: Final[str] = "INVENTORY_CONTROL"
+FAMILY_CASH_PROJECTION: Final[str] = "CASH_PROJECTION"
 
 STATUS_READY: Final[str] = "VARIABLE_FAMILY_READY"
-STATUS_NEEDS_OWNER_CONFIRMATION: Final[str] = (
-    "VARIABLE_FAMILY_NEEDS_OWNER_CONFIRMATION"
-)
-STATUS_MISSING_REQUIRED_ROLES: Final[str] = (
-    "VARIABLE_FAMILY_MISSING_REQUIRED_ROLES"
-)
+STATUS_NEEDS_OWNER_CONFIRMATION: Final[str] = "VARIABLE_FAMILY_NEEDS_OWNER_CONFIRMATION"
+STATUS_MISSING_REQUIRED_ROLES: Final[str] = "VARIABLE_FAMILY_MISSING_REQUIRED_ROLES"
 STATUS_NOT_OBSERVED: Final[str] = "VARIABLE_FAMILY_NOT_OBSERVED"
 
 ALLOWED_STATUSES: Final[tuple[str, ...]] = (
@@ -117,203 +108,87 @@ class Service1VariableFamilyBindingV1:
         return asdict(self)
 
 
-VARIABLE_FAMILY_DEFINITIONS: Final[
-    tuple[Service1VariableFamilyDefinitionV1, ...]
-] = (
+VARIABLE_FAMILY_DEFINITIONS: Final[tuple[Service1VariableFamilyDefinitionV1, ...]] = (
     Service1VariableFamilyDefinitionV1(
         family_id=FAMILY_OPERATION_CORE,
         owner_label="Operación comercial básica",
         priority=1,
-        required_role_groups=(
-            ("operation_date",),
-            ("product_identifier", "product_name"),
-            ("quantity",),
-            ("sales_amount",),
-        ),
-        optional_roles=(
-            "document_reference",
-            "sales_channel",
-            "commercial_category",
-        ),
-        target_variable_names=(
-            "operation_date",
-            "document_ref",
-            "product_id_or_name",
-            "quantity",
-            "sold_amount",
-            "customer",
-            "sales_channel",
-        ),
-        target_capabilities=(
-            "reconstruct_transactions",
-            "group_sales_by_product_and_period",
-            "detect_duplicate_or_untraceable_operations",
-        ),
+        required_role_groups=(("operation_date",), ("product_identifier", "product_name"), ("quantity",), ("sales_amount",)),
+        optional_roles=("document_reference", "sales_channel", "commercial_category"),
+        target_variable_names=("operation_date", "document_ref", "product_id_or_name", "quantity", "sold_amount", "customer", "sales_channel"),
+        target_capabilities=("reconstruct_transactions", "group_sales_by_product_and_period", "detect_duplicate_or_untraceable_operations"),
     ),
     Service1VariableFamilyDefinitionV1(
         family_id=FAMILY_SALES_MARGIN,
         owner_label="Venta, precio y margen",
         priority=2,
-        required_role_groups=(
-            ("product_identifier", "product_name"),
-            ("quantity",),
-            ("unit_sale_price",),
-            ("unit_cost_candidate",),
-        ),
-        optional_roles=(
-            "sales_amount",
-            "discount_amount",
-            "tax_amount",
-            "sales_channel",
-            "commercial_category",
-        ),
-        target_variable_names=(
-            "product_id_or_name",
-            "quantity",
-            "sale_price",
-            "cost",
-            "sold_amount",
-            "discount",
-            "taxes_and_commissions",
-        ),
-        target_capabilities=(
-            "gross_margin",
-            "markup",
-            "price_cost_variation",
-            "margin_by_product_or_segment",
-        ),
+        required_role_groups=(("product_identifier", "product_name"), ("quantity",), ("unit_sale_price",), ("unit_cost_candidate",)),
+        optional_roles=("sales_amount", "discount_amount", "tax_amount", "sales_channel", "commercial_category"),
+        target_variable_names=("product_id_or_name", "quantity", "sale_price", "cost", "sold_amount", "discount", "taxes_and_commissions"),
+        target_capabilities=("gross_margin", "markup", "price_cost_variation", "margin_by_product_or_segment"),
     ),
     Service1VariableFamilyDefinitionV1(
         family_id=FAMILY_CASH_COLLECTIONS,
         owner_label="Caja y cobranzas",
         priority=3,
-        required_role_groups=(
-            ("operation_date",),
-            ("sales_amount",),
-            ("collected_amount",),
-        ),
-        optional_roles=(
-            "accounts_receivable_amount",
-            "document_reference",
-            "initial_balance",
-            "payment_method",
-            "due_date",
-        ),
-        target_variable_names=(
-            "operation_date",
-            "sold_amount",
-            "collected_amount",
-            "accounts_receivable",
-            "initial_balance",
-            "payment_method",
-            "due_date",
-        ),
-        target_capabilities=(
-            "sold_vs_collected_gap",
-            "receivables_visibility",
-            "cash_flow_ordering",
-            "collection_aging",
-        ),
+        required_role_groups=(("operation_date",), ("sales_amount",), ("collected_amount",)),
+        optional_roles=("accounts_receivable_amount", "document_reference", "initial_balance", "payment_method", "due_date"),
+        target_variable_names=("operation_date", "sold_amount", "collected_amount", "accounts_receivable", "initial_balance", "payment_method", "due_date"),
+        target_capabilities=("sold_vs_collected_gap", "receivables_visibility", "cash_flow_ordering", "collection_aging"),
     ),
     Service1VariableFamilyDefinitionV1(
         family_id=FAMILY_PURCHASES_SUPPLIERS,
         owner_label="Compras y proveedores",
         priority=4,
-        required_role_groups=(
-            ("operation_date",),
-            ("supplier_name",),
-            ("product_identifier", "product_name"),
-            ("purchase_amount",),
-        ),
-        optional_roles=(
-            "paid_amount",
-            "due_date",
-            "payment_method",
-            "document_reference",
-            "unit_cost_candidate",
-        ),
-        target_variable_names=(
-            "operation_date",
-            "supplier",
-            "product_id_or_name",
-            "purchase_amount",
-            "paid_amount",
-            "due_date",
-            "payment_method",
-        ),
-        target_capabilities=(
-            "supplier_price_variation",
-            "purchases_vs_payments",
-            "supplier_dependency",
-            "payment_due_visibility",
-        ),
+        required_role_groups=(("operation_date",), ("supplier_name",), ("product_identifier", "product_name"), ("purchase_amount",)),
+        optional_roles=("paid_amount", "due_date", "payment_method", "document_reference", "unit_cost_candidate"),
+        target_variable_names=("operation_date", "supplier", "product_id_or_name", "purchase_amount", "paid_amount", "due_date", "payment_method"),
+        target_capabilities=("supplier_price_variation", "purchases_vs_payments", "supplier_dependency", "payment_due_visibility"),
     ),
     Service1VariableFamilyDefinitionV1(
         family_id=FAMILY_INVENTORY_CONTROL,
         owner_label="Stock e inventario",
         priority=5,
-        required_role_groups=(
-            ("product_identifier", "product_name"),
-            ("stock_current",),
-            ("stock_minimum",),
-        ),
-        optional_roles=(
-            "quantity",
-            "average_daily_sales",
-            "unit_cost_candidate",
-            "operation_date",
-        ),
-        target_variable_names=(
-            "product_id_or_name",
-            "stock_current",
-            "stock_minimum",
-            "average_daily_sales",
-            "cost",
-        ),
-        target_capabilities=(
-            "low_stock_alert",
-            "days_of_stock_remaining",
-            "inventory_value_visibility",
-            "reorder_evidence",
-        ),
+        required_role_groups=(("product_identifier", "product_name"), ("stock_current",), ("stock_minimum",)),
+        optional_roles=("quantity", "average_daily_sales", "unit_cost_candidate", "operation_date"),
+        target_variable_names=("product_id_or_name", "stock_current", "stock_minimum", "average_daily_sales", "cost"),
+        target_capabilities=("low_stock_alert", "days_of_stock_remaining", "inventory_value_visibility", "reorder_evidence"),
+    ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_CASH_PROJECTION,
+        owner_label="Proyección de caja",
+        priority=6,
+        required_role_groups=(("initial_balance",), ("expected_collections",), ("expected_payments",)),
+        optional_roles=("operation_date", "due_date", "document_reference"),
+        target_variable_names=("initial_balance", "expected_collections", "expected_payments"),
+        target_capabilities=("projected_closing_cash_balance",),
     ),
 )
 
 
 def build_service_1_variable_family_bindings_v1(
-    column_candidates: tuple[Service1ColumnSemanticCandidateV1, ...]
-    | list[Service1ColumnSemanticCandidateV1],
+    column_candidates: tuple[Service1ColumnSemanticCandidateV1, ...] | list[Service1ColumnSemanticCandidateV1],
 ) -> tuple[Service1VariableFamilyBindingV1, ...]:
-    """Resolve the five canonical variable families from semantic candidates."""
+    """Resolve the canonical variable families from semantic candidates."""
     candidates = tuple(column_candidates or ())
     for candidate in candidates:
         if not isinstance(candidate, Service1ColumnSemanticCandidateV1):
-            raise TypeError(
-                "column_candidates must contain Service1ColumnSemanticCandidateV1"
-            )
+            raise TypeError("column_candidates must contain Service1ColumnSemanticCandidateV1")
 
     resolved_role_columns: dict[str, list[str]] = {}
     ambiguous_role_columns: dict[str, list[str]] = {}
-
     for candidate in candidates:
         metadata = dict(candidate.metadata or {})
         if metadata.get("owner_ignored_not_relevant"):
             continue
-
-        roles = tuple(
-            role
-            for role in candidate.candidate_semantic_roles
-            if role and role != "unknown"
-        )
+        roles = tuple(role for role in candidate.candidate_semantic_roles if role and role != "unknown")
         if not roles:
             continue
-
         source_column = candidate.source_column_name
         if candidate.owner_confirmation_required:
             for role in roles:
                 _append_unique(ambiguous_role_columns, role, source_column)
             continue
-
         primary_role = str(metadata.get("primary_semantic_role") or "").strip()
         if primary_role and primary_role != "unknown" and primary_role in roles:
             resolved_roles = (primary_role,)
@@ -323,7 +198,6 @@ def build_service_1_variable_family_bindings_v1(
             for role in roles:
                 _append_unique(ambiguous_role_columns, role, source_column)
             continue
-
         for role in resolved_roles:
             _append_unique(resolved_role_columns, role, source_column)
 
@@ -338,26 +212,15 @@ def build_service_1_variable_family_bindings_v1(
 
 
 def ready_service_1_variable_family_ids_v1(
-    bindings: tuple[Service1VariableFamilyBindingV1, ...]
-    | list[Service1VariableFamilyBindingV1],
+    bindings: tuple[Service1VariableFamilyBindingV1, ...] | list[Service1VariableFamilyBindingV1],
 ) -> tuple[str, ...]:
-    return tuple(
-        binding.family_id
-        for binding in bindings
-        if binding.status == STATUS_READY
-    )
+    return tuple(binding.family_id for binding in bindings if binding.status == STATUS_READY)
 
 
-def _build_family_binding(
-    *,
-    definition: Service1VariableFamilyDefinitionV1,
-    resolved_role_columns: dict[str, list[str]],
-    ambiguous_role_columns: dict[str, list[str]],
-) -> Service1VariableFamilyBindingV1:
+def _build_family_binding(*, definition: Service1VariableFamilyDefinitionV1, resolved_role_columns: dict[str, list[str]], ambiguous_role_columns: dict[str, list[str]]) -> Service1VariableFamilyBindingV1:
     satisfied: list[tuple[str, ...]] = []
     missing: list[tuple[str, ...]] = []
     ambiguous_groups: list[tuple[str, ...]] = []
-
     for group in definition.required_role_groups:
         if any(role in resolved_role_columns for role in group):
             satisfied.append(group)
@@ -366,28 +229,12 @@ def _build_family_binding(
         else:
             missing.append(group)
 
-    required_roles = {
-        role
-        for group in definition.required_role_groups
-        for role in group
-    }
+    required_roles = {role for group in definition.required_role_groups for role in group}
     family_roles = required_roles | set(definition.optional_roles)
-    bound_roles = tuple(
-        role for role in sorted(family_roles) if role in resolved_role_columns
-    )
-    ambiguous_roles = tuple(
-        role for role in sorted(family_roles) if role in ambiguous_role_columns
-    )
-    optional_roles_present = tuple(
-        role
-        for role in definition.optional_roles
-        if role in resolved_role_columns
-    )
-
-    observed = any(
-        role in resolved_role_columns or role in ambiguous_role_columns
-        for role in required_roles
-    )
+    bound_roles = tuple(role for role in sorted(family_roles) if role in resolved_role_columns)
+    ambiguous_roles = tuple(role for role in sorted(family_roles) if role in ambiguous_role_columns)
+    optional_roles_present = tuple(role for role in definition.optional_roles if role in resolved_role_columns)
+    observed = any(role in resolved_role_columns or role in ambiguous_role_columns for role in required_roles)
     if len(satisfied) == len(definition.required_role_groups):
         status = STATUS_READY
     elif ambiguous_groups:
@@ -406,9 +253,6 @@ def _build_family_binding(
             if column not in source_columns:
                 source_columns.append(column)
 
-    total_required = len(definition.required_role_groups)
-    coverage_ratio = round(len(satisfied) / total_required, 6)
-
     return Service1VariableFamilyBindingV1(
         schema_version=SCHEMA_VERSION,
         service_name=SERVICE_NAME,
@@ -416,7 +260,7 @@ def _build_family_binding(
         owner_label=definition.owner_label,
         priority=definition.priority,
         status=status,
-        coverage_ratio=coverage_ratio,
+        coverage_ratio=round(len(satisfied) / len(definition.required_role_groups), 6),
         required_role_groups=definition.required_role_groups,
         satisfied_role_groups=tuple(satisfied),
         missing_role_groups=tuple(missing),
@@ -431,10 +275,7 @@ def _build_family_binding(
         tool_execution_authorized=False,
         delivery_authorized=False,
         diagnosis_generated=False,
-        metadata={
-            "family_binding_only": True,
-            "tool_selection_authorized": False,
-        },
+        metadata={"family_binding_only": True, "tool_selection_authorized": False},
     )
 
 
@@ -452,6 +293,7 @@ __all__ = [
     "FAMILY_CASH_COLLECTIONS",
     "FAMILY_PURCHASES_SUPPLIERS",
     "FAMILY_INVENTORY_CONTROL",
+    "FAMILY_CASH_PROJECTION",
     "STATUS_READY",
     "STATUS_NEEDS_OWNER_CONFIRMATION",
     "STATUS_MISSING_REQUIRED_ROLES",
