@@ -9,35 +9,32 @@
       "order": 1,
       "pathology_code": "LIQ_001",
       "capability_ref": "sold_vs_collected_gap",
+      "implementation_cycle": "BASELINE_PRODUCTIVE_ROOT",
       "delivery_status": "XLSX_EXPLICITLY_SUPPORTED"
     },
     {
       "order": 2,
       "pathology_code": "REN_001",
       "capability_ref": "net_margin_real",
+      "implementation_cycle": "CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT",
       "delivery_status": "XLSX_NOT_AUTHORIZED"
-    }
-  ],
-  "roadmap": [
+    },
     {
       "order": 3,
       "pathology_code": "LIQ_002",
-      "formula_id": "LIQ_002_saldo_final_proyectado",
-      "expression": "initial_balance + expected_collections - expected_payments",
-      "required_variables": ["initial_balance", "expected_collections", "expected_payments"],
-      "required_evidence": ["saldo_inicial_caja_banco", "cobranzas_esperadas", "pagos_esperados"],
-      "calculation_state": "CALCULABLE",
-      "implementation_cycle": "CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT"
+      "capability_ref": "projected_closing_cash_balance",
+      "implementation_cycle": "CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
     },
     {
       "order": 4,
       "pathology_code": "PYME_011",
-      "formula_id": "PYME_011_dso",
-      "expression": "accounts_receivable / sales * days",
-      "required_variables": ["accounts_receivable", "sales", "days"],
-      "required_evidence": ["cuentas_por_cobrar", "ventas_periodo", "periodo_dias"],
-      "calculation_state": "CALCULABLE"
-    },
+      "capability_ref": "dso",
+      "implementation_cycle": "CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT",
+      "delivery_status": "XLSX_NOT_AUTHORIZED"
+    }
+  ],
+  "roadmap": [
     {
       "order": 5,
       "pathology_code": "PYME_013",
@@ -45,7 +42,7 @@
       "expression": "dso - dpo",
       "required_variables": ["dso", "dpo"],
       "required_evidence": ["dso_calculado", "dpo_calculado"],
-      "calculation_state": "CALCULABLE"
+      "calculation_state": "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY"
     },
     {
       "order": 6,
@@ -111,20 +108,27 @@
       "calculation_state": "CALCULABLE_CON_SUPUESTOS"
     }
   ],
+  "architecture_transition": {
+    "previous_authorization": "CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT",
+    "previous_authorization_status": "SUSPENDED_BY_ARCHITECTURAL_DECISION",
+    "authorized_cycle": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE",
+    "pyme_013_status": "DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY"
+  },
   "global_guards": {
     "one_pathology_per_cycle": true,
     "explicit_capability_request_required": true,
     "automatic_capability_selection": false,
     "causal_diagnosis_authorized": false,
     "scrap_oee_included": false,
-    "llm_runtime_authorized": false
+    "llm_runtime_authorized": false,
+    "second_productive_root_authorized": false
   },
   "definition_of_done": [
     "governed capability contract and computation plan",
     "canonical variables and minimum evidence",
     "mathematical domain and denominator guards",
     "deterministic normalized evidence aggregation when required",
-    "evaluator and explicit classifications",
+    "evaluator or generic execution and explicit classifications",
     "bounded finding and treatment",
     "single-root integration by explicit request",
     "explicit XLSX delivery decision",
@@ -132,5 +136,5 @@
     "observed authorized execution",
     "locks, gates, disposition and status update"
   ],
-  "next_cycle": "CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT"
+  "next_cycle": "CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE"
 }
