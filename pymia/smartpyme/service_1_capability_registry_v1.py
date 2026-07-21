@@ -23,6 +23,10 @@ def _op(operation: str, left: FormulaNodeV1, right: FormulaNodeV1) -> FormulaNod
     return FormulaNodeV1(operation=operation, left=left, right=right)  # type: ignore[arg-type]
 
 
+def _val(value: str) -> FormulaNodeV1:
+    return FormulaNodeV1(operation="VALUE", value=Decimal(value))
+
+
 LIQ_002 = CapabilityDefinitionV1(
     capability_ref="projected_closing_cash_balance",
     pathology_code="LIQ_002",
@@ -265,6 +269,45 @@ PYME_024 = CapabilityDefinitionV1(
 )
 
 
+PYME_033 = CapabilityDefinitionV1(
+    capability_ref="sales_concentration",
+    pathology_code="PYME_033",
+    formula_ref="PYME_033_sales_concentration",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("main_sku_sales", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1("total_sales", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
+    ),
+    formula=_op("MULTIPLY", _op("DIVIDE", _var("main_sku_sales"), _var("total_sales")), _val("100")),
+    result_key="sales_concentration_percentage",
+    result_unit="percentage",
+    classifications=(
+        ClassificationRuleV1("ZERO_RECORDED_CONCENTRATION", "EQ", reference_value=Decimal("0")),
+        ClassificationRuleV1("CONCENTRATION_WITHIN_RECORDED_TOTAL", "LE", reference_value=Decimal("100")),
+        ClassificationRuleV1("CONCENTRATION_ABOVE_RECORDED_TOTAL", "GT", reference_value=Decimal("100")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("ZERO_RECORDED_CONCENTRATION", "la evidencia confirmada produce una concentración de ventas igual a cero."),
+            ("CONCENTRATION_WITHIN_RECORDED_TOTAL", "la evidencia confirmada muestra una concentración de ventas entre 0 y 100 por ciento del total registrado."),
+            ("CONCENTRATION_ABOVE_RECORDED_TOTAL", "la evidencia confirmada muestra una concentración de ventas mayor al total registrado."),
+        ),
+        treatments=(
+            ("ZERO_RECORDED_CONCENTRATION", ("revisar main_sku_sales y total_sales confirmados antes de interpretar.",)),
+            ("CONCENTRATION_WITHIN_RECORDED_TOTAL", ("conservar el indicador para comparar períodos equivalentes.",)),
+            ("CONCENTRATION_ABOVE_RECORDED_TOTAL", ("revisar main_sku_sales y total_sales por separado antes de atribuir una causa.",)),
+        ),
+        limitations=(
+            "La concentración de ventas describe una relación matemática y no identifica causas.",
+            "No aplicar umbrales universales de concentración sin contexto sectorial, temporal y contable.",
+        ),
+        forbidden_claims=(
+            "No afirmar dependencia excesiva de un producto o necesidad de diversificación sin evidencia adicional.",
+        ),
+    ),
+)
+
+
 PYME_011 = CapabilityDefinitionV1(
     capability_ref="dso",
     pathology_code="PYME_011",
@@ -308,6 +351,7 @@ _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     PYME_011.capability_ref: PYME_011,
     PYME_013.capability_ref: PYME_013,
     PYME_024.capability_ref: PYME_024,
+    PYME_033.capability_ref: PYME_033,
 }
 
 
@@ -328,6 +372,7 @@ __all__ = [
     "PYME_011",
     "PYME_013",
     "PYME_024",
+    "PYME_033",
     "get_capability_definition_v1",
     "list_capability_refs_v1",
 ]
