@@ -91,8 +91,8 @@ def _validate_plan(definition: CapabilityDefinitionV1, plan: object) -> list[str
         errors.append("computation_plan required_variables do not match capability definition.")
     if plan.get("computation_candidate_ready") is not True:
         errors.append("computation_plan candidate is not ready.")
-    if any(plan.get(flag) for flag in _closed_flags(False)):
-        errors.append("computation_plan safety flags must remain false.")
+    if any(plan.get(flag) is not False for flag in _closed_flags(False)):
+        errors.append("computation_plan safety flags must be explicitly false.")
     return errors
 
 

@@ -160,3 +160,24 @@ def test_wrong_plan_and_unknown_capability_fail_closed() -> None:
     assert wrong["status"] == STATUS_BLOCKED
     assert unknown["status"] == STATUS_BLOCKED
     assert unknown["errors"] == ["unsupported capability: automatic_guess."]
+
+
+def test_plan_requires_explicitly_false_safety_flags() -> None:
+    plan = _plan(
+        capability="dso",
+        pathology="PYME_011",
+        formula="PYME_011_dso",
+        variables=("accounts_receivable", "sales", "days"),
+        bindings={"accounts_receivable": "receivables", "sales": "sales", "days": "days"},
+    )
+    del plan["delivery_authorized"]
+
+    result = execute_generic_capability_v1(
+        capability_ref="dso",
+        computation_plan=plan,
+        normalized_tables=[{"sheet_name": "sheet1", "rows": [{"receivables": 10, "sales": 20, "days": 30}]}],
+        column_refs=_refs(("receivables", "sales", "days")),
+    )
+
+    assert result["status"] == STATUS_BLOCKED
+    assert result["errors"] == ["computation_plan safety flags must be explicitly false."]
