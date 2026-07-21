@@ -229,6 +229,42 @@ PYME_013 = CapabilityDefinitionV1(
 )
 
 
+PYME_024 = CapabilityDefinitionV1(
+    capability_ref="current_ratio",
+    pathology_code="PYME_024",
+    formula_ref="PYME_024_current_ratio",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("current_assets", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1("current_liabilities", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
+    ),
+    formula=_op("DIVIDE", _var("current_assets"), _var("current_liabilities")),
+    result_key="current_ratio_value",
+    result_unit="ratio",
+    classifications=(
+        ClassificationRuleV1("ZERO_CURRENT_RATIO", "EQ", reference_value=Decimal("0")),
+        ClassificationRuleV1("POSITIVE_CURRENT_RATIO", "GT", reference_value=Decimal("0")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("ZERO_CURRENT_RATIO", "la evidencia confirmada produce una razón corriente igual a cero."),
+            ("POSITIVE_CURRENT_RATIO", "la evidencia confirmada produce una razón corriente mayor que cero."),
+        ),
+        treatments=(
+            ("ZERO_CURRENT_RATIO", ("revisar activo y pasivo corriente confirmados antes de interpretar.",)),
+            ("POSITIVE_CURRENT_RATIO", ("conservar el indicador para comparar períodos equivalentes.",)),
+        ),
+        limitations=(
+            "La razón corriente es una relación matemática y no confirma solvencia ni capacidad efectiva de pago.",
+            "No aplicar umbrales universales sin contexto sectorial, temporal y contable.",
+        ),
+        forbidden_claims=(
+            "No afirmar insolvencia, liquidez suficiente, mala gestión o necesidad de financiamiento sin evidencia adicional.",
+        ),
+    ),
+)
+
+
 PYME_011 = CapabilityDefinitionV1(
     capability_ref="dso",
     pathology_code="PYME_011",
@@ -271,6 +307,7 @@ _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     DPO.capability_ref: DPO,
     PYME_011.capability_ref: PYME_011,
     PYME_013.capability_ref: PYME_013,
+    PYME_024.capability_ref: PYME_024,
 }
 
 
@@ -290,6 +327,7 @@ __all__ = [
     "DPO",
     "PYME_011",
     "PYME_013",
+    "PYME_024",
     "get_capability_definition_v1",
     "list_capability_refs_v1",
 ]
