@@ -214,7 +214,10 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
                         status, content_html = HTTPStatus.NOT_FOUND, _error_page("No encontramos esa acción.")
             except ValueError:
                 status, content_html = HTTPStatus.BAD_REQUEST, _error_page("No se pudo leer el envío. Probá de nuevo.")
-            self._send_html(status, content_html, session_id=session_id)
+            if self.headers.get("HX-Request") == "true":
+                self._send_fragment(status, content_html, session_id=session_id)
+            else:
+                self._send_html(status, content_html, session_id=session_id)
 
         def _session_id(self) -> str:
             cookie = self.headers.get("Cookie", "")
@@ -223,6 +226,9 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
                 if name == "service1_session" and value:
                     return value
             return secrets.token_urlsafe(18)
+
+        def _send_fragment(self, status: int, content: str, *, session_id: str | None = None) -> None:
+            self._send(status, content.encode("utf-8"), "text/html; charset=utf-8", session_id=session_id)
 
         def _send_html(self, status: int, content: str, *, session_id: str | None = None) -> None:
             self._send(status, _document(content).encode("utf-8"), "text/html; charset=utf-8", session_id=session_id)
