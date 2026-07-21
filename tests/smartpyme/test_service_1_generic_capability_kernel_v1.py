@@ -33,8 +33,8 @@ def _refs(columns: tuple[str, ...]) -> list[dict[str, str]]:
     ]
 
 
-def test_registry_is_minimal_and_explicit() -> None:
-    assert list_capability_refs_v1() == ("dso", "projected_closing_cash_balance")
+def test_registry_has_dpo_dso_and_projected_closing() -> None:
+    assert list_capability_refs_v1() == ("dpo", "dso", "projected_closing_cash_balance")
 
 
 def test_liq_002_executes_sum_and_single_value_without_touching_product_root() -> None:

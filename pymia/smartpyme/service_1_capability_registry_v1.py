@@ -57,6 +57,40 @@ LIQ_002 = CapabilityDefinitionV1(
     ),
 )
 
+DPO = CapabilityDefinitionV1(
+    capability_ref="dpo",
+    pathology_code="PYME_013_PREREQUISITE_DPO",
+    formula_ref="PYME_013_PREREQUISITE_dpo",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("accounts_payable", "SUM", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1("purchases", "SUM", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
+        VariableRequirementV1("days", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="days"),
+    ),
+    formula=_op("MULTIPLY", _op("DIVIDE", _var("accounts_payable"), _var("purchases")), _var("days")),
+    result_key="dpo_days",
+    result_unit="days",
+    classifications=(
+        ClassificationRuleV1("DPO_BELOW_PERIOD", "LT", reference_variable="days"),
+        ClassificationRuleV1("DPO_EQUALS_PERIOD", "EQ", reference_variable="days"),
+        ClassificationRuleV1("DPO_ABOVE_PERIOD", "GT", reference_variable="days"),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("DPO_BELOW_PERIOD", "La evidencia confirmada muestra un DPO menor que la duración del período analizado."),
+            ("DPO_EQUALS_PERIOD", "La evidencia confirmada muestra un DPO igual a la duración del período analizado."),
+            ("DPO_ABOVE_PERIOD", "La evidencia confirmada muestra un DPO mayor que la duración del período analizado."),
+        ),
+        treatments=(
+            ("DPO_BELOW_PERIOD", ("Conservar el indicador como control periódico comparable.",)),
+            ("DPO_EQUALS_PERIOD", ("Revisar la composición confirmada antes de interpretar el resultado.",)),
+            ("DPO_ABOVE_PERIOD", ("Revisar cuentas por pagar y compras por separado antes de atribuir una causa.",)),
+        ),
+        limitations=("El DPO describe una relación matemática y no identifica causas.",),
+        forbidden_claims=("Afirmar retraso, incumplimiento contractual o falta de liquidez sin evidencia adicional.",),
+    ),
+)
+
 PYME_011 = CapabilityDefinitionV1(
     capability_ref="dso",
     pathology_code="PYME_011",
@@ -93,6 +127,7 @@ PYME_011 = CapabilityDefinitionV1(
 
 _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     LIQ_002.capability_ref: LIQ_002,
+    DPO.capability_ref: DPO,
     PYME_011.capability_ref: PYME_011,
 }
 
@@ -105,4 +140,4 @@ def list_capability_refs_v1() -> tuple[str, ...]:
     return tuple(sorted(_REGISTRY))
 
 
-__all__ = ["SCHEMA_VERSION", "LIQ_002", "PYME_011", "get_capability_definition_v1", "list_capability_refs_v1"]
+__all__ = ["SCHEMA_VERSION", "LIQ_002", "DPO", "PYME_011", "get_capability_definition_v1", "list_capability_refs_v1"]
