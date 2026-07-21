@@ -345,6 +345,51 @@ PYME_027 = CapabilityDefinitionV1(
 )
 
 
+PYME_026 = CapabilityDefinitionV1(
+    capability_ref="adjusted_operating_cash_flow",
+    pathology_code="PYME_026",
+    formula_ref="PYME_026_adjusted_operating_cash_flow",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("net_income", "SINGLE_VALUE", unit="currency"),
+        VariableRequirementV1("depreciation", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1("amortization", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1("working_capital_change", "SINGLE_VALUE", unit="currency"),
+    ),
+    formula=_op(
+        "SUBTRACT",
+        _op("ADD", _op("ADD", _var("net_income"), _var("depreciation")), _var("amortization")),
+        _var("working_capital_change"),
+    ),
+    result_key="adjusted_operating_cash_flow_value",
+    result_unit="currency",
+    classifications=(
+        ClassificationRuleV1("NEGATIVE_ADJUSTED_OPERATING_CASH_FLOW", "LT", reference_value=Decimal("0")),
+        ClassificationRuleV1("ZERO_ADJUSTED_OPERATING_CASH_FLOW", "EQ", reference_value=Decimal("0")),
+        ClassificationRuleV1("POSITIVE_ADJUSTED_OPERATING_CASH_FLOW", "GT", reference_value=Decimal("0")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("NEGATIVE_ADJUSTED_OPERATING_CASH_FLOW", "La evidencia confirmada produce un flujo operativo ajustado negativo."),
+            ("ZERO_ADJUSTED_OPERATING_CASH_FLOW", "La evidencia confirmada produce un flujo operativo ajustado igual a cero."),
+            ("POSITIVE_ADJUSTED_OPERATING_CASH_FLOW", "La evidencia confirmada produce un flujo operativo ajustado positivo."),
+        ),
+        treatments=(
+            ("NEGATIVE_ADJUSTED_OPERATING_CASH_FLOW", ("Revisar los componentes confirmados y la convención de signo antes de interpretar el resultado.",)),
+            ("ZERO_ADJUSTED_OPERATING_CASH_FLOW", ("Conservar el cálculo como control del período confirmado.",)),
+            ("POSITIVE_ADJUSTED_OPERATING_CASH_FLOW", ("Revisar la comparabilidad de los períodos antes de usar el indicador como referencia.",)),
+        ),
+        limitations=(
+            "El cálculo usa working_capital_change explícitamente provisto y no lo reconstruye desde balances.",
+            "El resultado no confirma disponibilidad de caja, causas operativas ni sostenibilidad financiera.",
+        ),
+        forbidden_claims=(
+            "Afirmar problemas de caja, solvencia, causas o tratamientos automáticos sin evidencia adicional.",
+        ),
+    ),
+)
+
+
 REN_002 = CapabilityDefinitionV1(
     capability_ref="index_update_ratio",
     pathology_code="REN_002",
@@ -429,6 +474,7 @@ _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     PYME_024.capability_ref: PYME_024,
     PYME_033.capability_ref: PYME_033,
     PYME_027.capability_ref: PYME_027,
+    PYME_026.capability_ref: PYME_026,
     REN_002.capability_ref: REN_002,
 }
 
@@ -452,6 +498,7 @@ __all__ = [
     "PYME_024",
     "PYME_033",
     "PYME_027",
+    "PYME_026",
     "REN_002",
     "get_capability_definition_v1",
     "list_capability_refs_v1",

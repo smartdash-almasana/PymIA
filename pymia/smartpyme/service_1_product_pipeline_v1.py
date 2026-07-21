@@ -56,6 +56,7 @@ PYME_013_CAPABILITY_REF: Final[str] = "payment_collection_gap"
 PYME_024_CAPABILITY_REF: Final[str] = "current_ratio"
 PYME_033_CAPABILITY_REF: Final[str] = "sales_concentration"
 PYME_027_CAPABILITY_REF: Final[str] = "interest_burden_ratio"
+PYME_026_CAPABILITY_REF: Final[str] = "adjusted_operating_cash_flow"
 REN_002_CAPABILITY_REF: Final[str] = "index_update_ratio"
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
@@ -558,6 +559,41 @@ def run_service_1_product_pipeline_v1(
                 return _packet(
                     status=STATUS_BLOCKED,
                     blocked_reason="PYME_027_DELIVERY_NOT_AUTHORIZED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+
+        elif requested_capability == PYME_026_CAPABILITY_REF and has_complete_row_evidence:
+            computation_result = execute_generic_capability_v1(
+                capability_ref=requested_capability,
+                computation_plan=computation_plan,
+                normalized_tables=normalized_tables,
+                column_refs=column_refs,
+            )
+            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=computation_result.get("status") or "PYME_026_COMPUTATION_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                )
+            bounded_outcome = computation_result["outcome"]
+            if bounded_outcome.get("status") != "OUTCOME_READY":
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_026_OUTCOME_BLOCKED",
+                    semantic_run=semantic_run,
+                    computation_plan=computation_plan,
+                    computation_result=computation_result,
+                    bounded_outcome=bounded_outcome,
+                )
+            if deliver_result:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="PYME_026_DELIVERY_NOT_AUTHORIZED",
                     semantic_run=semantic_run,
                     computation_plan=computation_plan,
                     computation_result=computation_result,
