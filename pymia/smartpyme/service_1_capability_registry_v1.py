@@ -308,6 +308,45 @@ PYME_033 = CapabilityDefinitionV1(
 )
 
 
+REN_002 = CapabilityDefinitionV1(
+    capability_ref="index_update_ratio",
+    pathology_code="REN_002",
+    formula_ref="REN_002_index_update_ratio",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("closing_index", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1("origin_index", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
+    ),
+    formula=_op("DIVIDE", _var("closing_index"), _var("origin_index")),
+    result_key="index_update_ratio",
+    result_unit="ratio",
+    classifications=(
+        ClassificationRuleV1("INDEX_BELOW_ORIGIN", "LT", reference_value=Decimal("1")),
+        ClassificationRuleV1("INDEX_EQUALS_ORIGIN", "EQ", reference_value=Decimal("1")),
+        ClassificationRuleV1("INDEX_ABOVE_ORIGIN", "GT", reference_value=Decimal("1")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("INDEX_BELOW_ORIGIN", "el índice de cierre es menor que el índice de origen."),
+            ("INDEX_EQUALS_ORIGIN", "el índice de cierre es igual al índice de origen."),
+            ("INDEX_ABOVE_ORIGIN", "el índice de cierre es mayor que el índice de origen."),
+        ),
+        treatments=(
+            ("INDEX_BELOW_ORIGIN", ("revisar índices confirmados antes de interpretar la variación.",)),
+            ("INDEX_EQUALS_ORIGIN", ("revisar índices confirmados antes de interpretar la igualdad.",)),
+            ("INDEX_ABOVE_ORIGIN", ("revisar índices confirmados antes de interpretar la variación.",)),
+        ),
+        limitations=(
+            "La relación entre índices describe una variación matemática y no identifica causas.",
+            "No atribuir mejora o deterioro económico sin evidencia adicional.",
+        ),
+        forbidden_claims=(
+            "No afirmar actualización favorable, desactualización o necesidad de reexpresión sin evidencia adicional.",
+        ),
+    ),
+)
+
+
 PYME_011 = CapabilityDefinitionV1(
     capability_ref="dso",
     pathology_code="PYME_011",
@@ -352,6 +391,7 @@ _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     PYME_013.capability_ref: PYME_013,
     PYME_024.capability_ref: PYME_024,
     PYME_033.capability_ref: PYME_033,
+    REN_002.capability_ref: REN_002,
 }
 
 
@@ -373,6 +413,7 @@ __all__ = [
     "PYME_013",
     "PYME_024",
     "PYME_033",
+    "REN_002",
     "get_capability_definition_v1",
     "list_capability_refs_v1",
 ]
