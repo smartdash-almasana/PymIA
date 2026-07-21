@@ -12,11 +12,12 @@ MATRIX_PATH = REPO_ROOT / "docs/service_1_formula_pathology_evidence_matrix.v1.j
 FORMULA_CATALOG_PATH = REPO_ROOT / "docs/formula_catalog.v1.json"
 SOURCE_PATHOLOGY_CATALOG_PATH = REPO_ROOT / "docs/pathology_catalog.v1.json"
 
-EXPECTED_PATHOLOGY_CODES = ("REN_001", "LIQ_001", "LIQ_002", "SAL_001", "STK_001", "CST_001", "CSH_001")
+EXPECTED_PATHOLOGY_CODES = ("REN_001", "LIQ_001", "LIQ_002", "PYME_011", "SAL_001", "STK_001", "CST_001", "CSH_001")
 EXPECTED_FORMULA_REFS = {
     "REN_001": ["REN_001_margen_neto_real"],
     "LIQ_001": ["LIQ_001_vendido_cobrado"],
     "LIQ_002": ["LIQ_002_saldo_final_proyectado"],
+    "PYME_011": ["PYME_011_dso"],
     "SAL_001": [],
     "STK_001": [],
     "CST_001": [],
@@ -69,7 +70,7 @@ def test_matrix_is_catalog_only_for_expected_scope() -> None:
     assert matrix["runtime_connection_allowed"] is False
     assert matrix["phase_5_allowed"] is False
 
-    governed_codes = {"REN_001", "LIQ_001", "LIQ_002"}
+    governed_codes = {"REN_001", "LIQ_001", "LIQ_002", "PYME_011"}
     for entry in entries:
         assert entry["runtime_allowed"] is False
         assert entry["phase_5_allowed"] is False

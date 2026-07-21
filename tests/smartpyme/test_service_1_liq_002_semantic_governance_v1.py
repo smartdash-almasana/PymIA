@@ -106,7 +106,7 @@ def test_liq_002_builds_real_governed_plan_without_monkeypatch() -> None:
         "expected_collections": "cobros_esperados",
         "expected_payments": "pagos_esperados",
     }
-    assert plan["catalog_versions"]["evidence_matrix"] == "1.1"
+    assert plan["catalog_versions"]["evidence_matrix"] == "1.2"
     assert plan["computation_candidate_ready"] is True
     assert plan["runtime_authorized"] is False
     assert plan["tool_execution_authorized"] is False

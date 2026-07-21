@@ -112,8 +112,8 @@ def test_case_001_reinject_then_gate_ready(case_001_chain: dict) -> None:
     assert out["status"] == STATUS_READY
     assert out["semantic_candidate_count"] == 11  # cafeteria fixture lock
     assert "operation_date" in out["candidate_roles"]
-    assert out["variable_family_count"] == 6
-    assert len(out["variable_family_bindings"]) == 6
+    assert out["variable_family_count"] == 7
+    assert len(out["variable_family_bindings"]) == 7
     assert isinstance(out["ready_variable_family_ids"], list)
     # Input bridge must NOT be mutated.
     assert case_001_chain["bridge"]["status"] == bridge_snapshot["status"]

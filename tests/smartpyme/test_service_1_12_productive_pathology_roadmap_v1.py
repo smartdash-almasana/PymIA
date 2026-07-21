@@ -82,6 +82,6 @@ def test_cycle_041_guards_prevent_batch_implementation_and_scope_drift() -> None
 def test_cycle_041_current_document_states_limits_and_next_cycle() -> None:
     content = ROADMAP_MD.read_text(encoding="utf-8")
     assert "CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP" in content
-    assert "CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT" in content
+    assert "CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT" in content
     assert "Scrap y OEE quedan fuera" in content
     assert "No se implementan las diez patologías en este ciclo" in content

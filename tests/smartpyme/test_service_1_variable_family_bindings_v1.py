@@ -11,6 +11,7 @@ from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
     FAMILY_INVENTORY_CONTROL,
     FAMILY_OPERATION_CORE,
     FAMILY_PURCHASES_SUPPLIERS,
+    FAMILY_RECEIVABLES_DSO,
     FAMILY_SALES_MARGIN,
     STATUS_MISSING_REQUIRED_ROLES,
     STATUS_NEEDS_OWNER_CONFIRMATION,
@@ -49,7 +50,7 @@ def _by_id(bindings: tuple[Service1VariableFamilyBindingV1, ...]) -> dict[str, S
     return {binding.family_id: binding for binding in bindings}
 
 
-def test_defines_six_prioritized_business_families() -> None:
+def test_defines_seven_prioritized_business_families() -> None:
     assert [definition.family_id for definition in VARIABLE_FAMILY_DEFINITIONS] == [
         FAMILY_OPERATION_CORE,
         FAMILY_SALES_MARGIN,
@@ -57,8 +58,9 @@ def test_defines_six_prioritized_business_families() -> None:
         FAMILY_PURCHASES_SUPPLIERS,
         FAMILY_INVENTORY_CONTROL,
         FAMILY_CASH_PROJECTION,
+        FAMILY_RECEIVABLES_DSO,
     ]
-    assert [definition.priority for definition in VARIABLE_FAMILY_DEFINITIONS] == [1, 2, 3, 4, 5, 6]
+    assert [definition.priority for definition in VARIABLE_FAMILY_DEFINITIONS] == [1, 2, 3, 4, 5, 6, 7]
 
 
 def test_sales_margin_family_ready_from_coherent_role_set() -> None:

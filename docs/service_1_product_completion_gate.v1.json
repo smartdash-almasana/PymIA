@@ -49,8 +49,8 @@
     "no_auto_tool_selection_claim": true
   },
   "registry_expected_counts": {
-    "total_modules": 51,
-    "PRODUCTIVE": 24,
+    "total_modules": 54,
+    "PRODUCTIVE": 27,
     "SUPPORT_NECESSARY": 27,
     "EXPERIMENTAL_FROZEN": 0
   },
@@ -66,7 +66,7 @@
     "No automatic tool selection from workbook content.",
     "LIQ_001 emits a bounded finding and deterministic treatment; it does not attribute a causal diagnosis.",
     "XLSX delivery requires an explicit --deliver-result request.",
-    "REN_001 evaluator exists as governed support and is not yet connected to the canonical product root.",
+    "PYME_011 evaluator is being connected to the canonical product root in CYCLE_043.",
     "No Servicio 2 or Servicio 3 scope.",
     "No claim that all future pathology/formula families are connected."
   ]
