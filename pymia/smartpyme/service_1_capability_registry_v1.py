@@ -57,6 +57,53 @@ LIQ_002 = CapabilityDefinitionV1(
     ),
 )
 
+
+INV_001 = CapabilityDefinitionV1(
+    capability_ref="reorder_point",
+    pathology_code="INV_001",
+    formula_ref="INV_001_reorder_point",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("average_sales", "SINGLE_VALUE", minimum=Decimal("0"), unit="units_per_day"),
+        VariableRequirementV1(
+            "lead_time",
+            "SINGLE_VALUE",
+            minimum=Decimal("0"),
+            minimum_inclusive=False,
+            unit="days",
+        ),
+        VariableRequirementV1("safety_stock", "SINGLE_VALUE", minimum=Decimal("0"), unit="units"),
+    ),
+    formula=_op(
+        "ADD",
+        _op("MULTIPLY", _var("average_sales"), _var("lead_time")),
+        _var("safety_stock"),
+    ),
+    result_key="reorder_point_units",
+    result_unit="units",
+    classifications=(
+        ClassificationRuleV1("NO_REORDER_REQUIREMENT", "EQ", reference_value=Decimal("0")),
+        ClassificationRuleV1("REORDER_POINT_CALCULATED", "GT", reference_value=Decimal("0")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("NO_REORDER_REQUIREMENT", "La evidencia confirmada produce un punto de reposición igual a cero."),
+            ("REORDER_POINT_CALCULATED", "La evidencia confirmada produce un punto de reposición mayor que cero."),
+        ),
+        treatments=(
+            ("NO_REORDER_REQUIREMENT", ("Revisar las variables confirmadas antes de utilizar el resultado operativo.",)),
+            ("REORDER_POINT_CALCULATED", ("Usar el nivel calculado como referencia y contrastarlo con la política de inventario vigente.",)),
+        ),
+        limitations=(
+            "El cálculo no confirma riesgo de quiebre ni sustituye la revisión de demanda, plazo y stock de seguridad.",
+        ),
+        forbidden_claims=(
+            "Ordenar una compra automáticamente o atribuir faltantes futuros sin evidencia adicional.",
+        ),
+    ),
+)
+
+
 DPO = CapabilityDefinitionV1(
     capability_ref="dpo",
     pathology_code="PYME_013_PREREQUISITE_DPO",
@@ -90,6 +137,7 @@ DPO = CapabilityDefinitionV1(
         forbidden_claims=("Afirmar retraso, incumplimiento contractual o falta de liquidez sin evidencia adicional.",),
     ),
 )
+
 
 PYME_013 = CapabilityDefinitionV1(
     capability_ref="payment_collection_gap",
@@ -138,6 +186,7 @@ PYME_013 = CapabilityDefinitionV1(
     ),
 )
 
+
 PYME_011 = CapabilityDefinitionV1(
     capability_ref="dso",
     pathology_code="PYME_011",
@@ -172,8 +221,10 @@ PYME_011 = CapabilityDefinitionV1(
     ),
 )
 
+
 _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     LIQ_002.capability_ref: LIQ_002,
+    INV_001.capability_ref: INV_001,
     DPO.capability_ref: DPO,
     PYME_011.capability_ref: PYME_011,
     PYME_013.capability_ref: PYME_013,
@@ -188,4 +239,13 @@ def list_capability_refs_v1() -> tuple[str, ...]:
     return tuple(sorted(_REGISTRY))
 
 
-__all__ = ["SCHEMA_VERSION", "LIQ_002", "DPO", "PYME_011", "PYME_013", "get_capability_definition_v1", "list_capability_refs_v1"]
+__all__ = [
+    "SCHEMA_VERSION",
+    "LIQ_002",
+    "INV_001",
+    "DPO",
+    "PYME_011",
+    "PYME_013",
+    "get_capability_definition_v1",
+    "list_capability_refs_v1",
+]
