@@ -6,9 +6,7 @@
 
 ## Objetivo
 
-Fijar el conjunto exacto de doce patologías productivas de Servicio 1 y el orden de implementación posterior a `LIQ_001` y `REN_001`.
-
-Esta decisión no implementa nuevas capacidades. Autoriza únicamente ciclos individuales, uno por patología, con regresión y cierre documental propios.
+Fijar el conjunto exacto de doce patologías productivas de Servicio 1 y el orden de implementación, preservando una raíz productiva única y ejecución determinística.
 
 ## Base ya productiva
 
@@ -23,8 +21,7 @@ Esta decisión no implementa nuevas capacidades. Autoriza únicamente ciclos ind
 
 | Prioridad | Patología | Fórmula | Variables mínimas | Evidencia mínima | Estado de fórmula |
 |---:|---|---|---|---|---|
-| 5 | `PYME_013` | `dso - dpo` | `dso`, `dpo` | DSO calculado, DPO calculado | `CALCULABLE` |
-| 5 | `PYME_013` | `dso - dpo` | `dso`, `dpo` | DSO calculado, DPO calculado | `CALCULABLE` |
+| 5 | `PYME_013` | `dso - dpo` | `dso`, `dpo` | DSO calculado, DPO calculado | `DEFERRED_AS_FIRST_COMPOSITE_CAPABILITY` |
 | 6 | `INV_001` | `(average_sales * lead_time) + safety_stock` | `average_sales`, `lead_time`, `safety_stock` | historial por SKU, lead time, política de stock | `CALCULABLE` |
 | 7 | `INV_002` | `cost_of_goods_sold / average_stock` | `cost_of_goods_sold`, `average_stock` | CMV, inventario inicial, inventario final | `CALCULABLE` |
 | 8 | `PYME_024` | `current_assets / current_liabilities` | `current_assets`, `current_liabilities` | balance, activo corriente, pasivo corriente | `CALCULABLE` |
@@ -33,32 +30,29 @@ Esta decisión no implementa nuevas capacidades. Autoriza únicamente ciclos ind
 | 11 | `PYME_027` | `interest_expense / ebitda` | `interest_expense`, `ebitda` | estado de resultados, intereses, EBITDA | `CALCULABLE` |
 | 12 | `PYME_026` | `net_income + depreciation + amortization - working_capital_change` | `net_income`, `depreciation`, `amortization`, `working_capital_change` | estado de resultados y balances de dos períodos | `CALCULABLE_CON_SUPUESTOS` |
 
-## Criterio de orden
+## Transición arquitectónica
 
-1. Primero liquidez y cobranzas, porque reutilizan evidencia y contratos cercanos a `LIQ_001`.
-2. Luego inventario, porque requiere agregaciones determinísticas por SKU y períodos.
-3. Después solvencia, concentración y reposición, que introducen denominadores y límites adicionales.
-4. Finanzas corporativas y flujo operativo quedan al final por dependencia contable y mayor riesgo de supuestos.
+`CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT` queda `SUSPENDED_BY_ARCHITECTURAL_DECISION`.
 
-## Dominio matemático mínimo por patología
+`PYME_013` no se elimina del roadmap. Se difiere para implementarse como primera capacidad `COMPOSITE` sobre el Generic Productive Capability Kernel, consumiendo resultados gobernados de `dso` y `dpo` y sin reconstruirlos implícitamente.
+
+## Dominio matemático mínimo
 
 - Todo valor debe ser numérico y finito.
-- Los importes, días, cantidades, índices y saldos no pueden ser negativos salvo que la definición contable de la patología lo autorice explícitamente.
+- Los importes, días, cantidades, índices y saldos no pueden ser negativos salvo autorización explícita.
 - Todo denominador debe ser estrictamente mayor que cero.
-- `average_stock` debe derivarse de inventario inicial y final o recibirse como evidencia explícita gobernada; no se inventa.
-- `dso` y `dpo` deben venir de cálculos certificados o evidencia explícita; no se reconstruyen implícitamente durante `PYME_013`.
+- `average_stock` debe derivarse de inventario inicial y final o recibirse como evidencia explícita gobernada.
+- `dso` y `dpo` deben provenir de resultados gobernados o evidencia explícita; no se reconstruyen implícitamente durante `PYME_013`.
 - `working_capital_change` exige dos períodos comparables y convención de signo documentada.
 - Ningún umbral orientativo confirma por sí solo una patología.
 
 ## Definition of Done por patología
 
-Cada ciclo individual debe cerrar:
-
 1. contrato de capacidad y plan gobernado;
 2. variables canónicas y evidencia mínima;
 3. dominio matemático, cero, negativos y denominadores;
 4. agregación determinística desde tablas normalizadas cuando corresponda;
-5. evaluador con clasificaciones explícitas;
+5. evaluador o ejecución genérica con clasificaciones explícitas;
 6. hallazgo acotado y tratamiento sin causalidad inventada;
 7. integración en la raíz única mediante solicitud explícita;
 8. decisión explícita sobre entrega XLSX;
@@ -68,24 +62,23 @@ Cada ciclo individual debe cerrar:
 
 ## Exclusiones
 
-- No se implementan las diez patologías en este ciclo.
 - No se habilita selección automática de capacidad.
 - No se incorporan LLM, runtime autónomo ni diagnóstico causal.
-- Scrap y OEE quedan fuera de las doce patologías de esta hoja de ruta.
-- Las fórmulas fiscales o normativas no entran en esta serie sin validación externa vigente.
+- Scrap y OEE quedan fuera de esta hoja de ruta.
+- Las fórmulas fiscales o normativas no entran sin validación externa vigente.
 
 ## Próximo ciclo autorizado
 
 ```text
-CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT
+CYCLE_044A_DEFINE_GENERIC_PRODUCTIVE_CAPABILITY_KERNEL_ARCHITECTURE
 ```
 
-Alcance del siguiente ciclo:
+Alcance:
 
 ```text
-Conectar exclusivamente PYME_013 (DSO-DPO gap).
-Reutilizar la raíz, plan, guards y contrato de outcome existentes.
-Definir brecha de cobranza-pago, clasificación y límites.
-No implementar INV_001 ni otra patología en paralelo.
-No autorizar entrega XLSX hasta decisión explícita del propio ciclo.
+Definir arquitectura, contratos, inventario de duplicación y criterios de aceptación.
+No implementar código productivo.
+No modificar la raíz productiva.
+No conectar PYME_013.
+No eliminar módulos existentes.
 ```
