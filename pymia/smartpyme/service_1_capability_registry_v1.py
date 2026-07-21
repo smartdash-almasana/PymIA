@@ -104,6 +104,48 @@ INV_001 = CapabilityDefinitionV1(
 )
 
 
+INV_002 = CapabilityDefinitionV1(
+    capability_ref="inventory_turnover",
+    pathology_code="INV_002",
+    formula_ref="INV_002_inventory_turnover",
+    kind="ATOMIC",
+    variables=(
+        VariableRequirementV1("cost_of_goods_sold", "SUM", minimum=Decimal("0"), unit="currency"),
+        VariableRequirementV1(
+            "average_stock",
+            "SINGLE_VALUE",
+            minimum=Decimal("0"),
+            minimum_inclusive=False,
+            unit="currency",
+        ),
+    ),
+    formula=_op("DIVIDE", _var("cost_of_goods_sold"), _var("average_stock")),
+    result_key="inventory_turnover_ratio",
+    result_unit="ratio",
+    classifications=(
+        ClassificationRuleV1("NO_RECORDED_TURNOVER", "EQ", reference_value=Decimal("0")),
+        ClassificationRuleV1("POSITIVE_RECORDED_TURNOVER", "GT", reference_value=Decimal("0")),
+    ),
+    outcome_policy=OutcomePolicyV1(
+        findings=(
+            ("NO_RECORDED_TURNOVER", "La evidencia confirmada produce una rotación de inventario igual a cero."),
+            ("POSITIVE_RECORDED_TURNOVER", "La evidencia confirmada produce una rotación de inventario mayor que cero."),
+        ),
+        treatments=(
+            ("NO_RECORDED_TURNOVER", ("Revisar el costo de ventas y el stock promedio confirmados antes de interpretar el resultado.",)),
+            ("POSITIVE_RECORDED_TURNOVER", ("Conservar el indicador como referencia comparable entre períodos equivalentes.",)),
+        ),
+        limitations=(
+            "La rotación describe una relación matemática y no confirma exceso, obsolescencia ni faltantes de inventario.",
+            "El stock promedio debe ser evidencia explícita gobernada o provenir de una capacidad previa identificable; no se deriva silenciosamente.",
+        ),
+        forbidden_claims=(
+            "Afirmar sobrestock, quiebre, obsolescencia o mala gestión sin evidencia adicional y umbrales contextualizados.",
+        ),
+    ),
+)
+
+
 DPO = CapabilityDefinitionV1(
     capability_ref="dpo",
     pathology_code="PYME_013_PREREQUISITE_DPO",
@@ -225,6 +267,7 @@ PYME_011 = CapabilityDefinitionV1(
 _REGISTRY: Final[dict[str, CapabilityDefinitionV1]] = {
     LIQ_002.capability_ref: LIQ_002,
     INV_001.capability_ref: INV_001,
+    INV_002.capability_ref: INV_002,
     DPO.capability_ref: DPO,
     PYME_011.capability_ref: PYME_011,
     PYME_013.capability_ref: PYME_013,
@@ -243,6 +286,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "LIQ_002",
     "INV_001",
+    "INV_002",
     "DPO",
     "PYME_011",
     "PYME_013",
