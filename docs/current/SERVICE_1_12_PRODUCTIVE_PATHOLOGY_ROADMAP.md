@@ -17,12 +17,13 @@ Esta decisión no implementa nuevas capacidades. Autoriza únicamente ciclos ind
 | 1 | `LIQ_001` | `sold_vs_collected_gap` | productiva con cálculo, hallazgo, tratamiento y entrega XLSX explícita |
 | 2 | `REN_001` | `net_margin_real` | productiva con cálculo, hallazgo y tratamiento; entrega XLSX no autorizada |
 | 3 | `LIQ_002` | `projected_closing_cash_balance` | productiva con cálculo, hallazgo y tratamiento; entrega XLSX no autorizada |
+| 4 | `PYME_011` | `dso` | productiva con cálculo, hallazgo y tratamiento; entrega XLSX no autorizada |
 
-## Nueve patologías restantes seleccionadas
+## Ocho patologías restantes seleccionadas
 
 | Prioridad | Patología | Fórmula | Variables mínimas | Evidencia mínima | Estado de fórmula |
 |---:|---|---|---|---|---|
-| 4 | `PYME_011` | `accounts_receivable / sales * days` | `accounts_receivable`, `sales`, `days` | cuentas por cobrar, ventas del período, días del período | `CALCULABLE` |
+| 5 | `PYME_013` | `dso - dpo` | `dso`, `dpo` | DSO calculado, DPO calculado | `CALCULABLE` |
 | 5 | `PYME_013` | `dso - dpo` | `dso`, `dpo` | DSO calculado, DPO calculado | `CALCULABLE` |
 | 6 | `INV_001` | `(average_sales * lead_time) + safety_stock` | `average_sales`, `lead_time`, `safety_stock` | historial por SKU, lead time, política de stock | `CALCULABLE` |
 | 7 | `INV_002` | `cost_of_goods_sold / average_stock` | `cost_of_goods_sold`, `average_stock` | CMV, inventario inicial, inventario final | `CALCULABLE` |
@@ -76,15 +77,15 @@ Cada ciclo individual debe cerrar:
 ## Próximo ciclo autorizado
 
 ```text
-CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT
+CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT
 ```
 
 Alcance del siguiente ciclo:
 
 ```text
-Conectar exclusivamente PYME_011 (DSO).
+Conectar exclusivamente PYME_013 (DSO-DPO gap).
 Reutilizar la raíz, plan, guards y contrato de outcome existentes.
-Definir días de cobranza, clasificación y límites.
-No implementar PYME_013 ni otra patología en paralelo.
+Definir brecha de cobranza-pago, clasificación y límites.
+No implementar INV_001 ni otra patología en paralelo.
 No autorizar entrega XLSX hasta decisión explícita del propio ciclo.
 ```

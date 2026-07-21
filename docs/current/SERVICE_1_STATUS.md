@@ -2,7 +2,7 @@
 
 **Fecha de corte:** 2026-07-20
 
-**Última regresión completa observada:** `1690 passed, 0 failed`, ejecutada por el asistente en local después del cierre de `CYCLE_042`.
+**Última regresión completa observada:** `1694 passed, 0 failed`, ejecutada por el asistente en local después del cierre de `CYCLE_043`.
 
 ## Estado
 
@@ -14,11 +14,13 @@ CLI CANÓNICO: ACTIVO
 LIQ_001: CÁLCULO + HALLAZGO ACOTADO + ENTREGA XLSX EXPLÍCITA
 REN_001: CÁLCULO + HALLAZGO ACOTADO; ENTREGA XLSX NO AUTORIZADA
 LIQ_002: CÁLCULO + HALLAZGO ACOTADO; ENTREGA XLSX NO AUTORIZADA
+PYME_011: CÁLCULO + HALLAZGO ACOTADO; ENTREGA XLSX NO AUTORIZADA
 CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT: CLOSED_PASS
 CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP: DECIDED
 CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT: CLOSED_PASS
-PATOLOGÍAS PRODUCTIVAS ACTUALES: 3 DE 12
-SIGUIENTE PATOLOGÍA: PYME_011
+CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT: CLOSED_PASS
+PATOLOGÍAS PRODUCTIVAS ACTUALES: 4 DE 12
+SIGUIENTE PATOLOGÍA: PYME_013
 SERIE CONTROLADA PLANIFICADA: COMPLETA
 SCRAP/OEE: NO SOPORTADO
 EXPERIMENTAL_FROZEN: 0
@@ -49,6 +51,10 @@ Servicio 1 está certificado para:
 - calcular para `LIQ_002` saldo final proyectado;
 - clasificar `LIQ_002` como `POSITIVE_PROJECTED_BALANCE`, `ZERO_PROJECTED_BALANCE` o `NEGATIVE_PROJECTED_BALANCE`;
 - producir para `LIQ_002` un hallazgo acotado y tratamiento determinístico sin atribución causal;
+- construir y ejecutar `dso` / `PYME_011_dso` ante solicitud explícita, evidencia normalizada completa y bindings confirmados para RECEIVABLES_DSO family;
+- calcular para `PYME_011` Days Sales Outstanding;
+- clasificar `PYME_011` como `DSO_WITHIN_PERIOD`, `DSO_EQUALS_PERIOD` o `DSO_EXCEEDS_PERIOD`;
+- producir para `PYME_011` un hallazgo acotado y tratamiento determinístico sin atribución causal;
 - mantener en falso `runtime_authorized`, `tool_execution_authorized`, `product_ready`, `delivery_authorized` y `diagnosis_generated`;
 - producir salida trazable.
 
@@ -117,6 +123,30 @@ Reglas y límites:
 - no genera diagnóstico causal;
 - la entrega XLSX de `LIQ_002` permanece bloqueada.
 
+### PYME_011
+
+```text
+XLSX real
+→ confirmación del dueño
+→ plan gobernado (RECEIVABLES_DSO family)
+→ agregación determinística de filas
+→ cálculo accounts_receivable / sales * days
+→ clasificación acotada
+→ hallazgo y tratamiento determinísticos
+```
+
+`PYME_011` no afirma morosidad, riesgo crediticio, error de cobranzas, fraude ni responsabilidad causal sin evidencia adicional.
+
+Reglas y límites:
+
+- la capacidad se activa únicamente ante request explícito `dso`;
+- requiere plan listo y bindings confirmados para RECEIVABLES_DSO family;
+- cada variable debe resolver determinísticamente desde evidencia normalizada;
+- no usa muestras ni selección automática;
+- no atribuye causas, responsabilidad, fraude, error de cobranzas ni diagnóstico contable;
+- no genera diagnóstico causal;
+- la entrega XLSX de `PYME_011` permanece bloqueada.
+
 ## Raíz técnica
 
 ```text
@@ -141,9 +171,8 @@ El Piloto 005 demostró el recorrido canónico sobre evidencia industrial, pero 
 
 ```text
 CYCLE_041_DEFINE_12_PRODUCTIVE_PATHOLOGY_ROADMAP: DECIDED
-BASE PRODUCTIVA: LIQ_001, REN_001, LIQ_002
+BASE PRODUCTIVA: LIQ_001, REN_001, LIQ_002, PYME_011
 ORDEN RESTANTE:
-4. PYME_011
 5. PYME_013
 6. INV_001
 7. INV_002
@@ -186,17 +215,17 @@ tests/smartpyme/test_service_1_12_productive_pathology_roadmap_v1.py
 ## Próximo ciclo autorizado
 
 ```text
-CYCLE_043_CONNECT_PYME_011_TO_PRODUCTIVE_ROOT
+CYCLE_044_CONNECT_PYME_013_TO_PRODUCTIVE_ROOT
 ```
 
 Alcance:
 
 ```text
-Conectar exclusivamente PYME_011 (DSO — Days Sales Outstanding).
-Requerir accounts_receivable, sales y days.
+Conectar exclusivamente PYME_013 (DSO-DPO gap).
+Requerir dso y dpo.
 Definir dominio matemático, clasificaciones, hallazgo y tratamiento acotados.
 Usar la raíz productiva única y solicitud explícita de capacidad.
-No implementar PYME_013 ni otra patología en paralelo.
+No implementar INV_001 ni otra patología en paralelo.
 No autorizar entrega XLSX hasta decisión explícita del ciclo.
 No introducir selección automática, causalidad ni runtime autónomo.
 ```
