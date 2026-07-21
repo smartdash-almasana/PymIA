@@ -49,8 +49,8 @@
     "no_auto_tool_selection_claim": true
   },
   "registry_expected_counts": {
-    "total_modules": 48,
-    "PRODUCTIVE": 21,
+    "total_modules": 51,
+    "PRODUCTIVE": 24,
     "SUPPORT_NECESSARY": 27,
     "EXPERIMENTAL_FROZEN": 0
   },
