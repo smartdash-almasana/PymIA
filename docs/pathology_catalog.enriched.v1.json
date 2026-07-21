@@ -45,6 +45,20 @@
       ]
     },
     {
+      "pathology_code": "LIQ_002",
+      "name": "Proyección de Caja",
+      "category": "liquidez",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "initial_balance",
+        "expected_collections",
+        "expected_payments"
+      ]
+    },
+    {
       "pathology_code": "SAL_001",
       "name": "Baseline semantica de ventas",
       "category": "ventas",

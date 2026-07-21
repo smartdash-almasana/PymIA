@@ -71,10 +71,10 @@ def test_ren_001_candidate_does_not_open_runtime_or_diagnosis_authority() -> Non
     matrix = _load(MATRIX_PATH)
     entry = _matrix_entry()
 
-    assert matrix["status"] == "CATALOG_ONLY_NOT_RUNTIME"
+    assert matrix["status"] == "GOVERNED_COMPUTATION_PLANNING_ONLY"
     assert matrix["runtime_connection_allowed"] is False
     assert matrix["phase_5_allowed"] is False
     assert entry["runtime_allowed"] is False
     assert entry["phase_5_allowed"] is False
-    assert entry["readiness_status"] == "not_runtime_ready"
+    assert entry["readiness_status"] == "governed_computation_candidate"
     assert entry["owner_confirmation_required"] is True

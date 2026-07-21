@@ -117,8 +117,8 @@ def test_bridge_attaches_five_variable_family_bindings(
     out = build_bridge(ingestion_output=case_001_ingestion_output)
 
     bindings = out["variable_family_bindings"]
-    assert out["variable_family_count"] == 5
-    assert len(bindings) == 5
+    assert out["variable_family_count"] == 6
+    assert len(bindings) == 6
     assert all(isinstance(item, Service1VariableFamilyBindingV1) for item in bindings)
     sales_margin = next(
         item for item in bindings if item.family_id == FAMILY_SALES_MARGIN

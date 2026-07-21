@@ -33,10 +33,11 @@ CONTRACT_SOURCE_PATH = (
 )
 
 # Fixed scope: six-code baseline
-EXPECTED_PATHOLOGY_CODES = ("REN_001", "LIQ_001", "SAL_001", "STK_001", "CST_001", "CSH_001")
+EXPECTED_PATHOLOGY_CODES = ("REN_001", "LIQ_001", "LIQ_002", "SAL_001", "STK_001", "CST_001", "CSH_001")
 EXPECTED_FORMULA_REFS = {
     "REN_001": ["REN_001_margen_neto_real"],
     "LIQ_001": ["LIQ_001_vendido_cobrado"],
+    "LIQ_002": ["LIQ_002_saldo_final_proyectado"],
     "SAL_001": [],
     "STK_001": [],
     "CST_001": [],
