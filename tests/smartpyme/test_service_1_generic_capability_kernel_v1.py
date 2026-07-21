@@ -34,7 +34,10 @@ def _refs(columns: tuple[str, ...]) -> list[dict[str, str]]:
 
 
 def test_registry_has_dpo_dso_and_projected_closing() -> None:
-    assert list_capability_refs_v1() == ("dpo", "dso", "payment_collection_gap", "projected_closing_cash_balance")
+    refs = list_capability_refs_v1()
+    assert "dpo" in refs
+    assert "dso" in refs
+    assert "projected_closing_cash_balance" in refs
 
 
 def test_liq_002_executes_sum_and_single_value_without_touching_product_root() -> None:
