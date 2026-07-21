@@ -1,0 +1,274 @@
+"""Minimal isolated generic capability engine for Service 1."""
+from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation
+from typing import Any, Final
+
+from pymia.smartpyme.service_1_capability_contracts_v1 import CapabilityDefinitionV1, FormulaNodeV1
+from pymia.smartpyme.service_1_capability_registry_v1 import get_capability_definition_v1
+
+SCHEMA_VERSION: Final[str] = "SERVICE_1_GENERIC_CAPABILITY_ENGINE_V1"
+STATUS_EVALUATED: Final[str] = "EVALUATED"
+STATUS_BLOCKED: Final[str] = "BLOCKED"
+PLAN_STATUS_READY: Final[str] = "READY_FOR_COMPUTATION"
+COMPUTATION_PLAN_SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPUTATION_PLAN_V1"
+
+
+def execute_generic_capability_v1(
+    *, capability_ref: str, computation_plan: object, normalized_tables: object, column_refs: object
+) -> dict[str, object]:
+    definition = get_capability_definition_v1(capability_ref)
+    if definition is None:
+        return _blocked([f"unsupported capability: {capability_ref}."])
+    plan_errors = _validate_plan(definition, computation_plan)
+    if plan_errors:
+        return _blocked(plan_errors, definition=definition)
+    inputs, sources, evidence_errors = _resolve_inputs(
+        definition=definition,
+        computation_plan=computation_plan,
+        normalized_tables=normalized_tables,
+        column_refs=column_refs,
+    )
+    if evidence_errors:
+        return _blocked(evidence_errors, definition=definition, aggregation={"sources": sources, "sample_based": False})
+    domain_errors = _validate_domains(definition, inputs)
+    if domain_errors:
+        return _blocked(domain_errors, definition=definition, inputs=inputs, aggregation={"sources": sources, "sample_based": False})
+    try:
+        result = _evaluate_formula(definition.formula, inputs)
+    except ZeroDivisionError:
+        return _blocked(["formula denominator must be greater than zero."], definition=definition, inputs=inputs)
+    classification = _classify(definition, result, inputs)
+    if classification is None:
+        return _blocked(["no governed classification matched the computed result."], definition=definition, inputs=inputs)
+    findings = dict(definition.outcome_policy.findings)
+    treatments = dict(definition.outcome_policy.treatments)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": STATUS_EVALUATED,
+        "capability_ref": definition.capability_ref,
+        "pathology_code": definition.pathology_code,
+        "formula_ref": definition.formula_ref,
+        "classification": classification,
+        "inputs": {key: float(value) for key, value in inputs.items()},
+        "computed": {
+            definition.result_key: float(result),
+            "typed_result": {
+                "value": float(result),
+                "unit": definition.result_unit,
+                "period": float(inputs["days"]) if "days" in inputs else None,
+                "provenance": "owner_confirmed_normalized_evidence",
+            },
+        },
+        "aggregation": {"status": "AGGREGATED", "sources": sources, "sample_based": False},
+        "outcome": {
+            "status": "OUTCOME_READY",
+            "finding": findings[classification],
+            "treatment_actions": list(treatments[classification]),
+            "limitations": list(definition.outcome_policy.limitations),
+            "forbidden_claims": list(definition.outcome_policy.forbidden_claims),
+            "bounded_finding_generated": True,
+            "causal_diagnosis_generated": False,
+        },
+        "errors": [],
+        **_closed_flags(definition.delivery_authorized),
+    }
+
+
+def _validate_plan(definition: CapabilityDefinitionV1, plan: object) -> list[str]:
+    if not isinstance(plan, dict):
+        return ["computation_plan must be an object."]
+    expected = {
+        "schema_version": COMPUTATION_PLAN_SCHEMA_VERSION,
+        "status": PLAN_STATUS_READY,
+        "requested_capability": definition.capability_ref,
+        "pathology_code": definition.pathology_code,
+        "formula_id": definition.formula_ref,
+    }
+    errors = [f"computation_plan {field} must equal {value}." for field, value in expected.items() if plan.get(field) != value]
+    required = tuple(variable.name for variable in definition.variables)
+    if tuple(plan.get("required_variables") or ()) != required:
+        errors.append("computation_plan required_variables do not match capability definition.")
+    if plan.get("computation_candidate_ready") is not True:
+        errors.append("computation_plan candidate is not ready.")
+    if any(plan.get(flag) for flag in _closed_flags(False)):
+        errors.append("computation_plan safety flags must remain false.")
+    return errors
+
+
+def _resolve_inputs(
+    *, definition: CapabilityDefinitionV1, computation_plan: object, normalized_tables: object, column_refs: object
+) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
+    if not isinstance(computation_plan, dict):
+        return {}, {}, ["computation_plan must be an object."]
+    if not isinstance(normalized_tables, list) or not normalized_tables:
+        return {}, {}, ["normalized_tables must be a non-empty list."]
+    if not isinstance(column_refs, list) or not column_refs:
+        return {}, {}, ["column_refs must be a non-empty list."]
+    bindings = computation_plan.get("source_bindings")
+    if not isinstance(bindings, dict):
+        return {}, {}, ["computation_plan source_bindings must be an object."]
+    tables: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for raw in normalized_tables:
+        if not isinstance(raw, dict):
+            errors.append("normalized table entries must be objects.")
+            continue
+        sheet = str(raw.get("sheet_name") or "").strip()
+        if not sheet or sheet in tables:
+            errors.append("normalized table sheet_name must be present and unique.")
+            continue
+        tables[sheet] = raw
+    inputs: dict[str, Decimal] = {}
+    sources: dict[str, dict[str, object]] = {}
+    for requirement in definition.variables:
+        source_column = str(bindings.get(requirement.name) or "").strip()
+        matches = [ref for ref in column_refs if isinstance(ref, dict) and str(ref.get("column_name") or "").strip() == source_column]
+        if len(matches) != 1:
+            errors.append(f"source binding for {requirement.name} must resolve exactly once: {source_column}.")
+            continue
+        ref = matches[0]
+        sheet = str(ref.get("sheet_name") or "").strip()
+        normalized_column = str(ref.get("normalized_column_name") or ref.get("column_name") or "").strip()
+        rows = (tables.get(sheet) or {}).get("rows")
+        if not isinstance(rows, list) or not rows:
+            errors.append(f"normalized rows must be a non-empty list for sheet: {sheet}.")
+            continue
+        values: list[Decimal] = []
+        for index, row in enumerate(rows, start=1):
+            if not isinstance(row, dict):
+                errors.append(f"row {index} in {sheet} must be an object.")
+                continue
+            raw_value = row.get(normalized_column)
+            if raw_value is None or (isinstance(raw_value, str) and not raw_value.strip()):
+                continue
+            value, error = _number(raw_value)
+            if error:
+                errors.append(f"{sheet}.{normalized_column} row {index}: {error}")
+            else:
+                values.append(value)
+        if not values:
+            errors.append(f"{requirement.name} requires at least one confirmed numeric value.")
+            continue
+        if requirement.aggregation == "SINGLE_VALUE":
+            unique = set(values)
+            if len(unique) != 1:
+                errors.append(f"{requirement.name} must resolve to one consistent confirmed value.")
+                continue
+            aggregated = values[0]
+        else:
+            aggregated = sum(values, Decimal("0"))
+        inputs[requirement.name] = aggregated
+        sources[requirement.name] = {
+            "sheet_name": sheet,
+            "column_name": source_column,
+            "normalized_column_name": normalized_column,
+            "value_count": len(values),
+            "aggregation_mode": requirement.aggregation,
+        }
+    return inputs, sources, errors
+
+
+def _validate_domains(definition: CapabilityDefinitionV1, inputs: dict[str, Decimal]) -> list[str]:
+    errors: list[str] = []
+    for requirement in definition.variables:
+        value = inputs.get(requirement.name)
+        if value is None:
+            continue
+        if requirement.minimum is not None:
+            invalid = value < requirement.minimum if requirement.minimum_inclusive else value <= requirement.minimum
+            if invalid:
+                comparator = "greater than or equal to" if requirement.minimum_inclusive else "greater than"
+                errors.append(f"{requirement.name} must be {comparator} {requirement.minimum}.")
+        if requirement.maximum is not None:
+            invalid = value > requirement.maximum if requirement.maximum_inclusive else value >= requirement.maximum
+            if invalid:
+                comparator = "less than or equal to" if requirement.maximum_inclusive else "less than"
+                errors.append(f"{requirement.name} must be {comparator} {requirement.maximum}.")
+    return errors
+
+
+def _evaluate_formula(node: FormulaNodeV1, inputs: dict[str, Decimal]) -> Decimal:
+    if node.operation == "VARIABLE":
+        if not node.variable_name or node.variable_name not in inputs:
+            raise ValueError("formula variable is not available")
+        return inputs[node.variable_name]
+    if node.operation == "VALUE":
+        if node.value is None:
+            raise ValueError("formula literal is missing")
+        return node.value
+    if node.left is None or node.right is None:
+        raise ValueError("binary formula node requires both operands")
+    left = _evaluate_formula(node.left, inputs)
+    right = _evaluate_formula(node.right, inputs)
+    if node.operation == "ADD":
+        return left + right
+    if node.operation == "SUBTRACT":
+        return left - right
+    if node.operation == "MULTIPLY":
+        return left * right
+    if node.operation == "DIVIDE":
+        if right <= 0:
+            raise ZeroDivisionError
+        return left / right
+    raise ValueError(f"unsupported formula operation: {node.operation}")
+
+
+def _classify(definition: CapabilityDefinitionV1, result: Decimal, inputs: dict[str, Decimal]) -> str | None:
+    for rule in definition.classifications:
+        reference = inputs.get(rule.reference_variable) if rule.reference_variable else rule.reference_value
+        if reference is None:
+            continue
+        matched = {
+            "LT": result < reference,
+            "LE": result <= reference,
+            "EQ": result == reference,
+            "GE": result >= reference,
+            "GT": result > reference,
+        }[rule.comparison]
+        if matched:
+            return rule.code
+    return None
+
+
+def _number(value: object) -> tuple[Decimal, str | None]:
+    if isinstance(value, bool):
+        return Decimal("0"), "value must be numeric."
+    try:
+        number = Decimal(str(value).strip())
+    except (InvalidOperation, ValueError):
+        return Decimal("0"), "value must be numeric."
+    if not number.is_finite():
+        return Decimal("0"), "value must be finite."
+    return number, None
+
+
+def _closed_flags(delivery_authorized: bool) -> dict[str, bool]:
+    return {
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": delivery_authorized,
+        "diagnosis_generated": False,
+    }
+
+
+def _blocked(
+    errors: list[str], *, definition: CapabilityDefinitionV1 | None = None, inputs: dict[str, Decimal] | None = None, aggregation: dict[str, object] | None = None
+) -> dict[str, object]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": STATUS_BLOCKED,
+        "capability_ref": definition.capability_ref if definition else None,
+        "pathology_code": definition.pathology_code if definition else None,
+        "formula_ref": definition.formula_ref if definition else None,
+        "inputs": {key: float(value) for key, value in (inputs or {}).items()},
+        "computed": {},
+        "aggregation": dict(aggregation or {}),
+        "outcome": {"status": "OUTCOME_BLOCKED", "bounded_finding_generated": False, "causal_diagnosis_generated": False},
+        "errors": list(errors),
+        **_closed_flags(False),
+    }
+
+
+__all__ = ["SCHEMA_VERSION", "STATUS_EVALUATED", "STATUS_BLOCKED", "execute_generic_capability_v1"]
