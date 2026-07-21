@@ -10,24 +10,11 @@
 <body>
   <a class="skip-link" href="#app">Ir al contenido</a>
   {{content}}
-  <template>
-  <main id="app" tabindex="-1">
-    <h1>Revisar información de mi negocio</h1>
-    <p>Subí un archivo de Excel y te ayudaremos a entenderlo paso a paso.</p>
-    <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app">
-      <label for="file">Elegir archivo</label>
-      <input id="file" name="file" type="file" accept=".xlsx" required>
-      <p>Tu archivo no se modifica.</p>
-      <label><input type="radio" name="example" value="not_sure"> No estoy seguro</label>
-      <button type="submit">Continuar</button>
-    </form>
-    <h2>¿Qué querés revisar?</h2>
-    <h2>Datos utilizados</h2>
-    <p>Este cálculo describe una relación matemática a partir de los datos confirmados.</p>
-    <p>No determina por sí solo causas, problemas del negocio ni acciones a tomar.</p>
-    <details><summary>Ver cómo se calculó</summary><p>Con datos confirmados.</p></details>
-    <p role="alert"></p><div aria-live="polite"></div>
-  </main>
-  </template>
+  <script>
+    document.body.addEventListener("htmx:afterSwap", function (event) {
+      const app = event.target.matches("#app") ? event.target : document.querySelector("#app");
+      if (app) app.focus();
+    });
+  </script>
 </body>
 </html>
