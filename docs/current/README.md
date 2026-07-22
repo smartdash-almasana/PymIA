@@ -16,6 +16,7 @@ La memoria conversacional, documentos no listados, landings, pilotos, auditoría
 - `ARCHITECTURE_BOUNDARY.md` — separación entre dueño, capa conversacional y PymIA computacional.
 - `PRODUCT_VISION.md` — visión final del producto.
 - `PYMIA_GUARDIAN_CLINICAL_KERNEL_CONCEPT.md` — concepto arquitectónico candidato para extraer y generalizar el patrón clínico determinístico de SmartSeller como futuro kernel transversal de PymIA Guardián; no autoriza implementación.
+- `PYMIA_GUARDIAN_STRATEGIC_ASSESSMENT.md` — evaluación estratégica candidata de los hallazgos del kernel, Guardián, Operador, autonomía progresiva, CRM de casos y secuencia focal de validación; no autoriza implementación.
 - `SERVICE_1_STATUS.md` — estado verificable actual.
 - `SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.
 - `SERVICE_1_ARCHITECTURE_LOCK.md` — superficie oficial, soporte retenido, legacy y laboratorio congelado de Servicio 1.
