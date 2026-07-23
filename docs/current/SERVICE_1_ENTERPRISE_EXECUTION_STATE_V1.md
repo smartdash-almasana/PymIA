@@ -92,7 +92,41 @@ stage_0_independent_audit:
   files_modified_by_audit: 0
   commit_created_by_audit: false
   push_performed_by_audit: false
-next_authorized_action: PREPARE_STAGE_1_FIRST_CERTIFIED_DEAD_CLUSTER_REMOVAL
+stage_1:
+  status: ACTIVE
+  cluster_001:
+    id: STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
+    status: CLOSED_IN_MAIN
+    branch: work/service1-stage1-dead-cluster-001
+    integrated_commit: 1163efe9b0a834be2165b1b667fc09c633a89d6d
+    integration_command: git merge --ff-only work/service1-stage1-dead-cluster-001
+    merge_result: FAST_FORWARD_PASS
+    deleted_files:
+      - pymia/smartpyme/service_1_common_normalization_router_v1.py
+      - tests/smartpyme/test_service_1_common_normalization_router_v1.py
+    caller_audit: ZERO_REAL_CALLERS
+    dynamic_loading_audit: PASS
+    focal_and_neighbor_tests:
+      command: python -m pytest tests/smartpyme/test_service_1_product_completion_gate_v1.py tests/smartpyme/test_service_1_module_disposition_registry_v1.py tests/smartpyme/test_service_1_csv_to_normalized_table_v1.py tests/smartpyme/test_service_1_normalized_table_v1.py tests/smartpyme/test_service_1_xlsx_to_normalized_table_v1.py -q
+      result: 50 passed in 14.23s
+    full_regression:
+      command: python -m pytest -q
+      result: 1861 passed in 354.64s (0:05:54)
+      passed: 1861
+      skipped: 0
+      failed: 0
+      duration_seconds: 354.64
+    module_counts:
+      total_modules: 57
+      total_modules_before: 58
+      productive: 27
+      productive_changed: false
+      support_necessary: 30
+      support_necessary_before: 31
+    product_capability_impact: NONE
+    independent_audit: PASS_STAGE1_CLUSTER_001_AUDIT
+    push_performed: false
+next_authorized_action: IDENTIFY_STAGE_1_CLUSTER_002_OR_CLOSE_STAGE_1_IF_NONE_CERTIFIED
 ```
 
 ---
@@ -128,7 +162,16 @@ Stage 0 closed with all required gates satisfied:
 - semantic precision baseline was measured and recorded without hiding the 0.5789 exact-match gap;
 - independent Stage 0 audit emitted `PASS_STAGE0_INDEPENDENT_AUDIT`.
 
-Stage 1 is authorized to prepare its first bounded removal package. No code deletion is authorized until that package identifies a certified dead cluster, exact writable paths, evidence and rollback.
+Stage 1 is active. Its first audited dead-cluster removal is closed in `main`:
+
+```text
+CLUSTER = STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
+INTEGRATED_COMMIT = 1163efe9b0a834be2165b1b667fc09c633a89d6d
+AUDIT = PASS_STAGE1_CLUSTER_001_AUDIT
+PRODUCT_CAPABILITY_IMPACT = none
+```
+
+Next deletion is not authorized by this closure. The next permitted action is to identify and certify `STAGE_1_CLUSTER_002`, or close Stage 1 if no further dead cluster is certified.
 
 ---
 
@@ -474,10 +517,29 @@ Audit evidence verified:
 Stage 0 is closed. Current next authorized action:
 
 ```text
-NEXT_AUTHORIZED_ACTION = PREPARE_STAGE_1_FIRST_CERTIFIED_DEAD_CLUSTER_REMOVAL
+NEXT_AUTHORIZED_ACTION = IDENTIFY_STAGE_1_CLUSTER_002_OR_CLOSE_STAGE_1_IF_NONE_CERTIFIED
 ```
 
-Stage 1 preparation must identify one genuinely dead cluster and prove absent productive callers before any deletion. It must not absorb, merge or modify the preserved safety packages.
+Stage 1 cluster 001 closure:
+
+```text
+CLUSTER = STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
+STATUS = CLOSED_IN_MAIN
+BRANCH = work/service1-stage1-dead-cluster-001
+INTEGRATED_COMMIT = 1163efe9b0a834be2165b1b667fc09c633a89d6d
+INTEGRATION = FAST_FORWARD_PASS
+FILES_DELETED = pymia/smartpyme/service_1_common_normalization_router_v1.py; tests/smartpyme/test_service_1_common_normalization_router_v1.py
+CALLER_AUDIT = zero real callers
+DYNAMIC_LOADING_AUDIT = PASS
+FOCAL_AND_NEIGHBOR_TESTS = 50 passed
+FULL_REGRESSION = 1861 passed in 354.64s
+MODULE_COUNT_CHANGE = total 58 -> 57; SUPPORT_NECESSARY 31 -> 30; PRODUCTIVE 27 unchanged
+PRODUCT_CAPABILITY_IMPACT = none
+AUDIT = PASS_STAGE1_CLUSTER_001_AUDIT
+PUSH_PERFORMED = false
+```
+
+Stage 1 may continue only by certifying the next dead cluster independently, or by closing Stage 1 if no additional dead cluster is certified. It must not absorb, merge or modify the preserved safety packages.
 
 ---
 
@@ -498,7 +560,7 @@ DO_NOT_START_STAGE_2
 DO_NOT_CREATE_ANOTHER_SEMANTIC_CATALOG
 DO_NOT_CREATE_A_SECOND_APPROVAL_CENTER
 DO_NOT_PUSH_ANY_SAFETY_BRANCH
-DO_NOT_MODIFY_CODE_BEFORE_STAGE_1_ACTIVE_SPEC
+DO_NOT_DELETE_STAGE_1_CLUSTER_002_WITHOUT_CERTIFICATION
 ```
 
 ---
@@ -625,7 +687,12 @@ COLD_RECOVERY_AUDIT_MODE = READ_ONLY
 DOCUMENTATION_INTEGRATED_INTO_MAIN = true
 STAGE_0_INDEPENDENT_AUDIT = PASS_STAGE0_INDEPENDENT_AUDIT
 STAGE_0_INDEPENDENT_AUDITOR = ChatGPT_WITH_MCP_LOCAL
-NEXT_AUTHORIZED_ACTION = PREPARE_STAGE_1_FIRST_CERTIFIED_DEAD_CLUSTER_REMOVAL
+STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER = CLOSED_IN_MAIN
+STAGE1_CLUSTER_001_COMMIT = 1163efe9b0a834be2165b1b667fc09c633a89d6d
+STAGE1_CLUSTER_001_AUDIT = PASS_STAGE1_CLUSTER_001_AUDIT
+STAGE1_CLUSTER_001_REGRESSION = PASS (1861 passed in 354.64s)
+STAGE1_CLUSTER_001_PRODUCT_CAPABILITY_IMPACT = none
+NEXT_AUTHORIZED_ACTION = IDENTIFY_STAGE_1_CLUSTER_002_OR_CLOSE_STAGE_1_IF_NONE_CERTIFIED
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
 INTEGRATION_AUTHORIZED = true
