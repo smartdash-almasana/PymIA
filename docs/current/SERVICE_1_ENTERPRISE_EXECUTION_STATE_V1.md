@@ -31,26 +31,49 @@ state_date: 2026-07-23
 repository: E:\BuenosPasos\smartbridge\PymIA
 main:
   branch: main
-  head: 394e302fc972d01ac1247704dd95cecdce9cdac9
+  head: SELF
+  head_resolution: git rev-parse HEAD
   working_tree: CLEAN
   dirty_paths: 0
 enterprise_docs:
   worktree: E:\BuenosPasos\smartbridge\PymIA-ENTERPRISE-DOCS
   branch_reported: work/service1-enterprise-governance-20260723
   base_head: 394e302fc972d01ac1247704dd95cecdce9cdac9
-  documentation_commit: SELF
-  documentation_commit_resolution: git rev-parse HEAD
+  documentation_commit: 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
   writable_paths: 3
   commit_created: true
 enterprise_stage: STAGE_0_STABILIZE_AND_BASELINE
+stage_0_status: BLOCKED_INDEPENDENT_AUDIT_PENDING
 safe_to_begin_productive_refactor: false
 commit_authorized: true
-integration_authorized: false
-push_authorized: false
+integration_authorized: true
+documentation_integration:
+  status: COMPLETED
+  command: git merge --ff-only work/service1-enterprise-governance-20260723
+  integrated_commit: 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
 clean_base_full_regression:
-  status: NOT_RUN_AFTER_TREE_STABILIZATION
+  status: PASS
+  command: python -m pytest -q
+  result: 1869 passed in 338.25s (0:05:38)
+  passed: 1869
+  skipped: 0
+  failed: 0
+  duration_seconds: 338.25
 semantic_precision_baseline:
-  status: NOT_RECORDED
+  status: RECORDED
+  command: python -c "import json; from pymia.smartpyme.service_1_column_understanding_corpus_report_v1 import build_service_1_column_understanding_corpus_report_v1; print(json.dumps(build_service_1_column_understanding_corpus_report_v1().to_dict(), ensure_ascii=False, indent=2))"
+  cases_count: 6
+  columns_count: 38
+  exact_matches: 22
+  safe_questions: 16
+  safe_unknowns: 0
+  false_confident: 0
+  missed_questions: 0
+  dangerous_errors: 0
+  exact_match_rate: 0.5789
+  safe_resolution_rate: 1.0
+  evaluation_verdict: READY_WITH_FIXES
+push_authorized: false
 cold_recovery:
   latest_verdict: PASS_RECOVERABLE_WITHOUT_CHAT
   auditor: OpenCode
@@ -59,7 +82,9 @@ cold_recovery:
   commit_created_by_audit: false
   push_performed_by_audit: false
   next_gate: PASSED
-next_authorized_action: PREPARE_DOCUMENTATION_INTEGRATION_FOR_OWNER_AUTHORIZATION
+stage_0_independent_audit:
+  status: NOT_RUN
+next_authorized_action: OBTAIN_INDEPENDENT_STAGE_0_AUDIT
 ```
 
 ---
@@ -68,11 +93,13 @@ next_authorized_action: PREPARE_DOCUMENTATION_INTEGRATION_FOR_OWNER_AUTHORIZATIO
 
 ```text
 MAIN_BRANCH = main
-MAIN_HEAD = 394e302fc972d01ac1247704dd95cecdce9cdac9
+MAIN_HEAD = SELF (resolve with git rev-parse HEAD)
 MAIN_WORKTREE_CLEAN = true
 MAIN_DIRTY_PATHS = 0
 GIT_OPERATION_IN_PROGRESS = none reported
 PUSH_PERFORMED_DURING_STABILIZATION = false
+DOCUMENTATION_INTEGRATION = COMPLETED
+DOCUMENTATION_INTEGRATION_COMMIT = 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
 ```
 
 The clean `main` state was reached by preserving four unfinished work packages outside `main`, restoring shared documents and registries from `HEAD`, and verifying the safety commits independently.
@@ -286,15 +313,15 @@ WORKTREE = E:\BuenosPasos\smartbridge\PymIA-ENTERPRISE-DOCS
 WRITABLE_PATHS = exactly 3
 IMPLEMENTER = ChatGPT with MCP-local file tools
 FINAL_AUDITOR = Qwen or another independent read-only agent
-DOCUMENTATION_COMMIT = SELF
-DOCUMENTATION_COMMIT_RESOLUTION = git rev-parse HEAD
+DOCUMENTATION_COMMIT = 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
-INTEGRATION_AUTHORIZED = false
+INTEGRATION_AUTHORIZED = true
+DOCUMENTATION_INTEGRATED_INTO_MAIN = true
 PUSH_AUTHORIZED = false
 ```
 
-`SELF` is intentional: this state update is amended into the documentation commit itself, so the authoritative commit identifier is the `HEAD` resolved by Git after the amend rather than a stale pre-amend hash.
+The documentation commit was integrated into `main` by the exact fast-forward command recorded in the machine-readable snapshot. The current `main` HEAD is intentionally `SELF`, resolved by Git after this evidence closure commit.
 
 Writable paths:
 
@@ -361,13 +388,53 @@ The auditor reconstructed without conversation history:
 - the distinction between permanent method authority and operational-state authority;
 - the mandatory `RECOVERY_STATE_MISMATCH` stop on Git divergence.
 
+Documentation integration completed:
+
+```text
+COMMAND = git merge --ff-only work/service1-enterprise-governance-20260723
+INTEGRATED_COMMIT = 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
+MAIN_HEAD_AFTER_INTEGRATION = 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
+RESULT = FAST_FORWARD_PASS
+```
+
+Full regression observed on the integrated documentation commit:
+
+```text
+COMMAND = python -m pytest -q
+RESULT = 1869 passed in 338.25s (0:05:38)
+PASSED = 1869
+SKIPPED = 0
+FAILED = 0
+DURATION_SECONDS = 338.25
+```
+
+Semantic baseline observed exclusively through the existing corpus-report evaluator:
+
+```text
+CASES_COUNT = 6
+COLUMNS_COUNT = 38
+EXACT_MATCHES = 22
+SAFE_QUESTIONS = 16
+SAFE_UNKNOWNS = 0
+FALSE_CONFIDENT = 0
+MISSED_QUESTIONS = 0
+DANGEROUS_ERRORS = 0
+EXACT_MATCH_RATE = 0.5789
+SAFE_RESOLUTION_RATE = 1.0
+EVALUATION_VERDICT = READY_WITH_FIXES
+EXACT_MATCH_TARGET_FOR_FRONTEND_READY = 0.8
+EXACT_MATCH_TARGET_MET = false
+```
+
+The baseline is recorded without concealing its gap: `exact_match_rate` is below the evaluator's 0.8 frontend-readiness threshold. This does not authorize runtime or frontend wiring; the evaluator reports `READY_WITH_FIXES` with zero dangerous errors.
+
 Current next authorized action:
 
 ```text
-NEXT_AUTHORIZED_ACTION = PREPARE_DOCUMENTATION_INTEGRATION_FOR_OWNER_AUTHORIZATION
+NEXT_AUTHORIZED_ACTION = OBTAIN_INDEPENDENT_STAGE_0_AUDIT
 ```
 
-Preparation means verifying the documentation commit's exact three-path scope and preparing controlled integration evidence. It does not authorize integration into `main` or push. Those operations require separate explicit owner authorization.
+Stage 0 cannot close yet: the required independent Stage 0 audit has not been run after the integration, regression and baseline evidence. The implementer must not self-certify that gate.
 
 ---
 
@@ -443,11 +510,10 @@ WS234's final reported preservation run recorded eight failures. The complete li
 3. COMPLETE — no audit-proven documentation defects remained.
 4. COMPLETE — PASS_RECOVERABLE_WITHOUT_CHAT obtained.
 5. COMPLETE — focal documentation commit created and its exact three-path scope verified.
-6. CURRENT — prepare documentation integration for explicit owner authorization.
-7. PENDING — after separate integration authorization, integrate the documentation commit into clean main.
-8. PENDING — run full regression on the controlled documentation commit.
-9. PENDING — measure and record semantic precision baseline.
-10. PENDING — obtain independent Stage 0 audit PASS.
+6. COMPLETE — documentation commit integrated into clean main by fast-forward.
+7. COMPLETE — full regression passed on the integrated documentation commit: 1869 passed in 338.25s.
+8. COMPLETE — semantic precision baseline recorded: 22/38 exact matches, 1.0 safe-resolution rate, zero dangerous errors.
+9. CURRENT — obtain independent Stage 0 audit PASS.
 ```
 
 No productive implementation begins before Stage 0 exits.
@@ -460,8 +526,9 @@ Expected facts:
 
 ```text
 main branch = main
-main HEAD = 394e302fc972d01ac1247704dd95cecdce9cdac9
+main HEAD = SELF (resolve with git rev-parse HEAD)
 main working tree = clean
+documentation integration commit = 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
 WS5 commit = 521979316d17e57fd96f00d15d05001842c51942
 WS234 commit = 34c94a96c362a393faa008e12af49d0b6e9d0299
 WS1 commit = bed473264d9769baca1673e0948411cfadbf56eb
@@ -496,20 +563,27 @@ Failed evidence remains summarized when it explains a decision or prevents repet
 ```text
 METHOD_AUTHORITY = SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
 ENTERPRISE_STAGE = STAGE_0_STABILIZE_AND_BASELINE
+STAGE_0_STATUS = BLOCKED_INDEPENDENT_AUDIT_PENDING
 MAIN_CLEAN = true
 WS5_PRESERVED = true
 WS234_PRESERVED = true
 WS1_PRESERVED = true
 WS6_PRESERVED = true
 SAFE_TO_BEGIN_PRODUCTIVE_REFACTOR = false
-CLEAN_BASE_FULL_REGRESSION = not_run
-SEMANTIC_BASELINE_RECORDED = false
+CLEAN_BASE_FULL_REGRESSION = PASS (1869 passed in 338.25s)
+SEMANTIC_BASELINE_RECORDED = true
+SEMANTIC_BASELINE_EXACT_MATCH_RATE = 0.5789 (below 0.8 frontend-readiness target)
+SEMANTIC_BASELINE_SAFE_RESOLUTION_RATE = 1.0
+SEMANTIC_BASELINE_DANGEROUS_ERRORS = 0
+SEMANTIC_BASELINE_EVALUATION_VERDICT = READY_WITH_FIXES
 COLD_RECOVERY = PASS_RECOVERABLE_WITHOUT_CHAT
 COLD_RECOVERY_AUDITOR = OpenCode
 COLD_RECOVERY_AUDIT_MODE = READ_ONLY
-NEXT_AUTHORIZED_ACTION = PREPARE_DOCUMENTATION_INTEGRATION_FOR_OWNER_AUTHORIZATION
+DOCUMENTATION_INTEGRATED_INTO_MAIN = true
+STAGE_0_INDEPENDENT_AUDIT = NOT_RUN
+NEXT_AUTHORIZED_ACTION = OBTAIN_INDEPENDENT_STAGE_0_AUDIT
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
-INTEGRATION_AUTHORIZED = false
+INTEGRATION_AUTHORIZED = true
 PUSH_AUTHORIZED = false
 ```
