@@ -42,9 +42,9 @@ enterprise_docs:
   documentation_commit: 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
   writable_paths: 3
   commit_created: true
-enterprise_stage: STAGE_0_STABILIZE_AND_BASELINE
-stage_0_status: BLOCKED_INDEPENDENT_AUDIT_PENDING
-safe_to_begin_productive_refactor: false
+enterprise_stage: STAGE_1_REMOVE_CERTIFIED_DEAD_CLUSTERS
+stage_0_status: PASS
+safe_to_begin_productive_refactor: true
 commit_authorized: true
 integration_authorized: true
 documentation_integration:
@@ -83,8 +83,16 @@ cold_recovery:
   push_performed_by_audit: false
   next_gate: PASSED
 stage_0_independent_audit:
-  status: NOT_RUN
-next_authorized_action: OBTAIN_INDEPENDENT_STAGE_0_AUDIT
+  status: PASS
+  verdict: PASS_STAGE0_INDEPENDENT_AUDIT
+  auditor: ChatGPT
+  tool_surface: MCP-local
+  audit_mode: READ_ONLY
+  audited_head: c38fe53d157309e3cbe9f5b9b2e889a433a0d136
+  files_modified_by_audit: 0
+  commit_created_by_audit: false
+  push_performed_by_audit: false
+next_authorized_action: PREPARE_STAGE_1_FIRST_CERTIFIED_DEAD_CLUSTER_REMOVAL
 ```
 
 ---
@@ -109,16 +117,18 @@ The existing `SERVICE_1_STATUS.md` and architecture locks describe the product b
 Current enterprise stage:
 
 ```text
-STAGE_0 — STABILIZE AND ESTABLISH BASELINE
+STAGE_1 — REMOVE CERTIFIED DEAD CLUSTERS
 ```
 
-Stage 0 is not complete until:
+Stage 0 closed with all required gates satisfied:
 
-- this method/state package passes cold recovery;
-- the documentation package is integrated as one focal commit;
-- a full regression is observed on the clean base with the documentation commit;
-- the semantic precision baseline is measured and recorded;
-- an independent Stage 0 audit emits `PASS`.
+- method/state package passed cold recovery;
+- documentation package was integrated as one focal commit;
+- full regression passed on the controlled integrated base;
+- semantic precision baseline was measured and recorded without hiding the 0.5789 exact-match gap;
+- independent Stage 0 audit emitted `PASS_STAGE0_INDEPENDENT_AUDIT`.
+
+Stage 1 is authorized to prepare its first bounded removal package. No code deletion is authorized until that package identifies a certified dead cluster, exact writable paths, evidence and rollback.
 
 ---
 
@@ -312,7 +322,7 @@ BASE_HEAD = 394e302fc972d01ac1247704dd95cecdce9cdac9
 WORKTREE = E:\BuenosPasos\smartbridge\PymIA-ENTERPRISE-DOCS
 WRITABLE_PATHS = exactly 3
 IMPLEMENTER = ChatGPT with MCP-local file tools
-FINAL_AUDITOR = Qwen or another independent read-only agent
+FINAL_AUDITOR = ChatGPT using MCP-local read-only audit tools
 DOCUMENTATION_COMMIT = 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
@@ -428,13 +438,46 @@ EXACT_MATCH_TARGET_MET = false
 
 The baseline is recorded without concealing its gap: `exact_match_rate` is below the evaluator's 0.8 frontend-readiness threshold. This does not authorize runtime or frontend wiring; the evaluator reports `READY_WITH_FIXES` with zero dangerous errors.
 
-Current next authorized action:
+Independent Stage 0 audit result:
 
 ```text
-NEXT_AUTHORIZED_ACTION = OBTAIN_INDEPENDENT_STAGE_0_AUDIT
+AUDIT_TYPE = STAGE_0_INDEPENDENT_CLOSURE_AUDIT
+AUDITOR = ChatGPT
+TOOL_SURFACE = MCP-local
+MODE = READ_ONLY
+AUDITED_HEAD = c38fe53d157309e3cbe9f5b9b2e889a433a0d136
+MAIN_REF = c38fe53d157309e3cbe9f5b9b2e889a433a0d136
+MAIN_WORKTREE = CLEAN
+DOCUMENTATION_INTEGRATION = PASS
+REGRESSION_EVIDENCE = PASS
+SEMANTIC_BASELINE = PASS_RECORDED_WITH_KNOWN_GAP
+SAFETY_PACKAGES = PASS_PRESERVED_OUTSIDE_MAIN
+DOCUMENT_INDEX = PASS
+CONTRADICTIONS = none
+FILES_MODIFIED_BY_AUDIT = 0
+COMMIT_CREATED_BY_AUDIT = false
+PUSH_PERFORMED_BY_AUDIT = false
+VERDICT = PASS_STAGE0_INDEPENDENT_AUDIT
 ```
 
-Stage 0 cannot close yet: the required independent Stage 0 audit has not been run after the integration, regression and baseline evidence. The implementer must not self-certify that gate.
+Audit evidence verified:
+
+- `main` and `HEAD` both resolve to `c38fe53d157309e3cbe9f5b9b2e889a433a0d136` before this state-only closure update;
+- the main worktree was clean;
+- `94a8b7458ac7788025c3a214b3a5f4ac56bbec7d` is integrated directly before the baseline evidence commit;
+- the baseline commit modifies only this execution-state ledger;
+- the existing corpus report reproduces 6 cases, 38 columns, 22 exact matches, 16 safe questions, zero dangerous errors, 0.5789 exact-match rate and 1.0 safe-resolution rate;
+- WS5, WS234, WS1 and WS6 commits resolve and their safety worktrees are clean;
+- README/document references resolve;
+- no safety package was integrated and no production or frontend readiness was claimed.
+
+Stage 0 is closed. Current next authorized action:
+
+```text
+NEXT_AUTHORIZED_ACTION = PREPARE_STAGE_1_FIRST_CERTIFIED_DEAD_CLUSTER_REMOVAL
+```
+
+Stage 1 preparation must identify one genuinely dead cluster and prove absent productive callers before any deletion. It must not absorb, merge or modify the preserved safety packages.
 
 ---
 
@@ -450,12 +493,12 @@ DO_NOT_CHANGE_7_TO_18_MECHANICALLY
 DO_NOT_FIX_GENERIC_NUMERIC_COLUMNS_WITH_ANOTHER_HARDCODE
 DO_NOT_ADD_CAPABILITIES
 DO_NOT_MODIFY_FRONTEND
-DO_NOT_DELETE_LEGACY_CLUSTERS_YET
-DO_NOT_START_STAGE_1
+DO_NOT_DELETE_UNCERTIFIED_OR_REFERENCED_CLUSTERS
+DO_NOT_START_STAGE_2
 DO_NOT_CREATE_ANOTHER_SEMANTIC_CATALOG
 DO_NOT_CREATE_A_SECOND_APPROVAL_CENTER
 DO_NOT_PUSH_ANY_SAFETY_BRANCH
-DO_NOT_DECLARE_ENTERPRISE_REFACTOR_STARTED
+DO_NOT_MODIFY_CODE_BEFORE_STAGE_1_ACTIVE_SPEC
 ```
 
 ---
@@ -469,7 +512,7 @@ DO_NOT_DECLARE_ENTERPRISE_REFACTOR_STARTED
 | S1-DEBT-003 | Generic, transactional and legacy calculation forms coexist | HIGH | one primary engine or narrowly justified bounded exceptions | Stage 6 |
 | S1-DEBT-004 | EvidenceArtifact spike contains predeclared compatibility/anchor/rejection decisions | HIGH | keep frozen; reimplement only computed decisions during integrated migration | Stage 4 |
 | S1-DEBT-005 | WS-5 duplicates semantic authority while containing unique metadata | HIGH | absorb metadata into canonical catalog/requirements and delete duplicate cluster | Stage 4 |
-| S1-DEBT-006 | Semantic precision baseline is absent | HIGH | measure versioned corpus baseline on controlled clean commit | Stage 0 |
+| S1-DEBT-006 | RESOLVED — semantic precision baseline recorded at 22/38 exact matches, 0.5789 exact-match rate, 1.0 safe-resolution rate and zero dangerous errors | CLOSED | preserve and improve the versioned corpus baseline without concealing the readiness gap | Stage 0 |
 | S1-DEBT-007 | Certified dead legacy clusters remain present | MEDIUM | delete one verified cluster at a time after Stage 0 | Stage 1 |
 | S1-DEBT-008 | Enterprise resource, recovery, observability and release gates are incomplete | HIGH for release | prove every Stage 7 gate | Stage 7 |
 | S1-DEBT-009 | WS-1 places business-value derivation in the web surface | HIGH | reconstruct UI so computation remains exclusively canonical | Stage 5 or earlier UI reconnection |
@@ -513,10 +556,10 @@ WS234's final reported preservation run recorded eight failures. The complete li
 6. COMPLETE — documentation commit integrated into clean main by fast-forward.
 7. COMPLETE — full regression passed on the integrated documentation commit: 1869 passed in 338.25s.
 8. COMPLETE — semantic precision baseline recorded: 22/38 exact matches, 1.0 safe-resolution rate, zero dangerous errors.
-9. CURRENT — obtain independent Stage 0 audit PASS.
+9. COMPLETE — PASS_STAGE0_INDEPENDENT_AUDIT recorded.
 ```
 
-No productive implementation begins before Stage 0 exits.
+Stage 0 is closed. Productive work may begin only through a bounded Stage 1 active specification.
 
 ---
 
@@ -562,14 +605,14 @@ Failed evidence remains summarized when it explains a decision or prevents repet
 
 ```text
 METHOD_AUTHORITY = SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
-ENTERPRISE_STAGE = STAGE_0_STABILIZE_AND_BASELINE
-STAGE_0_STATUS = BLOCKED_INDEPENDENT_AUDIT_PENDING
+ENTERPRISE_STAGE = STAGE_1_REMOVE_CERTIFIED_DEAD_CLUSTERS
+STAGE_0_STATUS = PASS
 MAIN_CLEAN = true
 WS5_PRESERVED = true
 WS234_PRESERVED = true
 WS1_PRESERVED = true
 WS6_PRESERVED = true
-SAFE_TO_BEGIN_PRODUCTIVE_REFACTOR = false
+SAFE_TO_BEGIN_PRODUCTIVE_REFACTOR = true
 CLEAN_BASE_FULL_REGRESSION = PASS (1869 passed in 338.25s)
 SEMANTIC_BASELINE_RECORDED = true
 SEMANTIC_BASELINE_EXACT_MATCH_RATE = 0.5789 (below 0.8 frontend-readiness target)
@@ -580,8 +623,9 @@ COLD_RECOVERY = PASS_RECOVERABLE_WITHOUT_CHAT
 COLD_RECOVERY_AUDITOR = OpenCode
 COLD_RECOVERY_AUDIT_MODE = READ_ONLY
 DOCUMENTATION_INTEGRATED_INTO_MAIN = true
-STAGE_0_INDEPENDENT_AUDIT = NOT_RUN
-NEXT_AUTHORIZED_ACTION = OBTAIN_INDEPENDENT_STAGE_0_AUDIT
+STAGE_0_INDEPENDENT_AUDIT = PASS_STAGE0_INDEPENDENT_AUDIT
+STAGE_0_INDEPENDENT_AUDITOR = ChatGPT_WITH_MCP_LOCAL
+NEXT_AUTHORIZED_ACTION = PREPARE_STAGE_1_FIRST_CERTIFIED_DEAD_CLUSTER_REMOVAL
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
 INTEGRATION_AUTHORIZED = true
