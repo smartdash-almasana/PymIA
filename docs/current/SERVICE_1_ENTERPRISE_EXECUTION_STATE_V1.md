@@ -73,7 +73,7 @@ semantic_precision_baseline:
   exact_match_rate: 0.5789
   safe_resolution_rate: 1.0
   evaluation_verdict: READY_WITH_FIXES
-push_authorized: false
+push_authorized: true
 cold_recovery:
   latest_verdict: PASS_RECOVERABLE_WITHOUT_CHAT
   auditor: OpenCode
@@ -98,7 +98,7 @@ stage_1:
     id: STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
     status: CLOSED_IN_MAIN
     branch: work/service1-stage1-dead-cluster-001
-    integrated_commit: 1163efe9b0a834be2165b1b667fc09c633a89d6d
+    integrated_commit: f3c10fd8fe826a97d158bda2477989720e727597
     integration_command: git merge --ff-only work/service1-stage1-dead-cluster-001
     merge_result: FAST_FORWARD_PASS
     deleted_files:
@@ -130,7 +130,7 @@ stage_1:
     id: STAGE1_CLUSTER_002_RUNTIME_CATALOG_PIPELINE_COMPOSITION
     status: CLOSED_IN_MAIN
     branch: work/service1-stage1-dead-cluster-002
-    integrated_commit: 0ac2778cea8d737142825af5a2366843d978be9c
+    integrated_commit: a40107c95fcbe2ffb23cf6c2f71ada5d375cb303
     integration_command: git merge --ff-only work/service1-stage1-dead-cluster-002
     merge_result: FAST_FORWARD_PASS
     deleted_files:
@@ -157,7 +157,47 @@ stage_1:
       support_necessary_before: 30
     product_capability_impact: NONE
     push_performed: false
-next_authorized_action: CERTIFY_STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN
+  cluster_003:
+    id: STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN
+    status: CLOSED_IN_MAIN
+    branch: work/service1-stage1-dead-cluster-003
+    integrated_commit: a5608219cd86317295e6a1e5c3b29781c499d9dd
+    integration_command: git merge --ff-only work/service1-stage1-dead-cluster-003
+    merge_result: FAST_FORWARD_PASS
+    deleted_files:
+      - pymia/smartpyme/service_1_owner_confirmation_boundary_v1.py
+      - pymia/smartpyme/service_1_pipeline_readiness_gate_v1.py
+      - pymia/smartpyme/service_1_runtime_catalog_binding_adapter_v1.py
+      - pymia/smartpyme/service_1_runtime_catalog_binding_contract_v1.py
+      - pymia/smartpyme/service_1_runtime_catalog_to_semantic_binding_handoff_v1.py
+      - tests/smartpyme/test_service_1_owner_confirmation_boundary_v1.py
+      - tests/smartpyme/test_service_1_pipeline_readiness_gate_v1.py
+      - tests/smartpyme/test_service_1_runtime_catalog_binding_adapter_v1.py
+      - tests/smartpyme/test_service_1_runtime_catalog_binding_contract_v1.py
+      - tests/smartpyme/test_service_1_runtime_catalog_to_semantic_binding_handoff_v1.py
+    caller_audit: ZERO_REAL_CALLERS
+    dynamic_loading_audit: PASS
+    focal_and_neighbor_tests:
+      command: python -m pytest tests/smartpyme/test_service_1_module_disposition_registry_v1.py tests/smartpyme/test_service_1_product_completion_gate_v1.py tests/smartpyme/test_service_1_deterministic_semantic_pipeline_v1.py tests/smartpyme/test_service_1_product_pipeline_v1.py tests/smartpyme/test_service_1_owner_confirmation_reinjection_to_semantic_gate_v1.py tests/smartpyme/test_service_1_semantic_bridge_to_controlled_execution_gate_v1.py tests/smartpyme/test_service_1_canonical_ingestion_output_to_semantic_bridge_v1.py tests/smartpyme/test_service_1_assisted_web_http_v1.py -q
+      result: 77 passed in 34.27s
+    full_regression:
+      command: python .tmp/run_pytest_partition.py 0..3 4
+      result: 1761 passed across 4 exhaustive partitions; 180 test files; 0 failed
+      passed: 1761
+      skipped: 0
+      failed: 0
+      execution_mode: exhaustive_partitioned_due_to_tool_timeout_boundary
+    module_counts:
+      total_modules: 51
+      total_modules_before: 56
+      productive: 27
+      productive_changed: false
+      support_necessary: 24
+      support_necessary_before: 29
+    product_capability_impact: NONE
+    independent_audit: PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
+    push_performed: true
+next_authorized_action: CERTIFY_STAGE1_CLUSTER_004_CSV_INTAKE
 ```
 
 ---
@@ -197,7 +237,7 @@ Stage 1 is active. Its first audited dead-cluster removal is closed in `main`:
 
 ```text
 CLUSTER = STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
-INTEGRATED_COMMIT = 1163efe9b0a834be2165b1b667fc09c633a89d6d
+INTEGRATED_COMMIT = f3c10fd8fe826a97d158bda2477989720e727597
 AUDIT = PASS_STAGE1_CLUSTER_001_AUDIT
 PRODUCT_CAPABILITY_IMPACT = none
 ```
@@ -206,12 +246,21 @@ Its second audited dead-cluster removal is also closed in `main`:
 
 ```text
 CLUSTER = STAGE1_CLUSTER_002_RUNTIME_CATALOG_PIPELINE_COMPOSITION
-INTEGRATED_COMMIT = 0ac2778cea8d737142825af5a2366843d978be9c
+INTEGRATED_COMMIT = a40107c95fcbe2ffb23cf6c2f71ada5d375cb303
 AUDIT = PASS_STAGE1_CLUSTER_002_INTEGRATION
 PRODUCT_CAPABILITY_IMPACT = none
 ```
 
-Next deletion is not authorized by this closure. The next permitted action is to certify the next certified dead cluster: `STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN`.
+Its third audited dead-cluster removal is also closed in `main`:
+
+```text
+CLUSTER = STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN
+INTEGRATED_COMMIT = a5608219cd86317295e6a1e5c3b29781c499d9dd
+AUDIT = PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
+PRODUCT_CAPABILITY_IMPACT = none
+```
+
+Next deletion is not authorized by this closure. The next permitted action is to certify `STAGE1_CLUSTER_004_CSV_INTAKE`.
 
 ---
 
@@ -411,7 +460,7 @@ COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
 INTEGRATION_AUTHORIZED = true
 DOCUMENTATION_INTEGRATED_INTO_MAIN = true
-PUSH_AUTHORIZED = false
+PUSH_AUTHORIZED = true
 ```
 
 The documentation commit was integrated into `main` by the exact fast-forward command recorded in the machine-readable snapshot. The current `main` HEAD is intentionally `SELF`, resolved by Git after this evidence closure commit.
@@ -557,7 +606,7 @@ Audit evidence verified:
 Stage 0 is closed. Current next authorized action:
 
 ```text
-NEXT_AUTHORIZED_ACTION = CERTIFY_STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN
+NEXT_AUTHORIZED_ACTION = CERTIFY_STAGE1_CLUSTER_004_CSV_INTAKE
 ```
 
 Stage 1 cluster 001 closure:
@@ -566,7 +615,7 @@ Stage 1 cluster 001 closure:
 CLUSTER = STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
 STATUS = CLOSED_IN_MAIN
 BRANCH = work/service1-stage1-dead-cluster-001
-INTEGRATED_COMMIT = 1163efe9b0a834be2165b1b667fc09c633a89d6d
+INTEGRATED_COMMIT = f3c10fd8fe826a97d158bda2477989720e727597
 INTEGRATION = FAST_FORWARD_PASS
 FILES_DELETED = pymia/smartpyme/service_1_common_normalization_router_v1.py; tests/smartpyme/test_service_1_common_normalization_router_v1.py
 CALLER_AUDIT = zero real callers
@@ -585,7 +634,7 @@ Stage 1 cluster 002 closure:
 CLUSTER = STAGE1_CLUSTER_002_RUNTIME_CATALOG_PIPELINE_COMPOSITION
 STATUS = CLOSED_IN_MAIN
 BRANCH = work/service1-stage1-dead-cluster-002
-INTEGRATED_COMMIT = 0ac2778cea8d737142825af5a2366843d978be9c
+INTEGRATED_COMMIT = a40107c95fcbe2ffb23cf6c2f71ada5d375cb303
 INTEGRATION = FAST_FORWARD_PASS
 FILES_DELETED = pymia/smartpyme/service_1_runtime_catalog_pipeline_composition_v1.py; tests/smartpyme/test_service_1_runtime_catalog_pipeline_composition_v1.py
 CALLER_AUDIT = zero real callers
@@ -597,7 +646,26 @@ PRODUCT_CAPABILITY_impact = none
 PUSH_PERFORMED = false
 ```
 
-Stage 1 may continue only by certifying the next dead cluster independently, or by closing Stage 1 if no additional dead cluster is certified. The next certified dead cluster is `STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN`. It must not absorb, merge or modify the preserved safety packages.
+Stage 1 cluster 003 closure:
+
+```text
+CLUSTER = STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN
+STATUS = CLOSED_IN_MAIN
+BRANCH = work/service1-stage1-dead-cluster-003
+INTEGRATED_COMMIT = a5608219cd86317295e6a1e5c3b29781c499d9dd
+INTEGRATION = FAST_FORWARD_PASS
+FILES_DELETED = 5 runtime-catalog-chain modules; 5 exclusive tests
+CALLER_AUDIT = zero real callers
+DYNAMIC_LOADING_AUDIT = PASS
+FOCAL_AND_NEIGHBOR_TESTS = 77 passed in 34.27s
+FULL_REGRESSION = 1761 passed across 4 exhaustive partitions; 180 test files; 0 failed
+MODULE_COUNT_CHANGE = total 56 -> 51; SUPPORT_NECESSARY 29 -> 24; PRODUCTIVE 27 unchanged
+PRODUCT_CAPABILITY_IMPACT = none
+AUDIT = PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
+PUSH_PERFORMED = true
+```
+
+Stage 1 may continue only by certifying the next dead cluster independently, or by closing Stage 1 if no additional dead cluster is certified. The next candidate is `STAGE1_CLUSTER_004_CSV_INTAKE`. It must not absorb, merge or modify the preserved safety packages.
 
 ---
 
@@ -618,7 +686,7 @@ DO_NOT_START_STAGE_2
 DO_NOT_CREATE_ANOTHER_SEMANTIC_CATALOG
 DO_NOT_CREATE_A_SECOND_APPROVAL_CENTER
 DO_NOT_PUSH_ANY_SAFETY_BRANCH
-DO_NOT_DELETE_STAGE_1_CLUSTER_003_WITHOUT_CERTIFICATION
+DO_NOT_DELETE_STAGE_1_CLUSTER_004_WITHOUT_CERTIFICATION
 ```
 
 ---
@@ -746,18 +814,23 @@ DOCUMENTATION_INTEGRATED_INTO_MAIN = true
 STAGE_0_INDEPENDENT_AUDIT = PASS_STAGE0_INDEPENDENT_AUDIT
 STAGE_0_INDEPENDENT_AUDITOR = ChatGPT_WITH_MCP_LOCAL
 STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER = CLOSED_IN_MAIN
-STAGE1_CLUSTER_001_COMMIT = 1163efe9b0a834be2165b1b667fc09c633a89d6d
+STAGE1_CLUSTER_001_COMMIT = f3c10fd8fe826a97d158bda2477989720e727597
 STAGE1_CLUSTER_001_AUDIT = PASS_STAGE1_CLUSTER_001_AUDIT
 STAGE1_CLUSTER_001_REGRESSION = PASS (1861 passed in 354.64s)
 STAGE1_CLUSTER_001_PRODUCT_CAPABILITY_IMPACT = none
 STAGE1_CLUSTER_002_RUNTIME_CATALOG_PIPELINE_COMPOSITION = CLOSED_IN_MAIN
-STAGE1_CLUSTER_002_COMMIT = 0ac2778cea8d737142825af5a2366843d978be9c
+STAGE1_CLUSTER_002_COMMIT = a40107c95fcbe2ffb23cf6c2f71ada5d375cb303
 STAGE1_CLUSTER_002_AUDIT = PASS_STAGE1_CLUSTER_002_INTEGRATION
 STAGE1_CLUSTER_002_REGRESSION = PASS (1844 passed in 173.38s)
 STAGE1_CLUSTER_002_PRODUCT_CAPABILITY_IMPACT = none
-NEXT_AUTHORIZED_ACTION = CERTIFY_STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN
+STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN = CLOSED_IN_MAIN
+STAGE1_CLUSTER_003_COMMIT = a5608219cd86317295e6a1e5c3b29781c499d9dd
+STAGE1_CLUSTER_003_AUDIT = PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
+STAGE1_CLUSTER_003_REGRESSION = PASS (1761 passed across 4 exhaustive partitions)
+STAGE1_CLUSTER_003_PRODUCT_CAPABILITY_IMPACT = none
+NEXT_AUTHORIZED_ACTION = CERTIFY_STAGE1_CLUSTER_004_CSV_INTAKE
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
 INTEGRATION_AUTHORIZED = true
-PUSH_AUTHORIZED = false
+PUSH_AUTHORIZED = true
 ```
