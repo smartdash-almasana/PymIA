@@ -230,6 +230,39 @@ stage_1:
     product_capability_impact: NONE
     independent_audit: PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
     push_performed: false
+  cluster_005:
+    id: STAGE1_CLUSTER_005_QA_DELIVERY_GATE
+    status: CLOSED_IN_MAIN
+    branch: main
+    integrated_commit: 642966f2ba99634109bc18598b41f02b5f538519
+    integration_command: direct commit on main
+    merge_result: NOT_APPLICABLE_DIRECT_MAIN_COMMIT
+    deleted_files:
+      - pymia/smartpyme/service_1_qa_delivery_gate_v1.py
+      - tests/smartpyme/test_service_1_qa_delivery_gate_v1.py
+    caller_audit: ZERO_REAL_CALLERS
+    dynamic_loading_audit: PASS
+    legacy_dependency: isolated operator flow requiring case_delivery_manifest absent from current product
+    focal_and_neighbor_tests:
+      command: python -m pytest tests/smartpyme/test_service_1_product_pipeline_v1.py tests/smartpyme/test_service_1_product_completion_gate_v1.py tests/smartpyme/test_service_1_assisted_web_http_v1.py tests/smartpyme/test_service_1_module_disposition_registry_v1.py tests/smartpyme/test_service_1_post_tool_owner_delivery_summary_v1.py -q
+      result: 26 passed in 6.68s
+    full_regression:
+      command: python -m pytest tests/smartpyme -q; python -m pytest tests/application tests/architecture tests/audit_result tests/cli tests/contracts tests/diagnostic_core tests/diagnosticcore tests/docs tests/document_intelligence tests/domain tests/e2e tests/hermes tests/interfaces tests/llm_operator tests/mcp tests/microsaas tests/orchestration tests/pipeline tests/rendering tests/scn tests/scripts tests/services tests/telegram_runtime tests/tools -q
+      result: 1740 passed across 2 exhaustive partitions; 0 failed
+      passed: 1740
+      skipped: 0
+      failed: 0
+      execution_mode: exhaustive_partitioned_due_to_connector_timeout_boundary
+    module_counts:
+      total_modules: 49
+      total_modules_before: 50
+      productive: 27
+      productive_changed: false
+      support_necessary: 22
+      support_necessary_before: 23
+    product_capability_impact: NONE
+    independent_audit: PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
+    push_performed: false
 next_authorized_action: CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
 ```
 
@@ -303,7 +336,17 @@ FULL_REGRESSION = 1751 passed in 114.98s
 PRODUCT_CAPABILITY_IMPACT = none
 ```
 
-No `STAGE1_CLUSTER_005` is defined in the current repository state. The next permitted action is to certify another Stage 1 dead cluster independently, or close Stage 1 if none remains certifiable.
+Its fifth audited dead-cluster removal is also closed in `main`:
+
+```text
+CLUSTER = STAGE1_CLUSTER_005_QA_DELIVERY_GATE
+INTEGRATED_COMMIT = 642966f2ba99634109bc18598b41f02b5f538519
+AUDIT = PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
+FULL_REGRESSION = 1740 passed across 2 exhaustive partitions; 0 failed
+PRODUCT_CAPABILITY_IMPACT = none
+```
+
+The next permitted action remains to certify another Stage 1 dead cluster independently, or close Stage 1 if none remains certifiable.
 
 ---
 
@@ -728,7 +771,27 @@ AUDIT = PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
 PUSH_PERFORMED = false
 ```
 
-Stage 1 may continue only by certifying another dead cluster independently, or by closing Stage 1 if no additional dead cluster is certifiable. No `STAGE1_CLUSTER_005` is currently defined. Preserved safety packages remain out of scope.
+Stage 1 cluster 005 closure:
+
+```text
+CLUSTER = STAGE1_CLUSTER_005_QA_DELIVERY_GATE
+STATUS = CLOSED_IN_MAIN
+BRANCH = main
+INTEGRATED_COMMIT = 642966f2ba99634109bc18598b41f02b5f538519
+INTEGRATION = DIRECT_MAIN_COMMIT
+FILES_DELETED = pymia/smartpyme/service_1_qa_delivery_gate_v1.py; tests/smartpyme/test_service_1_qa_delivery_gate_v1.py
+CALLER_AUDIT = zero real callers
+DYNAMIC_LOADING_AUDIT = PASS
+LEGACY_DEPENDENCY = isolated operator flow requiring case_delivery_manifest absent from current product
+FOCAL_AND_NEIGHBOR_TESTS = 26 passed in 6.68s
+FULL_REGRESSION = 1740 passed across 2 exhaustive partitions; 0 failed
+MODULE_COUNT_CHANGE = total 50 -> 49; SUPPORT_NECESSARY 23 -> 22; PRODUCTIVE 27 unchanged
+PRODUCT_CAPABILITY_IMPACT = none
+AUDIT = PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
+PUSH_PERFORMED = false
+```
+
+Stage 1 may continue only by certifying another dead cluster independently, or by closing Stage 1 if no additional dead cluster is certifiable. Preserved safety packages remain out of scope.
 
 ---
 
@@ -895,6 +958,11 @@ STAGE1_CLUSTER_004_COMMIT = 33cca19c06b842b19e71b7bd0d35f226440bb6e5
 STAGE1_CLUSTER_004_AUDIT = PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
 STAGE1_CLUSTER_004_REGRESSION = PASS (1751 passed in 114.98s)
 STAGE1_CLUSTER_004_PRODUCT_CAPABILITY_IMPACT = none
+STAGE1_CLUSTER_005_QA_DELIVERY_GATE = CLOSED_IN_MAIN
+STAGE1_CLUSTER_005_COMMIT = 642966f2ba99634109bc18598b41f02b5f538519
+STAGE1_CLUSTER_005_AUDIT = PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
+STAGE1_CLUSTER_005_REGRESSION = PASS (1740 passed across 2 exhaustive partitions)
+STAGE1_CLUSTER_005_PRODUCT_CAPABILITY_IMPACT = none
 NEXT_AUTHORIZED_ACTION = CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
