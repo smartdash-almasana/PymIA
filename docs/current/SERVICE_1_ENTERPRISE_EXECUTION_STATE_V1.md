@@ -197,7 +197,40 @@ stage_1:
     product_capability_impact: NONE
     independent_audit: PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
     push_performed: true
-next_authorized_action: CERTIFY_STAGE1_CLUSTER_004_CSV_INTAKE
+  cluster_004:
+    id: STAGE1_CLUSTER_004_CSV_INTAKE
+    status: CLOSED_IN_MAIN
+    branch: main
+    integrated_commit: 33cca19c06b842b19e71b7bd0d35f226440bb6e5
+    integration_command: direct commit on main
+    merge_result: NOT_APPLICABLE_DIRECT_MAIN_COMMIT
+    deleted_files:
+      - pymia/smartpyme/service_1_csv_intake_v1.py
+      - tests/smartpyme/test_service_1_csv_intake_v1.py
+    caller_audit: ZERO_REAL_CALLERS
+    dynamic_loading_audit: PASS
+    supersession: service_1_csv_to_normalized_table_v1 -> service_1_normalized_table_v1
+    focal_and_neighbor_tests:
+      command: python -m pytest tests/smartpyme/test_service_1_csv_to_normalized_table_v1.py tests/smartpyme/test_service_1_normalized_table_v1.py tests/smartpyme/test_service_1_xlsx_to_normalized_table_v1.py tests/smartpyme/test_service_1_module_disposition_registry_v1.py tests/smartpyme/test_service_1_product_completion_gate_v1.py -q
+      result: 50 passed in 5.64s
+    full_regression:
+      command: python -m pytest -q
+      result: 1751 passed in 114.98s (0:01:54)
+      passed: 1751
+      skipped: 0
+      failed: 0
+      duration_seconds: 114.98
+    module_counts:
+      total_modules: 50
+      total_modules_before: 51
+      productive: 27
+      productive_changed: false
+      support_necessary: 23
+      support_necessary_before: 24
+    product_capability_impact: NONE
+    independent_audit: PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
+    push_performed: false
+next_authorized_action: CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
 ```
 
 ---
@@ -260,7 +293,17 @@ AUDIT = PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
 PRODUCT_CAPABILITY_IMPACT = none
 ```
 
-Next deletion is not authorized by this closure. The next permitted action is to certify `STAGE1_CLUSTER_004_CSV_INTAKE`.
+Its fourth audited dead-cluster removal is also closed in `main`:
+
+```text
+CLUSTER = STAGE1_CLUSTER_004_CSV_INTAKE
+INTEGRATED_COMMIT = 33cca19c06b842b19e71b7bd0d35f226440bb6e5
+AUDIT = PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
+FULL_REGRESSION = 1751 passed in 114.98s
+PRODUCT_CAPABILITY_IMPACT = none
+```
+
+No `STAGE1_CLUSTER_005` is defined in the current repository state. The next permitted action is to certify another Stage 1 dead cluster independently, or close Stage 1 if none remains certifiable.
 
 ---
 
@@ -606,7 +649,7 @@ Audit evidence verified:
 Stage 0 is closed. Current next authorized action:
 
 ```text
-NEXT_AUTHORIZED_ACTION = CERTIFY_STAGE1_CLUSTER_004_CSV_INTAKE
+NEXT_AUTHORIZED_ACTION = CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
 ```
 
 Stage 1 cluster 001 closure:
@@ -665,7 +708,27 @@ AUDIT = PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
 PUSH_PERFORMED = true
 ```
 
-Stage 1 may continue only by certifying the next dead cluster independently, or by closing Stage 1 if no additional dead cluster is certified. The next candidate is `STAGE1_CLUSTER_004_CSV_INTAKE`. It must not absorb, merge or modify the preserved safety packages.
+Stage 1 cluster 004 closure:
+
+```text
+CLUSTER = STAGE1_CLUSTER_004_CSV_INTAKE
+STATUS = CLOSED_IN_MAIN
+BRANCH = main
+INTEGRATED_COMMIT = 33cca19c06b842b19e71b7bd0d35f226440bb6e5
+INTEGRATION = DIRECT_MAIN_COMMIT
+FILES_DELETED = pymia/smartpyme/service_1_csv_intake_v1.py; tests/smartpyme/test_service_1_csv_intake_v1.py
+CALLER_AUDIT = zero real callers
+DYNAMIC_LOADING_AUDIT = PASS
+SUPERSESSION = service_1_csv_to_normalized_table_v1 -> service_1_normalized_table_v1
+FOCAL_AND_NEIGHBOR_TESTS = 50 passed in 5.64s
+FULL_REGRESSION = 1751 passed in 114.98s; 0 failed
+MODULE_COUNT_CHANGE = total 51 -> 50; SUPPORT_NECESSARY 24 -> 23; PRODUCTIVE 27 unchanged
+PRODUCT_CAPABILITY_IMPACT = none
+AUDIT = PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
+PUSH_PERFORMED = false
+```
+
+Stage 1 may continue only by certifying another dead cluster independently, or by closing Stage 1 if no additional dead cluster is certifiable. No `STAGE1_CLUSTER_005` is currently defined. Preserved safety packages remain out of scope.
 
 ---
 
@@ -686,7 +749,6 @@ DO_NOT_START_STAGE_2
 DO_NOT_CREATE_ANOTHER_SEMANTIC_CATALOG
 DO_NOT_CREATE_A_SECOND_APPROVAL_CENTER
 DO_NOT_PUSH_ANY_SAFETY_BRANCH
-DO_NOT_DELETE_STAGE_1_CLUSTER_004_WITHOUT_CERTIFICATION
 ```
 
 ---
@@ -828,7 +890,12 @@ STAGE1_CLUSTER_003_COMMIT = a5608219cd86317295e6a1e5c3b29781c499d9dd
 STAGE1_CLUSTER_003_AUDIT = PASS_STAGE1_CLUSTER_003_COMMIT_AUDIT
 STAGE1_CLUSTER_003_REGRESSION = PASS (1761 passed across 4 exhaustive partitions)
 STAGE1_CLUSTER_003_PRODUCT_CAPABILITY_IMPACT = none
-NEXT_AUTHORIZED_ACTION = CERTIFY_STAGE1_CLUSTER_004_CSV_INTAKE
+STAGE1_CLUSTER_004_CSV_INTAKE = CLOSED_IN_MAIN
+STAGE1_CLUSTER_004_COMMIT = 33cca19c06b842b19e71b7bd0d35f226440bb6e5
+STAGE1_CLUSTER_004_AUDIT = PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
+STAGE1_CLUSTER_004_REGRESSION = PASS (1751 passed in 114.98s)
+STAGE1_CLUSTER_004_PRODUCT_CAPABILITY_IMPACT = none
+NEXT_AUTHORIZED_ACTION = CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
 INTEGRATION_AUTHORIZED = true
