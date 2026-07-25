@@ -42,7 +42,7 @@ enterprise_docs:
   documentation_commit: 94a8b7458ac7788025c3a214b3a5f4ac56bbec7d
   writable_paths: 3
   commit_created: true
-enterprise_stage: STAGE_1_REMOVE_CERTIFIED_DEAD_CLUSTERS
+enterprise_stage: STAGE_2_CONSOLIDATE_ARCHITECTURE_AND_CONTRACTS
 stage_0_status: PASS
 safe_to_begin_productive_refactor: true
 commit_authorized: true
@@ -93,7 +93,7 @@ stage_0_independent_audit:
   commit_created_by_audit: false
   push_performed_by_audit: false
 stage_1:
-  status: ACTIVE
+  status: CLOSED
   cluster_001:
     id: STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
     status: CLOSED_IN_MAIN
@@ -229,7 +229,7 @@ stage_1:
       support_necessary_before: 24
     product_capability_impact: NONE
     independent_audit: PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
-    push_performed: false
+    push_performed: true
   cluster_005:
     id: STAGE1_CLUSTER_005_QA_DELIVERY_GATE
     status: CLOSED_IN_MAIN
@@ -262,8 +262,33 @@ stage_1:
       support_necessary_before: 23
     product_capability_impact: NONE
     independent_audit: PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
-    push_performed: false
-next_authorized_action: CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
+    push_performed: true
+  final_support_modules_audit:
+    status: PASS
+    verdict: PASS_STAGE1_SUPPORT_MODULES_FINAL_AUDIT
+    modules_audited: 22
+    support_necessary_real: 10
+    measurement_tools_necessary: 5
+    preserve_for_future_stage: 7
+    certifiable_dead_candidates: 0
+    dynamic_loading_detected: false
+    stage_decision: CLOSE_STAGE1_NO_MORE_CERTIFIABLE_DEAD_CLUSTERS
+  closure:
+    status: PASS
+    closed_clusters: 5
+    modules_before_stage_1: 58
+    modules_after_stage_1: 49
+    modules_removed: 9
+    productive_before: 27
+    productive_after: 27
+    support_necessary_before: 31
+    support_necessary_after: 22
+    productive_capability_impact: NONE
+stage_2:
+  status: ACTIVE
+  objective: CONSOLIDATE_ARCHITECTURE_AND_CONTRACTS
+  implementation_changes_authorized: false
+next_authorized_action: FREEZE_STAGE2_ARCHITECTURAL_AUTHORITIES
 ```
 
 ---
@@ -299,7 +324,7 @@ Stage 0 closed with all required gates satisfied:
 - semantic precision baseline was measured and recorded without hiding the 0.5789 exact-match gap;
 - independent Stage 0 audit emitted `PASS_STAGE0_INDEPENDENT_AUDIT`.
 
-Stage 1 is active. Its first audited dead-cluster removal is closed in `main`:
+Stage 1 is closed after five audited dead-cluster removals. Its first audited removal was:
 
 ```text
 CLUSTER = STAGE1_CLUSTER_001_COMMON_NORMALIZATION_ROUTER
@@ -692,7 +717,7 @@ Audit evidence verified:
 Stage 0 is closed. Current next authorized action:
 
 ```text
-NEXT_AUTHORIZED_ACTION = CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
+NEXT_AUTHORIZED_ACTION = FREEZE_STAGE2_ARCHITECTURAL_AUTHORITIES
 ```
 
 Stage 1 cluster 001 closure:
@@ -791,7 +816,7 @@ AUDIT = PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
 PUSH_PERFORMED = false
 ```
 
-Stage 1 may continue only by certifying another dead cluster independently, or by closing Stage 1 if no additional dead cluster is certifiable. Preserved safety packages remain out of scope.
+Stage 1 is closed. The final read-only audit classified all 22 remaining support modules as 10 real support modules, 5 necessary measurement tools and 7 future-stage preservation modules, with zero certifiable dead candidates. Preserved safety packages remain out of scope. Stage 2 is active and begins by freezing architectural authorities before implementation changes.
 
 ---
 
@@ -808,7 +833,7 @@ DO_NOT_FIX_GENERIC_NUMERIC_COLUMNS_WITH_ANOTHER_HARDCODE
 DO_NOT_ADD_CAPABILITIES
 DO_NOT_MODIFY_FRONTEND
 DO_NOT_DELETE_UNCERTIFIED_OR_REFERENCED_CLUSTERS
-DO_NOT_START_STAGE_2
+DO_NOT_CHANGE_IMPLEMENTATION_BEFORE_STAGE2_AUTHORITIES_ARE_FROZEN
 DO_NOT_CREATE_ANOTHER_SEMANTIC_CATALOG
 DO_NOT_CREATE_A_SECOND_APPROVAL_CENTER
 DO_NOT_PUSH_ANY_SAFETY_BRANCH
@@ -918,7 +943,7 @@ Failed evidence remains summarized when it explains a decision or prevents repet
 
 ```text
 METHOD_AUTHORITY = SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
-ENTERPRISE_STAGE = STAGE_1_REMOVE_CERTIFIED_DEAD_CLUSTERS
+ENTERPRISE_STAGE = STAGE_2_CONSOLIDATE_ARCHITECTURE_AND_CONTRACTS
 STAGE_0_STATUS = PASS
 MAIN_CLEAN = true
 WS5_PRESERVED = true
@@ -963,7 +988,12 @@ STAGE1_CLUSTER_005_COMMIT = 642966f2ba99634109bc18598b41f02b5f538519
 STAGE1_CLUSTER_005_AUDIT = PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
 STAGE1_CLUSTER_005_REGRESSION = PASS (1740 passed across 2 exhaustive partitions)
 STAGE1_CLUSTER_005_PRODUCT_CAPABILITY_IMPACT = none
-NEXT_AUTHORIZED_ACTION = CERTIFY_NEXT_STAGE1_DEAD_CLUSTER_OR_CLOSE_STAGE1
+STAGE1_FINAL_SUPPORT_MODULES_AUDIT = PASS_STAGE1_SUPPORT_MODULES_FINAL_AUDIT
+STAGE1_FINAL_CLASSIFICATION = A10_B5_C7_D0
+STAGE1_CERTIFIABLE_DEAD_REMAINING = 0
+STAGE1_STATUS = CLOSED
+STAGE2_STATUS = ACTIVE
+NEXT_AUTHORIZED_ACTION = FREEZE_STAGE2_ARCHITECTURAL_AUTHORITIES
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
 INTEGRATION_AUTHORIZED = true
