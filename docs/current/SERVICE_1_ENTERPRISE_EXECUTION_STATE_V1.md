@@ -125,7 +125,7 @@ stage_1:
       support_necessary_before: 31
     product_capability_impact: NONE
     independent_audit: PASS_STAGE1_CLUSTER_001_AUDIT
-    push_performed: false
+    push_performed: true
   cluster_002:
     id: STAGE1_CLUSTER_002_RUNTIME_CATALOG_PIPELINE_COMPOSITION
     status: CLOSED_IN_MAIN
@@ -156,7 +156,7 @@ stage_1:
       support_necessary: 29
       support_necessary_before: 30
     product_capability_impact: NONE
-    push_performed: false
+    push_performed: true
   cluster_003:
     id: STAGE1_CLUSTER_003_RUNTIME_CATALOG_CHAIN
     status: CLOSED_IN_MAIN
@@ -736,7 +736,7 @@ FULL_REGRESSION = 1861 passed in 354.64s
 MODULE_COUNT_CHANGE = total 58 -> 57; SUPPORT_NECESSARY 31 -> 30; PRODUCTIVE 27 unchanged
 PRODUCT_CAPABILITY_IMPACT = none
 AUDIT = PASS_STAGE1_CLUSTER_001_AUDIT
-PUSH_PERFORMED = false
+PUSH_PERFORMED = true
 ```
 
 Stage 1 cluster 002 closure:
@@ -754,7 +754,7 @@ FOCAL_AND_NEIGHBOR_TESTS = 67 passed
 FULL_REGRESSION = 1844 passed in 173.38s
 MODULE_COUNT_CHANGE = total 57 -> 56; SUPPORT_NECESSARY 30 -> 29; PRODUCTIVE 27 unchanged
 PRODUCT_CAPABILITY_impact = none
-PUSH_PERFORMED = false
+PUSH_PERFORMED = true
 ```
 
 Stage 1 cluster 003 closure:
@@ -793,7 +793,7 @@ FULL_REGRESSION = 1751 passed in 114.98s; 0 failed
 MODULE_COUNT_CHANGE = total 51 -> 50; SUPPORT_NECESSARY 24 -> 23; PRODUCTIVE 27 unchanged
 PRODUCT_CAPABILITY_IMPACT = none
 AUDIT = PASS_STAGE1_CLUSTER_004_CSV_INTAKE_POST_REMOVAL_AUDIT
-PUSH_PERFORMED = false
+PUSH_PERFORMED = true
 ```
 
 Stage 1 cluster 005 closure:
@@ -813,7 +813,7 @@ FULL_REGRESSION = 1740 passed across 2 exhaustive partitions; 0 failed
 MODULE_COUNT_CHANGE = total 50 -> 49; SUPPORT_NECESSARY 23 -> 22; PRODUCTIVE 27 unchanged
 PRODUCT_CAPABILITY_IMPACT = none
 AUDIT = PASS_STAGE1_CLUSTER_005_QA_DELIVERY_GATE_POST_REMOVAL_AUDIT
-PUSH_PERFORMED = false
+PUSH_PERFORMED = true
 ```
 
 Stage 1 is closed. The final read-only audit classified all 22 remaining support modules as 10 real support modules, 5 necessary measurement tools and 7 future-stage preservation modules, with zero certifiable dead candidates. Preserved safety packages remain out of scope. Stage 2 is active and begins by freezing architectural authorities before implementation changes.
