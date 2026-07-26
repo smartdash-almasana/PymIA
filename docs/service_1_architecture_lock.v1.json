@@ -37,6 +37,7 @@
     "service_1_ren_001_outcome_v1",
     "service_1_manual_first_aid_delivery_flow_v1",
     "service_1_owner_confirmation_event_v1",
+    "service_1_p6_approval_decision_v1",
     "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
     "service_1_pipeline_v1",
     "service_1_product_pipeline_v1",

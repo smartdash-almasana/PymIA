@@ -255,6 +255,7 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
         "column_refs": semantic_bridge_packet.get("column_refs", []),
         "column_understandings": semantic_bridge_packet.get("column_understandings", ()),
         "owner_question_views": semantic_bridge_packet.get("owner_question_views", ()),
+        "owner_confirmation_events": [dict(item) for item in raw_events],
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,

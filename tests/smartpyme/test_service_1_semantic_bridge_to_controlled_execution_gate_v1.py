@@ -264,6 +264,9 @@ def test_owner_question_surface_uses_safe_option_ids() -> None:
     out = build_gate(semantic_bridge_packet=bridge)
 
     assert out["status"] == STATUS_NEEDS_OWNER_CONFIRMATION
+    assert out["variable_family_count"] == 0
+    assert out["ready_variable_family_ids"] == []
+    assert out["p6_decisions"][0]["status"] in {"NEEDS_OWNER_CONFIRMATION", "AMBIGUOUS"}
     question = out["owner_questions"][0]
     rendered = json.dumps(question, ensure_ascii=False)
     assert question["allowed_option_ids"] == ["A", "B", "C", "OTHER", "IGNORE"]

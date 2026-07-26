@@ -28,6 +28,13 @@ from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 im
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
+from pymia.smartpyme.service_1_p6_approval_decision_v1 import (
+    STATUS_AMBIGUOUS as P6_STATUS_AMBIGUOUS,
+    STATUS_APPROVED as P6_STATUS_APPROVED,
+    STATUS_BLOCKED as P6_STATUS_BLOCKED,
+    STATUS_NEEDS_OWNER_CONFIRMATION as P6_STATUS_NEEDS_OWNER_CONFIRMATION,
+    build_service_1_p6_approval_decisions_v1,
+)
 from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
     build_service_1_variable_family_bindings_v1,
     ready_service_1_variable_family_ids_v1,
@@ -181,22 +188,31 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
             filename=filename,
         )
     candidate_roles = _collect_roles(active_candidates)
-    variable_family_bindings = build_service_1_variable_family_bindings_v1(
-        active_candidates
+    owner_confirmation_events = tuple(packet.get("owner_confirmation_events") or ())
+    p6_decisions = build_service_1_p6_approval_decisions_v1(
+        case_id=str(case_id or "").strip(),
+        candidates=active_candidates,
+        owner_confirmation_events=owner_confirmation_events,
     )
-    ready_variable_family_ids = ready_service_1_variable_family_ids_v1(
-        variable_family_bindings
-    )
+    decisions_by_ref = {
+        decision.provenance["candidate_ref"]: decision for decision in p6_decisions
+    }
+    blocked_p6 = [decision for decision in p6_decisions if decision.status == P6_STATUS_BLOCKED]
+    if blocked_p6:
+        return _blocked(
+            f"P6_BLOCKED:{blocked_p6[0].reason}",
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
 
-    # Rule 8: any active candidate requiring owner confirmation or still
-    # carrying only an unknown role remains fail-closed.
+    # Rule 8: owner clarification is driven by canonical P6 decisions, not by
+    # this compatibility gate reinterpreting candidate state independently.
     needs_confirmation = [
         candidate
         for candidate in active_candidates
-        if getattr(candidate, "owner_confirmation_required", False)
-        or not tuple(getattr(candidate, "candidate_semantic_roles", ()) or ())
-        or "unknown"
-        in tuple(getattr(candidate, "candidate_semantic_roles", ()) or ())
+        if decisions_by_ref[_candidate_ref_id(candidate)].status
+        in {P6_STATUS_NEEDS_OWNER_CONFIRMATION, P6_STATUS_AMBIGUOUS}
     ]
 
     if needs_confirmation:
@@ -218,14 +234,30 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
             filename=filename,
             candidate_count=len(candidate_list),
             candidate_roles=candidate_roles,
-            variable_family_bindings=variable_family_bindings,
-            ready_variable_family_ids=ready_variable_family_ids,
+            variable_family_bindings=(),
+            ready_variable_family_ids=(),
             controlled_execution_candidate=None,
             owner_questions=owner_questions,
             owner_answer_bindings=owner_answer_bindings,
+            p6_decisions=p6_decisions,
         )
 
-    # Rule 9: all safe and no confirmation required -> READY (still no execution).
+    # All active candidates must have P6_APPROVED to proceed.
+    if any(decision.status != P6_STATUS_APPROVED for decision in p6_decisions):
+        return _blocked(
+            "P6_APPROVAL_REQUIRED",
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
+    variable_family_bindings = build_service_1_variable_family_bindings_v1(
+        p6_decisions
+    )
+    ready_variable_family_ids = ready_service_1_variable_family_ids_v1(
+        p6_decisions
+    )
+
+    # Rule 9: all safe and P6-approved -> READY (still no execution).
     controlled_execution_candidate = {
         "schema_version": SCHEMA_VERSION,
         "case_id": case_id,
@@ -255,6 +287,7 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         controlled_execution_candidate=controlled_execution_candidate,
         owner_questions=[],
         owner_answer_bindings={},
+        p6_decisions=p6_decisions,
     )
 
 
@@ -412,6 +445,7 @@ def _packet(
     controlled_execution_candidate: Optional[dict[str, Any]],
     owner_questions: list[dict[str, Any]],
     owner_answer_bindings: dict[str, dict[str, str]],
+    p6_decisions: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -433,6 +467,7 @@ def _packet(
             column: dict(bindings)
             for column, bindings in owner_answer_bindings.items()
         },
+        "p6_decisions": [decision.to_dict() for decision in p6_decisions],
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
