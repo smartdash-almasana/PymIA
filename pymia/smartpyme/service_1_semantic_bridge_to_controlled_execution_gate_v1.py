@@ -36,8 +36,9 @@ from pymia.smartpyme.service_1_p6_approval_decision_v1 import (
     build_service_1_p6_approval_decisions_v1,
 )
 from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
-    build_service_1_variable_family_bindings_v1,
-    ready_service_1_variable_family_ids_v1,
+    build_service_1_requirement_matches_v1,
+    project_service_1_requirement_matches_to_variable_family_bindings_v1,
+    ready_service_1_requirement_family_ids_v1,
 )
 
 SCHEMA_VERSION = "SERVICE_1_SEMANTIC_BRIDGE_TO_CONTROLLED_EXECUTION_GATE_V1"
@@ -242,19 +243,23 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
             p6_decisions=p6_decisions,
         )
 
-    # All active candidates must have P6_APPROVED to proceed.
+    # P7-adjacent family matching is allowed only after every active semantic
+    # candidate has passed canonical P6 approval.
     if any(decision.status != P6_STATUS_APPROVED for decision in p6_decisions):
         return _blocked(
-            "P6_APPROVAL_REQUIRED",
+            "P6_APPROVAL_REQUIRED_BEFORE_REQUIREMENT_MATCHING",
             case_id=case_id,
             source_kind=source_kind,
             filename=filename,
         )
-    variable_family_bindings = build_service_1_variable_family_bindings_v1(
-        p6_decisions
+    requirement_matches = build_service_1_requirement_matches_v1(p6_decisions)
+    variable_family_bindings = (
+        project_service_1_requirement_matches_to_variable_family_bindings_v1(
+            requirement_matches
+        )
     )
-    ready_variable_family_ids = ready_service_1_variable_family_ids_v1(
-        p6_decisions
+    ready_variable_family_ids = ready_service_1_requirement_family_ids_v1(
+        requirement_matches
     )
 
     # Rule 9: all safe and P6-approved -> READY (still no execution).
@@ -267,6 +272,7 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         "candidate_refs": [_candidate_ref_id(c) for c in active_candidates],
         "candidate_roles": candidate_roles,
         "candidate_count": len(candidate_list),
+        "requirement_matches": [match.to_dict() for match in requirement_matches],
         "variable_family_bindings": variable_family_bindings,
         "ready_variable_family_ids": list(ready_variable_family_ids),
         # Rule 10: candidate is a proposal only, never an execution authorization.
@@ -288,6 +294,7 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
         owner_questions=[],
         owner_answer_bindings={},
         p6_decisions=p6_decisions,
+        requirement_matches=requirement_matches,
     )
 
 
@@ -446,6 +453,7 @@ def _packet(
     owner_questions: list[dict[str, Any]],
     owner_answer_bindings: dict[str, dict[str, str]],
     p6_decisions: tuple[Any, ...] = (),
+    requirement_matches: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -468,6 +476,7 @@ def _packet(
             for column, bindings in owner_answer_bindings.items()
         },
         "p6_decisions": [decision.to_dict() for decision in p6_decisions],
+        "requirement_matches": [match.to_dict() for match in requirement_matches],
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -531,3 +540,4 @@ __all__ = [
     "OWNER_OPTION_IGNORE",
     "build_service_1_controlled_execution_gate_from_semantic_bridge_v1",
 ]
+

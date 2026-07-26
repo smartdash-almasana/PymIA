@@ -13,6 +13,7 @@ VERDICT_BLOCK = "BLOCK_ARCHITECTURE_BASELINE_V1"
 BEHAVIOR_TESTS = (
     "tests/smartpyme/test_service_1_owner_confirmation_event_v1.py",
     "tests/smartpyme/test_service_1_p6_approval_decision_v1.py",
+    "tests/smartpyme/test_service_1_requirement_match_v1.py",
     "tests/smartpyme/test_service_1_product_pipeline_v1.py",
     "tests/smartpyme/test_service_1_canonical_ingestion_to_region_evidence_adapter_v1.py",
     "tests/smartpyme/test_service_1_pyme_011_productive_root_v1.py",
@@ -60,6 +61,7 @@ def structural_checks(root: Path) -> list[Check]:
     reinjection_source = (root / "pymia" / "smartpyme" / "service_1_owner_confirmation_reinjection_to_semantic_gate_v1.py").read_text(encoding="utf-8")
     owner_event_path = root / "pymia" / "smartpyme" / "service_1_owner_confirmation_event_v1.py"
     p6_path = root / "pymia" / "smartpyme" / "service_1_p6_approval_decision_v1.py"
+    p7_source = (root / "pymia" / "smartpyme" / "service_1_variable_family_bindings_v1.py").read_text(encoding="utf-8")
 
     computation_section = deterministic_source.split("def build_computation_plan", 1)[1] if "def build_computation_plan" in deterministic_source else ""
     post_p6_rebinding = "build_service_1_semantic_evidence_binding_result_v1(" in computation_section
@@ -78,6 +80,12 @@ def structural_checks(root: Path) -> list[Check]:
         and "build_service_1_p6_approval_decisions_v1(" in gate_source
         and "p6_decisions" in gate_source
     )
+    p7_authority = (
+        "class Service1RequirementMatchV1" in p7_source
+        and "class Service1GrainV1" in p7_source
+        and "def build_service_1_requirement_matches_v1(" in p7_source
+        and "build_service_1_requirement_matches_v1(" in gate_source
+        and "project_service_1_requirement_matches_to_variable_family_bindings_v1(" in gate_source
     )
 
     checks = [
@@ -106,6 +114,11 @@ def structural_checks(root: Path) -> list[Check]:
             else "canonical P6 approval authority not fully wired",
         ),
         Check(
+            "P7_REQUIREMENT_MATCH_AUTHORITY_PRESENT",
+            p7_authority,
+            "canonical RequirementMatch and Grain authorities are wired after P6; legacy variable-family binding is projection only"
+            if p7_authority
+            else "canonical P7 RequirementMatch/Grain authority not fully wired",
         ),
         Check(
             "NO_SEMANTIC_REBIND_AFTER_P6",
@@ -198,3 +211,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

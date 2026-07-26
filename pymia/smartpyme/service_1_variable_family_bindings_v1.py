@@ -13,6 +13,10 @@ from typing import Any, Final
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
+from pymia.smartpyme.service_1_p6_approval_decision_v1 import (
+    STATUS_APPROVED as P6_STATUS_APPROVED,
+    Service1P6ApprovalDecisionV1,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_VARIABLE_FAMILY_BINDINGS_V1"
 SERVICE_NAME: Final[str] = "SERVICE_1"
@@ -35,6 +39,17 @@ ALLOWED_STATUSES: Final[tuple[str, ...]] = (
     STATUS_NEEDS_OWNER_CONFIRMATION,
     STATUS_MISSING_REQUIRED_ROLES,
     STATUS_NOT_OBSERVED,
+)
+
+P7_STATUS_MATCHED: Final[str] = "REQUIREMENT_MATCHED"
+P7_STATUS_MISSING_REQUIREMENTS: Final[str] = "MISSING_REQUIREMENTS"
+P7_STATUS_NOT_OBSERVED: Final[str] = "REQUIREMENTS_NOT_OBSERVED"
+P7_STATUS_BLOCKED: Final[str] = "BLOCKED"
+P7_ALLOWED_STATUSES: Final[tuple[str, ...]] = (
+    P7_STATUS_MATCHED,
+    P7_STATUS_MISSING_REQUIREMENTS,
+    P7_STATUS_NOT_OBSERVED,
+    P7_STATUS_BLOCKED,
 )
 
 
@@ -63,6 +78,77 @@ class Service1VariableFamilyDefinitionV1:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class Service1GrainV1:
+    structural_scope: str
+    business_entity_grain: str
+    temporal_grain: str
+    aggregation_grain: str
+
+    def __post_init__(self) -> None:
+        allowed_structural = {"ROW", "REGION", "SHEET"}
+        allowed_entity = {
+            "TRANSACTION", "LINE_ITEM", "INVOICE", "CUSTOMER", "SUPPLIER",
+            "PRODUCT", "ACCOUNT", "NONE",
+        }
+        allowed_temporal = {
+            "EVENT", "DAY", "WEEK", "MONTH", "QUARTER", "YEAR", "PERIOD", "NONE",
+        }
+        allowed_aggregation = {"ATOMIC", "GROUPED", "AGGREGATED"}
+        if self.structural_scope not in allowed_structural:
+            raise ValueError("invalid structural_scope")
+        if self.business_entity_grain not in allowed_entity:
+            raise ValueError("invalid business_entity_grain")
+        if self.temporal_grain not in allowed_temporal:
+            raise ValueError("invalid temporal_grain")
+        if self.aggregation_grain not in allowed_aggregation:
+            raise ValueError("invalid aggregation_grain")
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class Service1RequirementMatchV1:
+    schema_version: str
+    service_name: str
+    family_id: str
+    status: str
+    required_role_groups: tuple[tuple[str, ...], ...]
+    satisfied_role_groups: tuple[tuple[str, ...], ...]
+    missing_role_groups: tuple[tuple[str, ...], ...]
+    approved_roles: tuple[str, ...]
+    source_columns: tuple[str, ...]
+    target_variable_names: tuple[str, ...]
+    target_capabilities: tuple[str, ...]
+    grain: Service1GrainV1
+    provenance: dict[str, Any] = field(default_factory=dict)
+    runtime_authorized: bool = False
+    tool_execution_authorized: bool = False
+    delivery_authorized: bool = False
+    diagnosis_generated: bool = False
+
+    def __post_init__(self) -> None:
+        if self.status not in P7_ALLOWED_STATUSES:
+            raise ValueError(f"unsupported P7 status: {self.status}")
+        if not self.family_id.strip():
+            raise ValueError("family_id is required")
+        for field_name in (
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "delivery_authorized",
+            "diagnosis_generated",
+        ):
+            if getattr(self, field_name) is not False:
+                raise ValueError(f"{field_name} must remain False")
+        object.__setattr__(self, "provenance", dict(self.provenance or {}))
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["grain"] = self.grain.to_dict()
+        return payload
 
 
 @dataclass(frozen=True)
@@ -174,6 +260,158 @@ VARIABLE_FAMILY_DEFINITIONS: Final[tuple[Service1VariableFamilyDefinitionV1, ...
         target_capabilities=("dso",),
     ),
 )
+
+
+def build_service_1_requirement_matches_v1(
+    p6_decisions: tuple[Service1P6ApprovalDecisionV1, ...] | list[Service1P6ApprovalDecisionV1],
+) -> tuple[Service1RequirementMatchV1, ...]:
+    """Canonical P7 requirement matching from approved P6 decisions only."""
+    decisions = tuple(p6_decisions or ())
+    for decision in decisions:
+        if not isinstance(decision, Service1P6ApprovalDecisionV1):
+            raise TypeError("p6_decisions must contain Service1P6ApprovalDecisionV1")
+        if decision.status != P6_STATUS_APPROVED:
+            raise ValueError("P7 requires only APPROVED P6 decisions")
+
+    role_columns: dict[str, list[str]] = {}
+    for decision in decisions:
+        role = str(decision.approved_role or "").strip()
+        column = str(decision.column_ref or "").strip()
+        if role and column:
+            _append_unique(role_columns, role, column)
+
+    grain = Service1GrainV1(
+        structural_scope="REGION",
+        business_entity_grain="NONE",
+        temporal_grain="NONE",
+        aggregation_grain="ATOMIC",
+    )
+    return tuple(
+        _build_requirement_match(
+            definition=definition,
+            role_columns=role_columns,
+            grain=grain,
+        )
+        for definition in VARIABLE_FAMILY_DEFINITIONS
+    )
+
+
+def _build_requirement_match(
+    *,
+    definition: Service1VariableFamilyDefinitionV1,
+    role_columns: dict[str, list[str]],
+    grain: Service1GrainV1,
+) -> Service1RequirementMatchV1:
+    satisfied: list[tuple[str, ...]] = []
+    missing: list[tuple[str, ...]] = []
+    for group in definition.required_role_groups:
+        if any(role in role_columns for role in group):
+            satisfied.append(group)
+        else:
+            missing.append(group)
+
+    required_roles = {role for group in definition.required_role_groups for role in group}
+    family_roles = required_roles | set(definition.optional_roles)
+    observed = any(role in role_columns for role in required_roles)
+    if len(satisfied) == len(definition.required_role_groups):
+        status = P7_STATUS_MATCHED
+    elif observed:
+        status = P7_STATUS_MISSING_REQUIREMENTS
+    else:
+        status = P7_STATUS_NOT_OBSERVED
+
+    approved_roles = tuple(role for role in sorted(family_roles) if role in role_columns)
+    source_columns: list[str] = []
+    for role in approved_roles:
+        for column in role_columns.get(role, []):
+            if column not in source_columns:
+                source_columns.append(column)
+
+    return Service1RequirementMatchV1(
+        schema_version=SCHEMA_VERSION,
+        service_name=SERVICE_NAME,
+        family_id=definition.family_id,
+        status=status,
+        required_role_groups=definition.required_role_groups,
+        satisfied_role_groups=tuple(satisfied),
+        missing_role_groups=tuple(missing),
+        approved_roles=approved_roles,
+        source_columns=tuple(source_columns),
+        target_variable_names=definition.target_variable_names,
+        target_capabilities=definition.target_capabilities,
+        grain=grain,
+        provenance={
+            "source": "P6_APPROVAL_DECISIONS",
+            "p7_requirement_match_only": True,
+        },
+        runtime_authorized=False,
+        tool_execution_authorized=False,
+        delivery_authorized=False,
+        diagnosis_generated=False,
+    )
+
+
+def project_service_1_requirement_matches_to_variable_family_bindings_v1(
+    matches: tuple[Service1RequirementMatchV1, ...] | list[Service1RequirementMatchV1],
+) -> tuple[Service1VariableFamilyBindingV1, ...]:
+    """Legacy projection only; canonical P7 authority is Service1RequirementMatchV1."""
+    projected: list[Service1VariableFamilyBindingV1] = []
+    definitions = {definition.family_id: definition for definition in VARIABLE_FAMILY_DEFINITIONS}
+    for match in tuple(matches or ()):
+        if not isinstance(match, Service1RequirementMatchV1):
+            raise TypeError("matches must contain Service1RequirementMatchV1")
+        definition = definitions.get(match.family_id)
+        if definition is None:
+            raise ValueError("unknown family_id in requirement match")
+        if match.status == P7_STATUS_MATCHED:
+            legacy_status = STATUS_READY
+        elif match.status == P7_STATUS_MISSING_REQUIREMENTS:
+            legacy_status = STATUS_MISSING_REQUIRED_ROLES
+        elif match.status == P7_STATUS_NOT_OBSERVED:
+            legacy_status = STATUS_NOT_OBSERVED
+        else:
+            legacy_status = STATUS_MISSING_REQUIRED_ROLES
+        projected.append(
+            Service1VariableFamilyBindingV1(
+                schema_version=SCHEMA_VERSION,
+                service_name=SERVICE_NAME,
+                family_id=definition.family_id,
+                owner_label=definition.owner_label,
+                priority=definition.priority,
+                status=legacy_status,
+                coverage_ratio=round(
+                    len(match.satisfied_role_groups) / len(match.required_role_groups), 6
+                ),
+                required_role_groups=match.required_role_groups,
+                satisfied_role_groups=match.satisfied_role_groups,
+                missing_role_groups=match.missing_role_groups,
+                ambiguous_role_groups=(),
+                bound_roles=match.approved_roles,
+                ambiguous_roles=(),
+                optional_roles_present=tuple(
+                    role for role in definition.optional_roles if role in match.approved_roles
+                ),
+                source_columns=match.source_columns,
+                target_variable_names=match.target_variable_names,
+                target_capabilities=match.target_capabilities,
+                runtime_authorized=False,
+                tool_execution_authorized=False,
+                delivery_authorized=False,
+                diagnosis_generated=False,
+                metadata={
+                    "compatibility_projection": True,
+                    "canonical_source": "Service1RequirementMatchV1",
+                    "tool_selection_authorized": False,
+                },
+            )
+        )
+    return tuple(projected)
+
+
+def ready_service_1_requirement_family_ids_v1(
+    matches: tuple[Service1RequirementMatchV1, ...] | list[Service1RequirementMatchV1],
+) -> tuple[str, ...]:
+    return tuple(match.family_id for match in matches if match.status == P7_STATUS_MATCHED)
 
 
 def build_service_1_variable_family_bindings_v1(
@@ -311,8 +549,17 @@ __all__ = [
     "STATUS_NOT_OBSERVED",
     "ALLOWED_STATUSES",
     "Service1VariableFamilyDefinitionV1",
+    "Service1GrainV1",
+    "Service1RequirementMatchV1",
     "Service1VariableFamilyBindingV1",
     "VARIABLE_FAMILY_DEFINITIONS",
+    "P7_STATUS_MATCHED",
+    "P7_STATUS_MISSING_REQUIREMENTS",
+    "P7_STATUS_NOT_OBSERVED",
+    "P7_STATUS_BLOCKED",
+    "build_service_1_requirement_matches_v1",
+    "project_service_1_requirement_matches_to_variable_family_bindings_v1",
+    "ready_service_1_requirement_family_ids_v1",
     "build_service_1_variable_family_bindings_v1",
     "ready_service_1_variable_family_ids_v1",
 ]
