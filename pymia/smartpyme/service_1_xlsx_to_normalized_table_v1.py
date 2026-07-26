@@ -115,6 +115,7 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any) -> NormalizedTable
         )
 
     rows: list[dict[str, Any]] = []
+    source_row_numbers: list[int] = []
     warnings: list[str] = []
     width = len(headers)
 
@@ -131,6 +132,7 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any) -> NormalizedTable
             )
         fitted = _fit_width(raw_row, width)
         rows.append({headers[index]: _clean(fitted[index]) for index in range(width)})
+        source_row_numbers.append(row_number)
 
     return build_normalized_table_v1(
         source_kind="xlsx",
@@ -139,6 +141,8 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any) -> NormalizedTable
         headers=headers,
         rows=rows,
         warnings=warnings,
+        header_row_number=header_index + 1,
+        source_row_numbers=source_row_numbers,
     )
 
 

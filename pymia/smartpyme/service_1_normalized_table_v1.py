@@ -16,6 +16,8 @@ class NormalizedTableV1(TypedDict):
     headers: list[str]
     normalized_headers: list[str]
     rows: list[dict[str, str]]
+    header_row_number: int | None
+    source_row_numbers: list[int]
     row_count: int
     column_count: int
     warnings: list[str]
@@ -32,6 +34,8 @@ def build_normalized_table_v1(
     sheet_name: str | None = None,
     warnings: list[str] | None = None,
     blocking_errors: list[str] | None = None,
+    header_row_number: int | None = 1,
+    source_row_numbers: list[int] | None = None,
 ) -> NormalizedTableV1:
     clean_headers = [_clean(value) for value in headers]
     normalized_headers = [_normalize_header(value) for value in clean_headers]
@@ -46,6 +50,11 @@ def build_normalized_table_v1(
         errors.append("duplicate_headers:" + ",".join(duplicates))
 
     normalized_rows: list[dict[str, str]] = []
+    resolved_source_rows = list(source_row_numbers) if source_row_numbers is not None else list(range((header_row_number or 1) + 1, (header_row_number or 1) + 1 + len(rows)))
+    if len(resolved_source_rows) != len(rows) or any(int(v) < 1 for v in resolved_source_rows) or len(set(resolved_source_rows)) != len(resolved_source_rows):
+        errors.append("invalid_source_row_numbers")
+    if header_row_number is not None and int(header_row_number) < 1:
+        errors.append("invalid_header_row_number")
     if not errors:
         for row in rows:
             normalized_rows.append(
@@ -65,6 +74,8 @@ def build_normalized_table_v1(
         "headers": clean_headers,
         "normalized_headers": normalized_headers,
         "rows": normalized_rows,
+        "header_row_number": int(header_row_number) if header_row_number is not None else None,
+        "source_row_numbers": [int(v) for v in resolved_source_rows] if not errors else [],
         "row_count": len(normalized_rows),
         "column_count": len(clean_headers),
         "warnings": list(dict.fromkeys(notes)),

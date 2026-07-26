@@ -149,9 +149,11 @@ class Service1RegionRelationalEvidenceV1:
     evidence_ref: str
     evidence_kind: str
     participating_column_refs: tuple[str, ...]
+    rows_eligible: int
     rows_evaluated: int
     rows_matching: int
-    coverage_ratio: float
+    evaluation_coverage_ratio: float
+    match_ratio: float
     tolerance: float
     result: RelationalEvidenceResultV1
     contradicting_rows: tuple[int, ...]
@@ -167,17 +169,33 @@ class Service1RegionRelationalEvidenceV1:
         object.__setattr__(self, "participating_column_refs", _texts(self.participating_column_refs, "participating_column_refs"))
         if len(self.participating_column_refs) < 2:
             raise ValueError("relational evidence requires at least two columns")
-        if int(self.rows_evaluated) < 0 or int(self.rows_matching) < 0 or self.rows_matching > self.rows_evaluated:
+        eligible = int(self.rows_eligible)
+        evaluated = int(self.rows_evaluated)
+        matching = int(self.rows_matching)
+        if eligible < 0 or evaluated < 0 or matching < 0 or evaluated > eligible or matching > evaluated:
             raise ValueError("invalid relational row counts")
-        object.__setattr__(self, "rows_evaluated", int(self.rows_evaluated))
-        object.__setattr__(self, "rows_matching", int(self.rows_matching))
-        object.__setattr__(self, "coverage_ratio", _ratio(self.coverage_ratio, "coverage_ratio"))
+        object.__setattr__(self, "rows_eligible", eligible)
+        object.__setattr__(self, "rows_evaluated", evaluated)
+        object.__setattr__(self, "rows_matching", matching)
+        evaluation_coverage = _ratio(self.evaluation_coverage_ratio, "evaluation_coverage_ratio")
+        match_ratio = _ratio(self.match_ratio, "match_ratio")
+        expected_coverage = evaluated / eligible if eligible else 0.0
+        expected_match = matching / evaluated if evaluated else 0.0
+        if abs(evaluation_coverage - expected_coverage) > 1e-12:
+            raise ValueError("evaluation_coverage_ratio inconsistent with row counts")
+        if abs(match_ratio - expected_match) > 1e-12:
+            raise ValueError("match_ratio inconsistent with row counts")
+        object.__setattr__(self, "evaluation_coverage_ratio", evaluation_coverage)
+        object.__setattr__(self, "match_ratio", match_ratio)
         if float(self.tolerance) < 0:
             raise ValueError("tolerance must be non-negative")
         object.__setattr__(self, "tolerance", float(self.tolerance))
         if self.result not in ALLOWED_RELATIONAL_RESULTS:
             raise ValueError("unsupported relational result")
-        object.__setattr__(self, "contradicting_rows", _rows(self.contradicting_rows, "contradicting_rows"))
+        contradicting_rows = _rows(self.contradicting_rows, "contradicting_rows")
+        if len(contradicting_rows) != evaluated - matching:
+            raise ValueError("contradicting_rows inconsistent with row counts")
+        object.__setattr__(self, "contradicting_rows", contradicting_rows)
         object.__setattr__(self, "provenance", dict(self.provenance or {}))
         for name in ("runtime_authorized", "tool_execution_authorized", "delivery_authorized", "diagnosis_generated"):
             object.__setattr__(self, name, _closed(getattr(self, name), name))

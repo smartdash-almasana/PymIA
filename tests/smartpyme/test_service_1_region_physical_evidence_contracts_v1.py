@@ -37,10 +37,30 @@ def test_column_and_relational_evidence_are_distinct_and_closed():
     )
     relation = Service1RegionRelationalEvidenceV1(
         region_ref="R", evidence_ref="E", evidence_kind="MULTIPLICATION_EQUALS",
-        participating_column_refs=("cantidad", "precio", "total"), rows_evaluated=2,
-        rows_matching=2, coverage_ratio=1, tolerance=0.01, result="SUPPORTED",
+        participating_column_refs=("cantidad", "precio", "total"), rows_eligible=2, rows_evaluated=2,
+        rows_matching=2, evaluation_coverage_ratio=1, match_ratio=1, tolerance=0.01, result="SUPPORTED",
         contradicting_rows=(), provenance={"source": "test"},
     )
     assert "candidate_semantic_roles" not in column.to_dict()
     assert relation.participating_column_refs == ("cantidad", "precio", "total")
     assert relation.delivery_authorized is False
+
+
+def test_relational_contract_rejects_inconsistent_ratios():
+    with pytest.raises(ValueError):
+        Service1RegionRelationalEvidenceV1(
+            region_ref="R", evidence_ref="E2", evidence_kind="MULTIPLICATION_EQUALS",
+            participating_column_refs=("a", "b", "c"), rows_eligible=100, rows_evaluated=2,
+            rows_matching=2, evaluation_coverage_ratio=1.0, match_ratio=1.0, tolerance=0.01,
+            result="SUPPORTED", contradicting_rows=(), provenance={},
+        )
+
+
+def test_relational_contract_rejects_inconsistent_contradicting_rows():
+    with pytest.raises(ValueError):
+        Service1RegionRelationalEvidenceV1(
+            region_ref="R", evidence_ref="E3", evidence_kind="MULTIPLICATION_EQUALS",
+            participating_column_refs=("a", "b", "c"), rows_eligible=2, rows_evaluated=2,
+            rows_matching=1, evaluation_coverage_ratio=1.0, match_ratio=0.5, tolerance=0.01,
+            result="CONTRADICTED", contradicting_rows=(), provenance={},
+        )

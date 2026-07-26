@@ -95,6 +95,8 @@ def read_csv_to_normalized_table_v1(
         headers=headers,
         rows=rows,
         warnings=warnings if warnings else None,
+        header_row_number=1,
+        source_row_numbers=list(range(2, 2 + len(rows))),
         blocking_errors=None,
     )
 

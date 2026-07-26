@@ -70,14 +70,18 @@ def build_service_1_region_evidence_from_canonical_ingestion_v1(
             if positions != list(range(min(positions), max(positions) + 1)):
                 return _blocked("DISCONTIGUOUS_REGION_COLUMNS")
             rows = [row for row in table.get("rows") or [] if isinstance(row, dict)]
-            first_data_row = int(spec.get("first_data_row", 2))
-            last_data_row = int(spec.get("last_data_row", len(rows) + 1))
+            source_row_numbers = [int(v) for v in table.get("source_row_numbers") or []]
+            header_row_number = table.get("header_row_number")
+            if len(source_row_numbers) != len(rows) or header_row_number is None:
+                return _blocked("ROW_PROVENANCE_REQUIRED")
+            first_data_row = int(spec.get("first_data_row", min(source_row_numbers) if source_row_numbers else int(header_row_number) + 1))
+            last_data_row = int(spec.get("last_data_row", max(source_row_numbers) if source_row_numbers else first_data_row))
             excluded = tuple(int(v) for v in spec.get("excluded_rows") or ())
             region_ref = str(spec.get("region_ref") or f"{sheet}:region:{index}")
             region = Service1RegionV1(
                 case_id=case_id, file_ref=file_ref, workbook_ref=file_ref,
                 sheet_ref=sheet, region_ref=region_ref,
-                header_rows=tuple(spec.get("header_rows") or (1,)),
+                header_rows=tuple(spec.get("header_rows") or (int(header_row_number),)),
                 first_data_row=first_data_row, last_data_row=last_data_row,
                 column_refs=tuple(selected), excluded_rows=excluded,
                 region_shape=REGION_SHAPE_RECTANGULAR,
@@ -86,17 +90,21 @@ def build_service_1_region_evidence_from_canonical_ingestion_v1(
             )
             regions.append(region)
             selected_rows = [
-                (row_number, rows[row_number - 2])
-                for row_number in range(first_data_row, last_data_row + 1)
-                if row_number not in excluded and 0 <= row_number - 2 < len(rows)
+                (source_row_number, row)
+                for source_row_number, row in zip(source_row_numbers, rows)
+                if first_data_row <= source_row_number <= last_data_row and source_row_number not in excluded
             ]
             for pos, ref in enumerate(selected):
                 values = [row.get(ref, "") for _, row in selected_rows]
-                columns.append(_column_evidence(region, ref, values, selected, pos))
+                source_rows = [row_number for row_number, _ in selected_rows]
+                columns.append(_column_evidence(region, ref, values, source_rows, selected, pos))
             for identity_index, identity in enumerate(identity_specs or (), start=1):
                 target_region = identity.get("region_ref")
                 if target_region and target_region != region_ref:
                     continue
+                identity_columns = [str(v).strip() for v in identity.get("input_column_refs") or []] + [str(identity.get("target_column_ref") or "").strip()]
+                if any(not ref or ref not in region.column_refs for ref in identity_columns):
+                    return _blocked("INVALID_IDENTITY_COLUMNS", detail=identity_columns)
                 relations.append(_relational_evidence(region, selected_rows, identity, identity_index))
     except (TypeError, ValueError) as exc:
         return _blocked("CONTRACT_VALIDATION_FAILED", detail=[str(exc)])
@@ -119,7 +127,7 @@ def _default_spec(sheet: str, table: dict[str, Any]) -> dict[str, Any]:
     return {"sheet_ref": sheet, "region_ref": f"{sheet}:region:1", "column_refs": list(table.get("normalized_headers") or [])}
 
 
-def _column_evidence(region: Service1RegionV1, ref: str, values: list[Any], selected: list[str], pos: int) -> Service1ColumnPhysicalEvidenceV1:
+def _column_evidence(region: Service1RegionV1, ref: str, values: list[Any], source_rows: list[int], selected: list[str], pos: int) -> Service1ColumnPhysicalEvidenceV1:
     nonempty = [value for value in values if str(value).strip()]
     numbers: list[float] = []
     dates = 0
@@ -154,7 +162,7 @@ def _column_evidence(region: Service1RegionV1, ref: str, values: list[Any], sele
         negative_count=sum(v < 0 for v in numbers), zero_count=sum(v == 0 for v in numbers),
         positive_count=sum(v > 0 for v in numbers), date_parseable_count=dates,
         neighbor_column_refs=neighbors,
-        provenance={"region_ref": region.region_ref, "source_rows": [region.first_data_row, region.last_data_row]},
+        provenance={"region_ref": region.region_ref, "source_row_numbers": list(source_rows)},
     )
 
 
@@ -165,6 +173,7 @@ def _relational_evidence(region: Service1RegionV1, rows: list[tuple[int, dict[st
     tolerance = float(spec.get("tolerance", 0.01))
     if kind != "MULTIPLICATION_EQUALS" or len(inputs) != 2 or not target:
         raise ValueError("unsupported identity specification")
+    eligible = len(rows)
     evaluated = matching = 0
     contradicting: list[int] = []
     for row_number, row in rows:
@@ -179,16 +188,23 @@ def _relational_evidence(region: Service1RegionV1, rows: list[tuple[int, dict[st
             matching += 1
         else:
             contradicting.append(row_number)
-    coverage = matching / evaluated if evaluated else 0.0
-    result = "INSUFFICIENT_EVIDENCE" if evaluated == 0 else ("SUPPORTED" if coverage >= float(spec.get("minimum_coverage", 0.8)) else "CONTRADICTED")
+    evaluation_coverage = evaluated / eligible if eligible else 0.0
+    match_ratio = matching / evaluated if evaluated else 0.0
+    minimum_evaluation_coverage = float(spec.get("minimum_evaluation_coverage", 0.8))
+    minimum_match_ratio = float(spec.get("minimum_match_ratio", spec.get("minimum_coverage", 0.8)))
+    if evaluated == 0 or evaluation_coverage < minimum_evaluation_coverage:
+        result = "INSUFFICIENT_EVIDENCE"
+    else:
+        result = "SUPPORTED" if match_ratio >= minimum_match_ratio else "CONTRADICTED"
     return Service1RegionRelationalEvidenceV1(
         region_ref=region.region_ref,
         evidence_ref=str(spec.get("evidence_ref") or f"{region.region_ref}:identity:{index}"),
         evidence_kind=kind,
         participating_column_refs=tuple(inputs + [target]),
-        rows_evaluated=evaluated, rows_matching=matching, coverage_ratio=coverage,
+        rows_eligible=eligible, rows_evaluated=evaluated, rows_matching=matching,
+        evaluation_coverage_ratio=evaluation_coverage, match_ratio=match_ratio,
         tolerance=tolerance, result=result, contradicting_rows=tuple(contradicting),
-        provenance={"region_ref": region.region_ref, "identity_spec": dict(spec)},
+        provenance={"region_ref": region.region_ref, "source_row_numbers": [n for n, _ in rows], "identity_spec": dict(spec)},
     )
 
 

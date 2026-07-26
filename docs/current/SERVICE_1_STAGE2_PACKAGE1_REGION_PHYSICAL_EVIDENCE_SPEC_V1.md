@@ -1,6 +1,6 @@
 # SERVICE_1_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE_SPEC_V1
 
-**Status:** `IMPLEMENTED_FOR_INDEPENDENT_AUDIT`
+**Status:** `CLOSED_PASS`
 **Stage:** `STAGE_2_PACKAGE_1`
 **Product root changed:** `false`
 
@@ -53,6 +53,11 @@ The adapter is deleted when the canonical ingestion producer emits Region and ph
 ## Next gate
 
 ```text
-NEXT_ACTION = AUDIT_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE_IMPLEMENTATION
-IMPLEMENTATION_CHANGES_AUTHORIZED_BEYOND_PACKAGE1 = false
+CLOSURE_VERDICT = PASS_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE
+NEXT_ACTION = SPECIFY_PACKAGE2_OWNER_CONFIRMATION_EVENT
+IMPLEMENTATION_CHANGES_AUTHORIZED = LIMITED_TO_PACKAGE2_SPECIFICATION
 ```
+
+## Audit hardening
+
+Package 1 preserves exact XLSX `header_row_number` and `source_row_numbers` from the existing canonical parser. Relational evidence separates evaluation coverage from match ratio, validates internal count/ratio consistency, and requires all identity columns to belong to the Region.
