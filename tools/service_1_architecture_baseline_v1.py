@@ -11,6 +11,7 @@ VERDICT_PASS = "PASS_ARCHITECTURE_BASELINE_V1"
 VERDICT_BLOCK = "BLOCK_ARCHITECTURE_BASELINE_V1"
 
 BEHAVIOR_TESTS = (
+    "tests/smartpyme/test_service_1_owner_confirmation_event_v1.py",
     "tests/smartpyme/test_service_1_product_pipeline_v1.py",
     "tests/smartpyme/test_service_1_canonical_ingestion_to_region_evidence_adapter_v1.py",
     "tests/smartpyme/test_service_1_pyme_011_productive_root_v1.py",
@@ -54,6 +55,9 @@ def structural_checks(root: Path) -> list[Check]:
     deterministic_source = (root / "pymia" / "smartpyme" / "service_1_deterministic_semantic_pipeline_v1.py").read_text(encoding="utf-8")
     product_source = (root / "pymia" / "smartpyme" / "service_1_product_pipeline_v1.py").read_text(encoding="utf-8")
     gate_source = (root / "pymia" / "smartpyme" / "service_1_semantic_bridge_to_controlled_execution_gate_v1.py").read_text(encoding="utf-8")
+    owner_loop_source = (root / "pymia" / "smartpyme" / "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1.py").read_text(encoding="utf-8")
+    reinjection_source = (root / "pymia" / "smartpyme" / "service_1_owner_confirmation_reinjection_to_semantic_gate_v1.py").read_text(encoding="utf-8")
+    owner_event_path = root / "pymia" / "smartpyme" / "service_1_owner_confirmation_event_v1.py"
 
     computation_section = deterministic_source.split("def build_computation_plan", 1)[1] if "def build_computation_plan" in deterministic_source else ""
     post_p6_rebinding = "build_service_1_semantic_evidence_binding_result_v1(" in computation_section
@@ -62,6 +66,11 @@ def structural_checks(root: Path) -> list[Check]:
     gate_owns_family_matching = "build_service_1_variable_family_bindings_v1(" in gate_source
     capability_branch_count = product_source.count("requested_capability ==")
     temp_importers = _productive_importers(registry, TEMPORARY_ADAPTER)
+    owner_event_authority = (
+        owner_event_path.exists()
+        and "build_service_1_owner_confirmation_event_v1(" in owner_loop_source
+        and "owner_confirmation_events" in reinjection_source
+    )
 
     checks = [
         Check(
@@ -73,6 +82,13 @@ def structural_checks(root: Path) -> list[Check]:
             "TEMPORARY_PACKAGE1_ADAPTER_OUTSIDE_PRODUCTIVE_PATH",
             not temp_importers,
             f"productive_importers={temp_importers}",
+        ),
+        Check(
+            "OWNER_CONFIRMATION_EVENT_AUTHORITY_PRESENT",
+            owner_event_authority,
+            "owner confirmation loop emits canonical events and reinjection consumes them"
+            if owner_event_authority
+            else "canonical owner confirmation event authority not fully wired",
         ),
         Check(
             "NO_SEMANTIC_REBIND_AFTER_P6",

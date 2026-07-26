@@ -28,6 +28,9 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from pymia.smartpyme.service_1_owner_confirmation_event_v1 import (
+    build_service_1_owner_confirmation_event_v1,
+)
 from pymia.smartpyme.service_1_semantic_bridge_to_controlled_execution_gate_v1 import (
     STATUS_BLOCKED as GATE_STATUS_BLOCKED,
     STATUS_NEEDS_OWNER_CONFIRMATION as GATE_STATUS_NEEDS_OWNER_CONFIRMATION,
@@ -314,6 +317,14 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             filename=filename,
             detail=invalid_options,
         )
+    events = _owner_confirmation_events(
+        case_id=case_id,
+        filename=filename,
+        questions_by_ref=questions_by_ref,
+        owner_answers=owner_answers,
+        confirmed=confirmed,
+        followup=followup,
+    )
     if followup:
         return _packet(
             status=STATUS_OWNER_FOLLOWUP_REQUIRED,
@@ -323,6 +334,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             owner_questions=_followup_questions(followup),
             confirmed_answers={},
             owner_followup=followup,
+            owner_confirmation_events=events,
         )
 
     return _packet(
@@ -332,6 +344,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         filename=filename,
         owner_questions=[],
         confirmed_answers=confirmed,
+        owner_confirmation_events=events,
     )
 
 
@@ -362,6 +375,61 @@ def _parse_owner_answer(value: Any) -> tuple[str, str | None]:
             free_text = str(raw_free_text).strip() or None
         return option_id, free_text
     return "", None
+
+
+def _owner_confirmation_events(
+    *,
+    case_id: Any,
+    filename: Any,
+    questions_by_ref: dict[str, dict[str, Any]],
+    owner_answers: dict[Any, Any],
+    confirmed: dict[str, str],
+    followup: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    followup_by_ref = {
+        str(item.get("question_id") or item.get("field_id") or item.get("column_name") or "").strip(): item
+        for item in followup
+    }
+    for ref_id, question in questions_by_ref.items():
+        raw = _answer_for(owner_answers, ref_id)
+        option_id, free_text = _parse_owner_answer(raw)
+        column = str(question.get("column_name") or ref_id).strip()
+        sheet = str(question.get("sheet_name") or "sheet1").strip()
+        if ref_id in confirmed:
+            canonical_answer = confirmed[ref_id]
+            scope = "COLUMN_EXCLUSION" if canonical_answer == "IGNORED_NOT_RELEVANT" else "SEMANTIC_ROLE"
+            event = build_service_1_owner_confirmation_event_v1(
+                case_id=str(case_id or "").strip(),
+                file_ref=str(filename).strip() if filename else None,
+                region_ref=None,
+                sheet_ref=sheet,
+                column_ref=column,
+                question_ref=ref_id,
+                owner_answer=option_id,
+                confirmation_scope=scope,
+                proposed_role=canonical_answer if scope == "SEMANTIC_ROLE" else None,
+                confirmed_role=canonical_answer if scope == "SEMANTIC_ROLE" else None,
+                provenance={"producer": SCHEMA_VERSION, "source": "owner_confirmation_loop"},
+            )
+            events.append(event.to_dict())
+            continue
+        followup_item = followup_by_ref.get(ref_id)
+        if followup_item is not None and free_text:
+            event = build_service_1_owner_confirmation_event_v1(
+                case_id=str(case_id or "").strip(),
+                file_ref=str(filename).strip() if filename else None,
+                region_ref=None,
+                sheet_ref=sheet,
+                column_ref=column,
+                question_ref=ref_id,
+                owner_answer=option_id,
+                confirmation_scope="FREE_TEXT_MEANING",
+                corrected_meaning=free_text,
+                provenance={"producer": SCHEMA_VERSION, "source": "owner_confirmation_loop", "normalization_required": True},
+            )
+            events.append(event.to_dict())
+    return events
 
 
 def _followup_questions(
@@ -410,6 +478,7 @@ def _packet(
     owner_questions: list[Any],
     confirmed_answers: dict[str, str],
     owner_followup: list[dict[str, Any]] | None = None,
+    owner_confirmation_events: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -423,6 +492,7 @@ def _packet(
         "owner_questions": owner_questions,
         "owner_question_count": len(owner_questions),
         "confirmed_answers": confirmed_answers,
+        "owner_confirmation_events": [dict(item) for item in (owner_confirmation_events or [])],
         "owner_followup": [dict(item) for item in (owner_followup or [])],
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -452,6 +522,7 @@ def _blocked(
         "owner_questions": [],
         "owner_question_count": 0,
         "confirmed_answers": {},
+        "owner_confirmation_events": [],
         "owner_followup": [],
         "detail": list(detail or []),
         "runtime_authorized": False,

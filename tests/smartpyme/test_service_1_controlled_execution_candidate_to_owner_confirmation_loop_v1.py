@@ -133,6 +133,10 @@ def test_case_001_complete_answers_recheck_ready(case_001_gate_packet: dict) -> 
 
     assert out["status"] == STATUS_OWNER_CONFIRMATION_RECHECK_READY
     assert set(out["confirmed_answers"].keys()) == set(pending)
+    assert len(out["owner_confirmation_events"]) == len(pending)
+    assert {event["question_ref"] for event in out["owner_confirmation_events"]} == set(pending)
+    assert all(event["confirmed_by_owner"] is True for event in out["owner_confirmation_events"])
+    assert all(event["confirmation_scope"] == "SEMANTIC_ROLE" for event in out["owner_confirmation_events"])
     for column, option_id in answers.items():
         assert out["confirmed_answers"][column] == (
             case_001_gate_packet["owner_answer_bindings"][column][option_id]

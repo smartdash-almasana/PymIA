@@ -65,6 +65,7 @@ BLOCK_LOOP_NO_ANSWERS = "LOOP_NO_CONFIRMED_ANSWERS"
 BLOCK_MISSING_ANSWERS = "MISSING_ANSWERS"
 BLOCK_UNKNOWN_ANSWERS = "UNKNOWN_ANSWERS"
 BLOCK_EMPTY_ANSWERS = "EMPTY_ANSWERS"
+BLOCK_EVENT_PROJECTION_MISMATCH = "OWNER_CONFIRMATION_EVENT_PROJECTION_MISMATCH"
 
 _FORBIDDEN_FLAGS = (
     "runtime_authorized",
@@ -129,6 +130,30 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
             filename=owner_confirmation_loop_packet.get("filename"),
         )
 
+    raw_events = owner_confirmation_loop_packet.get("owner_confirmation_events") or []
+    if not isinstance(raw_events, list):
+        return _blocked(
+            BLOCK_LOOP_NO_ANSWERS,
+            case_id=semantic_bridge_packet.get("case_id"),
+            source_kind=semantic_bridge_packet.get("source_kind"),
+            filename=semantic_bridge_packet.get("filename"),
+        )
+    event_answers = {
+        str(event.get("question_ref") or "").strip(): (
+            "IGNORED_NOT_RELEVANT"
+            if event.get("confirmation_scope") == "COLUMN_EXCLUSION"
+            else str(event.get("confirmed_role") or "").strip()
+        )
+        for event in raw_events
+        if isinstance(event, dict)
+        and event.get("confirmed_by_owner") is True
+        and event.get("confirmation_scope") in {"SEMANTIC_ROLE", "COLUMN_EXCLUSION"}
+    }
+    event_answers = {key: value for key, value in event_answers.items() if key and value}
+
+    # During Package 2 migration the legacy map remains a compatibility
+    # projection/checksum. Events are the canonical evidence source, but a
+    # malformed legacy projection still fails closed until its callers migrate.
     confirmed_answers = owner_confirmation_loop_packet.get("confirmed_answers") or {}
     if not isinstance(confirmed_answers, dict) or not confirmed_answers:
         return _blocked(
@@ -205,7 +230,16 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
             detail=empty,
         )
 
-    reinjected = _reinject(candidate_list, cleaned)
+    if event_answers and cleaned != event_answers:
+        return _blocked(
+            BLOCK_EVENT_PROJECTION_MISMATCH,
+            case_id=semantic_bridge_packet.get("case_id"),
+            source_kind=semantic_bridge_packet.get("source_kind"),
+            filename=semantic_bridge_packet.get("filename"),
+            detail=sorted(set(cleaned) ^ set(event_answers)),
+        )
+    canonical_answers = event_answers or cleaned
+    reinjected = _reinject(candidate_list, canonical_answers)
 
     # Re-pack a bridge packet WITHOUT mutating the original input.
     re_packed_bridge = {
@@ -258,7 +292,8 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
         "variable_family_count": gate_out.get("variable_family_count", 0),
         "variable_family_bindings": gate_out.get("variable_family_bindings", ()),
         "ready_variable_family_ids": gate_out.get("ready_variable_family_ids", []),
-        "reinjected_columns": sorted(cleaned.keys()),
+        "reinjected_columns": sorted(canonical_answers.keys()),
+        "owner_confirmation_events": [dict(item) for item in raw_events],
         "controlled_execution_candidate": gate_out.get("controlled_execution_candidate"),
         "owner_questions": gate_out.get("owner_questions", []),
         "runtime_authorized": False,
@@ -378,5 +413,6 @@ __all__ = [
     "BLOCK_MISSING_ANSWERS",
     "BLOCK_UNKNOWN_ANSWERS",
     "BLOCK_EMPTY_ANSWERS",
+    "BLOCK_EVENT_PROJECTION_MISMATCH",
     "build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
 ]
