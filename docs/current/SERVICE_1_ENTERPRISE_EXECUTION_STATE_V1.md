@@ -290,11 +290,18 @@ stage_2:
   implementation_changes_authorized: false
   authorities_document:
     path: docs/current/SERVICE_1_STAGE2_ARCHITECTURAL_AUTHORITIES_V1.md
-    status: REVISED_PROPOSED_FOR_INDEPENDENT_AUDIT
+    status: CANONICAL_FOR_STAGE2
     unresolved_authorities_resolved_in_proposal: 7
     productive_code_changed: false
     revision_findings_resolved: 7
-next_authorized_action: AUDIT_REVISED_STAGE2_ARCHITECTURAL_AUTHORITIES_DOCUMENT
+    independent_audit_status: PASS
+    independent_audit_verdict: PASS_STAGE2_REVISED_ARCHITECTURAL_AUTHORITIES_AUDIT
+    implementation_changes_authorized: LIMITED_TO_PACKAGE1
+  package_1:
+    status: IMPLEMENTED_FOR_INDEPENDENT_AUDIT
+    specification: docs/current/SERVICE_1_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE_SPEC_V1.md
+    productive_root_changed: false
+next_authorized_action: AUDIT_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE_IMPLEMENTATION
 ```
 
 ---
@@ -723,7 +730,7 @@ Audit evidence verified:
 Stage 0 is closed. Current next authorized action:
 
 ```text
-NEXT_AUTHORIZED_ACTION = AUDIT_REVISED_STAGE2_ARCHITECTURAL_AUTHORITIES_DOCUMENT
+NEXT_AUTHORIZED_ACTION = AUDIT_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE_IMPLEMENTATION
 ```
 
 Stage 1 cluster 001 closure:
@@ -999,7 +1006,7 @@ STAGE1_FINAL_CLASSIFICATION = A10_B5_C7_D0
 STAGE1_CERTIFIABLE_DEAD_REMAINING = 0
 STAGE1_STATUS = CLOSED
 STAGE2_STATUS = ACTIVE
-NEXT_AUTHORIZED_ACTION = AUDIT_REVISED_STAGE2_ARCHITECTURAL_AUTHORITIES_DOCUMENT
+NEXT_AUTHORIZED_ACTION = AUDIT_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE_IMPLEMENTATION
 COMMIT_CREATED = true
 COMMIT_AUTHORIZED = true
 INTEGRATION_AUTHORIZED = true

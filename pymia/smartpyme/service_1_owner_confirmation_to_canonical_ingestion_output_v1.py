@@ -208,6 +208,7 @@ def build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
         "column_meaning_confirmations": available_fields,
         "column_refs": confirmed_refs,
         "column_evidence": column_evidence,
+        "normalized_tables": normalized_tables,
         "sheet_name": sheet_names[0] if len(sheet_names) == 1 else None,
         "sheet_names": sheet_names,
         "declared_data_sources": [filename] if filename else [],
