@@ -15,10 +15,10 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "PRODUCTIVE": 29,
+    "PRODUCTIVE": 30,
     "SUPPORT_NECESSARY": 24
   },
-  "total_modules": 53,
+  "total_modules": 54,
   "modules": [
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
@@ -63,17 +63,22 @@
       "canonical_root_reachable": true
     },
     {
+      "module": "service_1_computability_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_semantic_catalog_loader_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
       "module": "service_1_deterministic_semantic_pipeline_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
         "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_computability_v1",
         "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
         "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
-        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
-        "service_1_semantic_catalog_loader_v1",
-        "service_1_semantic_evidence_binding_contracts_v1",
-        "service_1_semantic_evidence_binding_engine_v1",
-        "service_1_variable_family_bindings_v1"
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1"
       ],
       "canonical_root_reachable": true
     },

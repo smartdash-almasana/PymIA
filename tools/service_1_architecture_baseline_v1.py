@@ -13,6 +13,7 @@ VERDICT_BLOCK = "BLOCK_ARCHITECTURE_BASELINE_V1"
 BEHAVIOR_TESTS = (
     "tests/smartpyme/test_service_1_owner_confirmation_event_v1.py",
     "tests/smartpyme/test_service_1_p6_approval_decision_v1.py",
+    "tests/smartpyme/test_service_1_computability_v1.py",
     "tests/smartpyme/test_service_1_requirement_match_v1.py",
     "tests/smartpyme/test_service_1_product_pipeline_v1.py",
     "tests/smartpyme/test_service_1_canonical_ingestion_to_region_evidence_adapter_v1.py",
@@ -62,6 +63,8 @@ def structural_checks(root: Path) -> list[Check]:
     owner_event_path = root / "pymia" / "smartpyme" / "service_1_owner_confirmation_event_v1.py"
     p6_path = root / "pymia" / "smartpyme" / "service_1_p6_approval_decision_v1.py"
     p7_source = (root / "pymia" / "smartpyme" / "service_1_variable_family_bindings_v1.py").read_text(encoding="utf-8")
+    p8_path = root / "pymia" / "smartpyme" / "service_1_computability_v1.py"
+    p8_source = p8_path.read_text(encoding="utf-8") if p8_path.exists() else ""
 
     computation_section = deterministic_source.split("def build_computation_plan", 1)[1] if "def build_computation_plan" in deterministic_source else ""
     post_p6_rebinding = "build_service_1_semantic_evidence_binding_result_v1(" in computation_section
@@ -86,6 +89,13 @@ def structural_checks(root: Path) -> list[Check]:
         and "def build_service_1_requirement_matches_v1(" in p7_source
         and "build_service_1_requirement_matches_v1(" in gate_source
         and "project_service_1_requirement_matches_to_variable_family_bindings_v1(" in gate_source
+    )
+    p8_authority = (
+        p8_path.exists()
+        and "class Service1ComputabilityDecisionV1" in p8_source
+        and "class Service1GovernedComputationInputV1" in p8_source
+        and "build_service_1_computability_decision_v1(" in deterministic_source
+        and "build_service_1_semantic_evidence_binding_result_v1(" not in computation_section
     )
 
     checks = [
@@ -119,6 +129,13 @@ def structural_checks(root: Path) -> list[Check]:
             "canonical RequirementMatch and Grain authorities are wired after P6; legacy variable-family binding is projection only"
             if p7_authority
             else "canonical P7 RequirementMatch/Grain authority not fully wired",
+        ),
+        Check(
+            "P8_COMPUTABILITY_AUTHORITY_PRESENT",
+            p8_authority,
+            "canonical ComputabilityDecision and GovernedComputationInput are wired without semantic rebinding"
+            if p8_authority
+            else "canonical P8 computability authority not fully wired",
         ),
         Check(
             "NO_SEMANTIC_REBIND_AFTER_P6",

@@ -293,6 +293,8 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
         "variable_family_count": gate_out.get("variable_family_count", 0),
         "variable_family_bindings": gate_out.get("variable_family_bindings", ()),
         "ready_variable_family_ids": gate_out.get("ready_variable_family_ids", []),
+        "p6_decisions": gate_out.get("p6_decisions", []),
+        "requirement_matches": gate_out.get("requirement_matches", []),
         "reinjected_columns": sorted(canonical_answers.keys()),
         "owner_confirmation_events": [dict(item) for item in raw_events],
         "controlled_execution_candidate": gate_out.get("controlled_execution_candidate"),
