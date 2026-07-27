@@ -15,8 +15,8 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "PRODUCTIVE": 30,
-    "SUPPORT_NECESSARY": 24
+    "PRODUCTIVE": 27,
+    "SUPPORT_NECESSARY": 27
   },
   "total_modules": 54,
   "modules": [
@@ -26,8 +26,7 @@
       "imports_service_1": [
         "service_1_column_understanding_engine_v1",
         "service_1_column_understanding_owner_question_adapter_v1",
-        "service_1_semantic_evidence_binding_contracts_v1",
-        "service_1_variable_family_bindings_v1"
+        "service_1_semantic_evidence_binding_contracts_v1"
       ],
       "canonical_root_reachable": true
     },
@@ -140,10 +139,15 @@
       "module": "service_1_product_pipeline_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
+        "service_1_computability_v1",
         "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_generic_capability_engine_v1",
         "service_1_liq_001_evaluator_v1",
         "service_1_liq_001_outcome_v1",
-        "service_1_pipeline_v1"
+        "service_1_pipeline_v1",
+        "service_1_ren_001_evaluator_v1",
+        "service_1_ren_001_normalized_evidence_v1",
+        "service_1_ren_001_outcome_v1"
       ],
       "canonical_root_reachable": true
     },
@@ -324,70 +328,71 @@
     },
     {
       "module": "service_1_liq_002_evaluator_v1",
-      "disposition": "PRODUCTIVE",
+      "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [],
-      "canonical_root_reachable": true
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_liq_002_normalized_evidence_v1",
-      "disposition": "PRODUCTIVE",
+      "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
         "service_1_liq_002_evaluator_v1"
       ],
-      "canonical_root_reachable": true
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_liq_002_outcome_v1",
-      "disposition": "PRODUCTIVE",
+      "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
         "service_1_liq_002_evaluator_v1"
       ],
-      "canonical_root_reachable": true
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_pyme_011_evaluator_v1",
-      "disposition": "PRODUCTIVE",
+      "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [],
-      "canonical_root_reachable": true
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_pyme_011_normalized_evidence_v1",
-      "disposition": "PRODUCTIVE",
+      "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
         "service_1_pyme_011_evaluator_v1"
       ],
-      "canonical_root_reachable": true
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_pyme_011_outcome_v1",
-      "disposition": "PRODUCTIVE",
+      "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
         "service_1_pyme_011_evaluator_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_capability_contracts_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_capability_registry_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
       ],
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_capability_contracts_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_capability_registry_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_capability_contracts_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
       "module": "service_1_generic_capability_engine_v1",
-      "disposition": "SUPPORT_NECESSARY",
+      "disposition": "PRODUCTIVE",
       "imports_service_1": [
         "service_1_capability_contracts_v1",
-        "service_1_capability_registry_v1"
+        "service_1_capability_registry_v1",
+        "service_1_computability_v1"
       ],
-      "canonical_root_reachable": false
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_assisted_web_v1",

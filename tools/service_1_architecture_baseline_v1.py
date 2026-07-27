@@ -15,6 +15,8 @@ BEHAVIOR_TESTS = (
     "tests/smartpyme/test_service_1_p6_approval_decision_v1.py",
     "tests/smartpyme/test_service_1_computability_v1.py",
     "tests/smartpyme/test_service_1_requirement_match_v1.py",
+    "tests/smartpyme/test_service_1_generic_capability_kernel_v1.py",
+    "tests/smartpyme/test_service_1_canonical_ingestion_output_to_semantic_bridge_v1.py",
     "tests/smartpyme/test_service_1_product_pipeline_v1.py",
     "tests/smartpyme/test_service_1_canonical_ingestion_to_region_evidence_adapter_v1.py",
     "tests/smartpyme/test_service_1_pyme_011_productive_root_v1.py",
@@ -65,6 +67,8 @@ def structural_checks(root: Path) -> list[Check]:
     p7_source = (root / "pymia" / "smartpyme" / "service_1_variable_family_bindings_v1.py").read_text(encoding="utf-8")
     p8_path = root / "pymia" / "smartpyme" / "service_1_computability_v1.py"
     p8_source = p8_path.read_text(encoding="utf-8") if p8_path.exists() else ""
+    canonical_bridge_source = (root / "pymia" / "smartpyme" / "service_1_canonical_ingestion_output_to_semantic_bridge_v1.py").read_text(encoding="utf-8")
+    generic_engine_source = (root / "pymia" / "smartpyme" / "service_1_generic_capability_engine_v1.py").read_text(encoding="utf-8")
 
     computation_section = deterministic_source.split("def build_computation_plan", 1)[1] if "def build_computation_plan" in deterministic_source else ""
     post_p6_rebinding = "build_service_1_semantic_evidence_binding_result_v1(" in computation_section
@@ -96,6 +100,27 @@ def structural_checks(root: Path) -> list[Check]:
         and "class Service1GovernedComputationInputV1" in p8_source
         and "build_service_1_computability_decision_v1(" in deterministic_source
         and "build_service_1_semantic_evidence_binding_result_v1(" not in computation_section
+    )
+    pre_p6_p7_removed = "build_service_1_variable_family_bindings_v1(" not in canonical_bridge_source
+    semantic_binding_projection_removed = "semantic_binding_result" not in computation_section
+    generic_execution_consumes_governed_input = (
+        "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1" in generic_engine_source
+        and "governed_computation_input" in generic_engine_source
+        and "_execution_input_payload(" in generic_engine_source
+    )
+    liq001_source = (root / "pymia" / "smartpyme" / "service_1_liq_001_evaluator_v1.py").read_text(encoding="utf-8")
+    ren001_source = (root / "pymia" / "smartpyme" / "service_1_ren_001_evaluator_v1.py").read_text(encoding="utf-8")
+    pyme013_source = (root / "pymia" / "smartpyme" / "service_1_pyme_013_composite_v1.py").read_text(encoding="utf-8") if (root / "pymia" / "smartpyme" / "service_1_pyme_013_composite_v1.py").exists() else ""
+    generic_engine_module = next((item for item in productive if item.get("module") == "service_1_generic_capability_engine_v1"), None)
+    generic_kernel_in_root_closure = generic_engine_module is not None and generic_engine_module.get("canonical_root_reachable") is True
+    liq002_pyme011_productive = [item for item in modules if item.get("module", "").startswith("service_1_liq_002_") or item.get("module", "").startswith("service_1_pyme_011_") if item.get("disposition") == "PRODUCTIVE"]
+    liq001_uses_governed_input = "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1" in liq001_source
+    ren001_uses_governed_input = "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1" in ren001_source
+    pyme013_uses_governed_input = "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1" in pyme013_source
+    legacy_plan_not_authority = (
+        liq001_uses_governed_input
+        and ren001_uses_governed_input
+        and (pyme013_uses_governed_input if pyme013_source else True)
     )
 
     checks = [
@@ -136,6 +161,48 @@ def structural_checks(root: Path) -> list[Check]:
             "canonical ComputabilityDecision and GovernedComputationInput are wired without semantic rebinding"
             if p8_authority
             else "canonical P8 computability authority not fully wired",
+        ),
+        Check(
+            "NO_P7_MATCHING_BEFORE_P6",
+            pre_p6_p7_removed,
+            "canonical ingestion stops at semantic candidates; P7 starts only after P6"
+            if pre_p6_p7_removed
+            else "canonical ingestion still performs variable-family/P7 matching before P6",
+        ),
+        Check(
+            "GENERIC_EXECUTION_CONSUMES_GOVERNED_INPUT",
+            generic_execution_consumes_governed_input,
+            "generic execution prefers Service1GovernedComputationInputV1 over the legacy computation plan projection"
+            if generic_execution_consumes_governed_input
+            else "generic execution does not consume canonical governed computation input",
+        ),
+        Check(
+            "NO_SEMANTIC_BINDING_COMPATIBILITY_PROJECTION",
+            semantic_binding_projection_removed,
+            "legacy semantic_binding_result projection removed from computation plan"
+            if semantic_binding_projection_removed
+            else "semantic_binding_result compatibility projection remains active",
+        ),
+        Check(
+            "LEGACY_COMPUTATION_PLAN_NOT_EXECUTION_AUTHORITY",
+            legacy_plan_not_authority,
+            "all productive execution engines consume Service1GovernedComputationInputV1; legacy plan is not execution authority"
+            if legacy_plan_not_authority
+            else "one or more productive engines still accept legacy computation plan as execution authority",
+        ),
+        Check(
+            "GENERIC_KERNEL_IS_IN_PRODUCTIVE_ROOT_CLOSURE",
+            generic_kernel_in_root_closure,
+            "generic capability engine is PRODUCTIVE with canonical_root_reachable=true"
+            if generic_kernel_in_root_closure
+            else "generic capability engine is not in the productive root closure",
+        ),
+        Check(
+            "NO_PRODUCTIVE_SPECIALIZED_LIQ002_PYME011_PARALLEL_PATH",
+            not liq002_pyme011_productive,
+            "specialized LIQ_002/PYME_011 evaluator paths are not PRODUCTIVE; superseded by governed generic kernel"
+            if not liq002_pyme011_productive
+            else f"specialized LIQ_002/PYME_011 are still PRODUCTIVE: {[m['module'] for m in liq002_pyme011_productive]}",
         ),
         Check(
             "NO_SEMANTIC_REBIND_AFTER_P6",
