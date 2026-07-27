@@ -50,10 +50,6 @@ from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 im
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
-from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
-    build_service_1_variable_family_bindings_v1,
-    ready_service_1_variable_family_ids_v1,
-)
 
 SCHEMA_VERSION = "SERVICE_1_CANONICAL_INGESTION_OUTPUT_TO_SEMANTIC_BRIDGE_V1"
 SERVICE_NAME = "SERVICE_1"
@@ -173,13 +169,6 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         _candidate_from_understanding(item, column_ref=ref)
         for item, ref in zip(understandings, column_refs)
     )
-    variable_family_bindings = build_service_1_variable_family_bindings_v1(
-        column_candidates
-    )
-    ready_variable_family_ids = ready_service_1_variable_family_ids_v1(
-        variable_family_bindings
-    )
-
     return {
         "schema_version": SCHEMA_VERSION,
         "service_name": SERVICE_NAME,
@@ -193,9 +182,9 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         "column_refs": [dict(ref) for ref in column_refs],
         "column_candidate_count": len(column_candidates),
         "column_candidates": column_candidates,
-        "variable_family_count": len(variable_family_bindings),
-        "variable_family_bindings": variable_family_bindings,
-        "ready_variable_family_ids": list(ready_variable_family_ids),
+        "variable_family_count": 0,
+        "variable_family_bindings": (),
+        "ready_variable_family_ids": [],
         "confirmation_matrix": matrix,
         "column_understandings": understandings,
         "owner_question_views": owner_question_views,

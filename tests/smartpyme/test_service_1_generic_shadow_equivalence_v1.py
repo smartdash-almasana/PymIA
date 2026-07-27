@@ -36,6 +36,7 @@ from pymia.smartpyme.service_1_pyme_011_outcome_v1 import (
     STATUS_READY as PYME_OUTCOME_READY,
     build_pyme_011_outcome_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import governed_payload_from_legacy_plan
 
 _BLOCKED = "BLOCKED"
 _EVALUATED = "EVALUATED"
@@ -131,7 +132,13 @@ def _run_legacy_liq(plan: dict, tables: list, refs: list) -> dict:
 
 
 def _run_generic(capability: str, plan: dict, tables: list, refs: list) -> dict:
-    return execute_generic_capability_v1(capability_ref=capability, computation_plan=plan, normalized_tables=tables, column_refs=refs)
+    return execute_generic_capability_v1(
+        capability_ref=capability,
+        computation_plan=None,
+        governed_computation_input=governed_payload_from_legacy_plan(plan),
+        normalized_tables=tables,
+        column_refs=refs,
+    )
 
 
 def _assert_same_block_category(legacy: dict, generic: dict, label: str) -> None:
@@ -255,14 +262,14 @@ def test_liq_002_blocks_negative_input() -> None:
     _assert_no_outcome_when_blocked(generic, "liq_002_negative_gen")
 
 
-def test_liq_002_blocks_wrong_plan() -> None:
+def test_liq_002_legacy_plan_status_does_not_govern_generic_execution() -> None:
     tables, refs = _liq_tables_opening_single(100, 50, 30)
     plan = _liq_plan(status="BLOCKED")
     legacy = _run_legacy_liq(plan, tables, refs)
     generic = _run_generic("projected_closing_cash_balance", plan, tables, refs)
-    _assert_same_block_category(legacy, generic, "liq_002_wrong_plan")
-    _assert_no_outcome_when_blocked(legacy, "liq_002_wrong_plan")
-    _assert_no_outcome_when_blocked(generic, "liq_002_wrong_plan_gen")
+    assert legacy.get("status") == "PLAN_BLOCKED"
+    assert generic.get("status") == GENERIC_EVALUATED
+    _assert_no_outcome_when_blocked(legacy, "liq_002_legacy_status")
 
 
 def test_liq_002_safety_flag_absent_or_true() -> None:
@@ -360,14 +367,14 @@ def test_pyme_011_blocks_inconsistent_days() -> None:
     _assert_no_outcome_when_blocked(generic, "pyme_011_inconsistent_days_gen")
 
 
-def test_pyme_011_blocks_wrong_plan() -> None:
+def test_pyme_011_legacy_plan_status_does_not_govern_generic_execution() -> None:
     tables, refs = _pyme_tables(30)
     plan = _pyme_plan(status="BLOCKED")
     legacy = _run_legacy_pyme(plan, tables, refs)
     generic = _run_generic("dso", plan, tables, refs)
-    _assert_same_block_category(legacy, generic, "pyme_011_wrong_plan")
-    _assert_no_outcome_when_blocked(legacy, "pyme_011_wrong_plan")
-    _assert_no_outcome_when_blocked(generic, "pyme_011_wrong_plan_gen")
+    assert legacy.get("status") == "PLAN_BLOCKED"
+    assert generic.get("status") == GENERIC_EVALUATED
+    _assert_no_outcome_when_blocked(legacy, "pyme_011_legacy_status")
 
 
 def test_pyme_011_safety_flag_absent_or_true() -> None:

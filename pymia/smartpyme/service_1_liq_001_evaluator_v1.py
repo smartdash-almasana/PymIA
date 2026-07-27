@@ -11,7 +11,6 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Final
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_LIQ_001_EVALUATION_V1"
-COMPUTATION_PLAN_SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPUTATION_PLAN_V1"
 PATHOLOGY_CODE: Final[str] = "LIQ_001"
 FORMULA_REF: Final[str] = "LIQ_001_vendido_cobrado"
 CAPABILITY_REF: Final[str] = "sold_vs_collected_gap"
@@ -20,7 +19,6 @@ STATUS_EVALUATED: Final[str] = "EVALUATED"
 STATUS_INVALID_INPUT: Final[str] = "INVALID_INPUT"
 STATUS_PLAN_BLOCKED: Final[str] = "PLAN_BLOCKED"
 STATUS_EVIDENCE_BLOCKED: Final[str] = "EVIDENCE_BLOCKED"
-PLAN_STATUS_READY: Final[str] = "READY_FOR_COMPUTATION"
 PLAN_VALIDATED: Final[str] = "VALIDATED"
 
 CLASS_NO_ACTIVITY: Final[str] = "NO_ACTIVITY"
@@ -65,8 +63,8 @@ def evaluate_liq_001_from_normalized_tables_v1(
             ["column_refs must be a non-empty list."],
         )
 
-    plan = computation_plan
-    source_bindings = plan.get("source_bindings")
+    plan = _execution_input_payload(computation_plan)
+    source_bindings = plan.get("source_bindings") if isinstance(plan, dict) else None
     if not isinstance(source_bindings, dict):
         return _evidence_blocked(
             computation_plan,
@@ -319,43 +317,38 @@ def _evidence_blocked(
     return packet
 
 
-def _validate_computation_plan(computation_plan: object) -> list[str]:
-    if not isinstance(computation_plan, dict):
-        return ["computation_plan must be an object."]
+def _execution_input_payload(computation_plan: object) -> object:
+    if isinstance(computation_plan, dict):
+        if computation_plan.get("schema_version") == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1":
+            return computation_plan
+        governed = computation_plan.get("governed_computation_input")
+        if isinstance(governed, dict):
+            return governed
+    return None
 
+
+def _validate_computation_plan(computation_plan: object) -> list[str]:
+    payload = _execution_input_payload(computation_plan)
+    if not isinstance(payload, dict):
+        return ["governed computation input is required."]
+    if payload.get("schema_version") != "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1":
+        return ["governed computation input schema is required."]
     expected = {
-        "schema_version": COMPUTATION_PLAN_SCHEMA_VERSION,
-        "status": PLAN_STATUS_READY,
         "requested_capability": CAPABILITY_REF,
         "pathology_code": PATHOLOGY_CODE,
         "formula_id": FORMULA_REF,
     }
-    errors = [
-        f"computation_plan {field} must equal {expected_value}."
-        for field, expected_value in expected.items()
-        if computation_plan.get(field) != expected_value
-    ]
-    required_variables = tuple(computation_plan.get("required_variables") or ())
-    if required_variables != _REQUIRED_VARIABLES:
-        errors.append("computation_plan required_variables do not match LIQ_001.")
-    if computation_plan.get("computation_candidate_ready") is not True:
-        errors.append("computation_plan candidate is not ready.")
-    if any(
-        computation_plan.get(flag)
-        for flag in (
-            "runtime_authorized",
-            "tool_execution_authorized",
-            "product_ready",
-            "delivery_authorized",
-            "diagnosis_generated",
-        )
-    ):
-        errors.append("computation_plan safety flags must remain false.")
+    errors = [f"execution input {field} must equal {expected_value}." for field, expected_value in expected.items() if payload.get(field) != expected_value]
+    if tuple(payload.get("required_variables") or ()) != _REQUIRED_VARIABLES:
+        errors.append("execution input required_variables do not match LIQ_001.")
+    if any(payload.get(flag) is not False for flag in ("runtime_authorized", "tool_execution_authorized", "product_ready", "delivery_authorized", "diagnosis_generated")):
+        errors.append("execution input safety flags must remain false.")
     return errors
 
 
 def _validated_plan_projection(computation_plan: object) -> dict[str, object]:
-    plan = computation_plan if isinstance(computation_plan, dict) else {}
+    payload = _execution_input_payload(computation_plan)
+    plan = payload if isinstance(payload, dict) else {}
     return {
         "status": PLAN_VALIDATED,
         "schema_version": plan.get("schema_version"),
@@ -423,10 +416,8 @@ __all__ = [
     "CLASS_NO_ACTIVITY",
     "CLASS_NO_GAP",
     "CLASS_SALES_PENDING_COLLECTION",
-    "COMPUTATION_PLAN_SCHEMA_VERSION",
     "FORMULA_REF",
     "PATHOLOGY_CODE",
-    "PLAN_STATUS_READY",
     "PLAN_VALIDATED",
     "SCHEMA_VERSION",
     "STATUS_EVALUATED",

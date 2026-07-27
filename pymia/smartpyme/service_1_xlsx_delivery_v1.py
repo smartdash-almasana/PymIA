@@ -8,6 +8,11 @@ from typing import Final, NotRequired, TypedDict
 
 from openpyxl import Workbook
 
+from pymia.smartpyme.service_1_xlsx_quality_gate_v1 import (
+    STATUS_PASS as XLSX_QA_PASS,
+    evaluate_service_1_xlsx_quality_v1,
+)
+
 DELIVERY_SCHEMA_VERSION: Final[str] = "1.0"
 SERVICE_NAME: Final[str] = "SERVICE_1"
 SHEET_NAMES: Final[tuple[str, ...]] = (
@@ -68,6 +73,16 @@ def build_service_1_xlsx_delivery_v1(
     _populate_workbook(workbook, delivery_input)
     workbook.save(output_file)
 
+    quality = evaluate_service_1_xlsx_quality_v1(
+        xlsx_path=output_file,
+        expected_sheet_names=SHEET_NAMES,
+    )
+    if quality.verdict != XLSX_QA_PASS:
+        raise RuntimeError(
+            "SERVICE_1_XLSX_DELIVERY_V1 quality gate failed: "
+            + ", ".join(quality.failures)
+        )
+
     return {
         "delivery_id": _build_delivery_id(delivery_input),
         "schema_version": DELIVERY_SCHEMA_VERSION,
@@ -79,6 +94,7 @@ def build_service_1_xlsx_delivery_v1(
         "notes": [
             "Deterministic XLSX delivery generated from Service1XlsxDeliveryInputV1 only.",
             "No formulas, macros, or runtime execution were used.",
+            "Post-save XLSX quality gate PASS: package integrity, workbook readability, expected sheets, and Excel error-cell scan.",
         ],
     }
 

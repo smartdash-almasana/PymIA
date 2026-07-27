@@ -6,27 +6,9 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
     execute_generic_capability_v1,
 )
-
-
-def _plan() -> dict[str, object]:
-    return {
-        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
-        "status": "READY_FOR_COMPUTATION",
-        "requested_capability": "payment_collection_gap",
-        "pathology_code": "PYME_013",
-        "formula_id": "PYME_013_dso_dpo_gap",
-        "required_variables": ["dso_days", "dpo_days"],
-        "source_bindings": {
-            "dso_days": {"capability_ref": "dso", "result_key": "dso_days"},
-            "dpo_days": {"capability_ref": "dpo", "result_key": "dpo_days"},
-        },
-        "computation_candidate_ready": True,
-        "runtime_authorized": False,
-        "tool_execution_authorized": False,
-        "product_ready": False,
-        "delivery_authorized": False,
-        "diagnosis_generated": False,
-    }
+from pymia.smartpyme.service_1_computability_v1 import (
+    build_service_1_composite_governed_computation_input_v1,
+)
 
 
 def _source(capability_ref: str, result_key: str, value: object, **overrides: object) -> dict[str, object]:
@@ -49,9 +31,14 @@ def _source(capability_ref: str, result_key: str, value: object, **overrides: ob
 
 
 def _execute(governed_results: object) -> dict[str, object]:
+    governed = build_service_1_composite_governed_computation_input_v1(
+        case_id="case_pyme_013_direct",
+        capability_ref="payment_collection_gap",
+    )
     return execute_generic_capability_v1(
         capability_ref="payment_collection_gap",
-        computation_plan=_plan(),
+        computation_plan=None,
+        governed_computation_input=governed,
         normalized_tables=[{"sheet_name": "must_not_be_read", "rows": [{"dso_days": 999}]}],
         column_refs=[{"sheet_name": "must_not_be_read", "column_name": "dso_days"}],
         governed_results=governed_results,
@@ -115,11 +102,10 @@ def test_root_executes_kernel_once_without_implicit_prerequisites_or_delivery(mo
 
     def tracking(**kwargs: object) -> dict[str, object]:
         calls.append(str(kwargs["capability_ref"]))
-        return real_engine(**kwargs)
+        return real_engine(computation_plan=None, **kwargs)
 
     monkeypatch.setattr(product, "execute_generic_capability_v1", tracking)
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: {"status": product.STATUS_CONFIRMED_BINDINGS})
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: (_ for _ in ()).throw(AssertionError("must not build table plan")))
+    monkeypatch.setattr(product, "run_initial_pass", lambda **_: {"status": product.STATUS_CONFIRMED_BINDINGS, "bridge_packet": {"case_id": "case_pyme_013_composite"}})
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": "must_not_be_read", "column_refs": "must_not_be_read"},

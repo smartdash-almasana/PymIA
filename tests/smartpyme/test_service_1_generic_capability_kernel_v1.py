@@ -9,21 +9,27 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
 
 
 def _plan(*, capability: str, pathology: str, formula: str, variables: tuple[str, ...], bindings: dict[str, str]) -> dict[str, object]:
-    return {
-        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
-        "status": "READY_FOR_COMPUTATION",
+    governed = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_generic_kernel",
         "requested_capability": capability,
+        "family_id": "TEST_FAMILY",
         "pathology_code": pathology,
         "formula_id": formula,
+        "formula_expression": "fixture_expression",
         "required_variables": list(variables),
-        "source_bindings": bindings,
-        "computation_candidate_ready": True,
+        "required_evidence": [],
+        "source_bindings": dict(bindings),
+        "grain": {"structural_scope": "REGION", "business_entity_grain": "NONE", "temporal_grain": "NONE", "aggregation_grain": "ATOMIC"},
+        "catalog_versions": {},
+        "provenance": {"source": "TEST_P8"},
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
         "delivery_authorized": False,
         "diagnosis_generated": False,
     }
+    return governed
 
 
 def _refs(columns: tuple[str, ...]) -> list[dict[str, str]]:
@@ -54,7 +60,8 @@ def test_liq_002_executes_sum_and_single_value_without_touching_product_root() -
     )
     result = execute_generic_capability_v1(
         capability_ref="projected_closing_cash_balance",
-        computation_plan=plan,
+        computation_plan=None,
+        governed_computation_input=plan,
         normalized_tables=[
             {
                 "sheet_name": "sheet1",
@@ -85,7 +92,8 @@ def test_pyme_011_executes_dso_with_consistent_single_period() -> None:
     )
     result = execute_generic_capability_v1(
         capability_ref="dso",
-        computation_plan=plan,
+        computation_plan=None,
+        governed_computation_input=plan,
         normalized_tables=[
             {
                 "sheet_name": "sheet1",
@@ -118,7 +126,8 @@ def test_single_value_rejects_inconsistent_values() -> None:
     )
     result = execute_generic_capability_v1(
         capability_ref="dso",
-        computation_plan=plan,
+        computation_plan=None,
+        governed_computation_input=plan,
         normalized_tables=[
             {"sheet_name": "sheet1", "rows": [{"receivables": 10, "sales": 20, "days": 30}, {"days": 31}]}
         ],
@@ -138,7 +147,8 @@ def test_denominator_and_domain_are_closed() -> None:
     )
     result = execute_generic_capability_v1(
         capability_ref="dso",
-        computation_plan=plan,
+        computation_plan=None,
+        governed_computation_input=plan,
         normalized_tables=[{"sheet_name": "sheet1", "rows": [{"receivables": 10, "sales": 0, "days": 30}]}],
         column_refs=_refs(("receivables", "sales", "days")),
     )
@@ -150,13 +160,15 @@ def test_denominator_and_domain_are_closed() -> None:
 def test_wrong_plan_and_unknown_capability_fail_closed() -> None:
     wrong = execute_generic_capability_v1(
         capability_ref="dso",
-        computation_plan={},
+        computation_plan=None,
+        governed_computation_input={},
         normalized_tables=[],
         column_refs=[],
     )
     unknown = execute_generic_capability_v1(
         capability_ref="automatic_guess",
-        computation_plan={},
+        computation_plan=None,
+        governed_computation_input={},
         normalized_tables=[],
         column_refs=[],
     )
@@ -177,10 +189,35 @@ def test_plan_requires_explicitly_false_safety_flags() -> None:
 
     result = execute_generic_capability_v1(
         capability_ref="dso",
-        computation_plan=plan,
+        computation_plan=None,
+        governed_computation_input=plan,
         normalized_tables=[{"sheet_name": "sheet1", "rows": [{"receivables": 10, "sales": 20, "days": 30}]}],
         column_refs=_refs(("receivables", "sales", "days")),
     )
 
     assert result["status"] == STATUS_BLOCKED
-    assert result["errors"] == ["computation_plan safety flags must be explicitly false."]
+    assert result["errors"] == ["governed input safety flags must be explicitly false."]
+
+
+def test_legacy_plan_cannot_override_governed_computation_input() -> None:
+    governed = _plan(
+        capability="dso",
+        pathology="PYME_011",
+        formula="PYME_011_dso",
+        variables=("accounts_receivable", "sales", "days"),
+        bindings={"accounts_receivable": "receivables", "sales": "sales", "days": "days"},
+    )
+    legacy_projection = {
+        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
+        "requested_capability": "dso",
+        "source_bindings": {"accounts_receivable": "WRONG", "sales": "WRONG", "days": "WRONG"},
+    }
+    result = execute_generic_capability_v1(
+        capability_ref="dso",
+        computation_plan=legacy_projection,
+        governed_computation_input=governed,
+        normalized_tables=[{"sheet_name": "sheet1", "rows": [{"receivables": 40, "sales": 100, "days": 30}]}],
+        column_refs=_refs(("receivables", "sales", "days")),
+    )
+    assert result["status"] == STATUS_EVALUATED
+    assert result["computed"]["dso_days"] == 12.0

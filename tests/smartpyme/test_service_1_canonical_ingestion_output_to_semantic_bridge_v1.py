@@ -111,20 +111,14 @@ def test_case_001_lock_is_10(case_001_ingestion_output: dict) -> None:
     )
 
 
-def test_bridge_attaches_five_variable_family_bindings(
+def test_bridge_does_not_run_p7_before_p6(
     case_001_ingestion_output: dict,
 ) -> None:
     out = build_bridge(ingestion_output=case_001_ingestion_output)
 
-    bindings = out["variable_family_bindings"]
-    assert out["variable_family_count"] == 7
-    assert len(bindings) == 7
-    assert all(isinstance(item, Service1VariableFamilyBindingV1) for item in bindings)
-    sales_margin = next(
-        item for item in bindings if item.family_id == FAMILY_SALES_MARGIN
-    )
-    assert sales_margin.status == FAMILY_STATUS_READY
-    assert FAMILY_SALES_MARGIN in out["ready_variable_family_ids"]
+    assert out["variable_family_count"] == 0
+    assert out["variable_family_bindings"] == ()
+    assert out["ready_variable_family_ids"] == []
 
 
 def test_at_least_one_role_is_operation_date(case_001_ingestion_output: dict) -> None:

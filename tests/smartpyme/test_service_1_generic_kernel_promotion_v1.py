@@ -9,6 +9,7 @@ from pymia.smartpyme.service_1_liq_002_outcome_v1 import STATUS_READY as LIQ_002
 from pymia.smartpyme.service_1_pyme_011_evaluator_v1 import evaluate_pyme_011_v1
 from pymia.smartpyme.service_1_pyme_011_normalized_evidence_v1 import evaluate_pyme_011_from_normalized_tables_v1
 from pymia.smartpyme.service_1_pyme_011_outcome_v1 import STATUS_READY as PYME_011_OUTCOME_READY, build_pyme_011_outcome_v1
+from tests.smartpyme.service_1_p8_test_support import computable_decision_from_legacy_fixture
 
 
 def _plan(capability: str) -> dict[str, object]:
@@ -42,7 +43,31 @@ def _plan(capability: str) -> dict[str, object]:
             "sales": "ventas",
             "days": "dias",
         }
+    base["governed_computation_input"] = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_generic_kernel_promotion",
+        "requested_capability": base["requested_capability"],
+        "family_id": "TEST_FAMILY",
+        "pathology_code": base["pathology_code"],
+        "formula_id": base["formula_id"],
+        "formula_expression": "fixture_expression",
+        "required_variables": list(base["required_variables"]),
+        "required_evidence": [],
+        "source_bindings": dict(base["source_bindings"]),
+        "grain": {"structural_scope": "REGION", "business_entity_grain": "NONE", "temporal_grain": "NONE", "aggregation_grain": "ATOMIC"},
+        "catalog_versions": {},
+        "provenance": {"source": "TEST_P8"},
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
     return base
+
+
+def _decision(capability: str):
+    return computable_decision_from_legacy_fixture(_plan(capability))
 
 
 def _liq_tables() -> tuple[list[dict], list[dict]]:
@@ -72,7 +97,7 @@ def _confirmed() -> dict:
 def test_root_executes_generic_kernel_for_liq_002(monkeypatch, tmp_path) -> None:
     tables, refs = _liq_tables()
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan("projected_closing_cash_balance"))
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("projected_closing_cash_balance"))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],
@@ -88,7 +113,7 @@ def test_root_executes_generic_kernel_for_liq_002(monkeypatch, tmp_path) -> None
 def test_root_executes_generic_kernel_for_pyme_011(monkeypatch, tmp_path) -> None:
     tables, refs = _pyme_tables()
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan("dso"))
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("dso"))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],
@@ -114,12 +139,19 @@ def test_legacy_adapters_are_not_root_imports() -> None:
 def test_single_execution_per_request(monkeypatch, tmp_path) -> None:
     calls = []
     original = execute_generic_capability_v1
-    def tracking(*, capability_ref, computation_plan, normalized_tables, column_refs):
+    def tracking(*, capability_ref, governed_computation_input, normalized_tables, column_refs, governed_results=None):
         calls.append(capability_ref)
-        return original(capability_ref=capability_ref, computation_plan=computation_plan, normalized_tables=normalized_tables, column_refs=column_refs)
+        return original(
+            capability_ref=capability_ref,
+            computation_plan=None,
+            governed_computation_input=governed_computation_input,
+            normalized_tables=normalized_tables,
+            column_refs=column_refs,
+            governed_results=governed_results,
+        )
     monkeypatch.setattr(product, "execute_generic_capability_v1", tracking)
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan("projected_closing_cash_balance"))
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("projected_closing_cash_balance"))
     product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": _liq_tables()[0], "column_refs": _liq_tables()[1]},
         tool_requests=[],
@@ -133,7 +165,7 @@ def test_single_execution_per_request(monkeypatch, tmp_path) -> None:
 def test_liq_002_preserves_invariants_through_root(monkeypatch, tmp_path) -> None:
     tables, refs = _liq_tables()
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan("projected_closing_cash_balance"))
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("projected_closing_cash_balance"))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],
@@ -152,7 +184,7 @@ def test_liq_002_preserves_invariants_through_root(monkeypatch, tmp_path) -> Non
 def test_liq_002_delivery_blocked(monkeypatch, tmp_path) -> None:
     tables, refs = _liq_tables()
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan("projected_closing_cash_balance"))
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("projected_closing_cash_balance"))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],
@@ -170,7 +202,7 @@ def test_liq_002_delivery_blocked(monkeypatch, tmp_path) -> None:
 def test_pyme_011_preserves_invariants_through_root(monkeypatch, tmp_path) -> None:
     tables, refs = _pyme_tables()
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan("dso"))
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("dso"))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],
@@ -187,7 +219,7 @@ def test_pyme_011_preserves_invariants_through_root(monkeypatch, tmp_path) -> No
 def test_pyme_011_delivery_blocked(monkeypatch, tmp_path) -> None:
     tables, refs = _pyme_tables()
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan("dso"))
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("dso"))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],
@@ -220,64 +252,24 @@ def test_legacy_modules_remain_importable() -> None:
     assert poutcome["status"] == PYME_011_OUTCOME_READY
 
 
-def test_absent_plan_flags_block_liq_002(monkeypatch, tmp_path) -> None:
+def test_product_root_no_longer_exposes_legacy_plan_builder() -> None:
+    assert not hasattr(product, "build_computation_plan")
+
+
+def test_product_root_returns_canonical_governed_input(monkeypatch, tmp_path) -> None:
     tables, refs = _liq_tables()
-    plan = _plan("projected_closing_cash_balance")
-    del plan["delivery_authorized"]
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: plan)
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: _decision("projected_closing_cash_balance"))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],
         output_dir=tmp_path,
         requested_capability="projected_closing_cash_balance",
     )
-    assert result["status"] == product.STATUS_BLOCKED
-
-
-def test_absent_plan_flags_block_pyme_011(monkeypatch, tmp_path) -> None:
-    tables, refs = _pyme_tables()
-    plan = _plan("dso")
-    del plan["delivery_authorized"]
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: plan)
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="dso",
-    )
-    assert result["status"] == product.STATUS_BLOCKED
-
-
-def test_true_plan_flags_block_liq_002(monkeypatch, tmp_path) -> None:
-    tables, refs = _liq_tables()
-    plan = _plan("projected_closing_cash_balance")
-    plan["delivery_authorized"] = True
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: plan)
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="projected_closing_cash_balance",
-    )
-    assert result["status"] == product.STATUS_BLOCKED
-
-
-def test_true_plan_flags_block_pyme_011(monkeypatch, tmp_path) -> None:
-    tables, refs = _pyme_tables()
-    plan = _plan("dso")
-    plan["delivery_authorized"] = True
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: _confirmed())
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: plan)
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="dso",
-    )
-    assert result["status"] == product.STATUS_BLOCKED
+    assert result["status"] == product.STATUS_COMPUTATION_PLAN_READY
+    assert "computation_plan" not in result
+    assert result["governed_computation_input"]["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
+    assert result["computability_decision"]["status"] == "COMPUTABLE"
 
 
 def test_root_unchanged_for_liq_001_and_ren_001(monkeypatch, tmp_path) -> None:

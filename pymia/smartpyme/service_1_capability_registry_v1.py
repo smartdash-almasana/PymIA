@@ -65,7 +65,7 @@ LIQ_002 = CapabilityDefinitionV1(
 INV_001 = CapabilityDefinitionV1(
     capability_ref="reorder_point",
     pathology_code="INV_001",
-    formula_ref="INV_001_reorder_point",
+    formula_ref="INV_001_punto_reposicion",
     kind="ATOMIC",
     variables=(
         VariableRequirementV1("average_sales", "SINGLE_VALUE", minimum=Decimal("0"), unit="units_per_day"),
@@ -111,7 +111,7 @@ INV_001 = CapabilityDefinitionV1(
 INV_002 = CapabilityDefinitionV1(
     capability_ref="inventory_turnover",
     pathology_code="INV_002",
-    formula_ref="INV_002_inventory_turnover",
+    formula_ref="INV_002_rotacion_stock",
     kind="ATOMIC",
     variables=(
         VariableRequirementV1("cost_of_goods_sold", "SUM", minimum=Decimal("0"), unit="currency"),
@@ -236,7 +236,7 @@ PYME_013 = CapabilityDefinitionV1(
 PYME_024 = CapabilityDefinitionV1(
     capability_ref="current_ratio",
     pathology_code="PYME_024",
-    formula_ref="PYME_024_current_ratio",
+    formula_ref="PYME_024_liquidez_corriente",
     kind="ATOMIC",
     variables=(
         VariableRequirementV1("current_assets", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
@@ -272,7 +272,7 @@ PYME_024 = CapabilityDefinitionV1(
 PYME_033 = CapabilityDefinitionV1(
     capability_ref="sales_concentration",
     pathology_code="PYME_033",
-    formula_ref="PYME_033_sales_concentration",
+    formula_ref="PYME_033_concentracion_sku",
     kind="ATOMIC",
     variables=(
         VariableRequirementV1("main_sku_sales", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
@@ -311,7 +311,7 @@ PYME_033 = CapabilityDefinitionV1(
 PYME_027 = CapabilityDefinitionV1(
     capability_ref="interest_burden_ratio",
     pathology_code="PYME_027",
-    formula_ref="PYME_027_interest_burden_ratio",
+    formula_ref="PYME_027_intereses_ebitda",
     kind="ATOMIC",
     variables=(
         VariableRequirementV1("interest_expense", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
@@ -393,7 +393,7 @@ PYME_026 = CapabilityDefinitionV1(
 REN_002 = CapabilityDefinitionV1(
     capability_ref="index_update_ratio",
     pathology_code="REN_002",
-    formula_ref="REN_002_index_update_ratio",
+    formula_ref="REN_002_coeficiente_reposicion",
     kind="ATOMIC",
     variables=(
         VariableRequirementV1("closing_index", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),

@@ -28,6 +28,9 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 import (
+    Service1ColumnOwnerQuestionViewV1,
+)
 from pymia.smartpyme.service_1_owner_confirmation_event_v1 import (
     build_service_1_owner_confirmation_event_v1,
 )
@@ -61,8 +64,12 @@ BLOCK_EMPTY_ANSWERS = "EMPTY_ANSWERS"
 BLOCK_OWNER_ANSWER_BINDINGS_INVALID = "OWNER_ANSWER_BINDINGS_INVALID"
 BLOCK_INVALID_OPTION_ID = "INVALID_OWNER_OPTION_ID"
 BLOCK_CONFLICTING_OWNER_ANSWER = "CONFLICTING_OWNER_ANSWER"
+BLOCK_OWNER_QUESTION_VIEW_MISSING = "OWNER_QUESTION_VIEW_MISSING"
+BLOCK_OWNER_QUESTION_VIEW_INVALID = "OWNER_QUESTION_VIEW_INVALID"
+BLOCK_OWNER_QUESTION_SURFACE_UNSAFE = "OWNER_QUESTION_SURFACE_UNSAFE"
 
 OWNER_OPTION_OTHER = "OTHER"
+OWNER_OPTION_IGNORE = "IGNORE"
 
 _GATE_FORBIDDEN_FLAGS = (
     "runtime_authorized",
@@ -150,9 +157,17 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             filename=filename,
         )
 
-    # NEEDS_OWNER_CONFIRMATION path.
-    questions = gate_packet.get("owner_questions") or []
-    if not isinstance(questions, list) or not questions:
+    # NEEDS_OWNER_CONFIRMATION path. The gate exposes only canonical P6/context;
+    # this dialogue layer owns owner-safe question composition and answer bindings.
+    questions, raw_bindings, question_error = _owner_questions_from_gate_context(gate_packet)
+    if question_error is not None:
+        return _blocked(
+            question_error,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
+    if not questions:
         return _blocked(
             BLOCK_NO_QUESTIONS,
             case_id=case_id,
@@ -182,6 +197,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             filename=filename,
             owner_questions=list(questions),
             confirmed_answers={},
+            owner_answer_bindings=raw_bindings,
         )
 
     if not isinstance(owner_answers, dict):
@@ -204,15 +220,6 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             source_kind=source_kind,
             filename=filename,
             detail=sorted(set(unknown)),
-        )
-
-    raw_bindings = gate_packet.get("owner_answer_bindings")
-    if not isinstance(raw_bindings, dict):
-        return _blocked(
-            BLOCK_OWNER_ANSWER_BINDINGS_INVALID,
-            case_id=case_id,
-            source_kind=source_kind,
-            filename=filename,
         )
 
     confirmed: dict[str, str] = {}
@@ -348,6 +355,138 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
     )
 
 
+def _owner_questions_from_gate_context(
+    gate_packet: dict[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, str]], str | None]:
+    raw_candidates = gate_packet.get("owner_confirmation_candidates")
+    raw_views = gate_packet.get("owner_question_views")
+    if not isinstance(raw_candidates, (list, tuple)) or not raw_candidates:
+        return [], {}, BLOCK_NO_QUESTIONS
+    if not isinstance(raw_views, (list, tuple)):
+        return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
+
+    views_by_identity: dict[tuple[str, str], Service1ColumnOwnerQuestionViewV1] = {}
+    for view in raw_views:
+        if not isinstance(view, Service1ColumnOwnerQuestionViewV1):
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+        if view.question_required:
+            identity = (str(view.sheet_name).strip(), str(view.column_name).strip())
+            if identity in views_by_identity:
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            views_by_identity[identity] = view
+
+    questions: list[dict[str, Any]] = []
+    bindings_by_ref: dict[str, dict[str, str]] = {}
+    for candidate in raw_candidates:
+        column = str(getattr(candidate, "source_column_name", "") or "").strip()
+        sheet = str(getattr(candidate, "sheet_name", "") or "").strip()
+        ref_id = _candidate_ref_id(candidate)
+        if not ref_id:
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+        view = views_by_identity.get((sheet, column))
+        if view is None or not view.question or not view.options:
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
+
+        metadata = dict(getattr(candidate, "metadata", {}) or {})
+        raw_options = metadata.get("allowed_owner_answers")
+        if not isinstance(raw_options, list):
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+
+        internal_bindings: dict[str, str] = {}
+        for option in raw_options:
+            if not isinstance(option, dict):
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            option_id = str(option.get("option_id") or "").strip()
+            linked = option.get("linked_hypothesis")
+            if option_id == OWNER_OPTION_OTHER:
+                continue
+            if not option_id or not isinstance(linked, dict):
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            semantic_role = str(linked.get("semantic_role") or "").strip()
+            if not semantic_role:
+                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+            if semantic_role == "unknown":
+                continue
+            internal_bindings[option_id] = semantic_role
+
+        safe_options = [
+            option.to_dict()
+            for option in view.options
+            if option.option_id in internal_bindings
+            or option.option_id == OWNER_OPTION_OTHER
+        ]
+        safe_options.append(
+            {
+                "option_id": OWNER_OPTION_IGNORE,
+                "label": "No usar esta columna",
+                "description": (
+                    "La columna no es necesaria para este análisis y queda fuera "
+                    "sin modificar el archivo original."
+                ),
+            }
+        )
+        question = {
+            "question_id": ref_id,
+            "field_id": ref_id,
+            "column_name": column,
+            "sheet_name": view.sheet_name,
+            "title": view.title,
+            "context": view.context,
+            "question": view.question,
+            "options": safe_options,
+            "allowed_option_ids": [item["option_id"] for item in safe_options],
+            "free_text_option_id": OWNER_OPTION_OTHER,
+            "risk_note": view.risk_note,
+            "confidence_note": view.confidence_note,
+            "answer_type": "select_owner_option_id",
+            "required": True,
+        }
+        if not _owner_question_surface_is_safe(question, candidate):
+            return [], {}, BLOCK_OWNER_QUESTION_SURFACE_UNSAFE
+
+        internal_bindings[OWNER_OPTION_IGNORE] = "IGNORED_NOT_RELEVANT"
+        questions.append(question)
+        if ref_id in bindings_by_ref:
+            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
+        bindings_by_ref[ref_id] = internal_bindings
+
+    return questions, bindings_by_ref, None
+
+
+def _candidate_ref_id(candidate: Any) -> str:
+    metadata = dict(getattr(candidate, "metadata", {}) or {})
+    return str(
+        metadata.get("column_ref_id")
+        or metadata.get("question_id")
+        or getattr(candidate, "source_column_name", "")
+        or ""
+    ).strip()
+
+
+def _owner_question_surface_is_safe(
+    question: dict[str, Any], candidate: Any
+) -> bool:
+    generated_surface = {
+        "options": question.get("options", []),
+        "answer_type": question.get("answer_type"),
+        "free_text_option_id": question.get("free_text_option_id"),
+    }
+    rendered = str(generated_surface).lower()
+    internal_tokens = {
+        str(role).strip().lower()
+        for role in (getattr(candidate, "candidate_semantic_roles", ()) or ())
+        if str(role).strip()
+    }
+    internal_tokens.update(
+        {
+            "ignored_not_relevant",
+            "owner_rectified_function",
+            "computed_variables",
+        }
+    )
+    return not any(token in rendered for token in internal_tokens)
+
+
 def _question_ref_id(question: dict[str, Any]) -> str:
     return str(
         question.get("question_id")
@@ -479,6 +618,7 @@ def _packet(
     confirmed_answers: dict[str, str],
     owner_followup: list[dict[str, Any]] | None = None,
     owner_confirmation_events: list[dict[str, Any]] | None = None,
+    owner_answer_bindings: dict[str, dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -492,6 +632,10 @@ def _packet(
         "owner_questions": owner_questions,
         "owner_question_count": len(owner_questions),
         "confirmed_answers": confirmed_answers,
+        "owner_answer_bindings": {
+            ref_id: dict(bindings)
+            for ref_id, bindings in (owner_answer_bindings or {}).items()
+        },
         "owner_confirmation_events": [dict(item) for item in (owner_confirmation_events or [])],
         "owner_followup": [dict(item) for item in (owner_followup or [])],
         "runtime_authorized": False,

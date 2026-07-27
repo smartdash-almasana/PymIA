@@ -37,7 +37,7 @@ class Service1GovernedComputationInputV1:
     formula_expression: str
     required_variables: tuple[str, ...]
     required_evidence: tuple[str, ...]
-    source_bindings: Mapping[str, str]
+    source_bindings: Mapping[str, Any]
     grain: Mapping[str, str]
     catalog_versions: Mapping[str, str | None]
     provenance: Mapping[str, Any] = field(default_factory=dict)
@@ -145,6 +145,15 @@ def build_service_1_computability_decision_v1(
         for item in decisions
         if str(item.get("approved_variable") or "").strip() and str(item.get("column_ref") or "").strip()
     }
+    # Canonical formula-variable aliases may share the same approved semantic
+    # evidence without changing the P6 role. Example: sales_amount is named
+    # sold_amount by LIQ_001 and sales by DSO. This is variable normalization,
+    # not semantic rebinding.
+    for item in decisions:
+        role = str(item.get("approved_role") or "").strip()
+        column = str(item.get("column_ref") or "").strip()
+        if role == "sales_amount" and column:
+            source_by_variable.setdefault("sales", column)
 
     paths = _catalog_paths(formula_catalog_path, pathology_catalog_path, evidence_matrix_path)
     try:
@@ -212,6 +221,54 @@ def build_service_1_computability_decision_v1(
     )
 
 
+def build_service_1_composite_governed_computation_input_v1(*, case_id: str, capability_ref: str) -> Service1GovernedComputationInputV1:
+    """Build governed execution input for a COMPOSITE capability from registry contracts only."""
+    from pymia.smartpyme.service_1_capability_registry_v1 import get_capability_definition_v1
+
+    case = str(case_id or "").strip()
+    capability = str(capability_ref or "").strip()
+    if not case or not capability:
+        raise ValueError("case_id and capability_ref are required")
+    definition = get_capability_definition_v1(capability)
+    if definition is None or definition.kind != "COMPOSITE":
+        raise ValueError("composite capability definition required")
+
+    paths = _catalog_paths(None, None, None)
+    catalog = build_service_1_semantic_catalog_load_result_v1(
+        formula_catalog_path=paths["formula_catalog"],
+        pathology_catalog_path=paths["pathology_catalog"],
+        metadata={"requested_capability": capability, "composite": True},
+    )
+    if catalog.status not in _ALLOWED_CATALOG_LOAD_STATUSES:
+        raise ValueError(f"CATALOG_LOAD_BLOCKED:{catalog.status}")
+    formulas = tuple(f for f in catalog.formula_entries if f.formula_id == definition.formula_ref and f.pathology_code == definition.pathology_code)
+    if len(formulas) != 1:
+        raise ValueError("GOVERNED_COMPOSITE_FORMULA_MISSING")
+    formula = formulas[0]
+    bindings: dict[str, Any] = {}
+    for variable in definition.variables:
+        if not variable.source_capability_ref or not variable.source_result_key:
+            raise ValueError(f"composite source contract missing for {variable.name}")
+        bindings[variable.name] = {
+            "capability_ref": variable.source_capability_ref,
+            "result_key": variable.source_result_key,
+        }
+    return Service1GovernedComputationInputV1(
+        case_id=case,
+        requested_capability=capability,
+        family_id="COMPOSITE_GOVERNED_RESULTS",
+        pathology_code=definition.pathology_code,
+        formula_id=definition.formula_ref,
+        formula_expression=formula.expression,
+        required_variables=tuple(variable.name for variable in definition.variables),
+        required_evidence=tuple(formula.required_evidence),
+        source_bindings=bindings,
+        grain={"structural_scope": "RESULT_SET", "business_entity_grain": "NONE", "temporal_grain": "PERIOD", "aggregation_grain": "AGGREGATED"},
+        catalog_versions=_catalog_versions(paths, {}),
+        provenance={"source": "CAPABILITY_REGISTRY_PLUS_GOVERNED_RESULTS", "composite": True},
+    )
+
+
 def _decision(case: str, capability: str, status: str, reason: str, *, family_id: str | None = None, missing: tuple[tuple[str, ...], ...] = ()) -> Service1ComputabilityDecisionV1:
     return Service1ComputabilityDecisionV1(case_id=case, requested_capability=capability, status=status, reason=reason, family_id=family_id, missing_role_groups=missing, provenance={"source": "P8_COMPUTABILITY"})
 
@@ -220,8 +277,8 @@ def _catalog_paths(formula_catalog_path: str | Path | None, pathology_catalog_pa
     docs = Path(__file__).resolve().parents[2] / "docs"
     return {
         "formula_catalog": Path(formula_catalog_path) if formula_catalog_path else docs / "formula_catalog.v1.json",
-        "pathology_catalog": Path(pathology_catalog_path) if pathology_catalog_path else docs / "pathology_catalog.enriched.v1.json",
-        "evidence_matrix": Path(evidence_matrix_path) if evidence_matrix_path else docs / "service_1_formula_pathology_evidence_matrix.v1.json",
+        "pathology_catalog": Path(pathology_catalog_path) if pathology_catalog_path else docs / "pathology_catalog.enriched.v2.json",
+        "evidence_matrix": Path(evidence_matrix_path) if evidence_matrix_path else docs / "service_1_formula_pathology_evidence_matrix.v2.json",
     }
 
 
@@ -247,4 +304,5 @@ def _catalog_versions(paths: dict[str, Path], matrix: dict[str, Any]) -> dict[st
 __all__ = [
     "SCHEMA_VERSION", "STATUS_COMPUTABLE", "STATUS_NEEDS_EVIDENCE", "STATUS_UNSUPPORTED_CAPABILITY", "STATUS_BLOCKED",
     "Service1ComputabilityDecisionV1", "Service1GovernedComputationInputV1", "build_service_1_computability_decision_v1",
+    "build_service_1_composite_governed_computation_input_v1",
 ]

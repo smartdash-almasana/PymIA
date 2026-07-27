@@ -9,11 +9,9 @@ from decimal import Decimal, InvalidOperation
 from typing import Final
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_REN_001_EVALUATION_V1"
-COMPUTATION_PLAN_SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPUTATION_PLAN_V1"
 PATHOLOGY_CODE: Final[str] = "REN_001"
 FORMULA_REF: Final[str] = "REN_001_margen_neto_real"
 CAPABILITY_REF: Final[str] = "net_margin_real"
-PLAN_STATUS_READY: Final[str] = "READY_FOR_COMPUTATION"
 
 STATUS_EVALUATED: Final[str] = "EVALUATED"
 STATUS_INVALID_INPUT: Final[str] = "INVALID_INPUT"
@@ -168,41 +166,34 @@ def _parse_number(value: object) -> tuple[Decimal, str | None]:
     return number, None
 
 
+def _execution_input_payload(computation_plan: object) -> object:
+    if isinstance(computation_plan, dict):
+        if computation_plan.get("schema_version") == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1":
+            return computation_plan
+        governed = computation_plan.get("governed_computation_input")
+        if isinstance(governed, dict):
+            return governed
+    return None
+
+
 def _validate_computation_plan(computation_plan: object) -> list[str]:
-    if not isinstance(computation_plan, dict):
-        return ["computation_plan must be an object."]
-    expected = {
-        "schema_version": COMPUTATION_PLAN_SCHEMA_VERSION,
-        "status": PLAN_STATUS_READY,
-        "requested_capability": CAPABILITY_REF,
-        "pathology_code": PATHOLOGY_CODE,
-        "formula_id": FORMULA_REF,
-    }
-    errors = [
-        f"computation_plan {field} must equal {expected_value}."
-        for field, expected_value in expected.items()
-        if computation_plan.get(field) != expected_value
-    ]
-    if tuple(computation_plan.get("required_variables") or ()) != _REQUIRED_VARIABLES:
-        errors.append("computation_plan required_variables do not match REN_001.")
-    if computation_plan.get("computation_candidate_ready") is not True:
-        errors.append("computation_plan candidate is not ready.")
-    if any(
-        computation_plan.get(flag)
-        for flag in (
-            "runtime_authorized",
-            "tool_execution_authorized",
-            "product_ready",
-            "delivery_authorized",
-            "diagnosis_generated",
-        )
-    ):
-        errors.append("computation_plan safety flags must remain false.")
+    payload = _execution_input_payload(computation_plan)
+    if not isinstance(payload, dict):
+        return ["governed computation input is required."]
+    if payload.get("schema_version") != "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1":
+        return ["governed computation input schema is required."]
+    expected = {"requested_capability": CAPABILITY_REF, "pathology_code": PATHOLOGY_CODE, "formula_id": FORMULA_REF}
+    errors = [f"execution input {field} must equal {expected_value}." for field, expected_value in expected.items() if payload.get(field) != expected_value]
+    if tuple(payload.get("required_variables") or ()) != _REQUIRED_VARIABLES:
+        errors.append("execution input required_variables do not match REN_001.")
+    if any(payload.get(flag) is not False for flag in ("runtime_authorized", "tool_execution_authorized", "product_ready", "delivery_authorized", "diagnosis_generated")):
+        errors.append("execution input safety flags must remain false.")
     return errors
 
 
 def _validated_plan_projection(computation_plan: object) -> dict[str, object]:
-    plan = computation_plan if isinstance(computation_plan, dict) else {}
+    payload = _execution_input_payload(computation_plan)
+    plan = payload if isinstance(payload, dict) else {}
     return {
         "status": "VALIDATED",
         "schema_version": plan.get("schema_version"),

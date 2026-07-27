@@ -238,8 +238,10 @@ def test_product_root_builds_plan_without_executing_tools(tmp_path: Path) -> Non
 
     assert out["status"] == STATUS_COMPUTATION_PLAN_READY
     assert out["semantic_bindings_confirmed"] is True
-    assert out["computation_plan"]["status"] == "READY_FOR_COMPUTATION"
-    assert out["computation_plan"]["formula_id"] == "LIQ_001_vendido_cobrado"
+    assert out["governed_computation_input"]["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
+    assert out["computability_decision"]["status"] == "COMPUTABLE"
+    assert "computation_plan" not in out
+    assert out["governed_computation_input"]["formula_id"] == "LIQ_001_vendido_cobrado"
     assert out["physical_run"] is None
     assert out["tools_executed"] is False
     assert list(tmp_path.iterdir()) == []

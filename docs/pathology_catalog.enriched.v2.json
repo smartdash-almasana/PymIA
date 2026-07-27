@@ -1,0 +1,210 @@
+{
+  "catalog_version": "2.0",
+  "artifact_type": "pathology_catalog_enriched",
+  "base_ref": "BOUNDED_GOVERNANCE_EXPANSION_V1",
+  "status": "CATALOG_ONLY_NOT_RUNTIME",
+  "runtime_connection_allowed": false,
+  "phase_5_allowed": false,
+  "source_catalog": "docs/pathology_catalog.v1.json",
+  "scope_policy": {
+    "scope_fixed": true,
+    "scope_not_reopened": true,
+    "supersedes_catalog": "pathology_catalog.enriched.v1.json",
+    "bounded_expansion_only": true,
+    "authorized_added_codes": [
+      "INV_001",
+      "INV_002",
+      "PYME_024",
+      "PYME_033",
+      "PYME_027",
+      "REN_002"
+    ],
+    "deferred_codes": [
+      "PYME_026",
+      "PYME_013_PREREQUISITE_DPO",
+      "PYME_013"
+    ]
+  },
+  "pathologies": [
+    {
+      "pathology_code": "REN_001",
+      "name": "Margen Invisible",
+      "category": "rentabilidad",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ]
+    },
+    {
+      "pathology_code": "LIQ_001",
+      "name": "Descalce de Ventas y Cobranzas",
+      "category": "liquidez",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "sold_amount",
+        "collected_amount"
+      ]
+    },
+    {
+      "pathology_code": "LIQ_002",
+      "name": "Proyección de Caja",
+      "category": "liquidez",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "initial_balance",
+        "expected_collections",
+        "expected_payments"
+      ]
+    },
+    {
+      "pathology_code": "PYME_011",
+      "name": "Days Sales Outstanding",
+      "category": "liquidez",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "accounts_receivable",
+        "sales",
+        "days"
+      ]
+    },
+    {
+      "pathology_code": "SAL_001",
+      "name": "Baseline semantica de ventas",
+      "category": "ventas",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    },
+    {
+      "pathology_code": "STK_001",
+      "name": "Baseline semantica de stock",
+      "category": "inventario",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    },
+    {
+      "pathology_code": "CST_001",
+      "name": "Baseline semantica de costos",
+      "category": "costos",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    },
+    {
+      "pathology_code": "CSH_001",
+      "name": "Baseline semantica de caja",
+      "category": "caja",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": []
+    },
+    {
+      "pathology_code": "INV_001",
+      "name": "Punto de reposición",
+      "category": "inventario",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "average_sales",
+        "lead_time",
+        "safety_stock"
+      ],
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "INV_002",
+      "name": "Rotación de inventario",
+      "category": "inventario",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "cost_of_goods_sold",
+        "average_stock"
+      ],
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "PYME_024",
+      "name": "Liquidez corriente",
+      "category": "liquidez",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "current_assets",
+        "current_liabilities"
+      ],
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "PYME_033",
+      "name": "Concentración de riesgo en SKU",
+      "category": "ventas",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "main_sku_sales",
+        "total_sales"
+      ],
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "PYME_027",
+      "name": "Intereses sobre EBITDA",
+      "category": "finanzas",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "interest_expense",
+        "ebitda"
+      ],
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "REN_002",
+      "name": "Coeficiente de reposición",
+      "category": "rentabilidad",
+      "status": "CATALOG_ONLY_NOT_RUNTIME",
+      "runtime_connection_allowed": false,
+      "phase_5_allowed": false,
+      "runtime_status": "not_allowed",
+      "minimum_semantic_bindings": [
+        "closing_index",
+        "origin_index"
+      ],
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from pymia.contracts.evidence_v1 import StructuredEvidence
-from pymia.smartpyme.excel_lab_ingestion_v1 import build_structured_evidence_from_xlsx
+from tools.document_ingestion import build_structured_evidence_from_xlsx
 
 
 def extract_formula_ids_from_intake_record(intake_record: Mapping[str, Any]) -> list[str]:

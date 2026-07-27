@@ -115,6 +115,11 @@ def build_service_1_column_understanding_corpus_report_v1(
             "source_schema_version": source.schema_version,
             "observational_only": True,
             "report_policy": "derive_only_from_corpus_evaluation",
+            "supported_scope_columns_count": source.metadata.get("supported_scope_columns_count"),
+            "supported_scope_exact_matches": source.metadata.get("supported_scope_exact_matches"),
+            "supported_scope_exact_match_rate": source.metadata.get("supported_scope_exact_match_rate"),
+            "direct_resolution_coverage": source.metadata.get("direct_resolution_coverage"),
+            "intentional_unknown_columns_count": source.metadata.get("intentional_unknown_columns_count"),
         },
     )
 

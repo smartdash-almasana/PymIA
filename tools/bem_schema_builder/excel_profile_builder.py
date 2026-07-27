@@ -16,9 +16,9 @@ class ColumnSemanticClassifier:
         "producto": ("producto", "articulo", "item", "descripcion"),
         "sku": ("sku", "codigo", "cod", "ean"),
         "cantidad": ("cantidad", "cant", "unidades", "qty"),
-        "precio_venta": ("precio venta", "p venta", "pv", "precio_vta", "precio final", "precio unitario", "precio unit"),
+        "precio_venta": ("precio venta", "p venta", "pv", "precio_vta", "precio final"),
         "costo_unitario": ("costo unit", "costo", "coste unit", "c unit", "precio compra"),
-        "venta_total": ("venta total", "ventas", "venta", "facturacion", "ingreso"),
+        "venta_total": ("venta total", "ventas", "facturacion", "ingreso"),
         "costo_total": ("costo total", "costos", "egreso costo"),
         "fecha": ("fecha", "day", "date", "periodo"),
         "cliente": ("cliente", "razon social", "customer"),
@@ -30,16 +30,6 @@ class ColumnSemanticClassifier:
         "impuesto": ("iva", "impuesto", "retencion", "percepcion"),
         "descuento": ("descuento", "bonificacion"),
         "moneda": ("moneda", "currency", "divisa", "usd", "ars"),
-    }
-
-    # Negative patterns: when these tokens appear with a label keyword, the classification is WRONG.
-    # Format: {label: set_of_exclusion_tokens}
-    _NEGATIVE_PATTERNS: dict[str, set[str]] = {
-        "pago": {"metodo", "forma", "tipo", "modalidad", "medio", "condicion"},
-        "precio": {"lista", "referencia", "sugerido", "mayorista"},
-        "costo": {"lista", "referencia", "estimado"},
-        "venta": {"canal", "tipo", "forma", "metodo", "modalidad"},
-        "saldo": ("tipo", "estado"),
     }
 
     _AMBIGUOUS = {
@@ -59,23 +49,10 @@ class ColumnSemanticClassifier:
     def classify(self, column_name: str) -> tuple[str, bool, str | None]:
         normalized = self._normalize(column_name)
         compact = normalized.replace("_", " ")
-        tokens = set(compact.split())
-
         for label, keywords in self._LABEL_KEYWORDS.items():
             if any(kw in compact for kw in keywords):
-                # Check negative patterns before accepting the label
-                negative_tokens = set()
-                for neg_key, neg_toks in self._NEGATIVE_PATTERNS.items():
-                    if neg_key in label:
-                        negative_tokens.update(neg_toks)
-                if any(neg_token in tokens or neg_token in compact for neg_token in negative_tokens):
-                    # Negative pattern fired: demote to unknown
-                    is_ambiguous = any(token in compact for token in self._AMBIGUOUS)
-                    reason = f"negative_pattern_for_{label}"
-                    return "unknown", is_ambiguous, reason
-
-                is_ambiguous = False
-                reason = None
+                is_ambiguous = any(token in compact for token in self._AMBIGUOUS)
+                reason = "keyword_is_ambiguous" if is_ambiguous else None
                 return label, is_ambiguous, reason
 
         is_ambiguous = any(token in compact for token in self._AMBIGUOUS)
@@ -84,9 +61,7 @@ class ColumnSemanticClassifier:
 
     @staticmethod
     def _normalize(text: str) -> str:
-        t = str(text or "").strip()
-        t = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", t)
-        t = t.lower()
+        t = str(text or "").strip().lower()
         t = re.sub(r"\s+", " ", t)
         return t
 

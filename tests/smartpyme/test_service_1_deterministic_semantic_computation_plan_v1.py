@@ -139,15 +139,15 @@ def test_cash_collection_builds_governed_liq_001_computation_plan() -> None:
     _assert_closed(plan)
 
 
-def test_reinjected_owner_binding_is_recorded_as_bound_confirmed() -> None:
+def test_reinjected_owner_binding_reaches_governed_computation_input() -> None:
     plan = build_computation_plan(
         confirmed_bindings=_confirmed_cash_run(),
         requested_capability="sold_vs_collected_gap",
     )
-    bindings = plan["semantic_binding_result"]["bindings"]
-    by_variable = {item["variable_name"]: item for item in bindings}
-    assert by_variable["collected_amount"]["binding_status"] == BINDING_STATUS_BOUND_CONFIRMED
-    assert by_variable["collected_amount"]["owner_confirmed"] is True
+    governed = plan["governed_computation_input"]
+    assert governed["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
+    assert governed["source_bindings"]["collected_amount"] == "cobrado"
+    assert "semantic_binding_result" not in plan
 
 
 def test_family_missing_required_role_returns_needs_evidence() -> None:

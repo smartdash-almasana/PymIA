@@ -9,9 +9,30 @@ from pymia.smartpyme.service_1_ren_001_outcome_v1 import (
     STATUS_READY,
     build_ren_001_outcome_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import computable_decision_from_legacy_fixture
 
 
 def _plan() -> dict[str, object]:
+    governed = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_ren_001_productive_root",
+        "requested_capability": "net_margin_real",
+        "family_id": "SALES_MARGIN",
+        "pathology_code": "REN_001",
+        "formula_id": "REN_001_margen_neto_real",
+        "formula_expression": "sale_price - costs - taxes",
+        "required_variables": ["sale_price", "costs", "taxes"],
+        "required_evidence": [],
+        "source_bindings": {"sale_price": "ventas", "costs": "costos", "taxes": "impuestos"},
+        "grain": {"structural_scope": "REGION", "business_entity_grain": "NONE", "temporal_grain": "NONE", "aggregation_grain": "ATOMIC"},
+        "catalog_versions": {},
+        "provenance": {"source": "TEST_P8"},
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
     return {
         "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
         "status": "READY_FOR_COMPUTATION",
@@ -19,11 +40,8 @@ def _plan() -> dict[str, object]:
         "pathology_code": "REN_001",
         "formula_id": "REN_001_margen_neto_real",
         "required_variables": ["sale_price", "costs", "taxes"],
-        "source_bindings": {
-            "sale_price": "ventas",
-            "costs": "costos",
-            "taxes": "impuestos",
-        },
+        "source_bindings": {"sale_price": "ventas", "costs": "costos", "taxes": "impuestos"},
+        "governed_computation_input": governed,
         "computation_candidate_ready": True,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -100,7 +118,7 @@ def test_product_root_absorbs_only_explicit_ren_001_capability(monkeypatch, tmp_
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
@@ -126,7 +144,7 @@ def test_ren_001_delivery_remains_blocked(monkeypatch, tmp_path) -> None:
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},

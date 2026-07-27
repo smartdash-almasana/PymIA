@@ -29,6 +29,6 @@ def test_architecture_baseline_certifier_emits_machine_readable_report() -> None
     assert checks["TEMPORARY_PACKAGE1_ADAPTER_OUTSIDE_PRODUCTIVE_PATH"]["passed"] is True
     assert "NO_SEMANTIC_REBIND_AFTER_P6" in checks
     assert "P7_P8_BOUNDARIES_NOT_FUSED" in checks
-    assert "OWNER_CONFIRMATION_NOT_OWNED_BY_CONTROLLED_EXECUTION_GATE" in checks
+    assert checks["OWNER_CONFIRMATION_NOT_OWNED_BY_CONTROLLED_EXECUTION_GATE"]["passed"] is True
     assert "P6_GATE_DOES_NOT_OWN_P7_FAMILY_MATCHING" in checks
-    assert "CAPABILITY_EXTENSION_WITHOUT_ROOT_BRANCH_PROLIFERATION" in checks
+    assert checks["CAPABILITY_EXTENSION_WITHOUT_ROOT_BRANCH_PROLIFERATION"]["passed"] is True

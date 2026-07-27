@@ -10,6 +10,10 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
     execute_generic_capability_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import (
+    computable_decision_from_governed_payload,
+    governed_payload_from_legacy_plan,
+)
 
 
 def _plan() -> dict[str, object]:
@@ -18,7 +22,7 @@ def _plan() -> dict[str, object]:
         "status": "READY_FOR_COMPUTATION",
         "requested_capability": "sales_concentration",
         "pathology_code": "PYME_033",
-        "formula_id": "PYME_033_sales_concentration",
+        "formula_id": "PYME_033_concentracion_sku",
         "required_variables": ["main_sku_sales", "total_sales"],
         "source_bindings": {
             "main_sku_sales": "main_sku_sales",
@@ -70,7 +74,8 @@ def _execute(
 ) -> dict[str, object]:
     return execute_generic_capability_v1(
         capability_ref="sales_concentration",
-        computation_plan=plan or _plan(),
+        computation_plan=None,
+        governed_computation_input=governed_payload_from_legacy_plan(plan or _plan()),
         normalized_tables=_tables(
             main_sku_sales=main_sku_sales,
             total_sales=total_sales,
@@ -85,7 +90,7 @@ def test_pyme_033_registry_contract_is_atomic_and_explicit() -> None:
     assert definition is not None
     assert definition.kind == "ATOMIC"
     assert definition.pathology_code == "PYME_033"
-    assert definition.formula_ref == "PYME_033_sales_concentration"
+    assert definition.formula_ref == "PYME_033_concentracion_sku"
     assert definition.result_key == "sales_concentration_percentage"
     assert definition.result_unit == "percentage"
     assert tuple(variable.name for variable in definition.variables) == (
@@ -156,7 +161,8 @@ def test_pyme_033_requires_single_consistent_values() -> None:
 
     result = execute_generic_capability_v1(
         capability_ref="sales_concentration",
-        computation_plan=_plan(),
+        computation_plan=None,
+        governed_computation_input=governed_payload_from_legacy_plan(_plan()),
         normalized_tables=tables,
         column_refs=_refs(),
     )
@@ -176,8 +182,8 @@ def test_pyme_033_requires_explicitly_false_safety_flags() -> None:
 
     assert absent["status"] == STATUS_BLOCKED
     assert opened["status"] == STATUS_BLOCKED
-    assert absent["errors"] == ["computation_plan safety flags must be explicitly false."]
-    assert opened["errors"] == ["computation_plan safety flags must be explicitly false."]
+    assert absent["errors"] == ["governed input safety flags must be explicitly false."]
+    assert opened["errors"] == ["governed input safety flags must be explicitly false."]
 
 
 def test_product_root_executes_pyme_033_once(monkeypatch, tmp_path) -> None:
@@ -190,7 +196,11 @@ def test_product_root_executes_pyme_033_once(monkeypatch, tmp_path) -> None:
     real_execute = product.execute_generic_capability_v1
 
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(
+        product,
+        "build_computability_decision_from_confirmed_bindings_v1",
+        lambda **_: computable_decision_from_governed_payload(governed_payload_from_legacy_plan(_plan())),
+    )
 
     def counted_execute(**kwargs):
         calls.append(str(kwargs["capability_ref"]))
@@ -219,7 +229,11 @@ def test_product_root_keeps_pyme_033_delivery_blocked(monkeypatch, tmp_path) -> 
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(
+        product,
+        "build_computability_decision_from_confirmed_bindings_v1",
+        lambda **_: computable_decision_from_governed_payload(governed_payload_from_legacy_plan(_plan())),
+    )
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": _tables(), "column_refs": _refs()},

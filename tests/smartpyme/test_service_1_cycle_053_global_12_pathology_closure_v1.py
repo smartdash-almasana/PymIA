@@ -75,24 +75,18 @@ def test_cycle_053_dpo_remains_a_prerequisite_not_a_thirteenth_pathology() -> No
     assert dpo.pathology_code not in EXPECTED_PRODUCTIVE_PATHOLOGIES
 
 
-def test_cycle_053_single_product_root_exposes_all_twelve_explicit_refs() -> None:
-    root_refs = {
+def test_cycle_053_single_product_root_uses_registry_for_generic_capabilities() -> None:
+    specialized_refs = {
         product.LIQ_001_CAPABILITY_REF,
         product.REN_001_CAPABILITY_REF,
-        product.LIQ_002_CAPABILITY_REF,
-        product.PYME_011_CAPABILITY_REF,
-        product.PYME_013_CAPABILITY_REF,
-        product.INV_001_CAPABILITY_REF,
-        product.INV_002_CAPABILITY_REF,
-        product.PYME_024_CAPABILITY_REF,
-        product.PYME_033_CAPABILITY_REF,
-        product.REN_002_CAPABILITY_REF,
-        product.PYME_027_CAPABILITY_REF,
-        product.PYME_026_CAPABILITY_REF,
     }
+    registry_refs = set(list_capability_refs_v1())
 
-    assert root_refs == EXPECTED_ROOT_REFS
-    assert len(root_refs) == 12
+    assert specialized_refs | EXPECTED_GENERIC_PRODUCTIVE_REFS == EXPECTED_ROOT_REFS
+    assert EXPECTED_GENERIC_PRODUCTIVE_REFS <= registry_refs
+    source = inspect.getsource(product.run_service_1_product_pipeline_v1)
+    for generic_ref in EXPECTED_GENERIC_PRODUCTIVE_REFS:
+        assert f'requested_capability == "{generic_ref}"' not in source
 
 
 def test_cycle_053_all_generic_outcomes_remain_bounded_and_non_causal() -> None:
@@ -104,10 +98,14 @@ def test_cycle_053_all_generic_outcomes_remain_bounded_and_non_causal() -> None:
 
 
 def test_cycle_053_delivery_is_closed_for_every_non_authorized_pathology() -> None:
-    source = inspect.getsource(product.run_service_1_product_pipeline_v1)
+    for definition in _generic_productive_definitions():
+        assert product._delivery_block_reason(definition) == (
+            f"{definition.pathology_code}_DELIVERY_NOT_AUTHORIZED"
+        )
 
-    for pathology_code in EXPECTED_PRODUCTIVE_PATHOLOGIES - {"LIQ_001"}:
-        assert f'"{pathology_code}_DELIVERY_NOT_AUTHORIZED"' in source
+    assert "REN_001_DELIVERY_NOT_AUTHORIZED" in inspect.getsource(
+        product.run_service_1_product_pipeline_v1
+    )
 
 
 def test_cycle_053_preserves_explicit_selection_and_no_automatic_capability_choice() -> None:

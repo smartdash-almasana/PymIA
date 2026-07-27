@@ -1,0 +1,62 @@
+version: "1.0"
+capabilities:
+  - capability_id: excel_diagnostic
+    label: Diagnostico Excel
+    status: PIPELINE_CERTIFIED
+    pipeline_certified: true
+    dispatcher_available: true
+    cli_available: true
+    plugin_module: pymia.smartpyme.excel_diagnostic
+    plugin_function: diagnose_excel
+    dispatcher_classification: excel_diagnostic
+    tests:
+      - tests/smartpyme/e2e/test_pipeline_radiography_excel.py
+      - tests/smartpyme/test_pipeline_radiography_models.py
+    docs:
+      - docs/smartpyme/SMARTPYME_CAPABILITY_PLUGIN_REGISTRY.md
+      - docs/smartpyme/M19_7_SINGLE_COMMAND_CHECKPOINT.md
+
+  - capability_id: supplier_duplicate_check
+    label: Revision de proveedores duplicados
+    status: PIPELINE_CERTIFIED
+    pipeline_certified: true
+    dispatcher_available: true
+    cli_available: true
+    plugin_module: pymia.smartpyme.classifications.supplier_duplicate_check
+    plugin_function: diagnose_supplier_duplicates
+    dispatcher_classification: supplier_duplicate_check
+    tests:
+      - tests/smartpyme/test_supplier_duplicate_check.py
+      - tests/smartpyme/e2e/test_pipeline_radiography_excel.py
+    docs:
+      - docs/smartpyme/SMARTPYME_CAPABILITY_PLUGIN_REGISTRY.md
+      - docs/smartpyme/M17_SUPPLIER_DISPATCHER_CONTRACT_FINDING.md
+    no_promise_reason: null
+
+  - capability_id: report_html
+    label: Reporte HTML
+    status: NOT_FOUND
+    pipeline_certified: false
+    dispatcher_available: false
+    cli_available: false
+    plugin_module: null
+    plugin_function: null
+    dispatcher_classification: null
+    tests: []
+    docs:
+      - docs/smartpyme/SMARTPYME_CAPABILITY_PLUGIN_REGISTRY.md
+    no_promise_reason: no localizado en pymia.smartpyme al cierre de M20
+
+  - capability_id: document_parser_front
+    label: Parser documental frontal
+    status: NOT_FOUND
+    pipeline_certified: false
+    dispatcher_available: false
+    cli_available: false
+    plugin_module: null
+    plugin_function: null
+    dispatcher_classification: null
+    tests: []
+    docs:
+      - docs/smartpyme/SMARTPYME_CAPABILITY_PLUGIN_REGISTRY.md
+    no_promise_reason: no localizado en pymia.smartpyme al cierre de M20

@@ -108,6 +108,28 @@ def structural_checks(root: Path) -> list[Check]:
         and "governed_computation_input" in generic_engine_source
         and "_execution_input_payload(" in generic_engine_source
     )
+    generic_legacy_fallback_removed = (
+        "legacy_computation_plan" not in generic_engine_source
+        and "SERVICE_1_COMPUTATION_PLAN_V1" not in generic_engine_source
+    )
+    product_root_executes_p8_directly = (
+        "build_computability_decision_from_confirmed_bindings_v1(" in product_source
+        and "build_computation_plan(" not in product_source
+        and "SERVICE_1_COMPUTATION_PLAN_V1" not in product_source
+        and '"governed_computation_input"' in product_source
+        and '"computability_decision"' in product_source
+    )
+    allowed_legacy_plan_modules = {
+        "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_liq_002_evaluator_v1",
+        "service_1_pyme_011_evaluator_v1",
+    }
+    legacy_plan_modules = {
+        path.stem
+        for path in (root / "pymia" / "smartpyme").glob("service_1_*.py")
+        if "SERVICE_1_COMPUTATION_PLAN_V1" in path.read_text(encoding="utf-8")
+    }
+    legacy_plan_references_bounded = legacy_plan_modules <= allowed_legacy_plan_modules
     liq001_source = (root / "pymia" / "smartpyme" / "service_1_liq_001_evaluator_v1.py").read_text(encoding="utf-8")
     ren001_source = (root / "pymia" / "smartpyme" / "service_1_ren_001_evaluator_v1.py").read_text(encoding="utf-8")
     pyme013_source = (root / "pymia" / "smartpyme" / "service_1_pyme_013_composite_v1.py").read_text(encoding="utf-8") if (root / "pymia" / "smartpyme" / "service_1_pyme_013_composite_v1.py").exists() else ""
@@ -121,6 +143,8 @@ def structural_checks(root: Path) -> list[Check]:
         liq001_uses_governed_input
         and ren001_uses_governed_input
         and (pyme013_uses_governed_input if pyme013_source else True)
+        and generic_legacy_fallback_removed
+        and product_root_executes_p8_directly
     )
 
     checks = [
@@ -172,9 +196,28 @@ def structural_checks(root: Path) -> list[Check]:
         Check(
             "GENERIC_EXECUTION_CONSUMES_GOVERNED_INPUT",
             generic_execution_consumes_governed_input,
-            "generic execution prefers Service1GovernedComputationInputV1 over the legacy computation plan projection"
+            "generic execution consumes canonical Service1GovernedComputationInputV1"
             if generic_execution_consumes_governed_input
             else "generic execution does not consume canonical governed computation input",
+        ),
+        Check(
+            "GENERIC_KERNEL_HAS_NO_LEGACY_PLAN_FALLBACK",
+            generic_legacy_fallback_removed,
+            "generic kernel has no ComputationPlanV1 fallback path"
+            if generic_legacy_fallback_removed
+            else "generic kernel still contains a legacy computation-plan fallback",
+        ),
+        Check(
+            "PRODUCT_ROOT_EXECUTES_P8_DIRECTLY",
+            product_root_executes_p8_directly,
+            "product root builds/exports computability decision and governed input without ComputationPlanV1"
+            if product_root_executes_p8_directly
+            else "product root still depends on ComputationPlanV1 or does not expose direct P8 authority",
+        ),
+        Check(
+            "LEGACY_PLAN_REFERENCES_BOUNDED_TO_PROJECTION_OR_SUPPORT",
+            legacy_plan_references_bounded,
+            f"legacy plan modules={sorted(legacy_plan_modules)}; allowed={sorted(allowed_legacy_plan_modules)}",
         ),
         Check(
             "NO_SEMANTIC_BINDING_COMPATIBILITY_PROJECTION",

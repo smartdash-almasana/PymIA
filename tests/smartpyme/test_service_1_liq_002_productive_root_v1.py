@@ -16,25 +16,38 @@ from pymia.smartpyme.service_1_liq_002_outcome_v1 import (
     STATUS_READY,
     build_liq_002_outcome_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import computable_decision_from_legacy_fixture
 
 
 def _plan() -> dict[str, object]:
+    bindings = {
+        "initial_balance": "saldo_inicial",
+        "expected_collections": "cobros_esperados",
+        "expected_payments": "pagos_esperados",
+    }
+    required = ["initial_balance", "expected_collections", "expected_payments"]
+    governed = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "requested_capability": "projected_closing_cash_balance",
+        "pathology_code": "LIQ_002",
+        "formula_id": "LIQ_002_saldo_final_proyectado",
+        "required_variables": required,
+        "source_bindings": bindings,
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
     return {
         "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
         "status": "READY_FOR_COMPUTATION",
         "requested_capability": "projected_closing_cash_balance",
         "pathology_code": "LIQ_002",
         "formula_id": "LIQ_002_saldo_final_proyectado",
-        "required_variables": [
-            "initial_balance",
-            "expected_collections",
-            "expected_payments",
-        ],
-        "source_bindings": {
-            "initial_balance": "saldo_inicial",
-            "expected_collections": "cobros_esperados",
-            "expected_payments": "pagos_esperados",
-        },
+        "required_variables": required,
+        "source_bindings": bindings,
+        "governed_computation_input": governed,
         "computation_candidate_ready": True,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -166,7 +179,7 @@ def test_product_root_absorbs_only_explicit_liq_002_capability(monkeypatch, tmp_
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
@@ -192,7 +205,7 @@ def test_liq_002_delivery_remains_blocked(monkeypatch, tmp_path) -> None:
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},

@@ -16,8 +16,8 @@ def test_audit_covers_all_current_owner_questions() -> None:
     assert audit.schema_version == SCHEMA_VERSION
     assert audit.status == STATUS_READY
     assert audit.cases_count == 6
-    assert audit.question_views_count == 20
-    assert audit.covered_question_views == 20
+    assert audit.question_views_count == 13
+    assert audit.covered_question_views == 13
 
 
 def test_audit_current_corpus_has_no_structural_question_defects() -> None:

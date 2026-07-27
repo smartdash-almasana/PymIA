@@ -15,17 +15,22 @@ def test_report_materializes_current_corpus_metrics() -> None:
 
     assert report.schema_version == SCHEMA_VERSION
     assert report.status == STATUS_READY
-    assert report.evaluation_verdict == "READY_WITH_FIXES"
+    assert report.evaluation_verdict == "READY_FOR_FRONTEND"
     assert report.cases_count == 6
     assert report.columns_count == 38
-    assert report.exact_matches == 22
-    assert report.safe_questions == 16
+    assert report.exact_matches == 32
+    assert report.safe_questions == 6
     assert report.safe_unknowns == 0
     assert report.false_confident == 0
     assert report.missed_questions == 0
     assert report.dangerous_errors == 0
-    assert report.exact_match_rate == 0.5789
+    assert report.exact_match_rate == 0.8421
     assert report.safe_resolution_rate == 1.0
+    assert report.metadata["supported_scope_columns_count"] == 32
+    assert report.metadata["supported_scope_exact_matches"] == 32
+    assert report.metadata["supported_scope_exact_match_rate"] == 1.0
+    assert report.metadata["direct_resolution_coverage"] == 0.8421
+    assert report.metadata["intentional_unknown_columns_count"] == 6
 
 
 def test_report_has_no_critical_columns_after_ambiguity_fix() -> None:
@@ -34,21 +39,19 @@ def test_report_has_no_critical_columns_after_ambiguity_fix() -> None:
     assert report.critical_columns == ()
     critical = [finding for finding in report.findings if finding.priority == PRIORITY_CRITICAL]
     assert critical == []
-    guarded = {
-        finding.column_name: finding
-        for finding in report.findings
-        if finding.column_name in {"precio_lista", "subtotal"}
+    assert report.findings
+    assert {finding.column_name for finding in report.findings} == {
+        "x1", "monto", "valor", "ref", "concepto", "obs"
     }
-    assert set(guarded) == {"precio_lista", "subtotal"}
-    assert all(finding.outcome == "SAFE_QUESTION" for finding in guarded.values())
+    assert all(finding.outcome == "SAFE_QUESTION" for finding in report.findings)
 
 
-def test_report_recommends_rule_expansion_and_blocks_frontend() -> None:
+def test_report_allows_semantic_frontend_wiring_but_does_not_authorize_it() -> None:
     report = build_service_1_column_understanding_corpus_report_v1()
 
-    assert report.frontend_wiring_allowed is False
+    assert report.frontend_wiring_allowed is True
     assert report.frontend_wiring_authorized is False
-    assert report.recommended_next_slice == "SERVICE_1_COLUMN_UNDERSTANDING_RULE_EXPANSION_V1"
+    assert report.recommended_next_slice == "SERVICE_1_COLUMN_UNDERSTANDING_OWNER_QUESTION_ADAPTER_V1"
 
 
 def test_report_is_observational_and_fail_closed() -> None:

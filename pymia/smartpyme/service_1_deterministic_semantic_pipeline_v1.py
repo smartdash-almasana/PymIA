@@ -67,11 +67,24 @@ def run_initial_pass(
         semantic_bridge_packet=bridge
     )
     if gate.get("status") == STATUS_NEEDS_OWNER_CONFIRMATION:
+        loop = build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
+            gate_packet=gate,
+            owner_answers=None,
+        )
+        if loop.get("status") != "OWNER_CONFIRMATION_REQUIRED":
+            return _packet(
+                status=STATUS_BLOCKED_PIPELINE,
+                blocked_reason=loop.get("blocked_reason") or "OWNER_QUESTION_COMPOSITION_BLOCKED",
+                bridge_packet=bridge,
+                gate_packet=gate,
+                owner_loop_packet=loop,
+            )
         return _packet(
             status=STATUS_OWNER_QUESTIONS,
             bridge_packet=bridge,
             gate_packet=gate,
-            owner_questions=list(gate.get("owner_questions") or []),
+            owner_loop_packet=loop,
+            owner_questions=list(loop.get("owner_questions") or []),
         )
     if gate.get("status") == GATE_READY:
         return _packet(
@@ -140,13 +153,26 @@ def run_owner_reentry(
             confirmed_candidate=reinjected.get("controlled_execution_candidate"),
         )
     if reinjected.get("status") == STATUS_NEEDS_OWNER_CONFIRMATION:
+        followup_loop = build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
+            gate_packet=reinjected,
+            owner_answers=None,
+        )
+        if followup_loop.get("status") != "OWNER_CONFIRMATION_REQUIRED":
+            return _packet(
+                status=STATUS_BLOCKED_PIPELINE,
+                blocked_reason=followup_loop.get("blocked_reason") or "OWNER_QUESTION_COMPOSITION_BLOCKED",
+                bridge_packet=bridge,
+                gate_packet=gate,
+                owner_loop_packet=followup_loop,
+                reentry_packet=reinjected,
+            )
         return _packet(
             status=STATUS_OWNER_QUESTIONS,
             bridge_packet=bridge,
             gate_packet=gate,
-            owner_loop_packet=loop,
+            owner_loop_packet=followup_loop,
             reentry_packet=reinjected,
-            owner_questions=list(reinjected.get("owner_questions") or []),
+            owner_questions=list(followup_loop.get("owner_questions") or []),
         )
     return _packet(
         status=STATUS_BLOCKED_PIPELINE,
@@ -157,6 +183,39 @@ def run_owner_reentry(
         reentry_packet=reinjected,
     )
 
+
+
+def build_computability_decision_from_confirmed_bindings_v1(
+    *,
+    confirmed_bindings: Any,
+    requested_capability: str,
+    formula_catalog_path: str | Path | None = None,
+    pathology_catalog_path: str | Path | None = None,
+    evidence_matrix_path: str | Path | None = None,
+) -> Any:
+    """Build canonical P8 decision from an already-confirmed semantic run."""
+    if not isinstance(confirmed_bindings, dict):
+        raise ValueError("confirmed_bindings must be a dict")
+    if confirmed_bindings.get("schema_version") != SCHEMA_VERSION or confirmed_bindings.get("status") != STATUS_CONFIRMED_BINDINGS:
+        raise ValueError("confirmed bindings are required")
+    capability = str(requested_capability or "").strip()
+    if not capability:
+        raise ValueError("requested_capability is required")
+    evidence = _confirmed_evidence_packet(confirmed_bindings)
+    if evidence is None:
+        raise ValueError("confirmed evidence packet is missing")
+    case_id = str(evidence.get("case_id") or (confirmed_bindings.get("bridge_packet") or {}).get("case_id") or "").strip()
+    if not case_id:
+        raise ValueError("case_id is required")
+    return build_service_1_computability_decision_v1(
+        case_id=case_id,
+        requested_capability=capability,
+        p6_decisions=list(evidence.get("p6_decisions") or []),
+        requirement_matches=list(evidence.get("requirement_matches") or []),
+        formula_catalog_path=formula_catalog_path,
+        pathology_catalog_path=pathology_catalog_path,
+        evidence_matrix_path=evidence_matrix_path,
+    )
 
 
 def build_computation_plan(
@@ -189,13 +248,9 @@ def build_computation_plan(
     case_id = str(evidence.get("case_id") or (confirmed_bindings.get("bridge_packet") or {}).get("case_id") or "").strip()
     if not case_id:
         return _computation_plan_packet(status=STATUS_COMPUTATION_PLAN_BLOCKED, blocked_reason="CASE_ID_REQUIRED_FOR_COMPUTATION_PLAN", requested_capability=capability)
-    p6_decisions = list(evidence.get("p6_decisions") or [])
-    requirement_matches = list(evidence.get("requirement_matches") or [])
-    decision = build_service_1_computability_decision_v1(
-        case_id=case_id,
+    decision = build_computability_decision_from_confirmed_bindings_v1(
+        confirmed_bindings=confirmed_bindings,
         requested_capability=capability,
-        p6_decisions=p6_decisions,
-        requirement_matches=requirement_matches,
         formula_catalog_path=formula_catalog_path,
         pathology_catalog_path=pathology_catalog_path,
         evidence_matrix_path=evidence_matrix_path,
@@ -209,19 +264,6 @@ def build_computation_plan(
         return _computation_plan_packet(status=legacy_status, blocked_reason=decision.reason, requested_capability=capability, family_id=decision.family_id)
 
     governed = decision.governed_computation_input
-    compatibility_binding = {
-        "schema_version": "SERVICE_1_SEMANTIC_BINDING_COMPATIBILITY_PROJECTION_V1",
-        "bindings": [
-            {
-                "variable_name": variable,
-                "source_column_name": column,
-                "binding_status": "BOUND_CONFIRMED",
-                "owner_confirmed": _owner_confirmed_for_variable(p6_decisions, variable),
-            }
-            for variable, column in governed.source_bindings.items()
-        ],
-        "canonical_source": "P6_APPROVAL_DECISIONS_PLUS_P7_REQUIREMENT_MATCH",
-    }
     return _computation_plan_packet(
         status=STATUS_READY_FOR_COMPUTATION,
         blocked_reason=None,
@@ -235,7 +277,6 @@ def build_computation_plan(
         required_variables=list(governed.required_variables),
         required_evidence=list(governed.required_evidence),
         source_bindings=dict(governed.source_bindings),
-        semantic_binding_result=compatibility_binding,
         catalog_versions=dict(governed.catalog_versions),
         computation_candidate_ready=True,
         p8_decision=decision.to_dict(),
@@ -251,10 +292,6 @@ def _legacy_p8_reason(reason: str | None) -> str | None:
 
 def _legacy_family_status(decision: Any) -> str | None:
     return "VARIABLE_FAMILY_MISSING_REQUIRED_ROLES" if decision.missing_role_groups else None
-
-
-def _owner_confirmed_for_variable(p6_decisions: list[dict[str, Any]], variable: str) -> bool:
-    return any(str(item.get("approved_variable") or "") == variable and str(item.get("reason") or "") == "OWNER_CONFIRMED_SEMANTIC_ROLE" for item in p6_decisions)
 
 
 def _confirmed_evidence_packet(confirmed_bindings: dict[str, Any]) -> dict[str, Any] | None:
@@ -291,7 +328,6 @@ def _computation_plan_packet(
     missing_variables: list[str] | None = None,
     pending_variables: list[str] | None = None,
     source_bindings: dict[str, str] | None = None,
-    semantic_binding_result: dict[str, Any] | None = None,
     catalog_versions: dict[str, str | None] | None = None,
     computation_candidate_ready: bool = False,
     p8_decision: dict[str, Any] | None = None,
@@ -317,7 +353,6 @@ def _computation_plan_packet(
         "missing_variables": list(missing_variables or []),
         "pending_variables": list(pending_variables or []),
         "source_bindings": dict(source_bindings or {}),
-        "semantic_binding_result": semantic_binding_result,
         "catalog_versions": dict(catalog_versions or {}),
         "computation_candidate_ready": bool(computation_candidate_ready),
         "p8_decision": p8_decision,

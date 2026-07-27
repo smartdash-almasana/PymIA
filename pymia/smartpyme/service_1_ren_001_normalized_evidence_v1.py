@@ -23,9 +23,16 @@ def evaluate_ren_001_from_normalized_tables_v1(
     if not isinstance(column_refs, list) or not column_refs:
         return _blocked(["column_refs must be a non-empty list."])
 
-    source_bindings = computation_plan.get("source_bindings")
+    governed = (
+        computation_plan
+        if computation_plan.get("schema_version") == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
+        else computation_plan.get("governed_computation_input")
+    )
+    if not isinstance(governed, dict):
+        return _blocked(["governed computation input is required."])
+    source_bindings = governed.get("source_bindings")
     if not isinstance(source_bindings, dict):
-        return _blocked(["computation_plan source_bindings must be an object."])
+        return _blocked(["execution input source_bindings must be an object."])
 
     tables_by_sheet: dict[str, dict[str, Any]] = {}
     errors: list[str] = []

@@ -22,6 +22,26 @@ from pymia.smartpyme.service_1_liq_001_evaluator_v1 import (
 
 
 def _ready_plan() -> dict[str, object]:
+    governed = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_liq_001",
+        "requested_capability": "sold_vs_collected_gap",
+        "family_id": "CASH_COLLECTIONS",
+        "pathology_code": "LIQ_001",
+        "formula_id": "LIQ_001_vendido_cobrado",
+        "formula_expression": "sold_amount - collected_amount",
+        "required_variables": ["sold_amount", "collected_amount"],
+        "required_evidence": [],
+        "source_bindings": {"sold_amount": "Venta Total", "collected_amount": "Cobrado"},
+        "grain": {"structural_scope": "REGION", "business_entity_grain": "NONE", "temporal_grain": "NONE", "aggregation_grain": "ATOMIC"},
+        "catalog_versions": {},
+        "provenance": {"source": "TEST_P8"},
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
     return {
         "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
         "status": "READY_FOR_COMPUTATION",
@@ -29,10 +49,8 @@ def _ready_plan() -> dict[str, object]:
         "pathology_code": "LIQ_001",
         "formula_id": "LIQ_001_vendido_cobrado",
         "required_variables": ["sold_amount", "collected_amount"],
-        "source_bindings": {
-            "sold_amount": "Venta Total",
-            "collected_amount": "Cobrado",
-        },
+        "source_bindings": {"sold_amount": "Venta Total", "collected_amount": "Cobrado"},
+        "governed_computation_input": governed,
         "computation_candidate_ready": True,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -173,7 +191,7 @@ def test_ready_plan_with_explicit_inputs_is_evaluated() -> None:
     assert result["computed"]["gap_amount"] == 700.0
     assert result["plan_validation"] == {
         "status": PLAN_VALIDATED,
-        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
         "requested_capability": "sold_vs_collected_gap",
         "pathology_code": "LIQ_001",
         "formula_id": "LIQ_001_vendido_cobrado",
@@ -181,9 +199,9 @@ def test_ready_plan_with_explicit_inputs_is_evaluated() -> None:
     }
 
 
-def test_plan_identity_drift_is_blocked() -> None:
+def test_governed_identity_drift_is_blocked() -> None:
     plan = _ready_plan()
-    plan["formula_id"] = "REN_001_margen_neto_real"
+    plan["governed_computation_input"]["formula_id"] = "REN_001_margen_neto_real"  # type: ignore[index]
 
     result = evaluate_liq_001_from_computation_plan_v1(
         computation_plan=plan,
@@ -192,12 +210,12 @@ def test_plan_identity_drift_is_blocked() -> None:
 
     assert result["status"] == STATUS_PLAN_BLOCKED
     assert result["computed"] == {}
-    assert "computation_plan formula_id must equal LIQ_001_vendido_cobrado." in result["errors"]
+    assert "execution input formula_id must equal LIQ_001_vendido_cobrado." in result["errors"]
 
 
-def test_non_ready_plan_is_blocked() -> None:
+def test_missing_governed_input_is_blocked() -> None:
     plan = _ready_plan()
-    plan["status"] = "NEEDS_EVIDENCE"
+    del plan["governed_computation_input"]
 
     result = evaluate_liq_001_from_computation_plan_v1(
         computation_plan=plan,
@@ -205,7 +223,7 @@ def test_non_ready_plan_is_blocked() -> None:
     )
 
     assert result["status"] == STATUS_PLAN_BLOCKED
-    assert "computation_plan status must equal READY_FOR_COMPUTATION." in result["errors"]
+    assert "governed computation input is required." in result["errors"]
 
 
 def test_plan_evaluation_rejects_missing_or_unknown_inputs() -> None:
@@ -295,3 +313,35 @@ def test_normalized_aggregation_keeps_all_authority_flags_closed() -> None:
     assert result["runtime_authorized"] is False
     assert result["delivery_authorized"] is False
     assert result["diagnosis_generated"] is False
+
+
+def test_liq_001_governed_input_precedes_legacy_plan_identity() -> None:
+    plan = _ready_plan()
+    plan["formula_id"] = "WRONG_LEGACY_FORMULA"
+    plan["governed_computation_input"] = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_liq_001_governed",
+        "requested_capability": "sold_vs_collected_gap",
+        "family_id": "CASH_COLLECTIONS",
+        "pathology_code": "LIQ_001",
+        "formula_id": "LIQ_001_vendido_cobrado",
+        "formula_expression": "sold_amount - collected_amount",
+        "required_variables": ["sold_amount", "collected_amount"],
+        "required_evidence": [],
+        "source_bindings": {"sold_amount": "Venta Total", "collected_amount": "Cobrado"},
+        "grain": {"structural_scope": "REGION", "business_entity_grain": "NONE", "temporal_grain": "NONE", "aggregation_grain": "ATOMIC"},
+        "catalog_versions": {},
+        "provenance": {"source": "P8"},
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
+    result = evaluate_liq_001_from_computation_plan_v1(
+        computation_plan=plan,
+        inputs={"sold_amount": 3000, "collected_amount": 2300},
+    )
+    assert result["status"] == STATUS_EVALUATED
+    assert result["computed"]["gap_amount"] == 700.0
+    assert result["plan_validation"]["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"

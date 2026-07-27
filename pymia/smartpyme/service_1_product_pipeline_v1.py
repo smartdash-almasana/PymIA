@@ -8,8 +8,7 @@ from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
     STATUS_OWNER_FOLLOWUP,
     STATUS_OWNER_QUESTIONS,
-    STATUS_READY_FOR_COMPUTATION,
-    build_computation_plan,
+    build_computability_decision_from_confirmed_bindings_v1,
     run_initial_pass,
     run_owner_reentry,
 )
@@ -25,17 +24,18 @@ from pymia.smartpyme.service_1_liq_001_outcome_v1 import (
 )
 from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED as GENERIC_STATUS_EVALUATED,
-    execute_generic_capability_v1,
+    execute_generic_capability_v1 as _execute_generic_capability_v1_raw,
 )
-from pymia.smartpyme.service_1_liq_002_evaluator_v1 import (
-    CAPABILITY_REF as LIQ_002_CAPABILITY_REF,
+from pymia.smartpyme.service_1_computability_v1 import (
+    STATUS_COMPUTABLE as P8_STATUS_COMPUTABLE,
+    build_service_1_composite_governed_computation_input_v1,
+)
+from pymia.smartpyme.service_1_capability_registry_v1 import (
+    get_capability_definition_v1,
 )
 from pymia.smartpyme.service_1_pipeline_v1 import (
     Service1PipelineToolRequestV1,
     run_service_1_pipeline_v1,
-)
-from pymia.smartpyme.service_1_pyme_011_evaluator_v1 import (
-    CAPABILITY_REF as PYME_011_CAPABILITY_REF,
 )
 from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
     CAPABILITY_REF as REN_001_CAPABILITY_REF,
@@ -49,20 +49,23 @@ from pymia.smartpyme.service_1_ren_001_outcome_v1 import (
     build_ren_001_outcome_v1,
 )
 
-DPO_CAPABILITY_REF: Final[str] = "dpo"
-INV_001_CAPABILITY_REF: Final[str] = "reorder_point"
-INV_002_CAPABILITY_REF: Final[str] = "inventory_turnover"
-PYME_013_CAPABILITY_REF: Final[str] = "payment_collection_gap"
-PYME_024_CAPABILITY_REF: Final[str] = "current_ratio"
-PYME_033_CAPABILITY_REF: Final[str] = "sales_concentration"
-PYME_027_CAPABILITY_REF: Final[str] = "interest_burden_ratio"
-PYME_026_CAPABILITY_REF: Final[str] = "adjusted_operating_cash_flow"
-REN_002_CAPABILITY_REF: Final[str] = "index_update_ratio"
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
 STATUS_COMPUTATION_PLAN_READY = "COMPUTATION_PLAN_READY"
 STATUS_NEEDS_OWNER = "NEEDS_OWNER_CONFIRMATION"
 STATUS_BLOCKED = "BLOCKED"
+
+
+def execute_generic_capability_v1(*, capability_ref: str, governed_computation_input: object, normalized_tables: object, column_refs: object, governed_results: object = None) -> dict[str, object]:
+    """Product-root execution boundary: consume canonical P8 input directly."""
+    return _execute_generic_capability_v1_raw(
+        capability_ref=capability_ref,
+        computation_plan=None,
+        governed_computation_input=governed_computation_input,
+        normalized_tables=normalized_tables,
+        column_refs=column_refs,
+        governed_results=governed_results,
+    )
 
 
 def run_service_1_product_pipeline_v1(
@@ -102,69 +105,47 @@ def run_service_1_product_pipeline_v1(
         )
 
     if requested_capability is not None:
-        computation_plan = (
-            _build_pyme_013_composite_plan_v1()
-            if requested_capability == PYME_013_CAPABILITY_REF
-            else build_computation_plan(
-                confirmed_bindings=semantic_run,
-                requested_capability=requested_capability,
-            )
-        )
-        if computation_plan.get("status") != STATUS_READY_FOR_COMPUTATION:
-            return _packet(
-                status=STATUS_BLOCKED,
-                blocked_reason=computation_plan.get("blocked_reason")
-                or computation_plan.get("status")
-                or "COMPUTATION_PLAN_BLOCKED",
-                semantic_run=semantic_run,
-                computation_plan=computation_plan,
-            )
+        capability_definition = get_capability_definition_v1(requested_capability)
+        if capability_definition is not None and capability_definition.kind == "COMPOSITE":
+            bridge = semantic_run.get("bridge_packet") if isinstance(semantic_run, dict) else None
+            case_id = str((bridge or {}).get("case_id") or "").strip()
+            try:
+                governed_input = build_service_1_composite_governed_computation_input_v1(
+                    case_id=case_id,
+                    capability_ref=requested_capability,
+                )
+            except ValueError as exc:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=str(exc) or "P8_COMPOSITE_INPUT_BLOCKED",
+                    semantic_run=semantic_run,
+                )
+            computability_decision = None
+        else:
+            try:
+                computability_decision = build_computability_decision_from_confirmed_bindings_v1(
+                    confirmed_bindings=semantic_run,
+                    requested_capability=requested_capability,
+                )
+            except ValueError as exc:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=str(exc) or "P8_COMPUTABILITY_BLOCKED",
+                    semantic_run=semantic_run,
+                )
+            if computability_decision.status != P8_STATUS_COMPUTABLE or computability_decision.governed_computation_input is None:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=computability_decision.reason or computability_decision.status,
+                    semantic_run=semantic_run,
+                    computability_decision=computability_decision.to_dict(),
+                )
+            governed_input = computability_decision.governed_computation_input
 
+        governed_payload = governed_input.to_dict()
         computation_result = None
         bounded_outcome = None
         delivery_result = None
-        if requested_capability == PYME_013_CAPABILITY_REF:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=None,
-                column_refs=None,
-                governed_results=governed_results,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "PYME_013_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_013_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="PYME_013_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            return _packet(
-                status=STATUS_COMPUTATION_PLAN_READY,
-                semantic_run=semantic_run,
-                computation_plan=computation_plan,
-                computation_result=computation_result,
-                bounded_outcome=bounded_outcome,
-            )
 
         evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
         normalized_tables = evidence.get("normalized_tables")
@@ -178,7 +159,7 @@ def run_service_1_product_pipeline_v1(
 
         if requested_capability == LIQ_001_CAPABILITY_REF and has_complete_row_evidence:
             computation_result = evaluate_liq_001_from_normalized_tables_v1(
-                computation_plan=computation_plan,
+                computation_plan=governed_payload,
                 normalized_tables=normalized_tables,
                 column_refs=column_refs,
             )
@@ -187,7 +168,8 @@ def run_service_1_product_pipeline_v1(
                     status=STATUS_BLOCKED,
                     blocked_reason=computation_result.get("status") or "LIQ_001_COMPUTATION_BLOCKED",
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                 )
             bounded_outcome = build_liq_001_outcome_v1(computation_result=computation_result)
@@ -196,7 +178,8 @@ def run_service_1_product_pipeline_v1(
                     status=STATUS_BLOCKED,
                     blocked_reason=bounded_outcome.get("blocked_reason") or "LIQ_001_OUTCOME_BLOCKED",
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                     bounded_outcome=bounded_outcome,
                 )
@@ -210,7 +193,8 @@ def run_service_1_product_pipeline_v1(
                         status=STATUS_BLOCKED,
                         blocked_reason=delivery_result.get("blocked_reason") or "LIQ_001_DELIVERY_BLOCKED",
                         semantic_run=semantic_run,
-                        computation_plan=computation_plan,
+                        computability_decision=computability_decision.to_dict() if computability_decision else None,
+                        governed_computation_input=governed_payload,
                         computation_result=computation_result,
                         bounded_outcome=bounded_outcome,
                         delivery_result=delivery_result,
@@ -218,7 +202,7 @@ def run_service_1_product_pipeline_v1(
 
         elif requested_capability == REN_001_CAPABILITY_REF and has_complete_row_evidence:
             computation_result = evaluate_ren_001_from_normalized_tables_v1(
-                computation_plan=computation_plan,
+                computation_plan=governed_payload,
                 normalized_tables=normalized_tables,
                 column_refs=column_refs,
             )
@@ -227,7 +211,8 @@ def run_service_1_product_pipeline_v1(
                     status=STATUS_BLOCKED,
                     blocked_reason=computation_result.get("status") or "REN_001_COMPUTATION_BLOCKED",
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                 )
             bounded_outcome = build_ren_001_outcome_v1(computation_result=computation_result)
@@ -236,7 +221,8 @@ def run_service_1_product_pipeline_v1(
                     status=STATUS_BLOCKED,
                     blocked_reason=bounded_outcome.get("blocked_reason") or "REN_001_OUTCOME_BLOCKED",
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                     bounded_outcome=bounded_outcome,
                 )
@@ -245,357 +231,56 @@ def run_service_1_product_pipeline_v1(
                     status=STATUS_BLOCKED,
                     blocked_reason="REN_001_DELIVERY_NOT_AUTHORIZED",
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                     bounded_outcome=bounded_outcome,
                 )
 
-        elif requested_capability == LIQ_002_CAPABILITY_REF and has_complete_row_evidence:
+        elif capability_definition is not None:
+            generic_normalized_tables = None if capability_definition.kind == "COMPOSITE" else normalized_tables
+            generic_column_refs = None if capability_definition.kind == "COMPOSITE" else column_refs
+            if capability_definition.kind == "ATOMIC" and not has_complete_row_evidence:
+                return _packet(
+                    status=STATUS_COMPUTATION_PLAN_READY,
+                    semantic_run=semantic_run,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
+                )
             computation_result = execute_generic_capability_v1(
                 capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
+                governed_computation_input=governed_payload,
+                normalized_tables=generic_normalized_tables,
+                column_refs=generic_column_refs,
+                governed_results=governed_results,
             )
             if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
                 return _packet(
                     status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "LIQ_002_COMPUTATION_BLOCKED",
+                    blocked_reason=computation_result.get("status") or "GENERIC_COMPUTATION_BLOCKED",
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                 )
             bounded_outcome = computation_result["outcome"]
             if bounded_outcome.get("status") != "OUTCOME_READY":
                 return _packet(
                     status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "LIQ_002_OUTCOME_BLOCKED",
+                    blocked_reason=bounded_outcome.get("blocked_reason") or "GENERIC_OUTCOME_BLOCKED",
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                     bounded_outcome=bounded_outcome,
                 )
             if deliver_result:
                 return _packet(
                     status=STATUS_BLOCKED,
-                    blocked_reason="LIQ_002_DELIVERY_NOT_AUTHORIZED",
+                    blocked_reason=_delivery_block_reason(capability_definition),
                     semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == PYME_011_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "PYME_011_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_011_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="PYME_011_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == DPO_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "DPO_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "DPO_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="DPO_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == INV_001_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "INV_001_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "INV_001_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="INV_001_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == INV_002_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "INV_002_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "INV_002_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="INV_002_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == PYME_024_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "PYME_024_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_024_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="PYME_024_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == PYME_033_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "PYME_033_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_033_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="PYME_033_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == REN_002_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "REN_002_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "REN_002_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="REN_002_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == PYME_027_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "PYME_027_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_027_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="PYME_027_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-
-        elif requested_capability == PYME_026_CAPABILITY_REF and has_complete_row_evidence:
-            computation_result = execute_generic_capability_v1(
-                capability_ref=requested_capability,
-                computation_plan=computation_plan,
-                normalized_tables=normalized_tables,
-                column_refs=column_refs,
-            )
-            if computation_result.get("status") != GENERIC_STATUS_EVALUATED:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=computation_result.get("status") or "PYME_026_COMPUTATION_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                )
-            bounded_outcome = computation_result["outcome"]
-            if bounded_outcome.get("status") != "OUTCOME_READY":
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason=bounded_outcome.get("blocked_reason") or "PYME_026_OUTCOME_BLOCKED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
-                )
-            if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="PYME_026_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computation_plan=computation_plan,
+                    computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    governed_computation_input=governed_payload,
                     computation_result=computation_result,
                     bounded_outcome=bounded_outcome,
                 )
@@ -603,7 +288,8 @@ def run_service_1_product_pipeline_v1(
         return _packet(
             status=STATUS_COMPUTATION_PLAN_READY,
             semantic_run=semantic_run,
-            computation_plan=computation_plan,
+            computability_decision=computability_decision.to_dict() if computability_decision else None,
+            governed_computation_input=governed_payload,
             computation_result=computation_result,
             bounded_outcome=bounded_outcome,
             delivery_result=delivery_result,
@@ -620,25 +306,11 @@ def run_service_1_product_pipeline_v1(
     return _packet(status=STATUS_READY, semantic_run=semantic_run, physical_run=physical_run)
 
 
-def _build_pyme_013_composite_plan_v1() -> dict[str, object]:
-    return {
-        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
-        "status": "READY_FOR_COMPUTATION",
-        "requested_capability": PYME_013_CAPABILITY_REF,
-        "pathology_code": "PYME_013",
-        "formula_id": "PYME_013_dso_dpo_gap",
-        "required_variables": ["dso_days", "dpo_days"],
-        "source_bindings": {
-            "dso_days": {"capability_ref": "dso", "result_key": "dso_days"},
-            "dpo_days": {"capability_ref": "dpo", "result_key": "dpo_days"},
-        },
-        "computation_candidate_ready": True,
-        "runtime_authorized": False,
-        "tool_execution_authorized": False,
-        "product_ready": False,
-        "delivery_authorized": False,
-        "diagnosis_generated": False,
-    }
+def _delivery_block_reason(capability_definition: Any) -> str:
+    code = str(capability_definition.pathology_code or "").strip()
+    if "_PREREQUISITE_" in code:
+        code = str(capability_definition.capability_ref or "").strip().upper()
+    return f"{code}_DELIVERY_NOT_AUTHORIZED"
 
 
 def _packet(
@@ -647,7 +319,8 @@ def _packet(
     blocked_reason: str | None = None,
     semantic_run: Any = None,
     physical_run: Any = None,
-    computation_plan: Any = None,
+    computability_decision: Any = None,
+    governed_computation_input: Any = None,
     computation_result: Any = None,
     bounded_outcome: Any = None,
     delivery_result: Any = None,
@@ -661,7 +334,8 @@ def _packet(
         "blocked_reason": blocked_reason,
         "semantic_run": _public_semantic_run(semantic_run),
         "physical_run": physical_run,
-        "computation_plan": computation_plan,
+        "computability_decision": computability_decision,
+        "governed_computation_input": governed_computation_input,
         "computation_result": computation_result,
         "bounded_outcome": bounded_outcome,
         "delivery_result": delivery_result,

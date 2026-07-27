@@ -11,21 +11,27 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
     execute_generic_capability_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import computable_decision_from_governed_payload
 
 
 def _plan() -> dict[str, object]:
     return {
-        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
-        "status": "READY_FOR_COMPUTATION",
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_inv_002",
         "requested_capability": "inventory_turnover",
+        "family_id": "TEST_FAMILY",
         "pathology_code": "INV_002",
-        "formula_id": "INV_002_inventory_turnover",
+        "formula_id": "INV_002_rotacion_stock",
+        "formula_expression": "fixture_expression",
         "required_variables": ["cost_of_goods_sold", "average_stock"],
+        "required_evidence": [],
         "source_bindings": {
             "cost_of_goods_sold": "cost_of_goods_sold",
             "average_stock": "average_stock",
         },
-        "computation_candidate_ready": True,
+        "grain": {"structural_scope": "REGION"},
+        "catalog_versions": {},
+        "provenance": {"source": "TEST_P8"},
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -71,7 +77,8 @@ def _execute(
 ) -> dict[str, object]:
     return execute_generic_capability_v1(
         capability_ref="inventory_turnover",
-        computation_plan=plan or _plan(),
+        computation_plan=None,
+        governed_computation_input=plan or _plan(),
         normalized_tables=_tables(
             cost_of_goods_sold=cost_of_goods_sold,
             average_stock=average_stock,
@@ -86,7 +93,7 @@ def test_inv_002_registry_contract_is_atomic_and_explicit() -> None:
     assert definition is INV_002
     assert definition.kind == "ATOMIC"
     assert definition.pathology_code == "INV_002"
-    assert definition.formula_ref == "INV_002_inventory_turnover"
+    assert definition.formula_ref == "INV_002_rotacion_stock"
     assert definition.result_key == "inventory_turnover_ratio"
     assert definition.result_unit == "ratio"
     assert tuple(variable.name for variable in definition.variables) == (
@@ -124,7 +131,8 @@ def test_inv_002_requires_one_governed_average_stock_value() -> None:
 
     result = execute_generic_capability_v1(
         capability_ref="inventory_turnover",
-        computation_plan=_plan(),
+        computation_plan=None,
+        governed_computation_input=_plan(),
         normalized_tables=tables,
         column_refs=_refs(),
     )
@@ -141,7 +149,8 @@ def test_inv_002_sums_cost_of_goods_sold_rows() -> None:
 
     result = execute_generic_capability_v1(
         capability_ref="inventory_turnover",
-        computation_plan=_plan(),
+        computation_plan=None,
+        governed_computation_input=_plan(),
         normalized_tables=tables,
         column_refs=_refs(),
     )
@@ -185,8 +194,8 @@ def test_inv_002_requires_explicitly_false_safety_flags() -> None:
 
     assert absent["status"] == STATUS_BLOCKED
     assert opened["status"] == STATUS_BLOCKED
-    assert absent["errors"] == ["computation_plan safety flags must be explicitly false."]
-    assert opened["errors"] == ["computation_plan safety flags must be explicitly false."]
+    assert absent["errors"] == ["governed input safety flags must be explicitly false."]
+    assert opened["errors"] == ["governed input safety flags must be explicitly false."]
 
 
 def test_inv_002_result_is_typed_and_bounded() -> None:
@@ -218,7 +227,7 @@ def test_product_root_executes_inv_002_once(monkeypatch, tmp_path) -> None:
     real_execute = product.execute_generic_capability_v1
 
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_governed_payload(_plan()))
 
     def counted_execute(**kwargs):
         calls.append(str(kwargs["capability_ref"]))
@@ -249,7 +258,7 @@ def test_product_root_keeps_inv_002_delivery_blocked(monkeypatch, tmp_path) -> N
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_governed_payload(_plan()))
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": _tables(), "column_refs": _refs()},

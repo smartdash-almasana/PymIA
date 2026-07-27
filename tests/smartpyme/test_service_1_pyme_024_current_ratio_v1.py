@@ -10,21 +10,27 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
     execute_generic_capability_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import computable_decision_from_governed_payload
 
 
 def _plan() -> dict[str, object]:
     return {
-        "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
-        "status": "READY_FOR_COMPUTATION",
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_pyme_024",
         "requested_capability": "current_ratio",
+        "family_id": "TEST_FAMILY",
         "pathology_code": "PYME_024",
-        "formula_id": "PYME_024_current_ratio",
+        "formula_id": "PYME_024_liquidez_corriente",
+        "formula_expression": "fixture_expression",
         "required_variables": ["current_assets", "current_liabilities"],
+        "required_evidence": [],
         "source_bindings": {
             "current_assets": "current_assets",
             "current_liabilities": "current_liabilities",
         },
-        "computation_candidate_ready": True,
+        "grain": {"structural_scope": "REGION"},
+        "catalog_versions": {},
+        "provenance": {"source": "TEST_P8"},
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -70,7 +76,8 @@ def _execute(
 ) -> dict[str, object]:
     return execute_generic_capability_v1(
         capability_ref="current_ratio",
-        computation_plan=plan or _plan(),
+        computation_plan=None,
+        governed_computation_input=plan or _plan(),
         normalized_tables=_tables(
             current_assets=current_assets,
             current_liabilities=current_liabilities,
@@ -85,7 +92,7 @@ def test_pyme_024_registry_contract_is_atomic_and_explicit() -> None:
     assert definition is not None
     assert definition.kind == "ATOMIC"
     assert definition.pathology_code == "PYME_024"
-    assert definition.formula_ref == "PYME_024_current_ratio"
+    assert definition.formula_ref == "PYME_024_liquidez_corriente"
     assert definition.result_key == "current_ratio_value"
     assert definition.result_unit == "ratio"
     assert tuple(variable.name for variable in definition.variables) == (
@@ -123,7 +130,8 @@ def test_pyme_024_requires_single_consistent_values() -> None:
 
     result = execute_generic_capability_v1(
         capability_ref="current_ratio",
-        computation_plan=_plan(),
+        computation_plan=None,
+        governed_computation_input=_plan(),
         normalized_tables=tables,
         column_refs=_refs(),
     )
@@ -171,8 +179,8 @@ def test_pyme_024_requires_explicitly_false_safety_flags() -> None:
 
     assert absent["status"] == STATUS_BLOCKED
     assert opened["status"] == STATUS_BLOCKED
-    assert absent["errors"] == ["computation_plan safety flags must be explicitly false."]
-    assert opened["errors"] == ["computation_plan safety flags must be explicitly false."]
+    assert absent["errors"] == ["governed input safety flags must be explicitly false."]
+    assert opened["errors"] == ["governed input safety flags must be explicitly false."]
 
 
 def test_pyme_024_result_is_typed_and_bounded() -> None:
@@ -204,7 +212,7 @@ def test_product_root_executes_pyme_024_once(monkeypatch, tmp_path) -> None:
     real_execute = product.execute_generic_capability_v1
 
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_governed_payload(_plan()))
 
     def counted_execute(**kwargs):
         calls.append(str(kwargs["capability_ref"]))
@@ -235,7 +243,7 @@ def test_product_root_keeps_pyme_024_delivery_blocked(monkeypatch, tmp_path) -> 
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_governed_payload(_plan()))
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": _tables(), "column_refs": _refs()},

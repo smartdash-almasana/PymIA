@@ -2,30 +2,31 @@
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
-from typing import Any, Final
+from typing import Any, Final, Mapping
 
 from pymia.smartpyme.service_1_capability_contracts_v1 import CapabilityDefinitionV1, FormulaNodeV1
+from pymia.smartpyme.service_1_computability_v1 import Service1GovernedComputationInputV1
 from pymia.smartpyme.service_1_capability_registry_v1 import get_capability_definition_v1
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_GENERIC_CAPABILITY_ENGINE_V1"
 STATUS_EVALUATED: Final[str] = "EVALUATED"
 STATUS_BLOCKED: Final[str] = "BLOCKED"
-PLAN_STATUS_READY: Final[str] = "READY_FOR_COMPUTATION"
-COMPUTATION_PLAN_SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPUTATION_PLAN_V1"
-
-
 def execute_generic_capability_v1(
-    *, capability_ref: str, computation_plan: object, normalized_tables: object, column_refs: object, governed_results: object = None
+    *, capability_ref: str, computation_plan: object, normalized_tables: object, column_refs: object,
+    governed_results: object = None, governed_computation_input: object = None,
 ) -> dict[str, object]:
     definition = get_capability_definition_v1(capability_ref)
     if definition is None:
         return _blocked([f"unsupported capability: {capability_ref}."])
-    plan_errors = _validate_plan(definition, computation_plan)
-    if plan_errors:
-        return _blocked(plan_errors, definition=definition)
+    execution_input = _execution_input_payload(
+        governed_computation_input=governed_computation_input,
+    )
+    input_errors = _validate_execution_input(definition, execution_input)
+    if input_errors:
+        return _blocked(input_errors, definition=definition)
     inputs, sources, evidence_errors = _resolve_inputs(
         definition=definition,
-        computation_plan=computation_plan,
+        computation_plan=execution_input,
         normalized_tables=normalized_tables,
         column_refs=column_refs,
         governed_results=governed_results,
@@ -82,24 +83,33 @@ def execute_generic_capability_v1(
     }
 
 
-def _validate_plan(definition: CapabilityDefinitionV1, plan: object) -> list[str]:
-    if not isinstance(plan, dict):
-        return ["computation_plan must be an object."]
+def _execution_input_payload(*, governed_computation_input: object) -> object:
+    if isinstance(governed_computation_input, Service1GovernedComputationInputV1):
+        return governed_computation_input.to_dict()
+    if isinstance(governed_computation_input, Mapping):
+        return dict(governed_computation_input)
+    return None
+
+
+def _validate_execution_input(definition: CapabilityDefinitionV1, payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["governed computation input is required."]
+    if payload.get("schema_version") != "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1":
+        return ["governed computation input schema is required."]
     expected = {
-        "schema_version": COMPUTATION_PLAN_SCHEMA_VERSION,
-        "status": PLAN_STATUS_READY,
         "requested_capability": definition.capability_ref,
         "pathology_code": definition.pathology_code,
         "formula_id": definition.formula_ref,
     }
-    errors = [f"computation_plan {field} must equal {value}." for field, value in expected.items() if plan.get(field) != value]
+    errors = [f"governed input {field} must equal {value}." for field, value in expected.items() if payload.get(field) != value]
     required = tuple(variable.name for variable in definition.variables)
-    if tuple(plan.get("required_variables") or ()) != required:
-        errors.append("computation_plan required_variables do not match capability definition.")
-    if plan.get("computation_candidate_ready") is not True:
-        errors.append("computation_plan candidate is not ready.")
-    if any(plan.get(flag) is not False for flag in _closed_flags(False)):
-        errors.append("computation_plan safety flags must be explicitly false.")
+    if tuple(payload.get("required_variables") or ()) != required:
+        errors.append("governed input required_variables do not match capability definition.")
+    bindings = payload.get("source_bindings")
+    if not isinstance(bindings, dict) or set(bindings) != set(required):
+        errors.append("governed input source_bindings must cover required_variables exactly.")
+    if any(payload.get(flag) is not False for flag in _closed_flags(False)):
+        errors.append("governed input safety flags must be explicitly false.")
     return errors
 
 

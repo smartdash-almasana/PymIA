@@ -22,9 +22,6 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 import (
-    Service1ColumnOwnerQuestionViewV1,
-)
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
@@ -217,17 +214,6 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
     ]
 
     if needs_confirmation:
-        owner_questions, owner_answer_bindings, owner_question_error = _owner_questions(
-            semantic_bridge_packet=packet,
-            candidates=needs_confirmation,
-        )
-        if owner_question_error is not None:
-            return _blocked(
-                owner_question_error,
-                case_id=case_id,
-                source_kind=source_kind,
-                filename=filename,
-            )
         return _packet(
             status=STATUS_NEEDS_OWNER_CONFIRMATION,
             case_id=case_id,
@@ -238,9 +224,11 @@ def build_service_1_controlled_execution_gate_from_semantic_bridge_v1(
             variable_family_bindings=(),
             ready_variable_family_ids=(),
             controlled_execution_candidate=None,
-            owner_questions=owner_questions,
-            owner_answer_bindings=owner_answer_bindings,
+            owner_questions=[],
+            owner_answer_bindings={},
             p6_decisions=p6_decisions,
+            owner_confirmation_candidates=tuple(needs_confirmation),
+            owner_question_views=tuple(packet.get("owner_question_views") or ()),
         )
 
     # P7-adjacent family matching is allowed only after every active semantic
@@ -308,103 +296,6 @@ def _collect_roles(candidates: list[Any]) -> list[str]:
     return roles
 
 
-def _owner_questions(
-    *,
-    semantic_bridge_packet: dict[str, Any],
-    candidates: list[Any],
-) -> tuple[list[dict[str, Any]], dict[str, dict[str, str]], str | None]:
-    raw_views = semantic_bridge_packet.get("owner_question_views")
-    if not isinstance(raw_views, (list, tuple)):
-        return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
-
-    views_by_identity: dict[tuple[str, str], Service1ColumnOwnerQuestionViewV1] = {}
-    for view in raw_views:
-        if not isinstance(view, Service1ColumnOwnerQuestionViewV1):
-            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-        if view.question_required:
-            identity = (str(view.sheet_name).strip(), str(view.column_name).strip())
-            if identity in views_by_identity:
-                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-            views_by_identity[identity] = view
-
-    questions: list[dict[str, Any]] = []
-    bindings_by_ref: dict[str, dict[str, str]] = {}
-    for candidate in candidates:
-        column = str(getattr(candidate, "source_column_name", "") or "").strip()
-        sheet = str(getattr(candidate, "sheet_name", "") or "").strip()
-        ref_id = _candidate_ref_id(candidate)
-        if not ref_id:
-            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-        view = views_by_identity.get((sheet, column))
-        if view is None or not view.question or not view.options:
-            return [], {}, BLOCK_OWNER_QUESTION_VIEW_MISSING
-
-        metadata = dict(getattr(candidate, "metadata", {}) or {})
-        raw_options = metadata.get("allowed_owner_answers")
-        if not isinstance(raw_options, list):
-            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-
-        internal_bindings: dict[str, str] = {}
-        for option in raw_options:
-            if not isinstance(option, dict):
-                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-            option_id = str(option.get("option_id") or "").strip()
-            linked = option.get("linked_hypothesis")
-            if option_id == OWNER_OPTION_OTHER:
-                continue
-            if not option_id or not isinstance(linked, dict):
-                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-            semantic_role = str(linked.get("semantic_role") or "").strip()
-            if not semantic_role:
-                return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-            if semantic_role == "unknown":
-                continue
-            internal_bindings[option_id] = semantic_role
-
-        safe_options = [
-            option.to_dict()
-            for option in view.options
-            if option.option_id in internal_bindings
-            or option.option_id == OWNER_OPTION_OTHER
-        ]
-        safe_options.append(
-            {
-                "option_id": OWNER_OPTION_IGNORE,
-                "label": "No usar esta columna",
-                "description": (
-                    "La columna no es necesaria para este análisis y queda fuera "
-                    "sin modificar el archivo original."
-                ),
-            }
-        )
-        question = {
-            "question_id": ref_id,
-            "field_id": ref_id,
-            "column_name": column,
-            "sheet_name": view.sheet_name,
-            "title": view.title,
-            "context": view.context,
-            "question": view.question,
-            "options": safe_options,
-            "allowed_option_ids": [item["option_id"] for item in safe_options],
-            "free_text_option_id": OWNER_OPTION_OTHER,
-            "risk_note": view.risk_note,
-            "confidence_note": view.confidence_note,
-            "answer_type": "select_owner_option_id",
-            "required": True,
-        }
-        if not _owner_question_surface_is_safe(question, candidate):
-            return [], {}, BLOCK_OWNER_QUESTION_SURFACE_UNSAFE
-
-        internal_bindings[OWNER_OPTION_IGNORE] = "IGNORED_NOT_RELEVANT"
-        questions.append(question)
-        if ref_id in bindings_by_ref:
-            return [], {}, BLOCK_OWNER_QUESTION_VIEW_INVALID
-        bindings_by_ref[ref_id] = internal_bindings
-
-    return questions, bindings_by_ref, None
-
-
 def _candidate_ref_id(candidate: Any) -> str:
     metadata = dict(getattr(candidate, "metadata", {}) or {})
     return str(
@@ -413,30 +304,6 @@ def _candidate_ref_id(candidate: Any) -> str:
         or getattr(candidate, "source_column_name", "")
         or ""
     ).strip()
-
-
-def _owner_question_surface_is_safe(
-    question: dict[str, Any], candidate: Any
-) -> bool:
-    generated_surface = {
-        "options": question.get("options", []),
-        "answer_type": question.get("answer_type"),
-        "free_text_option_id": question.get("free_text_option_id"),
-    }
-    rendered = str(generated_surface).lower()
-    internal_tokens = {
-        str(role).strip().lower()
-        for role in (getattr(candidate, "candidate_semantic_roles", ()) or ())
-        if str(role).strip()
-    }
-    internal_tokens.update(
-        {
-            "ignored_not_relevant",
-            "owner_rectified_function",
-            "computed_variables",
-        }
-    )
-    return not any(token in rendered for token in internal_tokens)
 
 
 def _packet(
@@ -454,6 +321,8 @@ def _packet(
     owner_answer_bindings: dict[str, dict[str, str]],
     p6_decisions: tuple[Any, ...] = (),
     requirement_matches: tuple[Any, ...] = (),
+    owner_confirmation_candidates: tuple[Any, ...] = (),
+    owner_question_views: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -475,6 +344,8 @@ def _packet(
             column: dict(bindings)
             for column, bindings in owner_answer_bindings.items()
         },
+        "owner_confirmation_candidates": tuple(owner_confirmation_candidates),
+        "owner_question_views": tuple(owner_question_views),
         "p6_decisions": [decision.to_dict() for decision in p6_decisions],
         "requirement_matches": [match.to_dict() for match in requirement_matches],
         "runtime_authorized": False,

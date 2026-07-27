@@ -1,0 +1,388 @@
+{
+  "catalog_version": "2.0",
+  "artifact_type": "service_1_formula_pathology_evidence_matrix",
+  "base_ref": "BOUNDED_GOVERNANCE_EXPANSION_V1",
+  "status": "GOVERNED_COMPUTATION_PLANNING_ONLY",
+  "runtime_connection_allowed": false,
+  "phase_5_allowed": false,
+  "source_catalogs": [
+    "docs/formula_catalog.v1.json",
+    "docs/pathology_catalog.enriched.v1.json",
+    "docs/service_1_semantic_variable_catalog.v1.json"
+  ],
+  "entries": [
+    {
+      "pathology_code": "REN_001",
+      "formula_refs": [
+        "REN_001_margen_neto_real"
+      ],
+      "required_variables": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ],
+      "semantic_bindings": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "costos_directos",
+        "impuestos_y_comisiones"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "net_margin_real"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "computation_preconditions": [
+        "sale_price > 0",
+        "costs >= 0",
+        "taxes >= 0",
+        "all required values are finite numeric evidence"
+      ]
+    },
+    {
+      "pathology_code": "LIQ_001",
+      "formula_refs": [
+        "LIQ_001_vendido_cobrado"
+      ],
+      "required_variables": [
+        "sold_amount",
+        "collected_amount"
+      ],
+      "semantic_bindings": [
+        "sold_amount",
+        "collected_amount"
+      ],
+      "required_evidence": [
+        "ventas_del_periodo",
+        "cobranzas_del_periodo",
+        "cuentas_corrientes_clientes"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "sold_vs_collected_gap"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true
+    },
+    {
+      "pathology_code": "LIQ_002",
+      "formula_refs": [
+        "LIQ_002_saldo_final_proyectado"
+      ],
+      "required_variables": [
+        "initial_balance",
+        "expected_collections",
+        "expected_payments"
+      ],
+      "semantic_bindings": [
+        "initial_balance",
+        "expected_collections",
+        "expected_payments"
+      ],
+      "required_evidence": [
+        "saldo_inicial_caja_banco",
+        "cobranzas_esperadas",
+        "pagos_esperados"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "projected_closing_cash_balance"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "computation_preconditions": [
+        "initial_balance >= 0",
+        "expected_collections >= 0",
+        "expected_payments >= 0",
+        "initial_balance resolves to exactly one explicit value",
+        "all required values are finite numeric evidence"
+      ]
+    },
+    {
+      "pathology_code": "PYME_011",
+      "formula_refs": [
+        "PYME_011_dso"
+      ],
+      "required_variables": [
+        "accounts_receivable",
+        "sales",
+        "days"
+      ],
+      "semantic_bindings": [
+        "accounts_receivable",
+        "sales",
+        "days"
+      ],
+      "required_evidence": [
+        "cuentas_por_cobrar",
+        "ventas_periodo",
+        "periodo_dias"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "dso"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "computation_preconditions": [
+        "accounts_receivable >= 0",
+        "sales > 0",
+        "days > 0",
+        "accounts_receivable and sales share the same confirmed period",
+        "days resolves to one consistent confirmed period value",
+        "all required values are finite numeric evidence"
+      ]
+    },
+    {
+      "pathology_code": "SAL_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
+    },
+    {
+      "pathology_code": "STK_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
+    },
+    {
+      "pathology_code": "CST_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
+    },
+    {
+      "pathology_code": "CSH_001",
+      "formula_refs": [],
+      "required_variables": [],
+      "semantic_bindings": [],
+      "required_evidence": [],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "not_runtime_ready",
+      "owner_confirmation_required": true,
+      "capability_refs": [],
+      "semantic_binding_candidate_allowed": false,
+      "computation_candidate_allowed": false
+    },
+    {
+      "pathology_code": "INV_001",
+      "formula_refs": [
+        "INV_001_punto_reposicion"
+      ],
+      "required_variables": [
+        "average_sales",
+        "lead_time",
+        "safety_stock"
+      ],
+      "semantic_bindings": [
+        "average_sales",
+        "lead_time",
+        "safety_stock"
+      ],
+      "required_evidence": [
+        "historial_ventas_sku",
+        "lead_time_proveedor",
+        "politica_stock_seguridad"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "reorder_point"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "INV_002",
+      "formula_refs": [
+        "INV_002_rotacion_stock"
+      ],
+      "required_variables": [
+        "cost_of_goods_sold",
+        "average_stock"
+      ],
+      "semantic_bindings": [
+        "cost_of_goods_sold",
+        "average_stock"
+      ],
+      "required_evidence": [
+        "cmv_periodo",
+        "inventario_inicial",
+        "inventario_final"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "inventory_turnover"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "PYME_024",
+      "formula_refs": [
+        "PYME_024_liquidez_corriente"
+      ],
+      "required_variables": [
+        "current_assets",
+        "current_liabilities"
+      ],
+      "semantic_bindings": [
+        "current_assets",
+        "current_liabilities"
+      ],
+      "required_evidence": [
+        "balance_general",
+        "saldos_activo_corriente",
+        "saldos_pasivo_corriente"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "current_ratio"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "PYME_033",
+      "formula_refs": [
+        "PYME_033_concentracion_sku"
+      ],
+      "required_variables": [
+        "main_sku_sales",
+        "total_sales"
+      ],
+      "semantic_bindings": [
+        "main_sku_sales",
+        "total_sales"
+      ],
+      "required_evidence": [
+        "ventas_por_sku",
+        "ventas_totales"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "sales_concentration"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "PYME_027",
+      "formula_refs": [
+        "PYME_027_intereses_ebitda"
+      ],
+      "required_variables": [
+        "interest_expense",
+        "ebitda"
+      ],
+      "semantic_bindings": [
+        "interest_expense",
+        "ebitda"
+      ],
+      "required_evidence": [
+        "estado_resultados",
+        "detalle_intereses",
+        "calculo_ebitda"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "interest_burden_ratio"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    },
+    {
+      "pathology_code": "REN_002",
+      "formula_refs": [
+        "REN_002_coeficiente_reposicion"
+      ],
+      "required_variables": [
+        "closing_index",
+        "origin_index"
+      ],
+      "semantic_bindings": [
+        "closing_index",
+        "origin_index"
+      ],
+      "required_evidence": [
+        "indice_origen",
+        "indice_cierre",
+        "fecha_origen",
+        "fecha_cierre"
+      ],
+      "runtime_allowed": false,
+      "phase_5_allowed": false,
+      "readiness_status": "governed_computation_candidate",
+      "owner_confirmation_required": true,
+      "capability_refs": [
+        "index_update_ratio"
+      ],
+      "semantic_binding_candidate_allowed": true,
+      "computation_candidate_allowed": true,
+      "governance_source": "SERVICE_1_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1"
+    }
+  ],
+  "semantic_binding_candidate_allowed": true,
+  "computation_candidate_planning_allowed": true
+}

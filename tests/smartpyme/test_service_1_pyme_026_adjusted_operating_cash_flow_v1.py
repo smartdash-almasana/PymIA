@@ -10,6 +10,10 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
     execute_generic_capability_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import (
+    computable_decision_from_governed_payload,
+    governed_payload_from_legacy_plan,
+)
 
 
 def _plan() -> dict[str, object]:
@@ -88,7 +92,8 @@ def _execute(
 ) -> dict[str, object]:
     return execute_generic_capability_v1(
         capability_ref="adjusted_operating_cash_flow",
-        computation_plan=plan or _plan(),
+        computation_plan=None,
+        governed_computation_input=governed_payload_from_legacy_plan(plan or _plan()),
         normalized_tables=_tables(
             net_income=net_income,
             depreciation=depreciation,
@@ -192,7 +197,8 @@ def test_pyme_026_requires_single_consistent_values() -> None:
 
     result = execute_generic_capability_v1(
         capability_ref="adjusted_operating_cash_flow",
-        computation_plan=_plan(),
+        computation_plan=None,
+        governed_computation_input=governed_payload_from_legacy_plan(_plan()),
         normalized_tables=tables,
         column_refs=_refs(),
     )
@@ -212,8 +218,8 @@ def test_pyme_026_requires_explicitly_false_safety_flags() -> None:
 
     assert absent["status"] == STATUS_BLOCKED
     assert opened["status"] == STATUS_BLOCKED
-    assert absent["errors"] == ["computation_plan safety flags must be explicitly false."]
-    assert opened["errors"] == ["computation_plan safety flags must be explicitly false."]
+    assert absent["errors"] == ["governed input safety flags must be explicitly false."]
+    assert opened["errors"] == ["governed input safety flags must be explicitly false."]
 
 
 def test_pyme_026_outcome_remains_non_causal() -> None:
@@ -234,7 +240,11 @@ def test_product_root_executes_pyme_026_once(monkeypatch, tmp_path) -> None:
     real_execute = product.execute_generic_capability_v1
 
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(
+        product,
+        "build_computability_decision_from_confirmed_bindings_v1",
+        lambda **_: computable_decision_from_governed_payload(governed_payload_from_legacy_plan(_plan())),
+    )
 
     def counted_execute(**kwargs):
         calls.append(str(kwargs["capability_ref"]))
@@ -262,7 +272,11 @@ def test_product_root_keeps_pyme_026_delivery_blocked(monkeypatch, tmp_path) -> 
         "service_name": "SERVICE_1",
     }
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(
+        product,
+        "build_computability_decision_from_confirmed_bindings_v1",
+        lambda **_: computable_decision_from_governed_payload(governed_payload_from_legacy_plan(_plan())),
+    )
 
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": _tables(), "column_refs": _refs()},

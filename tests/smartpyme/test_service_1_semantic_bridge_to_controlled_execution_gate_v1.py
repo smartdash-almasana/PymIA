@@ -24,6 +24,11 @@ from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
     build_service_1_semantic_bridge_from_canonical_ingestion_output_v1 as build_bridge,
 )
+from pymia.smartpyme.service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1 import (
+    BLOCK_OWNER_QUESTION_VIEW_MISSING as LOOP_BLOCK_OWNER_QUESTION_VIEW_MISSING,
+    STATUS_OWNER_CONFIRMATION_REQUIRED,
+    build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1 as build_loop,
+)
 from pymia.smartpyme.service_1_semantic_bridge_to_controlled_execution_gate_v1 import (
     BLOCK_BRIDGE_FLAGS_FORBIDDEN,
     BLOCK_BRIDGE_NOT_DICT,
@@ -109,7 +114,7 @@ def test_full_chain_case_001_reaches_ready_gate(case_001_bridge_packet: dict) ->
     assert out["status"] == STATUS_READY
     assert out["owner_questions"] == []
     assert out["controlled_execution_candidate"] is not None
-    assert out["variable_family_count"] == 7
+    assert out["variable_family_count"] == 13
     assert all(
         isinstance(item, Service1VariableFamilyBindingV1)
         for item in out["variable_family_bindings"]
@@ -267,7 +272,11 @@ def test_owner_question_surface_uses_safe_option_ids() -> None:
     assert out["variable_family_count"] == 0
     assert out["ready_variable_family_ids"] == []
     assert out["p6_decisions"][0]["status"] in {"NEEDS_OWNER_CONFIRMATION", "AMBIGUOUS"}
-    question = out["owner_questions"][0]
+    assert out["owner_questions"] == []
+    assert out["owner_answer_bindings"] == {}
+    dialogue = build_loop(gate_packet=out)
+    assert dialogue["status"] == STATUS_OWNER_CONFIRMATION_REQUIRED
+    question = dialogue["owner_questions"][0]
     rendered = json.dumps(question, ensure_ascii=False)
     assert question["allowed_option_ids"] == ["A", "B", "C", "OTHER", "IGNORE"]
     assert [item["option_id"] for item in question["options"]] == question["allowed_option_ids"]
@@ -278,10 +287,10 @@ def test_owner_question_surface_uses_safe_option_ids() -> None:
         "IGNORED_NOT_RELEVANT",
     ):
         assert internal_token not in rendered
-    assert out["owner_answer_bindings"]["valor"] == {
+    assert dialogue["owner_answer_bindings"]["valor"] == {
         "A": "unit_sale_price",
         "B": "unit_cost_candidate",
-        "C": "tax_amount",
+        "C": "total_sales",
         "IGNORE": "IGNORED_NOT_RELEVANT",
     }
     _assert_all_flags_false(out)
@@ -302,6 +311,8 @@ def test_pending_candidate_without_owner_view_blocks() -> None:
 
     out = build_gate(semantic_bridge_packet=bridge)
 
-    assert out["status"] == "BLOCKED"
-    assert out["blocked_reason"] == BLOCK_OWNER_QUESTION_VIEW_MISSING
+    assert out["status"] == STATUS_NEEDS_OWNER_CONFIRMATION
+    dialogue = build_loop(gate_packet=out)
+    assert dialogue["status"] == "BLOCKED"
+    assert dialogue["blocked_reason"] == LOOP_BLOCK_OWNER_QUESTION_VIEW_MISSING
     _assert_all_flags_false(out)

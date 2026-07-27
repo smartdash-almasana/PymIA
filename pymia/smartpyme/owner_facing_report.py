@@ -10,8 +10,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any, Mapping
 
-from pymia.contracts.owner_facing_report_copy_v1 import warning_for_operational_status
-
 
 STATUS_DELIVERED = "DELIVERED"
 STATUS_DELIVERED_CANDIDATE = "DELIVERED_CANDIDATE"
@@ -115,9 +113,10 @@ def _resolve_limit_warnings(
 ) -> list[str]:
     warnings = _as_string_list(render_contract.get("forbidden_inferences"))
     warnings.extend(_as_string_list(delivery_package.get("warnings")))
-    operational_warning = warning_for_operational_status(operational_status)
-    if operational_warning:
-        warnings.append(operational_warning)
+    if operational_status == "candidate":
+        warnings.append("Estado candidato: el resultado sigue siendo no confirmado.")
+    if operational_status in {"blocked", "pending_data"}:
+        warnings.append("Estado bloqueado o incompleto: falta evidencia para avanzar.")
     return _dedupe_preserve_order(warnings)
 
 

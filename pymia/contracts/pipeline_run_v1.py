@@ -56,11 +56,11 @@ def build_pipeline_run_record(
     return PipelineRunRecord(
         tenant_id=tenant_id,
         intake_id=intake_id,
-        pipeline_name="vertical_pipeline_evidence_spine",
+        pipeline_name="vertical_cli_evidence_spine",
         pipeline_version="v1",
-        pipeline_module="pymia.application.vertical_pipeline",
-        entrypoint="build_pipeline",
-        service_name="vertical_pipeline",
+        pipeline_module="pymia.cli.vertical_slice",
+        entrypoint="build_report",
+        service_name="vertical_slice_cli",
         completed_at=utc_now_iso(),
         input_hash=hashlib.sha256(message.encode("utf-8")).hexdigest(),
         evidence_ids=evidence_ids,
@@ -68,7 +68,7 @@ def build_pipeline_run_record(
         output_artifact_id="owner_facing_markdown",
         output_hash=canonical_hash(output_payload),
         status=status,
-        metadata={"case_id_alias": intake_id, "channel": "cli"},
+        metadata={"case_id_alias": intake_id},
     )
 
 

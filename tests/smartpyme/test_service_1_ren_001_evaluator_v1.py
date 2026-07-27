@@ -15,6 +15,26 @@ from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
 
 
 def _ready_plan() -> dict:
+    governed = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_ren_001",
+        "requested_capability": "net_margin_real",
+        "family_id": "SALES_MARGIN",
+        "pathology_code": "REN_001",
+        "formula_id": "REN_001_margen_neto_real",
+        "formula_expression": "sale_price - costs - taxes",
+        "required_variables": ["sale_price", "costs", "taxes"],
+        "required_evidence": [],
+        "source_bindings": {"sale_price": "Ventas", "costs": "Costos", "taxes": "Impuestos"},
+        "grain": {"structural_scope": "REGION", "business_entity_grain": "NONE", "temporal_grain": "NONE", "aggregation_grain": "ATOMIC"},
+        "catalog_versions": {},
+        "provenance": {"source": "TEST_P8"},
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
     return {
         "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
         "status": "READY_FOR_COMPUTATION",
@@ -22,6 +42,7 @@ def _ready_plan() -> dict:
         "pathology_code": "REN_001",
         "formula_id": "REN_001_margen_neto_real",
         "required_variables": ["sale_price", "costs", "taxes"],
+        "governed_computation_input": governed,
         "computation_candidate_ready": True,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -134,9 +155,9 @@ def test_ready_plan_allows_explicit_input_evaluation() -> None:
     assert result["computed"]["net_margin_amount"] == 150.0
 
 
-def test_wrong_plan_identity_is_blocked() -> None:
+def test_governed_identity_is_blocked() -> None:
     plan = _ready_plan()
-    plan["formula_id"] = "LIQ_001_vendido_cobrado"
+    plan["governed_computation_input"]["formula_id"] = "LIQ_001_vendido_cobrado"  # type: ignore[index]
 
     result = evaluate_ren_001_from_computation_plan_v1(
         computation_plan=plan,
@@ -149,9 +170,9 @@ def test_wrong_plan_identity_is_blocked() -> None:
     _assert_closed(result)
 
 
-def test_plan_with_open_safety_flag_is_blocked() -> None:
+def test_governed_input_with_open_safety_flag_is_blocked() -> None:
     plan = _ready_plan()
-    plan["delivery_authorized"] = True
+    plan["governed_computation_input"]["delivery_authorized"] = True  # type: ignore[index]
 
     result = evaluate_ren_001_from_computation_plan_v1(
         computation_plan=plan,
@@ -159,7 +180,7 @@ def test_plan_with_open_safety_flag_is_blocked() -> None:
     )
 
     assert result["status"] == STATUS_PLAN_BLOCKED
-    assert "computation_plan safety flags must remain false." in result["errors"]
+    assert "execution input safety flags must remain false." in result["errors"]
 
 
 def test_missing_or_unknown_plan_inputs_are_rejected() -> None:
@@ -191,3 +212,35 @@ def test_input_object_is_required() -> None:
 
     assert result["status"] == STATUS_INVALID_INPUT
     assert result["errors"] == ["inputs must be an object."]
+
+
+def test_ren_001_governed_input_precedes_legacy_plan_identity() -> None:
+    plan = _ready_plan()
+    plan["formula_id"] = "WRONG_LEGACY_FORMULA"
+    plan["governed_computation_input"] = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "case_id": "case_ren_001_governed",
+        "requested_capability": "net_margin_real",
+        "family_id": "SALES_MARGIN",
+        "pathology_code": "REN_001",
+        "formula_id": "REN_001_margen_neto_real",
+        "formula_expression": "sale_price - costs - taxes",
+        "required_variables": ["sale_price", "costs", "taxes"],
+        "required_evidence": [],
+        "source_bindings": {"sale_price": "Ventas", "costs": "Costos", "taxes": "Impuestos"},
+        "grain": {"structural_scope": "REGION", "business_entity_grain": "NONE", "temporal_grain": "NONE", "aggregation_grain": "ATOMIC"},
+        "catalog_versions": {},
+        "provenance": {"source": "P8"},
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
+    result = evaluate_ren_001_from_computation_plan_v1(
+        computation_plan=plan,
+        inputs={"sale_price": 500, "costs": 300, "taxes": 50},
+    )
+    assert result["status"] == STATUS_EVALUATED
+    assert result["computed"]["net_margin_amount"] == 150.0
+    assert result["plan_validation"]["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"

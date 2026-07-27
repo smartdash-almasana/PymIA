@@ -88,9 +88,10 @@ def case_001_chain() -> dict:
     assert bridge["status"] == BRIDGE_READY
     gate = build_gate(semantic_bridge_packet=bridge)
     assert gate["status"] == "NEEDS_OWNER_CONFIRMATION"
+    presentation = build_loop(gate_packet=gate)
     canonical_answers = {
         question["column_name"]: _first_semantic_option_id(question)
-        for question in gate["owner_questions"]
+        for question in presentation["owner_questions"]
     }
     loop = build_loop(gate_packet=gate, owner_answers=canonical_answers)
     assert loop["status"] == STATUS_OWNER_CONFIRMATION_RECHECK_READY
@@ -112,8 +113,8 @@ def test_case_001_reinject_then_gate_ready(case_001_chain: dict) -> None:
     assert out["status"] == STATUS_READY
     assert out["semantic_candidate_count"] == 11  # cafeteria fixture lock
     assert "operation_date" in out["candidate_roles"]
-    assert out["variable_family_count"] == 7
-    assert len(out["variable_family_bindings"]) == 7
+    assert out["variable_family_count"] == 13
+    assert len(out["variable_family_bindings"]) == 13
     assert isinstance(out["ready_variable_family_ids"], list)
     # Input bridge must NOT be mutated.
     assert case_001_chain["bridge"]["status"] == bridge_snapshot["status"]

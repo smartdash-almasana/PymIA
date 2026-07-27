@@ -21,11 +21,14 @@ from pymia.smartpyme.service_1_pyme_011_outcome_v1 import (
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
+from pymia.smartpyme.service_1_p6_approval_decision_v1 import (
+    build_service_1_p6_approval_decisions_v1,
+)
 from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
     FAMILY_RECEIVABLES_DSO,
-    STATUS_READY as FAMILY_READY,
-    build_service_1_variable_family_bindings_v1,
+    build_service_1_requirement_matches_v1,
 )
+from tests.smartpyme.service_1_p8_test_support import computable_decision_from_legacy_fixture
 
 
 def _candidate(column: str, role: str, variable: str) -> Service1ColumnSemanticCandidateV1:
@@ -50,15 +53,20 @@ def _confirmed_packet() -> dict[str, object]:
         _candidate("ventas_periodo", "sales_amount", "sales"),
         _candidate("dias_periodo", "period_days", "days"),
     )
-    families = build_service_1_variable_family_bindings_v1(candidates)
+    case_id = "case_pyme_011_real_governance"
+    p6 = build_service_1_p6_approval_decisions_v1(
+        case_id=case_id,
+        candidates=candidates,
+    )
+    requirements = build_service_1_requirement_matches_v1(p6)
     return {
         "schema_version": "SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_V1",
         "service_name": "SERVICE_1",
         "status": STATUS_CONFIRMED_BINDINGS,
-        "bridge_packet": {"case_id": "case_pyme_011_real_governance", "column_candidates": candidates},
+        "bridge_packet": {"case_id": case_id, "column_candidates": candidates},
         "gate_packet": {
-            "variable_family_bindings": families,
-            "ready_variable_family_ids": [item.family_id for item in families if item.status == FAMILY_READY],
+            "p6_decisions": [item.to_dict() for item in p6],
+            "requirement_matches": [item.to_dict() for item in requirements],
         },
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -69,18 +77,34 @@ def _confirmed_packet() -> dict[str, object]:
 
 
 def _plan() -> dict[str, object]:
+    bindings = {
+        "accounts_receivable": "cuentas_por_cobrar",
+        "sales": "ventas_periodo",
+        "days": "dias_periodo",
+    }
+    required = ["accounts_receivable", "sales", "days"]
+    governed = {
+        "schema_version": "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1",
+        "requested_capability": "dso",
+        "pathology_code": "PYME_011",
+        "formula_id": "PYME_011_dso",
+        "required_variables": required,
+        "source_bindings": bindings,
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
     return {
         "schema_version": "SERVICE_1_COMPUTATION_PLAN_V1",
         "status": "READY_FOR_COMPUTATION",
         "requested_capability": "dso",
         "pathology_code": "PYME_011",
         "formula_id": "PYME_011_dso",
-        "required_variables": ["accounts_receivable", "sales", "days"],
-        "source_bindings": {
-            "accounts_receivable": "cuentas_por_cobrar",
-            "sales": "ventas_periodo",
-            "days": "dias_periodo",
-        },
+        "required_variables": required,
+        "source_bindings": bindings,
+        "governed_computation_input": governed,
         "computation_candidate_ready": True,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -144,7 +168,7 @@ def test_product_root_executes_only_explicit_pyme_011_and_blocks_delivery(monkey
     tables, refs = _evidence()
     confirmed = {"status": product.STATUS_CONFIRMED_BINDINGS, "schema_version": "TEST", "service_name": "SERVICE_1"}
     monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computation_plan", lambda **_: _plan())
+    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
     result = product.run_service_1_product_pipeline_v1(
         ingestion_output={"normalized_tables": tables, "column_refs": refs},
         tool_requests=[],

@@ -64,10 +64,13 @@ from pymia.smartpyme.service_1_column_understanding_engine_contract_v1 import (
 SCHEMA_VERSION: Final[str] = "SERVICE_1_COLUMN_UNDERSTANDING_ENGINE_V1"
 
 HEADER_WEIGHT: Final[float] = 0.5
+EXACT_HEADER_BONUS: Final[float] = 0.15
 TYPE_WEIGHT: Final[float] = 0.35
 CONTEXT_WEIGHT: Final[float] = 0.15
 CO_COLUMN_BOOST: Final[float] = 0.1
 CO_COLUMN_PENALTY: Final[float] = 0.15
+SHEET_CONTEXT_BOOST: Final[float] = 0.2
+SHEET_CONTEXT_PENALTY: Final[float] = 0.3
 TYPE_CONTRADICTION_PENALTY: Final[float] = 0.3
 
 # Headers that are semantically dangerous despite a strong lexical match.
@@ -75,8 +78,29 @@ TYPE_CONTRADICTION_PENALTY: Final[float] = 0.3
 # context to distinguish list price vs effective sale price and subtotal
 # vs final invoiced amount.
 _OWNER_CONFIRMATION_REQUIRED_HEADERS: Final[frozenset[str]] = frozenset(
-    {"precio_lista", "subtotal", "cobrado", "pendiente", "iva", "monto", "valor"}
+    {
+        "precio_lista",
+        "subtotal",
+        "bonif",
+        "descuento",
+        "descuento_pct",
+        "cobrado",
+        "pendiente",
+        "iva",
+        "monto",
+        "valor",
+        "fecha_pago",
+    }
 )
+
+_SHEET_ROLE_BOOSTS: Final[dict[str, tuple[str, ...]]] = {
+    "purchase_amount": ("compra", "compras"),
+}
+
+_SHEET_ROLE_PENALTIES: Final[dict[str, tuple[str, ...]]] = {
+    "sales_amount": ("compra", "compras", "caja", "banco"),
+    "product_name": ("caja", "banco"),
+}
 
 _NON_ALNUM_RE: Final[re.Pattern[str]] = re.compile(r"[^a-z0-9_]+")
 _UNDERSCORE_RE: Final[re.Pattern[str]] = re.compile(r"_+")
@@ -202,7 +226,7 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
     _RoleRule(
         semantic_role="sales_amount",
         variable_name="sold_amount",
-        header_keywords=("venta_total", "total_venta", "importe_venta", "importe_total", "sales_amount", "sold_amount", "total", "importe"),
+        header_keywords=("venta_total", "total_venta", "importe_venta", "importe_total", "ventas_periodo", "sales_amount", "sold_amount"),
         expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
         contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
         co_column_boosts=frozenset({"cantidad", "precio_venta", "producto", "cliente", "fecha"}),
@@ -214,6 +238,22 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
         owner_label="Venta total",
         owner_question_text="¿Esta columna es el importe total de la operacion (con o sin impuestos)?",
         owner_option_description="Importe total facturado por operacion.",
+    ),
+    _RoleRule(
+        semantic_role="purchase_amount",
+        variable_name="purchase_amount",
+        header_keywords=("importe_compra", "monto_compra", "total_compra", "importe_total"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"proveedor", "orden_compra", "costo_unitario", "cantidad_comprada", "fecha_pago"}),
+        co_column_penalties=(),
+        risk_text=(
+            "Si este importe no corresponde a una compra, los analisis de compras y pagos "
+            "quedaran asociados al monto equivocado."
+        ),
+        owner_label="Importe de compra",
+        owner_question_text="¿Esta columna es el importe total de la compra?",
+        owner_option_description="Importe total asociado a la compra o factura del proveedor.",
     ),
     _RoleRule(
         semantic_role="collected_amount",
@@ -234,10 +274,10 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
     _RoleRule(
         semantic_role="accounts_receivable_amount",
         variable_name="accounts_receivable",
-        header_keywords=("pendiente", "saldo_pendiente", "por_cobrar", "accounts_receivable"),
+        header_keywords=("pendiente", "saldo_pendiente", "por_cobrar", "accounts_receivable", "cuentas_por_cobrar"),
         expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
         contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
-        co_column_boosts=frozenset({"factura", "cliente", "fecha", "cobrado"}),
+        co_column_boosts=frozenset({"factura", "cliente", "fecha", "cobrado", "ventas_periodo", "periodo_dias"}),
         co_column_penalties=(),
         risk_text=(
             "Si esta columna no es el saldo pendiente de cobro, la deuda de clientes y "
@@ -246,6 +286,227 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
         owner_label="Saldo pendiente de cobro",
         owner_question_text="¿Esta columna indica cuánto queda pendiente de cobrar por operación?",
         owner_option_description="Importe todavía adeudado por el cliente.",
+    ),
+    _RoleRule(
+        semantic_role="initial_balance",
+        variable_name="initial_balance",
+        header_keywords=("saldo_inicial", "saldo_inicial_caja", "saldo_inicial_caja_banco", "initial_balance"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"cobranzas_esperadas", "pagos_esperados", "expected_collections", "expected_payments"}),
+        co_column_penalties=(),
+        risk_text="El saldo inicial debe ser el punto de partida explícito de la proyección de caja.",
+        owner_label="Saldo inicial",
+        owner_question_text="¿Esta columna representa el saldo inicial de caja o banco del período proyectado?",
+        owner_option_description="Saldo disponible al inicio del período antes de cobranzas y pagos esperados.",
+    ),
+    _RoleRule(
+        semantic_role="expected_collections",
+        variable_name="expected_collections",
+        header_keywords=("cobranzas_esperadas", "cobros_esperados", "expected_collections"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"saldo_inicial", "pagos_esperados", "expected_payments"}),
+        co_column_penalties=(),
+        risk_text="Las cobranzas esperadas deben ser evidencia explícita del período proyectado.",
+        owner_label="Cobranzas esperadas",
+        owner_question_text="¿Esta columna contiene las cobranzas que se espera recibir en el período?",
+        owner_option_description="Importes de cobro previstos para el período proyectado.",
+    ),
+    _RoleRule(
+        semantic_role="expected_payments",
+        variable_name="expected_payments",
+        header_keywords=("pagos_esperados", "egresos_esperados", "expected_payments"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"saldo_inicial", "cobranzas_esperadas", "expected_collections"}),
+        co_column_penalties=(),
+        risk_text="Los pagos esperados deben ser evidencia explícita del período proyectado.",
+        owner_label="Pagos esperados",
+        owner_question_text="¿Esta columna contiene los pagos que se espera realizar en el período?",
+        owner_option_description="Importes de pago previstos para el período proyectado.",
+    ),
+    _RoleRule(
+        semantic_role="period_days",
+        variable_name="days",
+        header_keywords=("periodo_dias", "dias_periodo", "period_days"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"cuentas_por_cobrar", "accounts_receivable", "ventas_periodo", "sales_amount"}),
+        co_column_penalties=(),
+        risk_text="La duración del período debe ser explícita y consistente con ventas y cuentas por cobrar.",
+        owner_label="Días del período",
+        owner_question_text="¿Esta columna indica la cantidad de días del período analizado?",
+        owner_option_description="Cantidad de días usada como base temporal del indicador.",
+    ),
+    _RoleRule(
+        semantic_role="average_sales",
+        variable_name="average_sales",
+        header_keywords=("average_sales", "ventas_promedio", "venta_promedio_diaria"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"lead_time", "safety_stock"}),
+        co_column_penalties=(),
+        risk_text="La venta promedio debe corresponder al mismo SKU y base temporal del plazo de reposición.",
+        owner_label="Venta promedio",
+        owner_question_text="¿Esta columna representa la venta promedio usada para calcular reposición?",
+        owner_option_description="Venta promedio en unidades por día o período confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="lead_time",
+        variable_name="lead_time",
+        header_keywords=("lead_time", "lead_time_dias", "plazo_reposicion_dias"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"average_sales", "safety_stock"}),
+        co_column_penalties=(),
+        risk_text="El plazo de reposición debe estar expresado en días para el cálculo gobernado.",
+        owner_label="Plazo de reposición",
+        owner_question_text="¿Esta columna indica el plazo de reposición en días?",
+        owner_option_description="Días entre pedido y disponibilidad del stock.",
+    ),
+    _RoleRule(
+        semantic_role="safety_stock",
+        variable_name="safety_stock",
+        header_keywords=("safety_stock", "stock_seguridad"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"average_sales", "lead_time"}),
+        co_column_penalties=(),
+        risk_text="El stock de seguridad debe ser una cantidad explícita y confirmada.",
+        owner_label="Stock de seguridad",
+        owner_question_text="¿Esta columna representa el stock de seguridad?",
+        owner_option_description="Cantidad reservada como stock de seguridad.",
+    ),
+    _RoleRule(
+        semantic_role="cost_of_goods_sold",
+        variable_name="cost_of_goods_sold",
+        header_keywords=("cost_of_goods_sold", "costo_mercaderia_vendida", "cmv_periodo"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"average_stock", "stock_promedio"}),
+        co_column_penalties=(),
+        risk_text="El costo de mercadería vendida debe corresponder al mismo período que el stock promedio.",
+        owner_label="Costo de mercadería vendida",
+        owner_question_text="¿Esta columna contiene el costo de mercadería vendida del período?",
+        owner_option_description="CMV total del período confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="average_stock",
+        variable_name="average_stock",
+        header_keywords=("average_stock", "stock_promedio", "inventario_promedio"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"cost_of_goods_sold", "cmv_periodo"}),
+        co_column_penalties=(),
+        risk_text="El stock promedio debe corresponder al mismo período y unidad monetaria del CMV.",
+        owner_label="Stock promedio",
+        owner_question_text="¿Esta columna representa el stock promedio del período?",
+        owner_option_description="Valor promedio del inventario durante el período.",
+    ),
+    _RoleRule(
+        semantic_role="current_assets",
+        variable_name="current_assets",
+        header_keywords=("current_assets", "activo_corriente"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"current_liabilities", "pasivo_corriente"}),
+        co_column_penalties=(),
+        risk_text="El activo corriente debe provenir del mismo corte contable que el pasivo corriente.",
+        owner_label="Activo corriente",
+        owner_question_text="¿Esta columna representa el activo corriente?",
+        owner_option_description="Saldo de activo corriente del corte confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="current_liabilities",
+        variable_name="current_liabilities",
+        header_keywords=("current_liabilities", "pasivo_corriente"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"current_assets", "activo_corriente"}),
+        co_column_penalties=(),
+        risk_text="El pasivo corriente debe provenir del mismo corte contable que el activo corriente.",
+        owner_label="Pasivo corriente",
+        owner_question_text="¿Esta columna representa el pasivo corriente?",
+        owner_option_description="Saldo de pasivo corriente del corte confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="main_sku_sales",
+        variable_name="main_sku_sales",
+        header_keywords=("main_sku_sales", "ventas_sku_principal"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"total_sales", "ventas_totales"}),
+        co_column_penalties=(),
+        risk_text="Las ventas del SKU principal deben pertenecer al mismo período que las ventas totales.",
+        owner_label="Ventas del SKU principal",
+        owner_question_text="¿Esta columna representa las ventas del SKU principal?",
+        owner_option_description="Ventas monetarias del SKU con mayor participación en el período.",
+    ),
+    _RoleRule(
+        semantic_role="total_sales",
+        variable_name="total_sales",
+        header_keywords=("total_sales", "ventas_totales_periodo"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"main_sku_sales", "ventas_sku_principal"}),
+        co_column_penalties=(),
+        risk_text="Las ventas totales deben corresponder exactamente al período de las ventas del SKU principal.",
+        owner_label="Ventas totales",
+        owner_question_text="¿Esta columna representa las ventas totales del período?",
+        owner_option_description="Ventas monetarias totales del período confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="interest_expense",
+        variable_name="interest_expense",
+        header_keywords=("interest_expense", "gasto_intereses", "intereses_financieros"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"ebitda"}),
+        co_column_penalties=(),
+        risk_text="Los intereses deben corresponder al mismo período contable que el EBITDA.",
+        owner_label="Gasto por intereses",
+        owner_question_text="¿Esta columna representa el gasto financiero por intereses?",
+        owner_option_description="Intereses devengados o reconocidos en el período confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="ebitda",
+        variable_name="ebitda",
+        header_keywords=("ebitda",),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"interest_expense", "gasto_intereses"}),
+        co_column_penalties=(),
+        risk_text="El EBITDA debe corresponder al mismo período que el gasto por intereses.",
+        owner_label="EBITDA",
+        owner_question_text="¿Esta columna representa el EBITDA del período?",
+        owner_option_description="EBITDA del período confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="closing_index",
+        variable_name="closing_index",
+        header_keywords=("closing_index", "indice_cierre"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"origin_index", "indice_origen"}),
+        co_column_penalties=(),
+        risk_text="El índice de cierre debe pertenecer a la misma serie que el índice de origen.",
+        owner_label="Índice de cierre",
+        owner_question_text="¿Esta columna representa el índice de cierre?",
+        owner_option_description="Valor del índice al cierre del período confirmado.",
+    ),
+    _RoleRule(
+        semantic_role="origin_index",
+        variable_name="origin_index",
+        header_keywords=("origin_index", "indice_origen"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"closing_index", "indice_cierre"}),
+        co_column_penalties=(),
+        risk_text="El índice de origen debe pertenecer a la misma serie que el índice de cierre.",
+        owner_label="Índice de origen",
+        owner_question_text="¿Esta columna representa el índice de origen?",
+        owner_option_description="Valor del índice al origen del período confirmado.",
     ),
     _RoleRule(
         semantic_role="tax_amount",
@@ -262,6 +523,162 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
         owner_label="Impuestos o IVA",
         owner_question_text="¿Esta columna contiene el importe o porcentaje de IVA/impuestos?",
         owner_option_description="Importe o tasa impositiva asociada a la operación.",
+    ),
+    _RoleRule(
+        semantic_role="list_price",
+        variable_name="list_price",
+        header_keywords=("precio_lista", "list_price", "precio_de_lista"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"producto", "cantidad", "importe_total", "bonif", "descuento_pct"}),
+        co_column_penalties=(),
+        risk_text="El precio de lista no debe confundirse con el precio efectivo de venta.",
+        owner_label="Precio de lista",
+        owner_question_text="¿Esta columna es el precio de lista antes de descuentos?",
+        owner_option_description="Precio publicado o base antes de bonificaciones/descuentos.",
+    ),
+    _RoleRule(
+        semantic_role="discount_candidate",
+        variable_name="discount",
+        header_keywords=("bonif", "bonificacion", "descuento", "descuento_pct", "discount"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"precio_lista", "importe_total", "producto"}),
+        co_column_penalties=(),
+        risk_text="Una bonificacion puede ser importe o porcentaje; la unidad debe confirmarse antes de calcular.",
+        owner_label="Descuento o bonificacion",
+        owner_question_text="¿Esta columna representa un descuento o bonificacion?",
+        owner_option_description="Descuento asociado a la operación; su unidad debe confirmarse.",
+    ),
+    _RoleRule(
+        semantic_role="subtotal_amount",
+        variable_name="subtotal_amount",
+        header_keywords=("subtotal", "importe_neto", "net_amount"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"iva", "importe_total", "producto", "unidades"}),
+        co_column_penalties=(),
+        risk_text="El subtotal no debe confundirse con el total final facturado.",
+        owner_label="Subtotal",
+        owner_question_text="¿Esta columna es el subtotal antes de impuestos u otros ajustes?",
+        owner_option_description="Importe parcial previo al total final.",
+    ),
+    _RoleRule(
+        semantic_role="customer_name",
+        variable_name="customer",
+        header_keywords=("cliente", "customer", "razon_social_cliente"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE}),
+        co_column_boosts=frozenset({"factura", "cobrado", "pendiente", "importe_total"}),
+        co_column_penalties=(),
+        risk_text="Una identificación incorrecta del cliente distorsiona agrupaciones y trazabilidad.",
+        owner_label="Cliente",
+        owner_question_text="¿Esta columna identifica al cliente de la operación?",
+        owner_option_description="Nombre o identificador legible del cliente.",
+    ),
+    _RoleRule(
+        semantic_role="supplier_name",
+        variable_name="supplier",
+        header_keywords=("proveedor", "supplier", "razon_social_proveedor"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE}),
+        co_column_boosts=frozenset({"producto", "costo", "subtotal", "iva"}),
+        co_column_penalties=(),
+        risk_text="Una identificación incorrecta del proveedor distorsiona compras y comparaciones.",
+        owner_label="Proveedor",
+        owner_question_text="¿Esta columna identifica al proveedor de la compra?",
+        owner_option_description="Nombre o identificador legible del proveedor.",
+    ),
+    _RoleRule(
+        semantic_role="payment_method",
+        variable_name="payment_method",
+        header_keywords=("medio_pago", "medio_de_pago", "medio_cobro", "medio_de_cobro", "forma_pago", "payment_method"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_NUMBER}),
+        co_column_boosts=frozenset({"cobrado", "factura", "cliente", "importe_total"}),
+        co_column_penalties=(),
+        risk_text="El medio de pago es categórico y no debe confundirse con un importe.",
+        owner_label="Medio de pago",
+        owner_question_text="¿Esta columna indica el medio o forma de pago/cobro?",
+        owner_option_description="Efectivo, transferencia, tarjeta u otro medio.",
+    ),
+    _RoleRule(
+        semantic_role="opening_stock",
+        variable_name="opening_stock",
+        header_keywords=("stock_inicial", "inventario_inicial", "opening_stock"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"entradas", "salidas", "stock_final", "sku", "producto"}),
+        co_column_penalties=(),
+        risk_text="El stock inicial define el punto de partida del movimiento de inventario.",
+        owner_label="Stock inicial",
+        owner_question_text="¿Esta columna es el stock al inicio del período?",
+        owner_option_description="Existencia inicial antes de entradas y salidas.",
+    ),
+    _RoleRule(
+        semantic_role="stock_inflow",
+        variable_name="stock_inflow",
+        header_keywords=("entradas", "entrada_stock", "stock_entradas", "stock_inflow", "compras"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"stock_inicial", "salidas", "stock_final", "sku"}),
+        co_column_penalties=(),
+        risk_text="Las entradas de stock no deben confundirse con ventas o cantidades facturadas.",
+        owner_label="Entradas de stock",
+        owner_question_text="¿Esta columna registra unidades que ingresaron al stock?",
+        owner_option_description="Unidades incorporadas al inventario durante el período.",
+    ),
+    _RoleRule(
+        semantic_role="stock_outflow",
+        variable_name="stock_outflow",
+        header_keywords=("salidas", "salida_stock", "stock_salidas", "stock_outflow", "ventas"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"stock_inicial", "entradas", "stock_final", "sku"}),
+        co_column_penalties=(),
+        risk_text="Las salidas de stock no deben confundirse automáticamente con ventas.",
+        owner_label="Salidas de stock",
+        owner_question_text="¿Esta columna registra unidades que salieron del stock?",
+        owner_option_description="Unidades retiradas del inventario durante el período.",
+    ),
+    _RoleRule(
+        semantic_role="stock_current",
+        variable_name="stock_current",
+        header_keywords=("stock_actual", "stock_sistema", "stock_declarado_dueno", "conteo_fisico_informado", "stock_current"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"stock_minimo", "sku", "producto", "costo_unitario"}),
+        co_column_penalties=(),
+        risk_text="El stock actual debe representar existencia disponible o declarada, no un importe monetario.",
+        owner_label="Stock actual",
+        owner_question_text="¿Esta columna representa el stock actual o existencia disponible?",
+        owner_option_description="Unidades actualmente disponibles o declaradas en inventario.",
+    ),
+    _RoleRule(
+        semantic_role="stock_minimum",
+        variable_name="stock_minimum",
+        header_keywords=("stock_minimo", "inventario_minimo", "minimum_stock", "stock_minimum"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"stock_actual", "sku", "producto", "costo_unitario"}),
+        co_column_penalties=(),
+        risk_text="El stock mínimo es un umbral operativo y no debe confundirse con existencia actual o precio.",
+        owner_label="Stock mínimo",
+        owner_question_text="¿Esta columna indica el nivel mínimo de stock definido para el producto?",
+        owner_option_description="Umbral mínimo de inventario antes de reposición o revisión.",
+    ),
+    _RoleRule(
+        semantic_role="closing_stock",
+        variable_name="closing_stock",
+        header_keywords=("stock_final", "inventario_final", "closing_stock"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"stock_inicial", "entradas", "salidas", "sku", "producto"}),
+        co_column_penalties=(),
+        risk_text="El stock final debe representar existencia al cierre, no movimiento del período.",
+        owner_label="Stock final",
+        owner_question_text="¿Esta columna es el stock al cierre del período?",
+        owner_option_description="Existencia final luego de entradas y salidas.",
     ),
     _RoleRule(
         semantic_role="product_name",
@@ -298,7 +715,7 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
     _RoleRule(
         semantic_role="document_reference",
         variable_name="document_ref",
-        header_keywords=("factura", "comprobante", "nro_comprobante", "documento", "invoice", "nro_factura", "ticket"),
+        header_keywords=("factura", "comprobante", "nro_comprobante", "documento", "invoice", "nro_factura", "ticket", "orden_compra", "cobro_id", "id_movimiento", "referencia_externa"),
         expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT, INFERRED_DATA_TYPE_NUMBER}),
         contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE}),
         co_column_boosts=frozenset({"cliente", "fecha", "venta_total"}),
@@ -477,13 +894,23 @@ def _score_role(
     counter_evidence: list[str] = []
 
     if normalized_header:
-        for keyword in rule.header_keywords:
-            if keyword and (keyword in normalized_header or normalized_header in keyword):
-                score += HEADER_WEIGHT
-                evidence.append(
-                    f"header_match: '{normalized_header}' contains keyword '{keyword}'"
-                )
-                break
+        exact_keyword = next(
+            (keyword for keyword in rule.header_keywords if keyword and normalized_header == keyword),
+            None,
+        )
+        if exact_keyword is not None:
+            score += HEADER_WEIGHT + EXACT_HEADER_BONUS
+            evidence.append(
+                f"exact_header_match: '{normalized_header}' equals keyword '{exact_keyword}'"
+            )
+        else:
+            for keyword in rule.header_keywords:
+                if keyword and keyword in normalized_header:
+                    score += HEADER_WEIGHT
+                    evidence.append(
+                        f"header_match: '{normalized_header}' contains keyword '{keyword}'"
+                    )
+                    break
 
     if inferred_data_type in rule.expected_data_types:
         score += TYPE_WEIGHT
@@ -516,6 +943,19 @@ def _score_role(
                     break
 
     if sheet_name:
+        normalized_sheet = normalize_service_1_column_understanding_header_v1(sheet_name)
+        boost_terms = _SHEET_ROLE_BOOSTS.get(rule.semantic_role, ())
+        penalty_terms = _SHEET_ROLE_PENALTIES.get(rule.semantic_role, ())
+        if normalized_sheet and any(term in normalized_sheet for term in boost_terms):
+            score += SHEET_CONTEXT_BOOST
+            evidence.append(
+                f"sheet_context_reinforces: '{normalized_sheet}' supports role '{rule.semantic_role}'"
+            )
+        if normalized_sheet and any(term in normalized_sheet for term in penalty_terms):
+            score -= SHEET_CONTEXT_PENALTY
+            counter_evidence.append(
+                f"sheet_context_contradicts: '{normalized_sheet}' conflicts with role '{rule.semantic_role}'"
+            )
         evidence.append(f"sheet_context: '{sheet_name}'")
 
     bounded = max(0.0, min(1.0, score))

@@ -160,8 +160,8 @@ def build_default_service_1_column_understanding_corpus_v1() -> tuple[Service1Co
                 _col("fecha_emision", ("2026-06-01", "2026-06-02"), "date", "operation_date", "business_period"),
                 _col("codigo", ("SKU-1", "SKU-2"), "text", "product_identifier", "product_id"),
                 _col("descripcion", ("Harina 1kg", "Azucar 1kg"), "text", "product_name", "product"),
-                _col("precio_lista", (130, 260), "number", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True, dangerous=True),
-                _col("bonif", (10, 15), "number", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True, dangerous=False),
+                _col("precio_lista", (130, 260), "number", "list_price", "list_price", must=True, dangerous=True),
+                _col("bonif", (10, 15), "number", "discount_candidate", "discount", must=True, dangerous=False),
                 _col("iva", (21, 21), "number", "tax_amount", "taxes", must=True, dangerous=False),
                 _col("importe_total", (1200, 2400), "number", "sales_amount", "sold_amount", must=True, dangerous=True),
             ),
@@ -174,10 +174,10 @@ def build_default_service_1_column_understanding_corpus_v1() -> tuple[Service1Co
             columns=(
                 _col("sku", ("A-1", "B-2"), "text", "product_identifier", "product_id"),
                 _col("producto", ("Harina", "Azucar"), "text", "product_name", "product"),
-                _col("stock_inicial", (100, 80), "number", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True),
-                _col("entradas", (10, 20), "number", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True),
-                _col("salidas", (5, 8), "number", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True),
-                _col("stock_final", (105, 92), "number", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True),
+                _col("stock_inicial", (100, 80), "number", "opening_stock", "opening_stock", must=True),
+                _col("entradas", (10, 20), "number", "stock_inflow", "stock_inflow", must=True),
+                _col("salidas", (5, 8), "number", "stock_outflow", "stock_outflow", must=True),
+                _col("stock_final", (105, 92), "number", "closing_stock", "closing_stock", must=True),
             ),
         ),
         Service1ColumnUnderstandingCorpusCaseV1(
@@ -187,11 +187,11 @@ def build_default_service_1_column_understanding_corpus_v1() -> tuple[Service1Co
             business_scenario="Caja/cobros con factura, cliente, cobrado y pendiente.",
             columns=(
                 _col("fecha", ("2026-06-03", "2026-06-04"), "date", "operation_date", "business_period"),
-                _col("cliente", ("Cliente A", "Cliente B"), "text", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True),
+                _col("cliente", ("Cliente A", "Cliente B"), "text", "customer_name", "customer", must=True),
                 _col("factura", ("F001-1", "F001-2"), "text", "document_reference", "document_ref"),
                 _col("cobrado", (5000, 3200), "number", "collected_amount", "collected_amount", must=True, dangerous=True),
                 _col("pendiente", (1200, 0), "number", "accounts_receivable_amount", "accounts_receivable", must=True, dangerous=True),
-                _col("medio_pago", ("Transferencia", "Efectivo"), "text", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True),
+                _col("medio_pago", ("Transferencia", "Efectivo"), "text", "payment_method", "payment_method", must=True),
             ),
         ),
         Service1ColumnUnderstandingCorpusCaseV1(
@@ -201,11 +201,11 @@ def build_default_service_1_column_understanding_corpus_v1() -> tuple[Service1Co
             business_scenario="Compras/costos con proveedor, unidades, subtotal e IVA.",
             columns=(
                 _col("fecha", ("2026-06-05", "2026-06-06"), "date", "operation_date", "business_period"),
-                _col("proveedor", ("Proveedor A", "Proveedor B"), "text", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True),
+                _col("proveedor", ("Proveedor A", "Proveedor B"), "text", "supplier_name", "supplier", must=True),
                 _col("producto", ("Harina", "Azucar"), "text", "product_name", "product"),
                 _col("unidades", (30, 50), "number", "quantity", "volume_sold", must=True),
                 _col("costo", (70, 120), "number", "unit_cost_candidate", "cost", must=True, dangerous=True),
-                _col("subtotal", (2100, 6000), "number", ROLE_UNKNOWN, ROLE_UNKNOWN, must=True, dangerous=True),
+                _col("subtotal", (2100, 6000), "number", "subtotal_amount", "subtotal_amount", must=True, dangerous=True),
                 _col("iva", (441, 1260), "number", "tax_amount", "taxes", must=True),
             ),
         ),
@@ -269,6 +269,15 @@ def evaluate_service_1_column_understanding_corpus_v1(
             raise ValueError(f"corpus case {case.case_id} did not evaluate every expected column")
 
     exact_matches = sum(1 for row in rows if row.outcome == OUTCOME_EXACT_MATCH)
+    supported_scope_rows = [row for row in rows if row.expected_semantic_role != ROLE_UNKNOWN]
+    supported_scope_exact_matches = sum(
+        1 for row in supported_scope_rows if row.outcome == OUTCOME_EXACT_MATCH
+    )
+    supported_scope_exact_match_rate = (
+        supported_scope_exact_matches / len(supported_scope_rows)
+        if supported_scope_rows
+        else 0.0
+    )
     safe_questions = sum(1 for row in rows if row.outcome == OUTCOME_SAFE_QUESTION)
     safe_unknowns = sum(1 for row in rows if row.outcome == OUTCOME_SAFE_UNKNOWN)
     false_confident = sum(1 for row in rows if row.outcome == OUTCOME_FALSE_CONFIDENT)
@@ -284,7 +293,7 @@ def evaluate_service_1_column_understanding_corpus_v1(
         (exact_matches + safe_questions + safe_unknowns) / columns_count if columns_count else 0.0
     )
     verdict = _resolve_verdict(
-        exact_match_rate=exact_match_rate,
+        exact_match_rate=supported_scope_exact_match_rate,
         safe_resolution_rate=safe_resolution_rate,
         dangerous_errors=dangerous_errors,
         false_confident=false_confident,
@@ -314,7 +323,12 @@ def evaluate_service_1_column_understanding_corpus_v1(
         metadata={
             "corpus_policy": "in_memory_excel_like_column_layouts",
             "frontend_wiring_allowed": verdict == VERDICT_READY_FOR_FRONTEND,
-            "known_scope_gap": "stock/caja/proveedor/iva/descuento/monto_generico still require safer catalog expansion",
+            "supported_scope_columns_count": len(supported_scope_rows),
+            "supported_scope_exact_matches": supported_scope_exact_matches,
+            "supported_scope_exact_match_rate": round(supported_scope_exact_match_rate, 4),
+            "direct_resolution_coverage": round(exact_match_rate, 4),
+            "intentional_unknown_columns_count": columns_count - len(supported_scope_rows),
+            "known_scope_gap": "generic headers remain fail-closed and require owner context",
         },
     )
 

@@ -89,7 +89,13 @@ def case_001_gate_packet() -> dict:
     bridge = build_bridge(ingestion_output=connector["ingestion_output"])
     gate = build_gate(semantic_bridge_packet=bridge)
     assert gate["status"] == GATE_NEEDS_OWNER_CONFIRMATION
-    return gate
+    presentation = build_loop(gate_packet=gate)
+    assert presentation["status"] == STATUS_OWNER_CONFIRMATION_REQUIRED
+    return {
+        **gate,
+        "owner_questions": presentation["owner_questions"],
+        "owner_answer_bindings": presentation["owner_answer_bindings"],
+    }
 
 
 def _synthetic_ready_gate() -> dict:

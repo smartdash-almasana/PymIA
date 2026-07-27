@@ -28,6 +28,12 @@ FAMILY_PURCHASES_SUPPLIERS: Final[str] = "PURCHASES_SUPPLIERS"
 FAMILY_INVENTORY_CONTROL: Final[str] = "INVENTORY_CONTROL"
 FAMILY_CASH_PROJECTION: Final[str] = "CASH_PROJECTION"
 FAMILY_RECEIVABLES_DSO: Final[str] = "RECEIVABLES_DSO"
+FAMILY_REORDER_POINT: Final[str] = "REORDER_POINT"
+FAMILY_INVENTORY_TURNOVER: Final[str] = "INVENTORY_TURNOVER"
+FAMILY_CURRENT_RATIO: Final[str] = "CURRENT_RATIO"
+FAMILY_SALES_CONCENTRATION: Final[str] = "SALES_CONCENTRATION"
+FAMILY_INTEREST_BURDEN: Final[str] = "INTEREST_BURDEN"
+FAMILY_INDEX_UPDATE: Final[str] = "INDEX_UPDATE"
 
 STATUS_READY: Final[str] = "VARIABLE_FAMILY_READY"
 STATUS_NEEDS_OWNER_CONFIRMATION: Final[str] = "VARIABLE_FAMILY_NEEDS_OWNER_CONFIRMATION"
@@ -258,6 +264,60 @@ VARIABLE_FAMILY_DEFINITIONS: Final[tuple[Service1VariableFamilyDefinitionV1, ...
         optional_roles=("operation_date", "due_date", "document_reference", "customer_name"),
         target_variable_names=("accounts_receivable", "sales", "days"),
         target_capabilities=("dso",),
+    ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_REORDER_POINT,
+        owner_label="Punto de reposición",
+        priority=8,
+        required_role_groups=(("average_sales",), ("lead_time",), ("safety_stock",)),
+        optional_roles=("product_identifier", "product_name"),
+        target_variable_names=("average_sales", "lead_time", "safety_stock"),
+        target_capabilities=("reorder_point",),
+    ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_INVENTORY_TURNOVER,
+        owner_label="Rotación de inventario",
+        priority=9,
+        required_role_groups=(("cost_of_goods_sold",), ("average_stock",)),
+        optional_roles=("operation_date",),
+        target_variable_names=("cost_of_goods_sold", "average_stock"),
+        target_capabilities=("inventory_turnover",),
+    ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_CURRENT_RATIO,
+        owner_label="Liquidez corriente",
+        priority=10,
+        required_role_groups=(("current_assets",), ("current_liabilities",)),
+        optional_roles=(),
+        target_variable_names=("current_assets", "current_liabilities"),
+        target_capabilities=("current_ratio",),
+    ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_SALES_CONCENTRATION,
+        owner_label="Concentración de ventas",
+        priority=11,
+        required_role_groups=(("main_sku_sales",), ("total_sales",)),
+        optional_roles=("product_identifier", "product_name"),
+        target_variable_names=("main_sku_sales", "total_sales"),
+        target_capabilities=("sales_concentration",),
+    ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_INTEREST_BURDEN,
+        owner_label="Carga de intereses",
+        priority=12,
+        required_role_groups=(("interest_expense",), ("ebitda",)),
+        optional_roles=(),
+        target_variable_names=("interest_expense", "ebitda"),
+        target_capabilities=("interest_burden_ratio",),
+    ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_INDEX_UPDATE,
+        owner_label="Actualización por índice",
+        priority=13,
+        required_role_groups=(("closing_index",), ("origin_index",)),
+        optional_roles=(),
+        target_variable_names=("closing_index", "origin_index"),
+        target_capabilities=("index_update_ratio",),
     ),
 )
 
@@ -543,6 +603,12 @@ __all__ = [
     "FAMILY_INVENTORY_CONTROL",
     "FAMILY_CASH_PROJECTION",
     "FAMILY_RECEIVABLES_DSO",
+    "FAMILY_REORDER_POINT",
+    "FAMILY_INVENTORY_TURNOVER",
+    "FAMILY_CURRENT_RATIO",
+    "FAMILY_SALES_CONCENTRATION",
+    "FAMILY_INTEREST_BURDEN",
+    "FAMILY_INDEX_UPDATE",
     "STATUS_READY",
     "STATUS_NEEDS_OWNER_CONFIRMATION",
     "STATUS_MISSING_REQUIRED_ROLES",
