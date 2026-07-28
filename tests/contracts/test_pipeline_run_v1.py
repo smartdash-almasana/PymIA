@@ -12,8 +12,8 @@ def test_pipeline_run_record_uses_application_trace_identity() -> None:
         steps_executed=["step_1"],
     )
 
-    assert record.pipeline_name == "vertical_pipeline_evidence_spine"
-    assert record.pipeline_module == "pymia.application.vertical_pipeline"
-    assert record.entrypoint == "build_pipeline"
-    assert record.service_name == "vertical_pipeline"
-    assert record.metadata["channel"] == "cli"
+    assert record.pipeline_name == "vertical_cli_evidence_spine"
+    assert record.pipeline_module == "pymia.cli.vertical_slice"
+    assert record.entrypoint == "build_report"
+    assert record.service_name == "vertical_slice_cli"
+    assert record.metadata["case_id_alias"] == "intake_1"

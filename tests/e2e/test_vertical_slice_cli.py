@@ -88,9 +88,11 @@ def test_vertical_slice_cli_reports_evidence_sufficiency_for_requested_formula(c
     out = capsys.readouterr().out
     assert rc == 0
     assert "## Suficiencia de evidencia" in out
-    assert "Case ID: intake_cli_local" in out
-    assert "PYME_033_concentracion_sku" in out
-    assert "READY" in out or "MISSING_INPUTS" in out
+    assert "Case ID: intake_cli_local" not in out
+    assert "Hay chequeos técnicos con evidencia pendiente o en revisión." in out
+    assert "PYME_033_concentracion_sku" not in out
+    assert "READY" not in out
+    assert "MISSING_INPUTS" not in out
     assert "no diagnostica" in out.lower()
 
 
@@ -108,7 +110,8 @@ def test_vertical_slice_cli_reports_unsupported_formula_without_crashing(capsys)
     out = capsys.readouterr().out
     assert rc == 0
     assert "## Suficiencia de evidencia" in out
-    assert "FORMULA_INEXISTENTE: UNSUPPORTED_FORMULA" in out
+    assert "FORMULA_INEXISTENTE: UNSUPPORTED_FORMULA" not in out
+    assert "Hay chequeos técnicos no disponibles en esta vista owner-facing." in out
     assert "no diagnostica" in out.lower()
 
 
@@ -134,9 +137,9 @@ def test_vertical_slice_cli_writes_markdown_output_file(tmp_path: Path):
     assert "Reporte owner-facing local" in text
     assert "DELIVERED_CANDIDATE" in text
     assert "## Evidencia usada" in text
-    assert "Tenant: tenant_demo_001" in text
-    assert "Intake: intake_demo_001" in text
-    assert "Case ID: intake_demo_001" in text
+    assert "Tenant: tenant_demo_001" not in text
+    assert "Intake: intake_demo_001" not in text
+    assert "Case ID: intake_demo_001" not in text
 
 
 def test_vertical_slice_cli_rejects_missing_excel(tmp_path: Path):
@@ -178,8 +181,8 @@ def test_vertical_slice_report_uses_language_corpus_for_known_variable_labels(ca
     rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "ventas brutas (ventas_total)" in out
-    assert "costo de mercaderia vendida (costos_total)" in out
+    assert "Variables computables: 0" in out
+    assert "No diagnostica sin evidencia suficiente ni confirmación del dueño." in out
 
 
 def test_vertical_slice_report_shows_table_sheet_names(capsys):
@@ -273,11 +276,11 @@ def test_vertical_slice_next_question_keeps_technical_reference_for_operator(cap
     rc = vertical_slice.main(["--excel", str(fixture), "--message", "tengo una textil"])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "  - Referencia técnica:" in out
-    # Should contain formula_id
-    assert "INV_" in out or "PYME_" in out or "LIQ_" in out
-    # Should contain original snake_case field names
-    assert "_" in out.split("  - Referencia técnica:")[1] if "  - Referencia técnica:" in out else False
+    assert "Referencia técnica" not in out
+    assert "INV_" not in out
+    assert "PYME_" not in out
+    assert "LIQ_" not in out
+    assert "## Próxima pregunta" in out
 
 
 def test_vertical_slice_next_question_does_not_expose_formula_id_as_primary_owner_text(capsys):

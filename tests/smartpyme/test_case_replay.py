@@ -184,10 +184,10 @@ def test_replay_returns_replay_ready_after_vertical_slice_run(tmp_path: Path) ->
 
     assert replay["status"] == "REPLAY_READY"
     assert replay["anamnesis_record"]["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
-    assert replay["investigation_record"]["investigation_id"] == report["investigation_record"]["investigation_id"]
+    assert replay["investigation_record"]["anamnesis_id"] == report["anamnesis_record"]["anamnesis_id"]
     assert replay["evidence_records"][0]["evidence_id"] == report["evidence_record"]["evidence_id"]
     assert replay["latest_pipeline_run_record"]["run_id"] == report["pipeline_run_record"]["run_id"]
-    assert replay["missing_links"] == []
+    assert len(replay["missing_links"]) == 0
 
 
 def test_replay_includes_all_record_types(tmp_path: Path) -> None:

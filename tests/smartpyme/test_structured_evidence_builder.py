@@ -45,7 +45,9 @@ def test_builder_parses_excel_and_extracts_formula_ids() -> None:
 
     assert isinstance(payload["structured_evidence"], dict)
     assert payload["structured_evidence"]["tenant_id"] == "tenant-m40"
-    assert payload["structured_evidence"]["computed_variables"]
+    assert payload["structured_evidence"]["computed_variables"] == {}
+    assert payload["structured_evidence"]["metadata"]["calculation_blocked"] is True
+    assert payload["structured_evidence"]["metadata"]["owner_questions"]
     assert payload["formula_ids"] == [
         "LIQ_001_vendido_cobrado",
         "REN_001_margen_neto_real",

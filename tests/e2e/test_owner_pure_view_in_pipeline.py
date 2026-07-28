@@ -43,8 +43,8 @@ def test_build_pipeline_exposes_owner_pure_view_without_rendering_it(tmp_path: P
     assert owner_pure_view["schema_version"] == "OWNER_PURE_VIEW_V1"
     assert owner_pure_view["status"] == "DELIVERED_CANDIDATE"
     assert owner_pure_view["owner_summary"] == report["summary"]
-    if report["owner_question"]:
-        assert owner_pure_view["next_question"] == report["owner_question"]
+    if report["next_questions"]:
+        assert owner_pure_view["next_question"] == report["next_questions"][0]
     else:
         assert owner_pure_view["next_question"]
     assert "owner_simple" in pipeline["report"]

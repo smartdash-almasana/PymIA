@@ -247,9 +247,12 @@ def test_duplicate_ambiguous_headers_reenter_semantic_loop_by_question_id(
     assert [question["column_name"] for question in questions] == ["monto", "monto"]
     assert {question["sheet_name"] for question in questions} == {"Ventas", "Cobros"}
     assert len({question["question_id"] for question in questions}) == 2
-    assert set(initial["gate_packet"]["owner_answer_bindings"]) == {
-        question["question_id"] for question in questions
-    }
+    assert initial["gate_packet"]["owner_answer_bindings"] == {}
+    confirmation_candidates = initial["gate_packet"]["owner_confirmation_candidates"]
+    assert len(confirmation_candidates) == 2
+    assert {
+        candidate.metadata["question_id"] for candidate in confirmation_candidates
+    } == {question["question_id"] for question in questions}
 
     semantic_answers = {
         question["question_id"]: next(

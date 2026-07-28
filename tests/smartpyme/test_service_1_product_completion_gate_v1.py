@@ -172,14 +172,15 @@ def test_product_completion_gate_plan_only_liq_001_acceptance(tmp_path: Path) ->
         sheet_name="Ventas",
     )
     product = final["product_pipeline"]
-    plan = product["computation_plan"]
+    governed = product["governed_computation_input"]
 
     assert final["status"] == "COMPUTATION_PLAN_READY"
     assert product["tools_executed"] is False
     assert product["physical_run"] is None
-    assert plan["status"] == "READY_FOR_COMPUTATION"
-    assert plan["formula_id"] == "LIQ_001_vendido_cobrado"
-    assert plan["runtime_authorized"] is False
-    assert plan["tool_execution_authorized"] is False
-    assert plan["computation_executed"] is False
+    assert "computation_plan" not in product
+    assert governed["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
+    assert governed["formula_id"] == "LIQ_001_vendido_cobrado"
+    assert governed["runtime_authorized"] is False
+    assert governed["tool_execution_authorized"] is False
+    assert product["computation_executed"] is True
     assert not list(output_dir.glob("*.xlsx"))

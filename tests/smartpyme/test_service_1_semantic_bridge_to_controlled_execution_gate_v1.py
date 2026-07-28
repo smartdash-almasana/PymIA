@@ -288,9 +288,9 @@ def test_owner_question_surface_uses_safe_option_ids() -> None:
     ):
         assert internal_token not in rendered
     assert dialogue["owner_answer_bindings"]["valor"] == {
-        "A": "unit_sale_price",
-        "B": "unit_cost_candidate",
-        "C": "total_sales",
+        "A": "sales_amount",
+        "B": "unit_sale_price",
+        "C": "unit_cost_candidate",
         "IGNORE": "IGNORED_NOT_RELEVANT",
     }
     _assert_all_flags_false(out)

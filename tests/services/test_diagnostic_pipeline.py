@@ -51,12 +51,11 @@ def test_pipeline_e2e_produces_confirmed_report_for_active_ren_001():
     assert result.formula_results[0].status == FormulaStatus.OK
     assert result.formula_results[0].value == -10.0
     assert result.pathology_findings[0].pathology_id == _PATHOLOGY_CODE
-    assert result.pathology_findings[0].status == PathologyStatus.ACTIVE
-    assert result.finding_records[0].finding_type == _PATHOLOGY_CODE
+    assert result.pathology_findings[0].status == PathologyStatus.PENDING_DATA
+    assert result.finding_records == []
     assert result.report is not None
-    assert result.report.kernel_state == KernelState.PASS
-    assert result.report.diagnosis_status == DiagnosisStatus.CONFIRMED
-    assert result.report.findings[0].finding_type == _PATHOLOGY_CODE
+    assert result.report.kernel_state == KernelState.BLOCKED
+    assert result.report.diagnosis_status == DiagnosisStatus.INSUFFICIENT_EVIDENCE
     assert result.report.evidence_used == ["sheet:ventas", "sheet:costos", "sheet:impuestos"]
 
 

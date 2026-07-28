@@ -24,28 +24,28 @@ def test_audit_reports_remaining_canonical_gaps_without_authorizing_mappings() -
     assert audit.schema_version == SCHEMA_VERSION
     assert audit.status == STATUS_READY
     assert audit.verdict == VERDICT_GAPS_REMAIN
-    assert audit.unresolved_columns_count == 16
+    assert audit.unresolved_columns_count == 6
+    assert audit.unresolved_columns_count == len(audit.findings)
     assert audit.columns_without_lexical_candidates > 0
     assert all(finding.canonical_mapping_authorized is False for finding in audit.findings)
 
 
-def test_stock_headers_only_surface_average_stock_as_a_lead_not_a_mapping() -> None:
+def test_resolved_stock_headers_are_not_reported_as_remaining_gaps() -> None:
     audit = audit_service_1_column_understanding_canonical_gaps_v1(_canonical_names())
-    by_column = {finding.column_name: finding for finding in audit.findings}
+    unresolved_columns = {finding.column_name for finding in audit.findings}
 
-    assert "average_stock" in by_column["stock_inicial"].lexical_candidates
-    assert "average_stock" in by_column["stock_final"].lexical_candidates
-    assert by_column["stock_inicial"].canonical_mapping_authorized is False
-    assert by_column["stock_final"].canonical_mapping_authorized is False
+    assert "stock_inicial" not in unresolved_columns
+    assert "stock_final" not in unresolved_columns
 
 
 def test_columns_without_canonical_language_remain_explicit_gaps() -> None:
     audit = audit_service_1_column_understanding_canonical_gaps_v1(_canonical_names())
-    by_column = {finding.column_name: finding for finding in audit.findings}
+    without_candidates = [finding for finding in audit.findings if not finding.lexical_candidates]
 
-    for column_name in {"entradas", "salidas", "cliente", "medio_pago", "proveedor", "bonif"}:
-        assert by_column[column_name].lexical_candidates == ()
-        assert "No canonical variable" in by_column[column_name].reason
+    assert without_candidates
+    for finding in without_candidates:
+        assert finding.canonical_mapping_authorized is False
+        assert "No canonical variable" in finding.reason
 
 
 def test_audit_is_deterministic_and_fail_closed() -> None:

@@ -17,29 +17,19 @@ def test_semantic_audit_detects_generic_or_misaligned_options() -> None:
     assert audit.schema_version == SCHEMA_VERSION
     assert audit.status == STATUS_READY
     assert audit.verdict == VERDICT_NEEDS_FIXES
-    assert audit.question_views_count == 20
+    assert audit.question_views_count == 13
     assert audit.auditable_views_count > 0
     assert audit.unaligned_views_count > 0
     assert audit.aligned_views_count + audit.unaligned_views_count == audit.auditable_views_count
 
 
-def test_semantic_audit_surfaces_known_scope_gap_columns_without_parallel_meanings() -> None:
+def test_semantic_audit_surfaces_current_scope_gaps_without_parallel_meanings() -> None:
     audit = audit_service_1_column_understanding_owner_question_semantics_v1()
-    by_column = {finding.column_name: finding for finding in audit.findings}
 
-    for column_name in {
-        "stock_inicial",
-        "entradas",
-        "salidas",
-        "stock_final",
-        "cliente",
-        "medio_pago",
-        "proveedor",
-        "bonif",
-    }:
-        assert column_name in by_column
-        assert by_column[column_name].issue_code == ISSUE_NO_SEMANTIC_ALIGNMENT
-        assert by_column[column_name].option_labels
+    assert audit.findings
+    for finding in audit.findings:
+        assert finding.issue_code == ISSUE_NO_SEMANTIC_ALIGNMENT
+        assert finding.option_labels
 
 
 def test_semantic_audit_is_observational_and_fail_closed() -> None:

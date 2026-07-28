@@ -98,4 +98,6 @@ def _source_refs_for(
             if isinstance(refs, list):
                 return [str(ref) for ref in refs if str(ref).strip()]
 
+    if evidence.file_name:
+        return [f"{evidence.file_name}:{matched_alias}"]
     return []

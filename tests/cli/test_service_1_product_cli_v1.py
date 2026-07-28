@@ -547,22 +547,23 @@ def test_real_xlsx_cli_builds_liq_001_plan_without_execution(tmp_path: Path) -> 
     )
     final = json.loads(final_result_path.read_text(encoding="utf-8"))
     product = final["product_pipeline"]
-    plan = product["computation_plan"]
+    governed = product["governed_computation_input"]
 
     assert final_exit == 0
     assert final["status"] == "COMPUTATION_PLAN_READY"
     assert product["tools_executed"] is False
     assert product["physical_run"] is None
-    assert plan["status"] == "READY_FOR_COMPUTATION"
-    assert plan["family_id"] == "CASH_COLLECTIONS"
-    assert plan["formula_id"] == "LIQ_001_vendido_cobrado"
-    assert plan["source_bindings"] == {
+    assert "computation_plan" not in product
+    assert governed["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
+    assert governed["family_id"] == "CASH_COLLECTIONS"
+    assert governed["formula_id"] == "LIQ_001_vendido_cobrado"
+    assert governed["source_bindings"] == {
         "sold_amount": "venta_total",
         "collected_amount": "cobrado",
     }
-    assert plan["runtime_authorized"] is False
-    assert plan["tool_execution_authorized"] is False
-    assert plan["computation_executed"] is False
+    assert governed["runtime_authorized"] is False
+    assert governed["tool_execution_authorized"] is False
+    assert product["computation_executed"] is True
     assert not list(output_dir.glob("*.xlsx"))
 
 

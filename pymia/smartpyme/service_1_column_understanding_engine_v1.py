@@ -94,6 +94,7 @@ _OWNER_CONFIRMATION_REQUIRED_HEADERS: Final[frozenset[str]] = frozenset(
 )
 
 _SHEET_ROLE_BOOSTS: Final[dict[str, tuple[str, ...]]] = {
+    "sales_amount": ("venta", "ventas"),
     "purchase_amount": ("compra", "compras"),
 }
 

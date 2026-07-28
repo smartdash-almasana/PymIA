@@ -46,22 +46,47 @@ class ColumnSemanticClassifier:
         "concepto",
     }
 
+    _NEGATIVE_PATTERNS: dict[str, tuple[str, ...]] = {
+        "pago": ("metodo pago", "forma pago", "tipo pago", "modalidad pago", "medio pago"),
+        "venta_total": ("canal venta", "tipo venta", "forma venta", "metodo venta"),
+    }
+
+    _EXACT_NORMALIZED: dict[str, str] = {
+        "cantidad": "cantidad",
+        "precio unitario": "precio_venta",
+        "precio venta": "precio_venta",
+        "venta": "venta_total",
+        "ventas": "venta_total",
+        "venta total": "venta_total",
+        "ventas totales": "venta_total",
+    }
+
     def classify(self, column_name: str) -> tuple[str, bool, str | None]:
         normalized = self._normalize(column_name)
-        compact = normalized.replace("_", " ")
+
+        for label, patterns in self._NEGATIVE_PATTERNS.items():
+            if any(pattern == normalized for pattern in patterns):
+                return "unknown", False, f"negative_pattern:{label}"
+
+        exact_label = self._EXACT_NORMALIZED.get(normalized)
+        if exact_label is not None:
+            return exact_label, False, None
+
         for label, keywords in self._LABEL_KEYWORDS.items():
-            if any(kw in compact for kw in keywords):
-                is_ambiguous = any(token in compact for token in self._AMBIGUOUS)
+            if any(kw in normalized for kw in keywords):
+                is_ambiguous = any(token in normalized for token in self._AMBIGUOUS)
                 reason = "keyword_is_ambiguous" if is_ambiguous else None
                 return label, is_ambiguous, reason
 
-        is_ambiguous = any(token in compact for token in self._AMBIGUOUS)
+        is_ambiguous = any(token in normalized for token in self._AMBIGUOUS)
         reason = "column_name_is_ambiguous" if is_ambiguous else None
         return "unknown", is_ambiguous, reason
 
     @staticmethod
     def _normalize(text: str) -> str:
-        t = str(text or "").strip().lower()
+        t = str(text or "").strip()
+        t = re.sub(r"(?<=[a-záéíóúñ])(?=[A-ZÁÉÍÓÚÑ])", " ", t)
+        t = t.lower().replace("_", " ").replace("-", " ")
         t = re.sub(r"\s+", " ", t)
         return t
 
