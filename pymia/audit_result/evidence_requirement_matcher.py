@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from pymia.contracts.evidence_requirement_copy_v1 import build_missing_evidence_question
 from pymia.contracts.evidence_v1 import StructuredEvidence
 
 
@@ -22,14 +24,12 @@ class EvidenceRequirementMatch:
     next_audit_questions: list[dict[str, Any]]
 
 
-_SIGNAL_TO_PATHOLOGY = {
-    "margen_bajo": "REN_001",
-    "margen_negativo": "REN_001",
-    "precio_desactualizado": "REN_001",
-    "caja_tensionada": "LIQ_001",
-    "sobrestock": "INV_002",
-    "stock_bajo": "INV_001",
-}
+@lru_cache(maxsize=1)
+def _load_evidence_requirement_aliases() -> dict[str, Any]:
+    catalog_path = Path(__file__).resolve().parents[1] / "contracts" / "evidence_requirement_aliases_v1.json"
+    if not catalog_path.exists():
+        return {}
+    return json.loads(catalog_path.read_text(encoding="utf-8"))
 
 
 def _docs_root() -> Path:
@@ -76,38 +76,18 @@ def _compute_key_aliases(evidence: StructuredEvidence) -> tuple[set[str], dict[s
         csrc = f"computed:{key}"
         add(key, csrc)
 
-    # Evidence aliases for formula catalog required_evidence
-    if "ventas_total" in computed or "ventas" in sheets:
-        add("ventas_del_periodo", "sheet:ventas")
-        add("sales", "sheet:ventas")
-        add("ventas_totales", "sheet:ventas")
+    config = _load_evidence_requirement_aliases()
+    for sheet_name, sheet_config in (config.get("sheet_evidence_aliases") or {}).items():
+        trigger = sheet_config.get("trigger_computed")
+        aliases = sheet_config.get("aliases") or []
+        if sheet_name in sheets or (trigger and trigger in computed):
+            for alias in aliases:
+                add(alias, f"sheet:{sheet_name}")
 
-    if "costos_total" in computed or "compras" in sheets:
-        add("costos_directos", "sheet:compras")
-        add("costs", "sheet:compras")
-        add("cmv_periodo", "sheet:compras")
-
-    if "stock" in sheets:
-        add("inventario_inicial", "sheet:stock")
-        add("inventario_final", "sheet:stock")
-        add("average_stock", "sheet:stock")
-
-    if "caja_banco" in sheets:
-        add("cobranzas_del_periodo", "sheet:caja_banco")
-        add("cuentas_corrientes_clientes", "sheet:caja_banco")
-        add("collected_amount", "sheet:caja_banco")
-
-    if "costos_fijos" in sheets:
-        add("impuestos_y_comisiones", "sheet:costos_fijos")
-        add("taxes", "sheet:costos_fijos")
-
-    # Variable aliases from computed variables
-    if "ventas_total" in computed:
-        add("sold_amount", "computed:ventas_total")
-        add("sale_price", "computed:ventas_total")
-    if "costos_total" in computed:
-        add("costs", "computed:costos_total")
-        add("cost_of_goods_sold", "computed:costos_total")
+    for computed_key, aliases in (config.get("computed_variable_aliases") or {}).items():
+        if computed_key in computed:
+            for alias in aliases:
+                add(alias, f"computed:{computed_key}")
 
     for sig in _signals(evidence):
         sid = str(sig.get("signal_id") or "unknown")
@@ -167,9 +147,10 @@ def match_evidence_requirements(
     sheet_reports = _sheet_status(evidence)
 
     sig_pathologies: set[str] = set()
+    signal_map = _load_evidence_requirement_aliases().get("signal_to_pathology") or {}
     for sig in _signals(evidence):
         stype = str(sig.get("signal_type") or "").strip().lower()
-        code = _SIGNAL_TO_PATHOLOGY.get(stype)
+        code = signal_map.get(stype)
         if code:
             sig_pathologies.add(code)
 

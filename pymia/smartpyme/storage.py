@@ -29,10 +29,22 @@ def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Pat
     results_dir = tenant_root / "results"
     receptions_jsonl = tenant_root / "receptions.jsonl"
     intakes_jsonl = tenant_root / "intakes.jsonl"
+    anamnesis_jsonl = tenant_root / "anamnesis.jsonl"
+    investigations_jsonl = tenant_root / "investigations.jsonl"
+    owner_answers_jsonl = tenant_root / "owner_answers.jsonl"
+    evidence_requests_jsonl = tenant_root / "evidence_requests.jsonl"
     evidences_jsonl = tenant_root / "evidences.jsonl"
     for d in (tenant_root, evidence_dir, reports_dir, results_dir):
         d.mkdir(parents=True, exist_ok=True)
-    for jsonl in (receptions_jsonl, intakes_jsonl, evidences_jsonl):
+    for jsonl in (
+        receptions_jsonl,
+        intakes_jsonl,
+        anamnesis_jsonl,
+        investigations_jsonl,
+        owner_answers_jsonl,
+        evidence_requests_jsonl,
+        evidences_jsonl,
+    ):
         if not jsonl.exists():
             jsonl.write_text("", encoding="utf-8")
     return {
@@ -42,6 +54,10 @@ def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Pat
         "results_dir": results_dir,
         "receptions_jsonl": receptions_jsonl,
         "intakes_jsonl": intakes_jsonl,
+        "anamnesis_jsonl": anamnesis_jsonl,
+        "investigations_jsonl": investigations_jsonl,
+        "owner_answers_jsonl": owner_answers_jsonl,
+        "evidence_requests_jsonl": evidence_requests_jsonl,
         "evidences_jsonl": evidences_jsonl,
     }
 
@@ -53,6 +69,14 @@ def _write_jsonl_line(target: Path, payload: dict[str, Any]) -> Path:
     return target
 
 
+def _record_to_dict(record: Any, *, record_name: str) -> dict[str, Any]:
+    if hasattr(record, "to_dict") and callable(record.to_dict):
+        return record.to_dict()
+    if isinstance(record, dict):
+        return record.copy()
+    raise ValueError(f"{record_name} must be a supported record or dict")
+
+
 def append_reception_jsonl(base_dir: str | Path, record: ReceptionRecord) -> Path:
     paths = ensure_tenant_storage(base_dir, record.tenant_id)
     return _write_jsonl_line(paths["receptions_jsonl"], asdict(record))
@@ -61,6 +85,121 @@ def append_reception_jsonl(base_dir: str | Path, record: ReceptionRecord) -> Pat
 def append_intake_jsonl(base_dir: str | Path, record: IntakeRecord) -> Path:
     paths = ensure_tenant_storage(base_dir, record.tenant_id)
     return _write_jsonl_line(paths["intakes_jsonl"], record.to_dict())
+
+
+def _save_record_jsonl(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None,
+    target_key: str,
+    required_fields: tuple[str, ...],
+    list_fields: tuple[str, ...] = (),
+    dict_fields: tuple[str, ...] = ("metadata",),
+) -> Path:
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required")
+    if base_dir is None:
+        raise ValueError("base_dir is required")
+    record_dict = _record_to_dict(record, record_name="record")
+    if record_dict.get("tenant_id") != tenant_id:
+        if "tenant_id" not in record_dict:
+            raise ValueError("record missing tenant_id field")
+        raise ValueError(
+            f"record tenant_id ({record_dict['tenant_id']}) does not match argument tenant_id ({tenant_id})"
+        )
+    for field in required_fields:
+        if field not in record_dict:
+            raise ValueError(f"record missing required field: {field}")
+    for field in list_fields:
+        if not isinstance(record_dict[field], list):
+            raise ValueError(f"field {field} must be list")
+    for field in dict_fields:
+        if not isinstance(record_dict[field], dict):
+            raise ValueError(f"field {field} must be dict")
+    paths = ensure_tenant_storage(base_dir, tenant_id)
+    return _write_jsonl_line(paths[target_key], record_dict)
+
+
+def save_anamnesis_record(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    return _save_record_jsonl(
+        tenant_id,
+        record,
+        base_dir=base_dir,
+        target_key="anamnesis_jsonl",
+        required_fields=(
+            "anamnesis_id", "tenant_id", "intake_id", "raw_owner_message",
+            "business_taxonomy", "declared_pains", "owner_hypotheses",
+            "declared_documents", "requested_documents", "status", "created_at", "metadata",
+        ),
+        list_fields=("declared_pains", "owner_hypotheses", "declared_documents", "requested_documents"),
+        dict_fields=("business_taxonomy", "metadata"),
+    )
+
+
+def save_investigation_record(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    return _save_record_jsonl(
+        tenant_id,
+        record,
+        base_dir=base_dir,
+        target_key="investigations_jsonl",
+        required_fields=(
+            "investigation_id", "tenant_id", "intake_id", "anamnesis_id", "owner_prompt",
+            "investigation_axis", "declared_question", "status", "evidence_required",
+            "pathology_candidates", "formula_candidates", "created_at", "metadata",
+        ),
+        list_fields=("evidence_required", "pathology_candidates", "formula_candidates"),
+    )
+
+
+def save_owner_answer_record(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    return _save_record_jsonl(
+        tenant_id,
+        record,
+        base_dir=base_dir,
+        target_key="owner_answers_jsonl",
+        required_fields=(
+            "answer_id", "tenant_id", "intake_id", "anamnesis_id", "investigation_id",
+            "question_ref", "raw_owner_answer", "answer_kind", "created_at", "metadata",
+        ),
+    )
+
+
+def save_evidence_request_record(
+    tenant_id: str,
+    record: Any,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    record_dict = _record_to_dict(record, record_name="record")
+    if record_dict.get("owner_answer_id") is not None and not isinstance(record_dict["owner_answer_id"], str):
+        raise ValueError("field owner_answer_id must be str or None")
+    return _save_record_jsonl(
+        tenant_id,
+        record_dict,
+        base_dir=base_dir,
+        target_key="evidence_requests_jsonl",
+        required_fields=(
+            "request_id", "tenant_id", "intake_id", "anamnesis_id", "investigation_id",
+            "owner_answer_id", "requested_evidence", "request_reason", "status", "created_at", "metadata",
+        ),
+        list_fields=("requested_evidence",),
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -50,6 +50,14 @@ class CalculationRelevance(str, Enum):
     INFORMATIONAL = "INFORMATIONAL"
 
 
+class SemanticRectificationStatus(str, Enum):
+    INFERRED_NOT_RECTIFIED = "INFERRED_NOT_RECTIFIED"
+    OWNER_CONFIRMED_AS_INFERRED = "OWNER_CONFIRMED_AS_INFERRED"
+    OWNER_RECTIFIED_TO_NEW_FUNCTION = "OWNER_RECTIFIED_TO_NEW_FUNCTION"
+    OWNER_REJECTED = "OWNER_REJECTED"
+    BLOCKED_UNNORMALIZABLE_OWNER_RESPONSE = "BLOCKED_UNNORMALIZABLE_OWNER_RESPONSE"
+
+
 # Labels that feed numerical aggregation in computed_variables
 _CALCULATION_FEEDING_LABELS: dict[str, CalculationRelevance] = {
     "venta_total": CalculationRelevance.VENTAS,
@@ -114,6 +122,14 @@ class ColumnConfirmationEntry(BaseModel):
         default=None,
         description="Rol confirmado por el dueño. None si aún no confirmó.",
     )
+    owner_rectified_function: str | None = Field(
+        default=None,
+        description="Función semántica rectificada por el dueño para uso operativo.",
+    )
+    semantic_rectification_status: SemanticRectificationStatus = Field(
+        default=SemanticRectificationStatus.INFERRED_NOT_RECTIFIED,
+        description="Estado de rectificación semántica entre inferencia y función operativa.",
+    )
     confirmation_status: ConfirmationStatus = Field(
         default=ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
         description="Estado actual de confirmación.",
@@ -131,6 +147,17 @@ class ColumnConfirmationEntry(BaseModel):
             ConfirmationStatus.PENDING_OWNER_CONFIRMATION,
             ConfirmationStatus.BLOCKED_AMBIGUOUS,
         }
+
+
+def get_effective_operational_function(entry: ColumnConfirmationEntry) -> str | None:
+    """Return the semantic function that is safe for operational use."""
+    if entry.owner_rectified_function:
+        return entry.owner_rectified_function
+    if entry.owner_confirmed_role:
+        return entry.owner_confirmed_role
+    if entry.confirmation_status == ConfirmationStatus.CONFIRMED:
+        return entry.suggested_semantic_role
+    return None
 
 
 class OwnerColumnConfirmationAnswer(BaseModel):
@@ -198,26 +225,37 @@ class ColumnConfirmationMatrix(BaseModel):
         """
         entry = self._find_entry(answer.sheet_name, answer.column_name)
         entry.owner_confirmed_role = answer.confirmed_role
+        entry.owner_rectified_function = None
 
         if answer.outcome == OwnerColumnConfirmationOutcome.CONFIRMED_COMPUTATIONAL:
             confirmed_role = answer.confirmed_role or answer.proposed_role
             entry.owner_confirmed_role = confirmed_role
-            entry.suggested_semantic_role = confirmed_role
+            entry.owner_rectified_function = confirmed_role
             entry.calculation_relevance = infer_calculation_relevance(confirmed_role)
+            if confirmed_role == entry.suggested_semantic_role:
+                entry.semantic_rectification_status = SemanticRectificationStatus.OWNER_CONFIRMED_AS_INFERRED
+            else:
+                entry.semantic_rectification_status = SemanticRectificationStatus.OWNER_RECTIFIED_TO_NEW_FUNCTION
             entry.confirmation_status = ConfirmationStatus.CONFIRMED
             return entry
 
         if answer.outcome == OwnerColumnConfirmationOutcome.CONFIRMED_INFORMATIONAL:
             confirmed_role = answer.confirmed_role or answer.proposed_role
             entry.owner_confirmed_role = confirmed_role
-            entry.suggested_semantic_role = confirmed_role
+            entry.owner_rectified_function = confirmed_role
             entry.calculation_relevance = CalculationRelevance.INFORMATIONAL
+            if confirmed_role == entry.suggested_semantic_role:
+                entry.semantic_rectification_status = SemanticRectificationStatus.OWNER_CONFIRMED_AS_INFERRED
+            else:
+                entry.semantic_rectification_status = SemanticRectificationStatus.OWNER_RECTIFIED_TO_NEW_FUNCTION
             entry.confirmation_status = ConfirmationStatus.CONFIRMED
             return entry
 
         if answer.outcome == OwnerColumnConfirmationOutcome.CONFIRMED_NOT_RELEVANT:
             entry.owner_confirmed_role = "IGNORED_NOT_RELEVANT"
+            entry.owner_rectified_function = None
             entry.calculation_relevance = CalculationRelevance.INFORMATIONAL
+            entry.semantic_rectification_status = SemanticRectificationStatus.OWNER_REJECTED
             entry.confirmation_status = ConfirmationStatus.IGNORED_NOT_RELEVANT
             return entry
 
@@ -225,9 +263,18 @@ class ColumnConfirmationMatrix(BaseModel):
             OwnerColumnConfirmationOutcome.OWNER_REJECTED_MAPPING,
             OwnerColumnConfirmationOutcome.CONFLICTING_ANSWER,
         }:
+            entry.owner_rectified_function = None
+            entry.semantic_rectification_status = SemanticRectificationStatus.OWNER_REJECTED
             entry.confirmation_status = ConfirmationStatus.BLOCKED_AMBIGUOUS
             return entry
 
+        owner_text = answer.owner_answer_text.strip().lower()
+        if owner_text.startswith("tu respuesta"):
+            entry.semantic_rectification_status = SemanticRectificationStatus.BLOCKED_UNNORMALIZABLE_OWNER_RESPONSE
+            entry.confirmation_status = ConfirmationStatus.BLOCKED_AMBIGUOUS
+            return entry
+
+        entry.semantic_rectification_status = SemanticRectificationStatus.INFERRED_NOT_RECTIFIED
         entry.confirmation_status = ConfirmationStatus.PENDING_OWNER_CONFIRMATION
         return entry
 
@@ -247,9 +294,16 @@ class ColumnConfirmationMatrix(BaseModel):
             return True
 
         for entry in self.entries:
-            if entry.suggested_semantic_role in required_labels:
+            effective_function = get_effective_operational_function(entry)
+            if effective_function in required_labels:
                 if entry.confirmation_status != ConfirmationStatus.CONFIRMED:
                     return False
+                continue
+            if (
+                entry.confirmation_status != ConfirmationStatus.CONFIRMED
+                and entry.suggested_semantic_role in required_labels
+            ):
+                return False
         return True
 
     def owner_questions(self) -> list[dict[str, str]]:
