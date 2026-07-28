@@ -247,7 +247,7 @@ stage_1:
       command: python -m pytest tests/smartpyme/test_service_1_product_pipeline_v1.py tests/smartpyme/test_service_1_product_completion_gate_v1.py tests/smartpyme/test_service_1_assisted_web_http_v1.py tests/smartpyme/test_service_1_module_disposition_registry_v1.py tests/smartpyme/test_service_1_post_tool_owner_delivery_summary_v1.py -q
       result: 26 passed in 6.68s
     full_regression:
-      command: python -m pytest tests/smartpyme -q; python -m pytest tests/application tests/architecture tests/audit_result tests/cli tests/contracts tests/diagnostic_core tests/diagnosticcore tests/docs tests/document_intelligence tests/domain tests/e2e tests/hermes tests/interfaces tests/llm_operator tests/mcp tests/microsaas tests/orchestration tests/pipeline tests/rendering tests/scn tests/scripts tests/services tests/telegram_runtime tests/tools -q
+      command: python -m pytest tests/smartpyme -q; python -m pytest tests/application tests/architecture tests/audit_result tests/cli tests/contracts tests/diagnostic_core tests/diagnosticcore tests/docs tests/document_intelligence tests/domain tests/e2e tests/llm_operator tests/mcp tests/microsaas tests/orchestration tests/pipeline tests/rendering tests/scn tests/scripts tests/services tests/telegram_runtime tests/tools -q
       result: 1740 passed across 2 exhaustive partitions; 0 failed
       passed: 1740
       skipped: 0
@@ -285,28 +285,54 @@ stage_1:
     support_necessary_after: 22
     productive_capability_impact: NONE
 stage_2:
-  status: ACTIVE
+  status: CLOSED_PASS
   objective: CONSOLIDATE_ARCHITECTURE_AND_CONTRACTS
+  closeout_document: docs/current/SERVICE_1_STAGE2_CLOSEOUT_V1.md
+  closeout_verdict: PASS_STAGE2_ARCHITECTURAL_CONVERGENCE_CLOSEOUT
+  packages_total: 10
+  packages_closed_pass: 10
+  canonical_product_root: service_1_product_pipeline_v1
+  architecture_baseline_verdict: PASS_ARCHITECTURE_BASELINE_V1
+  architecture_structural_checks_passed: 20
+  architecture_blockers: 0
+  architecture_behavior_tests_passed: 70
+  broad_stage2_execution_regression_passed: 192
+  productive_modules: 27
+  support_necessary_modules: 27
+  legacy_computation_plan_execution_authority: false
+  generic_kernel_legacy_plan_fallback: false
   implementation_changes_authorized: false
-  authorities_document:
-    path: docs/current/SERVICE_1_STAGE2_ARCHITECTURAL_AUTHORITIES_V1.md
-    status: CANONICAL_FOR_STAGE2
-    unresolved_authorities_resolved_in_proposal: 7
-    productive_code_changed: false
-    revision_findings_resolved: 7
-    independent_audit_status: PASS
-    independent_audit_verdict: PASS_STAGE2_REVISED_ARCHITECTURAL_AUTHORITIES_AUDIT
-    implementation_changes_authorized: LIMITED_TO_PACKAGE1
-  package_1:
-    status: CLOSED_PASS
-    specification: docs/current/SERVICE_1_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE_SPEC_V1.md
-    directed_closure_verdict: PASS_STAGE2_PACKAGE1_REGION_PHYSICAL_EVIDENCE
-    audit_findings_corrected: 5
-    validation_tests_passed: 83
-    full_suite_tests_passed: 1753
-    productive_root_changed: false
-  implementation_changes_authorized: LIMITED_TO_PACKAGE2_SPECIFICATION
-next_authorized_action: SPECIFY_PACKAGE2_OWNER_CONFIRMATION_EVENT
+  physical_xlsx_corpus_v1: READY_FOR_PRODUCT_READINESS_NEXT_GATE
+  physical_cases: 7
+  physical_columns: 78
+  physical_known_semantic_columns: 59
+  physical_exact_matches: 59
+  physical_semantic_precision: 1.0
+  physical_direct_resolution_coverage: 0.7564
+  physical_safe_resolution_rate: 1.0
+  physical_false_confident: 0
+  physical_dangerous_errors: 0
+  physical_p6_p7_p8_matrix: READY
+  physical_p6_cases_passed: 7/7
+  physical_p7_cases_passed: 7/7
+  physical_p8_negative_probes_passed: 14/14
+  physical_computable_positive_cases: 3
+  physical_executed_positive_cases: 3
+  physical_positive_capabilities: sold_vs_collected_gap, projected_closing_cash_balance, dso
+  physical_positive_results: gap_amount=600.0, projected_closing_balance=1700.0, dso_days=10.0
+  physical_unsafe_executions: 0
+  remaining_capability_governance_audit: GOVERNANCE_GAPS_REMAIN
+  remaining_registry_governance_gaps: 3
+  pathology_scope_fixed: true
+  pathology_scope_not_reopened: true
+  bounded_governance_expansion: CLOSED_PASS
+  bounded_governed_capabilities: 6
+  bounded_deferred_capabilities: 3
+  bounded_six_physical_controls: CLOSED_PASS
+  bounded_six_positive_controls: 6/6
+  bounded_six_negative_controls: 6/6
+  bounded_six_unsafe_executions: 0
+next_authorized_action: CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
 ```
 
 ---
@@ -732,10 +758,10 @@ Audit evidence verified:
 - README/document references resolve;
 - no safety package was integrated and no production or frontend readiness was claimed.
 
-Stage 0 is closed. Current next authorized action:
+Stage 0 is closed. The historical Stage 0 checkpoint originally authorized Package 2 specification; Stage 2 has since completed all ten convergence packages. The post-Stage-2 roadmap audit is complete. The in-memory semantic corpus remains at supported-scope precision 1.0000. The physical XLSX multi-sector corpus passes its semantic gate: 59/59 known semantic columns exact, precision 1.0000, safe-resolution 1.0000, zero false-confident rows and zero dangerous errors. The physical P6/P7/P8 matrix is READY: P6 7/7, P7 7/7, 14/14 negative P8 probes correct and zero unsafe executions. Three physical positive controls now reach P8 `COMPUTABLE` and deterministic product-root execution: LIQ_001 sold_vs_collected_gap (gap_amount=600.0), LIQ_002 projected_closing_cash_balance (projected_closing_balance=1700.0), and PYME_011 dso (dso_days=10.0). A fresh governance convergence audit found nine remaining registry capabilities that cannot yet be physically certified through canonical P8 because registry/formula/pathology/P7/evidence-matrix governance is incomplete. The enriched pathology catalog explicitly declares scope_fixed=true and scope_not_reopened=true, so no silent scope expansion was performed. Current next authorized activity:
 
 ```text
-NEXT_AUTHORIZED_ACTION = SPECIFY_PACKAGE2_OWNER_CONFIRMATION_EVENT
+NEXT_AUTHORIZED_ACTION = BUILD_PHYSICAL_COMPUTABLE_CONTROLS_FOR_BOUNDED_SIX_V1
 ```
 
 Stage 1 cluster 001 closure:
@@ -1010,10 +1036,42 @@ STAGE1_FINAL_SUPPORT_MODULES_AUDIT = PASS_STAGE1_SUPPORT_MODULES_FINAL_AUDIT
 STAGE1_FINAL_CLASSIFICATION = A10_B5_C7_D0
 STAGE1_CERTIFIABLE_DEAD_REMAINING = 0
 STAGE1_STATUS = CLOSED
-STAGE2_STATUS = ACTIVE
-NEXT_AUTHORIZED_ACTION = SPECIFY_PACKAGE2_OWNER_CONFIRMATION_EVENT
-COMMIT_CREATED = true
-COMMIT_AUTHORIZED = true
-INTEGRATION_AUTHORIZED = true
-PUSH_AUTHORIZED = true
+STAGE2_STATUS = CLOSED_PASS
+STAGE2_CLOSEOUT = PASS_STAGE2_ARCHITECTURAL_CONVERGENCE_CLOSEOUT
+STAGE2_PACKAGES = 10/10 CLOSED_PASS
+STAGE2_ARCHITECTURE_BASELINE = PASS_ARCHITECTURE_BASELINE_V1
+STAGE2_BLOCKERS = 0
+PRODUCT_READINESS_CORPUS_V1 = SEMANTIC_SCOPE_PASS
+SEMANTIC_DIRECT_RESOLUTION_COVERAGE = 0.8421
+SEMANTIC_SUPPORTED_SCOPE_PRECISION = 1.0
+SEMANTIC_SAFE_RESOLUTION_RATE = 1.0
+SEMANTIC_DANGEROUS_ERRORS = 0
+PHYSICAL_XLSX_CORPUS_V1 = READY_FOR_PRODUCT_READINESS_NEXT_GATE
+PHYSICAL_XLSX_CASES = 7
+PHYSICAL_XLSX_COLUMNS = 78
+PHYSICAL_XLSX_KNOWN_SEMANTIC_COLUMNS = 59
+PHYSICAL_XLSX_EXACT_MATCHES = 59
+PHYSICAL_XLSX_SEMANTIC_PRECISION = 1.0
+PHYSICAL_XLSX_DIRECT_RESOLUTION_COVERAGE = 0.7564
+PHYSICAL_XLSX_SAFE_RESOLUTION_RATE = 1.0
+PHYSICAL_XLSX_FALSE_CONFIDENT = 0
+PHYSICAL_XLSX_DANGEROUS_ERRORS = 0
+PHYSICAL_P6_P7_P8_MATRIX_V1 = READY
+PHYSICAL_P6_CASES_PASSED = 7/7
+PHYSICAL_P7_CASES_PASSED = 7/7
+PHYSICAL_P8_NEGATIVE_PROBES_PASSED = 14/14
+PHYSICAL_COMPUTABLE_POSITIVE_CASES = 3
+PHYSICAL_EXECUTED_POSITIVE_CASES = 3
+PHYSICAL_POSITIVE_CAPABILITIES = sold_vs_collected_gap, projected_closing_cash_balance, dso
+PHYSICAL_POSITIVE_RESULTS = gap_amount=600.0, projected_closing_balance=1700.0, dso_days=10.0
+PHYSICAL_UNSAFE_EXECUTIONS = 0
+REMAINING_CAPABILITY_GOVERNANCE_AUDIT = GOVERNANCE_GAPS_REMAIN
+REMAINING_REGISTRY_GOVERNANCE_GAPS = 9
+PATHOLOGY_SCOPE_FIXED = true
+PATHOLOGY_SCOPE_NOT_REOPENED = true
+NEXT_AUTHORIZED_ACTION = BUILD_PHYSICAL_COMPUTABLE_CONTROLS_FOR_BOUNDED_SIX_V1
+COMMIT_CREATED = false
+COMMIT_AUTHORIZED = false
+INTEGRATION_AUTHORIZED = false
+PUSH_AUTHORIZED = false
 ```

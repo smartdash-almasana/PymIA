@@ -23,8 +23,8 @@ OwnerSemanticConfirmationTargetType = Literal[
 class OwnerSemanticConfirmationGate(BaseModel):
     """Gate soberano de confirmación semántica del dueño.
 
-    PymIA/Hermes puede proponer un sentido operativo. El dueño debe confirmarlo,
-    corregirlo o rechazarlo antes de usarlo como eje confirmado.
+    PymIA o una capa conversacional autorizada puede proponer un sentido operativo.
+    El dueño debe confirmarlo, corregirlo o rechazarlo antes de usarlo como eje confirmado.
     """
 
     gate_id: str = Field(..., description="Identificador estable del gate.")

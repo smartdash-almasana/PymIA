@@ -21,9 +21,9 @@ class EvidenceTable(BaseModel):
 
 
 class StructuredEvidence(BaseModel):
-    """Evidencia estructurada recibida desde Hermes/conversa-engine.
+    """Evidencia estructurada recibida desde una capa de ingesta autorizada.
 
-    Boundary: Hermes puede parsear documentos y poblar este contrato.
+    Boundary: una capa de ingesta puede parsear documentos y poblar este contrato.
     PymIA puede contrastar variables, pero no debe depender de texto narrativo
     para reconocer evidencia ya recibida.
     """

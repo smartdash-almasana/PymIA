@@ -1,9 +1,9 @@
 """SCN RenderContract boundary helpers.
 
-This module is intentionally small and dependency-light. It does not call Hermes,
-Telegram, MCP, network services, or runtime gateways. It only converts a sovereign
-OperationalAuditResult-like mapping into a RenderContract-like mapping that Hermes
-may render without reinterpretation.
+This module is intentionally small and dependency-light. It does not call any
+conversational runtime, Telegram, MCP, network service, or external gateway. It only
+converts a sovereign OperationalAuditResult-like mapping into a RenderContract-like
+mapping that an authorized presentation layer may render without reinterpretation.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ def build_render_contract(
     created_at: str | None = None,
     allowed_tone: str = "neutral_operational",
 ) -> dict[str, Any]:
-    """Build the minimal RenderContract Hermes is allowed to render.
+    """Build the minimal RenderContract an authorized presentation layer may render.
 
     Required sovereign controls:
     - result_id
@@ -58,8 +58,8 @@ def build_render_contract(
     - missing_evidence as next_questions when pending/blocked
     - blocked_message when fail-closed status is present
 
-    The returned contract intentionally excludes findings. Hermes renders; Hermes
-    does not reinterpret or complete findings.
+    The returned contract intentionally excludes findings. The presentation layer
+    renders without reinterpreting or completing findings.
     """
 
     result = _require_mapping(operational_audit_result)

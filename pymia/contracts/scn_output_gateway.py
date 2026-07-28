@@ -1,9 +1,9 @@
 """SCN output gateway.
 
-Minimal PymIA -> Hermes boundary wrapper:
+Minimal PymIA -> authorized presentation boundary wrapper:
 verify OperationalAuditResult, then build a RenderContract.
 
-No Hermes execution, no Telegram, no MCP, no network, no production side effects.
+No conversational runtime execution, no Telegram, no MCP, no network, no production side effects.
 """
 
 from __future__ import annotations
