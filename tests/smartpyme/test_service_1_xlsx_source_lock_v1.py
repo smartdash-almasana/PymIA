@@ -4,10 +4,12 @@ from __future__ import annotations
 from pathlib import Path
 
 CANONICAL_RUNTIME_TABLE_READER = "service_1_xlsx_to_normalized_table_v1.py"
+P10_XLSX_QUALITY_GATE = "service_1_xlsx_quality_gate_v1.py"
 CANONICAL_CURATION_PIPELINE = "excel_lab_ingestion_v1.py"
 CANONICAL_DOCUMENT_INGESTION_SHIM = "tools/document_ingestion.py"
 ALLOWED_LOAD_WORKBOOK_FILES = {
     CANONICAL_RUNTIME_TABLE_READER,
+    P10_XLSX_QUALITY_GATE,
 }
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tools.excel_evidence import build_excel_structured_evidence, evidence_to_kernel_artifact
+from tools.excel_evidence import build_excel_structured_evidence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -24,21 +24,9 @@ def test_local_excel_evidence_builds_structured_evidence_from_real_xlsx() -> Non
     assert evidence.tables
     assert evidence.metadata["extraction_engine"] == "local_excel_evidence_v1"
     assert evidence.metadata["rows_count"] > 0
-    assert evidence.computed_variables
-
-
-def test_local_excel_evidence_reaches_kernel() -> None:
-    evidence = build_excel_structured_evidence(
-        excel_path=REAL_XLSX,
-        tenant_id="tenant-local-excel-kernel-test",
-    )
-
-    artifact = evidence_to_kernel_artifact(evidence)
-
-    assert artifact["ok"] is True
-    assert artifact["kernel"]["status"] in {"ok", "no_signal"}
-    assert artifact["evidence"]["source"] == "xlsx_upload"
-    assert artifact["evidence"]["computed_variables"]
+    assert evidence.computed_variables == {}
+    assert evidence.metadata["calculation_blocked"] is True
+    assert evidence.metadata["owner_questions"]
 
 
 def test_local_excel_evidence_artifact_is_json_serializable(tmp_path: Path) -> None:
@@ -52,7 +40,9 @@ def test_local_excel_evidence_artifact_is_json_serializable(tmp_path: Path) -> N
     loaded = json.loads(out.read_text(encoding="utf-8"))
     assert loaded["tenant_id"] == "tenant-local-excel-json-test"
     assert loaded["tables"]
-    assert loaded["computed_variables"]
+    assert loaded["computed_variables"] == {}
+    assert loaded["metadata"]["calculation_blocked"] is True
+    assert loaded["metadata"]["owner_questions"]
 
 
 def test_signal_sheet_is_exported_to_metadata_without_blocking_workbook() -> None:
@@ -71,14 +61,12 @@ def test_excel_evidence_cli_can_emit_operational_audit_result(tmp_path: Path) ->
     from pymia.audit_result.models import OperationalAuditResult
 
     evidence_out = tmp_path / "evidence.json"
-    kernel_out = tmp_path / "kernel.json"
     audit_out = tmp_path / "audit.json"
 
     argv = [
         "--excel", str(TEXTIL_XLSX),
         "--tenant-id", "test_textil_cli",
         "--evidence-output", str(evidence_out),
-        "--kernel-output", str(kernel_out),
         "--audit-output", str(audit_out),
     ]
 
@@ -86,7 +74,6 @@ def test_excel_evidence_cli_can_emit_operational_audit_result(tmp_path: Path) ->
     assert ret == 0
 
     assert evidence_out.exists()
-    assert kernel_out.exists()
     assert audit_out.exists()
 
     with open(audit_out, "r", encoding="utf-8") as f:

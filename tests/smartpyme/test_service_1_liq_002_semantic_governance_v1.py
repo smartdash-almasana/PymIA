@@ -35,6 +35,25 @@ def _candidate(column: str, variable: str) -> Service1ColumnSemanticCandidateV1:
     )
 
 
+def _p6_decision(variable: str, column: str) -> dict[str, object]:
+    return {
+        "status": "APPROVED",
+        "approved_variable": variable,
+        "column_ref": column,
+        "approved_role": variable,
+        "confidence": 1.0,
+    }
+
+
+def _requirement_match() -> dict[str, object]:
+    return {
+        "status": "REQUIREMENT_MATCHED",
+        "target_capabilities": ("projected_closing_cash_balance",),
+        "family_id": FAMILY_CASH_PROJECTION,
+        "missing_role_groups": [],
+    }
+
+
 def _confirmed_packet() -> dict[str, object]:
     candidates = (
         _candidate("saldo_inicial", "initial_balance"),
@@ -55,6 +74,12 @@ def _confirmed_packet() -> dict[str, object]:
             "ready_variable_family_ids": [
                 item.family_id for item in families if item.status == STATUS_READY
             ],
+            "p6_decisions": [
+                _p6_decision("initial_balance", "saldo_inicial"),
+                _p6_decision("expected_collections", "cobros_esperados"),
+                _p6_decision("expected_payments", "pagos_esperados"),
+            ],
+            "requirement_matches": [_requirement_match()],
         },
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -106,7 +131,7 @@ def test_liq_002_builds_real_governed_plan_without_monkeypatch() -> None:
         "expected_collections": "cobros_esperados",
         "expected_payments": "pagos_esperados",
     }
-    assert plan["catalog_versions"]["evidence_matrix"] == "1.2"
+    assert plan["catalog_versions"]["evidence_matrix"] == "2.0"
     assert plan["computation_candidate_ready"] is True
     assert plan["runtime_authorized"] is False
     assert plan["tool_execution_authorized"] is False

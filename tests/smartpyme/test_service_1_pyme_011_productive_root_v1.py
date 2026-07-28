@@ -144,7 +144,7 @@ def test_pyme_011_builds_real_governed_plan_without_monkeypatch() -> None:
         "sales": "ventas_periodo",
         "days": "dias_periodo",
     }
-    assert plan["catalog_versions"]["evidence_matrix"] == "1.2"
+    assert plan["catalog_versions"]["evidence_matrix"] == "2.0"
     assert plan["computation_candidate_ready"] is True
 
 

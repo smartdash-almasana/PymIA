@@ -133,8 +133,8 @@ def test_cash_collection_builds_governed_liq_001_computation_plan() -> None:
     assert plan["computation_candidate_ready"] is True
     assert plan["catalog_versions"] == {
         "formula_catalog": "1.1",
-        "pathology_catalog": "1.0",
-        "evidence_matrix": "1.2",
+        "pathology_catalog": "2.0",
+        "evidence_matrix": "2.0",
     }
     _assert_closed(plan)
 

@@ -49,51 +49,6 @@ def build_excel_structured_evidence(
     )
 
 
-def evidence_to_kernel_artifact(
-    evidence: StructuredEvidence | AttachmentProcessingStatus,
-    tenant_id: str | None = None,
-) -> JsonObject:
-    from pymia.interfaces.conversational_port import ClinicalConversationalPort, ConversationalInput
-    from pymia.contracts.attachment_lifecycle_v1 import (
-        EvidenceBundle,
-        AttachmentProcessingStatus,
-        AttachmentLifecycleState,
-        AttachmentParseStatus,
-    )
-
-    if isinstance(evidence, AttachmentProcessingStatus):
-        status = evidence
-        tid = tenant_id or (status.evidence.tenant_id if status.evidence else "unknown-tenant")
-    else:
-        status = AttachmentProcessingStatus(
-            attachment_id="att-local-compat",
-            file_name=evidence.file_name or "evidence.xlsx",
-            mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            source_channel="local",
-            lifecycle_state=AttachmentLifecycleState.PARSE_SUCCEEDED,
-            parse_status=AttachmentParseStatus.SUCCEEDED,
-            parser_name="excel_evidence_v1",
-            evidence=evidence,
-        )
-        tid = tenant_id or evidence.tenant_id
-
-    bundle = EvidenceBundle(attachments=[status])
-
-    output = ClinicalConversationalPort().handle(
-        ConversationalInput(
-            tenant_id=tid,
-            channel="local_excel_evidence",
-            text="revisar rentabilidad con excel procesado localmente",
-            bundle=bundle,
-        )
-    )
-    return {
-        "ok": output.status in {"ok", "no_signal"},
-        "kernel": {"status": output.status, "message": output.message},
-        "evidence": status.evidence.model_dump(mode="json") if status.evidence else None,
-    }
-
-
 def _write_json(path: Path, payload: JsonObject) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -111,7 +66,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--excel", required=True)
     parser.add_argument("--tenant-id", required=True)
     parser.add_argument("--evidence-output", required=True)
-    parser.add_argument("--kernel-output", required=True)
     parser.add_argument("--curation-output", required=False)
     parser.add_argument("--artifact-dir", required=False)
     parser.add_argument("--audit-output", required=False)
@@ -199,13 +153,10 @@ def main(argv: list[str] | None = None) -> int:
 
         _write_json(Path(args.evidence_output), status.model_dump(mode="json"))
 
-    artifact = evidence_to_kernel_artifact(status, tenant_id=args.tenant_id)
-    _write_json(Path(args.kernel_output), artifact)
-
     if status.parse_status == AttachmentParseStatus.SUCCEEDED and status.evidence is not None:
-        print(json.dumps({"ok": artifact["ok"], "computed_variables": status.evidence.computed_variables}, ensure_ascii=False, indent=2))
+        print(json.dumps({"ok": True, "computed_variables": status.evidence.computed_variables}, ensure_ascii=False, indent=2))
     else:
-        print(json.dumps({"ok": artifact["ok"], "error": status.user_message}, ensure_ascii=False, indent=2))
+        print(json.dumps({"ok": False, "error": status.user_message}, ensure_ascii=False, indent=2))
     return 0
 
 
