@@ -1,8 +1,8 @@
 # PymIA Architecture Guardrails
 
-Este documento fija los invariantes para evitar deriva arquitectónica y documental.
+Este documento fija los invariantes arquitectónicos para evitar deriva documental y runtime.
 
-## 1. Jerarquía de verdad
+## 1. SOURCE_OF_TRUTH_HIERARCHY
 
 ```text
 1. código físico vigente;
@@ -15,53 +15,51 @@ Este documento fija los invariantes para evitar deriva arquitectónica y documen
 
 Un documento histórico no puede contradecir código y tests actuales ni autorizar nuevas capacidades.
 
-## 2. Servicio 1
-
-```text
-La IA conversa.
-La FSM gobierna.
-Las tools ejecutan.
-Los archivos son el producto.
-El dueño confirma significado durante la lectura.
-```
-
-La raíz canónica debe reutilizar la ingesta XLSX existente, conservar evidencia real, bloquear ambigüedades y admitir únicamente respuestas semánticas canónicas o exclusión explícita de una columna no relevante.
-
-## 3. Prohibiciones
+## 2. PROHIBICIONES ABSOLUTAS
 
 - segundo parser XLSX;
 - cadenas productivas paralelas;
 - `unknown` desbloqueado por texto libre;
 - LLM obligatorio o soberano en el core;
 - operador humano obligatorio como actor del producto;
-- APIs, workers, canales o runtimes externos autorizados por documentación histórica;
-- landing o demo usada como evidencia productiva;
+- create_job, workflow orchestration o runners paralelos como autoridad productiva;
+- landings, demos o documentación histórica gobernando runtime;
 - promesas de diagnóstico o entrega sin evidencia del caso.
 
-## 4. Política documental
+## 3. HERMES_BOUNDARY
+
+```text
+Hermes/Conversa/PymIA-Live = legacy histórico
+No gobiernan runtime actual.
+No autorizan imports, adapters, wrappers ni entrypoints productivos.
+Si se los cita, debe ser sólo como antecedente superado o referencia explícitamente histórica.
+```
+
+La capa conversacional puede formular preguntas y explicar resultados, pero no decide verdad operacional ni computabilidad.
+
+## 4. DOCUMENTATION_POLICY
 
 - Existe una sola raíz documental física: `docs/` en la raíz del repositorio.
-- `PymIA/docs/` está prohibida; el subárbol ejecutable consume catálogos y registros desde la raíz documental única.
-- `docs/current/` debe contener únicamente autoridad vigente y evidencia necesaria.
-- No se conserva documentación obsoleta como “museo”, “archive” o “legacy” dentro del árbol activo cuando pueda contaminar decisiones.
-- Lo eliminado permanece recuperable mediante Git; no necesita seguir físicamente presente.
-- No crear un documento nuevo cuando uno vigente puede actualizarse.
+- `docs/current/` contiene la autoridad vigente.
 - Todo documento rector debe indicar alcance, estado y fuente de evidencia.
+- No crear un documento nuevo cuando corresponde corregir uno vigente.
+- La documentación obsoleta, duplicada o contradictoria se elimina del árbol activo.
 - Índices históricos no tienen autoridad sobre `docs/current/README.md`.
 
-## 5. Política de pruebas
+## 5. TEST_POLICY
 
 - Todo cambio productivo requiere tests focales y regresión vecina.
 - Una declaración global de estabilidad requiere regresión completa.
+- Los guards arquitectónicos deben verificar ausencia de contaminación legacy y de imports prohibidos.
 - PASS solo con evidencia observada y alcance explícito.
 
-## 6. Criterios mínimos
+## 6. ACCEPTANCE_CRITERIA
 
 ```text
-working tree controlado;
+pytest -q verde;
 root productiva única;
-flags de seguridad preservados;
-pruebas verdes;
+no LLM runtime authority;
+no segunda raíz productiva;
 documentación vigente alineada con código real;
-sin referencias rectoras a documentos eliminados.
+sin referencias rectoras activas a Hermes, Conversa o PymIA-Live.
 ```

@@ -16,9 +16,9 @@
   ],
   "counts": {
     "PRODUCTIVE": 27,
-    "SUPPORT_NECESSARY": 27
+    "SUPPORT_NECESSARY": 28
   },
-  "total_modules": 54,
+  "total_modules": 55,
   "modules": [
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
@@ -416,6 +416,12 @@
       "imports_service_1": [
         "service_1_region_physical_evidence_contracts_v1"
       ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_xlsx_quality_gate_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
       "canonical_root_reachable": false
     }
   ]

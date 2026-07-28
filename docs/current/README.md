@@ -9,34 +9,37 @@ Esta carpeta contiene la documentación rectora vigente. **No todo archivo prese
 3. Los documentos rectores listados aquí.
 4. Evidencia técnica citada explícitamente por un documento rector.
 
-La memoria conversacional, documentos no listados, landings, pilotos, auditorías antiguas y diseños abandonados no autorizan arquitectura ni código.
+La memoria conversacional, la landing, los pilotos históricos, los roadmaps vencidos y cualquier documentación legacy no autorizan arquitectura ni código salvo cita explícita desde esta carpeta.
 
 ## Documentos rectores
 
-- `ARCHITECTURE_BOUNDARY.md` — separación entre dueño, capa conversacional y PymIA computacional.
-- `PRODUCT_VISION.md` — visión final del producto.
-- `PYMIA_GUARDIAN_CLINICAL_KERNEL_CONCEPT.md` — concepto arquitectónico candidato para extraer y generalizar el patrón clínico determinístico de SmartSeller como futuro kernel transversal de PymIA Guardián; no autoriza implementación.
-- `PYMIA_GUARDIAN_STRATEGIC_ASSESSMENT.md` — evaluación estratégica candidata de los hallazgos del kernel, Guardián, Operador, autonomía progresiva, CRM de casos y secuencia focal de validación; no autoriza implementación.
-- `SERVICE_1_STATUS.md` — estado verificable actual.
-- `SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.
-- `SERVICE_1_ARCHITECTURE_LOCK.md` — superficie oficial, soporte retenido, legacy y laboratorio congelado de Servicio 1.
-- `SERVICE_1_PRODUCT_COMPLETION_GATE.md` — cierre verificable del MVP determinístico asistido de Servicio 1.
-- `SERVICE_1_OPERABILITY_PACKET.md` — runbook operativo del MVP de Servicio 1.
-- `SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md` — método permanente del recorrido determinístico y del control enterprise de cambios: especificación, contratos, evidencia, aislamiento Git, auditoría, deuda, recuperación y etapas 0–8.
-- `SERVICE_1_ENTERPRISE_EXECUTION_STATE_V1.md` — estado operativo recuperable de Servicio 1: rama/HEAD, etapa activa, worktrees y commits de seguridad, deuda, prohibiciones y próxima acción autorizada. No redefine arquitectura ni producto.
-- `SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — serie, orden, estados y límites de los pilotos controlados basados en `prueba_excels/`.
-- `SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — prioridad posterior a los pilotos y autorización de `CYCLE_040_CONNECT_REN_001_TO_PRODUCTIVE_ROOT`.
-- `SERVICE_1_CYCLE_040_REN_001_PRODUCTIVE_ROOT_CLOSURE.md` — cierre verificable de la conexión productiva gobernada de `REN_001`.
-- `SERVICE_1_12_PRODUCTIVE_PATHOLOGY_ROADMAP.md` — conjunto exacto de doce patologías, orden de implementación y autorización de `CYCLE_042_CONNECT_LIQ_002_TO_PRODUCTIVE_ROOT`.
-- `FACTORY_AND_ADN_AXIS.md` — separación metodológica de Factoría/ADN.
-- `HERMES_AXIS.md` — Hermes no gobierna Servicio 1.
-- `SMARTPYME_PRODUCT_AXIS.md` — separación entre memoria de producto y autoridad técnica.
+- `docs/current/ARCHITECTURE_BOUNDARY.md` — separación entre dueño, capa conversacional y PymIA computacional.
+- `docs/current/PRODUCT_VISION.md` — visión del producto sin abrir autoridad runtime paralela.
+- `docs/current/SERVICE_1_STATUS.md` — estado verificable actual.
+- `docs/current/SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.
+- `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — superficie oficial, soporte retenido y laboratorio congelado de Servicio 1.
+- `docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md` — cierre verificable del MVP determinístico asistido.
+- `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — runbook operativo vigente.
+- `docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md` — método permanente del recorrido determinístico y del control enterprise de cambios.
+- `docs/current/SERVICE_1_ENTERPRISE_EXECUTION_STATE_V1.md` — estado operativo recuperable de Servicio 1.
+- `docs/current/ACTIVE_ROADMAP.md` — roadmap activo post-Stage-2 y próximo frente autorizado.
+- `docs/current/SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1.md` — checkpoint vigente del carril SaaS acotado.
+- `docs/current/SERVICE_1_DOCUMENTARY_RECONCILIATION_V1.md` — reconciliación documental del estado actual de Servicio 1.
+- `docs/current/SERVICE_1_CONTROLLED_PRODUCT_READINESS_CORPUS_V1.md` — evidencia del corpus físico de readiness.
+- `docs/current/SERVICE_1_OPERATIVE_XLSX_FIRST_CLOSEOUT_V1.md` — cierre del carril XLSX-first con límites explícitos.
+- `docs/current/SERVICE_1_XLSX_RUNTIME_BRIDGE_CASE_RUN_AUDIT_V1.md` — evidencia acotada del runtime bridge.
+- `docs/current/SERVICE_1_POST_P8_EXECUTION_BOUNDARY_AND_LEGACY_PROJECTIONS_AUDIT_V1.md` — auditoría de convergencia post-P8.
+- `docs/current/WEB_INTAKE_ROOT_ALIGNMENT_V1.md` — alineación de la frontera web con la raíz canónica.
+- `docs/current/SAAS_AUTONOMY_TARGET.md` — objetivo de autonomía sólo como frente posterior a certificación.
+- `docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — serie controlada oficial basada en `prueba_excels/`.
+- `docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md` — primer caso operatorless certificado por CLI oficial.
+- `docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — siguiente capacidad autorizada para conexión productiva.
 
 ## Política de eliminación
 
-La documentación obsoleta, duplicada, contradictoria o sustituida se elimina físicamente del árbol activo. No se mueve a museo, legacy ni archivo. Git conserva la trazabilidad histórica.
+La documentación obsoleta, duplicada, contradictoria o sustituida se elimina físicamente del árbol activo. Git conserva la trazabilidad histórica.
 
-Un documento no listado aquí queda sin autoridad y debe ser evaluado para eliminación en los siguientes lotes de saneamiento.
+Los documentos de Hermes/Conversa, `PymIA-Live`, pilots comerciales viejos, staging migrado y artefactos arqueológicos no son autoridad runtime.
 
 ## Servicio 1
 
@@ -48,32 +51,29 @@ pymia/cli/service_1_product.py
 docs/service_1_module_disposition.v1.json
 docs/current/SERVICE_1_STATUS.md
 docs/current/SERVICE_1_CANONICAL_AXIS.md
-docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
-docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md
-docs/current/SERVICE_1_OPERABILITY_PACKET.md
+docs/current/ACTIVE_ROADMAP.md
 docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
-docs/current/SERVICE_1_ENTERPRISE_EXECUTION_STATE_V1.md
-docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md
-docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md
-docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md
-docs/current/SERVICE_1_CYCLE_040_REN_001_PRODUCTIVE_ROOT_CLOSURE.md
-docs/current/SERVICE_1_12_PRODUCTIVE_PATHOLOGY_ROADMAP.md
 ```
 
 La carpeta `landing/` no gobierna Servicio 1.
-
-## Evidencia de capacidades productivas
-
-- `SERVICE_1_CYCLE_040_REN_001_PRODUCTIVE_ROOT_CLOSURE.md` — `REN_001/net_margin_real` conectado a la raíz única con cálculo y outcome acotado; entrega XLSX no autorizada.
-- `SERVICE_1_12_PRODUCTIVE_PATHOLOGY_ROADMAP.md` — hoja de ruta cerrada para alcanzar doce patologías productivas mediante ciclos individuales.
 
 ## Evidencia de pilotos registrada
 
 Los siguientes documentos registran ejecuciones observadas. Son evidencia de la serie y no autorizan por sí mismos nuevas capacidades, fórmulas, tools ni cambios de arquitectura:
 
-- `SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md` — ejecución registrada del piloto textil complejo.
-- `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md` — ejecución registrada del piloto distribuidora mayorista.
-- `SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md` — ejecución registrada del piloto de fábrica industrial.
-- `SERVICE_1_PILOT_006_TALLER_MECANICO.md` — ejecución registrada del piloto taller mecánico.
-- `SERVICE_1_PILOT_007_CONSTRUCTORA.md` — ejecución registrada del piloto constructora.
-- `SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md` — ejecución registrada del piloto textil completo multihoja.
+- `SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md`
+- `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md`
+- `SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md`
+- `SERVICE_1_PILOT_006_TALLER_MECANICO.md`
+- `SERVICE_1_PILOT_007_CONSTRUCTORA.md`
+- `SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md`
+
+## Fronteras explícitas
+
+```text
+ONE_CANONICAL_PRODUCT_ROOT
+NO_LLM_RUNTIME_AUTHORITY
+NO_SECOND_XLSX_PARSER
+NO_PARALLEL_PRODUCTIVE_PIPELINE
+OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
+```

@@ -23,9 +23,19 @@ Before operating, the agent must:
    - current branch;
    - `git status --short`;
    - recent commits when relevant.
-3. Read `docs/current/README.md` and only the governing documents relevant to the task.
-4. Inspect code, tests and recent commits before trusting older prose.
-5. Identify whether the change affects architecture, contract, tests, code, evidence or learning.
+3. Read the latest relevant checkpoint.
+4. Read applicable methodology / ADR / source architecture documents.
+5. Identify the layer being touched:
+   - Architecture;
+   - ADR;
+   - CapabilitySpec;
+   - ModuleContract;
+   - TaskSpec;
+   - tests;
+   - code;
+   - evidence;
+   - checkpoint;
+   - learning candidate.
 6. Separate explicitly:
    - certified facts;
    - hypotheses;
@@ -41,20 +51,32 @@ If evidence is missing, do not declare PASS.
 
 ## Development chain
 
-The valid development chain is:
+The only valid development chain is:
 
 ```text
-current architecture and method
-→ explicit contract in code or governing documentation
+Architectural DNA / philosophy / methodology
+→ ADR
+→ CapabilitySpec
+→ ModuleContract
+→ TaskSpec
 → acceptance test
 → code
-→ observed evidence
-→ update an existing governing document only when the stable truth changed
+→ evidence
+→ checkpoint
+→ Learning candidate, only if applicable
 ```
 
-ADR, CapabilitySpec, ModuleContract and TaskSpec are logical layers, not mandatory separate files. Keep them in code, tests or an existing rector document unless a genuinely new stable authority is required.
+A roadmap item does not become code by itself.
 
-A roadmap item or conversation does not become code or policy by itself. Evidence does not become LearningMemory automatically. A capability requires contract + test + evidence, not a trail of duplicate documents.
+A conversation does not become policy by itself.
+
+Evidence does not become LearningMemory by itself.
+
+A document does not enter the system as a real capability until it has:
+
+```text
+contract + test + evidence
+```
 
 ## Meaning of “advance”
 
@@ -239,7 +261,9 @@ Stop before implementation if:
 
 - the architectural source is missing;
 - the applicable ADR is missing and the change implies an architectural decision;
-- the expected behavior or boundary is not explicit in code or a governing document;
+- there is no CapabilitySpec for a new capability;
+- there is no ModuleContract for a new or changed module boundary;
+- there is no TaskSpec for the implementation slice;
 - acceptance tests are not defined;
 - the user has not authorized productive code changes;
 - the work would mix unrelated layers;
@@ -282,7 +306,7 @@ docs(pymia): add agent startup and development method
 
 `NEEDS_EVIDENCE` can detect missing evidence in existing flows, but guided recovery of evidence or operational meaning is not automatically implemented by this contract.
 
-Do not implement Guided Evidence Recovery unless its boundary, tests and evidence requirements are made explicit without creating a parallel document chain.
+Do not implement Guided Evidence Recovery unless a future cycle creates the appropriate ADR, CapabilitySpec, ModuleContract, TaskSpec, tests, and evidence requirements.
 
 ## Default answer format for agent work
 
@@ -311,4 +335,4 @@ Rules:
 
 ## Documentation Policy
 
-Antes de leer cualquier documentación, leer `docs/current/README.md`. Solo los documentos allí enumerados gobiernan. No crear un documento por slice, auditoría, checkpoint o cierre; actualizar una autoridad existente. Eliminar documentos sustituidos: Git conserva la historia.
+Antes de leer documentación histórica, leer `docs/current/README.md`.

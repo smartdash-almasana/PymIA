@@ -1187,27 +1187,26 @@ Delete only clusters proven to have no productive callers, one small group per c
 
 Freeze the stable decisions for Region, physical evidence, semantic hypotheses, P6 approval, grain, requirements and computation consumption. Evolve existing authorities rather than opening permanent parallel contracts.
 
-### Stages 3 and 4 — First integrated approval-center migration
+### Historical Stages 3–6 — Superseded by Stage 2 convergence
 
-These stages form one indivisible implementation closure:
+The original method reserved Stages 3–6 for approval-center migration, pathology migration and computation-engine convergence.
 
-- specify the approval center;
-- implement computed approval decisions;
-- connect one real pathology already supported by the generic engine;
-- compare old and new behavior;
-- delete the replaced path and temporary adapter in the same closure.
+Stage 2 packages ultimately achieved those intended end states directly and more coherently:
 
-A disconnected second spike is prohibited. If the new authority is not integrated with a real pathology, it is discarded or remains outside the productive tree.
+- one P6 semantic approval authority;
+- explicit P7 RequirementMatch + Grain;
+- explicit P8 ComputabilityDecision + GovernedComputationInput;
+- governed input as productive execution authority;
+- generic capability execution through registry + GenericCapabilityEngine;
+- only narrowly justified specialized exceptions;
+- no productive legacy ComputationPlan authority;
+- bounded root branching and no parallel productive execution route.
 
-### Stage 5 — Migrate the remaining eleven pathologies
+Therefore the original Stages 3–6 MUST NOT be replayed merely to preserve historical numbering. Creating an approval center, controlled computation plan, second readiness gate or another engine would require a new explicit architecture decision proving that the existing P6→P7→P8 chain is insufficient.
 
-Migrate one pathology at a time with the same frozen checklist. Do not open the next migration before the prior path has one authority, green evidence and deletion of its replaced route.
+### Stage 3 — Product and operational hardening
 
-### Stage 6 — Converge computation engines
-
-Converge generic, transactional and legacy computation forms toward one primary engine or narrowly justified bounded exceptions. Do not create a fourth engine.
-
-### Stage 7 — Enterprise hardening
+Stage 3 begins only after controlled product-readiness evidence demonstrates that the canonical root works across representative XLSX cases and semantic precision reaches the approved threshold.
 
 Prove:
 
@@ -1221,22 +1220,26 @@ Prove:
 - concurrency/session behavior;
 - reproducible installation, release and rollback.
 
-### Stage 8 — Production certification
+Product-readiness work before Stage 3 is evidence and convergence on the existing architecture, not a new architecture stage.
+
+### Stage 4 — Production certification
 
 Production readiness requires measured evidence for:
 
-- twelve migrated pathologies;
+- supported pathology/capability coverage required by the approved product scope;
 - one approval authority;
 - one product root;
 - one XLSX reader;
 - no productive experimental artifacts;
-- no temporary adapters;
+- no temporary adapters in productive closure;
 - semantic precision at or above the approved threshold;
 - zero dangerous confident errors on the certification corpus;
 - adversarial, regression and manual product evidence;
 - reproducible release and tested rollback.
 
 Test volume or documentation volume alone cannot certify production.
+
+SaaS/autonomy is not implied by production certification and requires a later explicit product/architecture decision.
 
 ---
 
