@@ -2,7 +2,9 @@
 
 ## Estado
 
-Documento arquitectonico operativo.
+HISTORICAL_SNAPSHOT_SUPERSEDED.
+
+Este documento conserva una frontera de trazabilidad histórica. Sus referencias a `pymia.interfaces`, `ClinicalConversationalPort`, `InitialLaboratoryAnamnesisService` y `AdmissionPipelineV1` no constituyen autoridad vigente ni deben reintroducir esas superficies eliminadas. La autoridad actual se rige por la arquitectura canónica de Servicio 1 y sus contratos activos.
 
 Este documento convierte una discusion de diseno en una regla verificable para PymIA: ninguna respuesta clinico-operacional debe depender de confianza implicita, inferencia conversacional o promesa de prompt.
 
