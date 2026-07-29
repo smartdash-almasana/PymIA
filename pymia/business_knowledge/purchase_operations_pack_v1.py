@@ -11,9 +11,13 @@ from pymia.business_knowledge.contracts_v1 import (
     OperationalKnowledgeSpecV1,
 )
 
-_SOURCE = (
+_PURCHASE_SOURCE = (
     "OCA/spreadsheet@18.0:spreadsheet_dashboard_purchase_stock_oca/"
     "data/files/purchase_dashboard.json"
+)
+_VENDOR_SOURCE = (
+    "OCA/spreadsheet@18.0:spreadsheet_dashboard_purchase_oca/"
+    "data/files/vendors_dashboard.json"
 )
 
 PURCHASE_AMOUNT_BY_PERIOD = OperationalKnowledgeSpecV1(
@@ -39,7 +43,33 @@ PURCHASE_AMOUNT_BY_PERIOD = OperationalKnowledgeSpecV1(
         "amount purchased is not cash paid",
         "amount purchased does not establish profitability or supplier performance",
     ),
-    provenance=(_SOURCE,),
+    provenance=(_PURCHASE_SOURCE,),
+)
+
+SUPPLIER_SPEND_BY_VENDOR = OperationalKnowledgeSpecV1(
+    knowledge_ref="supplier_spend_by_vendor",
+    domain="purchases",
+    family="supplier_analysis",
+    kind="METRIC",
+    status="CANDIDATE",
+    inputs=(
+        EvidenceFieldV1("supplier", "supplier_identifier"),
+        EvidenceFieldV1("untaxed_amount", "purchase_untaxed_amount", "currency"),
+        EvidenceFieldV1("purchase_date", "purchase_order_date", "date"),
+    ),
+    expression="SUM(untaxed_amount) GROUP BY supplier WITHIN selected period",
+    output_key="supplier_spend",
+    output_unit="currency_by_supplier",
+    validations=(
+        "supplier identity must be stable inside the selected period",
+        "currency must be normalized before supplier comparison",
+        "all compared suppliers must use the same period scope",
+    ),
+    interpretation_limits=(
+        "high spend does not imply supplier dependency or poor diversification",
+        "supplier quality cannot be inferred from spend alone",
+    ),
+    provenance=(_VENDOR_SOURCE,),
 )
 
 OPEN_RFQ_CONTROL = OperationalKnowledgeSpecV1(
@@ -62,7 +92,33 @@ OPEN_RFQ_CONTROL = OperationalKnowledgeSpecV1(
         "an open RFQ is not evidence of supplier delay",
         "age or urgency requires an explicit comparison date or policy threshold",
     ),
-    provenance=(_SOURCE,),
+    provenance=(_PURCHASE_SOURCE,),
+)
+
+CONFIRMED_PURCHASE_ORDER_REGISTER = OperationalKnowledgeSpecV1(
+    knowledge_ref="confirmed_purchase_order_register",
+    domain="purchases",
+    family="procurement_flow",
+    kind="CONTROL",
+    status="CANDIDATE",
+    inputs=(
+        EvidenceFieldV1("order_id", "purchase_order_identifier"),
+        EvidenceFieldV1("approved_at", "purchase_order_approved_at", "datetime"),
+        EvidenceFieldV1("buyer", "responsible_buyer"),
+        EvidenceFieldV1("order_state", "purchase_order_state"),
+    ),
+    expression="FILTER order_state IN {purchase, done}; ORDER BY approved_at",
+    output_key="confirmed_purchase_orders",
+    output_unit="records",
+    validations=(
+        "order_id must be unique inside the evidence scope",
+        "approved_at must be present for chronological comparisons",
+    ),
+    interpretation_limits=(
+        "order date alone does not establish supplier lead time",
+        "an old confirmed order is not automatically overdue",
+    ),
+    provenance=(_PURCHASE_SOURCE, _VENDOR_SOURCE),
 )
 
 CONFIRMED_PURCHASE_VOLUME_BY_BUYER = OperationalKnowledgeSpecV1(
@@ -90,7 +146,7 @@ CONFIRMED_PURCHASE_VOLUME_BY_BUYER = OperationalKnowledgeSpecV1(
         "high purchase volume does not imply buyer quality",
         "buyer comparisons require equivalent scope and period",
     ),
-    provenance=(_SOURCE,),
+    provenance=(_PURCHASE_SOURCE,),
 )
 
 LATE_INCOMING_RECEIPT_CONTROL = OperationalKnowledgeSpecV1(
@@ -121,7 +177,7 @@ LATE_INCOMING_RECEIPT_CONTROL = OperationalKnowledgeSpecV1(
         "late receipt does not identify who caused the delay",
         "supplier breach cannot be asserted without contractual evidence",
     ),
-    provenance=(_SOURCE,),
+    provenance=(_PURCHASE_SOURCE,),
 )
 
 PURCHASE_OPERATIONS_PACK_V1 = KnowledgePackV1(
@@ -130,7 +186,9 @@ PURCHASE_OPERATIONS_PACK_V1 = KnowledgePackV1(
     source_family="OCA_SPREADSHEET_CONCEPTUAL_EXTRACTION",
     capabilities=(
         PURCHASE_AMOUNT_BY_PERIOD,
+        SUPPLIER_SPEND_BY_VENDOR,
         OPEN_RFQ_CONTROL,
+        CONFIRMED_PURCHASE_ORDER_REGISTER,
         CONFIRMED_PURCHASE_VOLUME_BY_BUYER,
         LATE_INCOMING_RECEIPT_CONTROL,
     ),
@@ -139,7 +197,9 @@ PURCHASE_OPERATIONS_PACK_V1 = KnowledgePackV1(
 
 __all__ = [
     "PURCHASE_AMOUNT_BY_PERIOD",
+    "SUPPLIER_SPEND_BY_VENDOR",
     "OPEN_RFQ_CONTROL",
+    "CONFIRMED_PURCHASE_ORDER_REGISTER",
     "CONFIRMED_PURCHASE_VOLUME_BY_BUYER",
     "LATE_INCOMING_RECEIPT_CONTROL",
     "PURCHASE_OPERATIONS_PACK_V1",
