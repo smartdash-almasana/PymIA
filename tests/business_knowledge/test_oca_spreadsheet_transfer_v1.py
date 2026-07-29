@@ -37,15 +37,27 @@ def test_purchase_pack_contains_portable_procurement_controls() -> None:
     refs = {cap.knowledge_ref for cap in PURCHASE_OPERATIONS_PACK_V1.capabilities}
     assert refs == {
         "purchase_amount_by_period",
+        "supplier_spend_by_vendor",
         "open_rfq_control",
+        "confirmed_purchase_order_register",
         "confirmed_purchase_volume_by_buyer",
         "late_incoming_receipt_control",
     }
 
 
-def test_quotation_pack_preserves_column_mapping_pattern() -> None:
+def test_quotation_pack_preserves_scoping_mapping_and_writeback_controls() -> None:
     refs = {cap.knowledge_ref for cap in QUOTATION_OPERATIONS_PACK_V1.capabilities}
     assert refs == {
         "quotation_line_extended_amount",
+        "quotation_scope_filter_control",
         "quotation_column_sync_control",
+        "quotation_calculated_writeback_control",
     }
+
+
+def test_transferred_pack_has_ten_candidate_capabilities() -> None:
+    capabilities = (
+        *PURCHASE_OPERATIONS_PACK_V1.capabilities,
+        *QUOTATION_OPERATIONS_PACK_V1.capabilities,
+    )
+    assert len(capabilities) == 10
