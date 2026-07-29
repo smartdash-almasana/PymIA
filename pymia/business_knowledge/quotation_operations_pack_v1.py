@@ -1,8 +1,8 @@
 """Quotation-calculator knowledge extracted conceptually from OCA/spreadsheet.
 
 The source demonstrates order-line spreadsheet calculators, quotation-scoped
-filters and column-oriented field synchronization. PymIA retains only portable
-operational patterns and introduces no Odoo dependency.
+filters, isolated calculator copies and column-oriented field synchronization.
+PymIA retains only portable operational patterns and introduces no Odoo dependency.
 """
 from __future__ import annotations
 
@@ -65,6 +65,32 @@ QUOTATION_SCOPE_FILTER_CONTROL = OperationalKnowledgeSpecV1(
     provenance=(_SOURCE,),
 )
 
+QUOTATION_CALCULATOR_INSTANCE_ISOLATION = OperationalKnowledgeSpecV1(
+    knowledge_ref="quotation_calculator_instance_isolation",
+    domain="sales",
+    family="quotation",
+    kind="WORKFLOW",
+    status="CANDIDATE",
+    inputs=(
+        EvidenceFieldV1("template_id", "calculator_template_identifier"),
+        EvidenceFieldV1("quotation_id", "quotation_identifier"),
+        EvidenceFieldV1("calculator_instance_id", "calculator_instance_identifier"),
+    ),
+    expression="COPY template PER quotation; bind calculator_instance_id exclusively to quotation_id",
+    output_key="isolated_calculator_instance",
+    output_unit="binding",
+    validations=(
+        "calculator instance must be distinct from its reusable template",
+        "one instance cannot be bound to multiple quotations",
+        "quotation identity must be fixed before scoped calculations or write-back",
+    ),
+    interpretation_limits=(
+        "instance isolation prevents cross-quotation contamination but does not validate calculations",
+        "copying a template does not authorize persistence of calculated values",
+    ),
+    provenance=(_SOURCE,),
+)
+
 QUOTATION_COLUMN_SYNC_CONTROL = OperationalKnowledgeSpecV1(
     knowledge_ref="quotation_column_sync_control",
     domain="sales",
@@ -87,6 +113,30 @@ QUOTATION_COLUMN_SYNC_CONTROL = OperationalKnowledgeSpecV1(
     interpretation_limits=(
         "mapping does not authorize automatic write-back",
         "calculated values require validation before persistence",
+    ),
+    provenance=(_SOURCE,),
+)
+
+QUOTATION_WRITEBACK_STATE_GUARD = OperationalKnowledgeSpecV1(
+    knowledge_ref="quotation_writeback_state_guard",
+    domain="sales",
+    family="quotation",
+    kind="CONTROL",
+    status="CANDIDATE",
+    inputs=(
+        EvidenceFieldV1("quotation_state", "quotation_lifecycle_state"),
+        EvidenceFieldV1("writeback_requested", "writeback_request_flag"),
+    ),
+    expression="ALLOW write-back ONLY for mutable quotation states; BLOCK cancelled or already-confirmed orders",
+    output_key="writeback_state_decision",
+    output_unit="decision",
+    validations=(
+        "quotation lifecycle state must be explicit",
+        "state guard must execute before any field mutation",
+    ),
+    interpretation_limits=(
+        "state eligibility does not validate the value being written",
+        "the guard does not authorize writes outside the mapped quotation scope",
     ),
     provenance=(_SOURCE,),
 )
@@ -125,16 +175,19 @@ QUOTATION_OPERATIONS_PACK_V1 = KnowledgePackV1(
     capabilities=(
         QUOTATION_LINE_EXTENDED_AMOUNT,
         QUOTATION_SCOPE_FILTER_CONTROL,
+        QUOTATION_CALCULATOR_INSTANCE_ISOLATION,
         QUOTATION_COLUMN_SYNC_CONTROL,
+        QUOTATION_WRITEBACK_STATE_GUARD,
         QUOTATION_CALCULATED_WRITEBACK_CONTROL,
     ),
 )
 
-
 __all__ = [
     "QUOTATION_LINE_EXTENDED_AMOUNT",
     "QUOTATION_SCOPE_FILTER_CONTROL",
+    "QUOTATION_CALCULATOR_INSTANCE_ISOLATION",
     "QUOTATION_COLUMN_SYNC_CONTROL",
+    "QUOTATION_WRITEBACK_STATE_GUARD",
     "QUOTATION_CALCULATED_WRITEBACK_CONTROL",
     "QUOTATION_OPERATIONS_PACK_V1",
 ]
