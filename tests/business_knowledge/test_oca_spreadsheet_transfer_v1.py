@@ -55,7 +55,9 @@ def test_quotation_pack_preserves_scoping_mapping_and_writeback_controls() -> No
     assert refs == {
         "quotation_line_extended_amount",
         "quotation_scope_filter_control",
+        "quotation_calculator_instance_isolation",
         "quotation_column_sync_control",
+        "quotation_writeback_state_guard",
         "quotation_calculated_writeback_control",
     }
 
@@ -87,6 +89,6 @@ def test_reconciliation_pack_is_native_composition_not_claimed_as_oca_module() -
     )
 
 
-def test_transferred_and_derived_packs_have_twenty_two_candidate_capabilities() -> None:
+def test_transferred_and_derived_packs_have_twenty_four_candidate_capabilities() -> None:
     capabilities = tuple(cap for pack in _packs() for cap in pack.capabilities)
-    assert len(capabilities) == 22
+    assert len(capabilities) == 24
