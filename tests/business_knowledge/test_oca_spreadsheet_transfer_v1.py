@@ -3,6 +3,7 @@ from __future__ import annotations
 from pymia.business_knowledge.accounting_operations_pack_v1 import ACCOUNTING_OPERATIONS_PACK_V1
 from pymia.business_knowledge.purchase_operations_pack_v1 import PURCHASE_OPERATIONS_PACK_V1
 from pymia.business_knowledge.quotation_operations_pack_v1 import QUOTATION_OPERATIONS_PACK_V1
+from pymia.business_knowledge.reconciliation_operations_pack_v1 import RECONCILIATION_OPERATIONS_PACK_V1
 
 
 def _packs():
@@ -10,6 +11,7 @@ def _packs():
         PURCHASE_OPERATIONS_PACK_V1,
         QUOTATION_OPERATIONS_PACK_V1,
         ACCOUNTING_OPERATIONS_PACK_V1,
+        RECONCILIATION_OPERATIONS_PACK_V1,
     )
 
 
@@ -70,6 +72,21 @@ def test_accounting_pack_translates_business_functions_without_odoo_dependency()
     }
 
 
-def test_transferred_packs_have_sixteen_candidate_capabilities() -> None:
+def test_reconciliation_pack_is_native_composition_not_claimed_as_oca_module() -> None:
+    refs = {cap.knowledge_ref for cap in RECONCILIATION_OPERATIONS_PACK_V1.capabilities}
+    assert refs == {
+        "trial_balance_reconciliation",
+        "accounting_equation_reconciliation",
+        "bank_ledger_reconciliation",
+        "cash_flow_continuity_reconciliation",
+        "receivables_roll_forward_reconciliation",
+        "payables_roll_forward_reconciliation",
+    }
+    assert RECONCILIATION_OPERATIONS_PACK_V1.source_family == (
+        "PYMIA_NATIVE_DERIVATION_FROM_OCA_ACCOUNTING_PRIMITIVES"
+    )
+
+
+def test_transferred_and_derived_packs_have_twenty_two_candidate_capabilities() -> None:
     capabilities = tuple(cap for pack in _packs() for cap in pack.capabilities)
-    assert len(capabilities) == 16
+    assert len(capabilities) == 22
