@@ -529,11 +529,12 @@ Estado de la secuencia:
 2. ambigüedad expuesta en revisión humana: COMPLETADA
 3. caso físico venta ↔ cobro ↔ banco: COMPLETADO
 4. segundo caso Mercado Pago ↔ banco: COMPLETADO
-5. puente gobernado con Servicio 1: LISTO PARA EVALUACIÓN, NO IMPLEMENTADO
-6. abstracción transversal: BLOQUEADA HASTA DEFINIR EL PUENTE MÍNIMO
+5. compuerta gobernada de solicitud desde Servicio 1: IMPLEMENTADA COMO SUPPORT_NECESSARY
+6. adaptador de ejecución controlada hacia conciliación: PENDIENTE
+7. integración a la raíz productiva: NO AUTORIZADA
 ```
 
-El próximo incremento no debe crear una segunda raíz. Debe definir el contrato mínimo de entrada/salida para que Servicio 1 pueda solicitar esta conciliación sin absorber autoridad contable ni romper la revisión humana.
+La compuerta `service_1_reconciliation_request_gate_v1.py` valida solicitud explícita del dueño, fuentes, campos y evidencia P5–P8. Prepara un candidato gobernado, pero no lee Excel, no llama al matcher, no resuelve ambigüedades y no autoriza ejecución. Permanece fuera del cierre productivo.
 
 ---
 
@@ -568,19 +569,24 @@ Excel permanece como fuente importante, pero no define por sí solo la identidad
 
 ```text
 GOAL:
-definir el contrato mínimo de entrada/salida para un puente gobernado con Servicio 1
+construir el adaptador controlado que consuma RECONCILIATION_CANDIDATE_READY
+
+y derive exclusivamente a:
+- build_reconciliation_match_candidates_v1
+- build_mercado_pago_bank_reconciliation_v1
 
 ENTRADA:
-operaciones MP normalizadas + movimientos bancarios normalizados + confirmaciones del dueño cuando falte identidad
+paquete emitido por service_1_reconciliation_request_gate_v1
 
 SALIDA:
-conciliaciones candidatas + diferencias + ambigüedades + no imputados + evidencia explícita
+resultado de conciliación para revisión humana, con procedencia del caso y sin autoridad contable final
 
 RESTRICCIONES:
+NO lectura directa de Excel
 NO autoaceptación contable
 NO LLM
 NO segunda raíz productiva
-NO promoción productiva sin compuerta explícita
+NO integración a service_1_product_pipeline_v1 en este incremento
 ```
 
 # DO_NOT_TOUCH

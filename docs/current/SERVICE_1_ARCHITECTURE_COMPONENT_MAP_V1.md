@@ -368,9 +368,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado al redactar este mapa:
 
 ```text
-TOTAL_SERVICE_1_MODULES = 55
+TOTAL_SERVICE_1_MODULES = 56
 PRODUCTIVE = 27
-SUPPORT_NECESSARY = 28
+SUPPORT_NECESSARY = 29
 CANONICAL_PRODUCT_ROOT = service_1_product_pipeline_v1
 ```
 

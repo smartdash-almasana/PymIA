@@ -140,9 +140,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado al 2026-07-29:
 
 ```text
-TOTAL = 55
+TOTAL = 56
 PRODUCTIVE = 27
-SUPPORT_NECESSARY = 28
+SUPPORT_NECESSARY = 29
 CANONICAL_PRODUCT_ROOT = service_1_product_pipeline_v1
 ```
 

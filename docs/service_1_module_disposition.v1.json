@@ -16,9 +16,9 @@
   ],
   "counts": {
     "PRODUCTIVE": 27,
-    "SUPPORT_NECESSARY": 28
+    "SUPPORT_NECESSARY": 29
   },
-  "total_modules": 55,
+  "total_modules": 56,
   "modules": [
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
@@ -240,6 +240,12 @@
     },
     {
       "module": "service_1_normalized_table_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_reconciliation_request_gate_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [],
       "canonical_root_reachable": false
