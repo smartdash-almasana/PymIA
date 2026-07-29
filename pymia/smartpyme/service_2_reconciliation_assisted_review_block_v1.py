@@ -64,6 +64,7 @@ def build_reconciliation_assisted_review_block_v1(
     next_steps = _next_steps_for_status(status)
     exact_matches_summary = _section_summary(source_result, "matches_exactos")
     probable_matches_summary = _section_summary(source_result, "matches_probables")
+    ambiguous_matches_summary = _section_summary(source_result, "matches_ambiguos")
     bank_pending_summary = _section_summary(source_result, "banco_sin_imputar")
     internal_pending_summary = _section_summary(source_result, "interno_sin_banco")
     amount_differences_summary = _section_summary(source_result, "diferencias_importe")
@@ -92,6 +93,7 @@ def build_reconciliation_assisted_review_block_v1(
         "counts": dict(review_summary),
         "exact_matches_summary": exact_matches_summary,
         "probable_matches_summary": probable_matches_summary,
+        "ambiguous_matches_summary": ambiguous_matches_summary,
         "bank_pending_summary": bank_pending_summary,
         "internal_pending_summary": internal_pending_summary,
         "amount_differences_summary": amount_differences_summary,
@@ -101,6 +103,7 @@ def build_reconciliation_assisted_review_block_v1(
             executive_summary=executive_summary,
             exact_matches_summary=exact_matches_summary,
             probable_matches_summary=probable_matches_summary,
+            ambiguous_matches_summary=ambiguous_matches_summary,
             bank_pending_summary=bank_pending_summary,
             internal_pending_summary=internal_pending_summary,
             amount_differences_summary=amount_differences_summary,
@@ -126,6 +129,7 @@ def _build_review_summary(source_result: dict[str, object]) -> dict[str, int]:
     return {
         "matches_exactos": _count(source_result, "matches_exactos"),
         "matches_probables": _count(source_result, "matches_probables"),
+        "matches_ambiguos": _count(source_result, "matches_ambiguos"),
         "banco_sin_imputar": _count(source_result, "banco_sin_imputar"),
         "interno_sin_banco": _count(source_result, "interno_sin_banco"),
         "diferencias_importe": _count(source_result, "diferencias_importe"),
@@ -155,6 +159,7 @@ def _build_executive_summary(*, status: str, review_summary: dict[str, int]) -> 
         "Revisión asistida preparada para revisión humana: "
         f"{review_summary['matches_exactos']} matches exactos, "
         f"{review_summary['matches_probables']} matches probables, "
+        f"{review_summary['matches_ambiguos']} grupos ambiguos, "
         f"{review_summary['banco_sin_imputar']} movimientos bancarios sin imputar, "
         f"{review_summary['interno_sin_banco']} movimientos internos sin banco, "
         f"{review_summary['diferencias_importe']} diferencias de importe, "
@@ -169,6 +174,7 @@ def _operator_brief(status: str, review_summary: dict[str, int]) -> str:
         f"Revisión asistida lista con estado {status}: "
         f"{review_summary['matches_exactos']} exactos, "
         f"{review_summary['matches_probables']} probables, "
+        f"{review_summary['matches_ambiguos']} grupos ambiguos, "
         f"{review_summary['banco_sin_imputar']} bancarios pendientes, "
         f"{review_summary['interno_sin_banco']} internos pendientes."
     )
@@ -178,7 +184,8 @@ def _owner_summary(status: str, review_summary: dict[str, int]) -> str:
     return (
         "Se preparó una revisión asistida para mirar con responsable o contador: "
         f"{review_summary['matches_exactos']} coincidencias exactas, "
-        f"{review_summary['matches_probables']} posibles coincidencias y "
+        f"{review_summary['matches_probables']} posibles coincidencias, "
+        f"{review_summary['matches_ambiguos']} grupos ambiguos y "
         f"{review_summary['faltantes_evidencia']} faltantes de evidencia. "
         f"Estado: {status}."
     )
@@ -200,6 +207,7 @@ def _build_sections(
     executive_summary: str,
     exact_matches_summary: dict[str, object],
     probable_matches_summary: dict[str, object],
+    ambiguous_matches_summary: dict[str, object],
     bank_pending_summary: dict[str, object],
     internal_pending_summary: dict[str, object],
     amount_differences_summary: dict[str, object],
@@ -212,6 +220,7 @@ def _build_sections(
         _section("executive_summary", "Resumen ejecutivo", executive_summary),
         _section("exact_matches", "Matches exactos", exact_matches_summary),
         _section("probable_matches", "Matches probables", probable_matches_summary),
+        _section("ambiguous_matches", "Matches ambiguos", ambiguous_matches_summary),
         _section("bank_pending", "Movimientos bancarios sin imputar", bank_pending_summary),
         _section("internal_pending", "Movimientos internos sin banco", internal_pending_summary),
         _section("amount_differences", "Diferencias de importe", amount_differences_summary),
@@ -252,7 +261,7 @@ def _next_steps_for_status(status: str) -> list[str]:
         ]
     if status == "PARTIAL_REVIEW_READY":
         return [
-            "Revisar matches probables antes de marcar cualquier relación como aceptada.",
+            "Revisar matches probables y grupos ambiguos antes de marcar cualquier relación como aceptada.",
             "Analizar diferencias de importe y fecha con soporte documental.",
             "Separar pendientes bancarios e internos para seguimiento humano.",
         ]

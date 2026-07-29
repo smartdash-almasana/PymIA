@@ -17,8 +17,16 @@ def test_exact_match_by_date_and_amount() -> None:
         {
             "banco_id": "b1",
             "interno_id": "i1",
+            "tipo_match": "MATCH_ATTRIBUTES_EXACT",
             "criterio": "same_date_same_amount",
-            "confianza": 1.0,
+            "evidencia": {
+                "reference_match": False,
+                "reference_conflict": False,
+                "amount_match": True,
+                "amount_delta": 0.0,
+                "date_match": True,
+                "date_delta_days": 0,
+            },
         }
     ]
 
@@ -30,6 +38,7 @@ def test_probable_match_by_near_date_and_same_amount() -> None:
     )
 
     assert result["status"] == "PARTIAL_MATCHES_FOUND"
+    assert result["matches_probables"][0]["tipo_match"] == "MATCH_PROBABLE_DATE"
     assert result["matches_probables"][0]["criterio"] == "near_date_same_amount"
     assert result["matches_probables"][0]["diferencias"] == {"dias": 2}
 
@@ -51,6 +60,14 @@ def test_amount_difference_with_compatible_date() -> None:
                 "importe_interno": 990.0,
                 "diferencia_absoluta": 10.0,
             },
+            "evidencia": {
+                "reference_match": False,
+                "reference_conflict": False,
+                "amount_match": False,
+                "amount_delta": 10.0,
+                "date_match": True,
+                "date_delta_days": 0,
+            },
             "requires_human_review": True,
         }
     ]
@@ -68,6 +85,14 @@ def test_date_difference_with_compatible_amount() -> None:
             "interno_id": "i1",
             "criterio": "same_amount_different_date",
             "diferencias": {"dias": 3},
+            "evidencia": {
+                "reference_match": False,
+                "reference_conflict": False,
+                "amount_match": True,
+                "amount_delta": 0.0,
+                "date_match": False,
+                "date_delta_days": 3,
+            },
             "requires_human_review": True,
         }
     ]
@@ -112,20 +137,12 @@ def test_duplicates_are_not_hidden() -> None:
         internal_movements=[{"id": "i1", "fecha": "2026-06-01", "importe": 1000}],
     )
 
-    assert result["matches_exactos"] == [
-        {
-            "banco_id": "b1",
-            "interno_id": "i1",
-            "criterio": "same_date_same_amount",
-            "confianza": 1.0,
-        },
-        {
-            "banco_id": "b2",
-            "interno_id": "i1",
-            "criterio": "same_date_same_amount",
-            "confianza": 1.0,
-        },
-    ]
+    assert result["matches_exactos"] == []
+    assert result["matches_ambiguos"][0]["tipo"] == "AMBIGUOUS"
+    assert result["matches_ambiguos"][0]["cardinalidad"] == "N:1"
+    assert result["matches_ambiguos"][0]["candidate_count"] == 2
+    assert [item["id"] for item in result["banco_sin_imputar"]] == ["b1", "b2"]
+    assert [item["id"] for item in result["interno_sin_banco"]] == ["i1"]
 
 
 def test_requires_human_review_is_always_true() -> None:
@@ -174,10 +191,100 @@ def test_thresholds_are_explicit_and_overridable() -> None:
     result = build_reconciliation_match_candidates_v1(
         bank_movements=[{"id": "b1", "fecha": "2026-06-05", "importe": 1000}],
         internal_movements=[{"id": "i1", "fecha": "2026-06-01", "importe": 1000}],
-        options={"fecha_cercana_dias": 5, "confianza_probable_minima": 0.7},
+        options={"fecha_cercana_dias": 5, "importe_tolerancia_absoluta": 0.5},
     )
 
     assert result["options_used"]["fecha_cercana_dias"] == 5
-    assert result["options_used"]["confianza_probable_minima"] == 0.7
-    assert result["options_used"]["importe_tolerancia_absoluta"] == DEFAULT_OPTIONS["importe_tolerancia_absoluta"]
-    assert result["matches_probables"][0]["confianza"] == 0.7
+    assert result["options_used"]["importe_tolerancia_absoluta"] == 0.5
+    assert result["options_used"]["importe_tolerancia_relativa"] == DEFAULT_OPTIONS["importe_tolerancia_relativa"]
+    assert result["matches_probables"][0]["tipo_match"] == "MATCH_PROBABLE_DATE"
+
+
+def test_reference_is_prioritized_over_same_date_same_amount_competitor() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[{"id": "b1", "fecha": "2026-06-01", "importe": 1000, "referencia": "OP-77"}],
+        internal_movements=[
+            {"id": "i-ref", "fecha": "2026-06-01", "importe": 1000, "referencia": " op-77 "},
+            {"id": "i-other", "fecha": "2026-06-01", "importe": 1000, "referencia": "OP-99"},
+        ],
+    )
+
+    assert result["matches_ambiguos"] == []
+    assert result["matches_exactos"][0]["interno_id"] == "i-ref"
+    assert result["matches_exactos"][0]["tipo_match"] == "MATCH_REFERENCE_EXACT"
+    assert result["matches_exactos"][0]["evidencia"]["reference_match"] is True
+    assert [item["id"] for item in result["interno_sin_banco"]] == ["i-other"]
+
+
+def test_one_bank_to_two_internal_candidates_is_ambiguous() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
+        internal_movements=[
+            {"id": "i1", "fecha": "2026-06-01", "importe": 1000},
+            {"id": "i2", "fecha": "2026-06-01", "importe": 1000},
+        ],
+    )
+
+    assert result["status"] == "PARTIAL_MATCHES_FOUND"
+    assert result["matches_exactos"] == []
+    assert result["matches_ambiguos"][0]["cardinalidad"] == "1:N"
+    assert result["matches_ambiguos"][0]["candidate_count"] == 2
+    assert [item["id"] for item in result["banco_sin_imputar"]] == ["b1"]
+    assert [item["id"] for item in result["interno_sin_banco"]] == ["i1", "i2"]
+
+
+def test_amount_difference_does_not_hide_unmatched_movements() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
+        internal_movements=[{"id": "i1", "fecha": "2026-06-01", "importe": 990}],
+    )
+
+    assert len(result["diferencias_importe"]) == 1
+    assert [item["id"] for item in result["banco_sin_imputar"]] == ["b1"]
+    assert [item["id"] for item in result["interno_sin_banco"]] == ["i1"]
+
+
+def test_output_has_no_float_confidence_authority() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
+        internal_movements=[{"id": "i1", "fecha": "2026-06-01", "importe": 1000}],
+        options={"confianza_exacta": 0.1, "confianza_probable_minima": 0.99},
+    )
+
+    def collect_keys(value: object) -> list[str]:
+        if isinstance(value, dict):
+            keys = [str(key) for key in value]
+            for nested in value.values():
+                keys.extend(collect_keys(nested))
+            return keys
+        if isinstance(value, list):
+            keys: list[str] = []
+            for nested in value:
+                keys.extend(collect_keys(nested))
+            return keys
+        return []
+
+    assert not [key for key in collect_keys(result) if "confianza" in key.lower() or "confidence" in key.lower()]
+    assert result["matches_exactos"][0]["tipo_match"] == "MATCH_ATTRIBUTES_EXACT"
+
+
+def test_many_to_many_collision_exposes_all_ambiguous_candidates() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[
+            {"id": "b1", "fecha": "2026-06-01", "importe": 1000},
+            {"id": "b2", "fecha": "2026-06-01", "importe": 1000},
+        ],
+        internal_movements=[
+            {"id": "i1", "fecha": "2026-06-01", "importe": 1000},
+            {"id": "i2", "fecha": "2026-06-01", "importe": 1000},
+        ],
+    )
+
+    ambiguous = result["matches_ambiguos"][0]
+    assert ambiguous["tipo"] == "AMBIGUOUS"
+    assert ambiguous["cardinalidad"] == "N:M"
+    assert ambiguous["banco_ids"] == ["b1", "b2"]
+    assert ambiguous["interno_ids"] == ["i1", "i2"]
+    assert ambiguous["candidate_count"] == 4
+    assert len(ambiguous["candidatos"]) == 4
+    assert result["matches_exactos"] == []

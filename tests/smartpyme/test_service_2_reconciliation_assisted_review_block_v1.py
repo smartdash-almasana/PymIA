@@ -73,6 +73,26 @@ def test_partial_matches_generate_partial_review_ready() -> None:
     assert result["date_differences_summary"]["count"] == 1
 
 
+def test_ambiguous_matches_are_exposed_for_human_review() -> None:
+    result = build_reconciliation_assisted_review_block_v1(
+        [{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
+        [
+            {"id": "i1", "fecha": "2026-06-01", "importe": 1000},
+            {"id": "i2", "fecha": "2026-06-01", "importe": 1000},
+        ],
+    )
+
+    assert result["status"] == "PARTIAL_REVIEW_READY"
+    assert result["ambiguous_matches_summary"]["count"] == 1
+    ambiguous = result["ambiguous_matches_summary"]["items"][0]
+    assert ambiguous["tipo"] == "AMBIGUOUS"
+    assert ambiguous["cardinalidad"] == "1:N"
+    assert ambiguous["candidate_count"] == 2
+    assert result["bank_pending_summary"]["count"] == 1
+    assert result["internal_pending_summary"]["count"] == 2
+    assert "grupos ambiguos" in result["executive_summary"]
+
+
 def test_no_candidates_generate_no_reviewable_candidates() -> None:
     result = build_reconciliation_assisted_review_block_v1(
         [{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],
@@ -135,8 +155,9 @@ def test_review_summary_counts_all_sections() -> None:
     assert result["review_summary"] == {
         "matches_exactos": 1,
         "matches_probables": 1,
-        "banco_sin_imputar": 1,
-        "interno_sin_banco": 1,
+        "matches_ambiguos": 0,
+        "banco_sin_imputar": 2,
+        "interno_sin_banco": 2,
         "diferencias_importe": 1,
         "diferencias_fecha": 1,
         "faltantes_evidencia": 2,
@@ -173,6 +194,7 @@ def test_sections_are_markdown_ready_inside_active_block() -> None:
         "executive_summary",
         "exact_matches",
         "probable_matches",
+        "ambiguous_matches",
         "bank_pending",
         "internal_pending",
         "amount_differences",

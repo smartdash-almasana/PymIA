@@ -1,31 +1,38 @@
 # Servicio 1 — eje canónico actual
 
+**Estado:** `ACTIVE`  
+**Reconciliado:** 2026-07-29
+
 ## Propósito
 
 Este documento define una sola orientación para Servicio 1. Sustituye cadenas documentales paralelas, checkpoints superados y cualquier proyección legacy que pretenda gobernar runtime.
 
+Servicio 1 evolucionó después del cierre de Stage 2: el repositorio incorporó fundaciones de dominio, admisión, narrativa, radiografía operacional, harness y operador fiel. Esas capas amplían la plataforma, pero no alteran la autoridad productiva salvo integración explícita y clasificación `PRODUCTIVE`.
+
 ## Definición
 
-Servicio 1 es el laboratorio operacional de PymIA para datos y archivos de una PyME. El dueño aporta datos y significado operativo; PymIA comprende, valida, calcula y produce salidas gobernadas.
+Servicio 1 es el laboratorio operacional determinístico de PymIA para evidencia PyME, con XLSX como fuente productiva principal actual. El dueño aporta datos y significado operativo; PymIA conserva evidencia, comprende, valida, decide computabilidad, calcula y produce salidas gobernadas.
 
 ```text
-La IA conversa.
-PymIA gobierna.
-Las tools determinísticas ejecutan.
-Los archivos son el producto.
+La capa conversacional conversa y pregunta.
+PymIA gobierna estados y evidencia.
+Las tools determinísticas calculan.
+Los archivos son una forma de producto.
 El dueño confirma significado durante la lectura.
 ```
 
-La confirmación del dueño es evidencia de entrada y de reentry. No es permiso autónomo de ejecución ni revisión posterior obligatoria.
+La confirmación del dueño es evidencia de entrada y reentry. No es autorización autónoma de ejecución, diagnóstico ni delivery.
 
 ## Única raíz productiva
 
 ```text
-pymia/smartpyme/service_1_product_pipeline_v1.py
 pymia/cli/service_1_product.py
+→ pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
 No existe segunda raíz productiva autorizada.
+
+La presencia de otros flujos locales o de aplicación, incluidos `vertical_slice`, `faithful_operator`, admission, diagnostic core, narrative u operational harness, no crea autoridad productiva paralela.
 
 ## Secuencia canónica
 
@@ -43,45 +50,159 @@ P0 intake
 → P10 QA / delivery
 ```
 
-## Estado actual
+P0–P10 expresa orden y autoridad, no una obligación de once módulos físicos.
+
+## Separación de decisiones
 
 ```text
-STAGE2 = CLOSED_PASS
-CURRENT_ACTIVE_FRONT = CONTROLLED_PRODUCT_READINESS_CORPUS
-NEXT_AUTHORIZED_ACTION = CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
-SAAS_RUNTIME = NOT_AUTHORIZED
-AUTONOMOUS_DELIVERY = NOT_AUTHORIZED
+hipótesis
+≠ evidencia
+≠ confirmación del dueño
+≠ aprobación semántica
+≠ match de requisitos
+≠ computabilidad
+≠ ejecución
+≠ delivery
 ```
+
+En particular:
+
+- una hipótesis de admisión no confirma semántica;
+- un `confidence_score` no autoriza matching ni ejecución;
+- una respuesta del dueño no elimina P6/P7/P8;
+- un cálculo disponible no equivale a diagnóstico final;
+- una narrativa no crea evidencia;
+- un estado GREEN del harness no autoriza runtime de producto.
+
+## Arquitectura por planos
+
+### Plano A — producto
+
+```text
+service_1_product_pipeline_v1
++ módulos PRODUCTIVE
++ P0–P10
+```
+
+Es la única autoridad de ejecución del producto.
+
+### Plano B — plataforma y soporte
+
+Incluye componentes integrados que pueden asistir recepción, evidencia, dominio, presentación o medición:
+
+```text
+pymia/domain/*
+pymia/pipeline/admission/v1/*
+pymia/faithful_operator.py
+pymia/application/vertical_pipeline.py
+pymia/diagnostic_core/*
+pymia/narrative/*
+pymia/operational_harness/*
+pymia/pipeline_radiography/*
+```
+
+Estos componentes no reemplazan la raíz productiva ni los gates P0–P10.
+
+### Plano C — contratos/capacidades no integrados
+
+Incluye, entre otros, la familia contable y conciliación:
+
+```text
+service_1_accounting_contracts_v1 = SUPPORT_NECESSARY
+service_2_reconciliation_match_candidates_v1 = matcher algorítmico existente
+```
+
+Su existencia no autoriza todavía wiring productivo a Servicio 1.
+
+## Ejecución
+
+La raíz canónica distingue:
+
+```text
+LIQ_001 / REN_001
+→ evaluadores especializados
+
+capacidad genérica gobernada por registry
+→ CapabilityRegistry
+→ GenericCapabilityEngine
+```
+
+Una nueva capacidad genérica debe incorporarse por contratos, registry, P8 y kernel; no mediante proliferación de branches por identidad en la raíz.
+
+## Estado de clasificación Service 1
+
+Fuente física:
+
+```text
+docs/service_1_module_disposition.v1.json
+```
+
+Estado observado al 2026-07-29:
+
+```text
+TOTAL = 55
+PRODUCTIVE = 27
+SUPPORT_NECESSARY = 28
+CANONICAL_PRODUCT_ROOT = service_1_product_pipeline_v1
+```
+
+`SUPPORT_NECESSARY` no significa productivo.
+
+## Fundaciones integradas después de Stage 2
+
+```text
+039f0cd  domain model foundation
+1b62053  deterministic narrative layer
+05cf07b  admission pipeline foundation
+bc2fabf  pipeline radiography + operational harness
+c240080  removal of live-root dependency / legacy evidence bridge
+9181abf  faithful operator + document parsing support
+48aa4a0  documentary authority reconciliation / Hermes retirement
+17e36a2  regression coverage and local tooling retention
+```
+
+Estas integraciones forman la nueva envolvente arquitectónica de PymIA alrededor de Servicio 1. Ninguna de ellas, por sí sola, crea una segunda ejecución soberana.
+
+## Conciliación
+
+La conciliación se encuentra en fase de maduración antes de cualquier integración productiva S1/S2.
+
+Principios cerrados:
+
+```text
+fecha + importe = evidencia fuerte, no identidad
+referencia = evidencia, no verdad absoluta
+confidence score = no autoridad
+ambigüedad = estado explícito
+1:N / N:1 / N:M = no resolver codiciosamente
+movimientos no imputados = nunca ocultar por diferencias parciales
+caso ambiguo = escalar a humano
+```
+
+El matcher existente debe madurar dentro de su módulo actual. No se crea un core paralelo.
 
 ## Reglas obligatorias
 
 - Una sola raíz productiva.
-- Un solo lector y normalizador XLSX canónico.
+- Un solo lector/normalizador XLSX productivo canónico.
 - Ninguna respuesta libre desbloquea un rol semántico desconocido.
-- `unknown` permanece bloqueado hasta recibir una opción canónica o exclusión explícita.
-- La confirmación del dueño prevalece sobre hipótesis secundarias, pero no reemplaza P7/P8.
-- Una relación de catálogo no autoriza runtime por existir.
-- La capa conversacional no selecciona tools, no diagnostica y no altera gates.
-- No se crean nuevas cadenas soberanas alrededor de piezas existentes.
-- No LLM como autoridad de cálculo, diagnóstico o estado.
+- `unknown` permanece bloqueado hasta evidencia o elección canónica suficiente.
+- La confirmación del dueño no sustituye P6/P7/P8.
+- Un componente SUPPORT no ejecuta por existir.
+- No LLM como autoridad de cálculo, diagnóstico, estado o computabilidad.
+- No event bus, colas ni microservicios distribuidos para resolver fronteras internas actuales.
+- No API productiva antes de cerrar las capacidades y contratos correspondientes.
 - No documentación histórica, Hermes, Conversa, `PymIA-Live` ni landings como autoridad runtime.
-
-## Próximo frente autorizado
-
-```text
-CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
-```
-
-La autonomía SaaS sólo puede reconsiderarse después de certificación productiva explícita.
 
 ## Documentación rectora relacionada
 
 ```text
 docs/current/README.md
 docs/current/SERVICE_1_STATUS.md
-docs/current/ACTIVE_ROADMAP.md
 docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
-docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md
+docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md
 docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
+docs/current/SERVICE_1_ENTERPRISE_EXECUTION_STATE_V1.md
 docs/service_1_module_disposition.v1.json
+docs/service_1_architecture_lock.v1.json
 ```

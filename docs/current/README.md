@@ -17,7 +17,8 @@ La memoria conversacional, la landing, los pilotos históricos, los roadmaps ven
 - `docs/current/PRODUCT_VISION.md` — visión del producto sin abrir autoridad runtime paralela.
 - `docs/current/SERVICE_1_STATUS.md` — estado verificable actual.
 - `docs/current/SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.
-- `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — superficie oficial, soporte retenido y laboratorio congelado de Servicio 1.
+- `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — invariantes de autoridad productiva, soporte, promoción y límites post-Stage-2 de Servicio 1.
+- `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de la arquitectura actual por planos: producto, plataforma/soporte y capacidades todavía no integradas.
 - `docs/current/SERVICE_1_PRODUCT_COMPLETION_GATE.md` — cierre verificable del MVP determinístico asistido.
 - `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — runbook operativo vigente.
 - `docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md` — método permanente del recorrido determinístico y del control enterprise de cambios.
@@ -34,6 +35,7 @@ La memoria conversacional, la landing, los pilotos históricos, los roadmaps ven
 - `docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — serie controlada oficial basada en `prueba_excels/`.
 - `docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md` — primer caso operatorless certificado por CLI oficial.
 - `docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — siguiente capacidad autorizada para conexión productiva.
+- `docs/current/SERVICE_1_RECONCILIATION_ENGINEERING_STATE_V1.md` — checkpoint técnico de conciliación existente, hallazgos del matcher, límites y próximo incremento; no autoriza promoción productiva por sí mismo.
 
 ## Política de eliminación
 
