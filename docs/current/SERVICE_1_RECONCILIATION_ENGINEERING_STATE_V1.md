@@ -539,9 +539,10 @@ Estado de la secuencia:
 6. adaptador controlado hacia revisión asistida: PROMOVIDO A PRODUCTIVE
 7. validación física punta a punta desde fuentes gobernadas: COMPLETADA
 8. integración controlada a la raíz productiva: COMPLETADA
+9. interfaz asistida para banco y Mercado Pago: COMPLETADA
 ```
 
-La compuerta `service_1_reconciliation_request_gate_v1.py` valida solicitud explícita del dueño, fuentes, campos y evidencia P5–P8. El adaptador `service_1_reconciliation_candidate_to_assisted_review_v1.py` acepta únicamente candidatos listos, deriva al conciliador bancario o Mercado Pago y devuelve un paquete uniforme para revisión humana. `service_1_reconciliation_product_request_v1.py` abre el acceso controlado desde la raíz productiva. Ninguno lee Excel, resuelve ambigüedades ni acepta matches automáticamente.
+La compuerta `service_1_reconciliation_request_gate_v1.py` valida solicitud explícita del dueño, fuentes, campos y evidencia P5–P8. El adaptador `service_1_reconciliation_candidate_to_assisted_review_v1.py` acepta únicamente candidatos listos, deriva al conciliador bancario o Mercado Pago y devuelve un paquete uniforme para revisión humana. `service_1_reconciliation_product_request_v1.py` abre el acceso controlado desde la raíz productiva. La interfaz asistida reutiliza el lector XLSX canónico, exige que la persona asigne explícitamente las columnas requeridas y muestra coincidencias, diferencias, ambigüedades y pendientes. Las compuertas y conciliadores no leen Excel, no resuelven ambigüedades ni aceptan matches automáticamente.
 
 ---
 
@@ -576,22 +577,21 @@ Excel permanece como fuente importante, pero no define por sí solo la identidad
 
 ```text
 GOAL:
-incorporar el recorrido de conciliación a la interfaz asistida sin alterar los análisis existentes
+registrar la decisión humana sobre cada caso conciliable sin modificar los datos originales
 
 RECORRIDO HUMANO:
-- elegir conciliación bancaria o Mercado Pago
-- subir dos fuentes separadas
-- confirmar columnas de cada fuente
-- ejecutar la solicitud productiva gobernada
-- mostrar coincidencias, diferencias, ambigüedades y pendientes
+- abrir coincidencia, diferencia o caso dudoso
+- confirmar relación, rechazar relación o dejar pendiente
+- registrar observación cuando corresponda
+- conservar procedencia del caso y de la decisión
 
 SALIDA:
-pantalla de revisión humana sin autoaceptación contable
+decisiones humanas trazables asociadas al resultado de conciliación
 
 RESTRICCIONES:
-NO mezclar conciliación con análisis comunes en la misma solicitud
-NO marcar movimientos como conciliados automáticamente
-NO modificar datos originales
+NO convertir coincidencia algorítmica en aceptación automática
+NO modificar movimientos originales
+NO generar asiento ni cierre contable
 NO LLM
 NO API externa
 ```

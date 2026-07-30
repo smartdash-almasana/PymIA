@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import math
 import secrets
 import tempfile
 from dataclasses import dataclass, field
@@ -22,7 +23,14 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
     STATUS_COMPUTATION_PLAN_READY,
     STATUS_NEEDS_OWNER,
+    STATUS_RECONCILIATION_NEEDS_EVIDENCE,
+    STATUS_RECONCILIATION_NEEDS_OWNER,
+    STATUS_RECONCILIATION_REVIEW_READY,
     run_service_1_product_pipeline_v1,
+)
+from pymia.smartpyme.service_1_reconciliation_request_gate_v1 import (
+    BANK_RECONCILIATION,
+    MERCADO_PAGO_BANK_RECONCILIATION,
 )
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
@@ -48,6 +56,88 @@ _REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
 )
 _REVIEW_BY_REF = {item[0]: item for item in _REVIEW_OPTIONS}
 
+_RECONCILIATION_OPTIONS: tuple[tuple[str, str, str], ...] = (
+    (
+        BANK_RECONCILIATION,
+        "Conciliación bancaria",
+        "Compará el extracto bancario con tus cobros o movimientos internos.",
+    ),
+    (
+        MERCADO_PAGO_BANK_RECONCILIATION,
+        "Mercado Pago ↔ Banco",
+        "Compará las liquidaciones de Mercado Pago con las acreditaciones bancarias.",
+    ),
+)
+_RECONCILIATION_BY_TYPE = {item[0]: item for item in _RECONCILIATION_OPTIONS}
+
+_RECONCILIATION_NUMERIC_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
+    BANK_RECONCILIATION: {
+        "bank": ("importe",),
+        "internal": ("importe",),
+    },
+    MERCADO_PAGO_BANK_RECONCILIATION: {
+        "mercado_pago": (
+            "importe_bruto",
+            "comision",
+            "retencion",
+            "importe_neto",
+        ),
+        "bank": ("importe",),
+    },
+}
+
+_RECONCILIATION_SOURCES: dict[str, tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...]] = {
+    BANK_RECONCILIATION: (
+        (
+            "bank",
+            "Extracto bancario",
+            (
+                ("id", "ID del movimiento"),
+                ("fecha", "Fecha"),
+                ("importe", "Importe"),
+                ("referencia", "Referencia"),
+            ),
+        ),
+        (
+            "internal",
+            "Cobros o movimientos internos",
+            (
+                ("id", "ID del movimiento"),
+                ("fecha", "Fecha"),
+                ("importe", "Importe"),
+                ("referencia", "Referencia"),
+            ),
+        ),
+    ),
+    MERCADO_PAGO_BANK_RECONCILIATION: (
+        (
+            "mercado_pago",
+            "Liquidaciones de Mercado Pago",
+            (
+                ("operacion_mp_id", "ID de operación"),
+                ("fecha_operacion", "Fecha de operación"),
+                ("importe_bruto", "Importe bruto"),
+                ("comision", "Comisión"),
+                ("retencion", "Retención"),
+                ("importe_neto", "Importe neto"),
+                ("lote_id", "Lote"),
+                ("referencia", "Referencia"),
+            ),
+        ),
+        (
+            "bank",
+            "Extracto bancario",
+            (
+                ("movimiento_banco_id", "ID del movimiento bancario"),
+                ("fecha", "Fecha"),
+                ("importe", "Importe acreditado"),
+                ("lote_id", "Lote"),
+                ("referencia", "Referencia"),
+            ),
+        ),
+    ),
+}
+
 
 @dataclass
 class AssistedWebSessionV1:
@@ -55,6 +145,9 @@ class AssistedWebSessionV1:
     ingestion_output: dict[str, Any] | None = None
     semantic_questions: list[dict[str, Any]] = field(default_factory=list)
     semantic_answers: dict[str, Any] = field(default_factory=dict)
+    reconciliation_type: str | None = None
+    reconciliation_intakes: dict[str, dict[str, Any]] = field(default_factory=dict)
+    reconciliation_result: dict[str, Any] | None = None
 
 
 class AssistedWebApplicationV1:
@@ -67,6 +160,178 @@ class AssistedWebApplicationV1:
 
     def session(self, session_id: str) -> AssistedWebSessionV1:
         return self._sessions.setdefault(session_id, AssistedWebSessionV1())
+
+    def start_reconciliation(self, *, session_id: str, reconciliation_type: str) -> tuple[int, str]:
+        if reconciliation_type not in _RECONCILIATION_BY_TYPE:
+            return HTTPStatus.BAD_REQUEST, _home_page("Elegí un tipo de conciliación disponible.")
+        state = self.session(session_id)
+        state.reconciliation_type = reconciliation_type
+        state.reconciliation_intakes = {}
+        state.reconciliation_result = None
+        return HTTPStatus.OK, _reconciliation_upload_page(reconciliation_type)
+
+    def receive_reconciliation_sources(
+        self,
+        *,
+        session_id: str,
+        files: dict[str, tuple[str, bytes]],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        reconciliation_type = state.reconciliation_type
+        if reconciliation_type not in _RECONCILIATION_SOURCES:
+            return HTTPStatus.BAD_REQUEST, _error_page("Primero elegí qué conciliación querés hacer.")
+
+        intakes: dict[str, dict[str, Any]] = {}
+        for source_kind, source_label, _ in _RECONCILIATION_SOURCES[reconciliation_type]:
+            filename, content = files.get(f"source_{source_kind}", ("", b""))
+            if not filename:
+                return HTTPStatus.BAD_REQUEST, _reconciliation_upload_page(
+                    reconciliation_type,
+                    f"Falta el archivo: {source_label}.",
+                )
+            if not filename.lower().endswith(".xlsx"):
+                return HTTPStatus.BAD_REQUEST, _reconciliation_upload_page(
+                    reconciliation_type,
+                    f"{source_label}: solo se aceptan archivos .xlsx.",
+                )
+            intake = build_service_1_web_column_confirmation_intake_boundary_v1(
+                uploaded_xlsx_bytes=content,
+                uploaded_filename=filename,
+            )
+            if intake.get("status") == "BLOCKED":
+                return HTTPStatus.BAD_REQUEST, _reconciliation_upload_page(
+                    reconciliation_type,
+                    f"No se pudo leer {source_label}. Revisá el archivo.",
+                )
+            intakes[source_kind] = intake
+
+        state.reconciliation_intakes = intakes
+        state.reconciliation_result = None
+        return HTTPStatus.OK, _reconciliation_column_confirmation_page(
+            reconciliation_type,
+            intakes,
+        )
+
+    def confirm_reconciliation_columns(
+        self,
+        *,
+        session_id: str,
+        fields: dict[str, str],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        reconciliation_type = state.reconciliation_type
+        intakes = state.reconciliation_intakes
+        if reconciliation_type not in _RECONCILIATION_SOURCES or not intakes:
+            return HTTPStatus.BAD_REQUEST, _error_page("Primero subí los dos archivos de conciliación.")
+
+        source_packets: list[dict[str, Any]] = []
+        case_parts: list[str] = []
+        for source_kind, source_label, field_specs in _RECONCILIATION_SOURCES[reconciliation_type]:
+            intake = intakes.get(source_kind)
+            if not isinstance(intake, dict):
+                return HTTPStatus.BAD_REQUEST, _reconciliation_upload_page(
+                    reconciliation_type,
+                    f"Falta el archivo: {source_label}.",
+                )
+            available_columns = {str(item) for item in intake.get("columns") or []}
+            bindings = {
+                canonical_field: fields.get(
+                    f"bind_{source_kind}_{canonical_field}", ""
+                ).strip()
+                for canonical_field, _ in field_specs
+            }
+            if any(not column for column in bindings.values()):
+                return HTTPStatus.BAD_REQUEST, _reconciliation_column_confirmation_page(
+                    reconciliation_type,
+                    intakes,
+                    "Confirmá todas las columnas necesarias para continuar.",
+                )
+            if any(column not in available_columns for column in bindings.values()):
+                return HTTPStatus.BAD_REQUEST, _reconciliation_column_confirmation_page(
+                    reconciliation_type,
+                    intakes,
+                    "Una de las columnas elegidas ya no coincide con el archivo recibido.",
+                )
+            if len(set(bindings.values())) != len(bindings):
+                return HTTPStatus.BAD_REQUEST, _reconciliation_column_confirmation_page(
+                    reconciliation_type,
+                    intakes,
+                    "No uses la misma columna para representar dos datos distintos.",
+                )
+
+            normalized = intake.get("normalized_table")
+            if not isinstance(normalized, dict):
+                return HTTPStatus.BAD_REQUEST, _reconciliation_upload_page(
+                    reconciliation_type,
+                    f"No se pudo preparar {source_label} para conciliación.",
+                )
+            rows = normalized.get("rows")
+            if not isinstance(rows, list) or not rows:
+                return HTTPStatus.BAD_REQUEST, _reconciliation_upload_page(
+                    reconciliation_type,
+                    f"{source_label} no contiene movimientos para revisar.",
+                )
+
+            approved_columns = list(dict.fromkeys(bindings.values()))
+            source_packets.append(
+                {
+                    "source_kind": source_kind,
+                    "source_ref": str(intake.get("filename") or source_label),
+                    "rows": _prepare_reconciliation_rows(
+                        rows=rows,
+                        bindings=bindings,
+                        reconciliation_type=reconciliation_type,
+                        source_kind=source_kind,
+                    ),
+                    "field_bindings": bindings,
+                    "governance": {
+                        "p5_status": "CONFIRMED",
+                        "p6_decisions": [
+                            {"column_ref": column, "status": "APPROVED"}
+                            for column in approved_columns
+                        ],
+                        "p7_status": "REQUIREMENT_MATCHED",
+                        "p8_status": "COMPUTABLE",
+                        "runtime_authorized": False,
+                        "tool_execution_authorized": False,
+                        "product_ready": False,
+                        "delivery_authorized": False,
+                        "diagnosis_generated": False,
+                    },
+                }
+            )
+            case_parts.append(str(intake.get("case_id") or source_kind)[-10:])
+
+        packet = run_service_1_product_pipeline_v1(
+            ingestion_output=None,
+            tool_requests=[],
+            output_dir=self.output_dir,
+            reconciliation_request={
+                "case_id": "web_reconciliation_" + "_".join(case_parts),
+                "owner_requested": True,
+                "reconciliation_type": reconciliation_type,
+                "source_packets": source_packets,
+            },
+        )
+        state.reconciliation_result = packet
+        if packet.get("status") == STATUS_RECONCILIATION_NEEDS_OWNER:
+            return HTTPStatus.OK, _reconciliation_column_confirmation_page(
+                reconciliation_type,
+                intakes,
+                "Hace falta volver a confirmar el significado de las columnas.",
+            )
+        if packet.get("status") == STATUS_BLOCKED:
+            return HTTPStatus.OK, _blocked_message_page(
+                "No se pudo preparar la conciliación con estos datos. Revisá los archivos y las columnas elegidas."
+            )
+        if packet.get("status") in {
+            STATUS_RECONCILIATION_REVIEW_READY,
+            STATUS_RECONCILIATION_NEEDS_EVIDENCE,
+        }:
+            return HTTPStatus.OK, _reconciliation_result_page(packet)
+        return HTTPStatus.OK, _blocked_message_page(
+            "La conciliación quedó en un estado que necesita revisión antes de continuar."
+        )
 
     def receive_xlsx(self, *, session_id: str, filename: str, content: bytes) -> tuple[int, str]:
         if not filename:
@@ -209,9 +474,25 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
                 if self.path == "/upload":
                     filename, content = _multipart_file(self)
                     status, content_html = application.receive_xlsx(session_id=session_id, filename=filename, content=content)
+                elif self.path == "/upload-reconciliation":
+                    _, files = _multipart_form(self)
+                    status, content_html = application.receive_reconciliation_sources(
+                        session_id=session_id,
+                        files=files,
+                    )
                 else:
                     fields = _form_fields(self)
-                    if self.path == "/confirm-columns":
+                    if self.path == "/start-reconciliation":
+                        status, content_html = application.start_reconciliation(
+                            session_id=session_id,
+                            reconciliation_type=fields.get("reconciliation_type", ""),
+                        )
+                    elif self.path == "/confirm-reconciliation-columns":
+                        status, content_html = application.confirm_reconciliation_columns(
+                            session_id=session_id,
+                            fields=fields,
+                        )
+                    elif self.path == "/confirm-columns":
                         status, content_html = application.confirm_columns(session_id=session_id, fields=fields)
                     elif self.path == "/confirm-meanings":
                         status, content_html = application.confirm_meanings(session_id=session_id, fields=fields)
@@ -256,21 +537,39 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
 
 
 def _multipart_file(handler: BaseHTTPRequestHandler) -> tuple[str, bytes]:
+    _, files = _multipart_form(handler)
+    if "file" not in files:
+        raise ValueError("file field required")
+    return files["file"]
+
+
+def _multipart_form(
+    handler: BaseHTTPRequestHandler,
+) -> tuple[dict[str, str], dict[str, tuple[str, bytes]]]:
     content_type = handler.headers.get("Content-Type", "")
     if "multipart/form-data" not in content_type:
         raise ValueError("multipart form data required")
     length = int(handler.headers.get("Content-Length", "0"))
-    if length <= 0 or length > 20 * 1024 * 1024:
+    if length <= 0 or length > 40 * 1024 * 1024:
         raise ValueError("invalid upload size")
     message = BytesParser(policy=policy.default).parsebytes(
-        f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("utf-8") + handler.rfile.read(length)
+        f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("utf-8")
+        + handler.rfile.read(length)
     )
-    for part in message.iter_attachments():
-        if part.get_param("name", header="content-disposition") == "file":
-            filename = part.get_filename() or ""
-            payload = part.get_payload(decode=True)
-            return filename, payload if isinstance(payload, bytes) else b""
-    raise ValueError("file field required")
+    fields: dict[str, str] = {}
+    files: dict[str, tuple[str, bytes]] = {}
+    for part in message.iter_parts():
+        name = str(part.get_param("name", header="content-disposition") or "").strip()
+        if not name:
+            continue
+        filename = part.get_filename()
+        payload = part.get_payload(decode=True)
+        raw = payload if isinstance(payload, bytes) else b""
+        if filename is not None:
+            files[name] = (filename, raw)
+        else:
+            fields[name] = raw.decode("utf-8", errors="replace")
+    return fields, files
 
 
 def _form_fields(handler: BaseHTTPRequestHandler) -> dict[str, str]:
@@ -285,10 +584,15 @@ def _document(content: str) -> str:
     return template.replace("{{content}}", content)
 
 
-def _home_page() -> str:
-    return """
+def _home_page(error: str | None = None) -> str:
+    reconciliation_options = "".join(
+        f'<label class="choice"><input type="radio" name="reconciliation_type" value="{_esc(ref)}" required><strong>{_esc(name)}</strong><span>{_esc(description)}</span></label>'
+        for ref, name, description in _RECONCILIATION_OPTIONS
+    )
+    return f"""
     <main id="app" tabindex="-1">
       <h1>Revisar información de mi negocio</h1>
+      {_error(error)}
       <p>Subí un archivo de Excel y te ayudaremos a entenderlo paso a paso.</p>
       <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
         <label for="file">Elegir archivo</label>
@@ -297,8 +601,269 @@ def _home_page() -> str:
         <p>Antes de hacer cálculos, te pediremos que confirmes qué significa cada dato.</p>
         <button type="submit">Continuar</button>
       </form>
+      <hr>
+      <h2>Conciliar movimientos</h2>
+      <p>Si querés comparar dos fuentes, elegí qué tipo de conciliación necesitás.</p>
+      <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
+        {reconciliation_options}
+        <button type="submit">Empezar conciliación</button>
+      </form>
       <div class="notice" aria-live="polite"></div>
     </main>"""
+
+
+def _reconciliation_upload_page(
+    reconciliation_type: str,
+    error: str | None = None,
+) -> str:
+    _, title, description = _RECONCILIATION_BY_TYPE[reconciliation_type]
+    file_fields = "".join(
+        f'''<fieldset><legend>{_esc(source_label)}</legend>
+          <label for="source_{_esc(source_kind)}">Elegir Excel</label>
+          <input id="source_{_esc(source_kind)}" name="source_{_esc(source_kind)}" type="file" accept=".xlsx" required>
+        </fieldset>'''
+        for source_kind, source_label, _ in _RECONCILIATION_SOURCES[reconciliation_type]
+    )
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>{_esc(title)}</h1>
+      {_error(error)}
+      <p>{_esc(description)}</p>
+      <p>Necesitamos las dos fuentes. No modificamos ninguno de los archivos.</p>
+      <form action="/upload-reconciliation" method="post" enctype="multipart/form-data" hx-post="/upload-reconciliation" hx-target="#app" hx-swap="outerHTML">
+        {file_fields}
+        <button type="submit">Revisar archivos</button>
+      </form>
+      <div class="notice" aria-live="polite"></div>
+    </main>"""
+
+
+def _reconciliation_column_confirmation_page(
+    reconciliation_type: str,
+    intakes: dict[str, dict[str, Any]],
+    error: str | None = None,
+) -> str:
+    _, title, _ = _RECONCILIATION_BY_TYPE[reconciliation_type]
+    source_blocks: list[str] = []
+    for source_kind, source_label, field_specs in _RECONCILIATION_SOURCES[reconciliation_type]:
+        intake = intakes[source_kind]
+        columns = [str(item) for item in intake.get("columns") or []]
+        selectors: list[str] = []
+        for canonical_field, field_label in field_specs:
+            options = '<option value="">Elegí una columna</option>' + "".join(
+                f'<option value="{_esc(column)}">{_esc(column)}</option>'
+                for column in columns
+            )
+            selectors.append(
+                f'''<label for="bind_{_esc(source_kind)}_{_esc(canonical_field)}">{_esc(field_label)}</label>
+                <select id="bind_{_esc(source_kind)}_{_esc(canonical_field)}" name="bind_{_esc(source_kind)}_{_esc(canonical_field)}" required>{options}</select>'''
+            )
+        source_blocks.append(
+            f'''<fieldset><legend>{_esc(source_label)}</legend>
+              <p>Archivo: <strong>{_esc(intake.get("filename"))}</strong></p>
+              <p>Decinos qué columna representa cada dato. PymIA no lo va a adivinar.</p>
+              {''.join(selectors)}
+            </fieldset>'''
+        )
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>Confirmar columnas para { _esc(title.lower()) }</h1>
+      {_error(error)}
+      <form action="/confirm-reconciliation-columns" method="post" hx-post="/confirm-reconciliation-columns" hx-target="#app" hx-swap="outerHTML">
+        {''.join(source_blocks)}
+        <button type="submit">Cruzar movimientos</button>
+      </form>
+      <div class="notice" aria-live="polite"></div>
+    </main>"""
+
+
+def _prepare_reconciliation_rows(
+    *,
+    rows: list[Any],
+    bindings: dict[str, str],
+    reconciliation_type: str,
+    source_kind: str,
+) -> list[dict[str, Any]]:
+    prepared: list[dict[str, Any]] = []
+    numeric_fields = _RECONCILIATION_NUMERIC_FIELDS.get(
+        reconciliation_type, {}
+    ).get(source_kind, ())
+    for raw in rows:
+        if not isinstance(raw, dict):
+            continue
+        row = dict(raw)
+        for canonical_field in numeric_fields:
+            source_column = bindings.get(canonical_field, "")
+            if not source_column:
+                continue
+            numeric = _confirmed_numeric_value(row.get(source_column))
+            if numeric is not None:
+                row[source_column] = numeric
+        prepared.append(row)
+    return prepared
+
+
+def _confirmed_numeric_value(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        number = float(value)
+        return number if math.isfinite(number) else None
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    candidates = [text]
+    if text.count(",") == 1 and "." not in text:
+        whole, fractional = text.split(",", 1)
+        if whole.lstrip("+-").isdigit() and fractional.isdigit() and len(fractional) <= 2:
+            candidates.append(whole + "." + fractional)
+    for candidate in candidates:
+        try:
+            number = float(candidate)
+        except ValueError:
+            continue
+        if math.isfinite(number):
+            return number
+    return None
+
+
+def _reconciliation_result_page(packet: dict[str, Any]) -> str:
+    reconciliation_run = packet.get("reconciliation_run")
+    run = reconciliation_run if isinstance(reconciliation_run, dict) else {}
+    review_raw = run.get("assisted_review")
+    review = review_raw if isinstance(review_raw, dict) else {}
+    summary_raw = review.get("review_summary")
+    summary = summary_raw if isinstance(summary_raw, dict) else {}
+    reconciliation_type = str(run.get("reconciliation_type") or "")
+    title = _RECONCILIATION_BY_TYPE.get(
+        reconciliation_type,
+        ("", "Conciliación", ""),
+    )[1]
+    pending_label = (
+        "Operaciones de Mercado Pago sin acreditación"
+        if reconciliation_type == MERCADO_PAGO_BANK_RECONCILIATION
+        else "Movimientos internos sin banco"
+    )
+    metrics = (
+        ("Coincidencias claras", summary.get("confirmed_candidates", 0)),
+        ("Coincidencias probables", summary.get("probable_candidates", 0)),
+        ("Casos dudosos", summary.get("ambiguous_groups", 0)),
+        ("Diferencias de importe", summary.get("amount_differences", 0)),
+        ("Diferencias de fecha", summary.get("date_differences", 0)),
+        ("Movimientos bancarios sin pareja", summary.get("bank_pending", 0)),
+        (pending_label, summary.get("internal_pending", 0)),
+        ("Faltantes de evidencia", summary.get("missing_evidence", 0)),
+        ("Inconsistencias de cálculo", summary.get("calculation_inconsistencies", 0)),
+    )
+    rows = "".join(
+        f"<tr><th>{_esc(label)}</th><td>{_esc(value)}</td></tr>"
+        for label, value in metrics
+    )
+    status_note = (
+        "Falta evidencia en uno o más movimientos. Revisá los casos señalados antes de tomar una decisión."
+        if packet.get("status") == STATUS_RECONCILIATION_NEEDS_EVIDENCE
+        else "El cruce está preparado para revisión humana."
+    )
+    details = _reconciliation_detail_sections(
+        reconciliation_type=reconciliation_type,
+        review=review,
+    )
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>{_esc(title)}</h1>
+      <p><strong>Revisión humana requerida.</strong> {_esc(status_note)}</p>
+      <table><tbody>{rows}</tbody></table>
+      {details}
+      <p class="notice">PymIA no marcó ningún movimiento como conciliado, no modificó los archivos y no realizó ningún cierre contable.</p>
+      <div aria-live="polite">Resultado de conciliación listo para revisar.</div>
+    </main>"""
+
+
+def _reconciliation_detail_sections(
+    *,
+    reconciliation_type: str,
+    review: dict[str, Any],
+) -> str:
+    review_result_raw = review.get("review_result")
+    review_result = review_result_raw if isinstance(review_result_raw, dict) else {}
+    sections: list[tuple[str, list[Any]]] = []
+    if reconciliation_type == BANK_RECONCILIATION:
+        sections = [
+            ("Coincidencias claras", _summary_items(review_result, "exact_matches_summary")),
+            ("Coincidencias probables", _summary_items(review_result, "probable_matches_summary")),
+            ("Casos dudosos", _summary_items(review_result, "ambiguous_matches_summary")),
+            ("Diferencias de importe", _summary_items(review_result, "amount_differences_summary")),
+            ("Diferencias de fecha", _summary_items(review_result, "date_differences_summary")),
+            ("Banco sin pareja", _summary_items(review_result, "bank_pending_summary")),
+            ("Movimientos internos sin banco", _summary_items(review_result, "internal_pending_summary")),
+        ]
+    elif reconciliation_type == MERCADO_PAGO_BANK_RECONCILIATION:
+        sections = [
+            ("Coincidencias claras", _list_value(review_result, "conciliaciones")),
+            ("Casos dudosos", _list_value(review_result, "ambiguos")),
+            ("Diferencias de importe", _list_value(review_result, "diferencias_importe")),
+            ("Banco sin operación de Mercado Pago", _list_value(review_result, "movimientos_banco_sin_operacion_mp")),
+            ("Mercado Pago sin acreditación", _list_value(review_result, "operaciones_mp_sin_acreditacion")),
+            ("Inconsistencias de cálculo", _list_value(review_result, "inconsistencias_calculo")),
+        ]
+    visible = [(label, items) for label, items in sections if items]
+    if not visible:
+        return ""
+    return "".join(
+        f"<details><summary>{_esc(label)} ({len(items)})</summary><ol>{''.join(f'<li>{_reconciliation_item_text(item)}</li>' for item in items)}</ol></details>"
+        for label, items in visible
+    )
+
+
+def _list_value(container: dict[str, Any], key: str) -> list[Any]:
+    value = container.get(key)
+    return value if isinstance(value, list) else []
+
+
+def _summary_items(container: dict[str, Any], key: str) -> list[Any]:
+    summary = container.get(key)
+    if not isinstance(summary, dict):
+        return []
+    items = summary.get("items")
+    return items if isinstance(items, list) else []
+
+
+def _reconciliation_item_text(item: Any) -> str:
+    if not isinstance(item, dict):
+        return _esc(item)
+    labels = {
+        "banco_id": "Banco",
+        "interno_id": "Interno",
+        "movimiento_banco_id": "Banco",
+        "operacion_mp_id": "Mercado Pago",
+        "lote_id": "Lote",
+        "referencia": "Referencia",
+        "criterio": "Criterio",
+        "importe": "Importe",
+        "importe_banco": "Importe banco",
+        "importe_interno": "Importe interno",
+        "diferencia_absoluta": "Diferencia",
+        "dias": "Días",
+    }
+    parts: list[str] = []
+    for key, value in item.items():
+        if key in {"evidencia", "requires_human_review", "tipo_match"}:
+            continue
+        if isinstance(value, dict):
+            nested = ", ".join(
+                f"{labels.get(str(nested_key), str(nested_key).replace('_', ' ').capitalize())}: {nested_value}"
+                for nested_key, nested_value in value.items()
+                if not isinstance(nested_value, (dict, list))
+            )
+            if nested:
+                parts.append(nested)
+        elif not isinstance(value, list):
+            parts.append(
+                f"{labels.get(str(key), str(key).replace('_', ' ').capitalize())}: {value}"
+            )
+    return _esc(" · ".join(parts) or "Caso para revisar")
 
 
 def _file_received_page(packet: dict[str, Any]) -> str:
