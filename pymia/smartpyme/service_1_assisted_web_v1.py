@@ -37,6 +37,9 @@ from pymia.smartpyme.service_1_reconciliation_request_gate_v1 import (
     BANK_RECONCILIATION,
     MERCADO_PAGO_BANK_RECONCILIATION,
 )
+from pymia.smartpyme.service_1_reconciliation_workpaper_xlsx_v1 import (
+    build_service_1_reconciliation_workpaper_xlsx_v1,
+)
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
 )
@@ -399,6 +402,20 @@ class AssistedWebApplicationV1:
             notice="Decisión humana registrada. Los movimientos originales no fueron modificados.",
         )
 
+    def build_reconciliation_workpaper(
+        self,
+        *,
+        session_id: str,
+    ) -> dict[str, Any]:
+        state = self.session(session_id)
+        packet = state.reconciliation_result
+        if not isinstance(packet, dict):
+            raise ValueError("reconciliation result is required")
+        return build_service_1_reconciliation_workpaper_xlsx_v1(
+            reconciliation_packet=packet,
+            human_decisions=state.reconciliation_decisions,
+        )
+
     def receive_xlsx(self, *, session_id: str, filename: str, content: bytes) -> tuple[int, str]:
         if not filename:
             return HTTPStatus.BAD_REQUEST, _error_page("Elegí un archivo de Excel para continuar.")
@@ -531,6 +548,28 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
                 self._send(HTTPStatus.OK, _STYLES_PATH.read_bytes(), "text/css; charset=utf-8")
             elif self.path == "/healthz":
                 self._send(HTTPStatus.OK, b'{"status":"ok"}', "application/json; charset=utf-8")
+            elif self.path == "/download-reconciliation-workpaper":
+                session_id = self._session_id()
+                try:
+                    workpaper = application.build_reconciliation_workpaper(
+                        session_id=session_id
+                    )
+                except ValueError:
+                    self._send_html(
+                        HTTPStatus.BAD_REQUEST,
+                        _error_page("Primero prepará una conciliación para generar el papel de trabajo."),
+                        session_id=session_id,
+                    )
+                    return
+                self._send(
+                    HTTPStatus.OK,
+                    workpaper["content"],
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    session_id=session_id,
+                    extra_headers={
+                        "Content-Disposition": f'attachment; filename="{workpaper["filename"]}"'
+                    },
+                )
             else:
                 self._send_html(HTTPStatus.NOT_FOUND, _error_page("No encontramos esa página."))
 
@@ -595,10 +634,20 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
         def _send_html(self, status: int, content: str, *, session_id: str | None = None) -> None:
             self._send(status, _document(content).encode("utf-8"), "text/html; charset=utf-8", session_id=session_id)
 
-        def _send(self, status: int, body: bytes, content_type: str, *, session_id: str | None = None) -> None:
+        def _send(
+            self,
+            status: int,
+            body: bytes,
+            content_type: str,
+            *,
+            session_id: str | None = None,
+            extra_headers: dict[str, str] | None = None,
+        ) -> None:
             self.send_response(int(status))
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
+            for name, value in (extra_headers or {}).items():
+                self.send_header(name, value)
             if session_id is not None:
                 self.send_header("Set-Cookie", f"service1_session={session_id}; Path=/; SameSite=Lax; HttpOnly")
             self.end_headers()
@@ -861,6 +910,8 @@ def _reconciliation_result_page(
       <p>Decisiones registradas en esta revisión: <strong>{decision_count}</strong>.</p>
       <table><tbody>{rows}</tbody></table>
       {details}
+      <p><a href="/download-reconciliation-workpaper">Descargar papel de trabajo (.xlsx)</a></p>
+      <p>El archivo incluye resultados, decisiones humanas y casos todavía pendientes.</p>
       <p class="notice">PymIA no marcó ningún movimiento como conciliado, no modificó los archivos y no realizó ningún cierre contable.</p>
       <div aria-live="polite">Resultado de conciliación listo para revisar.</div>
     </main>"""

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from http.client import HTTPConnection
+from io import BytesIO
 from pathlib import Path
 from threading import Thread
 from urllib.parse import urlencode
 
 import pytest
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 from pymia.smartpyme.service_1_assisted_web_v1 import create_assisted_web_server_v1
 from pymia.smartpyme.service_1_reconciliation_request_gate_v1 import (
@@ -30,11 +31,18 @@ def assisted_server(tmp_path: Path):
         thread.join(timeout=5)
 
 
-def _request(server, method: str, path: str, body: bytes = b"", headers=None):
+def _request_bytes(server, method: str, path: str, body: bytes = b"", headers=None):
     connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
     connection.request(method, path, body=body, headers=headers or {})
     response = connection.getresponse()
-    return response.status, response.getheaders(), response.read().decode("utf-8")
+    return response.status, response.getheaders(), response.read()
+
+
+def _request(server, method: str, path: str, body: bytes = b"", headers=None):
+    status, response_headers, content = _request_bytes(
+        server, method, path, body, headers
+    )
+    return status, response_headers, content.decode("utf-8")
 
 
 def _cookie(headers: list[tuple[str, str]]) -> str:
@@ -182,6 +190,31 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
     assert '"review_item_ref": "exact:1"' in lines[0]
     assert '"reviewed_by": "María Administración"' in lines[0]
     assert '"source_data_modified": false' in lines[0]
+
+    status, download_headers, content = _request_bytes(
+        assisted_server,
+        "GET",
+        "/download-reconciliation-workpaper",
+        headers={"Cookie": cookie},
+    )
+    assert status == 200
+    headers_by_name = {key.lower(): value for key, value in download_headers}
+    assert headers_by_name["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert "attachment; filename=" in headers_by_name["content-disposition"]
+    workbook = load_workbook(BytesIO(content), data_only=True)
+    assert workbook.sheetnames == [
+        "Resumen",
+        "Casos",
+        "Decisiones",
+        "Pendientes",
+        "Trazabilidad",
+        "Limites",
+    ]
+    decision_values = list(workbook["Decisiones"].values)
+    assert any("María Administración" in row for row in decision_values[1:])
+    assert any("CONFIRM" in row for row in decision_values[1:])
 
 
 def test_mercado_pago_reconciliation_web_flow_reaches_human_review(

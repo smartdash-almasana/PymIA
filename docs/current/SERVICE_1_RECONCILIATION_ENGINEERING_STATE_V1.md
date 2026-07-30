@@ -541,9 +541,10 @@ Estado de la secuencia:
 8. integración controlada a la raíz productiva: COMPLETADA
 9. interfaz asistida para banco y Mercado Pago: COMPLETADA
 10. decisión humana Confirmar / Rechazar / Pendiente con trazabilidad: COMPLETADA
+11. papel de trabajo XLSX descargable con decisiones y pendientes: COMPLETADO
 ```
 
-La compuerta `service_1_reconciliation_request_gate_v1.py` valida solicitud explícita del dueño, fuentes, campos y evidencia P5–P8. El adaptador `service_1_reconciliation_candidate_to_assisted_review_v1.py` acepta únicamente candidatos listos, deriva al conciliador bancario o Mercado Pago y devuelve un paquete uniforme para revisión humana. `service_1_reconciliation_product_request_v1.py` abre el acceso controlado desde la raíz productiva. La interfaz asistida reutiliza el lector XLSX canónico, exige que la persona asigne explícitamente las columnas requeridas y muestra coincidencias, diferencias, ambigüedades y pendientes. La decisión humana queda registrada como evento trazable con caso, elemento revisado, identidad del revisor, decisión, observación y snapshot del caso, sin modificar las fuentes. Las compuertas y conciliadores no leen Excel, no resuelven ambigüedades ni aceptan matches automáticamente.
+La compuerta `service_1_reconciliation_request_gate_v1.py` valida solicitud explícita del dueño, fuentes, campos y evidencia P5–P8. El adaptador `service_1_reconciliation_candidate_to_assisted_review_v1.py` acepta únicamente candidatos listos, deriva al conciliador bancario o Mercado Pago y devuelve un paquete uniforme para revisión humana. `service_1_reconciliation_product_request_v1.py` abre el acceso controlado desde la raíz productiva. La interfaz asistida reutiliza el lector XLSX canónico, exige que la persona asigne explícitamente las columnas requeridas y muestra coincidencias, diferencias, ambigüedades y pendientes. La decisión humana queda registrada como evento trazable con caso, elemento revisado, identidad del revisor, decisión, observación y snapshot del caso, sin modificar las fuentes. `service_1_reconciliation_workpaper_xlsx_v1.py` genera desde ese estado un XLSX con resumen, casos, historial de decisiones, pendientes, trazabilidad y límites; el documento no certifica evidencia, no modifica fuentes y no autoriza cierre contable. Las compuertas y conciliadores no leen Excel, no resuelven ambigüedades ni aceptan matches automáticamente.
 
 ---
 
@@ -578,19 +579,21 @@ Excel permanece como fuente importante, pero no define por sí solo la identidad
 
 ```text
 GOAL:
-generar un papel de trabajo descargable con el resultado de conciliación y las decisiones humanas registradas
+validar el recorrido completo de conciliación con un piloto real antes de ampliar alcance
 
 RECORRIDO HUMANO:
-- revisar el resumen de conciliación
-- completar decisiones pendientes cuando corresponda
-- generar una entrega de trabajo con resultados, decisiones y trazabilidad
-- conservar explícitos los casos aún pendientes
+- cargar dos fuentes reales
+- confirmar columnas
+- revisar coincidencias, diferencias y pendientes
+- registrar decisiones humanas con revisor
+- descargar el papel de trabajo
+- comprobar que el documento permite entender qué quedó confirmado, rechazado o pendiente
 
 SALIDA:
-papel de trabajo descargable sin autoridad contable final
+validación de producto punta a punta y defectos concretos, si aparecen
 
 RESTRICCIONES:
-NO convertir coincidencia algorítmica en aceptación automática
+NO sumar capacidades nuevas durante el piloto
 NO modificar movimientos originales
 NO presentar el documento como certificación, auditoría o cierre contable
 NO LLM
@@ -604,7 +607,7 @@ service_1_accounting_contracts_v1.py
 service_1_capability_registry_v1.py
 contratos de dominio
 sandbox
-workpapers
+workpapers contables existentes
 APIs
 LLM
 ```

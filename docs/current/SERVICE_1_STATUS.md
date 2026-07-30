@@ -55,9 +55,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado:
 
 ```text
-TOTAL_SERVICE_1_MODULES = 59
+TOTAL_SERVICE_1_MODULES = 60
 PRODUCTIVE = 30
-SUPPORT_NECESSARY = 29
+SUPPORT_NECESSARY = 30
 ```
 
 La clasificación `PRODUCTIVE` sigue siendo la frontera para determinar el closure ejecutable de la raíz.
