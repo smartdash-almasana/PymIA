@@ -43,9 +43,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado al reconciliar este lock:
 
 ```text
-TOTAL_SERVICE_1_MODULES = 56
+TOTAL_SERVICE_1_MODULES = 57
 PRODUCTIVE = 27
-SUPPORT_NECESSARY = 29
+SUPPORT_NECESSARY = 30
 ```
 
 Sólo los módulos `PRODUCTIVE` pueden integrar el closure ejecutable de la raíz canónica.
