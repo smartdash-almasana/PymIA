@@ -15,10 +15,10 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "PRODUCTIVE": 27,
-    "SUPPORT_NECESSARY": 30
+    "PRODUCTIVE": 30,
+    "SUPPORT_NECESSARY": 28
   },
-  "total_modules": 57,
+  "total_modules": 58,
   "modules": [
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
@@ -145,6 +145,7 @@
         "service_1_liq_001_evaluator_v1",
         "service_1_liq_001_outcome_v1",
         "service_1_pipeline_v1",
+        "service_1_reconciliation_product_request_v1",
         "service_1_ren_001_evaluator_v1",
         "service_1_ren_001_normalized_evidence_v1",
         "service_1_ren_001_outcome_v1"
@@ -246,17 +247,26 @@
     },
     {
       "module": "service_1_reconciliation_candidate_to_assisted_review_v1",
-      "disposition": "SUPPORT_NECESSARY",
+      "disposition": "PRODUCTIVE",
       "imports_service_1": [
         "service_1_reconciliation_request_gate_v1"
       ],
-      "canonical_root_reachable": false
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_reconciliation_product_request_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_reconciliation_candidate_to_assisted_review_v1",
+        "service_1_reconciliation_request_gate_v1"
+      ],
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_reconciliation_request_gate_v1",
-      "disposition": "SUPPORT_NECESSARY",
+      "disposition": "PRODUCTIVE",
       "imports_service_1": [],
-      "canonical_root_reachable": false
+      "canonical_root_reachable": true
     },
     {
       "module": "service_1_owner_confirmation_to_canonical_ingestion_output_v1",

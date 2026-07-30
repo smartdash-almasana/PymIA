@@ -4,7 +4,7 @@
   "cycle": "CYCLE_018_ARCHITECTURE_LOCK",
   "locked_on": "2026-07-16",
   "service": "SERVICE_1",
-  "software_objective": "A deterministic PyME Excel service that reads real evidence, asks the owner to confirm operational meaning during understanding, builds canonical semantic state, applies deterministic gates, executes only explicitly authorized tools, and produces traceable delivery files.",
+  "software_objective": "A deterministic PyME service that reads real evidence, asks the owner to confirm operational meaning during understanding, builds canonical semantic state, applies deterministic gates, executes only explicitly authorized tools, prepares governed reconciliation review, and produces traceable outputs.",
   "official_entrypoints": [
     {
       "id": "service_1_product_cli",
@@ -40,6 +40,9 @@
     "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
     "service_1_pipeline_v1",
     "service_1_product_pipeline_v1",
+    "service_1_reconciliation_candidate_to_assisted_review_v1",
+    "service_1_reconciliation_product_request_v1",
+    "service_1_reconciliation_request_gate_v1",
     "service_1_semantic_bridge_to_controlled_execution_gate_v1",
     "service_1_semantic_catalog_loader_v1",
     "service_1_semantic_evidence_binding_contracts_v1",

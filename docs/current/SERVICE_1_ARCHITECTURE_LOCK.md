@@ -43,9 +43,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado al reconciliar este lock:
 
 ```text
-TOTAL_SERVICE_1_MODULES = 57
-PRODUCTIVE = 27
-SUPPORT_NECESSARY = 30
+TOTAL_SERVICE_1_MODULES = 58
+PRODUCTIVE = 30
+SUPPORT_NECESSARY = 28
 ```
 
 Sólo los módulos `PRODUCTIVE` pueden integrar el closure ejecutable de la raíz canónica.
@@ -195,7 +195,16 @@ El matcher algorítmico de conciliación existente está en:
 service_2_reconciliation_match_candidates_v1
 ```
 
-Reglas cerradas antes de cualquier wiring productivo:
+El acceso productivo controlado ocurre únicamente por:
+
+```text
+service_1_reconciliation_request_gate_v1
+→ service_1_reconciliation_candidate_to_assisted_review_v1
+→ service_1_reconciliation_product_request_v1
+→ service_1_product_pipeline_v1
+```
+
+Reglas vigentes para el wiring productivo controlado:
 
 ```text
 fecha + importe no demuestra identidad

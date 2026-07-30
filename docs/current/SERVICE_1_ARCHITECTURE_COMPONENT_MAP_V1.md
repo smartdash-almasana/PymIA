@@ -58,6 +58,7 @@ pymia/cli/service_1_product.py
 │                                                               │
 │ evidencia → semántica → dueño → aprobación →                 │
 │ requisitos → computabilidad → cálculo → outcome → delivery   │
+│ solicitud de conciliación → compuerta → revisión humana      │
 └──────────────────────────────┬────────────────────────────────┘
                                │
                                ▼
@@ -75,7 +76,7 @@ CROSS-CUTTING, SIN AUTORIDAD PRODUCTIVA AUTOMÁTICA:
 - pymia/diagnostic_core/*
 - pymia/narrative/*
 - pymia/operational_harness/*
-- contratos contables y de conciliación
+- contratos contables generales, workpapers y superficies todavía no integradas
 - radiografía, corpus, quality gates y herramientas de auditoría
 ```
 
@@ -107,6 +108,8 @@ La raíz coordina:
 - dispatch explícito por `requested_capability`;
 - evaluadores especializados sólo donde existe comportamiento realmente especializado;
 - kernel genérico para las capacidades gobernadas por registry;
+- acceso exclusivo a conciliación bancaria o Mercado Pago mediante compuertas gobernadas;
+- paquete de conciliación siempre dirigido a revisión humana;
 - outcome acotado;
 - delivery sólo cuando está explícitamente autorizado.
 
@@ -368,9 +371,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado al redactar este mapa:
 
 ```text
-TOTAL_SERVICE_1_MODULES = 57
-PRODUCTIVE = 27
-SUPPORT_NECESSARY = 30
+TOTAL_SERVICE_1_MODULES = 58
+PRODUCTIVE = 30
+SUPPORT_NECESSARY = 28
 CANONICAL_PRODUCT_ROOT = service_1_product_pipeline_v1
 ```
 

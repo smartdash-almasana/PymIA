@@ -103,16 +103,19 @@ pymia/pipeline_radiography/*
 
 Estos componentes no reemplazan la raíz productiva ni los gates P0–P10.
 
-### Plano C — contratos/capacidades no integrados
+### Plano C — contratos y capacidades con integración acotada
 
-Incluye, entre otros, la familia contable y conciliación:
+La familia contable general continúa como soporte, pero la revisión asistida de conciliación ya tiene acceso controlado desde la raíz productiva:
 
 ```text
 service_1_accounting_contracts_v1 = SUPPORT_NECESSARY
-service_2_reconciliation_match_candidates_v1 = matcher algorítmico existente
+service_1_reconciliation_request_gate_v1 = PRODUCTIVE
+service_1_reconciliation_candidate_to_assisted_review_v1 = PRODUCTIVE
+service_1_reconciliation_product_request_v1 = PRODUCTIVE
+service_2_reconciliation_match_candidates_v1 = matcher determinístico reutilizado
 ```
 
-Su existencia no autoriza todavía wiring productivo a Servicio 1.
+Esta integración sólo prepara resultados para revisión humana. No autoriza cierre contable, aceptación automática ni modificación de movimientos.
 
 ## Ejecución
 
@@ -140,9 +143,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado al 2026-07-29:
 
 ```text
-TOTAL = 57
-PRODUCTIVE = 27
-SUPPORT_NECESSARY = 30
+TOTAL = 58
+PRODUCTIVE = 30
+SUPPORT_NECESSARY = 28
 CANONICAL_PRODUCT_ROOT = service_1_product_pipeline_v1
 ```
 
@@ -165,7 +168,7 @@ Estas integraciones forman la nueva envolvente arquitectónica de PymIA alrededo
 
 ## Conciliación
 
-La conciliación se encuentra en fase de maduración antes de cualquier integración productiva S1/S2.
+La conciliación bancaria y Mercado Pago están integradas a Servicio 1 como preparación gobernada para revisión humana.
 
 Principios cerrados:
 

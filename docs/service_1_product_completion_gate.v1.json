@@ -5,8 +5,8 @@
   "locked_on": "2026-07-16",
   "baseline_after_sanitation": "4dc4bf3",
   "service": "SERVICE_1",
-  "completion_scope": "Assisted deterministic Servicio 1 MVP for real XLSX intake, owner column confirmation, semantic owner confirmation, governed deterministic computation or explicit tool execution, bounded findings, and traceable output.",
-  "completion_claim": "Servicio 1 MVP completo para el alcance definido; no declara completo el universo futuro de patologias, formulas, CRM, SaaS, Servicio 2/3 ni automatizacion LLM.",
+  "completion_scope": "Assisted deterministic Servicio 1 MVP for real XLSX intake, owner column confirmation, semantic owner confirmation, governed deterministic computation or explicit tool execution, bounded findings, governed reconciliation review preparation, and traceable output.",
+  "completion_claim": "Servicio 1 MVP completo para el alcance definido; incluye preparación gobernada de conciliación bancaria y Mercado Pago para revisión humana, pero no declara completo el universo futuro de patologias, formulas, CRM, SaaS, Servicio 2/3 ni automatizacion LLM.",
   "official_entrypoint": {
     "path": "pymia/cli/service_1_product.py",
     "function": "run_service_1_product_entrypoint_v1"
@@ -37,6 +37,17 @@
       "expected_bounded_finding": true,
       "expected_delivery": true,
       "expected_causal_diagnosis": false
+    },
+    {
+      "id": "governed_reconciliation_review",
+      "fixtures": [
+        "prueba_excels/conciliacion_pyme_argentina_corregida.xlsx",
+        "prueba_excels/conciliacion_mercado_pago_banco_corregida.xlsx"
+      ],
+      "expected_final_status": "RECONCILIATION_REVIEW_READY",
+      "expected_human_review": true,
+      "expected_auto_acceptance": false,
+      "expected_delivery": false
     }
   ],
   "required_guards": {
@@ -49,9 +60,9 @@
     "no_auto_tool_selection_claim": true
   },
   "registry_expected_counts": {
-    "total_modules": 57,
-    "PRODUCTIVE": 27,
-    "SUPPORT_NECESSARY": 30,
+    "total_modules": 58,
+    "PRODUCTIVE": 30,
+    "SUPPORT_NECESSARY": 28,
     "EXPERIMENTAL_FROZEN": 0
   },
   "acceptance_tests": [
@@ -59,6 +70,7 @@
     "tests/cli/test_service_1_product_cli_v1.py::test_real_xlsx_cli_builds_liq_001_plan_without_execution",
     "tests/smartpyme/test_service_1_liq_001_product_wiring_v1.py",
     "tests/smartpyme/test_service_1_liq_001_outcome_v1.py",
+    "tests/smartpyme/test_service_1_reconciliation_product_wiring_v1.py",
     "tests/smartpyme/test_service_1_product_completion_gate_v1.py"
   ],
   "known_limits": [
@@ -67,7 +79,7 @@
     "LIQ_001 emits a bounded finding and deterministic treatment; it does not attribute a causal diagnosis.",
     "XLSX delivery requires an explicit --deliver-result request.",
     "PYME_011 evaluator was historical; P8 governed execution via generic kernel supersedes specialized LIQ_002/PYME_011 paths.",
-    "No Servicio 2 or Servicio 3 scope.",
+    "No general Servicio 2 or Servicio 3 product surface; only governed reconciliation review is exposed through Servicio 1.",
     "No claim that all future pathology/formula families are connected."
   ]
 }

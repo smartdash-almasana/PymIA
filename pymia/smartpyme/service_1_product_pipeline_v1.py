@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Final, Sequence
+from typing import Any, Final, Mapping, Sequence
 
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
@@ -48,12 +48,22 @@ from pymia.smartpyme.service_1_ren_001_outcome_v1 import (
     STATUS_READY as REN_001_OUTCOME_READY,
     build_ren_001_outcome_v1,
 )
+from pymia.smartpyme.service_1_reconciliation_product_request_v1 import (
+    STATUS_BLOCKED as RECONCILIATION_STATUS_BLOCKED,
+    STATUS_NEEDS_EVIDENCE as RECONCILIATION_STATUS_NEEDS_EVIDENCE,
+    STATUS_NEEDS_OWNER as RECONCILIATION_STATUS_NEEDS_OWNER,
+    STATUS_REVIEW_READY as RECONCILIATION_STATUS_REVIEW_READY,
+    build_service_1_reconciliation_product_request_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
 STATUS_COMPUTATION_PLAN_READY = "COMPUTATION_PLAN_READY"
 STATUS_NEEDS_OWNER = "NEEDS_OWNER_CONFIRMATION"
 STATUS_BLOCKED = "BLOCKED"
+STATUS_RECONCILIATION_REVIEW_READY = RECONCILIATION_STATUS_REVIEW_READY
+STATUS_RECONCILIATION_NEEDS_OWNER = RECONCILIATION_STATUS_NEEDS_OWNER
+STATUS_RECONCILIATION_NEEDS_EVIDENCE = RECONCILIATION_STATUS_NEEDS_EVIDENCE
 
 
 def execute_generic_capability_v1(*, capability_ref: str, governed_computation_input: object, normalized_tables: object, column_refs: object, governed_results: object = None) -> dict[str, object]:
@@ -78,7 +88,45 @@ def run_service_1_product_pipeline_v1(
     requested_capability: str | None = None,
     deliver_result: bool = False,
     governed_results: object = None,
+    reconciliation_request: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if reconciliation_request is not None:
+        if (
+            requested_capability is not None
+            or bool(tool_requests)
+            or deliver_result
+            or owner_answers is not None
+            or governed_results is not None
+        ):
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="RECONCILIATION_REQUEST_MUST_BE_EXCLUSIVE",
+            )
+        reconciliation_run = build_service_1_reconciliation_product_request_v1(
+            reconciliation_request=reconciliation_request,
+        )
+        reconciliation_status = str(reconciliation_run.get("status") or "")
+        if reconciliation_status == RECONCILIATION_STATUS_REVIEW_READY:
+            product_status = STATUS_RECONCILIATION_REVIEW_READY
+            blocked_reason = None
+        elif reconciliation_status == RECONCILIATION_STATUS_NEEDS_OWNER:
+            product_status = STATUS_RECONCILIATION_NEEDS_OWNER
+            blocked_reason = reconciliation_run.get("reason")
+        elif reconciliation_status == RECONCILIATION_STATUS_NEEDS_EVIDENCE:
+            product_status = STATUS_RECONCILIATION_NEEDS_EVIDENCE
+            blocked_reason = reconciliation_run.get("reason")
+        else:
+            product_status = STATUS_BLOCKED
+            blocked_reason = (
+                reconciliation_run.get("reason")
+                or RECONCILIATION_STATUS_BLOCKED
+            )
+        return _packet(
+            status=product_status,
+            blocked_reason=blocked_reason,
+            reconciliation_run=reconciliation_run,
+        )
+
     semantic_run = run_initial_pass(ingestion_output=ingestion_output, sheet_name=sheet_name)
 
     if semantic_run.get("status") == STATUS_OWNER_QUESTIONS:
@@ -324,6 +372,7 @@ def _packet(
     computation_result: Any = None,
     bounded_outcome: Any = None,
     delivery_result: Any = None,
+    reconciliation_run: Any = None,
     owner_questions: list[dict[str, Any]] | None = None,
     owner_followup: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -339,6 +388,7 @@ def _packet(
         "computation_result": computation_result,
         "bounded_outcome": bounded_outcome,
         "delivery_result": delivery_result,
+        "reconciliation_run": reconciliation_run,
         "owner_questions": list(owner_questions or []),
         "owner_followup": [dict(item) for item in (owner_followup or [])],
         "semantic_bindings_confirmed": bool(
@@ -360,6 +410,15 @@ def _packet(
         ),
         "delivery_generated": bool(
             isinstance(delivery_result, dict) and delivery_result.get("status") == "DELIVERED"
+        ),
+        "reconciliation_review_prepared": bool(
+            isinstance(reconciliation_run, dict)
+            and reconciliation_run.get("status")
+            == RECONCILIATION_STATUS_REVIEW_READY
+        ),
+        "requires_human_review": bool(
+            isinstance(reconciliation_run, dict)
+            and reconciliation_run.get("requires_human_review") is True
         ),
         "runtime_authorized": False,
         "tool_execution_authorized": False,
@@ -393,5 +452,8 @@ __all__ = [
     "STATUS_COMPUTATION_PLAN_READY",
     "STATUS_NEEDS_OWNER",
     "STATUS_BLOCKED",
+    "STATUS_RECONCILIATION_REVIEW_READY",
+    "STATUS_RECONCILIATION_NEEDS_OWNER",
+    "STATUS_RECONCILIATION_NEEDS_EVIDENCE",
     "run_service_1_product_pipeline_v1",
 ]

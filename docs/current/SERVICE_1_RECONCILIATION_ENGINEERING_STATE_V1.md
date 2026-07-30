@@ -535,13 +535,13 @@ Estado de la secuencia:
 2. ambigüedad expuesta en revisión humana: COMPLETADA
 3. caso físico venta ↔ cobro ↔ banco: COMPLETADO
 4. segundo caso Mercado Pago ↔ banco: COMPLETADO
-5. compuerta gobernada de solicitud desde Servicio 1: IMPLEMENTADA COMO SUPPORT_NECESSARY
-6. adaptador controlado hacia revisión asistida: IMPLEMENTADO COMO SUPPORT_NECESSARY
+5. compuerta gobernada de solicitud desde Servicio 1: PROMOVIDA A PRODUCTIVE
+6. adaptador controlado hacia revisión asistida: PROMOVIDO A PRODUCTIVE
 7. validación física punta a punta desde fuentes gobernadas: COMPLETADA
-8. integración a la raíz productiva: NO AUTORIZADA
+8. integración controlada a la raíz productiva: COMPLETADA
 ```
 
-La compuerta `service_1_reconciliation_request_gate_v1.py` valida solicitud explícita del dueño, fuentes, campos y evidencia P5–P8. El adaptador `service_1_reconciliation_candidate_to_assisted_review_v1.py` acepta únicamente candidatos listos, deriva al conciliador bancario o Mercado Pago y devuelve un paquete uniforme para revisión humana. Ninguno lee Excel, resuelve ambigüedades, acepta matches ni integra esta capacidad al cierre productivo.
+La compuerta `service_1_reconciliation_request_gate_v1.py` valida solicitud explícita del dueño, fuentes, campos y evidencia P5–P8. El adaptador `service_1_reconciliation_candidate_to_assisted_review_v1.py` acepta únicamente candidatos listos, deriva al conciliador bancario o Mercado Pago y devuelve un paquete uniforme para revisión humana. `service_1_reconciliation_product_request_v1.py` abre el acceso controlado desde la raíz productiva. Ninguno lee Excel, resuelve ambigüedades ni acepta matches automáticamente.
 
 ---
 
@@ -576,33 +576,29 @@ Excel permanece como fuente importante, pero no define por sí solo la identidad
 
 ```text
 GOAL:
-evaluar si la capacidad reúne condiciones para una promoción gobernada al producto
+incorporar el recorrido de conciliación a la interfaz asistida sin alterar los análisis existentes
 
-EVALUAR:
-- capability_ref estable para conciliación bancaria y Mercado Pago
-- entrada explícita desde el pedido del dueño
-- reingreso de ambigüedades y faltantes a revisión humana
-- salida apta para dueño, operador y contador
-- ausencia de autoridad contable final
-- dependencia controlada respecto de módulos service_2_*
+RECORRIDO HUMANO:
+- elegir conciliación bancaria o Mercado Pago
+- subir dos fuentes separadas
+- confirmar columnas de cada fuente
+- ejecutar la solicitud productiva gobernada
+- mostrar coincidencias, diferencias, ambigüedades y pendientes
 
 SALIDA:
-READY_FOR_PRODUCT_WIRING
-ó
-NOT_READY con bloqueos comprobables
+pantalla de revisión humana sin autoaceptación contable
 
 RESTRICCIONES:
-NO modificar service_1_product_pipeline_v1.py durante la evaluación
-NO registrar capacidad como PRODUCTIVE por documentación solamente
-NO autoaceptación contable
+NO mezclar conciliación con análisis comunes en la misma solicitud
+NO marcar movimientos como conciliados automáticamente
+NO modificar datos originales
 NO LLM
-NO segunda raíz productiva
+NO API externa
 ```
 
 # DO_NOT_TOUCH
 
 ```text
-service_1_product_pipeline_v1.py
 service_1_accounting_contracts_v1.py
 service_1_capability_registry_v1.py
 contratos de dominio

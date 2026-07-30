@@ -2,7 +2,7 @@
 
 **Fecha de corte:** 2026-07-29  
 **Estado documental:** reconciliado con arquitectura post-Stage-2 y fundaciones integradas posteriores.  
-**Base Git observada antes de este cambio documental:** `17e36a2`.
+**Base Git observada antes de este cambio:** `e5753f9`.
 
 ## Estado ejecutivo
 
@@ -25,7 +25,7 @@ SIN DIAGNÓSTICO CAUSAL
 SEGUNDA RAÍZ PRODUCTIVA: NO
 DELIVERY AUTÓNOMO: NO AUTORIZADO
 API PRODUCTIVA: NO AUTORIZADA
-CONCILIACIÓN: MADURACIÓN PRE-INTEGRACIÓN
+CONCILIACIÓN: INTEGRACIÓN PRODUCTIVA CONTROLADA
 ```
 
 ## 1. Autoridad productiva
@@ -55,9 +55,9 @@ docs/service_1_module_disposition.v1.json
 Estado observado:
 
 ```text
-TOTAL_SERVICE_1_MODULES = 57
-PRODUCTIVE = 27
-SUPPORT_NECESSARY = 30
+TOTAL_SERVICE_1_MODULES = 58
+PRODUCTIVE = 30
+SUPPORT_NECESSARY = 28
 ```
 
 La clasificación `PRODUCTIVE` sigue siendo la frontera para determinar el closure ejecutable de la raíz.
@@ -258,9 +258,9 @@ Estado actual del frente:
 ```text
 MATCHER_EXISTS
 ALGORITHMIC_MATCHING_EXISTS
-AMBIGUITY_MODEL_IN_MATURATION
-NO_PRODUCTIVE_S1_WIRING_YET
-NO_PRODUCTIVE_S2_WIRING_CHANGE_AUTHORIZED_BY_THIS_DOC
+AMBIGUITY_EXPOSED_TO_HUMAN_REVIEW
+PRODUCTIVE_S1_WIRING_ACTIVE
+NO_AUTOMATIC_ACCOUNTING_CLOSURE
 ```
 
 Decisiones cerradas:
@@ -294,7 +294,8 @@ c240080  refactor(service1): remove live root dependency and legacy evidence bri
 - La confirmación del dueño sigue siendo evidencia semántica, no permiso general.
 - Las capas de admisión, operador fiel, dominio, narrativa y harness no sustituyen la raíz canónica.
 - Los contratos contables no ejecutan por existir.
-- Conciliación todavía no está conectada productivamente a Servicio 1.
+- La conciliación está conectada productivamente sólo como preparación para revisión humana.
+- No existe aceptación automática, asiento contable ni cierre definitivo de conciliación.
 - API y microservicios distribuidos no son el siguiente paso autorizado de conciliación.
 
 ## 9. Documentación de arquitectura
