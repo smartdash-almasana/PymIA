@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import math
 import secrets
 import tempfile
@@ -27,6 +28,10 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_RECONCILIATION_NEEDS_OWNER,
     STATUS_RECONCILIATION_REVIEW_READY,
     run_service_1_product_pipeline_v1,
+)
+from pymia.smartpyme.service_1_reconciliation_human_review_decision_v1 import (
+    ALLOWED_DECISIONS as ALLOWED_RECONCILIATION_DECISIONS,
+    build_reconciliation_human_review_decision_v1,
 )
 from pymia.smartpyme.service_1_reconciliation_request_gate_v1 import (
     BANK_RECONCILIATION,
@@ -148,6 +153,7 @@ class AssistedWebSessionV1:
     reconciliation_type: str | None = None
     reconciliation_intakes: dict[str, dict[str, Any]] = field(default_factory=dict)
     reconciliation_result: dict[str, Any] | None = None
+    reconciliation_decisions: list[dict[str, Any]] = field(default_factory=list)
 
 
 class AssistedWebApplicationV1:
@@ -168,6 +174,7 @@ class AssistedWebApplicationV1:
         state.reconciliation_type = reconciliation_type
         state.reconciliation_intakes = {}
         state.reconciliation_result = None
+        state.reconciliation_decisions = []
         return HTTPStatus.OK, _reconciliation_upload_page(reconciliation_type)
 
     def receive_reconciliation_sources(
@@ -207,6 +214,7 @@ class AssistedWebApplicationV1:
 
         state.reconciliation_intakes = intakes
         state.reconciliation_result = None
+        state.reconciliation_decisions = []
         return HTTPStatus.OK, _reconciliation_column_confirmation_page(
             reconciliation_type,
             intakes,
@@ -314,6 +322,7 @@ class AssistedWebApplicationV1:
             },
         )
         state.reconciliation_result = packet
+        state.reconciliation_decisions = []
         if packet.get("status") == STATUS_RECONCILIATION_NEEDS_OWNER:
             return HTTPStatus.OK, _reconciliation_column_confirmation_page(
                 reconciliation_type,
@@ -331,6 +340,63 @@ class AssistedWebApplicationV1:
             return HTTPStatus.OK, _reconciliation_result_page(packet)
         return HTTPStatus.OK, _blocked_message_page(
             "La conciliación quedó en un estado que necesita revisión antes de continuar."
+        )
+
+    def decide_reconciliation_item(
+        self,
+        *,
+        session_id: str,
+        review_item_ref: str,
+        decision: str,
+        reviewed_by: str,
+        observation: str,
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        packet = state.reconciliation_result
+        if not isinstance(packet, dict):
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero ejecutá una conciliación para revisar sus casos."
+            )
+        chosen = str(decision or "").strip().upper()
+        reviewer = str(reviewed_by or "").strip()
+        if chosen not in ALLOWED_RECONCILIATION_DECISIONS:
+            return HTTPStatus.BAD_REQUEST, _reconciliation_result_page(
+                packet,
+                decisions=state.reconciliation_decisions,
+                error="Elegí Confirmar, Rechazar o Dejar pendiente.",
+            )
+        if not reviewer:
+            return HTTPStatus.BAD_REQUEST, _reconciliation_result_page(
+                packet,
+                decisions=state.reconciliation_decisions,
+                error="Indicá quién realizó la revisión.",
+            )
+        item_index = _reconciliation_review_item_index(packet)
+        selected = item_index.get(str(review_item_ref or "").strip())
+        if selected is None:
+            return HTTPStatus.BAD_REQUEST, _reconciliation_result_page(
+                packet,
+                decisions=state.reconciliation_decisions,
+                error="Ese caso ya no pertenece a la conciliación actual.",
+            )
+        reconciliation_run = packet.get("reconciliation_run")
+        run = reconciliation_run if isinstance(reconciliation_run, dict) else {}
+        record = build_reconciliation_human_review_decision_v1(
+            case_id=str(run.get("case_id") or ""),
+            reconciliation_type=str(run.get("reconciliation_type") or ""),
+            review_item_ref=str(review_item_ref),
+            review_category=str(selected["category"]),
+            review_item=selected["item"],
+            decision=chosen,
+            reviewed_by=reviewer,
+            observation=observation,
+        )
+        state.reconciliation_decisions.append(record)
+        _append_reconciliation_decision_jsonl(self.output_dir, record)
+        return HTTPStatus.OK, _reconciliation_result_page(
+            packet,
+            decisions=state.reconciliation_decisions,
+            notice="Decisión humana registrada. Los movimientos originales no fueron modificados.",
         )
 
     def receive_xlsx(self, *, session_id: str, filename: str, content: bytes) -> tuple[int, str]:
@@ -491,6 +557,14 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
                         status, content_html = application.confirm_reconciliation_columns(
                             session_id=session_id,
                             fields=fields,
+                        )
+                    elif self.path == "/decide-reconciliation-item":
+                        status, content_html = application.decide_reconciliation_item(
+                            session_id=session_id,
+                            review_item_ref=fields.get("review_item_ref", ""),
+                            decision=fields.get("decision", ""),
+                            reviewed_by=fields.get("reviewed_by", ""),
+                            observation=fields.get("observation", ""),
                         )
                     elif self.path == "/confirm-columns":
                         status, content_html = application.confirm_columns(session_id=session_id, fields=fields)
@@ -729,7 +803,13 @@ def _confirmed_numeric_value(value: Any) -> float | None:
     return None
 
 
-def _reconciliation_result_page(packet: dict[str, Any]) -> str:
+def _reconciliation_result_page(
+    packet: dict[str, Any],
+    *,
+    decisions: list[dict[str, Any]] | None = None,
+    notice: str | None = None,
+    error: str | None = None,
+) -> str:
     reconciliation_run = packet.get("reconciliation_run")
     run = reconciliation_run if isinstance(reconciliation_run, dict) else {}
     review_raw = run.get("assisted_review")
@@ -766,14 +846,19 @@ def _reconciliation_result_page(packet: dict[str, Any]) -> str:
         if packet.get("status") == STATUS_RECONCILIATION_NEEDS_EVIDENCE
         else "El cruce está preparado para revisión humana."
     )
+    decision_history = list(decisions or [])
     details = _reconciliation_detail_sections(
-        reconciliation_type=reconciliation_type,
-        review=review,
+        packet=packet,
+        decisions=decision_history,
     )
+    decision_count = len(decision_history)
     return f"""
     <main id="app" tabindex="-1">
       <h1>{_esc(title)}</h1>
+      {_error(error)}
+      {f'<p class="notice">{_esc(notice)}</p>' if notice else ''}
       <p><strong>Revisión humana requerida.</strong> {_esc(status_note)}</p>
+      <p>Decisiones registradas en esta revisión: <strong>{decision_count}</strong>.</p>
       <table><tbody>{rows}</tbody></table>
       {details}
       <p class="notice">PymIA no marcó ningún movimiento como conciliado, no modificó los archivos y no realizó ningún cierre contable.</p>
@@ -781,40 +866,116 @@ def _reconciliation_result_page(packet: dict[str, Any]) -> str:
     </main>"""
 
 
-def _reconciliation_detail_sections(
-    *,
-    reconciliation_type: str,
-    review: dict[str, Any],
-) -> str:
+def _reconciliation_review_sections(
+    packet: dict[str, Any],
+) -> list[tuple[str, str, list[Any]]]:
+    reconciliation_run = packet.get("reconciliation_run")
+    run = reconciliation_run if isinstance(reconciliation_run, dict) else {}
+    review_raw = run.get("assisted_review")
+    review = review_raw if isinstance(review_raw, dict) else {}
     review_result_raw = review.get("review_result")
     review_result = review_result_raw if isinstance(review_result_raw, dict) else {}
-    sections: list[tuple[str, list[Any]]] = []
+    reconciliation_type = str(run.get("reconciliation_type") or "")
     if reconciliation_type == BANK_RECONCILIATION:
-        sections = [
-            ("Coincidencias claras", _summary_items(review_result, "exact_matches_summary")),
-            ("Coincidencias probables", _summary_items(review_result, "probable_matches_summary")),
-            ("Casos dudosos", _summary_items(review_result, "ambiguous_matches_summary")),
-            ("Diferencias de importe", _summary_items(review_result, "amount_differences_summary")),
-            ("Diferencias de fecha", _summary_items(review_result, "date_differences_summary")),
-            ("Banco sin pareja", _summary_items(review_result, "bank_pending_summary")),
-            ("Movimientos internos sin banco", _summary_items(review_result, "internal_pending_summary")),
+        return [
+            ("exact", "Coincidencias claras", _summary_items(review_result, "exact_matches_summary")),
+            ("probable", "Coincidencias probables", _summary_items(review_result, "probable_matches_summary")),
+            ("ambiguous", "Casos dudosos", _summary_items(review_result, "ambiguous_matches_summary")),
+            ("amount_difference", "Diferencias de importe", _summary_items(review_result, "amount_differences_summary")),
+            ("date_difference", "Diferencias de fecha", _summary_items(review_result, "date_differences_summary")),
+            ("bank_pending", "Banco sin pareja", _summary_items(review_result, "bank_pending_summary")),
+            ("internal_pending", "Movimientos internos sin banco", _summary_items(review_result, "internal_pending_summary")),
+            ("missing_evidence", "Faltantes de evidencia", _summary_items(review_result, "missing_evidence_summary")),
         ]
-    elif reconciliation_type == MERCADO_PAGO_BANK_RECONCILIATION:
-        sections = [
-            ("Coincidencias claras", _list_value(review_result, "conciliaciones")),
-            ("Casos dudosos", _list_value(review_result, "ambiguos")),
-            ("Diferencias de importe", _list_value(review_result, "diferencias_importe")),
-            ("Banco sin operación de Mercado Pago", _list_value(review_result, "movimientos_banco_sin_operacion_mp")),
-            ("Mercado Pago sin acreditación", _list_value(review_result, "operaciones_mp_sin_acreditacion")),
-            ("Inconsistencias de cálculo", _list_value(review_result, "inconsistencias_calculo")),
+    if reconciliation_type == MERCADO_PAGO_BANK_RECONCILIATION:
+        return [
+            ("exact", "Coincidencias claras", _list_value(review_result, "conciliaciones")),
+            ("ambiguous", "Casos dudosos", _list_value(review_result, "ambiguos")),
+            ("amount_difference", "Diferencias de importe", _list_value(review_result, "diferencias_importe")),
+            ("bank_pending", "Banco sin operación de Mercado Pago", _list_value(review_result, "movimientos_banco_sin_operacion_mp")),
+            ("internal_pending", "Mercado Pago sin acreditación", _list_value(review_result, "operaciones_mp_sin_acreditacion")),
+            ("calculation_inconsistency", "Inconsistencias de cálculo", _list_value(review_result, "inconsistencias_calculo")),
+            ("missing_evidence", "Faltantes de evidencia", _list_value(review_result, "faltantes_evidencia")),
         ]
-    visible = [(label, items) for label, items in sections if items]
-    if not visible:
-        return ""
-    return "".join(
-        f"<details><summary>{_esc(label)} ({len(items)})</summary><ol>{''.join(f'<li>{_reconciliation_item_text(item)}</li>' for item in items)}</ol></details>"
-        for label, items in visible
-    )
+    return []
+
+
+def _reconciliation_review_item_index(
+    packet: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    index: dict[str, dict[str, Any]] = {}
+    for category, _, items in _reconciliation_review_sections(packet):
+        for position, raw_item in enumerate(items, start=1):
+            item = raw_item if isinstance(raw_item, dict) else {"value": raw_item}
+            item_ref = f"{category}:{position}"
+            index[item_ref] = {
+                "category": category,
+                "item": item,
+            }
+    return index
+
+
+def _reconciliation_detail_sections(
+    *,
+    packet: dict[str, Any],
+    decisions: list[dict[str, Any]],
+) -> str:
+    latest = {
+        str(record.get("review_item_ref") or ""): record
+        for record in decisions
+        if isinstance(record, dict)
+    }
+    rendered_sections: list[str] = []
+    for category, label, items in _reconciliation_review_sections(packet):
+        if not items:
+            continue
+        rendered_items: list[str] = []
+        for position, raw_item in enumerate(items, start=1):
+            item = raw_item if isinstance(raw_item, dict) else {"value": raw_item}
+            item_ref = f"{category}:{position}"
+            current = latest.get(item_ref)
+            current_text = ""
+            if current:
+                observation = str(current.get("observation") or "").strip()
+                reviewer = str(current.get("reviewed_by") or "").strip()
+                current_text = (
+                    f'<p><strong>Última decisión:</strong> {_esc(current.get("decision"))}'
+                    f' · Revisó: {_esc(reviewer)}'
+                    f' · {_esc(current.get("decided_at"))}'
+                    f'{" · " + _esc(observation) if observation else ""}</p>'
+                )
+            rendered_items.append(
+                f'''<li>
+                  <p>{_reconciliation_item_text(item)}</p>
+                  {current_text}
+                  <form action="/decide-reconciliation-item" method="post" hx-post="/decide-reconciliation-item" hx-target="#app" hx-swap="outerHTML">
+                    <input type="hidden" name="review_item_ref" value="{_esc(item_ref)}">
+                    <label for="reviewed_by_{_esc(category)}_{position}">Revisado por</label>
+                    <input id="reviewed_by_{_esc(category)}_{position}" name="reviewed_by" type="text" required>
+                    <label for="observation_{_esc(category)}_{position}">Observación</label>
+                    <input id="observation_{_esc(category)}_{position}" name="observation" type="text" placeholder="Opcional">
+                    <div>
+                      <button type="submit" name="decision" value="CONFIRM">Confirmar</button>
+                      <button type="submit" name="decision" value="REJECT">Rechazar</button>
+                      <button type="submit" name="decision" value="PENDING">Dejar pendiente</button>
+                    </div>
+                  </form>
+                </li>'''
+            )
+        rendered_sections.append(
+            f"<details open><summary>{_esc(label)} ({len(items)})</summary><ol>{''.join(rendered_items)}</ol></details>"
+        )
+    return "".join(rendered_sections)
+
+
+def _append_reconciliation_decision_jsonl(
+    output_dir: Path,
+    record: dict[str, Any],
+) -> Path:
+    target = output_dir / "reconciliation_human_decisions.jsonl"
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return target
 
 
 def _list_value(container: dict[str, Any], key: str) -> list[Any]:

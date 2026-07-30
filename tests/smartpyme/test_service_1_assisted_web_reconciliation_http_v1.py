@@ -151,8 +151,37 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
     assert "Coincidencias claras" in page
     assert "Banco: B-1" in page
     assert "Interno: C-1" in page
+    assert "Confirmar" in page
+    assert "Rechazar" in page
+    assert "Dejar pendiente" in page
     assert "no marcó ningún movimiento como conciliado" in page
     assert list((tmp_path / "outputs").iterdir()) == []
+
+    status, _, page = _form(
+        assisted_server,
+        "/decide-reconciliation-item",
+        {
+            "review_item_ref": "exact:1",
+            "decision": "CONFIRM",
+            "reviewed_by": "María Administración",
+            "observation": "Comprobante verificado por administración",
+        },
+        cookie,
+    )
+    assert status == 200
+    assert "Decisión humana registrada" in page
+    assert "Última decisión:</strong> CONFIRM" in page
+    assert "Revisó: María Administración" in page
+    assert "Comprobante verificado por administración" in page
+
+    trace = tmp_path / "outputs" / "reconciliation_human_decisions.jsonl"
+    assert trace.exists()
+    lines = trace.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    assert '"decision": "CONFIRM"' in lines[0]
+    assert '"review_item_ref": "exact:1"' in lines[0]
+    assert '"reviewed_by": "María Administración"' in lines[0]
+    assert '"source_data_modified": false' in lines[0]
 
 
 def test_mercado_pago_reconciliation_web_flow_reaches_human_review(
