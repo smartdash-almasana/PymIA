@@ -103,6 +103,27 @@ _SHEET_ROLE_PENALTIES: Final[dict[str, tuple[str, ...]]] = {
     "product_name": ("caja", "banco"),
 }
 
+# These headers describe consolidated amounts for one reporting period.  They
+# are distinct from transaction-level totals and unit amounts: their meaning is
+# only ready for P6 when the sibling period totals establish the same-period
+# context on the sheet.
+_PERIOD_TOTAL_HEADERS_BY_ROLE: Final[dict[str, frozenset[str]]] = {
+    "period_sales_total": frozenset(
+        {"ventas_periodo", "ventas_totales_periodo", "facturacion_periodo"}
+    ),
+    "period_costs_total": frozenset(
+        {"costos_periodo", "costos_totales_periodo", "cmv_total", "cmv_periodo"}
+    ),
+    "period_taxes_total": frozenset(
+        {"impuestos_periodo", "impuestos_y_comisiones", "impuestos_comisiones_periodo"}
+    ),
+}
+
+_LEGACY_ROLE_BY_PERIOD_HEADER: Final[dict[str, str]] = {
+    "ventas_periodo": "sales_amount",
+    "cmv_periodo": "cost_of_goods_sold",
+}
+
 _NON_ALNUM_RE: Final[re.Pattern[str]] = re.compile(r"[^a-z0-9_]+")
 _UNDERSCORE_RE: Final[re.Pattern[str]] = re.compile(r"_+")
 _DATE_TEXT_RE: Final[re.Pattern[str]] = re.compile(
@@ -239,6 +260,45 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
         owner_label="Venta total",
         owner_question_text="¿Esta columna es el importe total de la operacion (con o sin impuestos)?",
         owner_option_description="Importe total facturado por operacion.",
+    ),
+    _RoleRule(
+        semantic_role="period_sales_total",
+        variable_name="sale_price",
+        header_keywords=("ventas_periodo", "ventas_totales_periodo", "facturacion_periodo"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"costos_periodo", "costos_totales_periodo", "cmv_total", "cmv_periodo", "impuestos_periodo", "impuestos_y_comisiones", "impuestos_comisiones_periodo"}),
+        co_column_penalties=frozenset({"cantidad", "producto", "precio_unitario"}),
+        risk_text="Las ventas consolidadas deben corresponder al mismo período que los costos e impuestos para calcular el margen neto.",
+        owner_label="Ventas totales del período",
+        owner_question_text="¿Esta columna contiene las ventas totales consolidadas del mismo período que los costos e impuestos informados?",
+        owner_option_description="Importe consolidado de ventas para el período analizado.",
+    ),
+    _RoleRule(
+        semantic_role="period_costs_total",
+        variable_name="costs",
+        header_keywords=("costos_periodo", "costos_totales_periodo", "cmv_total", "cmv_periodo"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"ventas_periodo", "ventas_totales_periodo", "facturacion_periodo", "impuestos_periodo", "impuestos_y_comisiones", "impuestos_comisiones_periodo"}),
+        co_column_penalties=frozenset({"cantidad", "producto", "costo_unitario"}),
+        risk_text="Los costos consolidados deben corresponder al mismo período que las ventas e impuestos para calcular el margen neto.",
+        owner_label="Costos totales del período",
+        owner_question_text="¿Esta columna contiene los costos totales consolidados del mismo período que las ventas e impuestos informados?",
+        owner_option_description="Importe consolidado de costos para el período analizado.",
+    ),
+    _RoleRule(
+        semantic_role="period_taxes_total",
+        variable_name="taxes",
+        header_keywords=("impuestos_periodo", "impuestos_y_comisiones", "impuestos_comisiones_periodo"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_TEXT}),
+        co_column_boosts=frozenset({"ventas_periodo", "ventas_totales_periodo", "facturacion_periodo", "costos_periodo", "costos_totales_periodo", "cmv_total", "cmv_periodo"}),
+        co_column_penalties=frozenset({"cantidad", "producto", "iva"}),
+        risk_text="Los impuestos y comisiones consolidados deben corresponder al mismo período que las ventas y costos para calcular el margen neto.",
+        owner_label="Impuestos y comisiones del período",
+        owner_question_text="¿Esta columna contiene impuestos y comisiones totales del mismo período que las ventas y costos informados?",
+        owner_option_description="Importe consolidado de impuestos y comisiones para el período analizado.",
     ),
     _RoleRule(
         semantic_role="purchase_amount",
@@ -882,6 +942,32 @@ def _coerce_co_columns(co_columns: object) -> tuple[str, ...]:
     return ()
 
 
+def _has_sufficient_period_total_context(
+    *, normalized_header: str, co_columns: tuple[str, ...]
+) -> bool:
+    """Require the three period-total roles before auto-approving their meaning."""
+    own_role = next(
+        (
+            role
+            for role, headers in _PERIOD_TOTAL_HEADERS_BY_ROLE.items()
+            if normalized_header in headers
+        ),
+        None,
+    )
+    if own_role is None:
+        return True
+    observed = set(co_columns)
+    return all(
+        any(header in observed for header in headers)
+        for role, headers in _PERIOD_TOTAL_HEADERS_BY_ROLE.items()
+        if role != own_role
+    )
+
+
+def _is_period_total_role(semantic_role: str) -> bool:
+    return semantic_role in _PERIOD_TOTAL_HEADERS_BY_ROLE
+
+
 def _score_role(
     *,
     rule: _RoleRule,
@@ -942,6 +1028,19 @@ def _score_role(
                         f"co_column_contradicts: co-column '{co_column}' conflicts with role '{rule.semantic_role}'"
                     )
                     break
+
+    if (
+        _is_period_total_role(rule.semantic_role)
+        and normalized_header in _LEGACY_ROLE_BY_PERIOD_HEADER
+        and not _has_sufficient_period_total_context(
+            normalized_header=normalized_header,
+            co_columns=co_columns,
+        )
+    ):
+        score -= CO_COLUMN_PENALTY
+        counter_evidence.append(
+            "period_total_context_incomplete: sibling period totals are required"
+        )
 
     if sheet_name:
         normalized_sheet = normalize_service_1_column_understanding_header_v1(sheet_name)
@@ -1130,9 +1229,18 @@ def build_column_understanding_v1(
         inferred = INFERRED_DATA_TYPE_DATE
     co_columns = _coerce_co_columns(co_column_names)
     effective_sheet = (sheet_context or sheet_name or "").strip() or "unknown_sheet"
+    period_total_context_sufficient = _has_sufficient_period_total_context(
+        normalized_header=normalized,
+        co_columns=co_columns,
+    )
 
     scored: list[tuple[float, _RoleRule, tuple[str, ...], tuple[str, ...]]] = []
     for rule in _ROLE_RULES:
+        if (
+            period_total_context_sufficient
+            and _LEGACY_ROLE_BY_PERIOD_HEADER.get(normalized) == rule.semantic_role
+        ):
+            continue
         score, evidence, counter_evidence = _score_role(
             rule=rule,
             normalized_header=normalized,
@@ -1189,8 +1297,13 @@ def build_column_understanding_v1(
             primary = top
             confidence = top.score
             primary_rule = _find_rule(top.semantic_role)
+            period_total_context_missing = (
+                _is_period_total_role(top.semantic_role)
+                and not period_total_context_sufficient
+            )
             owner_question_needed = (
                 normalized in _OWNER_CONFIRMATION_REQUIRED_HEADERS
+                or period_total_context_missing
                 or (
                     top.score < HIGH_CONFIDENCE_THRESHOLD
                     and len(candidate_meanings) > 1
@@ -1199,6 +1312,10 @@ def build_column_understanding_v1(
             if normalized in _OWNER_CONFIRMATION_REQUIRED_HEADERS:
                 all_evidence.append(
                     f"owner_confirmation_required_for_ambiguous_header: '{normalized}'"
+                )
+            if period_total_context_missing:
+                all_evidence.append(
+                    "owner_confirmation_required_for_missing_period_total_context"
                 )
             risk_text = primary_rule.risk_text if primary_rule is not None else (
                 "Si la columna se interpreta mal, los calculos siguientes quedaran sesgados."

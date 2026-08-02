@@ -157,3 +157,29 @@ def test_non_approved_decision_cannot_smuggle_approved_meaning() -> None:
             approved_variable=None,
             reason="invalid",
         )
+
+
+@pytest.mark.parametrize(
+    ("role", "variable"),
+    (
+        ("period_sales_total", "sale_price"),
+        ("period_costs_total", "costs"),
+        ("period_taxes_total", "taxes"),
+    ),
+)
+def test_period_net_margin_semantic_roles_are_approved_without_downstream_authority(
+    role: str, variable: str
+) -> None:
+    out = build_service_1_p6_approval_decision_v1(
+        case_id="case_period_net_margin",
+        candidate=_candidate(
+            roles=(role,),
+            variables=(variable,),
+            primary_role=role,
+        ),
+    )
+
+    assert out.status == STATUS_APPROVED
+    assert out.approved_role == role
+    assert out.approved_variable == variable
+    assert out.to_dict()["runtime_authorized"] is False

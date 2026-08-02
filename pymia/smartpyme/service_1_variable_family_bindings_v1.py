@@ -23,6 +23,7 @@ SERVICE_NAME: Final[str] = "SERVICE_1"
 
 FAMILY_OPERATION_CORE: Final[str] = "OPERATION_CORE"
 FAMILY_SALES_MARGIN: Final[str] = "SALES_MARGIN"
+FAMILY_PERIOD_NET_MARGIN: Final[str] = "PERIOD_NET_MARGIN"
 FAMILY_CASH_COLLECTIONS: Final[str] = "CASH_COLLECTIONS"
 FAMILY_PURCHASES_SUPPLIERS: Final[str] = "PURCHASES_SUPPLIERS"
 FAMILY_INVENTORY_CONTROL: Final[str] = "INVENTORY_CONTROL"
@@ -60,33 +61,6 @@ P7_ALLOWED_STATUSES: Final[tuple[str, ...]] = (
 
 
 @dataclass(frozen=True)
-class Service1VariableFamilyDefinitionV1:
-    family_id: str
-    owner_label: str
-    priority: int
-    required_role_groups: tuple[tuple[str, ...], ...]
-    optional_roles: tuple[str, ...]
-    target_variable_names: tuple[str, ...]
-    target_capabilities: tuple[str, ...]
-
-    def __post_init__(self) -> None:
-        if not self.family_id.strip():
-            raise ValueError("family_id is required")
-        if not self.owner_label.strip():
-            raise ValueError("owner_label is required")
-        if self.priority < 1:
-            raise ValueError("priority must be >= 1")
-        if not self.required_role_groups:
-            raise ValueError("required_role_groups must not be empty")
-        for group in self.required_role_groups:
-            if not group or any(not str(role).strip() for role in group):
-                raise ValueError("every required role group must contain roles")
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-
-@dataclass(frozen=True)
 class Service1GrainV1:
     structural_scope: str
     business_entity_grain: str
@@ -111,6 +85,42 @@ class Service1GrainV1:
             raise ValueError("invalid temporal_grain")
         if self.aggregation_grain not in allowed_aggregation:
             raise ValueError("invalid aggregation_grain")
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+_DEFAULT_REQUIREMENT_MATCH_GRAIN: Final[Service1GrainV1] = Service1GrainV1(
+    structural_scope="REGION",
+    business_entity_grain="NONE",
+    temporal_grain="NONE",
+    aggregation_grain="ATOMIC",
+)
+
+
+@dataclass(frozen=True)
+class Service1VariableFamilyDefinitionV1:
+    family_id: str
+    owner_label: str
+    priority: int
+    required_role_groups: tuple[tuple[str, ...], ...]
+    optional_roles: tuple[str, ...]
+    target_variable_names: tuple[str, ...]
+    target_capabilities: tuple[str, ...]
+    grain: Service1GrainV1 = _DEFAULT_REQUIREMENT_MATCH_GRAIN
+
+    def __post_init__(self) -> None:
+        if not self.family_id.strip():
+            raise ValueError("family_id is required")
+        if not self.owner_label.strip():
+            raise ValueError("owner_label is required")
+        if self.priority < 1:
+            raise ValueError("priority must be >= 1")
+        if not self.required_role_groups:
+            raise ValueError("required_role_groups must not be empty")
+        for group in self.required_role_groups:
+            if not group or any(not str(role).strip() for role in group):
+                raise ValueError("every required role group must contain roles")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -319,6 +329,25 @@ VARIABLE_FAMILY_DEFINITIONS: Final[tuple[Service1VariableFamilyDefinitionV1, ...
         target_variable_names=("closing_index", "origin_index"),
         target_capabilities=("index_update_ratio",),
     ),
+    Service1VariableFamilyDefinitionV1(
+        family_id=FAMILY_PERIOD_NET_MARGIN,
+        owner_label="Margen neto del período",
+        priority=14,
+        required_role_groups=(
+            ("period_sales_total",),
+            ("period_costs_total",),
+            ("period_taxes_total",),
+        ),
+        optional_roles=(),
+        target_variable_names=("sale_price", "costs", "taxes"),
+        target_capabilities=("net_margin_real",),
+        grain=Service1GrainV1(
+            structural_scope="SHEET",
+            business_entity_grain="NONE",
+            temporal_grain="PERIOD",
+            aggregation_grain="AGGREGATED",
+        ),
+    ),
 )
 
 
@@ -340,17 +369,11 @@ def build_service_1_requirement_matches_v1(
         if role and column:
             _append_unique(role_columns, role, column)
 
-    grain = Service1GrainV1(
-        structural_scope="REGION",
-        business_entity_grain="NONE",
-        temporal_grain="NONE",
-        aggregation_grain="ATOMIC",
-    )
     return tuple(
         _build_requirement_match(
             definition=definition,
             role_columns=role_columns,
-            grain=grain,
+            grain=definition.grain,
         )
         for definition in VARIABLE_FAMILY_DEFINITIONS
     )
@@ -598,6 +621,7 @@ __all__ = [
     "SERVICE_NAME",
     "FAMILY_OPERATION_CORE",
     "FAMILY_SALES_MARGIN",
+    "FAMILY_PERIOD_NET_MARGIN",
     "FAMILY_CASH_COLLECTIONS",
     "FAMILY_PURCHASES_SUPPLIERS",
     "FAMILY_INVENTORY_CONTROL",

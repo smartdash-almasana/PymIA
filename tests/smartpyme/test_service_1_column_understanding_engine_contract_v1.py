@@ -615,3 +615,79 @@ def test_excel_serial_date_samples_require_date_header_context() -> None:
     assert date_understanding.primary_hypothesis is not None
     assert date_understanding.primary_hypothesis.semantic_role == "operation_date"
     assert amount_understanding.inferred_data_type == "number"
+
+
+def test_period_net_margin_headers_map_to_distinct_consolidated_roles() -> None:
+    headers = ("ventas_periodo", "cmv_total", "impuestos_periodo")
+    expected = {
+        "ventas_periodo": ("period_sales_total", "sale_price"),
+        "cmv_total": ("period_costs_total", "costs"),
+        "impuestos_periodo": ("period_taxes_total", "taxes"),
+    }
+
+    for header, (role, variable) in expected.items():
+        understanding = build_column_understanding_v1(
+            column_name=header,
+            sheet_name="Resumen_periodo",
+            sample_values=[1000, 2000],
+            inferred_data_type="number",
+            co_column_names=headers,
+        )
+
+        assert understanding.primary_hypothesis is not None
+        assert understanding.primary_hypothesis.semantic_role == role
+        assert understanding.primary_hypothesis.variable_name == variable
+        assert understanding.owner_question_needed is False
+
+
+@pytest.mark.parametrize(
+    ("header", "role"),
+    (
+        ("costos_periodo", "period_costs_total"),
+    ),
+)
+def test_period_net_margin_headers_require_owner_confirmation_without_period_context(
+    header: str, role: str
+) -> None:
+    understanding = build_column_understanding_v1(
+        column_name=header,
+        sheet_name="Resumen_periodo",
+        sample_values=[1000, 2000],
+        inferred_data_type="number",
+    )
+
+    assert understanding.primary_hypothesis is not None
+    assert understanding.primary_hypothesis.semantic_role == role
+    assert understanding.owner_question_needed is True
+    assert "owner_confirmation_required_for_missing_period_total_context" in understanding.evidence
+
+
+def test_generic_monetary_headers_do_not_rebind_to_period_net_margin_roles() -> None:
+    period_roles = {"period_sales_total", "period_costs_total", "period_taxes_total"}
+    for header in ("ventas_total", "costo", "impuestos"):
+        understanding = build_column_understanding_v1(
+            column_name=header,
+            sheet_name="Datos",
+            sample_values=[1000, 2000],
+            inferred_data_type="number",
+        )
+        assert not period_roles.intersection(
+            hypothesis.semantic_role for hypothesis in understanding.candidate_meanings
+        )
+
+
+def test_legacy_period_headers_keep_existing_roles_without_period_total_context() -> None:
+    expected = {
+        "ventas_periodo": "sales_amount",
+        "cmv_periodo": "cost_of_goods_sold",
+    }
+    for header, role in expected.items():
+        understanding = build_column_understanding_v1(
+            column_name=header,
+            sheet_name="Datos",
+            sample_values=[1000, 2000],
+            inferred_data_type="number",
+        )
+        assert understanding.primary_hypothesis is not None
+        assert understanding.primary_hypothesis.semantic_role == role
+        assert understanding.owner_question_needed is False

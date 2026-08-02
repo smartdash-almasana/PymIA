@@ -114,7 +114,7 @@ def test_full_chain_case_001_reaches_ready_gate(case_001_bridge_packet: dict) ->
     assert out["status"] == STATUS_READY
     assert out["owner_questions"] == []
     assert out["controlled_execution_candidate"] is not None
-    assert out["variable_family_count"] == 13
+    assert out["variable_family_count"] == 14
     assert all(
         isinstance(item, Service1VariableFamilyBindingV1)
         for item in out["variable_family_bindings"]
