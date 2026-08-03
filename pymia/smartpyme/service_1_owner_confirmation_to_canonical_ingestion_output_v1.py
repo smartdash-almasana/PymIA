@@ -15,6 +15,7 @@ SERVICE_NAME = "SERVICE_1"
 PACKET_TYPE = "OWNER_CONFIRMATION_TO_CANONICAL_INGESTION_OUTPUT"
 EXPECTED_INPUT_STATUS = "NEEDS_OWNER_CONFIRMATION"
 STATUS_READY = "INGESTION_OUTPUT_READY"
+STATUS_UNCONFIRMED_READY = "UNCONFIRMED_INGESTION_OUTPUT_READY"
 STATUS_BLOCKED = "BLOCKED"
 
 BLOCK_PACKET_NOT_DICT = "PACKET_NOT_DICT"
@@ -32,6 +33,134 @@ BLOCK_INVALID_COLUMN_REFS = "INVALID_COLUMN_REFS"
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(?:[ T].*)?$")
 _SLASH_DATE_RE = re.compile(r"^\d{1,2}/\d{1,2}/\d{2,4}$")
+
+
+def build_service_1_unconfirmed_canonical_ingestion_output_v1(
+    *,
+    owner_question_packet: Any,
+    runtime_authorized: bool = False,
+    product_ready: bool = False,
+    delivery_authorized: bool = False,
+) -> dict[str, Any]:
+    """Create canonical ingestion evidence before any owner confirmation."""
+    if runtime_authorized or product_ready or delivery_authorized:
+        return _blocked(BLOCK_REQUEST_FLAGS_FORBIDDEN)
+    if not isinstance(owner_question_packet, dict):
+        return _blocked(BLOCK_PACKET_NOT_DICT)
+
+    packet = owner_question_packet
+    if (
+        packet.get("schema_version") != BOUNDARY_SCHEMA_VERSION
+        or packet.get("packet_type") != BOUNDARY_PACKET_TYPE
+    ):
+        return _blocked(BLOCK_PACKET_WRONG_SCHEMA)
+    if packet.get("status") != EXPECTED_INPUT_STATUS:
+        return _blocked(BLOCK_PACKET_WRONG_STATUS)
+    if (
+        packet.get("runtime_authorized")
+        or packet.get("product_ready")
+        or packet.get("delivery_authorized")
+    ):
+        return _blocked(BLOCK_PACKET_FLAGS_FORBIDDEN)
+
+    columns = [str(item).strip() for item in list(packet.get("columns") or [])]
+    owner_questions = list(packet.get("owner_questions") or [])
+    column_refs = _column_refs(
+        packet,
+        columns=columns,
+        owner_questions=owner_questions,
+    )
+    if column_refs is None:
+        return _blocked(
+            BLOCK_INVALID_COLUMN_REFS,
+            case_id=packet.get("case_id"),
+            source_kind=packet.get("source_kind"),
+            filename=packet.get("filename"),
+            columns=columns,
+        )
+    if (
+        packet.get("question_count") != len(columns)
+        or packet.get("question_count") != len(owner_questions)
+        or packet.get("question_count") != len(column_refs)
+    ):
+        return _blocked(
+            BLOCK_QUESTION_COUNT_INCONSISTENT,
+            case_id=packet.get("case_id"),
+            source_kind=packet.get("source_kind"),
+            filename=packet.get("filename"),
+            columns=columns,
+        )
+
+    sheet_names = _ordered_unique(ref["sheet_name"] for ref in column_refs)
+    identities = [
+        f"{ref['sheet_name']}\x00{ref['column_name']}" for ref in column_refs
+    ]
+    field_ids = [ref["field_id"] for ref in column_refs]
+    question_ids = [ref["question_id"] for ref in column_refs]
+    if (
+        (len(sheet_names) <= 1 and _duplicates(columns))
+        or _duplicates(identities)
+        or _duplicates(field_ids)
+        or _duplicates(question_ids)
+    ):
+        return _blocked(
+            BLOCK_DUPLICATE_COLUMNS,
+            case_id=packet.get("case_id"),
+            source_kind=packet.get("source_kind"),
+            filename=packet.get("filename"),
+            columns=columns,
+        )
+
+    case_id = packet.get("case_id")
+    source_kind = packet.get("source_kind")
+    filename = packet.get("filename")
+    normalized_tables = _normalized_tables(packet)
+    unconfirmed_refs = [dict(ref) for ref in column_refs]
+    available_fields = [ref["field_id"] for ref in unconfirmed_refs]
+    ingestion_output: dict[str, Any] = {
+        "case_id": case_id,
+        "source_kind": source_kind,
+        "filename": filename,
+        "source_file_ref": filename,
+        "available_data_fields": available_fields,
+        "columns": available_fields,
+        "input_values": {},
+        "normalized_values": {},
+        "column_meaning_confirmations": [],
+        "column_refs": unconfirmed_refs,
+        "column_evidence": _column_evidence(normalized_tables, unconfirmed_refs),
+        "normalized_tables": normalized_tables,
+        "sheet_name": sheet_names[0] if len(sheet_names) == 1 else None,
+        "sheet_names": sheet_names,
+        "declared_data_sources": [filename] if filename else [],
+        "provenance": {
+            "origin_schema_version": BOUNDARY_SCHEMA_VERSION,
+            "case_id": case_id,
+            "source_kind": source_kind,
+            "filename": filename,
+            "sheet_names": sheet_names,
+        },
+        "runtime_authorized": False,
+    }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "service_name": SERVICE_NAME,
+        "packet_type": PACKET_TYPE,
+        "status": STATUS_UNCONFIRMED_READY,
+        "blocked_reason": None,
+        "case_id": case_id,
+        "source_kind": source_kind,
+        "filename": filename,
+        "sheet_names": sheet_names,
+        "columns": list(columns),
+        "column_refs": unconfirmed_refs,
+        "confirmed_columns": [],
+        "owner_answers": {},
+        "ingestion_output": ingestion_output,
+        "runtime_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+    }
 
 
 def build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
@@ -417,6 +546,7 @@ __all__ = [
     "PACKET_TYPE",
     "EXPECTED_INPUT_STATUS",
     "STATUS_READY",
+    "STATUS_UNCONFIRMED_READY",
     "STATUS_BLOCKED",
     "BLOCK_PACKET_NOT_DICT",
     "BLOCK_PACKET_WRONG_SCHEMA",
@@ -430,5 +560,6 @@ __all__ = [
     "BLOCK_DUPLICATE_COLUMNS",
     "BLOCK_DUPLICATE_ANSWERS",
     "BLOCK_INVALID_COLUMN_REFS",
+    "build_service_1_unconfirmed_canonical_ingestion_output_v1",
     "build_service_1_canonical_ingestion_output_from_owner_confirmation_v1",
 ]

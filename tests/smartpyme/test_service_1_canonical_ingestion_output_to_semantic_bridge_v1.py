@@ -25,7 +25,6 @@ from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 
     BLOCK_INGESTION_FLAGS_FORBIDDEN,
     BLOCK_INGESTION_NOT_DICT,
     BLOCK_NO_COLUMNS,
-    BLOCK_NO_INPUT_VALUES,
     BLOCK_REQUEST_FLAGS_FORBIDDEN,
     STATUS_READY,
     build_service_1_semantic_bridge_from_canonical_ingestion_output_v1 as build_bridge,
@@ -193,9 +192,18 @@ def test_block_no_columns() -> None:
     _assert_safety_flags_false(out)
 
 
-def test_block_no_input_values() -> None:
+def test_empty_input_values_build_unconfirmed_confirmation_matrix() -> None:
     out = build_bridge(ingestion_output={"columns": ["a", "b"]})
-    assert out["blocked_reason"] == BLOCK_NO_INPUT_VALUES
+
+    assert out["status"] == STATUS_READY
+    assert all(
+        entry.owner_confirmed_role is None
+        for entry in out["confirmation_matrix"].entries
+    )
+    assert all(
+        entry.confirmation_status.value == "PENDING_OWNER_CONFIRMATION"
+        for entry in out["confirmation_matrix"].entries
+    )
     _assert_safety_flags_false(out)
 
 

@@ -16,7 +16,7 @@ This module reuses existing modules and DUPLICATES NO LOGIC:
 - pymia.smartpyme.service_1_column_understanding_engine_v1
 - pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1
 
-It consumes the ingestion_output produced by
+It consumes confirmed or still-unconfirmed ingestion output produced by
 ``service_1_owner_confirmation_to_canonical_ingestion_output_v1`` and produces
 the ``column_candidates`` tuple that
 ``service_1_semantic_evidence_binding_engine_v1`` accepts as input.
@@ -123,14 +123,6 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
             source_kind=source_kind,
             filename=filename,
         )
-    if not input_values:
-        return _blocked(
-            BLOCK_NO_INPUT_VALUES,
-            case_id=case_id,
-            source_kind=source_kind,
-            filename=filename,
-        )
-
     duplicates = _duplicates(columns)
     duplicate_identities = _duplicates(
         [f"{ref['sheet_name']}\x00{ref['column_name']}" for ref in column_refs]
@@ -144,8 +136,11 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
             detail=duplicates or duplicate_identities,
         )
 
-    # Every declared column must have a confirmed owner value.
-    if set(columns) != set(input_values.keys()) or len(columns) != len(input_values):
+    # Confirmed ingestion remains all-or-nothing. An empty mapping is the
+    # canonical signal that the semantic engine must infer before asking the owner.
+    if input_values and (
+        set(columns) != set(input_values.keys()) or len(columns) != len(input_values)
+    ):
         return _blocked(
             BLOCK_COLUMNS_VALUES_MISMATCH,
             case_id=case_id,
@@ -205,6 +200,10 @@ def _build_confirmation_matrix(
     for ref in column_refs:
         field_id = ref["field_id"]
         item = evidence.get(field_id, {}) if isinstance(evidence, dict) else {}
+        raw_role = owner_values.get(field_id)
+        owner_confirmed_role = (
+            None if raw_role is None else str(raw_role).strip() or None
+        )
         entries.append(
             ColumnConfirmationEntry(
                 original_column_name=ref["column_name"],
@@ -212,8 +211,12 @@ def _build_confirmation_matrix(
                 sample_values=list(item.get("sample_values") or []),
                 inferred_type=item.get("inferred_type") or "unknown",
                 suggested_semantic_role="unknown",
-                owner_confirmed_role=str(owner_values.get(field_id)).strip() or None,
-                confirmation_status=ConfirmationStatus.CONFIRMED,
+                owner_confirmed_role=owner_confirmed_role,
+                confirmation_status=(
+                    ConfirmationStatus.CONFIRMED
+                    if owner_confirmed_role is not None
+                    else ConfirmationStatus.PENDING_OWNER_CONFIRMATION
+                ),
             )
         )
     return ColumnConfirmationMatrix(file_name=filename, entries=entries)

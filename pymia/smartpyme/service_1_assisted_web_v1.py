@@ -17,8 +17,8 @@ from typing import Any
 from urllib.parse import parse_qs
 
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
-    STATUS_READY as CANONICAL_INGESTION_READY,
-    build_service_1_canonical_ingestion_output_from_owner_confirmation_v1,
+    STATUS_UNCONFIRMED_READY as CANONICAL_UNCONFIRMED_READY,
+    build_service_1_unconfirmed_canonical_ingestion_output_v1,
 )
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
@@ -149,7 +149,6 @@ _RECONCILIATION_SOURCES: dict[str, tuple[tuple[str, str, tuple[tuple[str, str], 
 
 @dataclass
 class AssistedWebSessionV1:
-    intake_packet: dict[str, Any] | None = None
     ingestion_output: dict[str, Any] | None = None
     semantic_questions: list[dict[str, Any]] = field(default_factory=list)
     semantic_answers: dict[str, Any] = field(default_factory=dict)
@@ -427,39 +426,24 @@ class AssistedWebApplicationV1:
         )
         if intake.get("status") == "BLOCKED":
             return HTTPStatus.BAD_REQUEST, _error_page("No se pudo usar el archivo. Revisá que sea un Excel .xlsx válido.")
+        canonical = build_service_1_unconfirmed_canonical_ingestion_output_v1(
+            owner_question_packet=intake,
+        )
+        if canonical.get("status") != CANONICAL_UNCONFIRMED_READY:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "No se pudo preparar la lectura del archivo."
+            )
+
         state = self.session(session_id)
-        state.intake_packet = intake
-        state.ingestion_output = None
+        state.ingestion_output = canonical["ingestion_output"]
         state.semantic_questions = []
         state.semantic_answers = {}
-        return HTTPStatus.OK, _file_received_page(intake)
 
-    def confirm_columns(self, *, session_id: str, fields: dict[str, str]) -> tuple[int, str]:
-        state = self.session(session_id)
-        packet = state.intake_packet
-        if not isinstance(packet, dict):
-            return HTTPStatus.BAD_REQUEST, _error_page("Primero elegí un archivo de Excel.")
-        if not any(key.startswith("meaning_") for key in fields):
-            return HTTPStatus.OK, _column_confirmation_page(packet)
-        answers = {
-            question["question_id"]: fields.get(
-                f"meaning_{question['question_id']}", ""
-            ).strip()
-            for question in packet.get("owner_questions", [])
-        }
-        if any(not answer for answer in answers.values()):
-            return HTTPStatus.BAD_REQUEST, _column_confirmation_page(packet, "Respondé cada pregunta o elegí No estoy seguro.")
-        canonical = build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
-            owner_question_packet=packet,
-            owner_answers=answers,
-        )
-        if canonical.get("status") != CANONICAL_INGESTION_READY:
-            return HTTPStatus.BAD_REQUEST, _error_page("No se pudieron confirmar las columnas. Volvé a revisar las respuestas.")
-        ingestion = dict(canonical["ingestion_output"])
-        ingestion["normalized_tables"] = list(packet.get("normalized_tables") or [])
-        state.ingestion_output = ingestion
         try:
-            first_run = _run_product_root(ingestion_output=ingestion, output_dir=self.output_dir)
+            first_run = _run_product_root(
+                ingestion_output=state.ingestion_output,
+                output_dir=self.output_dir,
+            )
         except ValueError as error:
             if "requires at least one tool request" in str(error):
                 return HTTPStatus.OK, _review_selection_page()
@@ -605,8 +589,6 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
                             reviewed_by=fields.get("reviewed_by", ""),
                             observation=fields.get("observation", ""),
                         )
-                    elif self.path == "/confirm-columns":
-                        status, content_html = application.confirm_columns(session_id=session_id, fields=fields)
                     elif self.path == "/confirm-meanings":
                         status, content_html = application.confirm_meanings(session_id=session_id, fields=fields)
                     elif self.path == "/run-review":
@@ -1076,43 +1058,6 @@ def _reconciliation_item_text(item: Any) -> str:
                 f"{labels.get(str(key), str(key).replace('_', ' ').capitalize())}: {value}"
             )
     return _esc(" · ".join(parts) or "Caso para revisar")
-
-
-def _file_received_page(packet: dict[str, Any]) -> str:
-    sheets = ", ".join(_esc(item) for item in packet.get("sheet_names") or []) or "Sin hojas legibles"
-    columns = "".join(f"<li>{_esc(column)}</li>" for column in packet.get("columns") or [])
-    rows = sum(len(table.get("rows") or []) for table in packet.get("normalized_tables") or [] if isinstance(table, dict))
-    return f"""
-    <main id="app" tabindex="-1">
-      <h1>Archivo recibido</h1>
-      <p><strong>{_esc(packet.get('filename'))}</strong></p>
-      <p>Hojas encontradas: {sheets}.</p>
-      <p>Encontramos {rows} filas y {len(packet.get('columns') or [])} columnas.</p>
-      <h2>Columnas encontradas</h2><ul>{columns}</ul>
-      <form action="/confirm-columns" method="post" hx-post="/confirm-columns" hx-target="#app" hx-swap="outerHTML">
-        <button type="submit">Continuar</button>
-      </form>
-      <div class="notice" aria-live="polite"></div>
-    </main>"""
-
-
-def _column_confirmation_page(packet: dict[str, Any], error: str | None = None) -> str:
-    questions = []
-    for question in packet.get("owner_questions") or []:
-        question_id = _esc(question.get("question_id"))
-        column = _esc(question.get("column_name"))
-        questions.append(f"""
-        <fieldset><legend>¿Qué representa la columna {column}?</legend>
-          <label><input type="radio" name="meaning_{question_id}" value="importe de ventas" required> Importe de ventas</label>
-          <label><input type="radio" name="meaning_{question_id}" value="costo o gasto"> Costo o gasto</label>
-          <label><input type="radio" name="meaning_{question_id}" value="fecha o período"> Fecha o período</label>
-          <label><input type="radio" name="meaning_{question_id}" value="otra cosa"> Otra cosa</label>
-          <label><input type="radio" name="meaning_{question_id}" value="not_sure"> No estoy seguro</label>
-        </fieldset>""")
-    return f"""
-    <main id="app" tabindex="-1"><h1>Confirmar columnas</h1>
-      {_error(error)}<form action="/confirm-columns" method="post" hx-post="/confirm-columns" hx-target="#app" hx-swap="outerHTML">{''.join(questions)}<button type="submit">Continuar</button></form>
-      <div class="notice" aria-live="polite"></div></main>"""
 
 
 def _semantic_questions_page(questions: list[dict[str, Any]], error: str | None = None) -> str:

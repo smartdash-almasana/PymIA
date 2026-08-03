@@ -12,7 +12,9 @@ from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     BLOCK_MISSING_ANSWERS,
     BLOCK_UNKNOWN_COLUMNS,
+    STATUS_UNCONFIRMED_READY,
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1,
+    build_service_1_unconfirmed_canonical_ingestion_output_v1,
 )
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
@@ -108,6 +110,24 @@ def test_multisheet_connector_requires_question_ids_and_preserves_evidence(
 ) -> None:
     packet = _multisheet_packet(tmp_path)
 
+    unconfirmed = build_service_1_unconfirmed_canonical_ingestion_output_v1(
+        owner_question_packet=packet,
+    )
+    assert unconfirmed["status"] == STATUS_UNCONFIRMED_READY
+    unconfirmed_ingestion = unconfirmed["ingestion_output"]
+    assert unconfirmed_ingestion["input_values"] == {}
+    assert unconfirmed_ingestion["column_meaning_confirmations"] == []
+    assert unconfirmed_ingestion["sheet_names"] == ["Ventas", "Cobros"]
+    assert unconfirmed_ingestion["column_refs"] == packet["column_refs"]
+    assert all(
+        item["sample_values"]
+        for item in unconfirmed_ingestion["column_evidence"].values()
+    )
+    assert {
+        item["inferred_type"]
+        for item in unconfirmed_ingestion["column_evidence"].values()
+    } >= {"date", "number", "text"}
+
     legacy_answers = {column: f"significado de {column}" for column in packet["columns"]}
     blocked = build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
         owner_question_packet=packet,
@@ -141,9 +161,8 @@ def test_semantic_bridge_preserves_sheet_identity_for_duplicate_headers(
     tmp_path: Path,
 ) -> None:
     packet = _multisheet_packet(tmp_path)
-    connector = build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
+    connector = build_service_1_unconfirmed_canonical_ingestion_output_v1(
         owner_question_packet=packet,
-        owner_answers=_answers_by_question_id(packet),
     )
 
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
@@ -162,6 +181,8 @@ def test_semantic_bridge_preserves_sheet_identity_for_duplicate_headers(
         ("Cobros", "medio_pago"),
     }
     assert all(entry.sample_values for entry in entries)
+    assert all(entry.owner_confirmed_role is None for entry in entries)
+    assert {entry.inferred_type for entry in entries} >= {"date", "number", "text"}
     assert {candidate.sheet_name for candidate in bridge["column_candidates"]} == {
         "Ventas",
         "Cobros",

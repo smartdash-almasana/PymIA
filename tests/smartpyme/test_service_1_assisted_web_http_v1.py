@@ -84,26 +84,16 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Archivo recibido" in page
-    assert "Ventas" in page
-    assert "venta_total" in page
+    assert "Confirmar qué significa cada dato" in page
+    assert "No estoy seguro" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
         assisted_server,
-        "/confirm-columns",
-        {
-            "meaning_col_confirm_001": "fecha de la operación",
-            "meaning_col_confirm_002": "importe total vendido",
-            "meaning_col_confirm_003": "importe efectivamente cobrado",
-        },
+        "/confirm-meanings",
+        {"answer_cobrado": "A"},
         cookie,
     )
-    assert status == 200
-    assert "Confirmar qué significa cada dato" in page
-    assert "No estoy seguro" in page
-
-    status, _, page = _form(assisted_server, "/confirm-meanings", {"answer_cobrado": "A"}, cookie)
     assert status == 200
     assert "¿Qué querés revisar?" in page
 
@@ -116,34 +106,26 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     assert list((tmp_path / "outputs").iterdir()) == []
 
 
-def test_htmx_continue_after_upload_returns_column_questions_fragment(assisted_server, tmp_path: Path) -> None:
+def test_htmx_upload_returns_only_needed_semantic_questions_fragment(
+    assisted_server,
+    tmp_path: Path,
+) -> None:
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     headers["HX-Request"] = "true"
-    status, response_headers, fragment = _request(assisted_server, "POST", "/upload", body, headers)
-
-    assert status == 200
-    assert fragment.lstrip().startswith("<main")
-    assert "<!doctype" not in fragment.lower()
-    cookie = _cookie(response_headers)
-
     status, _, fragment = _request(
         assisted_server,
         "POST",
-        "/confirm-columns",
-        b"",
-        {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Content-Length": "0",
-            "Cookie": cookie,
-            "HX-Request": "true",
-        },
+        "/upload",
+        body,
+        headers,
     )
 
     assert status == 200
     assert fragment.lstrip().startswith("<main")
     assert "<!doctype" not in fragment.lower()
-    assert "Confirmar columnas" in fragment
-    assert "¿Qué representa la columna fecha?" in fragment
+    assert "Confirmar qué significa cada dato" in fragment
+    assert "cobrado" in fragment
+    assert "¿Qué representa la columna fecha?" not in fragment
 
 
 def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(assisted_server, tmp_path: Path) -> None:
@@ -165,16 +147,6 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     _, response_headers, _ = _request(assisted_server, "POST", "/upload", body, headers)
     cookie = _cookie(response_headers)
-    _form(
-        assisted_server,
-        "/confirm-columns",
-        {
-            "meaning_col_confirm_001": "fecha de la operación",
-            "meaning_col_confirm_002": "importe total vendido",
-            "meaning_col_confirm_003": "importe efectivamente cobrado",
-        },
-        cookie,
-    )
     _form(assisted_server, "/confirm-meanings", {"answer_cobrado": "A"}, cookie)
 
     status, _, page = _form(assisted_server, "/run-review", {"review": "payment_collection_gap"}, cookie)

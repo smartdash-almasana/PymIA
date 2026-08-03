@@ -14,10 +14,11 @@ def test_htmx_responses_are_fragments_not_nested_documents() -> None:
     assert "_send_fragment" in module
 
 
-def test_file_received_continue_posts_to_column_confirmation() -> None:
+def test_upload_runs_canonical_unconfirmed_ingestion_without_first_dialog() -> None:
     module = WEB_MODULE.read_text(encoding="utf-8")
 
-    assert 'action="/confirm-columns"' in module
-    assert 'hx-post="/confirm-columns"' in module
-    assert 'hx-target="#app"' in module
-    assert 'hx-swap="outerHTML"' in module
+    assert "build_service_1_unconfirmed_canonical_ingestion_output_v1" in module
+    assert "_run_product_root(" in module
+    assert "_semantic_questions_page(state.semantic_questions)" in module
+    assert "/confirm-columns" not in module
+    assert "meaning_" not in module
