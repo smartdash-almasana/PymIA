@@ -345,3 +345,89 @@ def test_liq_001_governed_input_precedes_legacy_plan_identity() -> None:
     assert result["status"] == STATUS_EVALUATED
     assert result["computed"]["gap_amount"] == 700.0
     assert result["plan_validation"]["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
+
+
+def test_normalized_aggregation_supports_sales_and_collections_on_separate_sheets() -> None:
+    plan = _ready_plan()
+    plan["governed_computation_input"]["source_bindings"] = {  # type: ignore[index]
+        "sold_amount": "Venta Total",
+        "collected_amount": "Cobrado",
+    }
+    tables = [
+        {
+            "sheet_name": "Ventas",
+            "rows": [
+                {"venta_total": "1000"},
+                {"venta_total": "2000"},
+            ],
+        },
+        {
+            "sheet_name": "Cobros",
+            "rows": [
+                {"cobrado": "800"},
+                {"cobrado": "1500"},
+            ],
+        },
+    ]
+    refs = [
+        {
+            "sheet_name": "Ventas",
+            "column_name": "Venta Total",
+            "normalized_column_name": "venta_total",
+        },
+        {
+            "sheet_name": "Cobros",
+            "column_name": "Cobrado",
+            "normalized_column_name": "cobrado",
+        },
+    ]
+
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=plan,
+        normalized_tables=tables,
+        column_refs=refs,
+    )
+
+    assert result["status"] == STATUS_EVALUATED
+    assert result["inputs"] == {
+        "sold_amount": 3000.0,
+        "collected_amount": 2300.0,
+    }
+    assert result["computed"]["gap_amount"] == 700.0
+    assert result["aggregation"]["sources"]["sold_amount"]["sheet_name"] == "Ventas"
+    assert result["aggregation"]["sources"]["collected_amount"]["sheet_name"] == "Cobros"
+
+
+def test_normalized_aggregation_blocks_cross_sheet_row_count_mismatch() -> None:
+    tables = [
+        {
+            "sheet_name": "Ventas",
+            "rows": [{"venta_total": "1000"}, {"venta_total": "2000"}],
+        },
+        {
+            "sheet_name": "Cobros",
+            "rows": [{"cobrado": "800"}],
+        },
+    ]
+    refs = [
+        {
+            "sheet_name": "Ventas",
+            "column_name": "Venta Total",
+            "normalized_column_name": "venta_total",
+        },
+        {
+            "sheet_name": "Cobros",
+            "column_name": "Cobrado",
+            "normalized_column_name": "cobrado",
+        },
+    ]
+
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=_ready_plan(),
+        normalized_tables=tables,
+        column_refs=refs,
+    )
+
+    assert result["status"] == STATUS_EVIDENCE_BLOCKED
+    assert "LIQ_001 source columns must cover the same row count." in result["errors"]
+    assert result["computed"] == {}

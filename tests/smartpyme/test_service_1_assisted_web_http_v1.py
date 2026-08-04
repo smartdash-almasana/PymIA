@@ -24,11 +24,16 @@ def assisted_server(tmp_path: Path):
         thread.join(timeout=5)
 
 
-def _request(server, method: str, path: str, body: bytes = b"", headers: dict[str, str] | None = None):
+def _request_raw(server, method: str, path: str, body: bytes = b"", headers: dict[str, str] | None = None):
     connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
     connection.request(method, path, body=body, headers=headers or {})
     response = connection.getresponse()
-    return response.status, response.getheaders(), response.read().decode("utf-8")
+    return response.status, response.getheaders(), response.read()
+
+
+def _request(server, method: str, path: str, body: bytes = b"", headers: dict[str, str] | None = None):
+    status, response_headers, response_body = _request_raw(server, method, path, body, headers)
+    return status, response_headers, response_body.decode("utf-8")
 
 
 def _multipart(filename: str, content: bytes) -> tuple[bytes, dict[str, str]]:
@@ -99,11 +104,41 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
 
     status, _, page = _form(assisted_server, "/run-review", {"review": "sold_vs_collected_gap"}, cookie)
     assert status == 200
-    assert "Ventas y cobros" in page
-    assert "Datos utilizados" in page
-    assert "Este cálculo describe una relación matemática" in page
-    assert "La descarga no está habilitada" in page
-    assert list((tmp_path / "outputs").iterdir()) == []
+    assert "Ventas y cobranzas" in page
+    assert "Total vendido" in page
+    assert "3.000,00" in page
+    assert "Total cobrado" in page
+    assert "2.300,00" in page
+    assert "Diferencia" in page
+    assert "700,00" in page
+    assert "Porcentaje cobrado" in page
+    assert "76.67%" in page
+    assert "Diferencia todavía no compensada por cobranzas" in page
+    assert "Archivo: <strong>ventas.xlsx</strong>" in page
+    assert "hoja <strong>Ventas</strong>" in page
+    assert "columna <strong>venta_total</strong>" in page
+    assert "columna <strong>cobrado</strong>" in page
+    assert "Período: no identificado explícitamente en los archivos recibidos." in page
+    assert "deuda confirmada" not in page.lower()
+    assert "dinero perdido" not in page.lower()
+    assert "no identifica por sí sola clientes morosos" in page.lower()
+    assert 'href="/download-sales-collections"' in page
+
+    status, download_headers, content = _request_raw(
+        assisted_server,
+        "GET",
+        "/download-sales-collections",
+        headers={"Cookie": cookie},
+    )
+    assert status == 200
+    assert content.startswith(b"PK")
+    assert any(
+        key.lower() == "content-disposition" and "service_1_liq_001_result.xlsx" in value
+        for key, value in download_headers
+    )
+    assert [path.name for path in (tmp_path / "outputs").iterdir()] == [
+        "service_1_liq_001_result.xlsx"
+    ]
 
 
 def test_htmx_upload_returns_only_needed_semantic_questions_fragment(

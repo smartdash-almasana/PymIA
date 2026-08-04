@@ -20,11 +20,11 @@ STATUS_READY: Final[str] = "OUTCOME_READY"
 STATUS_BLOCKED: Final[str] = "OUTCOME_BLOCKED"
 
 _FINDINGS: Final[dict[str, str]] = {
-    CLASS_SALES_PENDING_COLLECTION: "En el período analizado, el importe vendido supera al importe cobrado.",
-    CLASS_NO_GAP: "En el período analizado, el importe vendido coincide con el importe cobrado.",
-    CLASS_COLLECTIONS_EXCEED_PERIOD_SALES: "En el período analizado, el importe cobrado supera al importe vendido registrado.",
-    CLASS_COLLECTIONS_WITHOUT_PERIOD_SALES: "Se registraron cobros en un período sin ventas registradas en la evidencia analizada.",
-    CLASS_NO_ACTIVITY: "No se registraron ventas ni cobros en la evidencia del período analizado.",
+    CLASS_SALES_PENDING_COLLECTION: "Las ventas registradas superan las cobranzas registradas en la información analizada.",
+    CLASS_NO_GAP: "Las ventas y cobranzas registradas coinciden para la información analizada.",
+    CLASS_COLLECTIONS_EXCEED_PERIOD_SALES: "Las cobranzas registradas superan las ventas registradas en la información analizada.",
+    CLASS_COLLECTIONS_WITHOUT_PERIOD_SALES: "Se registraron cobranzas sin ventas registradas en la evidencia analizada.",
+    CLASS_NO_ACTIVITY: "No se registraron ventas ni cobranzas en la evidencia analizada.",
 }
 
 _TREATMENTS: Final[dict[str, tuple[str, ...]]] = {
@@ -54,7 +54,7 @@ _TREATMENTS: Final[dict[str, tuple[str, ...]]] = {
 _LIMITATIONS: Final[tuple[str, ...]] = (
     "La diferencia matemática no identifica por sí sola clientes morosos, vencimientos ni pérdida definitiva.",
     "No se atribuyen causas sin evidencia adicional de operación, fecha, vencimiento o conciliación.",
-    "Los resultados describen únicamente las filas y columnas confirmadas del período analizado.",
+    "Los resultados describen únicamente las filas y columnas confirmadas de la información analizada.",
 )
 
 _FORBIDDEN_CLAIMS: Final[tuple[str, ...]] = (

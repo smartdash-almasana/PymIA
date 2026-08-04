@@ -31,7 +31,7 @@ def test_positive_gap_builds_bounded_finding_and_treatment() -> None:
 
     assert outcome["status"] == STATUS_READY
     assert outcome["classification"] == "SALES_PENDING_COLLECTION"
-    assert "vendido supera" in outcome["finding"]
+    assert "ventas registradas superan las cobranzas registradas" in outcome["finding"].lower()
     assert len(outcome["treatment_actions"]) == 3
     assert outcome["bounded_finding_generated"] is True
     assert outcome["causal_diagnosis_generated"] is False
@@ -78,7 +78,7 @@ def test_delivery_writes_deterministic_owner_facing_workbook(tmp_path: Path) -> 
     ]
     summary = {row[0].value: row[1].value for row in workbook["Resumen"].iter_rows(min_row=2)}
     assert summary["status"] == "SALES_PENDING_COLLECTION"
-    assert "vendido supera" in summary["owner_summary"]
+    assert "ventas registradas superan las cobranzas registradas" in summary["owner_summary"].lower()
     results = {row[0].value: row[1].value for row in workbook["Resultados"].iter_rows(min_row=2)}
     assert results["gap_amount"] == "700.0"
     assert "Identificar las operaciones" in results["treatment_actions"]

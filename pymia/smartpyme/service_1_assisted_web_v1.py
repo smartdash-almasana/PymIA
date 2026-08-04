@@ -156,6 +156,7 @@ class AssistedWebSessionV1:
     reconciliation_intakes: dict[str, dict[str, Any]] = field(default_factory=dict)
     reconciliation_result: dict[str, Any] | None = None
     reconciliation_decisions: list[dict[str, Any]] = field(default_factory=list)
+    last_review_result: dict[str, Any] | None = None
 
 
 class AssistedWebApplicationV1:
@@ -423,6 +424,7 @@ class AssistedWebApplicationV1:
         intake = build_service_1_web_column_confirmation_intake_boundary_v1(
             uploaded_xlsx_bytes=content,
             uploaded_filename=filename,
+            include_all_sheets=True,
         )
         if intake.get("status") == "BLOCKED":
             return HTTPStatus.BAD_REQUEST, _error_page("No se pudo usar el archivo. Revisá que sea un Excel .xlsx válido.")
@@ -438,6 +440,7 @@ class AssistedWebApplicationV1:
         state.ingestion_output = canonical["ingestion_output"]
         state.semantic_questions = []
         state.semantic_answers = {}
+        state.last_review_result = None
 
         try:
             first_run = _run_product_root(
@@ -489,7 +492,9 @@ class AssistedWebApplicationV1:
             owner_answers=state.semantic_answers,
             requested_capability=requested_capability,
             output_dir=self.output_dir,
+            deliver_result=requested_capability == "sold_vs_collected_gap",
         )
+        state.last_review_result = packet
         if packet.get("status") == STATUS_NEEDS_OWNER:
             state.semantic_questions = list(packet.get("owner_questions") or [])
             if any(not str(question.get("question_id") or "").strip() for question in state.semantic_questions):
@@ -497,7 +502,27 @@ class AssistedWebApplicationV1:
             return HTTPStatus.OK, _semantic_questions_page(state.semantic_questions, "Hace falta una precisión más para continuar.")
         if packet.get("status") == STATUS_BLOCKED:
             return HTTPStatus.OK, _blocked_result_page(packet, requested_capability)
-        return HTTPStatus.OK, _evaluated_result_page(packet, requested_capability)
+        return HTTPStatus.OK, _evaluated_result_page(
+            packet,
+            requested_capability,
+            ingestion_output=state.ingestion_output,
+        )
+
+    def read_sales_collections_delivery(self, *, session_id: str) -> tuple[str, bytes]:
+        packet = self.session(session_id).last_review_result
+        if not isinstance(packet, dict):
+            raise ValueError("sales and collections result is required")
+        delivery_result = packet.get("delivery_result")
+        delivery_packet = delivery_result if isinstance(delivery_result, dict) else {}
+        delivery = delivery_packet.get("delivery")
+        delivery = delivery if isinstance(delivery, dict) else {}
+        output_path = str(delivery.get("output_path") or "").strip()
+        if not output_path:
+            raise ValueError("sales and collections delivery is unavailable")
+        target = Path(output_path)
+        if not target.is_file() or target.parent.resolve() != self.output_dir.resolve():
+            raise ValueError("sales and collections delivery path is invalid")
+        return target.name, target.read_bytes()
 
 
 def _run_product_root(
@@ -506,6 +531,7 @@ def _run_product_root(
     owner_answers: Any = None,
     requested_capability: str | None = None,
     output_dir: str | Path | None = None,
+    deliver_result: bool = False,
 ) -> dict[str, Any]:
     return run_service_1_product_pipeline_v1(
         ingestion_output=ingestion_output,
@@ -514,7 +540,7 @@ def _run_product_root(
         sheet_name=str(ingestion_output.get("sheet_name") or "sheet1"),
         owner_answers=owner_answers,
         requested_capability=requested_capability,
-        deliver_result=False,
+        deliver_result=deliver_result,
     )
 
 
@@ -532,6 +558,28 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
                 self._send(HTTPStatus.OK, _STYLES_PATH.read_bytes(), "text/css; charset=utf-8")
             elif self.path == "/healthz":
                 self._send(HTTPStatus.OK, b'{"status":"ok"}', "application/json; charset=utf-8")
+            elif self.path == "/download-sales-collections":
+                session_id = self._session_id()
+                try:
+                    filename, content = application.read_sales_collections_delivery(
+                        session_id=session_id
+                    )
+                except ValueError:
+                    self._send_html(
+                        HTTPStatus.BAD_REQUEST,
+                        _error_page("Primero completá la revisión de ventas y cobranzas."),
+                        session_id=session_id,
+                    )
+                    return
+                self._send(
+                    HTTPStatus.OK,
+                    content,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    session_id=session_id,
+                    extra_headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"'
+                    },
+                )
             elif self.path == "/download-reconciliation-workpaper":
                 session_id = self._session_id()
                 try:
@@ -1091,7 +1139,17 @@ def _review_selection_page(error: str | None = None) -> str:
       <div class="notice" aria-live="polite"></div></main>"""
 
 
-def _evaluated_result_page(packet: dict[str, Any], requested_capability: str) -> str:
+def _evaluated_result_page(
+    packet: dict[str, Any],
+    requested_capability: str,
+    *,
+    ingestion_output: dict[str, Any] | None = None,
+) -> str:
+    if requested_capability == "sold_vs_collected_gap":
+        return _sales_collections_result_page(
+            packet,
+            ingestion_output=ingestion_output or {},
+        )
     _, title, _ = _REVIEW_BY_REF[requested_capability]
     computation = packet.get("computation_result") if isinstance(packet.get("computation_result"), dict) else {}
     typed = computation.get("typed_result") if isinstance(computation.get("typed_result"), dict) else {}
@@ -1111,6 +1169,87 @@ def _evaluated_result_page(packet: dict[str, Any], requested_capability: str) ->
       <h2>Límites de interpretación</h2><ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
       <p class="notice">La descarga no está habilitada para esta revisión.</p>
       <div aria-live="polite">Resultado listo para revisar.</div></main>"""
+
+
+def _sales_collections_result_page(
+    packet: dict[str, Any],
+    *,
+    ingestion_output: dict[str, Any],
+) -> str:
+    computation = packet.get("computation_result") if isinstance(packet.get("computation_result"), dict) else {}
+    outcome = packet.get("bounded_outcome") if isinstance(packet.get("bounded_outcome"), dict) else {}
+    inputs = computation.get("inputs") if isinstance(computation.get("inputs"), dict) else {}
+    computed = computation.get("computed") if isinstance(computation.get("computed"), dict) else {}
+    sold = float(inputs.get("sold_amount", 0.0))
+    collected = float(inputs.get("collected_amount", 0.0))
+    gap = float(computed.get("gap_amount", sold - collected))
+    ratio = computed.get("collection_ratio")
+    classification = str(computation.get("classification") or "")
+    if gap > 0:
+        commercial_finding = f"Las ventas registradas superan las cobranzas registradas por {_format_amount(gap)}."
+        classification_label = "Diferencia todavía no compensada por cobranzas"
+    elif gap < 0:
+        commercial_finding = (
+            f"Las cobranzas registradas superan las ventas registradas por {_format_amount(abs(gap))}. "
+            "Revisá si existen cobranzas de otro período, anticipos o ventas faltantes."
+        )
+        classification_label = "Cobranzas superiores a las ventas registradas"
+    else:
+        commercial_finding = "Las ventas y cobranzas registradas coinciden para la información analizada."
+        classification_label = "Ventas y cobranzas coincidentes"
+    rate_text = (
+        f"{float(ratio) * 100:.2f}%"
+        if sold > 0 and isinstance(ratio, (int, float))
+        else "no calculable porque no hay ventas registradas."
+    )
+    aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}
+    sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
+    source_rows = "".join(
+        f"<li>{_esc(variable)}: hoja <strong>{_esc(details.get('sheet_name'))}</strong>, "
+        f"columna <strong>{_esc(details.get('column_name'))}</strong></li>"
+        for variable, details in sources.items()
+        if isinstance(details, dict)
+    )
+    filename = str(ingestion_output.get("filename") or ingestion_output.get("source_file_ref") or "").strip()
+    explicit_period = ingestion_output.get("period")
+    if explicit_period is None and isinstance(ingestion_output.get("provenance"), dict):
+        explicit_period = ingestion_output["provenance"].get("period")
+    period_text = (
+        str(explicit_period).strip()
+        if explicit_period is not None and str(explicit_period).strip()
+        else "no identificado explícitamente en los archivos recibidos."
+    )
+    limitations = outcome.get("limitations") if isinstance(outcome.get("limitations"), (list, tuple)) else []
+    download = (
+        '<p><a href="/download-sales-collections">Descargar resultado de ventas y cobranzas (.xlsx)</a></p>'
+        if packet.get("delivery_generated") is True
+        else '<p class="notice">La descarga no está disponible para este resultado.</p>'
+    )
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>Ventas y cobranzas</h1>
+      <p>¿Qué vendiste, qué cobraste y qué diferencia queda en tus registros?</p>
+      <table><tbody>
+        <tr><th>Total vendido</th><td>{_esc(_format_amount(sold))}</td></tr>
+        <tr><th>Total cobrado</th><td>{_esc(_format_amount(collected))}</td></tr>
+        <tr><th>Diferencia</th><td>{_esc(_format_amount(gap))}</td></tr>
+        <tr><th>Porcentaje cobrado</th><td>{_esc(rate_text)}</td></tr>
+        <tr><th>Clasificación</th><td>{_esc(classification_label)}</td></tr>
+      </tbody></table>
+      <p><strong>{_esc(commercial_finding)}</strong></p>
+      <h2>Fuentes utilizadas</h2>
+      <p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p>
+      <ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul>
+      <p>Período: {_esc(period_text)}</p>
+      <h2>Límites de interpretación</h2>
+      <ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
+      {download}
+      <div aria-live="polite">Resultado de ventas y cobranzas listo para revisar.</div>
+    </main>"""
+
+
+def _format_amount(value: float) -> str:
+    return f"{value:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
 def _result_value(*, computation: dict[str, Any], typed: dict[str, Any], outcome: dict[str, Any]) -> Any:
