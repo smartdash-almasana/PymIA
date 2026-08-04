@@ -344,9 +344,11 @@ El matcher existente:
 service_2_reconciliation_match_candidates_v1
 ```
 
-es actualmente la pieza que ejecuta matching algorítmico de conciliación.
+es la pieza que ejecuta matching algorítmico de conciliación.
 
-Su maduración es un frente separado. La arquitectura vigente exige:
+Está expuesto a la raíz de Servicio 1 de forma controlada: la compuerta `service_1_reconciliation_request_gate_v1` valida la solicitud explícita del dueño y el adaptador `service_1_reconciliation_candidate_to_assisted_review_v1` prepara candidatos únicamente para revisión humana. Esta integración no convierte al matcher en autoridad productiva autónoma.
+
+La arquitectura vigente exige:
 
 ```text
 ambigüedad explícita
@@ -356,7 +358,7 @@ sin matching codicioso para resolver colisiones
 human review para casos ambiguos
 ```
 
-No existe todavía integración productiva autorizada de este matcher dentro de la raíz de Servicio 1.
+El acceso a la conciliación desde la raíz productiva existe exclusivamente a través de las compuertas gobernadas y siempre deriva a revisión humana.
 
 ---
 

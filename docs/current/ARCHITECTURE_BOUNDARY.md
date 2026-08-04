@@ -154,7 +154,7 @@ ENGINEERING_STATUS ≠ PRODUCT_AUTHORIZATION
 
 Los contratos contables pueden vivir como soporte sin formar parte del closure productivo.
 
-El matcher de conciliación existente no está autorizado por este documento a integrarse a la raíz de Servicio 1.
+La conciliación está integrada a la raíz de Servicio 1 de forma controlada: una compuerta gobernada de solicitud (`service_1_reconciliation_request_gate_v1`) y un adaptador controlado hacia revisión asistida (`service_1_reconciliation_candidate_to_assisted_review_v1`) preparan candidatos únicamente para revisión humana. Esta integración no autoriza cierre contable, aceptación automática ni modificación de movimientos.
 
 Ambigüedad de conciliación debe permanecer visible y escalar a revisión humana.
 

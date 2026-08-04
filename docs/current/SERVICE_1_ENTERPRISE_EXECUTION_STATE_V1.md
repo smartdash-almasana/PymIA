@@ -761,7 +761,7 @@ Audit evidence verified:
 Stage 0 is closed. The historical Stage 0 checkpoint originally authorized Package 2 specification; Stage 2 has since completed all ten convergence packages. The post-Stage-2 roadmap audit is complete. The in-memory semantic corpus remains at supported-scope precision 1.0000. The physical XLSX multi-sector corpus passes its semantic gate: 59/59 known semantic columns exact, precision 1.0000, safe-resolution 1.0000, zero false-confident rows and zero dangerous errors. The physical P6/P7/P8 matrix is READY: P6 7/7, P7 7/7, 14/14 negative P8 probes correct and zero unsafe executions. Three physical positive controls now reach P8 `COMPUTABLE` and deterministic product-root execution: LIQ_001 sold_vs_collected_gap (gap_amount=600.0), LIQ_002 projected_closing_cash_balance (projected_closing_balance=1700.0), and PYME_011 dso (dso_days=10.0). A fresh governance convergence audit found nine remaining registry capabilities that cannot yet be physically certified through canonical P8 because registry/formula/pathology/P7/evidence-matrix governance is incomplete. The enriched pathology catalog explicitly declares scope_fixed=true and scope_not_reopened=true, so no silent scope expansion was performed. Current next authorized activity:
 
 ```text
-NEXT_AUTHORIZED_ACTION = BUILD_PHYSICAL_COMPUTABLE_CONTROLS_FOR_BOUNDED_SIX_V1
+NEXT_AUTHORIZED_ACTION = CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
 ```
 
 Stage 1 cluster 001 closure:
@@ -1069,7 +1069,7 @@ REMAINING_CAPABILITY_GOVERNANCE_AUDIT = GOVERNANCE_GAPS_REMAIN
 REMAINING_REGISTRY_GOVERNANCE_GAPS = 9
 PATHOLOGY_SCOPE_FIXED = true
 PATHOLOGY_SCOPE_NOT_REOPENED = true
-NEXT_AUTHORIZED_ACTION = BUILD_PHYSICAL_COMPUTABLE_CONTROLS_FOR_BOUNDED_SIX_V1
+NEXT_AUTHORIZED_ACTION = CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
 COMMIT_CREATED = false
 COMMIT_AUTHORIZED = false
 INTEGRATION_AUTHORIZED = false

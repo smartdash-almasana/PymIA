@@ -34,7 +34,6 @@ La memoria conversacional, la landing, los pilotos históricos, los roadmaps ven
 - `docs/current/SAAS_AUTONOMY_TARGET.md` — objetivo de autonomía sólo como frente posterior a certificación.
 - `docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — serie controlada oficial basada en `prueba_excels/`.
 - `docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md` — primer caso operatorless certificado por CLI oficial.
-- `docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — siguiente capacidad autorizada para conexión productiva.
 - `docs/current/SERVICE_1_RECONCILIATION_ENGINEERING_STATE_V1.md` — checkpoint técnico de conciliación bancaria y Mercado Pago, integración productiva controlada, revisión humana obligatoria y próximo incremento de interfaz.
 
 ## Política de eliminación

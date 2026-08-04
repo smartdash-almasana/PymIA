@@ -14,7 +14,7 @@ La raíz productiva de Servicio 1 sigue siendo:
 pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
-La conciliación existente está distribuida entre contratos contables, contratos de dominio, matcher determinístico, revisión asistida, delivery y sandbox. Actualmente no está integrada como capacidad productiva dentro de la raíz canónica de Servicio 1.
+La conciliación existente está distribuida entre contratos contables, contratos de dominio, matcher determinístico, revisión asistida, delivery y sandbox. La integración a la raíz canónica de Servicio 1 está completada de forma controlada como preparación para revisión humana (véase la sección 13).
 
 La dirección aprobada es **madurar el matcher existente antes de integrar nuevas fuentes, APIs o IA**.
 
@@ -80,12 +80,12 @@ sandbox
 
 Hechos relevantes:
 
-- `service_1_product_pipeline_v1.py` no invoca actualmente el matcher de conciliación.
-- `service_1_capability_registry_v1.py` no registra todavía conciliación como capacidad productiva.
+- `service_1_product_pipeline_v1.py` accede al matcher de conciliación exclusivamente a través de las compuertas gobernadas y el adaptador controlado hacia revisión asistida.
+- `service_1_reconciliation_request_gate_v1.py` y `service_1_reconciliation_candidate_to_assisted_review_v1.py` están clasificados como `PRODUCTIVE`.
 - los contratos contables de dominio usan componentes `service_1_*`.
 - el matcher y la revisión asistida usan prefijo y referencia de `service_2_*`.
 
-Por lo tanto, **no se autoriza aún una migración S2→S1 ni una integración a la raíz productiva**. Primero debe madurarse la semántica del matching.
+La integración es controlada y dirigida a revisión humana; no es una migración amplia S2→S1 ni autoriza cierre contable automático.
 
 ---
 
@@ -408,7 +408,7 @@ NO microservicios nuevos
 NO LLM en este ciclo
 NO matching codicioso
 NO confidence float como autoridad
-NO integración productiva S1/S2 todavía
+NO ampliación no gobernada del acceso S1/S2 tras la integración controlada
 NO APIs todavía
 NO modificación del sandbox en el primer incremento
 ```

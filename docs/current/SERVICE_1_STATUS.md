@@ -26,6 +26,7 @@ SEGUNDA RAÍZ PRODUCTIVA: NO
 DELIVERY AUTÓNOMO: NO AUTORIZADO
 API PRODUCTIVA: NO AUTORIZADA
 CONCILIACIÓN: INTEGRACIÓN PRODUCTIVA CONTROLADA
+12/12 PRODUCTIVAS CONECTADAS ≠ 12 FÍSICAMENTE CERTIFICADAS
 ```
 
 ## 1. Autoridad productiva
@@ -108,6 +109,8 @@ El catálogo productivo conserva las 12 capacidades cerradas previamente:
 | `PYME_026` | `adjusted_operating_cash_flow` |
 
 DPO continúa como prerrequisito técnico de `PYME_013`, no como decimotercera patología productiva.
+
+Las 12 capacidades productivas conectadas no equivalen a 12 capacidades físicamente certificadas. Existe evidencia física positiva documentada para al menos diez de las doce capacidades productivas. `adjusted_operating_cash_flow` y `payment_collection_gap` permanecen sin cierre físico positivo completo. DPO es un prerrequisito técnico, no una capacidad productiva adicional. El resultado consolidado debe determinarse mediante `CAPABILITY_PHYSICAL_COVERAGE_GATE_V1`.
 
 La existencia de una capacidad productiva no implica que su delivery esté autorizado automáticamente.
 
