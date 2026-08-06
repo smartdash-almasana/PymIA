@@ -1,6 +1,7 @@
 """Bounded REN_001 finding and treatment composition."""
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Final
 
 from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
@@ -10,6 +11,7 @@ from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
     CLASS_POSITIVE_MARGIN,
     STATUS_EVALUATED,
 )
+from pymia.smartpyme.service_1_xlsx_delivery_v1 import build_service_1_xlsx_delivery_v1
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_REN_001_OUTCOME_V1"
 STATUS_READY: Final[str] = "OUTCOME_READY"
@@ -79,6 +81,48 @@ def build_ren_001_outcome_v1(*, computation_result: object) -> dict[str, Any]:
     }
 
 
+def deliver_ren_001_outcome_xlsx_v1(
+    *, outcome: object, output_dir: str | Path, filename: str = "service_1_ren_001_result.xlsx"
+) -> dict[str, Any]:
+    if not isinstance(outcome, dict) or outcome.get("status") != STATUS_READY:
+        return _blocked("REN_001 outcome must be OUTCOME_READY.")
+    target_dir = Path(output_dir)
+    if not target_dir.exists():
+        return _blocked(f"output directory does not exist: {target_dir}")
+    delivery = build_service_1_xlsx_delivery_v1(
+        delivery_input={
+            "service_name": "SERVICE_1",
+            "capability_ref": CAPABILITY_REF,
+            "status": str(outcome["classification"]),
+            "owner_summary": str(outcome["finding"]),
+            "inputs_used": dict(outcome["inputs_used"]),
+            "computed_results": {
+                **dict(outcome["computed_results"]),
+                "treatment_actions": list(outcome["treatment_actions"]),
+            },
+            "missing_inputs": [],
+            "limitations": list(outcome["limitations"]),
+            "forbidden_claims": list(outcome["forbidden_claims"]),
+            "technical_notes": [
+                "Hallazgo acotado derivado de REN_001.",
+                "No se generó atribución causal ni diagnóstico autónomo.",
+            ],
+            "runtime_authorized": False,
+            "summary_ref_label": "pathology_code",
+        },
+        output_path=target_dir / filename,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "DELIVERED",
+        "delivery": delivery,
+        "bounded_finding_generated": True,
+        "causal_diagnosis_generated": False,
+        "runtime_authorized": False,
+        "delivery_authorized": False,
+    }
+
+
 def _blocked(reason: str) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -96,4 +140,5 @@ __all__ = [
     "STATUS_BLOCKED",
     "STATUS_READY",
     "build_ren_001_outcome_v1",
+    "deliver_ren_001_outcome_xlsx_v1",
 ]

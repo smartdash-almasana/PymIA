@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from openpyxl import load_workbook
+
 from pymia.smartpyme import service_1_product_pipeline_v1 as product
 from pymia.smartpyme.service_1_ren_001_normalized_evidence_v1 import (
     STATUS_EVIDENCE_BLOCKED,
     evaluate_ren_001_from_normalized_tables_v1,
 )
 from pymia.smartpyme.service_1_ren_001_outcome_v1 import (
+    STATUS_BLOCKED,
     STATUS_READY,
     build_ren_001_outcome_v1,
+    deliver_ren_001_outcome_xlsx_v1,
 )
 from tests.smartpyme.service_1_p8_test_support import computable_decision_from_legacy_fixture
 
@@ -136,7 +142,58 @@ def test_product_root_absorbs_only_explicit_ren_001_capability(monkeypatch, tmp_
     assert result["runtime_authorized"] is False
 
 
-def test_ren_001_delivery_remains_blocked(monkeypatch, tmp_path) -> None:
+def test_ren_001_delivery_writes_deterministic_seven_sheet_workbook(tmp_path: Path) -> None:
+    tables, refs = _evidence()
+    evaluation = evaluate_ren_001_from_normalized_tables_v1(
+        computation_plan=_plan(), normalized_tables=tables, column_refs=refs
+    )
+    outcome = build_ren_001_outcome_v1(computation_result=evaluation)
+
+    delivered = deliver_ren_001_outcome_xlsx_v1(outcome=outcome, output_dir=tmp_path)
+
+    assert delivered["status"] == "DELIVERED"
+    assert delivered["causal_diagnosis_generated"] is False
+    assert delivered["runtime_authorized"] is False
+    assert delivered["delivery_authorized"] is False
+    output = Path(delivered["delivery"]["output_path"])
+    assert output.exists()
+    workbook = load_workbook(output, data_only=False)
+    assert workbook.sheetnames == [
+        "Resumen",
+        "Datos usados",
+        "Resultados",
+        "Faltantes",
+        "Limitaciones",
+        "Claims prohibidos",
+        "Notas técnicas",
+    ]
+    summary = {row[0].value: row[1].value for row in workbook["Resumen"].iter_rows(min_row=2)}
+    assert summary["status"] == "POSITIVE_MARGIN"
+    assert "margen neto real positivo" in summary["owner_summary"].lower()
+    inputs = {row[0].value: row[1].value for row in workbook["Datos usados"].iter_rows(min_row=2)}
+    assert inputs == {"sale_price": "1500.0", "costs": "950.0", "taxes": "150.0"}
+    results = {row[0].value: row[1].value for row in workbook["Resultados"].iter_rows(min_row=2)}
+    assert results["net_margin_amount"] == "400.0"
+    assert "Conservar el cálculo" in results["treatment_actions"]
+    limitations = [row[0].value for row in workbook["Limitaciones"].iter_rows(min_row=2)]
+    claims = [row[0].value for row in workbook["Claims prohibidos"].iter_rows(min_row=2)]
+    assert outcome["limitations"][0] in limitations
+    assert outcome["forbidden_claims"][0] in claims
+
+
+def test_ren_001_delivery_blocks_non_ready_outcome(tmp_path: Path) -> None:
+    delivered = deliver_ren_001_outcome_xlsx_v1(
+        outcome={"status": "OUTCOME_BLOCKED"},
+        output_dir=tmp_path,
+    )
+
+    assert delivered["status"] == STATUS_BLOCKED
+    assert delivered["bounded_finding_generated"] is False
+    assert delivered["causal_diagnosis_generated"] is False
+    assert not list(tmp_path.glob("*.xlsx"))
+
+
+def test_product_root_delivers_ren_001_xlsx(monkeypatch, tmp_path: Path) -> None:
     tables, refs = _evidence()
     confirmed = {
         "status": product.STATUS_CONFIRMED_BINDINGS,
@@ -154,8 +211,8 @@ def test_ren_001_delivery_remains_blocked(monkeypatch, tmp_path) -> None:
         deliver_result=True,
     )
 
-    assert result["status"] == product.STATUS_BLOCKED
-    assert result["blocked_reason"] == "REN_001_DELIVERY_NOT_AUTHORIZED"
+    assert result["status"] == product.STATUS_COMPUTATION_PLAN_READY
     assert result["bounded_finding_generated"] is True
-    assert result["delivery_generated"] is False
+    assert result["delivery_generated"] is True
     assert result["delivery_authorized"] is False
+    assert Path(result["delivery_result"]["delivery"]["output_path"]).exists()

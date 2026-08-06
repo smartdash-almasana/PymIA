@@ -47,6 +47,7 @@ from pymia.smartpyme.service_1_ren_001_normalized_evidence_v1 import (
 from pymia.smartpyme.service_1_ren_001_outcome_v1 import (
     STATUS_READY as REN_001_OUTCOME_READY,
     build_ren_001_outcome_v1,
+    deliver_ren_001_outcome_xlsx_v1,
 )
 from pymia.smartpyme.service_1_reconciliation_product_request_v1 import (
     STATUS_BLOCKED as RECONCILIATION_STATUS_BLOCKED,
@@ -275,15 +276,21 @@ def run_service_1_product_pipeline_v1(
                     bounded_outcome=bounded_outcome,
                 )
             if deliver_result:
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="REN_001_DELIVERY_NOT_AUTHORIZED",
-                    semantic_run=semantic_run,
-                    computability_decision=computability_decision.to_dict() if computability_decision else None,
-                    governed_computation_input=governed_payload,
-                    computation_result=computation_result,
-                    bounded_outcome=bounded_outcome,
+                delivery_result = deliver_ren_001_outcome_xlsx_v1(
+                    outcome=bounded_outcome,
+                    output_dir=output_dir,
                 )
+                if delivery_result.get("status") != "DELIVERED":
+                    return _packet(
+                        status=STATUS_BLOCKED,
+                        blocked_reason=delivery_result.get("blocked_reason") or "REN_001_DELIVERY_BLOCKED",
+                        semantic_run=semantic_run,
+                        computability_decision=computability_decision.to_dict() if computability_decision else None,
+                        governed_computation_input=governed_payload,
+                        computation_result=computation_result,
+                        bounded_outcome=bounded_outcome,
+                        delivery_result=delivery_result,
+                    )
 
         elif capability_definition is not None:
             generic_normalized_tables = None if capability_definition.kind == "COMPOSITE" else normalized_tables
