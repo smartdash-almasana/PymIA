@@ -209,10 +209,8 @@ def build_service_1_p6_approval_decision_v1(
     return _decision(
         case_id=case,
         candidate=candidate,
-        status=STATUS_APPROVED,
-        reason="UNAMBIGUOUS_SEMANTIC_HYPOTHESIS",
-        approved_role=role,
-        approved_variable=_variable_for_role(candidate, role),
+        status=STATUS_NEEDS_OWNER_CONFIRMATION,
+        reason="FIRST_CONTACT_OWNER_CONFIRMATION_REQUIRED",
     )
 
 

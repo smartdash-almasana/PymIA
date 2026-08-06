@@ -46,6 +46,7 @@ from pymia.smartpyme.service_1_column_understanding_engine_v1 import (
 )
 from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 import (
     build_service_1_column_owner_question_views_v1,
+    build_service_1_first_contact_owner_options_v1,
 )
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
@@ -159,7 +160,10 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
     )
 
     understandings = build_column_understandings_from_matrix_v1(matrix)
-    owner_question_views = build_service_1_column_owner_question_views_v1(understandings)
+    owner_question_views = build_service_1_column_owner_question_views_v1(
+        understandings,
+        require_explicit_owner_confirmation=True,
+    )
     column_candidates = tuple(
         _candidate_from_understanding(item, column_ref=ref)
         for item, ref in zip(understandings, column_refs)
@@ -230,6 +234,9 @@ def _candidate_from_understanding(
     roles = tuple(item.semantic_role for item in hypotheses) or ("unknown",)
     variables = tuple(item.variable_name for item in hypotheses) or ("unknown",)
     primary = understanding.primary_hypothesis
+    owner_options = tuple(understanding.allowed_owner_answers) or (
+        build_service_1_first_contact_owner_options_v1(understanding)
+    )
 
     return Service1ColumnSemanticCandidateV1(
         source_column_name=understanding.column_name,
@@ -264,7 +271,7 @@ def _candidate_from_understanding(
             ),
             "owner_question_text": understanding.owner_question_text,
             "allowed_owner_answers": [
-                option.to_dict() for option in understanding.allowed_owner_answers
+                option.to_dict() for option in owner_options
             ],
             "evidence": list(understanding.evidence),
         },

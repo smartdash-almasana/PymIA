@@ -90,7 +90,7 @@ def case_001_gate_packet() -> dict:
     gate = build_gate(semantic_bridge_packet=bridge)
     assert gate["status"] == GATE_NEEDS_OWNER_CONFIRMATION
     presentation = build_loop(gate_packet=gate)
-    assert presentation["status"] == STATUS_OWNER_CONFIRMATION_REQUIRED
+    assert presentation["status"] == STATUS_OWNER_CONFIRMATION_REQUIRED, presentation
     return {
         **gate,
         "owner_questions": presentation["owner_questions"],

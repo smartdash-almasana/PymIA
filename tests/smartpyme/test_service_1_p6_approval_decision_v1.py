@@ -37,11 +37,12 @@ def _candidate(
     )
 
 
-def test_unambiguous_hypothesis_is_approved_without_downstream_authority() -> None:
+def test_unambiguous_hypothesis_requires_explicit_owner_confirmation_on_first_contact() -> None:
     out = build_service_1_p6_approval_decision_v1(case_id="case_p6", candidate=_candidate())
-    assert out.status == STATUS_APPROVED
-    assert out.approved_role == "sales_amount"
-    assert out.approved_variable == "sales"
+    assert out.status == STATUS_NEEDS_OWNER_CONFIRMATION
+    assert out.reason == "FIRST_CONTACT_OWNER_CONFIRMATION_REQUIRED"
+    assert out.approved_role is None
+    assert out.approved_variable is None
     payload = out.to_dict()
     for field in (
         "runtime_authorized",
@@ -167,7 +168,7 @@ def test_non_approved_decision_cannot_smuggle_approved_meaning() -> None:
         ("period_taxes_total", "taxes"),
     ),
 )
-def test_period_net_margin_semantic_roles_are_approved_without_downstream_authority(
+def test_period_net_margin_semantic_roles_require_owner_confirmation_on_first_contact(
     role: str, variable: str
 ) -> None:
     out = build_service_1_p6_approval_decision_v1(
@@ -179,7 +180,8 @@ def test_period_net_margin_semantic_roles_are_approved_without_downstream_author
         ),
     )
 
-    assert out.status == STATUS_APPROVED
-    assert out.approved_role == role
-    assert out.approved_variable == variable
+    assert out.status == STATUS_NEEDS_OWNER_CONFIRMATION
+    assert out.reason == "FIRST_CONTACT_OWNER_CONFIRMATION_REQUIRED"
+    assert out.approved_role is None
+    assert out.approved_variable is None
     assert out.to_dict()["runtime_authorized"] is False

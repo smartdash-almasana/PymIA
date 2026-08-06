@@ -14,6 +14,7 @@ from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     build_computability_decision_from_confirmed_bindings_v1,
     run_initial_pass,
+    run_owner_reentry,
 )
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     run_service_1_product_pipeline_v1,
@@ -77,6 +78,22 @@ def _owner_answers(boundary: dict) -> dict[str, str]:
     }
 
 
+def _canonical_answers(questions: list[dict]) -> dict[str, str]:
+    answers: dict[str, str] = {}
+    for question in questions:
+        option = next(
+            (
+                item
+                for item in question.get("options", [])
+                if item.get("option_id") not in {"OTHER", "IGNORE"}
+            ),
+            None,
+        )
+        if option is not None:
+            answers[str(question["question_id"])] = str(option["option_id"])
+    return answers
+
+
 def evaluate_physical_computable_positive_controls_v1(root: Path | None = None) -> dict:
     repo = root or Path(__file__).resolve().parents[1]
     rows: list[dict] = []
@@ -99,12 +116,25 @@ def evaluate_physical_computable_positive_controls_v1(root: Path | None = None) 
             failures.append(f"{control.control_id}:CONNECTOR:{connector.get('blocked_reason')}")
             continue
         ingestion = connector["ingestion_output"]
-        semantic = run_initial_pass(ingestion_output=ingestion, sheet_name=control.sheet_name)
+        semantic_first = run_initial_pass(
+            ingestion_output=ingestion,
+            sheet_name=control.sheet_name,
+        )
+        semantic = (
+            run_owner_reentry(
+                previous_run=semantic_first,
+                owner_answers=_canonical_answers(
+                    list(semantic_first.get("owner_questions") or [])
+                ),
+            )
+            if semantic_first.get("status") == "OWNER_QUESTIONS"
+            else semantic_first
+        )
         if semantic.get("status") != "CONFIRMED_BINDINGS":
             failures.append(f"{control.control_id}:P6:{semantic.get('status')}")
             continue
 
-        gate = semantic.get("gate_packet") or {}
+        gate = semantic.get("reentry_packet") or semantic.get("gate_packet") or {}
         p6 = list(gate.get("p6_decisions") or [])
         candidate = gate.get("controlled_execution_candidate") or {}
         p7 = list(candidate.get("requirement_matches") or [])
@@ -118,13 +148,28 @@ def evaluate_physical_computable_positive_controls_v1(root: Path | None = None) 
         )
         p8_ok = decision.status == "COMPUTABLE" and decision.governed_computation_input is not None
 
-        product = run_service_1_product_pipeline_v1(
+        product_first = run_service_1_product_pipeline_v1(
             ingestion_output=ingestion,
             tool_requests=(),
             output_dir=repo / ".tmp" / "service_1_positive_controls" / control.control_id,
             sheet_name=control.sheet_name,
             requested_capability=control.capability,
             deliver_result=False,
+        )
+        product = (
+            run_service_1_product_pipeline_v1(
+                ingestion_output=ingestion,
+                tool_requests=(),
+                output_dir=repo / ".tmp" / "service_1_positive_controls" / control.control_id,
+                sheet_name=control.sheet_name,
+                requested_capability=control.capability,
+                owner_answers=_canonical_answers(
+                    list(product_first.get("owner_questions") or [])
+                ),
+                deliver_result=False,
+            )
+            if product_first.get("status") == "NEEDS_OWNER_CONFIRMATION"
+            else product_first
         )
         computation = product.get("computation_result") or {}
         inputs = computation.get("inputs") or {}

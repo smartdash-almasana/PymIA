@@ -13,6 +13,9 @@ from typing import Any, Final
 from pymia.smartpyme.service_1_column_understanding_engine_contract_v1 import (
     Service1ColumnUnderstandingV1,
 )
+from pymia.smartpyme.service_1_column_understanding_engine_v1 import (
+    build_service_1_owner_options_for_understanding_v1,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_COLUMN_UNDERSTANDING_OWNER_QUESTION_ADAPTER_V1"
 STATUS_QUESTION_READY: Final[str] = "OWNER_QUESTION_READY"
@@ -55,6 +58,8 @@ class Service1ColumnOwnerQuestionViewV1:
 
 def build_service_1_column_owner_question_view_v1(
     understanding: Service1ColumnUnderstandingV1,
+    *,
+    require_explicit_owner_confirmation: bool = False,
 ) -> Service1ColumnOwnerQuestionViewV1:
     if not isinstance(understanding, Service1ColumnUnderstandingV1):
         raise ValueError("understanding must be a Service1ColumnUnderstandingV1")
@@ -66,7 +71,11 @@ def build_service_1_column_owner_question_view_v1(
     )
     confidence_note = _confidence_note(understanding.confidence)
 
-    if not understanding.owner_question_needed:
+    question_required = bool(
+        understanding.owner_question_needed or require_explicit_owner_confirmation
+    )
+
+    if not question_required:
         primary_label = _primary_label(understanding)
         return Service1ColumnOwnerQuestionViewV1(
             schema_version=SCHEMA_VERSION,
@@ -88,10 +97,14 @@ def build_service_1_column_owner_question_view_v1(
             metadata={"projection_only": True, "source_question_needed": False},
         )
 
-    if not understanding.owner_question_text:
+    if understanding.owner_question_needed and not understanding.owner_question_text:
         raise ValueError("owner_question_text is required when owner_question_needed is True")
-    if not understanding.allowed_owner_answers:
-        raise ValueError("allowed_owner_answers are required when owner_question_needed is True")
+
+    source_options = understanding.allowed_owner_answers
+    if not source_options and require_explicit_owner_confirmation:
+        source_options = build_service_1_first_contact_owner_options_v1(understanding)
+    if not source_options:
+        raise ValueError("owner answer options are required when confirmation is required")
 
     options = tuple(
         Service1OwnerQuestionOptionViewV1(
@@ -99,7 +112,7 @@ def build_service_1_column_owner_question_view_v1(
             label=option.label,
             description=option.description,
         )
-        for option in understanding.allowed_owner_answers
+        for option in source_options
     )
     question = "¿Qué representa esta columna en tu negocio?"
     return Service1ColumnOwnerQuestionViewV1(
@@ -121,7 +134,10 @@ def build_service_1_column_owner_question_view_v1(
         delivery_authorized=False,
         metadata={
             "projection_only": True,
-            "source_question_needed": True,
+            "source_question_needed": bool(understanding.owner_question_needed),
+            "explicit_owner_confirmation_required": bool(
+                require_explicit_owner_confirmation
+            ),
             "option_count": len(options),
         },
     )
@@ -129,10 +145,24 @@ def build_service_1_column_owner_question_view_v1(
 
 def build_service_1_column_owner_question_views_v1(
     understandings: tuple[Service1ColumnUnderstandingV1, ...] | list[Service1ColumnUnderstandingV1],
+    *,
+    require_explicit_owner_confirmation: bool = False,
 ) -> tuple[Service1ColumnOwnerQuestionViewV1, ...]:
     if not isinstance(understandings, (tuple, list)):
         raise ValueError("understandings must be a tuple or list")
-    return tuple(build_service_1_column_owner_question_view_v1(item) for item in understandings)
+    return tuple(
+        build_service_1_column_owner_question_view_v1(
+            item,
+            require_explicit_owner_confirmation=require_explicit_owner_confirmation,
+        )
+        for item in understandings
+    )
+
+
+def build_service_1_first_contact_owner_options_v1(
+    understanding: Service1ColumnUnderstandingV1,
+):
+    return build_service_1_owner_options_for_understanding_v1(understanding)
 
 
 def _format_samples(values: tuple[Any, ...]) -> str:
@@ -166,6 +196,7 @@ __all__ = [
     "STATUS_NO_QUESTION_REQUIRED",
     "Service1OwnerQuestionOptionViewV1",
     "Service1ColumnOwnerQuestionViewV1",
+    "build_service_1_first_contact_owner_options_v1",
     "build_service_1_column_owner_question_view_v1",
     "build_service_1_column_owner_question_views_v1",
 ]

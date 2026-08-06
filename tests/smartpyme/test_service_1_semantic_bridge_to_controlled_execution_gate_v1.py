@@ -77,6 +77,29 @@ def _assert_all_flags_false(packet: dict) -> None:
     assert packet["diagnosis_generated"] is False
 
 
+def _owner_events(candidates: tuple[Service1ColumnSemanticCandidateV1, ...]) -> tuple[dict, ...]:
+    events: list[dict] = []
+    for candidate in candidates:
+        roles = tuple(role for role in candidate.candidate_semantic_roles if role != "unknown")
+        primary = str((candidate.metadata or {}).get("primary_semantic_role") or "").strip()
+        role = primary if primary in roles else roles[0]
+        events.append(
+            {
+                "confirmed_by_owner": True,
+                "question_ref": str(
+                    (candidate.metadata or {}).get("column_ref_id")
+                    or (candidate.metadata or {}).get("question_id")
+                    or candidate.source_column_name
+                ),
+                "sheet_ref": str(candidate.sheet_name or "sheet1"),
+                "column_ref": candidate.source_column_name,
+                "confirmation_scope": "SEMANTIC_ROLE",
+                "confirmed_role": role,
+            }
+        )
+    return tuple(events)
+
+
 def _safe_candidate(source: str, role: str, *, owner_confirmation_required: bool = False):
     return Service1ColumnSemanticCandidateV1(
         source_column_name=source,
@@ -106,11 +129,22 @@ def case_001_bridge_packet() -> dict:
 
 # --- 1. Full chain: CASE_001 is resolved by the understanding engine -------
 
-def test_full_chain_case_001_reaches_ready_gate(case_001_bridge_packet: dict) -> None:
-    out = build_gate(semantic_bridge_packet=case_001_bridge_packet)
+def test_full_chain_case_001_requires_owner_confirmation_before_ready_gate(case_001_bridge_packet: dict) -> None:
+    first = build_gate(semantic_bridge_packet=case_001_bridge_packet)
 
     assert case_001_bridge_packet["column_candidate_count"] == 10  # lock
-    assert out["semantic_candidate_count"] == 10
+    assert first["semantic_candidate_count"] == 10
+    assert first["status"] == STATUS_NEEDS_OWNER_CONFIRMATION
+    assert first["controlled_execution_candidate"] is None
+
+    confirmed_bridge = {
+        **case_001_bridge_packet,
+        "owner_confirmation_events": _owner_events(
+            tuple(case_001_bridge_packet["column_candidates"])
+        ),
+    }
+    out = build_gate(semantic_bridge_packet=confirmed_bridge)
+
     assert out["status"] == STATUS_READY
     assert out["owner_questions"] == []
     assert out["controlled_execution_candidate"] is not None
@@ -129,18 +163,28 @@ def test_full_chain_case_001_reaches_ready_gate(case_001_bridge_packet: dict) ->
 
 # --- 2. Synthetic all-safe candidates -> READY ----------------------------
 
-def test_synthetic_all_safe_candidates_ready() -> None:
+def test_synthetic_all_safe_candidates_require_owner_before_ready() -> None:
+    candidates = (
+        _safe_candidate("fecha", "operation_date"),
+        _safe_candidate("canal", "sales_channel"),
+    )
     bridge = {
         "status": EXPECTED_BRIDGE_STATUS,
         "case_id": "case_synth",
         "source_kind": "local_path",
         "filename": "synthetic.xlsx",
-        "column_candidates": (
-            _safe_candidate("fecha", "operation_date"),
-            _safe_candidate("canal", "sales_channel"),
-        ),
+        "column_candidates": candidates,
     }
-    out = build_gate(semantic_bridge_packet=bridge)
+    first = build_gate(semantic_bridge_packet=bridge)
+    assert first["status"] == STATUS_NEEDS_OWNER_CONFIRMATION
+    assert first["controlled_execution_candidate"] is None
+
+    out = build_gate(
+        semantic_bridge_packet={
+            **bridge,
+            "owner_confirmation_events": _owner_events(candidates),
+        }
+    )
 
     assert out["status"] == STATUS_READY
     assert out["controlled_execution_candidate"] is not None

@@ -36,7 +36,7 @@ from tools.service_1_physical_computable_positive_controls_v1 import (
 def test_physical_positive_controls_reach_computable_and_execute() -> None:
     result = evaluate_physical_computable_positive_controls_v1()
 
-    assert result["verdict"] == VERDICT_PASS
+    assert result["verdict"] == VERDICT_PASS, result
     assert result["controls_count"] == 3
     assert result["controls_passed"] == 3
     assert result["computable_positive_cases"] == 3
@@ -120,7 +120,6 @@ def _build_ren_001_semantic_chain(*, xlsx_path, expected_roles: dict[str, str]):
             "confirmed_role": expected_roles[candidate.source_column_name],
         }
         for candidate in candidates
-        if candidate.owner_confirmation_required
     )
     p6 = build_service_1_p6_approval_decisions_v1(
         case_id=bridge["case_id"],

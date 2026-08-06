@@ -182,9 +182,8 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
             filename=semantic_bridge_packet.get("filename"),
         )
     pending_refs = {
-        _candidate_ref_id(c)
-        for c in candidate_list
-        if getattr(c, "owner_confirmation_required", False)
+        _candidate_ref_id(candidate)
+        for candidate in candidate_list
     }
 
     unknown = sorted(set(str(k).strip() for k in confirmed_answers.keys()) - candidate_refs)

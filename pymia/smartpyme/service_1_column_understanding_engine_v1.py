@@ -1106,6 +1106,20 @@ def _build_owner_question(
     )
 
 
+def build_service_1_owner_options_for_understanding_v1(
+    understanding: Service1ColumnUnderstandingV1,
+) -> tuple[Service1ColumnOwnerAnswerOptionV1, ...]:
+    if not isinstance(understanding, Service1ColumnUnderstandingV1):
+        raise ValueError("understanding must be a Service1ColumnUnderstandingV1")
+    primary = understanding.primary_hypothesis
+    if primary is None:
+        return ()
+    return _build_owner_options(
+        primary=primary,
+        alternatives=tuple(understanding.alternatives),
+    )
+
+
 def _build_owner_options(
     *,
     primary: Service1ColumnUnderstandingHypothesisV1,
@@ -1476,6 +1490,7 @@ __all__ = [
     "CO_COLUMN_PENALTY",
     "TYPE_CONTRADICTION_PENALTY",
     "normalize_service_1_column_understanding_header_v1",
+    "build_service_1_owner_options_for_understanding_v1",
     "build_column_understanding_v1",
     "build_column_understanding_from_entry_v1",
     "build_column_understandings_from_matrix_v1",
