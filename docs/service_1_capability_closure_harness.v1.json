@@ -1,0 +1,159 @@
+{
+  "schema_version": "SERVICE_1_CAPABILITY_CLOSURE_HARNESS_V1",
+  "artifact_type": "service_1_capability_closure_harness",
+  "status": "ACTIVE",
+  "baseline": {
+    "branch": "main",
+    "head": "372fe6e",
+    "canonical_product_root": "pymia/smartpyme/service_1_product_pipeline_v1.py"
+  },
+  "current_state": {
+    "active_capability": null,
+    "active_phase": null,
+    "next_capability_selected": false,
+    "last_closed_capability": "REN_001",
+    "last_closed_commit": "372fe6e"
+  },
+  "purpose": "Cerrar brechas de madurez de Servicio 1 una capacidad por vez, impidiendo abrir la siguiente antes de cerrar, demostrar y congelar la anterior.",
+  "execution_policy": {
+    "single_active_capability": true,
+    "single_active_phase": true,
+    "automatic_scope_expansion": false,
+    "automatic_next_capability": false,
+    "commit_authorized_by_default": false,
+    "push_authorized_by_default": false,
+    "full_suite_required_per_phase": false,
+    "tests_executor": "OPENCODE_UNLESS_USER_EXPLICITLY_REQUESTS_OTHERWISE",
+    "stop_on_unexpected_repository_state": true,
+    "stop_on_new_architectural_dependency": true,
+    "stop_on_scope_extension_needed": true
+  },
+  "global_invariants": [
+    "No abrir una capacidad posterior mientras la capacidad activa no tenga FREEZE=PASS.",
+    "No mezclar cierre de dos capacidades en el mismo cambio.",
+    "No crear una segunda autoridad productiva, segundo motor de computabilidad ni segunda raiz productiva.",
+    "No introducir aliases que cambien el significado economico de una variable.",
+    "No usar monkeypatch, fixture sintetica o bypass como unica prueba de cierre fisico end-to-end.",
+    "No declarar productiva una capacidad cuya ruta canonica no haya sido demostrada fisicamente.",
+    "Un hallazgo nuevo fuera de la capacidad activa se registra para despues y no se corrige en el ciclo actual.",
+    "Si una fase necesita ampliar paths o responsabilidad, el ciclo queda BLOCKED hasta nueva autorizacion.",
+    "Cerrar una fase no autoriza automaticamente la fase siguiente.",
+    "Congelar significa reconciliar codigo, evidencia y declaracion de estado sin deuda conocida dentro del alcance cerrado."
+  ],
+  "phase_contract": {
+    "CLOSE": {
+      "goal": "Eliminar la brecha funcional o de gobierno conocida de la capacidad activa sin ampliar alcance.",
+      "required_output": [
+        "defecto_raiz_resuelto",
+        "ruta_canonica_definida",
+        "sin_bypass_nuevo",
+        "sin_segunda_autoridad"
+      ],
+      "exit_statuses": ["PASS", "BLOCKED"]
+    },
+    "PROVE": {
+      "goal": "Demostrar la capacidad sobre la ruta canonica real, con evidencia suficiente y sin reemplazar P6/P7/P8 por fixtures que oculten la integracion.",
+      "required_output": [
+        "evidencia_end_to_end",
+        "resultado_deterministico",
+        "fallo_honesto_ante_evidencia_insuficiente",
+        "sin_claim_causal_no_soportado"
+      ],
+      "exit_statuses": ["PASS", "BLOCKED"]
+    },
+    "FREEZE": {
+      "goal": "Fijar el cierre demostrado para impedir regresion conceptual y evitar reabrir la capacidad durante el cierre de las siguientes.",
+      "required_output": [
+        "estado_documental_reconciliado",
+        "tests_focales_asociados",
+        "sin_wip_residual_del_cierre",
+        "siguiente_capacidad_habilitable"
+      ],
+      "exit_statuses": ["PASS", "BLOCKED"]
+    }
+  },
+  "ordered_capabilities": [
+    {
+      "order": 1,
+      "capability_ref": "net_margin_real",
+      "pathology_code": "REN_001",
+      "state": "CLOSED_AND_FROZEN",
+      "known_gap": null,
+      "closure_focus": "Delivery XLSX deterministico conectado a la raiz productiva canonica y demostrado sobre outcome REN_001 OUTCOME_READY.",
+      "close": "PASS",
+      "prove": "PASS",
+      "freeze": "PASS",
+      "closure_evidence": {
+        "commit": "372fe6e",
+        "delivery_function": "deliver_ren_001_outcome_xlsx_v1",
+        "canonical_root": "run_service_1_product_pipeline_v1",
+        "delivery_format": "XLSX",
+        "sheet_count": 7,
+        "invalid_outcome_fail_closed": true,
+        "liq_001_regression_pass": true,
+        "runtime_authorized": false,
+        "causal_diagnosis_generated": false,
+        "delivery_authorized": false
+      },
+      "unlock_next_when": "close=PASS AND prove=PASS AND freeze=PASS"
+    },
+    {
+      "order": 2,
+      "capability_ref": "payment_collection_gap",
+      "pathology_code": "PYME_013",
+      "technical_prerequisite": "dpo",
+      "prerequisite_pathology_code": "PYME_013_PREREQUISITE_DPO",
+      "state": "LOCKED_PENDING_EXPLICIT_SELECTION",
+      "known_gap": "DPO esta declarado como prerrequisito tecnico de PYME_013, pero su ruta canonica completa y la composicion posterior de payment_collection_gap requieren cierre fisico verificable.",
+      "closure_focus": "Cerrar primero DPO como prerrequisito gobernado y luego demostrar PYME_013 como compuesto sin crear un motor paralelo.",
+      "close": "NOT_STARTED_PENDING_EXPLICIT_SELECTION",
+      "prove": "LOCKED_UNTIL_CLOSE_PASS",
+      "freeze": "LOCKED_UNTIL_PROVE_PASS",
+      "unlock_next_when": "close=PASS AND prove=PASS AND freeze=PASS"
+    },
+    {
+      "order": 3,
+      "capability_ref": "adjusted_operating_cash_flow",
+      "pathology_code": "PYME_026",
+      "state": "LOCKED",
+      "known_gap": "Existe inconsistencia entre identidad/formula declarada, registry y reachability semantica/productiva.",
+      "closure_focus": "Reconciliar una sola identidad de formula y cerrar semanticamente P7-P8-ejecucion sin duplicar formula ni autoridad.",
+      "close": "LOCKED_UNTIL_PYME_013_FREEZE_PASS",
+      "prove": "LOCKED_UNTIL_CLOSE_PASS",
+      "freeze": "LOCKED_UNTIL_PROVE_PASS",
+      "unlock_next_when": "close=PASS AND prove=PASS AND freeze=PASS"
+    }
+  ],
+  "transition_rules": [
+    {
+      "from": "REN_001.FREEZE",
+      "to": "PYME_013.CLOSE",
+      "condition": "REN_001.FREEZE == PASS"
+    },
+    {
+      "from": "PYME_013.FREEZE",
+      "to": "PYME_026.CLOSE",
+      "condition": "PYME_013.FREEZE == PASS"
+    },
+    {
+      "from": "PYME_026.FREEZE",
+      "to": "SERVICE_1_PHYSICAL_12_CAPABILITY_AUDIT",
+      "condition": "PYME_026.FREEZE == PASS"
+    }
+  ],
+  "post_sequence_gate": {
+    "name": "SERVICE_1_PHYSICAL_12_CAPABILITY_AUDIT",
+    "state": "LOCKED",
+    "unlock_condition": "REN_001, PYME_013 and PYME_026 all have FREEZE=PASS",
+    "purpose": "Auditar fisicamente las 12 capacidades declaradas solo despues de cerrar las tres brechas conocidas."
+  },
+  "agent_stop_conditions": [
+    "La capacidad activa cambia sin autorizacion explicita.",
+    "Aparece necesidad de tocar una capacidad posterior.",
+    "Se necesita un nuevo motor, catalogo paralelo o raiz productiva.",
+    "El estado Git inicial no coincide con el esperado para la tarea.",
+    "La solucion requiere asumir significado economico no fijado por contrato.",
+    "La prueba de cierre depende de sustituir una compuerta canonica por monkeypatch o fixture sintetica.",
+    "Se descubre una nueva brecha fuera del alcance activo."
+  ]
+}
