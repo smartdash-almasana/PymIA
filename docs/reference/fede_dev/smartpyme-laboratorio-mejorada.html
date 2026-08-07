@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SmartPyme convierte tus Excels, facturas, bancos y stock en un diagnóstico claro para saber dónde perdés plata, tiempo y margen." />
+  <title>SmartPyme — Diagnóstico operativo para PyMEs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #00e676;
+      --verde-dark: #00c853;
+      --verde-soft: rgba(0,230,118,.12);
+      --rojo: #ff3d57;
+      --amarillo: #ffd600;
+      --azul: #64b5f6;
+      --fondo: #070b0f;
+      --fondo2: #0a1016;
+      --panel: #0e151d;
+      --panel2: #121b24;
+      --panel3: #172330;
+      --borde: rgba(255,255,255,.08);
+      --borde2: rgba(0,230,118,.25);
+      --texto: #eef3f7;
+      --texto-dim: #91a0ad;
+      --texto-soft: #c6d0d8;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+      --serif: 'DM Serif Display', serif;
+      --shadow: 0 30px 80px rgba(0,0,0,.35);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--fondo);
+      color: var(--texto);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      opacity: .28;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='.04'/%3E%3C/svg%3E");
+    }
+
+    a { color: inherit; }
+    strong { color: var(--texto); font-weight: 700; }
+    .container { max-width: 1160px; margin: 0 auto; }
+    .accent { color: var(--verde); font-style: italic; }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      inset: 0 0 auto;
+      height: 74px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2.25rem;
+      background: rgba(7,11,15,.78);
+      border-bottom: 1px solid var(--borde);
+      backdrop-filter: blur(16px);
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-family: var(--mono);
+      font-size: .84rem;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      color: var(--verde);
+      text-decoration: none;
+    }
+    .nav-mark {
+      width: 26px; height: 26px;
+      display: grid; place-items: center;
+      border: 1px solid var(--borde2);
+      background: var(--verde-soft);
+      box-shadow: 0 0 26px rgba(0,230,118,.12);
+    }
+    .nav-logo span span { color: var(--texto-dim); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: .86rem;
+      color: var(--texto-dim);
+    }
+    .nav-links a {
+      text-decoration: none;
+      transition: color .18s;
+    }
+    .nav-links a:hover { color: var(--texto); }
+    .nav-cta {
+      font-family: var(--mono);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--fondo);
+      background: var(--verde);
+      padding: .72rem 1.05rem;
+      text-decoration: none;
+      border-radius: 3px;
+      transition: transform .18s, background .18s;
+    }
+    .nav-cta:hover { transform: translateY(-1px); background: var(--verde-dark); }
+
+    /* BUTTONS */
+    .btn-primary, .btn-secondary, .btn-dark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .55rem;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: 800;
+      line-height: 1;
+      transition: transform .18s, border-color .18s, background .18s;
+      min-height: 48px;
+    }
+    .btn-primary {
+      background: var(--verde);
+      color: var(--fondo);
+      padding: 1rem 1.45rem;
+      box-shadow: 0 18px 46px rgba(0,230,118,.16);
+    }
+    .btn-primary:hover { background: var(--verde-dark); transform: translateY(-2px); }
+    .btn-secondary {
+      border: 1px solid var(--borde);
+      background: rgba(255,255,255,.02);
+      color: var(--texto);
+      padding: 1rem 1.45rem;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,.22); transform: translateY(-2px); }
+    .btn-dark {
+      background: var(--fondo);
+      color: var(--texto);
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--borde);
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      padding: 9rem 2.25rem 4.5rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(0,230,118,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,230,118,.045) 1px, transparent 1px);
+      background-size: 62px 62px;
+      mask-image: radial-gradient(ellipse 84% 68% at 45% 42%, #000 38%, transparent 100%);
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      width: 720px; height: 720px;
+      border-radius: 50%;
+      top: -220px; left: -160px;
+      background: radial-gradient(circle, rgba(0,230,118,.13), transparent 68%);
+    }
+    .hero-wrap {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 3.2rem;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      font-family: var(--mono);
+      font-size: .7rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--verde);
+      border: 1px solid var(--borde2);
+      background: rgba(0,230,118,.05);
+      padding: .48rem .85rem;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 999px;
+      background: var(--verde);
+      box-shadow: 0 0 20px var(--verde);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.28} }
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(3rem, 6.4vw, 6.35rem);
+      line-height: .96;
+      letter-spacing: -.045em;
+      max-width: 820px;
+    }
+    .hero h1 .muted { color: #83909c; }
+    .hero-lead {
+      margin-top: 1.45rem;
+      color: var(--texto-soft);
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      line-height: 1.7;
+      max-width: 650px;
+      font-weight: 300;
+    }
+    .hero-lead strong { font-weight: 700; }
+    .hero-ctas {
+      display: flex;
+      gap: .9rem;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+    .hero-proof {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+      gap: 1px;
+      margin-top: 2.5rem;
+      max-width: 760px;
+      background: var(--borde);
+      border: 1px solid var(--borde);
+    }
+    .proof-item {
+      background: rgba(14,21,29,.76);
+      padding: 1rem 1.1rem;
+    }
+    .proof-num {
+      font-family: var(--mono);
+      color: var(--verde);
+      font-weight: 800;
+      font-size: 1.18rem;
+    }
+    .proof-label {
+      color: var(--texto-dim);
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: .18rem;
+    }
+
+    .diagnostic-card {
+      position: relative;
+      background: linear-gradient(145deg, rgba(18,27,36,.96), rgba(8,12,16,.92));
+      border: 1px solid var(--borde);
+      box-shadow: var(--shadow);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .diagnostic-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 15% 0%, rgba(0,230,118,.18), transparent 36%);
+      pointer-events: none;
+    }
+    .card-top {
+      position: relative;
+      padding: 1rem 1.1rem;
+      background: rgba(255,255,255,.025);
+      border-bottom: 1px solid var(--borde);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .dots { display: flex; gap: .42rem; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #febc2e; }
+    .dot.g { background: #28c840; }
+    .card-title {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--texto-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-body { position: relative; padding: 1.35rem; }
+    .score {
+      display: grid;
+      grid-template-columns: 106px 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--borde);
+      margin-bottom: .85rem;
+    }
+    .score-ring {
+      width: 106px; height: 106px;
+      border-radius: 999px;
+      display: grid; place-items: center;
+      background:
+        radial-gradient(circle at center, var(--panel2) 57%, transparent 58%),
+        conic-gradient(var(--amarillo) 0 66%, rgba(255,255,255,.08) 66% 100%);
+      font-family: var(--mono);
+      font-size: 1.55rem;
+      color: var(--amarillo);
+      font-weight: 800;
+    }
+    .score h3 {
+      font-family: var(--serif);
+      font-size: 1.65rem;
+      line-height: 1.05;
+      margin-bottom: .35rem;
+    }
+    .score p {
+      color: var(--texto-dim);
+      font-size: .9rem;
+    }
+    .finding {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .85rem;
+      align-items: start;
+      padding: .82rem 0;
+      border-bottom: 1px solid var(--borde);
+      font-family: var(--mono);
+      font-size: .78rem;
+    }
+    .finding:last-child { border-bottom: none; }
+    .finding span:first-child { color: var(--texto-dim); }
+    .finding strong { font-family: var(--sans); font-size: .86rem; }
+    .bad { color: var(--rojo); }
+    .warn { color: var(--amarillo); }
+    .ok { color: var(--verde); }
+    .card-foot {
+      position: relative;
+      padding: 1.1rem 1.35rem 1.35rem;
+      border-top: 1px solid var(--borde);
+      background: rgba(0,230,118,.035);
+    }
+    .card-foot p {
+      font-size: .88rem;
+      color: var(--texto-soft);
+      margin-bottom: .9rem;
+    }
+
+    /* STRIP */
+    .strip {
+      border-top: 1px solid var(--borde);
+      border-bottom: 1px solid var(--borde);
+      background: var(--panel);
+      padding: 1rem 2.25rem;
+      color: var(--texto-dim);
+      font-family: var(--mono);
+      font-size: .75rem;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      overflow: hidden;
+    }
+    .strip-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .strip strong { color: var(--verde); font-family: var(--mono); }
+
+    section { padding: 6.5rem 2.25rem; }
+    .section-head { margin-bottom: 3rem; }
+    .section-tag {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--verde);
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      margin-bottom: .85rem;
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-size: clamp(2.25rem, 4.2vw, 3.9rem);
+      line-height: 1.02;
+      letter-spacing: -.032em;
+      max-width: 860px;
+    }
+    .section-desc {
+      max-width: 680px;
+      margin-top: 1rem;
+      color: var(--texto-dim);
+      font-size: 1.06rem;
+      line-height: 1.75;
+    }
+
+    /* PROBLEM */
+    .problem {
+      background: var(--fondo2);
+      border-bottom: 1px solid var(--borde);
+    }
+    .problem-grid {
+      display: grid;
+      grid-template-columns: .85fr 1.15fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .quote-box {
+      position: sticky;
+      top: 100px;
+      border-left: 3px solid var(--verde);
+      padding: 1.35rem 0 1.35rem 1.4rem;
+    }
+    .quote-box p {
+      font-family: var(--serif);
+      font-size: clamp(1.6rem, 3vw, 2.25rem);
+      line-height: 1.22;
+      font-style: italic;
+    }
+    .quote-box cite {
+      display: block;
+      color: var(--texto-dim);
+      font-style: normal;
+      font-family: var(--mono);
+      font-size: .75rem;
+      margin-top: 1rem;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .pain-list {
+      display: grid;
+      gap: .8rem;
+    }
+    .pain {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      padding: 1.1rem 1.15rem;
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: .85rem;
+      align-items: start;
+    }
+    .pain-icon {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      color: var(--rojo);
+      background: rgba(255,61,87,.11);
+      border: 1px solid rgba(255,61,87,.25);
+      font-family: var(--mono);
+      font-weight: 800;
+    }
+    .pain h3 { font-size: 1rem; margin-bottom: .18rem; }
+    .pain p { color: var(--texto-dim); font-size: .92rem; }
+
+    /* VALUE */
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--borde);
+      border: 1px solid var(--borde);
+    }
+    .value-card {
+      background: var(--panel);
+      padding: 1.55rem;
+      min-height: 210px;
+    }
+    .value-card .num {
+      font-family: var(--mono);
+      color: var(--verde);
+      font-size: .7rem;
+      letter-spacing: .18em;
+      margin-bottom: 1.2rem;
+    }
+    .value-card h3 {
+      font-size: 1.08rem;
+      margin-bottom: .55rem;
+    }
+    .value-card p {
+      color: var(--texto-dim);
+      font-size: .9rem;
+      line-height: 1.65;
+    }
+
+    /* LABS */
+    .labs {
+      background: var(--panel);
+      border-top: 1px solid var(--borde);
+      border-bottom: 1px solid var(--borde);
+    }
+    .labs-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+    .labs-head .section-desc { max-width: 420px; }
+    .labs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--borde);
+      border: 1px solid var(--borde);
+    }
+    .lab {
+      background: var(--panel2);
+      padding: 1.35rem;
+      position: relative;
+      overflow: hidden;
+      transition: background .18s;
+    }
+    .lab:hover { background: var(--panel3); }
+    .lab::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 2px;
+      background: var(--verde);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .22s;
+    }
+    .lab:hover::after { transform: scaleX(1); }
+    .lab .icon { font-size: 1.55rem; margin-bottom: .8rem; }
+    .lab h3 { font-size: .98rem; margin-bottom: .35rem; }
+    .lab p { color: var(--texto-dim); font-size: .82rem; line-height: 1.58; }
+    .lab small {
+      display: inline-flex;
+      margin-top: .9rem;
+      font-family: var(--mono);
+      color: var(--verde);
+      background: rgba(0,230,118,.07);
+      border: 1px solid rgba(0,230,118,.18);
+      padding: .25rem .5rem;
+      font-size: .58rem;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    /* CASE */
+    .case-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    .timeline {
+      margin-top: 1.4rem;
+      display: grid;
+      gap: .8rem;
+    }
+    .time-row {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--panel);
+      border: 1px solid var(--borde);
+    }
+    .time-row b {
+      font-family: var(--mono);
+      color: var(--verde);
+      font-size: .75rem;
+    }
+    .time-row span {
+      color: var(--texto-dim);
+      font-size: .9rem;
+    }
+
+    .report {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .report-top {
+      padding: 1rem 1.1rem;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--borde);
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      font-family: var(--mono);
+      color: var(--texto-dim);
+      font-size: .72rem;
+    }
+    .report-body { padding: 1.2rem; }
+    .report-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      padding: .86rem 0;
+      border-bottom: 1px solid var(--borde);
+      font-size: .88rem;
+    }
+    .report-line:last-child { border-bottom: none; }
+    .report-line span:first-child { color: var(--texto-dim); }
+    .report-line span:last-child { font-family: var(--mono); font-size: .78rem; font-weight: 700; text-align: right; }
+    .report-summary {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(0,230,118,.055);
+      border: 1px solid rgba(0,230,118,.18);
+      border-left: 3px solid var(--verde);
+    }
+    .report-summary small {
+      display: block;
+      font-family: var(--mono);
+      color: var(--verde);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: .35rem;
+      font-size: .62rem;
+    }
+    .report-summary p { color: var(--texto-soft); font-size: .9rem; }
+
+    /* PLANS */
+    .plans {
+      background: var(--fondo2);
+      border-top: 1px solid var(--borde);
+      border-bottom: 1px solid var(--borde);
+    }
+    .plans .section-head { text-align: center; }
+    .plans .section-title, .plans .section-desc { margin-left: auto; margin-right: auto; }
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .plan {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      padding: 2rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 505px;
+      transition: transform .18s, border-color .18s;
+    }
+    .plan:hover { transform: translateY(-3px); border-color: rgba(0,230,118,.24); }
+    .plan.featured {
+      border-color: rgba(0,230,118,.42);
+      background: linear-gradient(145deg, rgba(0,230,118,.07), var(--panel) 48%);
+    }
+    .plan-badge {
+      position: absolute;
+      top: -1px; right: 1.25rem;
+      background: var(--verde);
+      color: var(--fondo);
+      font-family: var(--mono);
+      font-size: .62rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      padding: .35rem .65rem;
+      text-transform: uppercase;
+    }
+    .plan-kicker {
+      font-family: var(--mono);
+      color: var(--verde);
+      font-size: .66rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: .7rem;
+    }
+    .plan h3 {
+      font-family: var(--serif);
+      font-size: 1.85rem;
+      margin-bottom: .5rem;
+    }
+    .plan .for {
+      color: var(--texto-dim);
+      font-size: .92rem;
+      line-height: 1.65;
+      min-height: 70px;
+      margin-bottom: 1.35rem;
+    }
+    .price {
+      font-family: var(--mono);
+      font-size: .82rem;
+      color: var(--texto-soft);
+      padding: .8rem 0;
+      border-top: 1px solid var(--borde);
+      border-bottom: 1px solid var(--borde);
+      margin-bottom: 1.25rem;
+    }
+    .price strong {
+      display: block;
+      color: var(--verde);
+      font-size: 1.15rem;
+      margin-bottom: .18rem;
+    }
+    .features {
+      list-style: none;
+      display: grid;
+      gap: .65rem;
+      margin-bottom: 1.5rem;
+      flex: 1;
+    }
+    .features li {
+      display: flex;
+      gap: .55rem;
+      color: var(--texto-dim);
+      font-size: .88rem;
+    }
+    .features li::before {
+      content: '→';
+      color: var(--verde);
+      font-family: var(--mono);
+      flex: 0 0 auto;
+    }
+
+    /* PROCESS */
+    .process-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--borde);
+      border: 1px solid var(--borde);
+    }
+    .step {
+      background: var(--panel);
+      padding: 1.5rem;
+      min-height: 220px;
+    }
+    .step b {
+      font-family: var(--mono);
+      color: var(--verde);
+      font-size: .7rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    .step h3 { margin: .9rem 0 .45rem; font-size: 1rem; }
+    .step p { color: var(--texto-dim); font-size: .88rem; line-height: 1.65; }
+
+    /* FAQ */
+    .faq {
+      background: var(--panel);
+      border-top: 1px solid var(--borde);
+    }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    details {
+      background: var(--panel2);
+      border: 1px solid var(--borde);
+      padding: 1rem 1.15rem;
+      margin-bottom: .75rem;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--texto);
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    details p {
+      color: var(--texto-dim);
+      font-size: .92rem;
+      line-height: 1.65;
+      margin-top: .75rem;
+      padding-top: .75rem;
+      border-top: 1px solid var(--borde);
+    }
+
+    /* CTA */
+    .cta-final {
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      padding: 7.5rem 2.25rem;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(0,230,118,.12), transparent 40%),
+        var(--fondo);
+      border-top: 1px solid var(--borde);
+    }
+    .cta-final h2 {
+      font-family: var(--serif);
+      font-size: clamp(2.6rem, 5vw, 4.9rem);
+      line-height: .98;
+      letter-spacing: -.04em;
+      max-width: 870px;
+      margin: 0 auto;
+    }
+    .cta-final p {
+      color: var(--texto-dim);
+      max-width: 680px;
+      margin: 1.2rem auto 2rem;
+      font-size: 1.1rem;
+      line-height: 1.72;
+    }
+    .cta-row {
+      display: flex;
+      justify-content: center;
+      gap: .9rem;
+      flex-wrap: wrap;
+    }
+    .cta-note {
+      margin-top: 1rem !important;
+      font-family: var(--mono);
+      font-size: .72rem !important;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 2rem 2.25rem;
+      border-top: 1px solid var(--borde);
+      color: var(--texto-dim);
+      font-family: var(--mono);
+      font-size: .74rem;
+    }
+    footer strong { color: var(--verde); font-family: var(--mono); }
+
+    .whatsapp-float {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 90;
+      background: var(--verde);
+      color: var(--fondo);
+      text-decoration: none;
+      border-radius: 999px;
+      padding: .9rem 1rem;
+      font-weight: 900;
+      box-shadow: 0 18px 48px rgba(0,230,118,.22);
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity .65s ease, transform .65s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 980px) {
+      .hero-wrap, .problem-grid, .case-grid, .faq-grid { grid-template-columns: 1fr; }
+      .diagnostic-card { max-width: 620px; }
+      .value-grid, .labs-grid, .process-grid { grid-template-columns: repeat(2, 1fr); }
+      .plan-grid { grid-template-columns: 1fr; }
+      .plan { min-height: auto; }
+      .labs-head { display: block; }
+      .quote-box { position: static; }
+      .nav-links a:not(.nav-cta) { display: none; }
+    }
+    @media (max-width: 640px) {
+      nav { height: 68px; padding: 0 1rem; }
+      .nav-logo { font-size: .75rem; }
+      .nav-cta { padding: .65rem .72rem; font-size: .64rem; }
+      .hero { padding: 8rem 1rem 3.2rem; }
+      section { padding: 4.4rem 1rem; }
+      .hero-proof { grid-template-columns: 1fr; }
+      .score { grid-template-columns: 1fr; }
+      .value-grid, .labs-grid, .process-grid { grid-template-columns: 1fr; }
+      .report-line { grid-template-columns: 1fr; }
+      .report-line span:last-child { text-align: left; }
+      .strip { padding: .9rem 1rem; }
+      footer { padding: 1.5rem 1rem 5rem; }
+      .whatsapp-float { left: 14px; right: 14px; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="#" class="nav-logo" aria-label="SmartPyme inicio">
+      <span class="nav-mark">S</span>
+      <span>Smart<span>Pyme</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="#problema">Problema</a>
+      <a href="#laboratorios">Laboratorios</a>
+      <a href="#planes">Planes</a>
+      <a href="#faq">Dudas</a>
+      <a class="nav-cta" href="#cta">Diagnóstico</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-wrap">
+        <div>
+          <div class="eyebrow">Diagnóstico operativo para PyMEs argentinas</div>
+          <h1>
+            Dejá de manejar tu empresa <span class="muted">a ojo.</span><br>
+            Mirá dónde se te va la <span class="accent">plata</span>.
+          </h1>
+          <p class="hero-lead">
+            SmartPyme revisa tus Excels, facturas, bancos, stock y ventas. En vez de otro tablero lleno de números,
+            recibís un diagnóstico claro: <strong>qué está fallando, cuánto impacta y qué conviene corregir primero.</strong>
+          </p>
+          <div class="hero-ctas">
+            <a href="#cta" class="btn-primary">Quiero mi diagnóstico</a>
+            <a href="#caso" class="btn-secondary">Ver ejemplo real</a>
+          </div>
+
+          <div class="hero-proof" aria-label="Beneficios principales">
+            <div class="proof-item">
+              <div class="proof-num">72 hs</div>
+              <div class="proof-label">primera lectura</div>
+            </div>
+            <div class="proof-item">
+              <div class="proof-num">Sin ERP</div>
+              <div class="proof-label">usamos lo que tenés</div>
+            </div>
+            <div class="proof-item">
+              <div class="proof-num">Accionable</div>
+              <div class="proof-label">prioridades claras</div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="diagnostic-card reveal" aria-label="Ejemplo de informe SmartPyme">
+          <div class="card-top">
+            <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+            <div class="card-title">diagnostico_pyme_abril_2026.smart</div>
+          </div>
+          <div class="card-body">
+            <div class="score">
+              <div class="score-ring">66%</div>
+              <div>
+                <h3>Empresa inestable, pero recuperable.</h3>
+                <p>Hay margen para ordenar caja, precios y stock sin frenar la operación.</p>
+              </div>
+            </div>
+
+            <div class="finding">
+              <span>Margen real vs objetivo</span>
+              <strong class="warn">-18%</strong>
+            </div>
+            <div class="finding">
+              <span>Productos sin costo actualizado</span>
+              <strong class="bad">27</strong>
+            </div>
+            <div class="finding">
+              <span>Stock físico vs sistema</span>
+              <strong class="bad">11 SKU</strong>
+            </div>
+            <div class="finding">
+              <span>Banco sin conciliación</span>
+              <strong class="warn">$248.000</strong>
+            </div>
+            <div class="finding">
+              <span>Horas manuales recuperables</span>
+              <strong class="ok">6 h/día</strong>
+            </div>
+          </div>
+          <div class="card-foot">
+            <p><strong>Próximo paso sugerido:</strong> actualizar costos críticos, cerrar diferencia de stock y automatizar conciliación bancaria.</p>
+            <a href="#cta" class="btn-primary" style="width:100%;">Quiero algo así para mi empresa</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="strip">
+      <div class="strip-inner">
+        <span><strong>Hecho para contexto real:</strong> inflación · AFIP · Mercado Pago · bancos · Excel · WhatsApp</span>
+        <span>No reemplaza al contador: le ordena la evidencia.</span>
+      </div>
+    </div>
+
+    <section class="problem" id="problema">
+      <div class="container problem-grid">
+        <div class="quote-box reveal">
+          <p>“Laburo todo el día, vendo, compro, pago... pero no sé si realmente estoy ganando.”</p>
+          <cite>Frase típica de dueño PyME</cite>
+        </div>
+
+        <div class="reveal">
+          <div class="section-head">
+            <p class="section-tag">El problema real</p>
+            <h2 class="section-title">No faltan datos. Falta una lectura que te diga qué hacer.</h2>
+            <p class="section-desc">
+              La mayoría de las PyMEs ya tiene la información, pero repartida en archivos, chats, bancos, sistemas viejos y planillas que nadie quiere tocar.
+            </p>
+          </div>
+
+          <div class="pain-list">
+            <article class="pain">
+              <div class="pain-icon">×</div>
+              <div>
+                <h3>Costos viejos, precios nuevos</h3>
+                <p>Comprás más caro, vendés con listas atrasadas y el margen se achica sin aviso.</p>
+              </div>
+            </article>
+            <article class="pain">
+              <div class="pain-icon">×</div>
+              <div>
+                <h3>Stock que no coincide</h3>
+                <p>El sistema dice una cosa, el depósito otra. Nadie sabe si es merma, error o venta mal cargada.</p>
+              </div>
+            </article>
+            <article class="pain">
+              <div class="pain-icon">×</div>
+              <div>
+                <h3>Banco, caja y Mercado Pago sin cerrar</h3>
+                <p>Hay cobros, retiros, gastos y transferencias mezcladas. La plata entra, pero la explicación no aparece.</p>
+              </div>
+            </article>
+            <article class="pain">
+              <div class="pain-icon">×</div>
+              <div>
+                <h3>Horas perdidas en carga manual</h3>
+                <p>Copiar, pegar, revisar, volver a copiar. Trabajo administrativo que no vende y no mejora el negocio.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="value">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-tag">Qué entregamos</p>
+          <h2 class="section-title">Un diagnóstico comercial, financiero y operativo. Sin humo.</h2>
+          <p class="section-desc">No te damos “datos sueltos”. Te entregamos hallazgos con nombre, monto, prioridad y acción recomendada.</p>
+        </div>
+
+        <div class="value-grid reveal">
+          <article class="value-card">
+            <div class="num">01</div>
+            <h3>Hallazgos con impacto</h3>
+            <p>Ejemplo: “27 productos se venden sin costo actualizado; riesgo directo sobre margen comercial”.</p>
+          </article>
+          <article class="value-card">
+            <div class="num">02</div>
+            <h3>Prioridad de ataque</h3>
+            <p>No todo es urgente. Marcamos qué corregir primero para recuperar control rápido.</p>
+          </article>
+          <article class="value-card">
+            <div class="num">03</div>
+            <h3>Lenguaje de dueño</h3>
+            <p>Claro, directo y operativo. Sin jerga de consultora ni dashboard críptico.</p>
+          </article>
+          <article class="value-card">
+            <div class="num">04</div>
+            <h3>Plan de estabilización</h3>
+            <p>Qué revisar, qué automatizar, qué medir y qué decisión conviene tomar después.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="labs" id="laboratorios">
+      <div class="container">
+        <div class="labs-head reveal">
+          <div>
+            <p class="section-tag">Laboratorios disponibles</p>
+            <h2 class="section-title">Elegís dónde mirar primero.</h2>
+          </div>
+          <p class="section-desc">Podés empezar por un área puntual o pedir una lectura completa de la empresa.</p>
+        </div>
+
+        <div class="labs-grid reveal">
+          <article class="lab">
+            <div class="icon">📈</div>
+            <h3>Comercial</h3>
+            <p>Precios, márgenes, descuentos, ventas por producto y rentabilidad real.</p>
+            <small>Margen · Listas · Ventas</small>
+          </article>
+          <article class="lab">
+            <div class="icon">🧾</div>
+            <h3>Compras</h3>
+            <p>Facturas, proveedores, aumentos, variaciones y costos que no fueron trasladados.</p>
+            <small>Proveedores · Costos</small>
+          </article>
+          <article class="lab">
+            <div class="icon">📦</div>
+            <h3>Stock</h3>
+            <p>Diferencias entre sistema, depósito, ventas y movimientos sin trazabilidad.</p>
+            <small>SKU · Mermas · Rotación</small>
+          </article>
+          <article class="lab">
+            <div class="icon">💰</div>
+            <h3>Finanzas</h3>
+            <p>Caja, banco, Mercado Pago, cobros, retiros y conciliaciones pendientes.</p>
+            <small>Caja · Banco · MP</small>
+          </article>
+          <article class="lab">
+            <div class="icon">🏭</div>
+            <h3>Producción</h3>
+            <p>Insumos, tiempos, costos de fabricación, desperdicio y rendimiento operativo.</p>
+            <small>Insumos · Rendimiento</small>
+          </article>
+          <article class="lab">
+            <div class="icon">👥</div>
+            <h3>RRHH</h3>
+            <p>Horas, ausentismo, nómina, cargas, turnos y costo laboral oculto.</p>
+            <small>Horas · Sueldos</small>
+          </article>
+          <article class="lab">
+            <div class="icon">🤖</div>
+            <h3>Automatización</h3>
+            <p>Tareas repetitivas, doble carga, archivos manuales y horas recuperables.</p>
+            <small>Procesos · Tiempo</small>
+          </article>
+          <article class="lab">
+            <div class="icon">📊</div>
+            <h3>ROI</h3>
+            <p>Retorno estimado, recupero, escenarios y decisión sobre inversión.</p>
+            <small>ROI · Escenarios</small>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="caso">
+      <div class="container case-grid">
+        <div class="reveal">
+          <p class="section-tag">Ejemplo de entrega</p>
+          <h2 class="section-title">Así se ve una PyME cuando la evidencia empieza a hablar.</h2>
+          <p class="section-desc">
+            Un caso tipo textil: ventas, compras, stock y bancos cruzados en 72 horas. El resultado no fue “un reporte lindo”:
+            fue una lista ordenada de síntomas, impacto y tratamiento.
+          </p>
+
+          <div class="timeline">
+            <div class="time-row"><b>Día 1</b><span>Recibimos planillas, PDFs y extractos. Identificamos fuentes y entidades.</span></div>
+            <div class="time-row"><b>Día 2</b><span>Cruzamos ventas, costos, stock y banco. Detectamos diferencias.</span></div>
+            <div class="time-row"><b>Día 3</b><span>Entregamos diagnóstico, prioridades y plan de estabilización.</span></div>
+          </div>
+        </div>
+
+        <div class="report reveal">
+          <div class="report-top">
+            <span>informe_textil_perales.smart</span>
+            <span>Estado: ALTERADO</span>
+          </div>
+          <div class="report-body">
+            <div class="report-line"><span>Margen comercial</span><span class="warn">18% bajo objetivo</span></div>
+            <div class="report-line"><span>Productos sin costo actualizado</span><span class="bad">27 productos</span></div>
+            <div class="report-line"><span>Stock físico vs sistema</span><span class="bad">11 SKU</span></div>
+            <div class="report-line"><span>Movimientos sin trazabilidad</span><span class="bad">43 registros</span></div>
+            <div class="report-line"><span>Conciliación bancaria</span><span class="warn">$248.000 sin justificar</span></div>
+            <div class="report-line"><span>Carga manual repetitiva</span><span class="warn">6 h/día estimadas</span></div>
+            <div class="report-line"><span>ROI automatización</span><span class="ok">recupero 3,8 meses</span></div>
+            <div class="report-summary">
+              <small>Conclusión operativa</small>
+              <p>Pronóstico favorable si se corrigen costos críticos, conciliación bancaria y stock durante los próximos 60–90 días.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="plans" id="planes">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-tag">Tres formas de empezar</p>
+          <h2 class="section-title">Elegí profundidad según el momento de tu empresa.</h2>
+          <p class="section-desc">Podés venderlo como diagnóstico inicial, análisis especializado o acompañamiento mensual.</p>
+        </div>
+
+        <div class="plan-grid reveal">
+          <article class="plan">
+            <div class="plan-kicker">Nivel 01</div>
+            <h3>Foto rápida</h3>
+            <p class="for">Para tener una primera lectura clara sin meterse todavía en una auditoría completa.</p>
+            <div class="price"><strong>Diagnóstico Base</strong><span>Ideal para empezar con bajo riesgo.</span></div>
+            <ul class="features">
+              <li>Revisión de archivos principales</li>
+              <li>Validaciones y anomalías básicas</li>
+              <li>Hallazgos priorizados</li>
+              <li>Informe ejecutivo corto</li>
+            </ul>
+            <a href="#cta" class="btn-secondary">Pedir Base</a>
+          </article>
+
+          <article class="plan featured">
+            <div class="plan-badge">Más vendible</div>
+            <div class="plan-kicker">Nivel 02</div>
+            <h3>Diagnóstico completo</h3>
+            <p class="for">Para dueños que necesitan entender margen, caja, stock y procesos con evidencia.</p>
+            <div class="price"><strong>Especializado PyME</strong><span>Mejor relación valor / decisión.</span></div>
+            <ul class="features">
+              <li>Lectura por rubro y operación</li>
+              <li>Cruce de ventas, costos, stock y banco</li>
+              <li>Informe con síntomas e impacto</li>
+              <li>Plan de estabilización 60–90 días</li>
+              <li>Reunión de lectura del diagnóstico</li>
+            </ul>
+            <a href="#cta" class="btn-primary">Quiero este</a>
+          </article>
+
+          <article class="plan">
+            <div class="plan-kicker">Nivel 03</div>
+            <h3>Acompañamiento</h3>
+            <p class="for">Para empresas que quieren ordenar la operación y monitorear desvíos mes a mes.</p>
+            <div class="price"><strong>Premium Asistido</strong><span>Diagnóstico + seguimiento.</span></div>
+            <ul class="features">
+              <li>IA + revisión humana</li>
+              <li>Benchmarks e investigación externa</li>
+              <li>Automatizaciones priorizadas</li>
+              <li>Seguimiento mensual</li>
+              <li>Tablero de control evolutivo</li>
+            </ul>
+            <a href="#cta" class="btn-secondary">Hablar con alguien</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-tag">Cómo trabajamos</p>
+          <h2 class="section-title">No te pedimos ordenar todo antes. Empezamos con el desorden real.</h2>
+        </div>
+
+        <div class="process-grid reveal">
+          <article class="step">
+            <b>01 · Envío</b>
+            <h3>Mandás lo que tenés</h3>
+            <p>Excels, PDFs, extractos, capturas, listas de precios o reportes del sistema.</p>
+          </article>
+          <article class="step">
+            <b>02 · Lectura</b>
+            <h3>Ordenamos la evidencia</h3>
+            <p>Identificamos entidades: productos, proveedores, cuentas, movimientos y períodos.</p>
+          </article>
+          <article class="step">
+            <b>03 · Cruce</b>
+            <h3>Buscamos diferencias</h3>
+            <p>Comparamos fuentes y marcamos inconsistencias con monto, unidad o registro.</p>
+          </article>
+          <article class="step">
+            <b>04 · Acción</b>
+            <h3>Entregamos prioridades</h3>
+            <p>Informe claro con hallazgos, riesgos, responsables sugeridos y próximos pasos.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq" id="faq">
+      <div class="container faq-grid">
+        <div class="reveal">
+          <p class="section-tag">Preguntas típicas</p>
+          <h2 class="section-title">Antes de mandar tus archivos.</h2>
+          <p class="section-desc">Respuestas directas para bajar fricción comercial.</p>
+        </div>
+
+        <div class="reveal">
+          <details open>
+            <summary>¿Necesito tener todo prolijo para empezar?</summary>
+            <p>No. Justamente trabajamos con el desorden real de la PyME. Cuanto más desorden haya, más valor tiene el diagnóstico inicial.</p>
+          </details>
+          <details>
+            <summary>¿Esto reemplaza a mi contador?</summary>
+            <p>No. SmartPyme ordena evidencia operativa y detecta problemas de gestión. El contador sigue siendo clave para lo fiscal, contable y legal.</p>
+          </details>
+          <details>
+            <summary>¿Qué archivos puedo mandar?</summary>
+            <p>Planillas Excel, PDFs de facturas, extractos bancarios, listas de precios, reportes de sistemas, archivos de stock, ventas y compras.</p>
+          </details>
+          <details>
+            <summary>¿Sirve si mi empresa es chica?</summary>
+            <p>Sí. Si hay ventas, compras, pagos, stock o carga manual, hay información para revisar. La profundidad se ajusta al tamaño de la operación.</p>
+          </details>
+          <details>
+            <summary>¿Qué recibo al final?</summary>
+            <p>Un informe con hallazgos, impacto estimado, prioridad, riesgo y recomendación concreta. En los planes superiores, también una lectura asistida.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-final" id="cta">
+      <h2>Tu empresa ya tiene las respuestas.<br>Están escondidas en tus archivos.</h2>
+      <p>
+        Mandanos una muestra de tus datos y te decimos qué diagnóstico conviene hacer primero.
+        Sin vueltas, sin consultoría eterna y sin venderte un sistema que todavía no necesitás.
+      </p>
+      <div class="cta-row">
+        <a href="https://wa.me/54911TU_NUMERO?text=Hola%20SmartPyme%2C%20quiero%20pedir%20un%20diagn%C3%B3stico%20para%20mi%20empresa." class="btn-primary">Hablar por WhatsApp</a>
+        <a href="mailto:hola@smartpyme.com?subject=Quiero%20mi%20diagn%C3%B3stico%20SmartPyme&body=Hola%2C%20quiero%20consultar%20por%20un%20diagn%C3%B3stico%20para%20mi%20PyME." class="btn-secondary">Enviar consulta por mail</a>
+      </div>
+      <p class="cta-note">Reemplazar teléfono y mail por los datos reales antes de publicar.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div><strong>SmartPyme</strong> · Diagnóstico operativo para PyMEs</div>
+    <div>Buenos Aires · Argentina · © 2026</div>
+  </footer>
+
+  <a class="whatsapp-float" href="https://wa.me/54911TU_NUMERO?text=Hola%20SmartPyme%2C%20quiero%20consultar%20por%20un%20diagn%C3%B3stico.">💬 WhatsApp</a>
+
+  <script>
+    const reveals = document.querySelectorAll('.reveal');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), index * 70);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    reveals.forEach(el => io.observe(el));
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', e => {
+        const target = document.querySelector(anchor.getAttribute('href'));
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+</body>
+</html>
