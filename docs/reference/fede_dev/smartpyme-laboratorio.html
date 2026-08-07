@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartPyme — Laboratorio de Análisis PyME</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde:    #00e676;
+      --verde-dark: #00c853;
+      --rojo:     #ff3d57;
+      --amarillo: #ffd600;
+      --fondo:    #080c10;
+      --panel:    #0d1218;
+      --panel2:   #111820;
+      --borde:    rgba(255,255,255,0.07);
+      --texto:    #e8edf2;
+      --texto-dim: #7a8a99;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+      --serif: 'DM Serif Display', serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--fondo);
+      color: var(--texto);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2.5rem;
+      background: rgba(8,12,16,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--borde);
+    }
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--verde);
+      text-transform: uppercase;
+    }
+    .nav-logo span { color: var(--texto-dim); }
+    .nav-pill {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--fondo);
+      background: var(--verde);
+      padding: 0.45rem 1.1rem;
+      border-radius: 2px;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+    .nav-pill:hover { background: var(--verde-dark); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 9rem 2.5rem 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,230,118,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,230,118,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
+    }
+    .hero-glow {
+      position: absolute;
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,230,118,0.08) 0%, transparent 70%);
+      top: -100px; left: -200px;
+      pointer-events: none;
+    }
+    .hero-glow-2 {
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,61,87,0.05) 0%, transparent 70%);
+      bottom: -50px; right: -100px;
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--verde);
+      border: 1px solid rgba(0,230,118,0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 2px;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--verde);
+      animation: blink 1.4s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      max-width: 820px;
+      position: relative;
+    }
+    .hero-title .accent { color: var(--verde); font-style: italic; }
+    .hero-title .dim { color: var(--texto-dim); }
+
+    .hero-sub {
+      margin-top: 1.8rem;
+      font-size: 1.15rem;
+      color: var(--texto-dim);
+      max-width: 560px;
+      font-weight: 300;
+      line-height: 1.7;
+      position: relative;
+    }
+    .hero-sub strong { color: var(--texto); font-weight: 500; }
+
+    .hero-ctas {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2.5rem;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .btn-primary {
+      background: var(--verde);
+      color: var(--fondo);
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.9rem 2rem;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { background: var(--verde-dark); transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--texto);
+      font-family: var(--sans);
+      font-weight: 500;
+      font-size: 0.95rem;
+      padding: 0.9rem 2rem;
+      border: 1px solid var(--borde);
+      border-radius: 3px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.25); }
+
+    .hero-stats {
+      display: flex;
+      gap: 2.5rem;
+      margin-top: 3.5rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--borde);
+      position: relative;
+      flex-wrap: wrap;
+    }
+    .stat-item {}
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--verde);
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--texto-dim);
+      margin-top: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── SECCIÓN COMÚN ── */
+    section { padding: 6rem 2.5rem; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-tag {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--verde);
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.2rem;
+    }
+    .section-title .accent { color: var(--verde); font-style: italic; }
+    .section-desc {
+      color: var(--texto-dim);
+      font-size: 1.05rem;
+      max-width: 580px;
+      line-height: 1.75;
+    }
+    .section-desc strong { color: var(--texto); }
+
+    /* ── DOLOR / PROBLEMA ── */
+    .dolor { background: var(--panel); border-top: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
+    .dolor-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+    .dolor-quote {
+      border-left: 3px solid var(--verde);
+      padding-left: 1.5rem;
+    }
+    .dolor-quote p {
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      line-height: 1.45;
+      font-style: italic;
+      color: var(--texto);
+    }
+    .dolor-quote cite {
+      display: block;
+      margin-top: 1rem;
+      font-style: normal;
+      font-size: 0.8rem;
+      font-family: var(--mono);
+      color: var(--texto-dim);
+      letter-spacing: 0.1em;
+    }
+    .dolor-list { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
+    .dolor-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.9rem;
+      font-size: 1rem;
+      color: var(--texto-dim);
+    }
+    .dolor-list li .icon {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: rgba(255,61,87,0.12);
+      border: 1px solid rgba(255,61,87,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem;
+      color: var(--rojo);
+      margin-top: 2px;
+    }
+    .dolor-list li strong { color: var(--texto); }
+
+    /* ── CÓMO FUNCIONA ── */
+    .como-funciona { background: var(--fondo); }
+    .pasos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0;
+      margin-top: 3.5rem;
+      border: 1px solid var(--borde);
+    }
+    .paso {
+      padding: 2rem 1.6rem;
+      border-right: 1px solid var(--borde);
+      position: relative;
+      transition: background 0.3s;
+    }
+    .paso:last-child { border-right: none; }
+    .paso:hover { background: var(--panel); }
+    .paso-num {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--verde);
+      letter-spacing: 0.2em;
+      margin-bottom: 1rem;
+    }
+    .paso-icon {
+      font-size: 1.6rem;
+      margin-bottom: 1rem;
+    }
+    .paso h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--texto);
+    }
+    .paso p {
+      font-size: 0.85rem;
+      color: var(--texto-dim);
+      line-height: 1.6;
+    }
+
+    /* ── LABORATORIOS ── */
+    .labs { background: var(--panel); border-top: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
+    .labs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    .labs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1px;
+      background: var(--borde);
+      border: 1px solid var(--borde);
+    }
+    .lab-card {
+      background: var(--panel2);
+      padding: 1.8rem;
+      transition: background 0.2s;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    .lab-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--verde);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s;
+    }
+    .lab-card:hover::after { transform: scaleX(1); }
+    .lab-card:hover { background: var(--panel); }
+    .lab-icon { font-size: 1.4rem; margin-bottom: 1rem; }
+    .lab-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .lab-card p { font-size: 0.82rem; color: var(--texto-dim); line-height: 1.6; }
+    .lab-tag {
+      display: inline-block;
+      margin-top: 1rem;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--verde);
+      background: rgba(0,230,118,0.08);
+      border: 1px solid rgba(0,230,118,0.2);
+      padding: 0.25rem 0.6rem;
+      border-radius: 2px;
+    }
+
+    /* ── EJEMPLO REAL (Perales) ── */
+    .caso { background: var(--fondo); }
+    .caso-inner {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 4rem;
+      align-items: start;
+    }
+    .caso-terminal {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .terminal-bar {
+      background: var(--panel2);
+      padding: 0.75rem 1rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      border-bottom: 1px solid var(--borde);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .terminal-title {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--texto-dim);
+      margin-left: 0.5rem;
+    }
+    .terminal-body { padding: 1.5rem; }
+    .t-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--borde);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .t-row:last-child { border-bottom: none; }
+    .t-label { color: var(--texto-dim); }
+    .t-value { font-weight: 600; }
+    .status-critico { color: var(--rojo); }
+    .status-alterado { color: var(--amarillo); }
+    .status-obs { color: #64b5f6; }
+    .status-cronico { color: #ce93d8; }
+    .status-ok { color: var(--verde); }
+
+    /* ── PLANES ── */
+    .planes { background: var(--panel); border-top: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
+    .planes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 3.5rem;
+    }
+    .plan-card {
+      background: var(--panel2);
+      border: 1px solid var(--borde);
+      padding: 2.5rem;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .plan-card:hover { border-color: rgba(0,230,118,0.3); transform: translateY(-3px); }
+    .plan-card.featured {
+      border-color: rgba(0,230,118,0.4);
+      background: linear-gradient(135deg, rgba(0,230,118,0.04) 0%, var(--panel2) 60%);
+    }
+    .plan-badge {
+      position: absolute;
+      top: -1px; right: 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      background: var(--verde);
+      color: var(--fondo);
+      padding: 0.3rem 0.7rem;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .plan-nivel {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--verde);
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+    .plan-name {
+      font-family: var(--serif);
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .plan-desc {
+      font-size: 0.88rem;
+      color: var(--texto-dim);
+      line-height: 1.65;
+      margin-bottom: 1.8rem;
+    }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 2rem; }
+    .plan-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      font-size: 0.86rem;
+      color: var(--texto-dim);
+    }
+    .plan-features li::before {
+      content: '→';
+      color: var(--verde);
+      font-family: var(--mono);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── TESTIMONIAL / PROMESA ── */
+    .promesa { background: var(--fondo); }
+    .promesa-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .promesa-inner .section-title {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+    }
+    .promesa-inner .section-desc {
+      max-width: 100%;
+      margin: 0 auto;
+      font-size: 1.1rem;
+    }
+    .promesa-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 1.5rem;
+      margin-top: 3.5rem;
+    }
+    .promesa-item {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      padding: 2rem;
+      text-align: left;
+    }
+    .promesa-item .emoji { font-size: 1.5rem; margin-bottom: 0.8rem; }
+    .promesa-item h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .promesa-item p { font-size: 0.83rem; color: var(--texto-dim); line-height: 1.6; }
+
+    /* ── CTA FINAL ── */
+    .cta-final {
+      background: var(--panel);
+      border-top: 1px solid var(--borde);
+      text-align: center;
+      padding: 7rem 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-final::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,230,118,0.07) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .cta-final .section-title { font-size: clamp(2.2rem, 5vw, 3.8rem); position: relative; }
+    .cta-final .section-desc { max-width: 540px; margin: 1.2rem auto 2.5rem; font-size: 1.05rem; position: relative; }
+    .cta-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
+    .cta-note {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--texto-dim);
+      margin-top: 1.2rem;
+      letter-spacing: 0.05em;
+      position: relative;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--fondo);
+      border-top: 1px solid var(--borde);
+      padding: 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--verde);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .footer-logo span { color: var(--texto-dim); }
+    .footer-copy {
+      font-size: 0.78rem;
+      color: var(--texto-dim);
+      font-family: var(--mono);
+    }
+
+    /* ── ANIMACIONES DE ENTRADA ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      section { padding: 4rem 1.5rem; }
+      .hero { padding: 8rem 1.5rem 4rem; }
+      .dolor-inner, .caso-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+      .promesa-grid { grid-template-columns: 1fr; }
+      .hero-stats { gap: 1.8rem; }
+      .pasos-grid { grid-template-columns: repeat(2, 1fr); }
+      .paso { border-right: none; border-bottom: 1px solid var(--borde); }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <div class="nav-logo">Smart<span>Pyme</span></div>
+    <a href="#cta" class="nav-pill">Quiero mi diagnóstico</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-glow-2"></div>
+
+    <div class="hero-badge">Laboratorio Operacional PyME · Buenos Aires</div>
+
+    <h1 class="hero-title">
+      Tu empresa te habla.<br/>
+      ¿La estás <span class="accent">escuchando</span>?
+    </h1>
+
+    <p class="hero-sub">
+      SmartPyme analiza tus Excels, facturas y saldos. Te dice qué está bien, 
+      <strong>qué está fallando</strong> y qué tenés que hacer primero para 
+      no perder más plata de la que ya estás perdiendo.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="#cta" class="btn-primary">Quiero ver mi diagnóstico</a>
+      <a href="#como" class="btn-ghost">¿Cómo funciona?</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num">8</div>
+        <div class="stat-label">laboratorios disponibles</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">72hs</div>
+        <div class="stat-label">para tener tu informe</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">3</div>
+        <div class="stat-label">niveles de profundidad</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">orientado a pymes reales</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOLOR -->
+  <section class="dolor">
+    <div class="container dolor-inner reveal">
+      <div class="dolor-quote">
+        <p>"Vendo, trabajo, compro, pago sueldos... pero no sé exactamente dónde estoy parado."</p>
+        <cite>— Lo que nos dice el 9 de cada 10 dueño de PyME en Argentina</cite>
+      </div>
+      <div>
+        <p class="section-tag">El diagnóstico que nadie te da</p>
+        <h2 class="section-title" style="font-size:1.7rem;">
+          Tu empresa no necesita otro Excel más.<br/>
+          Necesita <span class="accent">saber qué está pasando</span>.
+        </h2>
+        <ul class="dolor-list" style="margin-top:1.5rem;">
+          <li><span class="icon">✕</span><span><strong>Costos desactualizados</strong> que te comen el margen sin que te des cuenta</span></li>
+          <li><span class="icon">✕</span><span><strong>Stock que no cierra</strong> entre lo que dice el sistema y lo que tenés en el depósito</span></li>
+          <li><span class="icon">✕</span><span><strong>Plata que falta</strong> en el banco y no sabés de dónde salió</span></li>
+          <li><span class="icon">✕</span><span><strong>Horas tiradas</strong> copiando datos de un Excel al otro todos los días</span></li>
+          <li><span class="icon">✕</span><span><strong>Decisiones tomadas a ojo</strong> porque no hay información clara cuando la necesitás</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CÓMO FUNCIONA -->
+  <section class="como-funciona" id="como">
+    <div class="container reveal">
+      <p class="section-tag">El proceso</p>
+      <h2 class="section-title">Así funciona el <span class="accent">Laboratorio</span></h2>
+      <p class="section-desc">No te pedimos que ordenes todo antes de empezar. El análisis empieza exactamente donde aparece el desorden.</p>
+
+      <div class="pasos-grid" style="margin-top:3.5rem;">
+        <div class="paso">
+          <div class="paso-num">01</div>
+          <div class="paso-icon">📁</div>
+          <h3>Subís tus datos</h3>
+          <p>Tus Excels, PDFs, extractos, lo que tengas. Sin preparación previa. Sin orden especial.</p>
+        </div>
+        <div class="paso">
+          <div class="paso-num">02</div>
+          <div class="paso-icon">🔬</div>
+          <h3>Elegís los laboratorios</h3>
+          <p>Comercial, stock, financiero, producción, sueldos... Elegís dónde querés mirar.</p>
+        </div>
+        <div class="paso">
+          <div class="paso-num">03</div>
+          <div class="paso-icon">⚙️</div>
+          <h3>Aplicamos los tests</h3>
+          <p>Fórmulas, comparaciones, validaciones y detección de anomalías sobre tu evidencia real.</p>
+        </div>
+        <div class="paso">
+          <div class="paso-num">04</div>
+          <div class="paso-icon">📋</div>
+          <h3>Recibís el informe</h3>
+          <p>Síntomas, estados, hallazgos, riesgos y recomendaciones concretas. Para decidir.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LABORATORIOS -->
+  <section class="labs">
+    <div class="container">
+      <div class="labs-header reveal">
+        <div>
+          <p class="section-tag">Las áreas que analizamos</p>
+          <h2 class="section-title">Elegís qué parte de<br/>tu empresa <span class="accent">querés ver</span></h2>
+        </div>
+        <p class="section-desc">Podés pedir uno solo o todos juntos. Cada laboratorio mira una parte distinta del organismo de tu PyME.</p>
+      </div>
+
+      <div class="labs-grid reveal">
+        <div class="lab-card">
+          <div class="lab-icon">📈</div>
+          <h3>Laboratorio Comercial</h3>
+          <p>Precios, márgenes, descuentos y ventas. Detectamos productos que te hacen perder plata sin que lo sepas.</p>
+          <span class="lab-tag">Margen · Precios · Descuentos</span>
+        </div>
+        <div class="lab-card">
+          <div class="lab-icon">🛒</div>
+          <h3>Laboratorio de Compras</h3>
+          <p>Tus proveedores, facturas y condiciones. ¿Te subieron los precios y no lo trasladaste? Acá aparece.</p>
+          <span class="lab-tag">Proveedores · Variaciones · Costos</span>
+        </div>
+        <div class="lab-card">
+          <div class="lab-icon">📦</div>
+          <h3>Laboratorio de Stock</h3>
+          <p>Diferencias entre lo que dice el sistema y lo que hay en el depósito. Mermas, faltantes, rotación.</p>
+          <span class="lab-tag">Inventario · Mermas · Trazabilidad</span>
+        </div>
+        <div class="lab-card">
+          <div class="lab-icon">🏭</div>
+          <h3>Laboratorio de Producción</h3>
+          <p>Costos de fabricación, insumos, tiempos y rendimiento. ¿Sabés cuánto te cuesta hacer lo que hacés?</p>
+          <span class="lab-tag">Costos · Insumos · Rendimiento</span>
+        </div>
+        <div class="lab-card">
+          <div class="lab-icon">💰</div>
+          <h3>Laboratorio Financiero</h3>
+          <p>Caja, banco, cobros, retiros y conciliaciones. La plata que no cierra siempre tiene una explicación.</p>
+          <span class="lab-tag">Caja · Banco · Conciliación</span>
+        </div>
+        <div class="lab-card">
+          <div class="lab-icon">👥</div>
+          <h3>Laboratorio de RRHH</h3>
+          <p>Nómina, horas, cargas y ausentismo. Los costos laborales ocultos que nadie está mirando.</p>
+          <span class="lab-tag">Sueldos · Cargas · Ausentismo</span>
+        </div>
+        <div class="lab-card">
+          <div class="lab-icon">🤖</div>
+          <h3>Laboratorio de Automatización</h3>
+          <p>Tareas repetitivas, doble carga manual, archivos que se copian a mano. ¿Cuántas horas tirás por semana?</p>
+          <span class="lab-tag">Procesos · Horas · Eficiencia</span>
+        </div>
+        <div class="lab-card">
+          <div class="lab-icon">📊</div>
+          <h3>Laboratorio de ROI</h3>
+          <p>Retorno, plazo de recupero, costo de oportunidad. ¿Vale la pena la inversión que estás evaluando?</p>
+          <span class="lab-tag">ROI · Escenarios · Recupero</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CASO REAL -->
+  <section class="caso">
+    <div class="container caso-inner">
+      <div class="reveal">
+        <p class="section-tag">Ejemplo real de entrega</p>
+        <h2 class="section-title">Así ve SmartPyme a una <span class="accent">PyME textil</span></h2>
+        <p class="section-desc" style="margin-bottom:1.5rem;">
+          Textil Perales nos mandó sus Excels de ventas, stock, compras y extractos bancarios. Esto es lo que encontramos en 72 horas.
+        </p>
+        <p class="section-desc">
+          <strong>El diagnóstico fue claro:</strong> no era un problema grave. Era la combinación de varios síntomas que juntos le estaban comiendo el margen, el tiempo y la claridad para tomar decisiones.
+        </p>
+        <div style="margin-top:2rem; padding:1.5rem; background:var(--panel); border:1px solid var(--borde); border-left: 3px solid var(--verde);">
+          <p style="font-family:var(--mono); font-size:0.75rem; color:var(--texto-dim); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.1em;">Conclusión clínica</p>
+          <p style="font-size:0.92rem; line-height:1.7; color:var(--texto);">Pronóstico <strong style="color:var(--verde);">FAVORABLE</strong> si se aplican medidas de estabilización progresiva durante los próximos 60–90 días.</p>
+        </div>
+      </div>
+
+      <div class="caso-terminal reveal">
+        <div class="terminal-bar">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+          <span class="terminal-title">informe_textil_perales_abril2026.lab</span>
+        </div>
+        <div class="terminal-body">
+          <div class="t-row">
+            <span class="t-label">Margen comercial</span>
+            <span class="t-value status-alterado">⚠ ALTERADO — 18% bajo objetivo</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">Productos sin costo</span>
+            <span class="t-value status-critico">✕ CRÍTICO — 27 productos</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">Stock físico vs sistema</span>
+            <span class="t-value status-critico">✕ CRÍTICO — 11 SKU con diferencia</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">Movimientos sin traza</span>
+            <span class="t-value status-critico">✕ CRÍTICO — 43 registros</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">Conciliación banco</span>
+            <span class="t-value status-alterado">⚠ ALTERADO — $248.000 sin justificar</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">Retiros sin documentar</span>
+            <span class="t-value status-critico">✕ CRÍTICO — 7 movimientos</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">Carga manual repetitiva</span>
+            <span class="t-value status-cronico">◈ CRÓNICO — 6h diarias estimadas</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">ROI automatización</span>
+            <span class="t-value status-ok">✓ FAVORABLE — recupero 3,8 meses</span>
+          </div>
+          <div class="t-row">
+            <span class="t-label">Estado general</span>
+            <span class="t-value status-alterado">⚠ INESTABLE — tratable</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANES -->
+  <section class="planes">
+    <div class="container">
+      <div style="text-align:center;" class="reveal">
+        <p class="section-tag">Qué tan profundo querés mirar</p>
+        <h2 class="section-title">Tres niveles de <span class="accent">análisis</span></h2>
+        <p class="section-desc" style="margin:0 auto;">El mismo producto para distintos momentos y presupuestos. Vos elegís hasta dónde querés profundizar.</p>
+      </div>
+
+      <div class="planes-grid reveal">
+        <div class="plan-card">
+          <div class="plan-nivel">Nivel 01</div>
+          <div class="plan-name">Base</div>
+          <p class="plan-desc">Para el dueño que quiere una primera foto rápida y clara de cómo está su empresa hoy.</p>
+          <ul class="plan-features">
+            <li>Validaciones y fórmulas estándar</li>
+            <li>Detección de anomalías básicas</li>
+            <li>Informe corto con indicadores</li>
+            <li>Hallazgos y próximos pasos</li>
+          </ul>
+          <a href="#cta" class="btn-ghost" style="display:block; text-align:center; font-size:0.9rem;">Empezar con Base</a>
+        </div>
+
+        <div class="plan-card featured">
+          <div class="plan-badge">Más elegido</div>
+          <div class="plan-nivel">Nivel 02</div>
+          <div class="plan-name">Especializado</div>
+          <p class="plan-desc">Análisis con conocimiento de tu rubro. Fórmulas, patrones y benchmarks de tu industria.</p>
+          <ul class="plan-features">
+            <li>Taxonomía específica por sector</li>
+            <li>Fórmulas del rubro (textil, gastronomía, etc.)</li>
+            <li>Informe ampliado con lectura de síntomas</li>
+            <li>Tratamientos sugeridos por área</li>
+            <li>Comparación contra indicadores del rubro</li>
+          </ul>
+          <a href="#cta" class="btn-primary" style="display:block; text-align:center; font-size:0.9rem;">Quiero este</a>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-nivel">Nivel 03</div>
+          <div class="plan-name">Premium Asistido</div>
+          <p class="plan-desc">IA + profesional humano + investigación externa. Para decisiones grandes o momentos críticos.</p>
+          <ul class="plan-features">
+            <li>IA + revisión humana experta</li>
+            <li>Investigación externa y benchmarks</li>
+            <li>Plan de estabilización detallado</li>
+            <li>Pronóstico con escenarios</li>
+            <li>ROI de automatizaciones priorizadas</li>
+            <li>Seguimiento mensual incluido</li>
+          </ul>
+          <a href="#cta" class="btn-ghost" style="display:block; text-align:center; font-size:0.9rem;">Quiero hablar con alguien</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROMESA -->
+  <section class="promesa">
+    <div class="container">
+      <div class="promesa-inner reveal">
+        <p class="section-tag">Lo que somos · Lo que no somos</p>
+        <h2 class="section-title">No es un dashboard frío.<br/>Es tu empresa <span class="accent">vista en claro</span>.</h2>
+        <p class="section-desc" style="margin-top:1.2rem;">
+          Cualquier dueño puede mirar un número. El problema es saber qué significa ese número, 
+          qué lo causó y qué conviene hacer con él. Eso es lo que SmartPyme hace.
+        </p>
+      </div>
+
+      <div class="promesa-grid reveal">
+        <div class="promesa-item">
+          <div class="emoji">🔬</div>
+          <h4>Diagnóstico, no reporte</h4>
+          <p>No te tiramos datos. Te decimos qué está normal, qué está alterado y qué riesgo corrés si no lo atendés.</p>
+        </div>
+        <div class="promesa-item">
+          <div class="emoji">💬</div>
+          <h4>Lenguaje de dueño</h4>
+          <p>Sin jerga técnica. Sin indicadores crípticos. Un informe que podés leer, compartir y usar para decidir hoy.</p>
+        </div>
+        <div class="promesa-item">
+          <div class="emoji">🎯</div>
+          <h4>Acción inmediata</h4>
+          <p>Cada hallazgo viene con un tratamiento sugerido. Sabés qué hacer primero, segundo y tercero.</p>
+        </div>
+        <div class="promesa-item">
+          <div class="emoji">📂</div>
+          <h4>Con lo que tenés</h4>
+          <p>No necesitás un ERP. No necesitás un contador de guardia. Con tus Excels y PDFs actuales alcanza.</p>
+        </div>
+        <div class="promesa-item">
+          <div class="emoji">🔄</div>
+          <h4>Control continuo</h4>
+          <p>Podés hacer un análisis único o suscribirte para tener tu PyME monitoreada todos los meses.</p>
+        </div>
+        <div class="promesa-item">
+          <div class="emoji">🇦🇷</div>
+          <h4>Hecho para PyMEs argentinas</h4>
+          <p>Mercado Pago, AFIP, Mercadería, tarjetas, costos dolarizados. Conocemos el contexto real.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="cta-final" id="cta">
+    <h2 class="section-title">¿Cuánto te está costando<br/>no <span class="accent">saber</span> lo que pasa?</h2>
+    <p class="section-desc">
+      Subís tus datos. Nosotros hacemos el análisis. En 72 horas tenés un informe claro, con nombres y apellidos, sobre qué está fallando y qué conviene hacer primero.
+    </p>
+    <div class="cta-row">
+      <a href="#" class="btn-primary" style="font-size:1rem; padding:1.1rem 2.5rem;">Quiero mi diagnóstico ahora</a>
+      <a href="#" class="btn-ghost" style="font-size:1rem; padding:1.1rem 2.5rem;">Hablar por WhatsApp</a>
+    </div>
+    <p class="cta-note">Sin compromiso. Sin preparación previa. Mandás lo que tenés.</p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Smart<span>Pyme</span> <span style="margin-left:1rem;font-size:0.6rem;letter-spacing:0.05em;color:var(--texto-dim)">Laboratorio Operacional PyME</span></div>
+    <p class="footer-copy">© 2026 SmartPyme · Buenos Aires, Argentina</p>
+  </footer>
+
+  <script>
+    // Reveal on scroll
+    const reveals = document.querySelectorAll('.reveal');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), i * 80);
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    reveals.forEach(el => io.observe(el));
+
+    // Typing cursor blink on hero badge already in CSS animation
+  </script>
+</body>
+</html>
