@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartPyme Laboratorio | Diagnóstico PyME con informe</title>
+  <meta name="description" content="Laboratorio de Análisis PyME: subí tus Excel, PDFs y datos reales. Detectamos síntomas, anomalías, riesgos, oportunidades y próximos pasos para tu negocio." />
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-soft: #0e1b2f;
+      --card: #ffffff;
+      --ink: #0c1726;
+      --muted: #5f6b7a;
+      --line: #dce5f2;
+      --brand: #1e66ff;
+      --brand-2: #00c2a8;
+      --warn: #ffb020;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --cream: #f6f8fb;
+      --soft-blue: #eef5ff;
+      --shadow: 0 18px 60px rgba(7, 17, 31, .18);
+      --radius: 22px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--cream);
+      line-height: 1.5;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    .container { width: min(var(--max), calc(100% - 36px)); margin: 0 auto; }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.18);
+      color: #dbeafe;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .pill.dark {
+      background: #eef5ff;
+      color: #144fbb;
+      border-color: #d6e7ff;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(18px);
+      background: rgba(7, 17, 31, .82);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .nav {
+      height: 72px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      font-size: 20px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 30px rgba(30,102,255,.35);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      font-size: 14px;
+      color: #dbe7ff;
+      font-weight: 700;
+    }
+    .nav-links a:hover { color: #fff; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 20px;
+      border-radius: 14px;
+      background: var(--brand);
+      color: white;
+      font-weight: 900;
+      box-shadow: 0 12px 30px rgba(30,102,255,.28);
+      transition: .18s ease;
+      border: 0;
+      cursor: pointer;
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.04); }
+    .btn.secondary {
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.22);
+      box-shadow: none;
+    }
+    .btn.light {
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid rgba(255,255,255,.16);
+    }
+    .btn.whatsapp {
+      background: #21c063;
+      box-shadow: 0 12px 30px rgba(33,192,99,.26);
+    }
+
+    .hero {
+      background:
+        radial-gradient(circle at 85% 8%, rgba(0,194,168,.22), transparent 32%),
+        radial-gradient(circle at 12% 18%, rgba(30,102,255,.32), transparent 36%),
+        linear-gradient(180deg, #07111f 0%, #0b1830 74%, #f6f8fb 74%);
+      color: white;
+      padding: 70px 0 80px;
+      overflow: hidden;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 42px;
+      align-items: center;
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 76px);
+      line-height: .93;
+      margin: 22px 0 18px;
+      letter-spacing: -.065em;
+      max-width: 760px;
+    }
+    .lead {
+      font-size: clamp(18px, 2vw, 23px);
+      color: #dbe7ff;
+      max-width: 680px;
+      margin: 0 0 26px;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 30px 0 28px;
+    }
+    .trust-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: #b7c7e6;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .trust-row span {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .lab-card {
+      background: rgba(255,255,255,.96);
+      color: var(--ink);
+      border-radius: 30px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.65);
+      position: relative;
+    }
+    .lab-card::before {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border: 1px dashed #c5d6ef;
+      border-radius: 22px;
+      pointer-events: none;
+    }
+    .lab-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+    .lab-head h3 { margin: 0; font-size: 24px; letter-spacing: -.04em; }
+    .status {
+      font-weight: 900;
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #fff1d6;
+      color: #925700;
+      border: 1px solid #ffd28a;
+      white-space: nowrap;
+    }
+    .metrics { display: grid; gap: 10px; position: relative; z-index: 1; }
+    .metric {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .metric b { display: block; font-size: 15px; }
+    .metric small { color: var(--muted); }
+    .badge {
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+    }
+    .badge.alterado { color: #a16207; background: #fef3c7; }
+    .badge.critico { color: #b91c1c; background: #fee2e2; }
+    .badge.ok { color: #047857; background: #d1fae5; }
+
+    section { padding: 80px 0; }
+    .section-title {
+      text-align: center;
+      max-width: 840px;
+      margin: 0 auto 44px;
+    }
+    .section-title h2 {
+      margin: 12px 0 12px;
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 1;
+      letter-spacing: -.055em;
+    }
+    .section-title p {
+      color: var(--muted);
+      font-size: 19px;
+      margin: 0;
+    }
+
+    .pain {
+      background: #fff;
+    }
+    .pain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .pain-card {
+      background: var(--cream);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      min-height: 190px;
+    }
+    .pain-card h3 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      letter-spacing: -.035em;
+    }
+    .pain-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .mirror {
+      background: linear-gradient(135deg, #0b1830, #07111f);
+      color: #fff;
+    }
+    .mirror-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 28px;
+      align-items: center;
+    }
+    .quote {
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -.055em;
+      font-weight: 950;
+      margin: 0;
+    }
+    .quote span { color: #7dd3fc; }
+    .mirror-copy {
+      color: #d8e6ff;
+      font-size: 19px;
+    }
+    .checks {
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .check {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 16px;
+      background: rgba(255,255,255,.07);
+    }
+    .check i {
+      width: 24px; height: 24px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--brand-2);
+      color: #06221e;
+      font-style: normal;
+      font-weight: 1000;
+      flex: 0 0 auto;
+    }
+
+    .steps {
+      background: var(--cream);
+    }
+    .step-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .step {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 12px 34px rgba(7,17,31,.06);
+    }
+    .num {
+      width: 42px; height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: var(--soft-blue);
+      color: var(--brand);
+      font-weight: 1000;
+      margin-bottom: 18px;
+    }
+    .step h3 { margin: 0 0 8px; font-size: 21px; letter-spacing: -.035em; }
+    .step p { margin: 0; color: var(--muted); }
+
+    .labs {
+      background: #fff;
+    }
+    .labs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .lab-option {
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #f8fbff);
+    }
+    .lab-option strong { display: block; font-size: 18px; margin-bottom: 6px; }
+    .lab-option span { color: var(--muted); font-size: 14px; }
+
+    .levels {
+      background: #f8fbff;
+    }
+    .pricing {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+    .price-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 26px;
+      box-shadow: 0 14px 40px rgba(7,17,31,.08);
+      position: relative;
+    }
+    .price-card.featured {
+      border: 2px solid var(--brand);
+      transform: translateY(-10px);
+      box-shadow: 0 22px 70px rgba(30,102,255,.18);
+    }
+    .price-card h3 { margin: 0 0 8px; font-size: 27px; letter-spacing: -.045em; }
+    .price-card .price { font-size: 34px; font-weight: 1000; margin: 18px 0 4px; letter-spacing: -.045em; }
+    .price-card p { color: var(--muted); margin: 0 0 18px; }
+    .price-card ul {
+      padding: 0;
+      margin: 22px 0 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+    .price-card li::before {
+      content: "✓";
+      color: var(--ok);
+      font-weight: 1000;
+      margin-right: 9px;
+    }
+
+    .example {
+      background: linear-gradient(180deg, #fff 0%, #eef5ff 100%);
+    }
+    .example-panel {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 22px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+    }
+    .mini-report {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .mini-report table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .mini-report th {
+      text-align: left;
+      background: #0b1830;
+      color: #fff;
+      padding: 12px;
+    }
+    .mini-report td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .cta {
+      background:
+        radial-gradient(circle at 20% 20%, rgba(0,194,168,.25), transparent 30%),
+        linear-gradient(135deg, #06101f, #10254a);
+      color: white;
+      text-align: center;
+    }
+    .cta h2 {
+      font-size: clamp(38px, 5vw, 68px);
+      letter-spacing: -.065em;
+      line-height: .95;
+      margin: 0 0 18px;
+    }
+    .cta p {
+      max-width: 760px;
+      margin: 0 auto 28px;
+      color: #dbe7ff;
+      font-size: 20px;
+    }
+
+    .faq {
+      background: #fff;
+    }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      background: #fff;
+    }
+    summary {
+      font-weight: 900;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    details p {
+      margin: 12px 0 0;
+      color: var(--muted);
+    }
+
+    footer {
+      padding: 30px 0;
+      background: #07111f;
+      color: #aebfda;
+      font-size: 14px;
+    }
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid, .mirror-grid, .example-panel { grid-template-columns: 1fr; }
+      .pain-grid, .pricing { grid-template-columns: 1fr; }
+      .step-grid, .labs-grid { grid-template-columns: repeat(2, 1fr); }
+      .price-card.featured { transform: none; }
+      .nav-links a { display: none; }
+    }
+
+    @media (max-width: 620px) {
+      .hero { padding-top: 44px; }
+      .step-grid, .labs-grid, .faq-grid { grid-template-columns: 1fr; }
+      .hero-actions .btn { width: 100%; }
+      .nav { height: 64px; }
+      .nav .btn { padding: 0 12px; font-size: 13px; }
+      .lab-card { padding: 18px; }
+      section { padding: 58px 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container nav">
+      <a href="#" class="brand" aria-label="SmartPyme Laboratorio">
+        <span class="logo">◆</span>
+        <span>SmartPyme Laboratorio</span>
+      </a>
+      <nav class="nav-links" aria-label="Navegación principal">
+        <a href="#como">Cómo funciona</a>
+        <a href="#laboratorios">Laboratorios</a>
+        <a href="#niveles">Planes</a>
+        <a href="#ejemplo">Ejemplo</a>
+        <a class="btn whatsapp" href="#contacto">Quiero mi diagnóstico</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="container hero-grid">
+        <div>
+          <span class="pill">Diagnóstico PyME con informe claro</span>
+          <h1>El laboratorio que le pone números al quilombo de tu PyME.</h1>
+          <p class="lead">
+            Subí tus Excel, PDFs, ventas, compras, stock o saldos.
+            SmartPyme aplica tests, detecta síntomas y te muestra qué está normal,
+            qué está alterado y qué conviene tratar primero.
+          </p>
+          <div class="hero-actions">
+            <a class="btn whatsapp" href="#contacto">Quiero ver mi PyME al espejo</a>
+            <a class="btn secondary" href="#ejemplo">Ver ejemplo de informe</a>
+          </div>
+          <div class="trust-row">
+            <span>Sin ERP obligatorio</span>
+            <span>Sin promesas mágicas</span>
+            <span>Con tus datos reales</span>
+          </div>
+        </div>
+
+        <aside class="lab-card" aria-label="Ejemplo de informe de laboratorio PyME">
+          <div class="lab-head">
+            <div>
+              <h3>Informe de laboratorio</h3>
+              <small>Textil Perales · Abril 2026</small>
+            </div>
+            <span class="status">ESTADO: INESTABLE</span>
+          </div>
+          <div class="metrics">
+            <div class="metric">
+              <div><b>Margen comercial</b><small>18% debajo del objetivo</small></div>
+              <span class="badge alterado">ALTERADO</span>
+            </div>
+            <div class="metric">
+              <div><b>Stock</b><small>11 SKU con diferencia persistente</small></div>
+              <span class="badge critico">CRÍTICO</span>
+            </div>
+            <div class="metric">
+              <div><b>Caja / Banco</b><small>$248.000 sin clasificación documental</small></div>
+              <span class="badge alterado">ALTERADO</span>
+            </div>
+            <div class="metric">
+              <div><b>ROI automatización</b><small>Recupero estimado: 3,8 meses</small></div>
+              <span class="badge ok">FAVORABLE</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="pain">
+      <div class="container">
+        <div class="section-title">
+          <span class="pill dark">Para dueños que quieren claridad</span>
+          <h2>Vendés, laburás, pagás sueldos… ¿pero sabés realmente dónde está parada tu empresa?</h2>
+          <p>
+            La PyME real no viene prolija como un manual. Viene con Excel, facturas, saldos,
+            WhatsApp, urgencias y decisiones tomadas a ojo.
+          </p>
+        </div>
+
+        <div class="pain-grid">
+          <article class="pain-card">
+            <h3>“No me cierra la caja”</h3>
+            <p>Puede ser banco, cobros, comisiones, retiros, plazos o ventas mal conciliadas. Primero medimos, después hablamos.</p>
+          </article>
+          <article class="pain-card">
+            <h3>“Vendo mucho, pero no queda plata”</h3>
+            <p>El laboratorio revisa margen, costos, descuentos, compras y productos que pueden estar comiéndose la ganancia.</p>
+          </article>
+          <article class="pain-card">
+            <h3>“Estamos a full, pero todo es manual”</h3>
+            <p>Detectamos tareas repetitivas, horas perdidas y automatizaciones con recupero estimado.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="mirror">
+      <div class="container mirror-grid">
+        <p class="quote">No es otro dashboard. <span>Es el espejo clínico de tu PyME.</span></p>
+        <div class="mirror-copy">
+          <p>
+            Un dashboard muestra datos. Un ERP guarda operaciones. El Laboratorio de Análisis PyME
+            interpreta evidencia, detecta síntomas y propone tratamiento.
+          </p>
+          <div class="checks">
+            <div class="check"><i>✓</i><div><b>Tests sobre datos reales.</b><br>Fórmulas, validaciones, comparaciones y anomalías sobre tus archivos.</div></div>
+            <div class="check"><i>✓</i><div><b>Lectura simple para decidir.</b><br>No te tiramos tablas frías: te decimos qué significa y qué conviene mirar primero.</div></div>
+            <div class="check"><i>✓</i><div><b>Recomendaciones accionables.</b><br>Correcciones, automatizaciones posibles y próximos pasos concretos.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="steps" id="como">
+      <div class="container">
+        <div class="section-title">
+          <span class="pill dark">Cómo funciona</span>
+          <h2>De tus archivos a un diagnóstico claro.</h2>
+          <p>Un ciclo simple, pensado para PyMEs de verdad: sin onboarding eterno y sin pedirte que tengas todo perfecto.</p>
+        </div>
+
+        <div class="step-grid">
+          <article class="step">
+            <div class="num">1</div>
+            <h3>Contás qué te preocupa</h3>
+            <p>Nos decís si querés mirar ventas, compras, caja, stock, producción, sueldos o tareas manuales.</p>
+          </article>
+          <article class="step">
+            <div class="num">2</div>
+            <h3>Subís evidencia</h3>
+            <p>Excel, PDFs, extractos, listas, facturas o archivos reales. El sistema te pide lo mínimo necesario.</p>
+          </article>
+          <article class="step">
+            <div class="num">3</div>
+            <h3>Aplicamos tests</h3>
+            <p>Integridad, margen, variación, conciliación, stock, repetición manual, ROI y pronóstico.</p>
+          </article>
+          <article class="step">
+            <div class="num">4</div>
+            <h3>Recibís el informe</h3>
+            <p>Estados, hallazgos, riesgos, oportunidades, tratamiento sugerido y próximos pasos.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="labs" id="laboratorios">
+      <div class="container">
+        <div class="section-title">
+          <span class="pill dark">Elegí qué querés inspeccionar</span>
+          <h2>Laboratorios por área.</h2>
+          <p>Arrancá por un área crítica o pedí un diagnóstico completo de la PyME.</p>
+        </div>
+
+        <div class="labs-grid">
+          <div class="lab-option"><strong>Comercial</strong><span>Ventas, precios, descuentos, familias y márgenes.</span></div>
+          <div class="lab-option"><strong>Compras</strong><span>Facturas, proveedores, variaciones y condiciones.</span></div>
+          <div class="lab-option"><strong>Producción</strong><span>Insumos, tiempos, mermas, rendimiento y costo real.</span></div>
+          <div class="lab-option"><strong>Stock</strong><span>Entradas, salidas, rotación, faltantes y diferencias.</span></div>
+          <div class="lab-option"><strong>Financiero</strong><span>Caja, banco, cobros, saldos y conciliación.</span></div>
+          <div class="lab-option"><strong>RRHH / Sueldos</strong><span>Horas, nómina, cargas, ausentismo y peso laboral.</span></div>
+          <div class="lab-option"><strong>Automatización</strong><span>Tareas repetitivas, doble carga, errores y horas perdidas.</span></div>
+          <div class="lab-option"><strong>ROI / Inversión</strong><span>Recupero, escenarios y costo de oportunidad.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="levels" id="niveles">
+      <div class="container">
+        <div class="section-title">
+          <span class="pill dark">Tres profundidades</span>
+          <h2>Pagás por la profundidad que necesitás.</h2>
+          <p>Desde un informe rápido hasta un análisis profundo asistido con IA + humano.</p>
+        </div>
+
+        <div class="pricing">
+          <article class="price-card">
+            <span class="pill dark">Nivel 1</span>
+            <h3>Base transversal</h3>
+            <div class="price">Rápido</div>
+            <p>Para tener una primera foto clara con fórmulas PyME comunes.</p>
+            <ul>
+              <li>Tests determinísticos</li>
+              <li>Anomalías básicas</li>
+              <li>Informe corto</li>
+              <li>Próximos pasos</li>
+            </ul>
+          </article>
+
+          <article class="price-card featured">
+            <span class="pill dark">Nivel 2 · Más pedido</span>
+            <h3>Especializado por rubro</h3>
+            <div class="price">Preciso</div>
+            <p>Para mirar síntomas propios del sector: textil, comercio, producción, gastronomía y más.</p>
+            <ul>
+              <li>Taxonomía sectorial</li>
+              <li>Patrones del rubro</li>
+              <li>Lectura de síntomas</li>
+              <li>Tratamientos sugeridos</li>
+            </ul>
+          </article>
+
+          <article class="price-card">
+            <span class="pill dark">Nivel 3</span>
+            <h3>Profundo asistido</h3>
+            <div class="price">Premium</div>
+            <p>Para decisiones fuertes, crisis operativa o plan de estabilización.</p>
+            <ul>
+              <li>IA + humano</li>
+              <li>Investigación y benchmarks</li>
+              <li>ROI y pronóstico</li>
+              <li>Plan de automatización</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="example" id="ejemplo">
+      <div class="container">
+        <div class="section-title">
+          <span class="pill dark">Ejemplo ficticio</span>
+          <h2>Así se vería un laboratorio para Textil Perales.</h2>
+          <p>Un informe de 4 hojas puede mostrarle al dueño síntomas, riesgos y decisiones posibles.</p>
+        </div>
+
+        <div class="example-panel">
+          <div>
+            <h3>Conclusión rápida</h3>
+            <p>
+              Textil Perales no necesita una transformación total inmediata.
+              Necesita una terapia de estabilización: ordenar costos, controlar stock,
+              conciliar saldos y automatizar tareas repetitivas de alto desgaste.
+            </p>
+            <a class="btn" href="#contacto">Quiero un informe así</a>
+          </div>
+
+          <div class="mini-report">
+            <table>
+              <thead>
+                <tr>
+                  <th>Indicador</th>
+                  <th>Estado</th>
+                  <th>Hallazgo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Margen comercial</td>
+                  <td><span class="badge alterado">ALTERADO</span></td>
+                  <td>18% debajo del objetivo</td>
+                </tr>
+                <tr>
+                  <td>Stock</td>
+                  <td><span class="badge critico">CRÍTICO</span></td>
+                  <td>11 SKU con diferencias</td>
+                </tr>
+                <tr>
+                  <td>Automatización</td>
+                  <td><span class="badge alterado">CRÓNICO</span></td>
+                  <td>9 h semanales repetitivas</td>
+                </tr>
+                <tr>
+                  <td>ROI</td>
+                  <td><span class="badge ok">FAVORABLE</span></td>
+                  <td>Recupero estimado en 3,8 meses</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq">
+      <div class="container">
+        <div class="section-title">
+          <span class="pill dark">Preguntas frecuentes</span>
+          <h2>Simple, concreto y con evidencia.</h2>
+        </div>
+
+        <div class="faq-grid">
+          <details open>
+            <summary>¿Tengo que tener todo ordenado?</summary>
+            <p>No. Justamente el laboratorio empieza donde aparece el desorden. Si falta algo, te decimos qué hace falta y por qué.</p>
+          </details>
+          <details>
+            <summary>¿Esto reemplaza a mi contador o a mi sistema?</summary>
+            <p>No. Te da una lectura complementaria: síntomas, anomalías, riesgos, oportunidades y próximos pasos.</p>
+          </details>
+          <details>
+            <summary>¿Puede hacerse una sola vez?</summary>
+            <p>Sí. Podés pedir un informe único o contratar laboratorios recurrentes para seguir la evolución del negocio.</p>
+          </details>
+          <details>
+            <summary>¿Qué pasa si mis datos no alcanzan?</summary>
+            <p>El informe marca evidencia faltante. No inventamos diagnósticos. Mejor un bloqueo honesto que una recomendación falsa.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" id="contacto">
+      <div class="container">
+        <h2>¿Querés saber qué está pasando de verdad en tu PyME?</h2>
+        <p>
+          Pedí tu Laboratorio de Análisis PyME. Subís tus datos, elegís profundidad
+          y recibís un informe claro para decidir mejor.
+        </p>
+        <div class="hero-actions" style="justify-content:center">
+          <a class="btn whatsapp" href="https://wa.me/?text=Hola%2C%20quiero%20consultar%20por%20el%20Laboratorio%20de%20An%C3%A1lisis%20PyME" target="_blank" rel="noreferrer">Consultar por WhatsApp</a>
+          <a class="btn light" href="#niveles">Ver niveles de análisis</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-row">
+      <span>SmartPyme Laboratorio · Diagnóstico PyME con informe</span>
+      <span>Buenos Aires, Argentina · Producto conceptual</span>
+    </div>
+  </footer>
+</body>
+</html>
