@@ -93,12 +93,12 @@ def test_ren_001_positive_reaches_p9_and_negative_never_executes() -> None:
     }
 
 
-def test_pyme_026_remains_partial_from_real_owner_questions() -> None:
+def test_pyme_026_remains_partial_until_capability_is_governed() -> None:
     row = _rows(gate.evaluate_service_1_capability_physical_coverage_gate_v1())["adjusted_operating_cash_flow"]
 
     assert row["coverage_status"] == gate.PHYSICAL_PARTIAL
-    assert row["blocker"] == "P6:OWNER_QUESTIONS"
-    assert row["p6"] == "OWNER_QUESTIONS"
+    assert row["blocker"] == "CAPABILITY_NOT_GOVERNED"
+    assert row["p6"] == "APPROVED"
     assert row["governed_input"] is False
     assert row["p9"] is None
 

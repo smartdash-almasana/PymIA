@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from http.client import HTTPConnection
 from pathlib import Path
 from threading import Thread
@@ -76,6 +77,18 @@ def _form(server, path: str, values: dict[str, str], cookie: str):
     )
 
 
+def _semantic_confirmation_answers(page: str) -> dict[str, str]:
+    answers: dict[str, str] = {}
+    for question_id, option_id in re.findall(
+        r'name="answer_([^"]+)" value="([^"]+)"',
+        page,
+    ):
+        if option_id not in {"OTHER", "IGNORE", "not_sure"}:
+            answers.setdefault(f"answer_{question_id}", option_id)
+    assert answers
+    return answers
+
+
 def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server, tmp_path: Path) -> None:
     status, _, page = _request(assisted_server, "GET", "/")
     assert status == 200
@@ -93,10 +106,20 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     assert "No estoy seguro" in page
     cookie = _cookie(response_headers)
 
+    semantic_questions_page = page
     status, _, page = _form(
         assisted_server,
         "/confirm-meanings",
         {"answer_cobrado": "A"},
+        cookie,
+    )
+    assert status == 400
+    assert "Elegí una respuesta para cada columna." in page
+
+    status, _, page = _form(
+        assisted_server,
+        "/confirm-meanings",
+        _semantic_confirmation_answers(semantic_questions_page),
         cookie,
     )
     assert status == 200
@@ -180,9 +203,15 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
     assert "No se pudo usar el archivo" in page
 
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
-    _, response_headers, _ = _request(assisted_server, "POST", "/upload", body, headers)
+    _, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     cookie = _cookie(response_headers)
-    _form(assisted_server, "/confirm-meanings", {"answer_cobrado": "A"}, cookie)
+    status, _, _ = _form(
+        assisted_server,
+        "/confirm-meanings",
+        _semantic_confirmation_answers(page),
+        cookie,
+    )
+    assert status == 200
 
     status, _, page = _form(assisted_server, "/run-review", {"review": "payment_collection_gap"}, cookie)
     assert status == 200

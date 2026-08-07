@@ -145,6 +145,164 @@ def test_duplicates_are_not_hidden() -> None:
     assert [item["id"] for item in result["interno_sin_banco"]] == ["i1"]
 
 
+def test_composite_reference_and_total_build_one_to_many_candidate() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[
+            {
+                "id": "G0",
+                "fecha": "2026-09-03",
+                "importe": 33563,
+                "referencia": "REF050+REF051",
+            }
+        ],
+        internal_movements=[
+            {
+                "id": "F00050",
+                "fecha": "2026-09-03",
+                "importe": 16713,
+                "referencia": "REF050",
+            },
+            {
+                "id": "F00051",
+                "fecha": "2026-07-16",
+                "importe": 16850,
+                "referencia": "REF051",
+            },
+        ],
+    )
+
+    assert result["matches_exactos"] == [
+        {
+            "banco_ids": ["G0"],
+            "interno_ids": ["F00050", "F00051"],
+            "tipo_match": "MATCH_REFERENCE_AGGREGATE",
+            "cardinalidad": "1:N",
+            "criterio": "composite_reference_sum",
+            "evidencia": {
+                "reference_members_match": True,
+                "amount_match": True,
+                "amount_delta": 0.0,
+                "importe_banco_total": 33563.0,
+                "importe_interno_total": 33563.0,
+            },
+            "requires_human_review": True,
+        }
+    ]
+    assert result["banco_sin_imputar"] == []
+    assert result["interno_sin_banco"] == []
+
+
+def test_repeated_reference_and_total_build_many_to_one_candidate() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[
+            {
+                "id": "PA",
+                "fecha": "2026-07-21",
+                "importe": 8767.5,
+                "referencia": "REF056",
+            },
+            {
+                "id": "PB",
+                "fecha": "2026-07-22",
+                "importe": 8767.5,
+                "referencia": "REF056",
+            },
+        ],
+        internal_movements=[
+            {
+                "id": "F00056",
+                "fecha": "2026-07-21",
+                "importe": 17535,
+                "referencia": "REF056",
+            }
+        ],
+    )
+
+    match = result["matches_exactos"][0]
+    assert match["tipo_match"] == "MATCH_REFERENCE_AGGREGATE"
+    assert match["cardinalidad"] == "N:1"
+    assert match["banco_ids"] == ["PA", "PB"]
+    assert match["interno_ids"] == ["F00056"]
+    assert match["evidencia"]["amount_delta"] == 0.0
+    assert match["requires_human_review"] is True
+    assert result["diferencias_importe"] == []
+    assert result["banco_sin_imputar"] == []
+    assert result["interno_sin_banco"] == []
+
+
+def test_overlapping_aggregate_candidates_abstain_instead_of_using_row_order() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[
+            {
+                "id": "b1",
+                "fecha": "2026-07-21",
+                "importe": 300,
+                "referencia": "REF-A+REF-B",
+            },
+            {
+                "id": "b2",
+                "fecha": "2026-07-21",
+                "importe": 300,
+                "referencia": "REF-A+REF-B",
+            },
+        ],
+        internal_movements=[
+            {
+                "id": "i1",
+                "fecha": "2026-07-21",
+                "importe": 100,
+                "referencia": "REF-A",
+            },
+            {
+                "id": "i2",
+                "fecha": "2026-07-21",
+                "importe": 200,
+                "referencia": "REF-B",
+            },
+        ],
+    )
+
+    assert result["matches_exactos"] == []
+    assert [item["id"] for item in result["banco_sin_imputar"]] == ["b1", "b2"]
+    assert [item["id"] for item in result["interno_sin_banco"]] == ["i1", "i2"]
+
+
+def test_identical_repeated_bank_row_is_explicit_duplicate_not_competing_match() -> None:
+    result = build_reconciliation_match_candidates_v1(
+        bank_movements=[
+            {
+                "id": "OP0001",
+                "fecha": "2026-07-16",
+                "importe": 10000,
+                "referencia": "REF001",
+            },
+            {
+                "id": "OP0001",
+                "fecha": "2026-07-16",
+                "importe": 10000,
+                "referencia": "REF001",
+            },
+        ],
+        internal_movements=[
+            {
+                "id": "F00001",
+                "fecha": "2026-07-16",
+                "importe": 10000,
+                "referencia": "REF001",
+            }
+        ],
+    )
+
+    assert len(result["matches_exactos"]) == 1
+    assert result["matches_exactos"][0]["banco_id"] == "OP0001"
+    duplicate = result["matches_ambiguos"][0]
+    assert duplicate["ambiguedad"] == "EXACT_DUPLICATE"
+    assert duplicate["duplicado_id"] == "OP0001"
+    assert duplicate["requires_human_review"] is True
+    assert len(result["banco_sin_imputar"]) == 1
+    assert result["banco_sin_imputar"][0]["duplicate_of"] == "OP0001"
+
+
 def test_requires_human_review_is_always_true() -> None:
     ok_result = build_reconciliation_match_candidates_v1(
         bank_movements=[{"id": "b1", "fecha": "2026-06-01", "importe": 1000}],

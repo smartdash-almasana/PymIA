@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from http.client import HTTPConnection
 from io import BytesIO
 from pathlib import Path
@@ -116,14 +117,24 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
     bank = _xlsx(
         tmp_path,
         "banco.xlsx",
-        ["mov_id", "fecha", "importe", "referencia"],
-        ["B-1", "2026-07-01", 1000, "REF-1"],
+        [
+            "Número de operación",
+            "Fecha movimiento",
+            "Importe acreditado",
+            "Referencia bancaria",
+        ],
+        ["B-1", datetime(2026, 7, 1), 1000, "REF-1"],
     )
     internal = _xlsx(
         tmp_path,
         "cobros.xlsx",
-        ["cobro_id", "fecha", "importe", "referencia"],
-        ["C-1", "2026-07-01", 1000, "REF-1"],
+        [
+            "Número de factura",
+            "Fecha prevista",
+            "Importe esperado",
+            "Referencia comercial",
+        ],
+        ["C-1", datetime(2026, 7, 1), 1000, "REF-1"],
     )
     body, headers = _multipart_files(
         {
@@ -143,14 +154,14 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
         assisted_server,
         "/confirm-reconciliation-columns",
         {
-            "bind_bank_id": "mov_id",
-            "bind_bank_fecha": "fecha",
-            "bind_bank_importe": "importe",
-            "bind_bank_referencia": "referencia",
-            "bind_internal_id": "cobro_id",
-            "bind_internal_fecha": "fecha",
-            "bind_internal_importe": "importe",
-            "bind_internal_referencia": "referencia",
+            "bind_bank_id": "Número de operación",
+            "bind_bank_fecha": "Fecha movimiento",
+            "bind_bank_importe": "Importe acreditado",
+            "bind_bank_referencia": "Referencia bancaria",
+            "bind_internal_id": "Número de factura",
+            "bind_internal_fecha": "Fecha prevista",
+            "bind_internal_importe": "Importe esperado",
+            "bind_internal_referencia": "Referencia comercial",
         },
         cookie,
     )

@@ -8,6 +8,7 @@ import math
 import secrets
 import tempfile
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from email import policy
 from email.parser import BytesParser
 from http import HTTPStatus
@@ -91,6 +92,17 @@ _RECONCILIATION_NUMERIC_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
             "importe_neto",
         ),
         "bank": ("importe",),
+    },
+}
+
+_RECONCILIATION_DATE_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
+    BANK_RECONCILIATION: {
+        "bank": ("fecha",),
+        "internal": ("fecha",),
+    },
+    MERCADO_PAGO_BANK_RECONCILIATION: {
+        "mercado_pago": ("fecha_operacion",),
+        "bank": ("fecha",),
     },
 }
 
@@ -283,18 +295,30 @@ class AssistedWebApplicationV1:
                     f"{source_label} no contiene movimientos para revisar.",
                 )
 
-            approved_columns = list(dict.fromkeys(bindings.values()))
+            normalized_bindings = _normalized_reconciliation_bindings(
+                intake=intake,
+                visible_bindings=bindings,
+            )
+            if normalized_bindings is None:
+                return HTTPStatus.BAD_REQUEST, _reconciliation_column_confirmation_page(
+                    reconciliation_type,
+                    intakes,
+                    "No se pudo conservar la relación entre una columna visible y su clave interna.",
+                )
+
+            approved_columns = list(dict.fromkeys(normalized_bindings.values()))
             source_packets.append(
                 {
                     "source_kind": source_kind,
                     "source_ref": str(intake.get("filename") or source_label),
                     "rows": _prepare_reconciliation_rows(
                         rows=rows,
-                        bindings=bindings,
+                        bindings=normalized_bindings,
                         reconciliation_type=reconciliation_type,
                         source_kind=source_kind,
                     ),
-                    "field_bindings": bindings,
+                    "field_bindings": normalized_bindings,
+                    "visible_field_bindings": bindings,
                     "governance": {
                         "p5_status": "CONFIRMED",
                         "p6_decisions": [
@@ -336,11 +360,21 @@ class AssistedWebApplicationV1:
             return HTTPStatus.OK, _blocked_message_page(
                 "No se pudo preparar la conciliación con estos datos. Revisá los archivos y las columnas elegidas."
             )
-        if packet.get("status") in {
-            STATUS_RECONCILIATION_REVIEW_READY,
-            STATUS_RECONCILIATION_NEEDS_EVIDENCE,
-        }:
+        if packet.get("status") == STATUS_RECONCILIATION_REVIEW_READY:
             return HTTPStatus.OK, _reconciliation_result_page(packet)
+        if packet.get("status") == STATUS_RECONCILIATION_NEEDS_EVIDENCE:
+            reconciliation_run = packet.get("reconciliation_run")
+            assisted_review = (
+                reconciliation_run.get("assisted_review")
+                if isinstance(reconciliation_run, dict)
+                else None
+            )
+            if isinstance(assisted_review, dict):
+                return HTTPStatus.OK, _reconciliation_result_page(packet)
+            return HTTPStatus.OK, _blocked_message_page(
+                "Faltan columnas o datos obligatorios para preparar la conciliación. "
+                "Revisá los archivos y las columnas elegidas."
+            )
         return HTTPStatus.OK, _blocked_message_page(
             "La conciliación quedó en un estado que necesita revisión antes de continuar."
         )
@@ -830,6 +864,37 @@ def _reconciliation_column_confirmation_page(
     </main>"""
 
 
+def _normalized_reconciliation_bindings(
+    *,
+    intake: dict[str, Any],
+    visible_bindings: dict[str, str],
+) -> dict[str, str] | None:
+    column_refs = intake.get("column_refs")
+    if not isinstance(column_refs, list):
+        return None
+
+    normalized_by_visible: dict[str, str] = {}
+    for ref in column_refs:
+        if not isinstance(ref, dict):
+            return None
+        visible = str(ref.get("column_name") or "").strip()
+        normalized = str(ref.get("normalized_column_name") or "").strip()
+        if not visible or not normalized:
+            return None
+        previous = normalized_by_visible.get(visible)
+        if previous is not None and previous != normalized:
+            return None
+        normalized_by_visible[visible] = normalized
+
+    normalized_bindings: dict[str, str] = {}
+    for canonical_field, visible_column in visible_bindings.items():
+        normalized_column = normalized_by_visible.get(visible_column)
+        if not normalized_column:
+            return None
+        normalized_bindings[canonical_field] = normalized_column
+    return normalized_bindings
+
+
 def _prepare_reconciliation_rows(
     *,
     rows: list[Any],
@@ -839,6 +904,9 @@ def _prepare_reconciliation_rows(
 ) -> list[dict[str, Any]]:
     prepared: list[dict[str, Any]] = []
     numeric_fields = _RECONCILIATION_NUMERIC_FIELDS.get(
+        reconciliation_type, {}
+    ).get(source_kind, ())
+    date_fields = _RECONCILIATION_DATE_FIELDS.get(
         reconciliation_type, {}
     ).get(source_kind, ())
     for raw in rows:
@@ -852,8 +920,32 @@ def _prepare_reconciliation_rows(
             numeric = _confirmed_numeric_value(row.get(source_column))
             if numeric is not None:
                 row[source_column] = numeric
+        for canonical_field in date_fields:
+            source_column = bindings.get(canonical_field, "")
+            if not source_column:
+                continue
+            confirmed_date = _confirmed_date_value(row.get(source_column))
+            if confirmed_date is not None:
+                row[source_column] = confirmed_date
         prepared.append(row)
     return prepared
+
+
+def _confirmed_date_value(value: Any) -> str | None:
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return parsed.date().isoformat()
 
 
 def _confirmed_numeric_value(value: Any) -> float | None:

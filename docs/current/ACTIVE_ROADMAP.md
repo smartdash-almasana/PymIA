@@ -33,10 +33,10 @@ P0 intake
 ## Current active front
 
 ```text
-CONTROLLED_PRODUCT_READINESS_CORPUS
+RECONCILE_FREEZE_AND_INTEGRATE_CURRENT_SERVICE_1_CUT_V1
 ```
 
-The next objective is not another architecture layer. It is to prove and improve the existing canonical product on varied XLSX cases.
+The physical coverage gate, explicit first-contact confirmation, controlled reconciliation pilot, and assisted-web regression are closed with focal evidence. The current objective is to integrate that single bounded cut without opening tenant persistence in the same change set.
 
 ## Priority sequence
 
@@ -53,12 +53,15 @@ The next objective is not another architecture layer. It is to prove and improve
 10. DEFINE_AND_AUTHORIZE_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1 — CLOSED_PASS (6 authorized / 3 deferred)
 11. IMPLEMENT_BOUNDED_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1 — CLOSED_PASS
 12. BUILD_PHYSICAL_COMPUTABLE_CONTROLS_FOR_BOUNDED_SIX_V1 — CLOSED_PASS (6/6 positive, 6/6 negative, unsafe=0)
-13. CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
-14. HARDEN_OWNER_WEB_AND_DELIVERY_EXPERIENCE
-15. DELETE_PROVEN_UNUSED_SUPPORT_AND_LEGACY_MATERIAL
-16. STAGE_3_PRODUCT_AND_OPERATIONAL_HARDENING
-17. PRODUCTION_CERTIFICATION
-18. SAAS_AUTONOMY_RECONSIDERATION_ONLY_AFTER_CERTIFICATION_DECISION
+13. CAPABILITY_PHYSICAL_COVERAGE_GATE_V1 — CLOSED_PASS
+14. FIRST_CONTACT_EXPLICIT_OWNER_CONFIRMATION_V1 — CLOSED_PASS
+15. CONTROLLED_RECONCILIATION_PILOT_V1 — CLOSED_PASS
+16. RECONCILE_FREEZE_AND_INTEGRATE_CURRENT_SERVICE_1_CUT_V1 — READY_FOR_INTEGRATION
+17. DEFINE_TENANT_SEMANTIC_CONTRACT_V1 — NEXT_AFTER_INTEGRATION
+18. TENANT_MAPPING_REUSE_AND_DRIFT — DEFERRED_UNTIL_CONTRACT_CLOSEOUT
+19. STAGE_3_PRODUCT_AND_OPERATIONAL_HARDENING
+20. PRODUCTION_CERTIFICATION
+21. SAAS_AUTONOMY_RECONSIDERATION_ONLY_AFTER_CERTIFICATION_DECISION
 ```
 
 ## Product-readiness gate
@@ -156,14 +159,19 @@ SaaS/autonomy is deferred until after the controlled product is proven and a pro
 
 ## Next authorized action
 
+After the current bounded cut is integrated:
+
 ```text
-CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
+DEFINE_TENANT_SEMANTIC_CONTRACT_V1
 ```
 
-Current corpus evidence:
+This authorizes specification and physical acceptance criteria only. It does not authorize automatic mapping reuse, drift resolution, LLM runtime authority, or a second product root.
+
+Current closure evidence:
 
 ```text
 docs/current/SERVICE_1_CONTROLLED_PRODUCT_READINESS_CORPUS_V1.md
+docs/current/SERVICE_1_CONTROLLED_RECONCILIATION_PILOT_CLOSEOUT_V1.md
 ```
 
 Reference audit:

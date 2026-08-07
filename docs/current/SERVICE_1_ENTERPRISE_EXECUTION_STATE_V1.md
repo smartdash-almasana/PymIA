@@ -4,7 +4,7 @@
 **Authority scope:** current execution and recovery state only  
 **Must not redefine:** product identity, P0–P10 architecture, capability semantics or production criteria  
 **Permanent method:** `SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md`  
-**State date:** 2026-07-25
+**State date:** 2026-08-07
 **Update rule:** update after every preservation, audited closure, rollback, stage transition or change in the next authorized action.
 
 ---
@@ -758,10 +758,10 @@ Audit evidence verified:
 - README/document references resolve;
 - no safety package was integrated and no production or frontend readiness was claimed.
 
-Stage 0 is closed. The historical Stage 0 checkpoint originally authorized Package 2 specification; Stage 2 has since completed all ten convergence packages. The post-Stage-2 roadmap audit is complete. The in-memory semantic corpus remains at supported-scope precision 1.0000. The physical XLSX multi-sector corpus passes its semantic gate: 59/59 known semantic columns exact, precision 1.0000, safe-resolution 1.0000, zero false-confident rows and zero dangerous errors. The physical P6/P7/P8 matrix is READY: P6 7/7, P7 7/7, 14/14 negative P8 probes correct and zero unsafe executions. Three physical positive controls now reach P8 `COMPUTABLE` and deterministic product-root execution: LIQ_001 sold_vs_collected_gap (gap_amount=600.0), LIQ_002 projected_closing_cash_balance (projected_closing_balance=1700.0), and PYME_011 dso (dso_days=10.0). A fresh governance convergence audit found nine remaining registry capabilities that cannot yet be physically certified through canonical P8 because registry/formula/pathology/P7/evidence-matrix governance is incomplete. The enriched pathology catalog explicitly declares scope_fixed=true and scope_not_reopened=true, so no silent scope expansion was performed. Current next authorized activity:
+Stage 0 is closed. The historical Stage 0 checkpoint originally authorized Package 2 specification; Stage 2 has since completed all ten convergence packages. The post-Stage-2 roadmap audit is complete. The in-memory semantic corpus remains at supported-scope precision 1.0000. The physical XLSX multi-sector corpus passes its semantic gate: 59/59 known semantic columns exact, precision 1.0000, safe-resolution 1.0000, zero false-confident rows and zero dangerous errors. The physical P6/P7/P8 matrix is READY: P6 7/7, P7 7/7, 14/14 negative P8 probes correct and zero unsafe executions. Three physical positive controls now reach P8 `COMPUTABLE` and deterministic product-root execution: LIQ_001 sold_vs_collected_gap (gap_amount=600.0), LIQ_002 projected_closing_cash_balance (projected_closing_balance=1700.0), and PYME_011 dso (dso_days=10.0). A fresh governance convergence audit found nine remaining registry capabilities that cannot yet be physically certified through canonical P8 because registry/formula/pathology/P7/evidence-matrix governance is incomplete. The enriched pathology catalog explicitly declares scope_fixed=true and scope_not_reopened=true, so no silent scope expansion was performed. Historical next authorized activity at that checkpoint:
 
 ```text
-NEXT_AUTHORIZED_ACTION = CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
+HISTORICAL_NEXT_AUTHORIZED_ACTION = CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
 ```
 
 Stage 1 cluster 001 closure:
@@ -1069,9 +1069,48 @@ REMAINING_CAPABILITY_GOVERNANCE_AUDIT = GOVERNANCE_GAPS_REMAIN
 REMAINING_REGISTRY_GOVERNANCE_GAPS = 9
 PATHOLOGY_SCOPE_FIXED = true
 PATHOLOGY_SCOPE_NOT_REOPENED = true
-NEXT_AUTHORIZED_ACTION = CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
+HISTORICAL_NEXT_AUTHORIZED_ACTION = CAPABILITY_PHYSICAL_COVERAGE_GATE_V1
 COMMIT_CREATED = false
 COMMIT_AUTHORIZED = false
 INTEGRATION_AUTHORIZED = false
 PUSH_AUTHORIZED = false
 ```
+
+---
+
+## 23. Current recovery snapshot — 2026-08-07
+
+```text
+BASE_HEAD = b240636d25181cee5b76131aada95a58c1171a4d
+CURRENT_CUT = RECONCILE_FREEZE_AND_INTEGRATE_CURRENT_SERVICE_1_CUT_V1
+CURRENT_CUT_STATUS = VALIDATED_READY_FOR_INTEGRATION
+CAPABILITY_PHYSICAL_COVERAGE_GATE_V1 = CLOSED_PASS
+FIRST_CONTACT_EXPLICIT_OWNER_CONFIRMATION = CLOSED_PASS
+CONTROLLED_RECONCILIATION_PILOT_V1 = CLOSED_PASS
+MATCHING_1N_N1 = CLOSED_FOR_CONTROLLED_PILOT
+EXACT_DUPLICATES = EXPLICIT_HUMAN_REVIEW
+WEB_ASSISTED_ONBOARDING = PASS
+TENANT_MEMORY = NOT_IMPLEMENTED
+NEW_PRODUCT_ROOT = NO
+LLM_RUNTIME_AUTHORITY = NO
+FULL_SUITE_EXECUTED = NO
+GIT_DIFF_CHECK = BLOCKED_COMMAND_NOT_ALLOWLISTED
+GRAPHIFY_UPDATE = BLOCKED_COMMAND_NOT_ALLOWLISTED
+NEXT_AUTHORIZED_ACTION_AFTER_INTEGRATION = DEFINE_TENANT_SEMANTIC_CONTRACT_V1
+COMMIT_CREATED = false
+PUSH_PERFORMED = false
+```
+
+Validation observed by Codex through MCP-local:
+
+```text
+FIRST_CONTACT_P6_REENTRY = 81 passed
+WEB_ASSISTED = 18 passed
+RECONCILIATION = 162 passed
+COVERAGE_AND_ARCHITECTURE_GUARDS = 25 passed
+NEW_FAILURES = 0
+```
+
+The current cut includes one maintenance correction to the physical coverage harness: it now performs explicit owner reentry for every active first-contact column before evaluating P7/P8. `adjusted_operating_cash_flow` remains safely partial at `CAPABILITY_NOT_GOVERNED`; no production capability was promoted by this correction.
+
+The next action authorizes specification and acceptance criteria for a tenant-scoped semantic contract. It does not authorize automatic reuse, drift resolution, LLM runtime authority, Servicio 2/3, OCR, PDF ingestion, or a parallel product root.

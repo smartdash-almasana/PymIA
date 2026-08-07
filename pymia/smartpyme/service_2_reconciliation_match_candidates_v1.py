@@ -17,6 +17,7 @@ ALLOWED_STATUSES: Final[tuple[str, ...]] = (
 MATCH_REFERENCE_EXACT: Final[str] = "MATCH_REFERENCE_EXACT"
 MATCH_ATTRIBUTES_EXACT: Final[str] = "MATCH_ATTRIBUTES_EXACT"
 MATCH_PROBABLE_DATE: Final[str] = "MATCH_PROBABLE_DATE"
+MATCH_REFERENCE_AGGREGATE: Final[str] = "MATCH_REFERENCE_AGGREGATE"
 AMBIGUOUS: Final[str] = "AMBIGUOUS"
 
 DEFAULT_OPTIONS: Final[dict[str, object]] = {
@@ -70,8 +71,14 @@ def build_reconciliation_match_candidates_v1(
             ],
         )
 
-    bank_rows = bank_result["movements"]
-    internal_rows = internal_result["movements"]
+    bank_duplicate_result = _separate_exact_duplicates(bank_result["movements"])
+    internal_duplicate_result = _separate_exact_duplicates(internal_result["movements"])
+    bank_rows = bank_duplicate_result["unique_rows"]
+    internal_rows = internal_duplicate_result["unique_rows"]
+    duplicate_ambiguities = [
+        *_duplicate_ambiguities(bank_duplicate_result["duplicate_groups"], side="bank"),
+        *_duplicate_ambiguities(internal_duplicate_result["duplicate_groups"], side="internal"),
+    ]
     faltantes_evidencia = [
         *bank_result["faltantes_evidencia"],
         *internal_result["faltantes_evidencia"],
@@ -106,27 +113,73 @@ def build_reconciliation_match_candidates_v1(
 
     prioritized_edges = _apply_reference_priority(candidate_edges)
     resolved = _resolve_candidate_edges(prioritized_edges)
-    matches_exactos = resolved["matches_exactos"]
+    pairwise_bank_indexes = {
+        int(edge["bank"]["index"])  # type: ignore[index]
+        for edge in prioritized_edges
+    }
+    pairwise_internal_indexes = {
+        int(edge["internal"]["index"])  # type: ignore[index]
+        for edge in prioritized_edges
+    }
+    aggregate = _build_reference_aggregate_matches(
+        bank_rows=bank_rows,
+        internal_rows=internal_rows,
+        options=options_used,
+        excluded_bank_indexes=pairwise_bank_indexes,
+        excluded_internal_indexes=pairwise_internal_indexes,
+    )
+
+    matches_exactos = [
+        *resolved["matches_exactos"],
+        *aggregate["matches"],
+    ]
     matches_probables = resolved["matches_probables"]
-    matches_ambiguos = resolved["matches_ambiguos"]
+    matches_ambiguos = [
+        *resolved["matches_ambiguos"],
+        *duplicate_ambiguities,
+    ]
     diferencias_fecha = resolved["diferencias_fecha"]
+    aggregate_bank_indexes = aggregate["resolved_bank_indexes"]
+    aggregate_internal_indexes = aggregate["resolved_internal_indexes"]
     diferencias_importe = _select_amount_differences(
         amount_difference_edges,
         candidate_edges=prioritized_edges,
+        excluded_bank_indexes=aggregate_bank_indexes,
+        excluded_internal_indexes=aggregate_internal_indexes,
     )
 
-    candidate_bank_indexes = resolved["resolved_bank_indexes"]
-    candidate_internal_indexes = resolved["resolved_internal_indexes"]
+    candidate_bank_indexes = {
+        *resolved["resolved_bank_indexes"],
+        *aggregate_bank_indexes,
+    }
+    candidate_internal_indexes = {
+        *resolved["resolved_internal_indexes"],
+        *aggregate_internal_indexes,
+    }
 
     banco_sin_imputar = [
-        _public_movement(row)
-        for row in bank_rows
-        if int(row["index"]) not in candidate_bank_indexes
+        *[
+            _public_movement(row)
+            for row in bank_rows
+            if int(row["index"]) not in candidate_bank_indexes
+        ],
+        *[
+            _public_duplicate(group, duplicate, side="bank")
+            for group in bank_duplicate_result["duplicate_groups"]
+            for duplicate in group["duplicates"]
+        ],
     ]
     interno_sin_banco = [
-        _public_movement(row)
-        for row in internal_rows
-        if int(row["index"]) not in candidate_internal_indexes
+        *[
+            _public_movement(row)
+            for row in internal_rows
+            if int(row["index"]) not in candidate_internal_indexes
+        ],
+        *[
+            _public_duplicate(group, duplicate, side="internal")
+            for group in internal_duplicate_result["duplicate_groups"]
+            for duplicate in group["duplicates"]
+        ],
     ]
 
     status = _derive_status(
@@ -297,6 +350,241 @@ def _normalize_optional_text(value: object) -> str | None:
     return text or None
 
 
+def _separate_exact_duplicates(
+    rows: list[dict[str, object]],
+) -> dict[str, list[dict[str, object]]]:
+    unique_rows: list[dict[str, object]] = []
+    original_by_signature: dict[tuple[object, ...], dict[str, object]] = {}
+    group_by_signature: dict[tuple[object, ...], dict[str, object]] = {}
+    duplicate_groups: list[dict[str, object]] = []
+
+    for row in rows:
+        signature = (
+            row["id"],
+            row["fecha"],
+            row["importe"],
+            row["descripcion"],
+            row["referencia"],
+        )
+        original = original_by_signature.get(signature)
+        if original is None:
+            original_by_signature[signature] = row
+            unique_rows.append(row)
+            continue
+        group = group_by_signature.get(signature)
+        if group is None:
+            group = {"original": original, "duplicates": []}
+            group_by_signature[signature] = group
+            duplicate_groups.append(group)
+        group["duplicates"].append(row)  # type: ignore[union-attr]
+
+    return {
+        "unique_rows": unique_rows,
+        "duplicate_groups": duplicate_groups,
+    }
+
+
+def _duplicate_ambiguities(
+    groups: list[dict[str, object]],
+    *,
+    side: str,
+) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    for group in groups:
+        original = group["original"]  # type: ignore[assignment]
+        duplicates = group["duplicates"]  # type: ignore[assignment]
+        movement_id = str(original["id"])  # type: ignore[index]
+        items.append(
+            {
+                "tipo": AMBIGUOUS,
+                "ambiguedad": "EXACT_DUPLICATE",
+                "cardinalidad": "DUPLICATE",
+                "lado": side,
+                "duplicado_id": movement_id,
+                "original_row_index": int(original["index"]),  # type: ignore[index]
+                "duplicate_row_indexes": [
+                    int(row["index"]) for row in duplicates  # type: ignore[index,union-attr]
+                ],
+                "candidate_count": 1 + len(duplicates),  # type: ignore[arg-type]
+                "requires_human_review": True,
+            }
+        )
+    return items
+
+
+def _public_duplicate(
+    group: dict[str, object],
+    duplicate: dict[str, object],
+    *,
+    side: str,
+) -> dict[str, object]:
+    original = group["original"]  # type: ignore[assignment]
+    return {
+        **_public_movement(duplicate),
+        "duplicate_of": original["id"],  # type: ignore[index]
+        "duplicate_of_row_index": original["index"],  # type: ignore[index]
+        "duplicate_row_index": duplicate["index"],
+        "duplicate_side": side,
+        "duplicate_reason": "all_identity_fields_equal",
+    }
+
+
+def _build_reference_aggregate_matches(
+    *,
+    bank_rows: list[dict[str, object]],
+    internal_rows: list[dict[str, object]],
+    options: dict[str, object],
+    excluded_bank_indexes: set[int],
+    excluded_internal_indexes: set[int],
+) -> dict[str, object]:
+    available_banks = [
+        row for row in bank_rows
+        if int(row["index"]) not in excluded_bank_indexes
+    ]
+    available_internals = [
+        row for row in internal_rows
+        if int(row["index"]) not in excluded_internal_indexes
+    ]
+    candidates: list[dict[str, object]] = []
+
+    internal_by_reference: dict[str, list[dict[str, object]]] = {}
+    for internal in available_internals:
+        reference = _reference_key(internal.get("referencia"))
+        if reference:
+            internal_by_reference.setdefault(reference, []).append(internal)
+
+    for bank in available_banks:
+        reference_tokens = _reference_tokens(
+            _reference_key(bank.get("referencia"))
+        )
+        if len(reference_tokens) < 2:
+            continue
+        members: list[dict[str, object]] = []
+        for token in sorted(reference_tokens):
+            token_members = internal_by_reference.get(token, [])
+            if len(token_members) != 1:
+                members = []
+                break
+            members.append(token_members[0])
+        if len(members) < 2 or len({int(row["index"]) for row in members}) != len(members):
+            continue
+        bank_total = float(bank["importe"])
+        internal_total = sum(float(row["importe"]) for row in members)
+        if not _aggregate_amount_match(bank_total, internal_total, options):
+            continue
+        candidates.append(
+            _aggregate_candidate(
+                bank_members=[bank],
+                internal_members=members,
+                cardinality="1:N",
+                criterion="composite_reference_sum",
+                bank_total=bank_total,
+                internal_total=internal_total,
+            )
+        )
+
+    bank_by_reference: dict[str, list[dict[str, object]]] = {}
+    for bank in available_banks:
+        reference = _reference_key(bank.get("referencia"))
+        if reference:
+            bank_by_reference.setdefault(reference, []).append(bank)
+
+    for internal in available_internals:
+        reference = _reference_key(internal.get("referencia"))
+        members = bank_by_reference.get(reference or "", [])
+        if len(members) < 2:
+            continue
+        bank_total = sum(float(row["importe"]) for row in members)
+        internal_total = float(internal["importe"])
+        if not _aggregate_amount_match(bank_total, internal_total, options):
+            continue
+        candidates.append(
+            _aggregate_candidate(
+                bank_members=members,
+                internal_members=[internal],
+                cardinality="N:1",
+                criterion="repeated_reference_sum",
+                bank_total=bank_total,
+                internal_total=internal_total,
+            )
+        )
+
+    bank_occurrences: dict[int, int] = {}
+    internal_occurrences: dict[int, int] = {}
+    for candidate in candidates:
+        for index in candidate["bank_indexes"]:  # type: ignore[union-attr]
+            bank_occurrences[int(index)] = bank_occurrences.get(int(index), 0) + 1
+        for index in candidate["internal_indexes"]:  # type: ignore[union-attr]
+            internal_occurrences[int(index)] = internal_occurrences.get(int(index), 0) + 1
+
+    unique_candidates = [
+        candidate
+        for candidate in candidates
+        if all(
+            bank_occurrences[int(index)] == 1
+            for index in candidate["bank_indexes"]  # type: ignore[union-attr]
+        )
+        and all(
+            internal_occurrences[int(index)] == 1
+            for index in candidate["internal_indexes"]  # type: ignore[union-attr]
+        )
+    ]
+    return {
+        "matches": [candidate["payload"] for candidate in unique_candidates],
+        "resolved_bank_indexes": {
+            int(index)
+            for candidate in unique_candidates
+            for index in candidate["bank_indexes"]  # type: ignore[union-attr]
+        },
+        "resolved_internal_indexes": {
+            int(index)
+            for candidate in unique_candidates
+            for index in candidate["internal_indexes"]  # type: ignore[union-attr]
+        },
+    }
+
+
+def _aggregate_candidate(
+    *,
+    bank_members: list[dict[str, object]],
+    internal_members: list[dict[str, object]],
+    cardinality: str,
+    criterion: str,
+    bank_total: float,
+    internal_total: float,
+) -> dict[str, object]:
+    return {
+        "bank_indexes": [int(row["index"]) for row in bank_members],
+        "internal_indexes": [int(row["index"]) for row in internal_members],
+        "payload": {
+            "banco_ids": [str(row["id"]) for row in bank_members],
+            "interno_ids": [str(row["id"]) for row in internal_members],
+            "tipo_match": MATCH_REFERENCE_AGGREGATE,
+            "cardinalidad": cardinality,
+            "criterio": criterion,
+            "evidencia": {
+                "reference_members_match": True,
+                "amount_match": True,
+                "amount_delta": round(abs(bank_total - internal_total), 2),
+                "importe_banco_total": round(bank_total, 2),
+                "importe_interno_total": round(internal_total, 2),
+            },
+            "requires_human_review": True,
+        },
+    }
+
+
+def _aggregate_amount_match(
+    bank_total: float,
+    internal_total: float,
+    options: dict[str, object],
+) -> bool:
+    absolute = float(options["importe_tolerancia_absoluta"])
+    relative = float(options["importe_tolerancia_relativa"])
+    tolerance = max(absolute, max(abs(bank_total), abs(internal_total)) * relative)
+    return abs(bank_total - internal_total) <= tolerance
+
+
 def _compare_movements(
     bank: dict[str, object],
     internal: dict[str, object],
@@ -343,7 +631,7 @@ def _reference_tokens(value: str | None) -> set[str]:
     if value is None:
         return set()
     normalized = value
-    for separator in (";", ",", "/", "|"):
+    for separator in (";", ",", "/", "|", "+"):
         normalized = normalized.replace(separator, " ")
     return {token for token in normalized.split() if token}
 
@@ -373,6 +661,8 @@ def _select_amount_differences(
     edges: list[dict[str, object]],
     *,
     candidate_edges: list[dict[str, object]],
+    excluded_bank_indexes: set[int] | None = None,
+    excluded_internal_indexes: set[int] | None = None,
 ) -> list[dict[str, object]]:
     candidate_bank_indexes = {
         int(edge["bank"]["index"])  # type: ignore[index]
@@ -416,11 +706,15 @@ def _select_amount_differences(
         residual_bank_counts[bank_index] = residual_bank_counts.get(bank_index, 0) + 1
         residual_internal_counts[internal_index] = residual_internal_counts.get(internal_index, 0) + 1
 
+    excluded_banks = excluded_bank_indexes or set()
+    excluded_internals = excluded_internal_indexes or set()
     selected: list[dict[str, object]] = []
     for edge in edges:
         comparison = edge["comparison"]  # type: ignore[assignment]
         bank_index = int(edge["bank"]["index"])  # type: ignore[index]
         internal_index = int(edge["internal"]["index"])  # type: ignore[index]
+        if bank_index in excluded_banks or internal_index in excluded_internals:
+            continue
         reference_anchor = bool(comparison["reference_match"]) or bool(comparison["reference_related"])  # type: ignore[index]
         unique_residual = (
             edge in residual_edges

@@ -1,8 +1,8 @@
 # Servicio 1 — estado actual
 
-**Fecha de corte:** 2026-07-29  
-**Estado documental:** reconciliado con arquitectura post-Stage-2 y fundaciones integradas posteriores.  
-**Base Git observada antes de este cambio:** `e5753f9`.
+**Fecha de corte:** 2026-08-07
+**Estado documental:** reconciliado con el cierre de cobertura física, primer contacto explícito y piloto controlado de conciliación.
+**HEAD base del corte pendiente de integración:** `b240636`.
 
 ## Estado ejecutivo
 
@@ -25,8 +25,14 @@ SIN DIAGNÓSTICO CAUSAL
 SEGUNDA RAÍZ PRODUCTIVA: NO
 DELIVERY AUTÓNOMO: NO AUTORIZADO
 API PRODUCTIVA: NO AUTORIZADA
-CONCILIACIÓN: INTEGRACIÓN PRODUCTIVA CONTROLADA
-12/12 PRODUCTIVAS CONECTADAS ≠ 12 FÍSICAMENTE CERTIFICADAS
+CAPABILITY_PHYSICAL_COVERAGE_GATE_V1: CLOSED_PASS
+FIRST_CONTACT_EXPLICIT_OWNER_CONFIRMATION: CLOSED_PASS
+CONCILIACIÓN CONTROLADA: PILOTO CERRADO PASS
+MATCHING 1:N / N:1: CANDIDATOS TRAZABLES
+DUPLICADOS EXACTOS: EXPLÍCITOS
+REVISIÓN HUMANA: OBLIGATORIA
+TENANT MEMORY: NO IMPLEMENTADA
+12/12 PRODUCTIVAS CONECTADAS ≠ TODAS CON DELIVERY AUTÓNOMO
 ```
 
 ## 1. Autoridad productiva
@@ -110,7 +116,7 @@ El catálogo productivo conserva las 12 capacidades cerradas previamente:
 
 DPO continúa como prerrequisito técnico de `PYME_013`, no como decimotercera patología productiva.
 
-Las 12 capacidades productivas conectadas no equivalen a 12 capacidades físicamente certificadas. Existe evidencia física positiva documentada para al menos diez de las doce capacidades productivas. `adjusted_operating_cash_flow` y `payment_collection_gap` permanecen sin cierre físico positivo completo. DPO es un prerrequisito técnico, no una capacidad productiva adicional. El resultado consolidado debe determinarse mediante `CAPABILITY_PHYSICAL_COVERAGE_GATE_V1`.
+El gate consolidado `CAPABILITY_PHYSICAL_COVERAGE_GATE_V1` está cerrado y vuelve a pasar bajo el contrato vigente de confirmación explícita. Conserva exactamente doce capacidades productivas; DPO sigue siendo prerrequisito técnico de `PYME_013`, no una decimotercera capacidad. `adjusted_operating_cash_flow` permanece `PHYSICAL_PARTIAL` con bloqueo explícito `CAPABILITY_NOT_GOVERNED`, y `payment_collection_gap` conserva su deferimiento contractual hasta completar sus prerrequisitos físicos. El gate no autoriza delivery autónomo.
 
 La existencia de una capacidad productiva no implica que su delivery esté autorizado automáticamente.
 
@@ -261,7 +267,11 @@ Estado actual del frente:
 ```text
 MATCHER_EXISTS
 ALGORITHMIC_MATCHING_EXISTS
+MATCHING_1N_N1_CLOSED_FOR_CONTROLLED_PILOT
+EXACT_DUPLICATES_EXPLICIT
 AMBIGUITY_EXPOSED_TO_HUMAN_REVIEW
+CONTROLLED_PILOT_MATCHES_EXPECTED_CATEGORIES
+WORKPAPER_XLSX_TRACEABLE
 PRODUCTIVE_S1_WIRING_ACTIVE
 NO_AUTOMATIC_ACCOUNTING_CLOSURE
 ```
@@ -297,8 +307,9 @@ c240080  refactor(service1): remove live root dependency and legacy evidence bri
 - La confirmación del dueño sigue siendo evidencia semántica, no permiso general.
 - Las capas de admisión, operador fiel, dominio, narrativa y harness no sustituyen la raíz canónica.
 - Los contratos contables no ejecutan por existir.
-- La conciliación está conectada productivamente sólo como preparación para revisión humana.
+- El piloto controlado de conciliación está cerrado con comparación contra control, pero sus `76/76` decisiones permanecen `PENDING` para revisión humana.
 - No existe aceptación automática, asiento contable ni cierre definitivo de conciliación.
+- La confirmación explícita del primer contacto está implementada; persistencia, reutilización por tenant y detección de drift todavía no están implementadas.
 - API y microservicios distribuidos no son el siguiente paso autorizado de conciliación.
 
 ## 9. Documentación de arquitectura

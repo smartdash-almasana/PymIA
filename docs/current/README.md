@@ -35,6 +35,7 @@ La memoria conversacional, la landing, los pilotos históricos, los roadmaps ven
 - `docs/current/SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — serie controlada oficial basada en `prueba_excels/`.
 - `docs/current/SERVICE_1_FIRST_OPERATORLESS_CASE.md` — primer caso operatorless certificado por CLI oficial.
 - `docs/current/SERVICE_1_RECONCILIATION_ENGINEERING_STATE_V1.md` — checkpoint técnico de conciliación bancaria y Mercado Pago, integración productiva controlada, revisión humana obligatoria y próximo incremento de interfaz.
+- `docs/current/SERVICE_1_CONTROLLED_RECONCILIATION_PILOT_CLOSEOUT_V1.md` — cierre verificable del piloto controlado con matching 1:N/N:1, duplicados explícitos, comparación contra control y workpaper trazable.
 
 ## Política de eliminación
 

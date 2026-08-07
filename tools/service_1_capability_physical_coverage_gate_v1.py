@@ -33,6 +33,7 @@ from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     build_computability_decision_from_confirmed_bindings_v1,
     run_initial_pass,
+    run_owner_reentry,
 )
 from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
@@ -241,6 +242,17 @@ def _owner_answers(boundary: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _semantic_owner_answers(semantic_run: dict[str, Any]) -> dict[str, str]:
+    return {
+        str(question["column_name"]): next(
+            str(option["option_id"])
+            for option in question.get("options") or []
+            if option.get("option_id") not in {"OTHER", "IGNORE"}
+        )
+        for question in semantic_run.get("owner_questions") or []
+    }
+
+
 def _safety_snapshot(payload: dict[str, Any], *, governed_input_present: bool, executed: bool) -> dict[str, Any]:
     flags = {flag: payload.get(flag) for flag in SAFETY_FLAGS}
     missing_flags = [flag for flag in SAFETY_FLAGS if flag not in payload]
@@ -272,6 +284,12 @@ def _physical_chain(repo: Path, filename: str, sheet_name: str, capability: str)
     ingestion = dict(connector["ingestion_output"])
     ingestion["normalized_tables"] = boundary.get("normalized_tables")
     semantic = run_initial_pass(ingestion_output=ingestion, sheet_name=sheet_name)
+    owner_answers = _semantic_owner_answers(semantic)
+    if semantic.get("status") == "OWNER_QUESTIONS":
+        semantic = run_owner_reentry(
+            previous_run=semantic,
+            owner_answers=owner_answers,
+        )
     if semantic.get("status") != "CONFIRMED_BINDINGS":
         return {
             "status": PHYSICAL_PARTIAL,
@@ -299,6 +317,7 @@ def _physical_chain(repo: Path, filename: str, sheet_name: str, capability: str)
         sheet_name=sheet_name,
         requested_capability=capability,
         deliver_result=False,
+        owner_answers=owner_answers,
     )
     computation = product.get("computation_result") or {}
     executed = product.get("status") == product_root.STATUS_COMPUTATION_PLAN_READY and computation.get("status") == STATUS_EVALUATED
@@ -352,6 +371,8 @@ def _ren_001_semantic_case(path: Path, *, include_taxes: bool) -> dict[str, Any]
     )
     ingestion = dict(connector["ingestion_output"])
     ingestion["normalized_tables"] = boundary.get("normalized_tables")
+    semantic_first = run_initial_pass(ingestion_output=ingestion, sheet_name="Resumen")
+    owner_answers = _semantic_owner_answers(semantic_first)
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=ingestion,
         sheet_name="Resumen",
@@ -367,7 +388,7 @@ def _ren_001_semantic_case(path: Path, *, include_taxes: bool) -> dict[str, Any]
             "confirmed_role": expected_roles[candidate.source_column_name],
         }
         for candidate in candidates
-        if candidate.owner_confirmation_required and candidate.source_column_name in expected_roles
+        if candidate.source_column_name in expected_roles
     )
     p6 = build_service_1_p6_approval_decisions_v1(
         case_id=bridge["case_id"],
@@ -386,7 +407,12 @@ def _ren_001_semantic_case(path: Path, *, include_taxes: bool) -> dict[str, Any]
         "p6": p6,
         "p7": p7,
     }
-    return {"ingestion": ingestion, "semantic": semantic, "decision": decision}
+    return {
+        "ingestion": ingestion,
+        "semantic": semantic,
+        "decision": decision,
+        "owner_answers": owner_answers,
+    }
 
 
 def _run_product_counted_v1(counters: dict[str, int], **kwargs: Any) -> dict[str, Any]:
@@ -413,6 +439,7 @@ def _ren_001_control(repo: Path) -> dict[str, Any]:
             sheet_name="Resumen",
             requested_capability="net_margin_real",
             deliver_result=False,
+            owner_answers=positive_case["owner_answers"],
         )
     computation = product.get("computation_result") or {}
     executed = product.get("status") == product_root.STATUS_COMPUTATION_PLAN_READY and computation.get("status") == STATUS_EVALUATED
