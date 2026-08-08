@@ -65,6 +65,7 @@ owner_actor_id
 owner_actor_role
 source_system_ref
 source_context_ref
+workbook_ref
 ```
 
 Optional:
@@ -82,7 +83,7 @@ cliente_id
 | Business identity | optional `cliente_id` |
 | Case identity | `case_id` |
 | Owner identity | `owner_actor_id`, `owner_actor_role` |
-| Source identity | `source_system_ref`, `source_context_ref` |
+| Source identity | `source_system_ref`, `source_context_ref`, `workbook_ref` |
 | Provenance | safe identity-establishment metadata only |
 | Safety | all runtime/reuse/rebind authority flags false |
 
@@ -96,13 +97,15 @@ The implementation may include an explicit `created_at`/`established_at` field i
 4. `owner_actor_role` is required and non-empty.
 5. `source_system_ref` is required and non-empty.
 6. `source_context_ref` is required and non-empty.
-7. `cliente_id` is optional.
-8. `tenant_id` must never be derived from `session_id`.
-9. `tenant_id` must never be derived from `case_id`.
-10. `tenant_id` must never be automatically derived from `cliente_id`.
-11. `case_id` remains the existing intake/case identity and does not become tenant scope.
-12. The same identity contract cannot grant runtime, tool, delivery, reuse or semantic-rebind authority.
-13. Any contradictory identity input fails closed.
+7. `workbook_ref` is required and non-empty.
+8. `cliente_id` is optional.
+9. `tenant_id` must never be derived from `session_id`.
+10. `tenant_id` must never be derived from `case_id`.
+11. `tenant_id` must never be automatically derived from `cliente_id`.
+12. `case_id` remains the existing intake/case identity and does not become tenant scope.
+13. `workbook_ref` must remain an explicit safe workbook reference; it must not be silently reconstructed from `case_id`, filename, session state, or an undocumented `file_ref` equivalence.
+14. The same identity contract cannot grant runtime, tool, delivery, reuse or semantic-rebind authority.
+15. Any contradictory identity input fails closed.
 
 ## Session boundary
 
@@ -126,7 +129,19 @@ It must provide the identity/context required to safely call:
 build_service_1_tenant_semantic_contract_v1(...)
 ```
 
-without deriving tenant/owner identity from the owner-confirmation event or the browser session.
+including explicit:
+
+```text
+tenant_id
+case_id
+owner_actor_id
+owner_actor_role
+source_system_ref
+source_context_ref
+workbook_ref
+```
+
+without deriving tenant/owner/workbook identity from the owner-confirmation event or the browser session.
 
 The identity contract itself does not persist semantic mappings.
 
@@ -169,17 +184,18 @@ Existing storage boundary must be reused where compatible. Do not introduce a se
 Implementation is acceptable only when it proves:
 
 1. valid explicit identity builds a ready immutable contract;
-2. missing each required identity blocks;
+2. missing each required identity blocks, including `workbook_ref`;
 3. unsafe tenant ids/path traversal block;
 4. tenant A records cannot be loaded/listed through tenant B;
 5. identical append is idempotent;
 6. same contract id with different payload blocks;
 7. `cliente_id` remains optional and is never inferred from `tenant_id`;
 8. no API accepts `session_id` as tenant fallback;
-9. case identity and tenant identity remain independent;
-10. all runtime/reuse/rebind authority flags remain false;
-11. product root and deterministic formulas remain unchanged;
-12. assisted-web wiring remains outside this implementation cut unless separately authorized.
+9. case identity and tenant identity remain independent, including explicit rejection of case-derived tenant identity;
+10. workbook identity remains explicit and is not invented by undocumented equivalence;
+11. all runtime/reuse/rebind authority flags remain false;
+12. product root and deterministic formulas remain unchanged;
+13. assisted-web wiring remains outside this implementation cut unless separately authorized.
 
 ## Explicitly deferred
 
