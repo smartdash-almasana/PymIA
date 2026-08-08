@@ -422,6 +422,9 @@ def build_service_1_tenant_semantic_contract_v1(
     source_system_ref: str,
     source_context_ref: str,
     workbook_ref: str,
+    expected_case_id: str,
+    expected_sheet_ref: str,
+    expected_question_ref: str,
     source_column_name: str,
     normalized_column_ref: str,
     owner_confirmation_event: Service1OwnerConfirmationEventV1 | Mapping[str, object],
@@ -438,6 +441,9 @@ def build_service_1_tenant_semantic_contract_v1(
     system_ref = _required(source_system_ref, field="source_system_ref", code="BLOCKED_MISSING_SOURCE_CONTEXT")
     context_ref = _required(source_context_ref, field="source_context_ref", code="BLOCKED_MISSING_SOURCE_CONTEXT")
     workbook = _required(workbook_ref, field="workbook_ref", code="BLOCKED_MISSING_SOURCE_CONTEXT")
+    case_ref = _required(expected_case_id, field="expected_case_id", code="BLOCKED_MISSING_SOURCE_CONTEXT")
+    sheet_ref = _required(expected_sheet_ref, field="expected_sheet_ref", code="BLOCKED_MISSING_SOURCE_CONTEXT")
+    question_ref = _required(expected_question_ref, field="expected_question_ref", code="BLOCKED_MISSING_SOURCE_CONTEXT")
     source_column = _required(source_column_name, field="source_column_name", code="BLOCKED_MISSING_SOURCE_CONTEXT")
     normalized_column = _required(normalized_column_ref, field="normalized_column_ref", code="BLOCKED_MISSING_SOURCE_CONTEXT")
     service = _required(service_ref, field="service_ref", code="BLOCKED_MISSING_SOURCE_CONTEXT")
@@ -445,13 +451,23 @@ def build_service_1_tenant_semantic_contract_v1(
 
     if event.schema_version != OWNER_CONFIRMATION_SCHEMA_VERSION or event.confirmed_by_owner is not True:
         raise _blocked("BLOCKED_INVALID_OWNER_CONFIRMATION_EVENT", "canonical owner confirmation is required")
-    if event.file_ref != workbook or event.column_ref != normalized_column:
+    if _FORBIDDEN_PROVENANCE_KEYS.intersection(event.provenance):
+        raise _blocked(
+            "BLOCKED_INVALID_OWNER_CONFIRMATION_EVENT",
+            "owner confirmation provenance contains forbidden data or authority fields",
+        )
+    if (
+        event.file_ref != workbook
+        or event.column_ref != normalized_column
+        or event.case_id != case_ref
+        or event.sheet_ref != sheet_ref
+        or event.question_ref != question_ref
+    ):
         raise _blocked(
             "BLOCKED_EVENT_CONTEXT_MISMATCH",
-            "event workbook or column does not match projection context",
+            "event identity or source context does not match projection context",
         )
 
-    sheet_ref = _required(event.sheet_ref, field="sheet_ref", code="BLOCKED_EVENT_CONTEXT_MISMATCH")
     mapping_series_id = _mapping_series_id(
         tenant_id=tenant,
         source_system_ref=system_ref,
@@ -497,7 +513,7 @@ def build_service_1_tenant_semantic_contract_v1(
         contract_id=contract_id,
         mapping_series_id=mapping_series_id,
         tenant_id=tenant,
-        case_id=event.case_id,
+        case_id=case_ref,
         cliente_id=_optional(cliente_id),
         source_system_ref=system_ref,
         source_context_ref=context_ref,
@@ -518,7 +534,7 @@ def build_service_1_tenant_semantic_contract_v1(
         corrected_meaning=event.corrected_meaning,
         column_excluded=column_excluded,
         confirmation_event_ref=confirmation_event_ref,
-        question_ref=event.question_ref,
+        question_ref=question_ref,
         owner_actor_id=actor_id,
         owner_actor_role=actor_role,
         confirmed_at=event.timestamp,
