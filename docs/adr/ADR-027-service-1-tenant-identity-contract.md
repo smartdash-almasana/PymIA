@@ -72,6 +72,7 @@ Required source identity:
 ```text
 source_system_ref
 source_context_ref
+workbook_ref
 ```
 
 ### Canonical meanings
@@ -102,10 +103,11 @@ source_context_ref
 - may coexist with `tenant_id`;
 - may not silently replace or define `tenant_id`.
 
-`source_system_ref` and `source_context_ref`:
+`source_system_ref`, `source_context_ref`, and `workbook_ref`:
 
 - safe source-level context required by the tenant semantic contract;
-- must be explicit and non-empty before persistence wiring.
+- must be explicit and non-empty before persistence wiring;
+- `workbook_ref` is an explicit safe workbook identity reference and must not be silently inferred from `case_id`, filename, session state, or arbitrary `file_ref` equivalence.
 
 ## Identity lifecycle
 
@@ -114,7 +116,7 @@ The intended first-contact boundary is:
 ```text
 explicit tenant identity
 + owner identity
-+ source identity
++ source identity (including workbook_ref)
 + existing intake case_id
 → Service1TenantIdentityContractV1
 → owner confirmation event
@@ -137,6 +139,7 @@ missing owner_actor_id → block
 missing owner_actor_role → block
 missing source_system_ref → block
 missing source_context_ref → block
+missing workbook_ref → block
 session_id used as tenant_id → block
 case_id used/derived as tenant_id → block
 cliente_id auto-derived into tenant_id → block
@@ -181,9 +184,9 @@ Positive:
 - tenant identity becomes explicit rather than inferred from transient web state;
 - owner-confirmation persistence can later be wired without abusing `session_id` or `case_id`;
 - ADR-017 identity meanings remain intact;
-- ADR-026 tenant semantic contracts gain a safe upstream identity authority.
+- ADR-026 tenant semantic contracts gain a safe upstream identity authority, including explicit workbook context.
 
 Cost:
 
-- first contact must supply/establish tenant and owner identity explicitly before semantic evidence becomes durable tenant knowledge;
+- first contact must supply/establish tenant, owner, and safe workbook identity explicitly before semantic evidence becomes durable tenant knowledge;
 - wiring remains a separate cut after this identity contract is specified and implemented.
