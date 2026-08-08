@@ -81,11 +81,14 @@ owner_actor_id
 owner_actor_role
 source_system_ref
 source_context_ref
+workbook_ref
 provenance
 status
 ```
 
 Runtime/reuse/rebind authority flags, if serialized for explicit safety, must all be false.
+
+`workbook_ref` is required safe source identity. It must not be silently reconstructed from `case_id`, filename, session state, or an undocumented `file_ref` equivalence.
 
 ## Deterministic identity
 
@@ -113,6 +116,7 @@ missing/blank owner_actor_id
 missing/blank owner_actor_role
 missing/blank source_system_ref
 missing/blank source_context_ref
+missing/blank workbook_ref
 unsafe tenant path
 forbidden provenance authority claims
 contract id / payload contradiction
@@ -120,6 +124,8 @@ cross-tenant access
 ```
 
 No fallback from `session_id`, `case_id` or `cliente_id` into `tenant_id` is permitted.
+
+A value sourced or derived from `case_id` must not be accepted as tenant authority merely because it is non-empty or syntactically valid. The implementation contract/tests must preserve the distinction between explicit tenant identity and intake case identity.
 
 ## Store requirements
 
@@ -165,7 +171,11 @@ TI-13 cliente_id optional and not auto-derived
 TI-14 no session_id fallback/field authority
 TI-15 authority/reuse/rebind provenance claims block
 TI-16 product root, assisted web and semantic contract modules unchanged
+TI-17 case_id or case-derived value cannot become tenant authority
+TI-18 missing workbook_ref blocks and workbook_ref remains explicit source identity
 ```
+
+For TI-17, a test that merely asserts `tenant_id != case_id` on one happy-path fixture is insufficient. Evidence must exercise the contract validation/constructor boundary and demonstrate fail-closed rejection of an attempted case-to-tenant derivation according to the ModuleContract's explicit establishment semantics.
 
 ## Verification order
 
