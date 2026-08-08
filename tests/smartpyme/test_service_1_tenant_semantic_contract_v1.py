@@ -50,6 +50,9 @@ def _build(**overrides):
         "source_system_ref": "erp_ventas",
         "source_context_ref": "export_ventas_v1",
         "workbook_ref": "sha256:workbook-safe-ref",
+        "expected_case_id": "case_1",
+        "expected_sheet_ref": "Ventas",
+        "expected_question_ref": "q_importe",
         "source_column_name": "Importe",
         "normalized_column_ref": "importe",
         "owner_confirmation_event": _event(),
@@ -94,6 +97,9 @@ def test_ts07_missing_actor_identity_blocks(field: str) -> None:
         ("source_system_ref", ""),
         ("source_context_ref", ""),
         ("workbook_ref", ""),
+        ("expected_case_id", ""),
+        ("expected_sheet_ref", ""),
+        ("expected_question_ref", ""),
         ("source_column_name", ""),
         ("normalized_column_ref", ""),
     ],
@@ -115,6 +121,9 @@ def test_missing_tenant_blocks() -> None:
     [
         ({"workbook_ref": "sha256:another-workbook"},),
         ({"normalized_column_ref": "total"},),
+        ({"expected_case_id": "case_other"},),
+        ({"expected_sheet_ref": "Cobros"},),
+        ({"expected_question_ref": "q_other"},),
     ],
 )
 def test_ts08_event_context_mismatch_blocks(overrides: dict[str, object]) -> None:
@@ -212,6 +221,32 @@ def test_ts17_forbidden_authority_claim_in_event_provenance_blocks() -> None:
             confirmation_scope="SEMANTIC_ROLE",
             provenance={"runtime_authorized": True},
         )
+
+
+@pytest.mark.parametrize(
+    "flag",
+    ["automatic_reuse_authorized", "semantic_rebind_authorized"],
+)
+def test_ts17_reuse_or_rebind_claim_in_event_provenance_blocks(flag: str) -> None:
+    event = build_service_1_owner_confirmation_event_v1(
+        case_id="case_1",
+        file_ref="sha256:workbook-safe-ref",
+        region_ref="region_1",
+        sheet_ref="Ventas",
+        column_ref="importe",
+        question_ref="q_importe",
+        owner_answer="OWNER_CONFIRMED",
+        proposed_role="sales_amount",
+        proposed_variable="sales_total",
+        confirmed_role="sales_amount",
+        confirmation_scope="SEMANTIC_ROLE",
+        timestamp="2026-08-07T12:00:00+00:00",
+        provenance={flag: True},
+    )
+
+    with pytest.raises(Service1TenantSemanticContractErrorV1) as exc:
+        _build(owner_confirmation_event=event)
+    _assert_code(exc, "BLOCKED_INVALID_OWNER_CONFIRMATION_EVENT")
 
 
 def test_ts18_serialized_contract_has_closed_safety_line_and_safe_provenance() -> None:
