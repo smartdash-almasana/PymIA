@@ -21,9 +21,18 @@ def _safe_join(base_dir: Path, tenant_id: str) -> Path:
     return target
 
 
+def resolve_tenant_storage_root(base_dir: str | Path, tenant_id: str) -> Path:
+    """Resolve one tenant root with the canonical traversal protections.
+
+    This helper does not create directories or files. Callers that own a new
+    tenant-scoped artifact can reuse the storage boundary without changing the
+    legacy layout created by ensure_tenant_storage.
+    """
+    return _safe_join(Path(base_dir).resolve(), tenant_id)
+
+
 def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Path]:
-    base = Path(base_dir).resolve()
-    tenant_root = _safe_join(base, tenant_id)
+    tenant_root = resolve_tenant_storage_root(base_dir, tenant_id)
     evidence_dir = tenant_root / "evidence"
     reports_dir = tenant_root / "reports"
     results_dir = tenant_root / "results"

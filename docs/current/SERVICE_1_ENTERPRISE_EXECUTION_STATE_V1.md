@@ -1114,3 +1114,93 @@ NEW_FAILURES = 0
 The current cut includes one maintenance correction to the physical coverage harness: it now performs explicit owner reentry for every active first-contact column before evaluating P7/P8. `adjusted_operating_cash_flow` remains safely partial at `CAPABILITY_NOT_GOVERNED`; no production capability was promoted by this correction.
 
 The next action authorizes specification and acceptance criteria for a tenant-scoped semantic contract. It does not authorize automatic reuse, drift resolution, LLM runtime authority, Servicio 2/3, OCR, PDF ingestion, or a parallel product root.
+
+
+---
+
+## 24. Tenant semantic contract definition snapshot — 2026-08-07
+
+```text
+BASE_HEAD = 8aced9c
+BASE_WORKTREE = CLEAN
+CURRENT_CUT = DEFINE_TENANT_SEMANTIC_CONTRACT_V1
+CURRENT_CUT_STATUS = SPECIFIED_NOT_IMPLEMENTED
+ADR = ADR-026_ACCEPTED_FOR_SPECIFICATION
+CAPABILITY_SPEC = DEFINED
+MODULE_CONTRACT = DEFINED
+ACCEPTANCE_EVIDENCE_SPEC = DEFINED
+IMPLEMENTATION_TASKSPEC = READY_AWAITING_EXPLICIT_AUTHORIZATION
+PRODUCTIVE_CODE_CHANGED = NO
+TESTS_CHANGED = NO
+TESTS_EXECUTED = NO
+TENANT_MEMORY = NOT_IMPLEMENTED
+AUTOMATIC_MAPPING_REUSE = NOT_IMPLEMENTED
+DRIFT_DETECTION = NOT_IMPLEMENTED
+WEB_IDENTITY_WIRING = NOT_IMPLEMENTED
+NEW_PRODUCT_ROOT = NO
+LLM_RUNTIME_AUTHORITY = NO
+NEXT_METHODOLOGICAL_ACTION = REVIEW_AND_AUTHORIZE_IMPLEMENT_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1
+COMMIT_CREATED = NO
+PUSH_PERFORMED = NO
+```
+
+Defined boundary:
+
+```text
+canonical owner-confirmation event
+→ immutable tenant semantic contract
+→ append-only tenant-scoped store
+→ auditable revision history
+```
+
+Explicitly deferred:
+
+```text
+assisted-web/product-root wiring
+automatic current-version resolution
+second-load mapping reuse
+workbook/template equivalence
+drift and contradiction resolution
+cross-tenant learning
+```
+
+
+---
+
+## 25. Tenant semantic contract foundation implementation snapshot — 2026-08-07
+
+```text
+BASE_HEAD = 8aced9c
+CURRENT_CUT = IMPLEMENT_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1
+CURRENT_CUT_STATUS = IMPLEMENTED_AWAITING_INDEPENDENT_REVIEW
+CONTRACT_MODULE = IMPLEMENTED
+TENANT_STORE = APPEND_ONLY_IMPLEMENTED
+TENANT_PATH_VALIDATION = REUSES_EXISTING_STORAGE_BOUNDARY
+FOCAL_TESTS = 35 passed
+NEIGHBOR_TESTS = 16 passed
+CROSS_TENANT_NEGATIVE = PASS
+IDEMPOTENCY = PASS
+CONTRACT_ID_CONFLICT = PASS
+REVISION_HISTORY = APPEND_ONLY_PASS
+FORBIDDEN_IMPORTS = PASS
+PRODUCT_ROOT_CHANGED = NO
+ASSISTED_WEB_CHANGED = NO
+AUTOMATIC_MAPPING_REUSE = NOT_IMPLEMENTED
+DRIFT_DETECTION = NOT_IMPLEMENTED
+TENANT_MEMORY = NOT_IMPLEMENTED
+FULL_SUITE_EXECUTED = NO
+COMMIT_CREATED = NO
+PUSH_PERFORMED = NO
+NEXT_METHODOLOGICAL_ACTION = INDEPENDENT_REVIEW_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1
+```
+
+Observed boundary:
+
+```text
+canonical owner-confirmation event
+→ immutable attributable tenant contract
+→ tenant-isolated append-only JSONL
+→ exact tenant-scoped list/load
+```
+
+This foundation records governed owner-confirmation evidence only. It does not select a current mapping, reduce second-load questions, wire tenant identity into the web/product root, authorize computation or delivery, or resolve drift and contradictions.

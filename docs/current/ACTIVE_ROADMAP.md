@@ -33,10 +33,10 @@ P0 intake
 ## Current active front
 
 ```text
-RECONCILE_FREEZE_AND_INTEGRATE_CURRENT_SERVICE_1_CUT_V1
+IMPLEMENT_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1
 ```
 
-The physical coverage gate, explicit first-contact confirmation, controlled reconciliation pilot, and assisted-web regression are closed with focal evidence. The current objective is to integrate that single bounded cut without opening tenant persistence in the same change set.
+The prior bounded cut is integrated in `main` at `8aced9c`. The current worktree implements the specified immutable contract and append-only tenant store. Focal and neighboring tests are green; independent review and Git integration remain pending. Product-root/web wiring, automatic reuse and drift logic are not part of this foundation cut.
 
 ## Priority sequence
 
@@ -56,12 +56,14 @@ The physical coverage gate, explicit first-contact confirmation, controlled reco
 13. CAPABILITY_PHYSICAL_COVERAGE_GATE_V1 — CLOSED_PASS
 14. FIRST_CONTACT_EXPLICIT_OWNER_CONFIRMATION_V1 — CLOSED_PASS
 15. CONTROLLED_RECONCILIATION_PILOT_V1 — CLOSED_PASS
-16. RECONCILE_FREEZE_AND_INTEGRATE_CURRENT_SERVICE_1_CUT_V1 — READY_FOR_INTEGRATION
-17. DEFINE_TENANT_SEMANTIC_CONTRACT_V1 — NEXT_AFTER_INTEGRATION
-18. TENANT_MAPPING_REUSE_AND_DRIFT — DEFERRED_UNTIL_CONTRACT_CLOSEOUT
-19. STAGE_3_PRODUCT_AND_OPERATIONAL_HARDENING
-20. PRODUCTION_CERTIFICATION
-21. SAAS_AUTONOMY_RECONSIDERATION_ONLY_AFTER_CERTIFICATION_DECISION
+16. RECONCILE_FREEZE_AND_INTEGRATE_CURRENT_SERVICE_1_CUT_V1 — CLOSED_IN_MAIN (8aced9c)
+17. DEFINE_TENANT_SEMANTIC_CONTRACT_V1 — SPECIFIED
+18. IMPLEMENT_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1 — IMPLEMENTED_AWAITING_INDEPENDENT_REVIEW
+19. DEFINE_TENANT_IDENTITY_AND_CONFIRMATION_PERSISTENCE_WIRING_V1 — AFTER_INDEPENDENT_FOUNDATION_PASS
+20. TENANT_MAPPING_REUSE_AND_DRIFT — DEFERRED_UNTIL_WIRING_CLOSEOUT
+21. STAGE_3_PRODUCT_AND_OPERATIONAL_HARDENING
+22. PRODUCTION_CERTIFICATION
+23. SAAS_AUTONOMY_RECONSIDERATION_ONLY_AFTER_CERTIFICATION_DECISION
 ```
 
 ## Product-readiness gate
@@ -157,15 +159,15 @@ Historical autonomous SaaS gate-chain roadmaps are superseded and must not be re
 
 SaaS/autonomy is deferred until after the controlled product is proven and a production-certification decision exists.
 
-## Next authorized action
+## Next methodological action
 
-After the current bounded cut is integrated:
+The bounded foundation is implemented and locally validated. The next methodological action is:
 
 ```text
-DEFINE_TENANT_SEMANTIC_CONTRACT_V1
+INDEPENDENT_REVIEW_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1
 ```
 
-This authorizes specification and physical acceptance criteria only. It does not authorize automatic mapping reuse, drift resolution, LLM runtime authority, or a second product root.
+Only after independent PASS and Git integration may the identity/persistence wiring slice be defined. Web/product-root wiring, automatic mapping reuse, drift resolution, LLM runtime authority and a second product root remain unauthorized in the current cut.
 
 Current closure evidence:
 

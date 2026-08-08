@@ -1,8 +1,8 @@
 # Servicio 1 — estado actual
 
 **Fecha de corte:** 2026-08-07
-**Estado documental:** reconciliado con el cierre de cobertura física, primer contacto explícito y piloto controlado de conciliación.
-**HEAD base del corte pendiente de integración:** `b240636`.
+**Estado documental:** fundación contractual tenant-scoped implementada y validada; revisión independiente e integración pendientes.
+**HEAD base de la definición:** `8aced9c`.
 
 ## Estado ejecutivo
 
@@ -31,7 +31,10 @@ CONCILIACIÓN CONTROLADA: PILOTO CERRADO PASS
 MATCHING 1:N / N:1: CANDIDATOS TRAZABLES
 DUPLICADOS EXACTOS: EXPLÍCITOS
 REVISIÓN HUMANA: OBLIGATORIA
+TENANT SEMANTIC CONTRACT V1: FOUNDATION_IMPLEMENTED_AWAITING_INDEPENDENT_REVIEW
+TENANT-ISOLATED APPEND-ONLY STORE: IMPLEMENTED
 TENANT MEMORY: NO IMPLEMENTADA
+AUTOMATIC TENANT MAPPING REUSE: NO IMPLEMENTADA
 12/12 PRODUCTIVAS CONECTADAS ≠ TODAS CON DELIVERY AUTÓNOMO
 ```
 
@@ -309,7 +312,7 @@ c240080  refactor(service1): remove live root dependency and legacy evidence bri
 - Los contratos contables no ejecutan por existir.
 - El piloto controlado de conciliación está cerrado con comparación contra control, pero sus `76/76` decisiones permanecen `PENDING` para revisión humana.
 - No existe aceptación automática, asiento contable ni cierre definitivo de conciliación.
-- La confirmación explícita del primer contacto está implementada; persistencia, reutilización por tenant y detección de drift todavía no están implementadas.
+- La confirmación explícita del primer contacto está implementada. La fundación aislada puede proyectar y persistir contratos semánticos append-only por tenant, pero todavía no está conectada a la web ni a la raíz productiva; reutilización y drift no están implementados.
 - API y microservicios distribuidos no son el siguiente paso autorizado de conciliación.
 
 ## 9. Documentación de arquitectura
