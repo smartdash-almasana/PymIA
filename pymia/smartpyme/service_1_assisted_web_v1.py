@@ -14,12 +14,17 @@ from email.parser import BytesParser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import parse_qs
 
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     STATUS_UNCONFIRMED_READY as CANONICAL_UNCONFIRMED_READY,
     build_service_1_unconfirmed_canonical_ingestion_output_v1,
+)
+from pymia.smartpyme.service_1_assisted_web_tenant_wiring_v1 import (
+    Service1AssistedWebTenantPersistenceErrorV1,
+    build_service_1_assisted_web_tenant_identity_v1,
+    persist_service_1_assisted_web_owner_events_v1,
 )
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
@@ -164,6 +169,11 @@ class AssistedWebSessionV1:
     ingestion_output: dict[str, Any] | None = None
     semantic_questions: list[dict[str, Any]] = field(default_factory=list)
     semantic_answers: dict[str, Any] = field(default_factory=dict)
+    tenant_id: str | None = None
+    cliente_id: str | None = None
+    owner_actor_id: str | None = None
+    owner_actor_role: str | None = None
+    tenant_identity_contract: object | None = None
     reconciliation_type: str | None = None
     reconciliation_intakes: dict[str, dict[str, Any]] = field(default_factory=dict)
     reconciliation_result: dict[str, Any] | None = None
@@ -174,13 +184,52 @@ class AssistedWebSessionV1:
 class AssistedWebApplicationV1:
     """Small in-memory coordinator. It never stores uploaded workbook bytes."""
 
-    def __init__(self, *, output_dir: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        output_dir: str | Path | None = None,
+        persist_tenant_confirmation: Callable[[Any, Any], object] | None = None,
+        require_tenant_persistence: bool = False,
+    ) -> None:
+        if require_tenant_persistence and persist_tenant_confirmation is None:
+            raise ValueError("tenant persistence adapter is required")
         self._sessions: dict[str, AssistedWebSessionV1] = {}
+        self._persist_tenant_confirmation = persist_tenant_confirmation
+        self._require_tenant_persistence = require_tenant_persistence
         self.output_dir = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="pymia-service-1-web-"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def session(self, session_id: str) -> AssistedWebSessionV1:
         return self._sessions.setdefault(session_id, AssistedWebSessionV1())
+
+    def bind_tenant_identity(
+        self,
+        *,
+        session_id: str,
+        tenant_id: str,
+        owner_actor_id: str,
+        owner_actor_role: str,
+        cliente_id: str | None = None,
+    ) -> None:
+        tenant = str(tenant_id or "").strip()
+        actor = str(owner_actor_id or "").strip()
+        role = str(owner_actor_role or "").strip()
+        if not tenant or not actor or not role:
+            raise ValueError("tenant_id, owner_actor_id and owner_actor_role are required")
+        state = self.session(session_id)
+        client = str(cliente_id).strip() if cliente_id else None
+        identity_changed = (
+            state.tenant_id != tenant
+            or state.cliente_id != client
+            or state.owner_actor_id != actor
+            or state.owner_actor_role != role
+        )
+        state.tenant_id = tenant
+        state.cliente_id = client
+        state.owner_actor_id = actor
+        state.owner_actor_role = role
+        if identity_changed:
+            state.tenant_identity_contract = None
 
     def start_reconciliation(self, *, session_id: str, reconciliation_type: str) -> tuple[int, str]:
         if reconciliation_type not in _RECONCILIATION_BY_TYPE:
@@ -471,10 +520,45 @@ class AssistedWebApplicationV1:
             )
 
         state = self.session(session_id)
+        if self._require_tenant_persistence and (
+            not state.tenant_id
+            or not state.owner_actor_id
+            or not state.owner_actor_role
+        ):
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Falta identificar el tenant y a la persona que confirma antes de procesar el archivo."
+            )
+
         state.ingestion_output = canonical["ingestion_output"]
         state.semantic_questions = []
         state.semantic_answers = {}
         state.last_review_result = None
+        state.tenant_identity_contract = None
+
+        if state.tenant_id and state.owner_actor_id and state.owner_actor_role:
+            case_id = str(
+                state.ingestion_output.get("case_id")
+                or intake.get("case_id")
+                or ""
+            ).strip()
+            source_system_ref = str(intake.get("source_kind") or "").strip()
+            source_context_ref = str(intake.get("schema_version") or "").strip()
+            workbook_ref = str(intake.get("filename") or filename).strip()
+            try:
+                state.tenant_identity_contract = build_service_1_assisted_web_tenant_identity_v1(
+                    tenant_id=state.tenant_id,
+                    cliente_id=state.cliente_id,
+                    case_id=case_id,
+                    owner_actor_id=state.owner_actor_id,
+                    owner_actor_role=state.owner_actor_role,
+                    source_system_ref=source_system_ref,
+                    source_context_ref=source_context_ref,
+                    workbook_ref=workbook_ref,
+                )
+            except ValueError:
+                return HTTPStatus.BAD_REQUEST, _error_page(
+                    "No se pudo establecer una identidad válida para este caso."
+                )
 
         try:
             first_run = _run_product_root(
@@ -536,10 +620,44 @@ class AssistedWebApplicationV1:
             return HTTPStatus.OK, _semantic_questions_page(state.semantic_questions, "Hace falta una precisión más para continuar.")
         if packet.get("status") == STATUS_BLOCKED:
             return HTTPStatus.OK, _blocked_result_page(packet, requested_capability)
+
+        try:
+            self._persist_owner_confirmation_events(state=state, packet=packet)
+        except Service1AssistedWebTenantPersistenceErrorV1:
+            return HTTPStatus.OK, _blocked_message_page(
+                "La confirmación fue recibida, pero no pudo guardarse de forma durable. No se registró como memoria del tenant."
+            )
+
         return HTTPStatus.OK, _evaluated_result_page(
             packet,
             requested_capability,
             ingestion_output=state.ingestion_output,
+        )
+
+    def _persist_owner_confirmation_events(
+        self,
+        *,
+        state: AssistedWebSessionV1,
+        packet: dict[str, Any],
+    ) -> None:
+        semantic_run = packet.get("semantic_run")
+        semantic = semantic_run if isinstance(semantic_run, dict) else {}
+        events = semantic.get("owner_confirmation_events") or []
+        if not events:
+            return
+
+        if self._persist_tenant_confirmation is None or state.tenant_identity_contract is None:
+            if self._require_tenant_persistence:
+                raise Service1AssistedWebTenantPersistenceErrorV1(
+                    "tenant persistence is required but identity or adapter is unavailable"
+                )
+            return
+
+        persist_service_1_assisted_web_owner_events_v1(
+            identity_contract=state.tenant_identity_contract,
+            semantic_run=semantic,
+            ingestion_output=state.ingestion_output,
+            persist_contract=self._persist_tenant_confirmation,
         )
 
     def read_sales_collections_delivery(self, *, session_id: str) -> tuple[str, bytes]:
@@ -578,12 +696,31 @@ def _run_product_root(
     )
 
 
-def create_assisted_web_server_v1(*, host: str = "127.0.0.1", port: int = 8765, output_dir: str | Path | None = None) -> ThreadingHTTPServer:
-    application = AssistedWebApplicationV1(output_dir=output_dir)
-    return ThreadingHTTPServer((host, port), _handler_for(application))
+def create_assisted_web_server_v1(
+    *,
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    output_dir: str | Path | None = None,
+    persist_tenant_confirmation: Callable[[Any, Any], object] | None = None,
+    require_tenant_persistence: bool = False,
+    tenant_identity_resolver: Callable[[BaseHTTPRequestHandler], dict[str, str] | None] | None = None,
+) -> ThreadingHTTPServer:
+    application = AssistedWebApplicationV1(
+        output_dir=output_dir,
+        persist_tenant_confirmation=persist_tenant_confirmation,
+        require_tenant_persistence=require_tenant_persistence,
+    )
+    return ThreadingHTTPServer(
+        (host, port),
+        _handler_for(application, tenant_identity_resolver=tenant_identity_resolver),
+    )
 
 
-def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestHandler]:
+def _handler_for(
+    application: AssistedWebApplicationV1,
+    *,
+    tenant_identity_resolver: Callable[[BaseHTTPRequestHandler], dict[str, str] | None] | None = None,
+) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
             if self.path == "/":
@@ -642,6 +779,16 @@ def _handler_for(application: AssistedWebApplicationV1) -> type[BaseHTTPRequestH
         def do_POST(self) -> None:  # noqa: N802
             session_id = self._session_id()
             try:
+                if tenant_identity_resolver is not None:
+                    identity = tenant_identity_resolver(self)
+                    if identity is not None:
+                        application.bind_tenant_identity(
+                            session_id=session_id,
+                            tenant_id=identity.get("tenant_id", ""),
+                            cliente_id=identity.get("cliente_id") or None,
+                            owner_actor_id=identity.get("owner_actor_id", ""),
+                            owner_actor_role=identity.get("owner_actor_role", ""),
+                        )
                 if self.path == "/upload":
                     filename, content = _multipart_file(self)
                     status, content_html = application.receive_xlsx(session_id=session_id, filename=filename, content=content)

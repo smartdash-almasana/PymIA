@@ -18,6 +18,9 @@ dev = [
     "pytest>=7.0",
     "build>=1.2"
 ]
+supabase = [
+    "supabase>=2.0,<3"
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

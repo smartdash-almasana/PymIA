@@ -438,7 +438,7 @@ def _packet(
 def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
     if not isinstance(semantic_run, dict):
         return None
-    return {
+    payload = {
         "schema_version": semantic_run.get("schema_version"),
         "service_name": semantic_run.get("service_name"),
         "status": semantic_run.get("status"),
@@ -451,6 +451,14 @@ def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
         "delivery_authorized": False,
         "diagnosis_generated": False,
     }
+    owner_loop = semantic_run.get("owner_loop_packet")
+    if isinstance(owner_loop, dict):
+        events = owner_loop.get("owner_confirmation_events")
+        if isinstance(events, list) and events:
+            payload["owner_confirmation_events"] = [
+                dict(item) for item in events if isinstance(item, dict)
+            ]
+    return payload
 
 
 __all__ = [
