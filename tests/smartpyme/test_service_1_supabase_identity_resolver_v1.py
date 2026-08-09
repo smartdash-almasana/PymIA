@@ -135,6 +135,7 @@ def test_identity_config_requires_url_and_publishable_key() -> None:
 
 def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None:
     resolver = object()
+    persistence = object()
     calls: dict[str, object] = {}
     server = SimpleNamespace(serve_forever=lambda: calls.setdefault("served", True))
 
@@ -142,6 +143,11 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
         assisted_web,
         "Service1SupabaseIdentityResolverV1",
         SimpleNamespace(from_environment=lambda: resolver),
+    )
+    monkeypatch.setattr(
+        assisted_web,
+        "Service1SupabasePersistenceAdapterV1",
+        SimpleNamespace(from_environment=lambda: persistence),
     )
 
     def create_server(**kwargs):
@@ -156,6 +162,8 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
     assert calls["server_kwargs"] == {
         "host": "127.0.0.1",
         "port": 8765,
+        "persist_tenant_confirmation": persistence,
+        "require_tenant_persistence": True,
         "tenant_identity_resolver": resolver,
     }
     assert calls["served"] is True

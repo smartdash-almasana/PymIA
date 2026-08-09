@@ -49,6 +49,9 @@ from pymia.smartpyme.service_1_reconciliation_workpaper_xlsx_v1 import (
 from pymia.smartpyme.service_1_supabase_identity_resolver_v1 import (
     Service1SupabaseIdentityResolverV1,
 )
+from pymia.smartpyme.service_1_supabase_persistence_v1 import (
+    Service1SupabasePersistenceAdapterV1,
+)
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
 )
@@ -1541,9 +1544,12 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
     tenant_identity_resolver = Service1SupabaseIdentityResolverV1.from_environment()
+    tenant_persistence = Service1SupabasePersistenceAdapterV1.from_environment()
     server = create_assisted_web_server_v1(
         host=args.host,
         port=args.port,
+        persist_tenant_confirmation=tenant_persistence,
+        require_tenant_persistence=True,
         tenant_identity_resolver=tenant_identity_resolver,
     )
     print(f"Servicio 1 disponible en http://{args.host}:{args.port}")
