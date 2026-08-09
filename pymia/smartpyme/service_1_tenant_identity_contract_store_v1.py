@@ -1,0 +1,172 @@
+"""Append-only tenant store for Servicio 1 tenant identity contracts."""
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Mapping
+
+from pymia.smartpyme.service_1_tenant_identity_contract_v1 import (
+    Service1TenantIdentityContractErrorV1,
+    Service1TenantIdentityContractV1,
+    service_1_tenant_identity_contract_from_mapping_v1,
+)
+from pymia.smartpyme.storage import resolve_tenant_storage_root
+
+_ARTIFACT_NAME = "tenant_identity_contracts.jsonl"
+
+
+@dataclass(frozen=True)
+class Service1TenantIdentityContractAppendResultV1:
+    status: str
+    identity_contract_id: str
+    path: Path
+
+
+def _artifact_path(base_dir: str | Path, tenant_id: str) -> Path:
+    return resolve_tenant_storage_root(base_dir, tenant_id) / _ARTIFACT_NAME
+
+
+def _payload(
+    contract: Service1TenantIdentityContractV1 | Mapping[str, object],
+) -> dict[str, object]:
+    if isinstance(contract, Service1TenantIdentityContractV1):
+        return contract.to_dict()
+    if isinstance(contract, Mapping):
+        return dict(contract)
+    raise Service1TenantIdentityContractErrorV1(
+        "BLOCKED_IDENTITY_CONTEXT_MISMATCH",
+        "contract must be a V1 identity contract or mapping",
+    )
+
+
+def _read_contracts(path: Path, tenant_id: str) -> tuple[Service1TenantIdentityContractV1, ...]:
+    if not path.exists():
+        return ()
+    contracts: list[Service1TenantIdentityContractV1] = []
+    seen_by_id: dict[str, Service1TenantIdentityContractV1] = {}
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not raw_line.strip():
+            continue
+        try:
+            raw = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise Service1TenantIdentityContractErrorV1(
+                "BLOCKED_IDENTITY_CONTEXT_MISMATCH",
+                f"malformed tenant identity contract at line {line_number}",
+            ) from exc
+        if not isinstance(raw, dict):
+            raise Service1TenantIdentityContractErrorV1(
+                "BLOCKED_IDENTITY_CONTEXT_MISMATCH",
+                f"tenant identity contract line {line_number} is not an object",
+            )
+        contract = service_1_tenant_identity_contract_from_mapping_v1(raw)
+        if contract.tenant_id != tenant_id:
+            raise Service1TenantIdentityContractErrorV1(
+                "BLOCKED_CROSS_TENANT_ACCESS",
+                "stored identity contract does not belong to requested tenant",
+            )
+        if contract.identity_contract_id in seen_by_id:
+            prior_same_id = seen_by_id[contract.identity_contract_id]
+            if prior_same_id.to_dict() != contract.to_dict():
+                raise Service1TenantIdentityContractErrorV1(
+                    "BLOCKED_IDENTITY_CONTRACT_CONFLICT",
+                    "stored identity contract id has conflicting payloads",
+                )
+            continue
+        seen_by_id[contract.identity_contract_id] = contract
+        contracts.append(contract)
+    return tuple(contracts)
+
+
+def append_service_1_tenant_identity_contract_v1(
+    *,
+    base_dir: str | Path,
+    tenant_id: str,
+    contract: Service1TenantIdentityContractV1 | Mapping[str, object],
+) -> Service1TenantIdentityContractAppendResultV1:
+    path = _artifact_path(base_dir, tenant_id)
+    raw_payload = _payload(contract)
+    requested_id = str(raw_payload.get("identity_contract_id") or "")
+    existing = _read_contracts(path, tenant_id)
+
+    for recorded in existing:
+        if recorded.identity_contract_id != requested_id:
+            continue
+        if recorded.to_dict() == raw_payload:
+            return Service1TenantIdentityContractAppendResultV1(
+                status="TENANT_IDENTITY_CONTRACT_ALREADY_RECORDED",
+                identity_contract_id=recorded.identity_contract_id,
+                path=path,
+            )
+        raise Service1TenantIdentityContractErrorV1(
+            "BLOCKED_IDENTITY_CONTRACT_CONFLICT",
+            "identity contract id is already recorded with different content",
+        )
+
+    validated = service_1_tenant_identity_contract_from_mapping_v1(raw_payload)
+    if validated.tenant_id != tenant_id:
+        raise Service1TenantIdentityContractErrorV1(
+            "BLOCKED_CROSS_TENANT_ACCESS",
+            "argument tenant_id does not match contract tenant_id",
+        )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(
+        validated.to_dict(),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(line + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    return Service1TenantIdentityContractAppendResultV1(
+        status="TENANT_IDENTITY_CONTRACT_RECORDED",
+        identity_contract_id=validated.identity_contract_id,
+        path=path,
+    )
+
+
+def list_service_1_tenant_identity_contracts_v1(
+    *,
+    base_dir: str | Path,
+    tenant_id: str,
+) -> tuple[Service1TenantIdentityContractV1, ...]:
+    path = _artifact_path(base_dir, tenant_id)
+    return _read_contracts(path, tenant_id)
+
+
+def load_service_1_tenant_identity_contract_by_id_v1(
+    *,
+    base_dir: str | Path,
+    tenant_id: str,
+    identity_contract_id: str,
+) -> Service1TenantIdentityContractV1 | None:
+    requested_id = str(identity_contract_id or "").strip()
+    if not requested_id:
+        raise Service1TenantIdentityContractErrorV1(
+            "BLOCKED_IDENTITY_CONTEXT_MISMATCH",
+            "identity_contract_id is required",
+        )
+    return next(
+        (
+            contract
+            for contract in list_service_1_tenant_identity_contracts_v1(
+                base_dir=base_dir,
+                tenant_id=tenant_id,
+            )
+            if contract.identity_contract_id == requested_id
+        ),
+        None,
+    )
+
+
+__all__ = [
+    "Service1TenantIdentityContractAppendResultV1",
+    "append_service_1_tenant_identity_contract_v1",
+    "list_service_1_tenant_identity_contracts_v1",
+    "load_service_1_tenant_identity_contract_by_id_v1",
+]
