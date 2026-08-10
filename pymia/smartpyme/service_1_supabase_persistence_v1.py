@@ -14,6 +14,7 @@ from pymia.smartpyme.service_1_owner_confirmation_event_v1 import (
 )
 from pymia.smartpyme.service_1_tenant_semantic_contract_v1 import (
     Service1TenantSemanticContractV1,
+    service_1_tenant_semantic_contract_from_mapping_v1,
 )
 
 SUPABASE_URL_ENV = "PYMIA_SUPABASE_URL"
@@ -133,6 +134,116 @@ class Service1SupabasePersistenceAdapterV1:
     ) -> "Service1SupabasePersistenceAdapterV1":
         config = load_service_1_supabase_config_v1(environ)
         return cls(create_service_1_supabase_client_v1(config))
+
+    def list_owner_confirmation_memory(
+        self,
+        tenant_id: str,
+    ) -> tuple[dict[str, object], ...]:
+        tenant = str(tenant_id or "").strip()
+        if not tenant:
+            raise Service1SupabasePersistenceErrorV1("tenant_id is required for memory lookup")
+        try:
+            response = (
+                self._client.table(OWNER_CONFIRMATIONS_TABLE)
+                .select(
+                    "confirmation_event_ref,tenant_id,sheet_ref,column_ref,"
+                    "question_ref,owner_answer,confirmed_at"
+                )
+                .eq("tenant_id", tenant)
+                .order("confirmed_at", desc=True)
+                .execute()
+            )
+        except Exception as exc:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase tenant memory lookup failed"
+            ) from exc
+        data = _response_data(response)
+        if data is None:
+            return ()
+        if not isinstance(data, list):
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase tenant memory lookup returned invalid data"
+            )
+        rows: list[dict[str, object]] = []
+        for raw in data:
+            if not isinstance(raw, Mapping) or str(raw.get("tenant_id") or "") != tenant:
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase tenant memory lookup crossed tenant boundary"
+                )
+            rows.append(dict(raw))
+        return tuple(rows)
+
+    def load_current_semantic_contract(
+        self,
+        tenant_id: str,
+        source_system_ref: str,
+        source_context_ref: str,
+        sheet_ref: str,
+        source_column_name: str,
+    ) -> Service1TenantSemanticContractV1 | None:
+        tenant = str(tenant_id or "").strip()
+        system_ref = str(source_system_ref or "").strip()
+        context_ref = str(source_context_ref or "").strip()
+        sheet = str(sheet_ref or "").strip()
+        column = str(source_column_name or "").strip()
+        if not all((tenant, system_ref, context_ref, sheet, column)):
+            raise Service1SupabasePersistenceErrorV1(
+                "complete tenant semantic series identity is required"
+            )
+        try:
+            response = (
+                self._client.table(SEMANTIC_CONTRACTS_TABLE)
+                .select("tenant_id,revision,contract_id,contract_payload")
+                .eq("tenant_id", tenant)
+                .eq("source_system_ref", system_ref)
+                .eq("source_context_ref", context_ref)
+                .eq("sheet_ref", sheet)
+                .eq("source_column_name", column)
+                .order("revision", desc=True)
+                .limit(2)
+                .execute()
+            )
+        except Exception as exc:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase current semantic contract lookup failed"
+            ) from exc
+        data = _response_data(response)
+        if data is None or data == []:
+            return None
+        if not isinstance(data, list):
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase current semantic contract lookup returned invalid data"
+            )
+        contracts: list[Service1TenantSemanticContractV1] = []
+        for raw in data:
+            if not isinstance(raw, Mapping) or str(raw.get("tenant_id") or "") != tenant:
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase current semantic contract lookup crossed tenant boundary"
+                )
+            payload = raw.get("contract_payload")
+            if not isinstance(payload, Mapping):
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase current semantic contract payload is invalid"
+                )
+            contract = service_1_tenant_semantic_contract_from_mapping_v1(payload)
+            if (
+                contract.tenant_id != tenant
+                or contract.source_system_ref != system_ref
+                or contract.source_context_ref != context_ref
+                or contract.sheet_ref != sheet
+                or contract.source_column_name != column
+            ):
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase current semantic contract does not match requested series"
+                )
+            contracts.append(contract)
+        highest_revision = max(contract.revision for contract in contracts)
+        latest = [contract for contract in contracts if contract.revision == highest_revision]
+        if len({contract.contract_id for contract in latest}) != 1:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase current semantic contract revision is ambiguous"
+            )
+        return latest[0]
 
     def __call__(
         self,

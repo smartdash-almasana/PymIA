@@ -30,7 +30,12 @@ def _identity():
     )
 
 
-def _event(*, case_id: str = "case-001", file_ref: str = "ventas.xlsx"):
+def _event(
+    *,
+    case_id: str = "case-001",
+    file_ref: str = "ventas.xlsx",
+    timestamp: str | None = None,
+):
     return build_service_1_owner_confirmation_event_v1(
         case_id=case_id,
         file_ref=file_ref,
@@ -41,6 +46,7 @@ def _event(*, case_id: str = "case-001", file_ref: str = "ventas.xlsx"):
         owner_answer="saldo pendiente de cobro",
         confirmation_scope="FREE_TEXT_MEANING",
         corrected_meaning="saldo pendiente de cobro",
+        timestamp=timestamp,
     )
 
 
@@ -128,3 +134,59 @@ def test_false_or_none_persistence_confirmation_is_blocked():
                 normalized_column_ref="saldo",
                 persist_contract=lambda _event, _contract, value=backend_result: value,
             )
+
+
+def test_second_confirmation_supersedes_prior_contract_append_only():
+    recorded = []
+    first = persist_service_1_owner_confirmation_v1(
+        identity_contract=_identity(),
+        owner_confirmation_event=_event(timestamp="2026-08-09T20:00:00+00:00"),
+        source_column_name="Saldo",
+        normalized_column_ref="saldo",
+        persist_contract=lambda event, contract: recorded.append((event, contract)) or True,
+    )
+
+    second = persist_service_1_owner_confirmation_v1(
+        identity_contract=_identity(),
+        owner_confirmation_event=_event(timestamp="2026-08-09T20:05:00+00:00"),
+        source_column_name="Saldo",
+        normalized_column_ref="saldo",
+        persist_contract=lambda event, contract: recorded.append((event, contract)) or True,
+        load_prior_contract=lambda tenant, system, context, sheet, column: first.contract,
+    )
+
+    assert first.contract.revision == 1
+    assert first.contract.supersedes_contract_id is None
+    assert second.contract.revision == 2
+    assert second.contract.supersedes_contract_id == first.contract.contract_id
+    assert second.contract.mapping_series_id == first.contract.mapping_series_id
+    assert len(recorded) == 2
+    assert recorded[0][1].revision == 1
+    assert recorded[1][1].revision == 2
+
+
+def test_prior_lookup_failure_is_fail_closed_before_write():
+    writes = 0
+
+    def persist(_event, _contract):
+        nonlocal writes
+        writes += 1
+        return True
+
+    def broken_lookup(*_args):
+        raise RuntimeError("lookup unavailable")
+
+    with pytest.raises(
+        Service1TenantSemanticContractErrorV1,
+        match="prior-contract lookup failed",
+    ):
+        persist_service_1_owner_confirmation_v1(
+            identity_contract=_identity(),
+            owner_confirmation_event=_event(),
+            source_column_name="Saldo",
+            normalized_column_ref="saldo",
+            persist_contract=persist,
+            load_prior_contract=broken_lookup,
+        )
+
+    assert writes == 0

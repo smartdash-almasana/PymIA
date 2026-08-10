@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 
 from openpyxl import Workbook
 
+from pymia.smartpyme import service_1_assisted_web_v1 as assisted_web
 from pymia.smartpyme.service_1_assisted_web_v1 import (
     AssistedWebApplicationV1,
     create_assisted_web_server_v1,
@@ -224,3 +225,51 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+
+
+def test_tenant_memory_recall_is_visible_but_never_preselected(tmp_path: Path) -> None:
+    def load_memory(tenant_id: str):
+        assert tenant_id == "tenant-acme"
+        return (
+            {
+                "tenant_id": "tenant-acme",
+                "sheet_ref": "Ventas",
+                "column_ref": "venta_total",
+                "owner_answer": "sold_amount",
+                "confirmed_at": "2026-08-09T20:00:00Z",
+            },
+        )
+
+    app = AssistedWebApplicationV1(
+        output_dir=tmp_path / "outputs-memory",
+        load_tenant_memory=load_memory,
+    )
+    app.bind_tenant_identity(
+        session_id="session-memory",
+        tenant_id="tenant-acme",
+        cliente_id="cliente-001",
+        owner_actor_id="owner-001",
+        owner_actor_role="OWNER",
+    )
+    state = app.session("session-memory")
+    state.semantic_questions = [
+        {
+            "question_id": "q-1",
+            "sheet_name": "Ventas",
+            "column_name": "venta_total",
+            "question": "¿Qué representa venta_total?",
+            "context": "Confirmación explícita requerida.",
+            "options": [
+                {"option_id": "sold_amount", "label": "Ventas registradas"},
+                {"option_id": "OTHER", "label": "Otra cosa"},
+            ],
+        }
+    ]
+
+    enriched = app._with_tenant_memory_hints(state)
+    page = assisted_web._semantic_questions_page(enriched)
+
+    assert enriched[0]["tenant_memory_hint"] == "Ventas registradas"
+    assert "La vez anterior confirmaste" in page
+    assert "Ventas registradas" in page
+    assert "checked" not in page

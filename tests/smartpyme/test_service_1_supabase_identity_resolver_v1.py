@@ -135,7 +135,12 @@ def test_identity_config_requires_url_and_publishable_key() -> None:
 
 def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None:
     resolver = object()
-    persistence = object()
+    memory_loader = object()
+    prior_loader = object()
+    persistence = SimpleNamespace(
+        list_owner_confirmation_memory=memory_loader,
+        load_current_semantic_contract=prior_loader,
+    )
     calls: dict[str, object] = {}
     server = SimpleNamespace(serve_forever=lambda: calls.setdefault("served", True))
 
@@ -163,6 +168,8 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
         "host": "127.0.0.1",
         "port": 8765,
         "persist_tenant_confirmation": persistence,
+        "load_tenant_memory": memory_loader,
+        "load_prior_semantic_contract": prior_loader,
         "require_tenant_persistence": True,
         "tenant_identity_resolver": resolver,
     }

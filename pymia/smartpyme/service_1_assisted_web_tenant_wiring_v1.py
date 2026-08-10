@@ -56,6 +56,7 @@ def persist_service_1_assisted_web_owner_events_v1(
     semantic_run: Mapping[str, object] | None,
     ingestion_output: Mapping[str, object] | None,
     persist_contract: Callable[[Any, Any], object],
+    load_prior_contract: Callable[[str, str, str, str, str], object | None] | None = None,
 ) -> int:
     semantic = semantic_run if isinstance(semantic_run, Mapping) else {}
     events = [
@@ -104,6 +105,7 @@ def persist_service_1_assisted_web_owner_events_v1(
                 source_column_name=source_column_name,
                 normalized_column_ref=normalized_column_ref,
                 persist_contract=persist_contract,
+                load_prior_contract=load_prior_contract,
             )
         except Service1TenantSemanticContractErrorV1 as exc:
             raise Service1AssistedWebTenantPersistenceErrorV1(

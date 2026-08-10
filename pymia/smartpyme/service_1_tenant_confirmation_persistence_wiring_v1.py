@@ -19,6 +19,7 @@ from pymia.smartpyme.service_1_tenant_semantic_contract_v1 import (
     Service1TenantSemanticContractErrorV1,
     Service1TenantSemanticContractV1,
     build_service_1_tenant_semantic_contract_v1,
+    service_1_tenant_semantic_contract_from_mapping_v1,
 )
 
 STATUS_PERSISTED = "TENANT_CONFIRMATION_PERSISTED"
@@ -39,6 +40,10 @@ class Service1TenantConfirmationPersistenceResultV1:
 PersistencePortV1 = Callable[
     [Service1OwnerConfirmationEventV1, Service1TenantSemanticContractV1],
     object,
+]
+PriorContractLoaderPortV1 = Callable[
+    [str, str, str, str, str],
+    Service1TenantSemanticContractV1 | Mapping[str, object] | None,
 ]
 
 
@@ -98,6 +103,7 @@ def persist_service_1_owner_confirmation_v1(
     source_column_name: str,
     normalized_column_ref: str,
     persist_contract: PersistencePortV1,
+    load_prior_contract: PriorContractLoaderPortV1 | None = None,
     inferred_data_type: str | None = None,
     neighboring_column_refs: tuple[str, ...] = (),
     vertical_ref: str | None = None,
@@ -123,6 +129,32 @@ def persist_service_1_owner_confirmation_v1(
             "owner confirmation workbook does not match tenant identity contract",
         )
 
+    prior_contract = None
+    if load_prior_contract is not None:
+        try:
+            prior_contract = load_prior_contract(
+                identity.tenant_id,
+                identity.source_system_ref,
+                identity.source_context_ref,
+                event.sheet_ref,
+                source_column_name,
+            )
+        except Exception as exc:
+            raise Service1TenantSemanticContractErrorV1(
+                "BLOCKED_PERSISTENCE_FAILURE",
+                "tenant semantic prior-contract lookup failed",
+            ) from exc
+
+    revision = 1
+    if prior_contract is not None:
+        prior = (
+            prior_contract
+            if isinstance(prior_contract, Service1TenantSemanticContractV1)
+            else service_1_tenant_semantic_contract_from_mapping_v1(prior_contract)
+        )
+        revision = prior.revision + 1
+        prior_contract = prior
+
     contract = build_service_1_tenant_semantic_contract_v1(
         tenant_id=identity.tenant_id,
         cliente_id=identity.cliente_id,
@@ -137,6 +169,8 @@ def persist_service_1_owner_confirmation_v1(
         source_column_name=source_column_name,
         normalized_column_ref=normalized_column_ref,
         owner_confirmation_event=event,
+        revision=revision,
+        supersedes_contract=prior_contract,
         inferred_data_type=inferred_data_type,
         neighboring_column_refs=neighboring_column_refs,
         vertical_ref=vertical_ref,
@@ -171,6 +205,7 @@ def persist_service_1_owner_confirmation_v1(
 __all__ = [
     "STATUS_PERSISTED",
     "PersistencePortV1",
+    "PriorContractLoaderPortV1",
     "Service1TenantConfirmationPersistenceResultV1",
     "persist_service_1_owner_confirmation_v1",
 ]

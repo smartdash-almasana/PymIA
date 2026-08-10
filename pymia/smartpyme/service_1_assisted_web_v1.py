@@ -195,12 +195,16 @@ class AssistedWebApplicationV1:
         *,
         output_dir: str | Path | None = None,
         persist_tenant_confirmation: Callable[[Any, Any], object] | None = None,
+        load_tenant_memory: Callable[[str], tuple[dict[str, object], ...]] | None = None,
+        load_prior_semantic_contract: Callable[[str, str, str, str, str], object | None] | None = None,
         require_tenant_persistence: bool = False,
     ) -> None:
         if require_tenant_persistence and persist_tenant_confirmation is None:
             raise ValueError("tenant persistence adapter is required")
         self._sessions: dict[str, AssistedWebSessionV1] = {}
         self._persist_tenant_confirmation = persist_tenant_confirmation
+        self._load_tenant_memory = load_tenant_memory
+        self._load_prior_semantic_contract = load_prior_semantic_contract
         self._require_tenant_persistence = require_tenant_persistence
         self.output_dir = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="pymia-service-1-web-"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -577,10 +581,56 @@ class AssistedWebApplicationV1:
             raise
         if first_run.get("status") == STATUS_NEEDS_OWNER:
             state.semantic_questions = list(first_run.get("owner_questions") or [])
+            state.semantic_questions = self._with_tenant_memory_hints(state)
             return HTTPStatus.OK, _semantic_questions_page(state.semantic_questions)
         if first_run.get("status") == STATUS_BLOCKED:
             return HTTPStatus.OK, _blocked_result_page(first_run)
         return HTTPStatus.OK, _review_selection_page()
+
+    def _with_tenant_memory_hints(
+        self,
+        state: AssistedWebSessionV1,
+    ) -> list[dict[str, Any]]:
+        if self._load_tenant_memory is None or not state.tenant_id:
+            return list(state.semantic_questions)
+        try:
+            memory_rows = self._load_tenant_memory(state.tenant_id)
+        except Exception:
+            return list(state.semantic_questions)
+        latest_by_column: dict[tuple[str, str], dict[str, object]] = {}
+        for raw in memory_rows:
+            if not isinstance(raw, dict):
+                continue
+            sheet = str(raw.get("sheet_ref") or "").strip()
+            column = str(raw.get("column_ref") or "").strip()
+            if sheet and column:
+                latest_by_column.setdefault((sheet, column), raw)
+
+        enriched: list[dict[str, Any]] = []
+        for question in state.semantic_questions:
+            item = dict(question)
+            key = (
+                str(item.get("sheet_name") or "").strip(),
+                str(item.get("column_name") or "").strip(),
+            )
+            previous = latest_by_column.get(key)
+            if previous is not None:
+                previous_answer = str(previous.get("owner_answer") or "").strip()
+                matching_option = next(
+                    (
+                        option
+                        for option in (item.get("options") or [])
+                        if isinstance(option, dict)
+                        and str(option.get("option_id") or "").strip() == previous_answer
+                    ),
+                    None,
+                )
+                if matching_option is not None:
+                    label = str(matching_option.get("label") or "").strip()
+                    if label:
+                        item["tenant_memory_hint"] = label
+            enriched.append(item)
+        return enriched
 
     def confirm_meanings(self, *, session_id: str, fields: dict[str, str]) -> tuple[int, str]:
         state = self.session(session_id)
@@ -664,6 +714,7 @@ class AssistedWebApplicationV1:
             semantic_run=semantic,
             ingestion_output=state.ingestion_output,
             persist_contract=self._persist_tenant_confirmation,
+            load_prior_contract=self._load_prior_semantic_contract,
         )
 
     def read_sales_collections_delivery(self, *, session_id: str) -> tuple[str, bytes]:
@@ -708,12 +759,16 @@ def create_assisted_web_server_v1(
     port: int = 8765,
     output_dir: str | Path | None = None,
     persist_tenant_confirmation: Callable[[Any, Any], object] | None = None,
+    load_tenant_memory: Callable[[str], tuple[dict[str, object], ...]] | None = None,
+    load_prior_semantic_contract: Callable[[str, str, str, str, str], object | None] | None = None,
     require_tenant_persistence: bool = False,
     tenant_identity_resolver: Callable[[BaseHTTPRequestHandler], dict[str, str] | None] | None = None,
 ) -> ThreadingHTTPServer:
     application = AssistedWebApplicationV1(
         output_dir=output_dir,
         persist_tenant_confirmation=persist_tenant_confirmation,
+        load_tenant_memory=load_tenant_memory,
+        load_prior_semantic_contract=load_prior_semantic_contract,
         require_tenant_persistence=require_tenant_persistence,
     )
     return ThreadingHTTPServer(
@@ -1353,6 +1408,15 @@ def _reconciliation_item_text(item: Any) -> str:
     return _esc(" · ".join(parts) or "Caso para revisar")
 
 
+def _tenant_memory_note(memory_hint: str) -> str:
+    if not memory_hint:
+        return ""
+    return (
+        '<p class="notice">La vez anterior confirmaste: '
+        f'<strong>{_esc(memory_hint)}</strong>. Confirmalo nuevamente para continuar.</p>'
+    )
+
+
 def _semantic_questions_page(questions: list[dict[str, Any]], error: str | None = None) -> str:
     items = []
     for question in questions:
@@ -1361,9 +1425,11 @@ def _semantic_questions_page(questions: list[dict[str, Any]], error: str | None 
             f'<label><input type="radio" name="answer_{question_id}" value="{_esc(option.get("option_id"))}" required> {_esc(option.get("label"))}</label>'
             for option in question.get("options") or []
         )
+        memory_hint = str(question.get("tenant_memory_hint") or "").strip()
+        memory_note = _tenant_memory_note(memory_hint)
         items.append(f"""
         <fieldset><legend>{_esc(question.get('question') or '¿Qué representa esta columna?')}</legend>
-          <p>{_esc(question.get('context'))}</p>{options}
+          <p>{_esc(question.get('context'))}</p>{memory_note}{options}
           <label><input type="radio" name="answer_{question_id}" value="not_sure"> No estoy seguro</label>
           <label for="other_{question_id}">Si elegís Otra cosa, explicala</label><input id="other_{question_id}" name="other_{question_id}" type="text">
         </fieldset>""")
@@ -1549,6 +1615,8 @@ def main() -> None:
         host=args.host,
         port=args.port,
         persist_tenant_confirmation=tenant_persistence,
+        load_tenant_memory=tenant_persistence.list_owner_confirmation_memory,
+        load_prior_semantic_contract=tenant_persistence.load_current_semantic_contract,
         require_tenant_persistence=True,
         tenant_identity_resolver=tenant_identity_resolver,
     )
