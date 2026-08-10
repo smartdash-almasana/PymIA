@@ -312,7 +312,7 @@ c240080  refactor(service1): remove live root dependency and legacy evidence bri
 - Los contratos contables no ejecutan por existir.
 - El piloto controlado de conciliación está cerrado con comparación contra control, pero sus `76/76` decisiones permanecen `PENDING` para revisión humana.
 - No existe aceptación automática, asiento contable ni cierre definitivo de conciliación.
-- La confirmación explícita del primer contacto está implementada. La fundación aislada puede proyectar y persistir contratos semánticos append-only por tenant, pero todavía no está conectada a la web ni a la raíz productiva; reutilización y drift no están implementados.
+- La confirmación explícita del primer contacto está implementada y conectada al journey web real con identidad Supabase por tenant, persistencia durable append-only, memory recall asistido y supersesión versionada. La segunda carga puede mostrar antecedentes del mismo tenant sin preselección ni auto-reuse, exige reconfirmación explícita y persiste nuevas revisiones encadenadas (`revision=n+1`, `supersedes_contract_id=prior.contract_id`). El E2E físico real de LIQ_001 cerró memoria, supersesión, P6/P7/P8, P10 y descarga XLSX. Drift/contradiction resolution y semantic rebinding automático siguen fuera de alcance.
 - API y microservicios distribuidos no son el siguiente paso autorizado de conciliación.
 
 ## 9. Documentación de arquitectura

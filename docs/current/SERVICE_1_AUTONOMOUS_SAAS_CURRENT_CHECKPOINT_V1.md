@@ -128,13 +128,14 @@ invent business truth
 
 ## NEXT SAFE WORK
 
-Before adding API, worker, queue, persistence runtime, or autonomous execution surfaces:
+The identity/persistence/owner-memory SaaS foundation is now physically closed around the canonical chain: Supabase Auth tenant identity, durable tenant semantic persistence, assisted memory recall without preselection, append-only supersession, P6/P7/P8 reevaluation, P10-controlled delivery, and LIQ_001 XLSX download have all been exercised end to end.
 
-1. map each proposed SaaS component to P0–P10;
-2. prove it consumes existing canonical decisions rather than creating equivalents;
-3. define fail-closed boundaries and provenance;
-4. keep runtime/product/delivery authorization outside the orchestration shell;
-5. add composition tests against `service_1_product_pipeline_v1` and P10 gates.
+The next safe work is therefore product closure, not more SaaS infrastructure:
+
+1. close `REN_001 / net_margin_real` as the second sellable vertical;
+2. reuse the current web, identity, tenant memory, canonical P0–P10 chain, product root, and P10 delivery boundary;
+3. prove a real XLSX → owner confirmation → P6/P7/P8 → deterministic execution → P10 → downloadable XLSX path;
+4. do not add API, worker, queue, alternate persistence, or parallel orchestration authority unless a later physical gap demonstrates the need.
 
 ## STOP RULE
 
@@ -157,5 +158,5 @@ bypass of P10
 SERVICE_1_AUTONOMOUS_SAAS_CURRENT_CHECKPOINT_V1: RECONCILED
 CURRENT_AUTHORITY: P0→P10 + service_1_product_pipeline_v1
 AUTONOMOUS_SAAS: ORCHESTRATION_LAYER_ONLY
-NEXT_STEP: MAP_SAAS_COMPONENTS_TO_CANONICAL_CHAIN_BEFORE_IMPLEMENTATION
+NEXT_STEP: SERVICE_1_REN_001_SELLABLE_VERTICAL_CLOSURE_V1
 ```

@@ -172,37 +172,33 @@ Purpose:
 
 ## Current implementation priority
 
-Before adding more SaaS runtime infrastructure, every existing autonomous-SaaS artifact must be mapped to the current canonical chain.
-
-Required mapping questions:
+The SaaS foundation required for a real assisted owner journey is now materially present and physically exercised around the canonical chain:
 
 ```text
-Which P0–P10 stage does it support?
-What canonical object does it consume?
-What canonical object does it emit or transport?
-Does it create new authority?
-Does it duplicate an existing gate?
-Can it fail closed?
-What is its provenance contract?
-What is its deletion condition if temporary?
+Supabase Auth
+→ tenant identity
+→ XLSX intake
+→ owner confirmation
+→ durable tenant semantic persistence
+→ assisted tenant-memory recall without preselection
+→ append-only semantic-contract supersession
+→ P6/P7/P8
+→ deterministic execution
+→ P10
+→ downloadable XLSX
 ```
+
+This does not grant the SaaS shell any new domain authority. It remains transport/orchestration around P0–P10.
 
 ## Immediate next front
 
 ```text
-SAAS_COMPONENT_TO_P0_P10_MAPPING_AND_BOUNDARY_RECONCILIATION
+SERVICE_1_REN_001_SELLABLE_VERTICAL_CLOSURE_V1
 ```
 
-The next implementation work must not start by creating a runner, API, worker, queue, new gate, or alternate product route.
+The next implementation work should extend the already-proven product path to `REN_001 / net_margin_real` as a second sellable vertical, reusing the existing web, identity, persistence, semantic, execution and P10 boundaries.
 
-First prove that the proposed SaaS shell composes with:
-
-```text
-P0–P8 governed understanding/computability
-→ Service1GovernedComputationInputV1
-→ service_1_product_pipeline_v1
-→ P10 QA/delivery
-```
+Do not add runner, API, worker, queue, new gate, alternate product route or additional persistence architecture unless a later physical gap requires it.
 
 ## Not allowed
 
@@ -240,5 +236,5 @@ PARALLEL_AUTONOMOUS_PIPELINE: NOT_VALID
 CURRENT_PRODUCT_AUTHORITY: P0→P10
 PRODUCT_ROOT: service_1_product_pipeline_v1
 LLM_AUTHORITY: NONE
-NEXT_STEP: SAAS_COMPONENT_TO_P0_P10_MAPPING_AND_BOUNDARY_RECONCILIATION
+NEXT_STEP: SERVICE_1_REN_001_SELLABLE_VERTICAL_CLOSURE_V1
 ```
