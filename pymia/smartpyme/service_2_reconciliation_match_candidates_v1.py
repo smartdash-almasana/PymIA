@@ -102,7 +102,13 @@ def build_reconciliation_match_candidates_v1(
                 )
                 continue
 
-            if comparison["same_date_different_amount"]:
+            if (
+                not comparison["amount_match"]
+                and (
+                    comparison["date_match"]
+                    or comparison["reference_match"]
+                )
+            ):
                 amount_difference_edges.append(
                     {
                         "bank": bank,
@@ -111,6 +117,15 @@ def build_reconciliation_match_candidates_v1(
                     }
                 )
 
+    amount_difference_edges = _filter_amount_differences_by_reference_uniqueness(
+        amount_difference_edges,
+        bank_rows=bank_rows,
+        internal_rows=internal_rows,
+    )
+    candidate_edges = _suppress_probable_edges_shadowed_by_reference_amount_difference(
+        candidate_edges,
+        amount_difference_edges=amount_difference_edges,
+    )
     prioritized_edges = _apply_reference_priority(candidate_edges)
     resolved = _resolve_candidate_edges(prioritized_edges)
     pairwise_bank_indexes = {
@@ -605,6 +620,7 @@ def _compare_movements(
         _reference_tokens(bank_reference) & _reference_tokens(internal_reference)
     )
     reference_conflict = references_present and not reference_match and not reference_related
+    reference_low_information = reference_match and _reference_is_low_information(bank_reference)
 
     return {
         "amount_match": amount_match,
@@ -613,6 +629,7 @@ def _compare_movements(
         "reference_match": reference_match,
         "reference_related": reference_related,
         "reference_conflict": reference_conflict,
+        "reference_low_information": reference_low_information,
         "same_date_different_amount": date_match and not amount_match,
         "amount_delta": round(amount_delta, 2),
         "amount_tolerance": round(amount_tolerance, 6),
@@ -636,8 +653,34 @@ def _reference_tokens(value: str | None) -> set[str]:
     return {token for token in normalized.split() if token}
 
 
+def _reference_is_low_information(value: str | None) -> bool:
+    tokens = _reference_tokens(value)
+    if not tokens:
+        return False
+    if any(any(character.isdigit() for character in token) for token in tokens):
+        return False
+    generic_tokens = {
+        "pago",
+        "pagos",
+        "expensa",
+        "expensas",
+        "cobro",
+        "cobros",
+        "cobranza",
+        "cobranzas",
+        "transferencia",
+        "deposito",
+        "depósito",
+    }
+    return tokens <= generic_tokens
+
+
 def _candidate_match_type(comparison: dict[str, object]) -> str | None:
-    if comparison["amount_match"] and comparison["reference_match"]:
+    if (
+        comparison["amount_match"]
+        and comparison["reference_match"]
+        and not comparison.get("reference_low_information")
+    ):
         return MATCH_REFERENCE_EXACT
     if comparison["amount_match"] and comparison["date_match"]:
         return MATCH_ATTRIBUTES_EXACT
@@ -740,6 +783,85 @@ def _select_amount_differences(
             )
         )
     return selected
+
+
+def _filter_amount_differences_by_reference_uniqueness(
+    edges: list[dict[str, object]],
+    *,
+    bank_rows: list[dict[str, object]],
+    internal_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    bank_reference_counts: dict[str, int] = {}
+    internal_reference_counts: dict[str, int] = {}
+    for row in bank_rows:
+        reference = _reference_key(row.get("referencia"))
+        if reference is not None:
+            bank_reference_counts[reference] = bank_reference_counts.get(reference, 0) + 1
+    for row in internal_rows:
+        reference = _reference_key(row.get("referencia"))
+        if reference is not None:
+            internal_reference_counts[reference] = internal_reference_counts.get(reference, 0) + 1
+
+    filtered: list[dict[str, object]] = []
+    for edge in edges:
+        comparison = edge.get("comparison")
+        if not isinstance(comparison, dict):
+            continue
+        if bool(comparison.get("date_match")):
+            filtered.append(edge)
+            continue
+        if not bool(comparison.get("reference_match")):
+            continue
+        bank = edge.get("bank")
+        internal = edge.get("internal")
+        if not isinstance(bank, dict) or not isinstance(internal, dict):
+            continue
+        bank_reference = _reference_key(bank.get("referencia"))
+        internal_reference = _reference_key(internal.get("referencia"))
+        if (
+            bank_reference is not None
+            and bank_reference == internal_reference
+            and bank_reference_counts.get(bank_reference) == 1
+            and internal_reference_counts.get(bank_reference) == 1
+        ):
+            filtered.append(edge)
+    return filtered
+
+
+def _suppress_probable_edges_shadowed_by_reference_amount_difference(
+    edges: list[dict[str, object]],
+    *,
+    amount_difference_edges: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    anchored_bank_indexes: set[int] = set()
+    anchored_internal_indexes: set[int] = set()
+    for edge in amount_difference_edges:
+        comparison = edge.get("comparison")
+        if not isinstance(comparison, dict):
+            continue
+        if not (
+            bool(comparison.get("reference_match"))
+            or bool(comparison.get("reference_related"))
+        ):
+            continue
+        bank = edge.get("bank")
+        internal = edge.get("internal")
+        if isinstance(bank, dict):
+            anchored_bank_indexes.add(int(bank["index"]))
+        if isinstance(internal, dict):
+            anchored_internal_indexes.add(int(internal["index"]))
+
+    return [
+        edge
+        for edge in edges
+        if not (
+            edge.get("match_type") == MATCH_PROBABLE_DATE
+            and (
+                int(edge["bank"]["index"]) in anchored_bank_indexes  # type: ignore[index]
+                or int(edge["internal"]["index"]) in anchored_internal_indexes  # type: ignore[index]
+            )
+        )
+    ]
 
 
 def _apply_reference_priority(edges: list[dict[str, object]]) -> list[dict[str, object]]:

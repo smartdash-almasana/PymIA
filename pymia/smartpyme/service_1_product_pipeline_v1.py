@@ -56,6 +56,12 @@ from pymia.smartpyme.service_1_reconciliation_product_request_v1 import (
     STATUS_REVIEW_READY as RECONCILIATION_STATUS_REVIEW_READY,
     build_service_1_reconciliation_product_request_v1,
 )
+from pymia.smartpyme.service_1_consorcios_collection_aging_v1 import (
+    build_collection_aging_product_request_v1,
+)
+from pymia.smartpyme.service_1_consorcios_expense_variance_v1 import (
+    build_expense_variance_product_request_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
@@ -90,7 +96,64 @@ def run_service_1_product_pipeline_v1(
     deliver_result: bool = False,
     governed_results: object = None,
     reconciliation_request: Mapping[str, Any] | None = None,
+    collection_aging_request: Mapping[str, Any] | None = None,
+    expense_variance_request: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if expense_variance_request is not None:
+        if (
+            collection_aging_request is not None
+            or reconciliation_request is not None
+            or requested_capability is not None
+            or bool(tool_requests)
+            or deliver_result
+            or owner_answers is not None
+            or governed_results is not None
+        ):
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="EXPENSE_VARIANCE_REQUEST_MUST_BE_EXCLUSIVE",
+            )
+        variance_run = build_expense_variance_product_request_v1(request=dict(expense_variance_request))
+        if variance_run.get("status") != "EXPENSE_VARIANCE_REVIEW_READY":
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=str(variance_run.get("reason") or variance_run.get("status") or "EXPENSE_VARIANCE_REQUEST_BLOCKED"),
+                expense_variance_run=variance_run,
+            )
+        return _packet(
+            status="EXPENSE_VARIANCE_REVIEW_READY",
+            computation_result=variance_run.get("computation_result"),
+            bounded_outcome=variance_run.get("bounded_outcome"),
+            expense_variance_run=variance_run,
+        )
+
+    if collection_aging_request is not None:
+        if (
+            reconciliation_request is not None
+            or requested_capability is not None
+            or bool(tool_requests)
+            or deliver_result
+            or owner_answers is not None
+            or governed_results is not None
+        ):
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="COLLECTION_AGING_REQUEST_MUST_BE_EXCLUSIVE",
+            )
+        aging_run = build_collection_aging_product_request_v1(request=dict(collection_aging_request))
+        if aging_run.get("status") != "AGING_REVIEW_READY":
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=str(aging_run.get("reason") or aging_run.get("status") or "AGING_REQUEST_BLOCKED"),
+                collection_aging_run=aging_run,
+            )
+        return _packet(
+            status="AGING_REVIEW_READY",
+            computation_result=aging_run.get("computation_result"),
+            bounded_outcome=aging_run.get("bounded_outcome"),
+            collection_aging_run=aging_run,
+        )
+
     if reconciliation_request is not None:
         if (
             requested_capability is not None
@@ -380,6 +443,8 @@ def _packet(
     bounded_outcome: Any = None,
     delivery_result: Any = None,
     reconciliation_run: Any = None,
+    collection_aging_run: Any = None,
+    expense_variance_run: Any = None,
     owner_questions: list[dict[str, Any]] | None = None,
     owner_followup: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -396,6 +461,8 @@ def _packet(
         "bounded_outcome": bounded_outcome,
         "delivery_result": delivery_result,
         "reconciliation_run": reconciliation_run,
+        "collection_aging_run": collection_aging_run,
+        "expense_variance_run": expense_variance_run,
         "owner_questions": list(owner_questions or []),
         "owner_followup": [dict(item) for item in (owner_followup or [])],
         "semantic_bindings_confirmed": bool(
