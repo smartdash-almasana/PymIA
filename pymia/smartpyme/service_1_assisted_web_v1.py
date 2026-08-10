@@ -171,6 +171,17 @@ _RECONCILIATION_SOURCES: dict[str, tuple[tuple[str, str, tuple[tuple[str, str], 
 
 
 @dataclass
+class ConsorcioCaseContextV1:
+    case_id: str
+    consorcio_id: str
+    consorcio_name: str
+    period: str
+    source_files: tuple[str, ...] = ()
+    requested_review: str | None = None
+    case_status: str = "OPEN"
+
+
+@dataclass
 class AssistedWebSessionV1:
     ingestion_output: dict[str, Any] | None = None
     semantic_questions: list[dict[str, Any]] = field(default_factory=list)
@@ -184,6 +195,7 @@ class AssistedWebSessionV1:
     reconciliation_intakes: dict[str, dict[str, Any]] = field(default_factory=dict)
     reconciliation_result: dict[str, Any] | None = None
     reconciliation_decisions: list[dict[str, Any]] = field(default_factory=list)
+    consorcio_case_context: ConsorcioCaseContextV1 | None = None
     last_review_result: dict[str, Any] | None = None
 
 
@@ -240,6 +252,53 @@ class AssistedWebApplicationV1:
         state.owner_actor_role = role
         if identity_changed:
             state.tenant_identity_contract = None
+
+    def bind_consorcio_case_context(
+        self,
+        *,
+        session_id: str,
+        case_id: str,
+        consorcio_id: str,
+        consorcio_name: str,
+        period: str,
+        source_files: tuple[str, ...],
+    ) -> None:
+        normalized_case = str(case_id or "").strip()
+        normalized_consorcio = str(consorcio_id or "").strip()
+        normalized_name = str(consorcio_name or "").strip()
+        normalized_period = str(period or "").strip()
+        if not normalized_case or not normalized_consorcio or not normalized_name or not normalized_period:
+            raise ValueError("case_id, consorcio_id, consorcio_name and period are required")
+        try:
+            datetime.strptime(normalized_period, "%Y-%m")
+        except ValueError as error:
+            raise ValueError("period must use YYYY-MM") from error
+        files = tuple(str(item).strip() for item in source_files if str(item).strip())
+        if not files:
+            raise ValueError("at least one source file is required")
+        self.session(session_id).consorcio_case_context = ConsorcioCaseContextV1(
+            case_id=normalized_case,
+            consorcio_id=normalized_consorcio,
+            consorcio_name=normalized_name,
+            period=normalized_period,
+            source_files=files,
+        )
+
+    def _review_output_dir(self, *, session_id: str) -> Path:
+        state = self.session(session_id)
+        context = state.consorcio_case_context
+        if context is None:
+            return self.output_dir
+        parts = (
+            state.tenant_id or "unbound-tenant",
+            context.consorcio_id,
+            context.period,
+            context.case_id,
+        )
+        safe_parts = tuple(_safe_path_segment(part) for part in parts)
+        target = self.output_dir.joinpath("cases", *safe_parts)
+        target.mkdir(parents=True, exist_ok=True)
+        return target
 
     def start_reconciliation(self, *, session_id: str, reconciliation_type: str) -> tuple[int, str]:
         if reconciliation_type not in _RECONCILIATION_BY_TYPE:
@@ -661,21 +720,31 @@ class AssistedWebApplicationV1:
             return HTTPStatus.BAD_REQUEST, _review_selection_page("Elegí una revisión disponible.")
         if not state.ingestion_output:
             return HTTPStatus.BAD_REQUEST, _error_page("Primero subí y confirmá un archivo de Excel.")
+        review_output_dir = self._review_output_dir(session_id=session_id)
         packet = _run_product_root(
             ingestion_output=state.ingestion_output,
             owner_answers=state.semantic_answers,
             requested_capability=requested_capability,
-            output_dir=self.output_dir,
+            output_dir=review_output_dir,
             deliver_result=requested_capability in {"sold_vs_collected_gap", "net_margin_real"},
         )
+        if state.consorcio_case_context is not None:
+            state.consorcio_case_context.requested_review = requested_capability
         state.last_review_result = packet
         if packet.get("status") == STATUS_NEEDS_OWNER:
+            if state.consorcio_case_context is not None:
+                state.consorcio_case_context.case_status = "IN_REVIEW"
             state.semantic_questions = list(packet.get("owner_questions") or [])
             if any(not str(question.get("question_id") or "").strip() for question in state.semantic_questions):
                 return HTTPStatus.OK, _blocked_message_page("No se puede continuar con esa descripción. Elegí una opción clara o volvé a confirmar las columnas.")
             return HTTPStatus.OK, _semantic_questions_page(state.semantic_questions, "Hace falta una precisión más para continuar.")
         if packet.get("status") == STATUS_BLOCKED:
+            if state.consorcio_case_context is not None:
+                state.consorcio_case_context.case_status = "IN_REVIEW"
             return HTTPStatus.OK, _blocked_result_page(packet, requested_capability)
+
+        if state.consorcio_case_context is not None:
+            state.consorcio_case_context.case_status = "READY"
 
         try:
             self._persist_owner_confirmation_events(state=state, packet=packet)
@@ -753,7 +822,8 @@ class AssistedWebApplicationV1:
         if not output_path:
             raise ValueError(unavailable_message)
         target = Path(output_path)
-        if not target.is_file() or target.parent.resolve() != self.output_dir.resolve():
+        expected_dir = self._review_output_dir(session_id=session_id).resolve()
+        if not target.is_file() or target.parent.resolve() != expected_dir:
             raise ValueError("delivery path is invalid")
         return target.name, target.read_bytes()
 
@@ -897,7 +967,25 @@ def _handler_for(
                             owner_actor_role=identity.get("owner_actor_role", ""),
                         )
                 if self.path == "/upload":
-                    filename, content = _multipart_file(self)
+                    upload_fields, upload_files = _multipart_form(self)
+                    if "file" not in upload_files:
+                        raise ValueError("file field required")
+                    filename, content = upload_files["file"]
+                    consorcio_id = upload_fields.get("consorcio_id", "").strip()
+                    consorcio_name = upload_fields.get("consorcio_name", "").strip()
+                    period = upload_fields.get("period", "").strip()
+                    has_case_context = any((consorcio_id, consorcio_name, period))
+                    if has_case_context:
+                        if not all((consorcio_id, consorcio_name, period)):
+                            raise ValueError("consorcio context is incomplete")
+                        application.bind_consorcio_case_context(
+                            session_id=session_id,
+                            case_id=f"consorcio-{_safe_path_segment(consorcio_id)}-{period}",
+                            consorcio_id=consorcio_id,
+                            consorcio_name=consorcio_name,
+                            period=period,
+                            source_files=(filename,),
+                        )
                     status, content_html = application.receive_xlsx(session_id=session_id, filename=filename, content=content)
                 elif self.path == "/upload-reconciliation":
                     _, files = _multipart_form(self)
@@ -1020,6 +1108,15 @@ def _form_fields(handler: BaseHTTPRequestHandler) -> dict[str, str]:
     return {key: values[-1] if values else "" for key, values in parsed.items()}
 
 
+def _safe_path_segment(value: str) -> str:
+    raw = str(value or "").strip()
+    safe = "".join(character if character.isalnum() or character in {"-", "_", "."} else "_" for character in raw)
+    safe = safe.strip("._")
+    if not safe:
+        raise ValueError("invalid case path segment")
+    return safe[:120]
+
+
 def _document(content: str) -> str:
     template = _TEMPLATE_PATH.read_text(encoding="utf-8")
     return template.replace("{{content}}", content)
@@ -1038,6 +1135,16 @@ def _home_page(error: str | None = None) -> str:
       <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
         <label for="file">Elegir archivo</label>
         <input id="file" name="file" type="file" accept=".xlsx" required>
+        <details>
+          <summary>Contexto de Consorcios (si corresponde)</summary>
+          <label for="consorcio_id">Código del edificio/consorcio</label>
+          <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
+          <label for="consorcio_name">Nombre del edificio/consorcio</label>
+          <input id="consorcio_name" name="consorcio_name" type="text" autocomplete="off">
+          <label for="period">Período</label>
+          <input id="period" name="period" type="month">
+          <p>Si completás uno de estos datos, completá los tres.</p>
+        </details>
         <p>Tu archivo no se modifica.</p>
         <p>Antes de hacer cálculos, te pediremos que confirmes qué significa cada dato.</p>
         <button type="submit">Continuar</button>
