@@ -666,7 +666,7 @@ class AssistedWebApplicationV1:
             owner_answers=state.semantic_answers,
             requested_capability=requested_capability,
             output_dir=self.output_dir,
-            deliver_result=requested_capability == "sold_vs_collected_gap",
+            deliver_result=requested_capability in {"sold_vs_collected_gap", "net_margin_real"},
         )
         state.last_review_result = packet
         if packet.get("status") == STATUS_NEEDS_OWNER:
@@ -718,19 +718,43 @@ class AssistedWebApplicationV1:
         )
 
     def read_sales_collections_delivery(self, *, session_id: str) -> tuple[str, bytes]:
+        return self._read_last_review_delivery(
+            session_id=session_id,
+            expected_capability="sold_vs_collected_gap",
+            unavailable_message="sales and collections delivery is unavailable",
+        )
+
+    def read_net_margin_delivery(self, *, session_id: str) -> tuple[str, bytes]:
+        return self._read_last_review_delivery(
+            session_id=session_id,
+            expected_capability="net_margin_real",
+            unavailable_message="net margin delivery is unavailable",
+        )
+
+    def _read_last_review_delivery(
+        self,
+        *,
+        session_id: str,
+        expected_capability: str,
+        unavailable_message: str,
+    ) -> tuple[str, bytes]:
         packet = self.session(session_id).last_review_result
         if not isinstance(packet, dict):
-            raise ValueError("sales and collections result is required")
+            raise ValueError(unavailable_message)
+        outcome = packet.get("bounded_outcome")
+        outcome = outcome if isinstance(outcome, dict) else {}
+        if outcome.get("capability_ref") != expected_capability:
+            raise ValueError(unavailable_message)
         delivery_result = packet.get("delivery_result")
         delivery_packet = delivery_result if isinstance(delivery_result, dict) else {}
         delivery = delivery_packet.get("delivery")
         delivery = delivery if isinstance(delivery, dict) else {}
         output_path = str(delivery.get("output_path") or "").strip()
         if not output_path:
-            raise ValueError("sales and collections delivery is unavailable")
+            raise ValueError(unavailable_message)
         target = Path(output_path)
         if not target.is_file() or target.parent.resolve() != self.output_dir.resolve():
-            raise ValueError("sales and collections delivery path is invalid")
+            raise ValueError("delivery path is invalid")
         return target.name, target.read_bytes()
 
 
@@ -800,6 +824,28 @@ def _handler_for(
                     self._send_html(
                         HTTPStatus.BAD_REQUEST,
                         _error_page("Primero completá la revisión de ventas y cobranzas."),
+                        session_id=session_id,
+                    )
+                    return
+                self._send(
+                    HTTPStatus.OK,
+                    content,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    session_id=session_id,
+                    extra_headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"'
+                    },
+                )
+            elif self.path == "/download-net-margin":
+                session_id = self._session_id()
+                try:
+                    filename, content = application.read_net_margin_delivery(
+                        session_id=session_id
+                    )
+                except ValueError:
+                    self._send_html(
+                        HTTPStatus.BAD_REQUEST,
+                        _error_page("Primero completá la revisión de margen neto real."),
                         session_id=session_id,
                     )
                     return
@@ -1470,6 +1516,11 @@ def _evaluated_result_page(
     data = _data_used(computation, outcome)
     limitations = outcome.get("limitations") if isinstance(outcome.get("limitations"), (list, tuple)) else []
     finding = outcome.get("finding") or "El cálculo se completó con los datos confirmados."
+    download = (
+        '<p><a href="/download-net-margin">Descargar resultado de margen neto real (.xlsx)</a></p>'
+        if requested_capability == "net_margin_real" and packet.get("delivery_generated") is True
+        else '<p class="notice">La descarga no está habilitada para esta revisión.</p>'
+    )
     return f"""
     <main id="app" tabindex="-1"><h1>{_esc(title)}</h1>
       <p class="result"><strong>{_esc(value)} {_esc(unit)}</strong></p><p>{_esc(finding)}</p>
@@ -1478,7 +1529,7 @@ def _evaluated_result_page(
       <p>No determina por sí solo causas, problemas del negocio ni acciones a tomar.</p>
       <details><summary>Ver cómo se calculó</summary><p>Se aplicó el cálculo definido para esta revisión sobre los datos confirmados.</p></details>
       <h2>Límites de interpretación</h2><ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
-      <p class="notice">La descarga no está habilitada para esta revisión.</p>
+      {download}
       <div aria-live="polite">Resultado listo para revisar.</div></main>"""
 
 
