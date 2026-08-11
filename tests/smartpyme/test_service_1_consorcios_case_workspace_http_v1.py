@@ -158,6 +158,18 @@ def test_http_case_workspace_reuses_confirmed_control_bindings_without_cross_cas
         assert status == 200
         assert "UF-12" in rerun
         assert "2.5" in rerun
+
+        status, _, summary = _request(
+            server, "GET", "/consorcios-case-summary", headers={"Cookie": cookie}
+        )
+        assert status == 200
+        assert "Resumen del período" in summary
+        assert "Rivadavia 1200" in summary
+        assert "2026-08" in summary
+        assert "Realizado · 1 unidad(es) revisada(s)" in summary
+        assert "Gastos" in summary
+        assert "Pendiente" in summary
+        assert "Volver al caso" in summary
     finally:
         server.shutdown()
         server.server_close()

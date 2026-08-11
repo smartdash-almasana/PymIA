@@ -211,6 +211,8 @@ class AssistedWebSessionV1:
     reconciliation_result: dict[str, Any] | None = None
     reconciliation_decisions: list[dict[str, Any]] = field(default_factory=list)
     consorcio_case_context: ConsorcioCaseContextV1 | None = None
+    consorcios_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+    consorcios_radar_events: dict[str, list[dict[str, object]]] = field(default_factory=dict)
     last_review_result: dict[str, Any] | None = None
 
 
@@ -345,6 +347,32 @@ class AssistedWebApplicationV1:
             tables,
         )
 
+    def consorcios_case_summary(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        context = state.consorcio_case_context
+        if state.tenant_identity_contract is None or context is None:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero cargá un caso identificado de Consorcios."
+            )
+        bank_radar_events: list[dict[str, object]] = []
+        if isinstance(state.reconciliation_result, dict):
+            bank_radar_events = self._radar_events_for_bank_reconciliation(
+                state=state,
+                packet=state.reconciliation_result,
+            )
+        radar_events = [
+            event
+            for events in state.consorcios_radar_events.values()
+            for event in events
+        ] + bank_radar_events
+        return HTTPStatus.OK, _consorcios_case_summary_page(
+            context=context,
+            results=state.consorcios_results,
+            reconciliation_result=state.reconciliation_result,
+            reconciliation_decisions=state.reconciliation_decisions,
+            radar_events=radar_events,
+        )
+
     def consorcios_radar_analysis_menu(self, *, session_id: str) -> tuple[int, str]:
         state = self.session(session_id)
         if state.tenant_identity_contract is None or not state.ingestion_output:
@@ -425,6 +453,8 @@ class AssistedWebApplicationV1:
             )
         except ValueError:
             radar_events = []
+        state.consorcios_results["collection_aging"] = computation
+        state.consorcios_radar_events["collection_aging"] = radar_events
         state.last_review_result = packet
         return HTTPStatus.OK, _consorcios_collection_aging_result_page(
             computation,
@@ -518,6 +548,8 @@ class AssistedWebApplicationV1:
             )
         except ValueError:
             radar_events = []
+        state.consorcios_results["expense_variance"] = computation
+        state.consorcios_radar_events["expense_variance"] = radar_events
         state.last_review_result = packet
         return HTTPStatus.OK, _consorcios_expense_variance_result_page(
             computation,
@@ -568,13 +600,20 @@ class AssistedWebApplicationV1:
         files = tuple(str(item).strip() for item in source_files if str(item).strip())
         if not files:
             raise ValueError("at least one source file is required")
-        self.session(session_id).consorcio_case_context = ConsorcioCaseContextV1(
+        state = self.session(session_id)
+        state.consorcio_case_context = ConsorcioCaseContextV1(
             case_id=normalized_case,
             consorcio_id=normalized_consorcio,
             consorcio_name=normalized_name,
             period=normalized_period,
             source_files=files,
         )
+        state.consorcios_results = {}
+        state.consorcios_radar_events = {}
+        state.reconciliation_type = None
+        state.reconciliation_intakes = {}
+        state.reconciliation_result = None
+        state.reconciliation_decisions = []
 
     def _review_output_dir(self, *, session_id: str) -> Path:
         state = self.session(session_id)
@@ -1235,6 +1274,10 @@ def _handler_for(
             elif self.path == "/consorcios-case":
                 session_id = self._session_id()
                 status, content_html = application.consorcios_case_workspace(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
+            elif self.path == "/consorcios-case-summary":
+                session_id = self._session_id()
+                status, content_html = application.consorcios_case_summary(session_id=session_id)
                 self._send_html(status, content_html, session_id=session_id)
             elif self.path == "/consorcios-radar-analysis":
                 session_id = self._session_id()
@@ -2305,6 +2348,100 @@ def _consorcios_case_workspace_page(
         <p>Definí qué situaciones querés que PymIA te comunique para este tenant.</p>
         <p><a href="/radar">Configurar RADAR</a></p>
       </section>
+      <hr>
+      <p><a href="/consorcios-case-summary">Ver resumen del período</a></p>
+    </main>"""
+
+
+def _consorcios_case_summary_page(
+    *,
+    context: ConsorcioCaseContextV1,
+    results: dict[str, dict[str, Any]],
+    reconciliation_result: dict[str, Any] | None,
+    reconciliation_decisions: list[dict[str, Any]],
+    radar_events: list[dict[str, object]],
+) -> str:
+    aging = results.get("collection_aging") if isinstance(results.get("collection_aging"), dict) else None
+    expense = results.get("expense_variance") if isinstance(results.get("expense_variance"), dict) else None
+
+    aging_rows = aging.get("rows") if isinstance(aging, dict) and isinstance(aging.get("rows"), list) else []
+    expense_rows = expense.get("rows") if isinstance(expense, dict) and isinstance(expense.get("rows"), list) else []
+
+    aging_status = (
+        f"Realizado · {len(aging_rows)} unidad(es) revisada(s)"
+        if aging is not None
+        else "Pendiente"
+    )
+    expense_status = (
+        f"Realizado · {len(expense_rows)} rubro(s) revisado(s)"
+        if expense is not None
+        else "Pendiente"
+    )
+
+    bank_status = "Pendiente"
+    pending_review = 0
+    download_block = "<p>No hay archivos descargables generados todavía.</p>"
+    if isinstance(reconciliation_result, dict):
+        item_index = _reconciliation_review_item_index(reconciliation_result)
+        latest_decisions = {
+            str(record.get("review_item_ref") or ""): str(record.get("decision") or "").upper()
+            for record in reconciliation_decisions
+            if isinstance(record, dict)
+        }
+        pending_review = sum(
+            1
+            for item_ref in item_index
+            if latest_decisions.get(item_ref) not in {"CONFIRM", "REJECT"}
+        )
+        bank_status = f"Realizado · {len(item_index)} caso(s) para revisión"
+        download_block = '<p><a href="/download-reconciliation-workpaper">Descargar papel de trabajo bancario (.xlsx)</a></p>'
+
+    level_counts: dict[str, int] = {}
+    for event in radar_events:
+        level = str(event.get("communication_level") or "").strip()
+        if level:
+            level_counts[level] = level_counts.get(level, 0) + 1
+    radar_summary = (
+        "<ul>" + "".join(
+            f"<li><strong>{_esc(level)}</strong>: {_esc(count)}</li>"
+            for level, count in sorted(level_counts.items())
+        ) + "</ul>"
+        if level_counts
+        else "<p>Sin eventos RADAR para los controles ejecutados en este caso.</p>"
+    )
+
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>Resumen del período</h1>
+      <p><strong>{_esc(context.consorcio_name)}</strong> · {_esc(context.period)}</p>
+      <p>Estado del caso: <strong>{_esc(context.case_status)}</strong></p>
+
+      <section>
+        <h2>Cobranzas y deuda</h2>
+        <p>{_esc(aging_status)}</p>
+      </section>
+      <section>
+        <h2>Gastos</h2>
+        <p>{_esc(expense_status)}</p>
+      </section>
+      <section>
+        <h2>Banco</h2>
+        <p>{_esc(bank_status)}</p>
+      </section>
+      <section>
+        <h2>RADAR</h2>
+        {radar_summary}
+        <p>Los niveles son los niveles de comunicación definidos por el dueño; PymIA no asigna severidad.</p>
+      </section>
+      <section>
+        <h2>Pendientes de revisión</h2>
+        <p>{_esc(pending_review)} caso(s) bancario(s) todavía requieren una decisión humana.</p>
+      </section>
+      <section>
+        <h2>Descargas</h2>
+        {download_block}
+      </section>
+      <p><a href="/consorcios-case">Volver al caso</a></p>
     </main>"""
 
 
