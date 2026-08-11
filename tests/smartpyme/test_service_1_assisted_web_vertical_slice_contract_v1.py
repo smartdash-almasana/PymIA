@@ -29,7 +29,8 @@ def test_visible_interface_uses_plain_spanish() -> None:
 
     required_text = (
         "Revisar información de mi negocio",
-        "Elegir archivo",
+        "¿Qué querés controlar hoy?",
+        "Archivo de Excel",
         "Tu archivo no se modifica",
         "No estoy seguro",
         "¿Qué querés revisar?",

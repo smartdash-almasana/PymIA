@@ -37,9 +37,16 @@ def _request(server, method: str, path: str, body: bytes = b"", headers: dict[st
     return status, response_headers, response_body.decode("utf-8")
 
 
-def _multipart(filename: str, content: bytes) -> tuple[bytes, dict[str, str]]:
+def _multipart(filename: str, content: bytes, *, launch_review: str | None = None) -> tuple[bytes, dict[str, str]]:
     boundary = "Service1AssistedWebBoundary"
-    body = (
+    prefix = b""
+    if launch_review is not None:
+        prefix = (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="launch_review"\r\n\r\n'
+            f"{launch_review}\r\n"
+        ).encode("utf-8")
+    body = prefix + (
         f"--{boundary}\r\n"
         f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
         "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\r\n\r\n"
@@ -162,6 +169,131 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     assert [path.name for path in (tmp_path / "outputs").iterdir()] == [
         "service_1_liq_001_result.xlsx"
     ]
+
+
+def test_launch_service_first_flow_runs_selected_control_after_confirmation(assisted_server, tmp_path: Path) -> None:
+    status, _, home = _request(assisted_server, "GET", "/")
+    assert status == 200
+    assert "¿Qué querés controlar hoy?" in home
+    assert "Control de Cobros y Conciliación" in home
+    assert "Margen Real" in home
+    assert "Saldo de caja proyectado" not in home
+
+    body, headers = _multipart(
+        "ventas.xlsx",
+        _sales_xlsx(tmp_path),
+        launch_review="sold_vs_collected_gap",
+    )
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    assert "Confirmar qué significa cada dato" in page
+    cookie = _cookie(response_headers)
+
+    status, _, page = _form(
+        assisted_server,
+        "/confirm-meanings",
+        _semantic_confirmation_answers(page),
+        cookie,
+    )
+    assert status == 200
+    assert "Ventas y cobranzas" in page
+    assert "Total vendido" in page
+    assert "Diferencia" in page
+    assert 'href="/download-sales-collections"' in page
+
+
+def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assisted_server, tmp_path: Path) -> None:
+    body, headers = _multipart(
+        "ventas.xlsx",
+        _sales_xlsx(tmp_path),
+        launch_review="sold_vs_collected_gap",
+    )
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    cookie = _cookie(response_headers)
+    status, _, page = _form(
+        assisted_server,
+        "/confirm-meanings",
+        _semantic_confirmation_answers(page),
+        cookie,
+    )
+    assert status == 200
+    assert "Control de Cobros y Conciliación" in page
+
+    status, _, cases = _request(
+        assisted_server,
+        "GET",
+        "/cases",
+        headers={"Cookie": cookie},
+    )
+    assert status == 200
+    assert "Casos recientes" in cases
+    assert "Control de Cobros y Conciliación" in cases
+    match = re.search(r'href="(/case\?case_ref=[^"]+)"', cases)
+    assert match is not None
+
+    status, _, reopened = _request(
+        assisted_server,
+        "GET",
+        match.group(1),
+        headers={"Cookie": cookie},
+    )
+    assert status == 200
+    assert "Control de Cobros y Conciliación" in reopened
+    assert "Total vendido" in reopened
+    assert "3.000,00" in reopened
+
+    status, _, other_session_cases = _request(assisted_server, "GET", "/cases")
+    assert status == 200
+    assert "Todavía no hay controles terminados en esta sesión." in other_session_cases
+    assert "Control de Cobros y Conciliación" not in other_session_cases
+
+
+def _working_capital_xlsx(tmp_path: Path) -> bytes:
+    path = tmp_path / "capital_trabajo.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "CapitalTrabajo"
+    sheet.append([
+        "saldo_inicial",
+        "cobros_esperados",
+        "pagos_esperados",
+        "cuentas_por_cobrar",
+        "ventas_periodo",
+        "dias_periodo",
+        "activo_corriente",
+        "pasivo_corriente",
+    ])
+    sheet.append([1000, 2500, 1800, 3000, 9000, 30, 15000, 10000])
+    workbook.save(path)
+    return path.read_bytes()
+
+
+def test_launch_working_capital_composes_three_governed_controls(assisted_server, tmp_path: Path) -> None:
+    body, headers = _multipart(
+        "capital_trabajo.xlsx",
+        _working_capital_xlsx(tmp_path),
+        launch_review="working_capital",
+    )
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    cookie = _cookie(response_headers)
+    if "Confirmar qué significa cada dato" in page:
+        status, _, page = _form(
+            assisted_server,
+            "/confirm-meanings",
+            _semantic_confirmation_answers(page),
+            cookie,
+        )
+        assert status == 200
+    assert "Caja y Capital de Trabajo" in page
+    assert "Saldo de caja proyectado" in page
+    assert "Tiempo de cobro" in page
+    assert "Relación de corto plazo" in page
+    assert "1.700" in page or "1700" in page
+    assert "10.0 días" in page or "10 días" in page
+    assert "1.5" in page
+    assert "No determinan por sí solos insolvencia" in page
 
 
 def test_htmx_upload_returns_only_needed_semantic_questions_fragment(

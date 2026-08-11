@@ -101,8 +101,8 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
 ) -> None:
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
-    assert "Conciliar movimientos" in home
     assert "Conciliación bancaria" in home
+    assert "¿Qué querés controlar hoy?" in home
 
     status, response_headers, page = _form(
         assisted_server,

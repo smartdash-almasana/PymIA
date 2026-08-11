@@ -7,6 +7,7 @@ import json
 import math
 import secrets
 import tempfile
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from email import policy
@@ -15,7 +16,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     STATUS_UNCONFIRMED_READY as CANONICAL_UNCONFIRMED_READY,
@@ -88,6 +89,25 @@ _REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
     ("index_update_ratio", "Actualización entre índices", "Compará un índice de cierre con un índice de origen."),
 )
 _REVIEW_BY_REF = {item[0]: item for item in _REVIEW_OPTIONS}
+
+_LAUNCH_REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
+    (
+        "sold_vs_collected_gap",
+        "Control de Cobros y Conciliación",
+        "Compará lo vendido con lo cobrado y detectá diferencias que requieren revisión.",
+    ),
+    (
+        "net_margin_real",
+        "Margen Real",
+        "Calculá el margen con los componentes confirmados y conservá la evidencia utilizada.",
+    ),
+    (
+        "working_capital",
+        "Caja y Capital de Trabajo",
+        "Revisá caja proyectada, tiempo de cobro y liquidez de corto plazo con datos confirmados.",
+    ),
+)
+_LAUNCH_REVIEW_BY_REF = {item[0]: item for item in _LAUNCH_REVIEW_OPTIONS}
 
 _RECONCILIATION_OPTIONS: tuple[tuple[str, str, str], ...] = (
     (
@@ -213,6 +233,7 @@ class AssistedWebSessionV1:
     consorcio_case_context: ConsorcioCaseContextV1 | None = None
     consorcios_results: dict[str, dict[str, Any]] = field(default_factory=dict)
     consorcios_radar_events: dict[str, list[dict[str, object]]] = field(default_factory=dict)
+    selected_launch_review: str | None = None
     last_review_result: dict[str, Any] | None = None
 
 
@@ -232,6 +253,7 @@ class AssistedWebApplicationV1:
         if require_tenant_persistence and persist_tenant_confirmation is None:
             raise ValueError("tenant persistence adapter is required")
         self._sessions: dict[str, AssistedWebSessionV1] = {}
+        self._case_snapshots: dict[str, dict[str, dict[str, Any]]] = {}
         self._persist_tenant_confirmation = persist_tenant_confirmation
         self._load_tenant_memory = load_tenant_memory
         self._load_prior_semantic_contract = load_prior_semantic_contract
@@ -242,6 +264,65 @@ class AssistedWebApplicationV1:
 
     def session(self, session_id: str) -> AssistedWebSessionV1:
         return self._sessions.setdefault(session_id, AssistedWebSessionV1())
+
+    def _case_scope(self, *, session_id: str) -> str:
+        state = self.session(session_id)
+        tenant = str(state.tenant_id or "").strip()
+        return f"tenant:{tenant}" if tenant else f"session:{session_id}"
+
+    def _remember_case(
+        self,
+        *,
+        session_id: str,
+        case_id: str,
+        service_ref: str,
+        service_name: str,
+        status: str,
+        kind: str,
+        packet: dict[str, Any],
+        ingestion_output: dict[str, Any] | None = None,
+    ) -> None:
+        normalized_case = str(case_id or "").strip()
+        if not normalized_case:
+            return
+        scope = self._case_scope(session_id=session_id)
+        case_ref = f"{normalized_case}::{str(service_ref or kind or 'control').strip()}"
+        self._case_snapshots.setdefault(scope, {})[case_ref] = {
+            "case_ref": case_ref,
+            "case_id": normalized_case,
+            "service_ref": str(service_ref or "").strip(),
+            "service_name": str(service_name or service_ref or "Control").strip(),
+            "status": str(status or "LISTO").strip(),
+            "kind": str(kind or "review").strip(),
+            "updated_at": datetime.now().isoformat(timespec="seconds"),
+            "packet": deepcopy(packet),
+            "ingestion_output": deepcopy(ingestion_output) if isinstance(ingestion_output, dict) else None,
+        }
+
+    def recent_cases(self, *, session_id: str) -> tuple[int, str]:
+        scope = self._case_scope(session_id=session_id)
+        snapshots = list(self._case_snapshots.get(scope, {}).values())
+        snapshots.sort(key=lambda item: str(item.get("updated_at") or ""), reverse=True)
+        return HTTPStatus.OK, _recent_cases_page(snapshots)
+
+    def open_case(self, *, session_id: str, case_ref: str) -> tuple[int, str]:
+        scope = self._case_scope(session_id=session_id)
+        snapshot = self._case_snapshots.get(scope, {}).get(str(case_ref or "").strip())
+        if snapshot is None:
+            return HTTPStatus.NOT_FOUND, _error_page("No encontramos ese caso en tus casos recientes.")
+        packet = snapshot.get("packet")
+        packet = packet if isinstance(packet, dict) else {}
+        if snapshot.get("kind") == "reconciliation":
+            return HTTPStatus.OK, _reconciliation_result_page(packet)
+        if snapshot.get("kind") == "working_capital":
+            return HTTPStatus.OK, _working_capital_result_page(packet)
+        service_ref = str(snapshot.get("service_ref") or "")
+        ingestion_output = snapshot.get("ingestion_output")
+        return HTTPStatus.OK, _evaluated_result_page(
+            packet,
+            service_ref,
+            ingestion_output=ingestion_output if isinstance(ingestion_output, dict) else {},
+        )
 
     def bind_tenant_identity(
         self,
@@ -813,6 +894,20 @@ class AssistedWebApplicationV1:
             radar_events = self._radar_events_for_bank_reconciliation(
                 state=state, packet=packet
             )
+            reconciliation_run = packet.get("reconciliation_run")
+            run = reconciliation_run if isinstance(reconciliation_run, dict) else {}
+            service_name = _RECONCILIATION_BY_TYPE.get(
+                reconciliation_type, ("", "Conciliación", "")
+            )[1]
+            self._remember_case(
+                session_id=session_id,
+                case_id=str(run.get("case_id") or ""),
+                service_ref=reconciliation_type,
+                service_name=service_name,
+                status="REQUIERE REVISIÓN",
+                kind="reconciliation",
+                packet=packet,
+            )
             return HTTPStatus.OK, _reconciliation_result_page(
                 packet, radar_events=radar_events
             )
@@ -947,7 +1042,20 @@ class AssistedWebApplicationV1:
             human_decisions=state.reconciliation_decisions,
         )
 
-    def receive_xlsx(self, *, session_id: str, filename: str, content: bytes) -> tuple[int, str]:
+    def receive_xlsx(
+        self,
+        *,
+        session_id: str,
+        filename: str,
+        content: bytes,
+        selected_launch_review: str | None = None,
+    ) -> tuple[int, str]:
+        if selected_launch_review is not None and selected_launch_review not in {
+            "sold_vs_collected_gap",
+            "net_margin_real",
+            "working_capital",
+        }:
+            return HTTPStatus.BAD_REQUEST, _error_page("Elegí un servicio disponible.")
         if not filename:
             return HTTPStatus.BAD_REQUEST, _error_page("Elegí un archivo de Excel para continuar.")
         if not filename.lower().endswith(".xlsx"):
@@ -980,6 +1088,7 @@ class AssistedWebApplicationV1:
         state.ingestion_output = canonical["ingestion_output"]
         state.semantic_questions = []
         state.semantic_answers = {}
+        state.selected_launch_review = selected_launch_review
         state.last_review_result = None
         state.tenant_identity_contract = None
 
@@ -1093,10 +1202,70 @@ class AssistedWebApplicationV1:
         state.semantic_questions = []
         if state.consorcio_case_context is not None and state.tenant_identity_contract is not None:
             return self.consorcios_case_workspace(session_id=session_id)
+        if state.selected_launch_review in _LAUNCH_REVIEW_BY_REF:
+            return self.run_review(
+                session_id=session_id,
+                requested_capability=state.selected_launch_review,
+            )
         return HTTPStatus.OK, _review_selection_page()
+
+    def run_working_capital(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        if not state.ingestion_output:
+            return HTTPStatus.BAD_REQUEST, _error_page("Primero subí y confirmá un archivo de Excel.")
+        capability_refs = (
+            "projected_closing_cash_balance",
+            "dso",
+            "current_ratio",
+        )
+        packets: dict[str, dict[str, Any]] = {}
+        for capability_ref in capability_refs:
+            packets[capability_ref] = _run_product_root(
+                ingestion_output=state.ingestion_output,
+                owner_answers=state.semantic_answers,
+                requested_capability=capability_ref,
+                output_dir=self._review_output_dir(session_id=session_id),
+                deliver_result=False,
+            )
+        computations = {
+            capability_ref: packet.get("computation_result")
+            if isinstance(packet.get("computation_result"), dict)
+            else {}
+            for capability_ref, packet in packets.items()
+        }
+        ready = {
+            capability_ref: computation
+            for capability_ref, computation in computations.items()
+            if computation.get("status") == "EVALUATED"
+        }
+        service_packet: dict[str, Any] = {
+            "schema_version": "SERVICE_1_WORKING_CAPITAL_SERVICE_V1",
+            "status": "READY" if len(ready) == len(capability_refs) else "NEEDS_EVIDENCE",
+            "service_ref": "working_capital",
+            "component_packets": packets,
+            "computed_components": ready,
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+        case_id = str(state.ingestion_output.get("case_id") or "").strip()
+        self._remember_case(
+            session_id=session_id,
+            case_id=case_id,
+            service_ref="working_capital",
+            service_name="Caja y Capital de Trabajo",
+            status="LISTO" if service_packet["status"] == "READY" else "FALTA INFORMACIÓN",
+            kind="working_capital",
+            packet=service_packet,
+            ingestion_output=state.ingestion_output,
+        )
+        return HTTPStatus.OK, _working_capital_result_page(service_packet)
 
     def run_review(self, *, session_id: str, requested_capability: str) -> tuple[int, str]:
         state = self.session(session_id)
+        if requested_capability == "working_capital":
+            return self.run_working_capital(session_id=session_id)
         if requested_capability not in _REVIEW_BY_REF:
             return HTTPStatus.BAD_REQUEST, _review_selection_page("Elegí una revisión disponible.")
         if not state.ingestion_output:
@@ -1134,6 +1303,25 @@ class AssistedWebApplicationV1:
                 "La confirmación fue recibida, pero no pudo guardarse de forma durable. No se registró como memoria del tenant."
             )
 
+        service_name = _LAUNCH_REVIEW_BY_REF.get(
+            requested_capability,
+            _REVIEW_BY_REF.get(requested_capability, (requested_capability, requested_capability, "")),
+        )[1]
+        case_id = str(
+            state.ingestion_output.get("case_id")
+            or state.ingestion_output.get("source_file_ref")
+            or requested_capability
+        ).strip()
+        self._remember_case(
+            session_id=session_id,
+            case_id=case_id,
+            service_ref=requested_capability,
+            service_name=service_name,
+            status="LISTO",
+            kind="review",
+            packet=packet,
+            ingestion_output=state.ingestion_output,
+        )
         return HTTPStatus.OK, _evaluated_result_page(
             packet,
             requested_capability,
@@ -1261,9 +1449,23 @@ def _handler_for(
 ) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
-            if self.path == "/":
+            parsed = urlsplit(self.path)
+            if parsed.path == "/":
                 self._send_html(HTTPStatus.OK, _home_page())
-            elif self.path == "/static/service_1_assisted_web_v1.css":
+            elif parsed.path == "/cases":
+                session_id = self._session_id()
+                status, content_html = application.recent_cases(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
+            elif parsed.path == "/case":
+                session_id = self._session_id()
+                query = parse_qs(parsed.query)
+                case_ref = str((query.get("case_ref") or [""])[-1]).strip()
+                status, content_html = application.open_case(
+                    session_id=session_id,
+                    case_ref=case_ref,
+                )
+                self._send_html(status, content_html, session_id=session_id)
+            elif parsed.path == "/static/service_1_assisted_web_v1.css":
                 self._send(HTTPStatus.OK, _STYLES_PATH.read_bytes(), "text/css; charset=utf-8")
             elif self.path == "/healthz":
                 self._send(HTTPStatus.OK, b'{"status":"ok"}', "application/json; charset=utf-8")
@@ -1370,6 +1572,7 @@ def _handler_for(
                     if "file" not in upload_files:
                         raise ValueError("file field required")
                     filename, content = upload_files["file"]
+                    launch_review = upload_fields.get("launch_review", "").strip()
                     consorcio_id = upload_fields.get("consorcio_id", "").strip()
                     consorcio_name = upload_fields.get("consorcio_name", "").strip()
                     period = upload_fields.get("period", "").strip()
@@ -1385,7 +1588,12 @@ def _handler_for(
                             period=period,
                             source_files=(filename,),
                         )
-                    status, content_html = application.receive_xlsx(session_id=session_id, filename=filename, content=content)
+                    status, content_html = application.receive_xlsx(
+                        session_id=session_id,
+                        filename=filename,
+                        content=content,
+                        selected_launch_review=launch_review or None,
+                    )
                 elif self.path == "/upload-reconciliation":
                     _, files = _multipart_form(self)
                     status, content_html = application.receive_reconciliation_sources(
@@ -1533,43 +1741,111 @@ def _safe_path_segment(value: str) -> str:
 
 def _document(content: str) -> str:
     template = _TEMPLATE_PATH.read_text(encoding="utf-8")
-    return template.replace("{{content}}", content)
+    enterprise_styles = """
+    <style>
+      :root{--navy:#0f172a;--slate:#475569;--line:#dbe3ec;--surface:#ffffff;--soft:#f8fafc;--blue:#1d4ed8;--blue2:#dbeafe;--green:#166534;--green2:#dcfce7;--amber:#92400e;--amber2:#fef3c7;--red:#991b1b;--red2:#fee2e2}
+      body{background:#f1f5f9;color:var(--navy)}
+      .app-shell{max-width:74rem;margin:0 auto;padding:1.25rem}
+      .app-topbar{display:flex;align-items:center;gap:1rem;justify-content:space-between;background:var(--navy);color:#fff;padding:.9rem 1.25rem;border-radius:0 0 .9rem .9rem;box-shadow:0 10px 30px rgba(15,23,42,.12)}
+      .app-brand{font-weight:800;letter-spacing:-.02em}.app-brand span{color:#93c5fd}.app-topbar nav{display:flex;gap:.8rem;flex-wrap:wrap}.app-topbar a{color:#e2e8f0;text-decoration:none;font-weight:650}
+      main#app{max-width:none;margin:0;background:transparent;border:0;padding:1.25rem 0 2rem}
+      main#app>h1{font-size:clamp(1.8rem,3vw,2.6rem);margin:.2rem 0 .75rem;letter-spacing:-.025em}
+      .eyebrow{display:inline-block;margin:0 0 .35rem;color:var(--blue);font-weight:800;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
+      section,.panel,fieldset,details{background:var(--surface);border:1px solid var(--line);border-radius:.8rem;padding:1rem}
+      section+section,section+hr,hr+section{margin-top:1rem} hr{border:0;border-top:1px solid var(--line);margin:1.25rem 0}
+      .choice{background:#fff;border:1px solid var(--line);border-radius:.75rem;padding:1rem;transition:.15s}.choice:has(input:checked){border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.10);background:#f8fbff}.choice strong{font-size:1rem}.choice span{display:block;margin:.3rem 0 0 1.75rem;color:var(--slate)}
+      input,select,button{font:inherit} input[type=file],input[type=text],select{border:1px solid #cbd5e1;border-radius:.55rem;padding:.65rem;background:#fff} button{border-radius:.55rem;padding:.7rem 1rem;font-weight:750;background:var(--blue);color:#fff;border:0} button:hover{filter:brightness(.96)}
+      table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:.75rem;overflow:hidden} th,td{text-align:left;padding:.8rem;border-bottom:1px solid #edf2f7} tr:last-child th,tr:last-child td{border-bottom:0} td{font-weight:700}
+      .result{font-size:2rem;font-weight:800;letter-spacing:-.02em}.notice{border:1px solid #bfdbfe;border-radius:.65rem;background:#eff6ff;color:#1e3a8a;padding:.8rem 1rem}
+      .status-chip{display:inline-flex;align-items:center;gap:.35rem;border-radius:999px;padding:.35rem .7rem;font-size:.78rem;font-weight:800}.status-ready{background:var(--green2);color:var(--green)}.status-review{background:var(--amber2);color:var(--amber)}.status-missing{background:var(--red2);color:var(--red)}
+      .result-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}.result-actions{display:flex;gap:.65rem;flex-wrap:wrap;margin:1rem 0}.result-actions a{display:inline-flex;padding:.65rem .9rem;border-radius:.55rem;background:var(--navy);color:#fff;text-decoration:none;font-weight:750}.result-actions a.secondary{background:#fff;color:var(--navy);border:1px solid var(--line)}
+      .metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}.metric{background:#fff;border:1px solid var(--line);border-radius:.75rem;padding:1rem}.metric small{display:block;color:var(--slate);font-weight:650}.metric strong{display:block;margin-top:.25rem;font-size:1.35rem}
+      @media(max-width:760px){.app-shell{padding:.8rem}.app-topbar{align-items:flex-start;flex-direction:column}.metric-grid{grid-template-columns:1fr}.choice span{margin-left:0}.result-head{display:block}}
+    </style>
+    """
+    if "</head>" in template:
+        template = template.replace("</head>", enterprise_styles + "</head>")
+    shell = (
+        '<header class="app-topbar"><div class="app-brand">Pym<span>IA</span> · Servicio 1</div>'
+        '<nav aria-label="Navegación"><a href="/">Controles</a><a href="/cases">Casos</a><a href="/radar">RADAR</a></nav></header>'
+        f'<div class="app-shell">{content}</div>'
+    )
+    return template.replace("{{content}}", shell)
+
+
+def _recent_cases_page(snapshots: list[dict[str, Any]]) -> str:
+    if not snapshots:
+        return """
+        <main id="app" tabindex="-1">
+          <p class="eyebrow">Casos</p>
+          <h1>Casos recientes</h1>
+          <section><p>Todavía no hay controles terminados en esta sesión.</p><a href="/">Iniciar un control</a></section>
+        </main>"""
+    rows = "".join(
+        f'''<tr>
+          <td><strong>{_esc(item.get("service_name"))}</strong></td>
+          <td>{_esc(item.get("status"))}</td>
+          <td>{_esc(item.get("updated_at"))}</td>
+          <td><a href="/case?case_ref={_esc(item.get("case_ref"))}">Abrir caso</a></td>
+        </tr>'''
+        for item in snapshots
+    )
+    return f"""
+    <main id="app" tabindex="-1">
+      <p class="eyebrow">Casos</p>
+      <div class="result-head"><div><h1>Casos recientes</h1><p>Volvé a abrir resultados ya ejecutados sin repetir el control.</p></div><a class="secondary" href="/">Nuevo control</a></div>
+      <section aria-label="Listado de casos recientes">
+        <table><thead><tr><th>Servicio</th><th>Estado</th><th>Actualizado</th><th>Acción</th></tr></thead><tbody>{rows}</tbody></table>
+      </section>
+      <p class="notice">Esta vista conserva resultados mientras la instancia web está activa. La persistencia durable de casos completos todavía no está habilitada.</p>
+    </main>"""
 
 
 def _home_page(error: str | None = None) -> str:
+    launch_options = "".join(
+        f'<label class="choice"><input type="radio" name="launch_review" value="{_esc(ref)}" required><strong>{_esc(name)}</strong><span>{_esc(description)}</span></label>'
+        for ref, name, description in _LAUNCH_REVIEW_OPTIONS
+    )
     reconciliation_options = "".join(
         f'<label class="choice"><input type="radio" name="reconciliation_type" value="{_esc(ref)}" required><strong>{_esc(name)}</strong><span>{_esc(description)}</span></label>'
         for ref, name, description in _RECONCILIATION_OPTIONS
     )
     return f"""
     <main id="app" tabindex="-1">
-      <h1>Revisar información de mi negocio</h1>
+      <p class="eyebrow">Servicio 1 · Controles empresariales</p>
+      <h1>¿Qué querés controlar hoy?</h1>
       {_error(error)}
-      <p>Subí un archivo de Excel y te ayudaremos a entenderlo paso a paso.</p>
-      <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
-        <label for="file">Elegir archivo</label>
-        <input id="file" name="file" type="file" accept=".xlsx" required>
-        <details>
-          <summary>Contexto de Consorcios (si corresponde)</summary>
-          <label for="consorcio_id">Código del edificio/consorcio</label>
-          <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
-          <label for="consorcio_name">Nombre del edificio/consorcio</label>
-          <input id="consorcio_name" name="consorcio_name" type="text" autocomplete="off">
-          <label for="period">Período</label>
-          <input id="period" name="period" type="month">
-          <p>Si completás uno de estos datos, completá los tres.</p>
-        </details>
-        <p>Tu archivo no se modifica.</p>
-        <p>Antes de hacer cálculos, te pediremos que confirmes qué significa cada dato.</p>
-        <button type="submit">Continuar</button>
-      </form>
+      <p>Elegí un servicio, cargá tus archivos y PymIA te muestra el resultado, la evidencia y lo que necesita revisión.</p>
+
+      <section aria-labelledby="launch-controls">
+        <h2 id="launch-controls">Controles disponibles</h2>
+        <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
+          {launch_options}
+          <label for="file">Archivo de Excel</label>
+          <input id="file" name="file" type="file" accept=".xlsx" required>
+          <p>Tu archivo no se modifica. Si un dato es ambiguo, PymIA te pide confirmación antes de calcular.</p>
+          <button type="submit">Iniciar control</button>
+        </form>
+      </section>
+
       <hr>
-      <h2>Conciliar movimientos</h2>
-      <p>Si querés comparar dos fuentes, elegí qué tipo de conciliación necesitás.</p>
-      <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
-        {reconciliation_options}
-        <button type="submit">Empezar conciliación</button>
-      </form>
+      <section aria-labelledby="bank-reconciliation">
+        <h2 id="bank-reconciliation">Conciliación bancaria</h2>
+        <p>Compará dos fuentes y revisá solamente coincidencias dudosas, diferencias y movimientos sin correspondencia.</p>
+        <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
+          {reconciliation_options}
+          <button type="submit">Empezar conciliación</button>
+        </form>
+      </section>
+
+      <aside class="notice">
+        <strong>RADAR</strong> · Después de cada control compatible podés definir condiciones para seguimiento, sin que PymIA decida por vos qué es importante.
+      </aside>
+      <details>
+        <summary>Contexto de Consorcios en validación</summary>
+        <p>La vertical Consorcios sigue disponible para pruebas de campo, pero no forma parte del portfolio general de lanzamiento.</p>
+        <p>Para usarla, cargá el archivo desde el flujo de prueba indicando código, nombre y período del consorcio.</p>
+      </details>
       <div class="notice" aria-live="polite"></div>
     </main>"""
 
@@ -1802,17 +2078,15 @@ def _reconciliation_result_page(
     radar_panel = _radar_event_panel(radar_events or [])
     return f"""
     <main id="app" tabindex="-1">
-      <h1>{_esc(title)}</h1>
+      <div class="result-head"><div><p class="eyebrow">Resultado del control</p><h1>{_esc(title)}</h1></div><span class="status-chip status-review">REQUIERE REVISIÓN</span></div>
       {_error(error)}
       {f'<p class="notice">{_esc(notice)}</p>' if notice else ''}
-      <p><strong>Revisión humana requerida.</strong> {_esc(status_note)}</p>
-      <p>Decisiones registradas en esta revisión: <strong>{decision_count}</strong>.</p>
-      <table><tbody>{rows}</tbody></table>
+      <section aria-labelledby="recon-summary"><h2 id="recon-summary">Qué encontramos</h2><p><strong>Revisión humana requerida.</strong> {_esc(status_note)}</p><p>Decisiones registradas en esta revisión: <strong>{decision_count}</strong>.</p><table><tbody>{rows}</tbody></table></section>
       {radar_panel}
-      {details}
-      <p><a href="/download-reconciliation-workpaper">Descargar papel de trabajo (.xlsx)</a></p>
+      <section aria-labelledby="recon-review"><h2 id="recon-review">Qué necesita revisión</h2>{details}</section>
+      <section aria-labelledby="recon-limits"><h2 id="recon-limits">Qué puede y qué no puede concluir PymIA</h2><p>PymIA no marcó ningún movimiento como conciliado, no modificó los archivos y no realizó ningún cierre contable.</p></section>
+      <div class="result-actions"><a href="/download-reconciliation-workpaper">Descargar papel de trabajo (.xlsx)</a><a class="secondary" href="/">Volver a controles</a></div>
       <p>El archivo incluye resultados, decisiones humanas y casos todavía pendientes.</p>
-      <p class="notice">PymIA no marcó ningún movimiento como conciliado, no modificó los archivos y no realizó ningún cierre contable.</p>
       <div aria-live="polite">Resultado de conciliación listo para revisar.</div>
     </main>"""
 
@@ -2074,15 +2348,67 @@ def _evaluated_result_page(
         else '<p class="notice">La descarga no está habilitada para esta revisión.</p>'
     )
     return f"""
-    <main id="app" tabindex="-1"><h1>{_esc(title)}</h1>
-      <p class="result"><strong>{_esc(value)} {_esc(unit)}</strong></p><p>{_esc(finding)}</p>
-      <h2>Datos utilizados</h2>{data}
-      <p>Este cálculo describe una relación matemática a partir de los datos confirmados.</p>
-      <p>No determina por sí solo causas, problemas del negocio ni acciones a tomar.</p>
-      <details><summary>Ver cómo se calculó</summary><p>Se aplicó el cálculo definido para esta revisión sobre los datos confirmados.</p></details>
-      <h2>Límites de interpretación</h2><ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
-      {download}
-      <div aria-live="polite">Resultado listo para revisar.</div></main>"""
+    <main id="app" tabindex="-1">
+      <div class="result-head"><div><p class="eyebrow">Resultado del control</p><h1>{_esc(title)}</h1></div><span class="status-chip status-ready">LISTO</span></div>
+      <section aria-labelledby="summary-title"><h2 id="summary-title">Qué encontramos</h2><p class="result"><strong>{_esc(value)} {_esc(unit)}</strong></p><p>{_esc(finding)}</p></section>
+      <section aria-labelledby="data-title"><h2 id="data-title">Datos utilizados</h2>{data}</section>
+      <section aria-labelledby="limits-title"><h2 id="limits-title">Qué puede y qué no puede concluir PymIA</h2>
+        <p>Este cálculo describe una relación matemática a partir de los datos confirmados.</p>
+        <p>No determina por sí solo causas, problemas del negocio ni acciones a tomar.</p>
+        <ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
+        <details><summary>Ver cómo se calculó</summary><p>Se aplicó el cálculo definido para esta revisión sobre los datos confirmados.</p></details>
+      </section>
+      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Volver a controles</a></div>
+      <div aria-live="polite">Resultado listo para revisar.</div>
+    </main>"""
+
+
+def _working_capital_result_page(packet: dict[str, Any]) -> str:
+    components = packet.get("computed_components") if isinstance(packet.get("computed_components"), dict) else {}
+    cash = components.get("projected_closing_cash_balance") if isinstance(components.get("projected_closing_cash_balance"), dict) else {}
+    dso = components.get("dso") if isinstance(components.get("dso"), dict) else {}
+    ratio = components.get("current_ratio") if isinstance(components.get("current_ratio"), dict) else {}
+
+    cash_value = (cash.get("computed") or {}).get("projected_closing_balance") if isinstance(cash.get("computed"), dict) else None
+    dso_value = (dso.get("computed") or {}).get("dso_days") if isinstance(dso.get("computed"), dict) else None
+    ratio_value = (ratio.get("computed") or {}).get("current_ratio_value") if isinstance(ratio.get("computed"), dict) else None
+    ready_count = sum(value is not None for value in (cash_value, dso_value, ratio_value))
+    complete = packet.get("status") == "READY"
+    status_label = "LISTO" if complete else "FALTA INFORMACIÓN"
+    status_class = "status-ready" if complete else "status-missing"
+
+    def metric(label: str, value: object, suffix: str = "") -> str:
+        rendered = "No disponible" if value is None else f"{value}{suffix}"
+        return f'<div class="metric"><small>{_esc(label)}</small><strong>{_esc(rendered)}</strong></div>'
+
+    missing = []
+    if cash_value is None:
+        missing.append("saldo inicial, cobros esperados y pagos esperados")
+    if dso_value is None:
+        missing.append("cuentas por cobrar, ventas del período y días")
+    if ratio_value is None:
+        missing.append("activo corriente y pasivo corriente")
+
+    return f"""
+    <main id="app" tabindex="-1">
+      <div class="result-head"><div><p class="eyebrow">Resultado del servicio</p><h1>Caja y Capital de Trabajo</h1></div><span class="status-chip {status_class}">{status_label}</span></div>
+      <p>Este servicio reúne controles de caja proyectada, tiempo de cobro y relación de corto plazo sin atribuir causas automáticas.</p>
+      <div class="metric-grid">
+        {metric('Saldo de caja proyectado', cash_value)}
+        {metric('Tiempo de cobro', dso_value, ' días')}
+        {metric('Relación de corto plazo', ratio_value)}
+      </div>
+      <section><h2>Qué encontramos</h2><p>Se pudieron completar <strong>{ready_count} de 3</strong> controles previstos para este servicio.</p></section>
+      <section><h2>Qué requiere revisión</h2>
+        {'<p>No faltan componentes para este recorrido sintético.</p>' if not missing else '<ul>' + ''.join(f'<li>Falta evidencia suficiente para { _esc(item) }.</li>' for item in missing) + '</ul>'}
+      </section>
+      <section><h2>Qué puede y qué no puede concluir PymIA</h2>
+        <p>Los resultados describen relaciones matemáticas sobre datos confirmados.</p>
+        <p>No determinan por sí solos insolvencia, mala gestión, necesidad de financiamiento ni causas del descalce.</p>
+      </section>
+      <div class="result-actions"><a class="secondary" href="/">Volver a controles</a><a class="secondary" href="/cases">Ver casos</a></div>
+      <div aria-live="polite">Resultado de Caja y Capital de Trabajo listo para revisar.</div>
+    </main>"""
 
 
 def _sales_collections_result_page(
@@ -2139,25 +2465,20 @@ def _sales_collections_result_page(
         if packet.get("delivery_generated") is True
         else '<p class="notice">La descarga no está disponible para este resultado.</p>'
     )
+    status_class = "status-review" if gap != 0 else "status-ready"
+    status_label = "REQUIERE REVISIÓN" if gap != 0 else "LISTO"
     return f"""
     <main id="app" tabindex="-1">
-      <h1>Ventas y cobranzas</h1>
-      <p>¿Qué vendiste, qué cobraste y qué diferencia queda en tus registros?</p>
-      <table><tbody>
-        <tr><th>Total vendido</th><td>{_esc(_format_amount(sold))}</td></tr>
-        <tr><th>Total cobrado</th><td>{_esc(_format_amount(collected))}</td></tr>
-        <tr><th>Diferencia</th><td>{_esc(_format_amount(gap))}</td></tr>
-        <tr><th>Porcentaje cobrado</th><td>{_esc(rate_text)}</td></tr>
-        <tr><th>Clasificación</th><td>{_esc(classification_label)}</td></tr>
-      </tbody></table>
-      <p><strong>{_esc(commercial_finding)}</strong></p>
-      <h2>Fuentes utilizadas</h2>
-      <p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p>
-      <ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul>
-      <p>Período: {_esc(period_text)}</p>
-      <h2>Límites de interpretación</h2>
-      <ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
-      {download}
+      <div class="result-head"><div><p class="eyebrow">Resultado del control</p><h1>Control de Cobros y Conciliación</h1><p><strong>Ventas y cobranzas</strong> · ¿Qué vendiste, qué cobraste y qué diferencia queda en tus registros?</p></div><span class="status-chip {status_class}">{status_label}</span></div>
+      <div class="metric-grid">
+        <div class="metric"><small>Total vendido</small><strong>{_esc(_format_amount(sold))}</strong></div>
+        <div class="metric"><small>Total cobrado</small><strong>{_esc(_format_amount(collected))}</strong></div>
+        <div class="metric"><small>Diferencia</small><strong>{_esc(_format_amount(gap))}</strong></div>
+      </div>
+      <section aria-labelledby="finding-title"><h2 id="finding-title">Qué encontramos</h2><p><strong>{_esc(commercial_finding)}</strong></p><p>Porcentaje cobrado: <strong>{_esc(rate_text)}</strong> · {_esc(classification_label)}</p></section>
+      <section aria-labelledby="sources-title"><h2 id="sources-title">Datos utilizados</h2><p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p><ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul><p>Período: {_esc(period_text)}</p></section>
+      <section aria-labelledby="limits-sales"><h2 id="limits-sales">Qué puede y qué no puede concluir PymIA</h2><ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul></section>
+      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Volver a controles</a></div>
       <div aria-live="polite">Resultado de ventas y cobranzas listo para revisar.</div>
     </main>"""
 

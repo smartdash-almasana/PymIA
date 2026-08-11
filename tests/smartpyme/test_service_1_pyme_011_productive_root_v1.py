@@ -43,7 +43,7 @@ def _candidate(column: str, role: str, variable: str) -> Service1ColumnSemanticC
         confidence=1.0,
         ambiguity_reason=None,
         owner_confirmation_required=False,
-        metadata={"primary_semantic_role": role, "owner_confirmed": True, "sample_based": False},
+        metadata={"primary_semantic_role": role, "sample_based": False},
     )
 
 
@@ -54,9 +54,21 @@ def _confirmed_packet() -> dict[str, object]:
         _candidate("dias_periodo", "period_days", "days"),
     )
     case_id = "case_pyme_011_real_governance"
+    owner_events = tuple(
+        {
+            "confirmed_by_owner": True,
+            "question_ref": f"Cobranzas::{candidate.source_column_name}",
+            "sheet_ref": "Cobranzas",
+            "column_ref": candidate.source_column_name,
+            "confirmation_scope": "SEMANTIC_ROLE",
+            "confirmed_role": candidate.candidate_semantic_roles[0],
+        }
+        for candidate in candidates
+    )
     p6 = build_service_1_p6_approval_decisions_v1(
         case_id=case_id,
         candidates=candidates,
+        owner_confirmation_events=owner_events,
     )
     requirements = build_service_1_requirement_matches_v1(p6)
     return {
