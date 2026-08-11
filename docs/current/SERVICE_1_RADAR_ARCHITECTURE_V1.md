@@ -379,22 +379,33 @@ Estas capacidades deberán incorporarse cuando la evidencia de clientes lo justi
 
 ---
 
-## 13. Relación con prototipos existentes
+## 13. Auditoría y decisión sobre prototipos anteriores
 
-Actualmente existen prototipos no consolidados:
+Prototipos auditados:
 
 ```text
 service_1_finding_envelope_v1.py
 service_1_consorcios_monthly_radar_v1.py
 ```
 
-No deben considerarse arquitectura RADAR definitiva.
+Decisión V1:
 
-Problema detectado:
+```text
+SERVICE_1_FINDING_ENVELOPE_V1       -> ELIMINAR COMO ARQUITECTURA RADAR
+SERVICE_1_CONSORCIOS_MONTHLY_RADAR_V1 -> ELIMINAR COMO ARQUITECTURA RADAR
+```
 
-`MonthlyRadarV1` actual usa una jerarquía fija `HIGH / MODERATE / LOW / INFO`, incompatible con el principio de que la significación y el nivel de comunicación pertenecen al dueño.
+No deben integrarse ni convertirse en dependencia del RADAR vigente.
 
-Estos prototipos pueden reutilizarse parcialmente como capa de composición/presentación, pero deben revisarse antes de consolidarse.
+Razones:
+
+1. `FindingEnvelopeV1` asigna `LOW / MODERATE / HIGH` a partir de clasificaciones de capacidades fuente. Eso convierte una clasificación técnica/local en significación RADAR sin intervención del dueño.
+2. `FindingEnvelopeV1` omite estados como `CURRENT` o `NORMAL`, aunque el dueño puede legítimamente querer observar o recibir una notificación sobre valores positivos o normales.
+3. `MonthlyRadarV1` prioriza automáticamente por `status + severity`, creando una política empresarial implícita que no pertenece al motor.
+4. `MonthlyRadarV1` implementa un motor vertical Consorcios, mientras que la arquitectura canónica exige un único motor transversal con plugs verticales.
+5. `RadarEventV1` + `communication_level` ya proveen el contrato correcto para una futura capa de composición/presentación sin necesidad de conservar la semántica antigua.
+
+Los archivos permanecen fuera del corte consolidado únicamente como prototipos históricos no integrados. Si se requiere una vista mensual o cola de comunicaciones, debe construirse posteriormente sobre `RadarEventV1`, sin `severity` propia ni ranking empresarial implícito.
 
 ---
 
