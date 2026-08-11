@@ -336,3 +336,155 @@ def test_bank_reconciliation_result_page_presents_matching_owner_radar_event(
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+
+
+def _consorcios_multi_xlsx_bytes(tmp_path: Path) -> bytes:
+    path = tmp_path / "consorcio_multi.xlsx"
+    workbook = Workbook()
+    aging = workbook.active
+    aging.title = "Expensas"
+    aging.append(["unidad_funcional", "saldo_anterior", "expensa_mes"])
+    aging.append(["UF-12", 250, 100])
+    expenses = workbook.create_sheet("Gastos")
+    expenses.append(["rubro", "importe"])
+    expenses.append(["Limpieza", 150])
+    budget = workbook.create_sheet("Presupuesto")
+    budget.append(["rubro", "presupuesto_mensual", "promedio_historico"])
+    budget.append(["Limpieza", 100, 100])
+    workbook.save(path)
+    return path.read_bytes()
+
+
+def test_consorcios_radar_web_runs_collection_aging_and_expense_variance_with_owner_policies(
+    tmp_path: Path,
+) -> None:
+    store = _RadarStore()
+    store.save_policy(
+        RadarObservationPolicyV1(
+            tenant_id="tenant-consorcio-multi",
+            policy_ref="aging-owner-policy",
+            observable_ref="consorcios.debt_equivalent_periods",
+            enabled=True,
+            operator="GTE",
+            comparison_value="2",
+            communication_level="ALERT",
+            confirmed_by_owner=True,
+        )
+    )
+    store.save_policy(
+        RadarObservationPolicyV1(
+            tenant_id="tenant-consorcio-multi",
+            policy_ref="expense-owner-policy",
+            observable_ref="consorcios.expense_budget_deviation_pct",
+            enabled=True,
+            operator="GT",
+            comparison_value="40",
+            communication_level="NOTIFICATION",
+            confirmed_by_owner=True,
+        )
+    )
+
+    def resolver(_handler):
+        return {
+            "tenant_id": "tenant-consorcio-multi",
+            "cliente_id": "cliente-consorcio-multi",
+            "owner_actor_id": "owner-consorcio-multi",
+            "owner_actor_role": "OWNER",
+        }
+
+    server = create_assisted_web_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "outputs-multi",
+        tenant_identity_resolver=resolver,
+        radar_policy_store=store,
+    )
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        upload_body, upload_headers = _multipart(
+            "consorcio_multi.xlsx", _consorcios_multi_xlsx_bytes(tmp_path)
+        )
+        status, headers, _ = _request(
+            server, "POST", "/upload", body=upload_body, headers=upload_headers
+        )
+        assert status == 200
+        cookie = _cookie(headers)
+
+        status, _, page = _request(
+            server,
+            "GET",
+            "/consorcios-radar-analysis",
+            headers={"Cookie": cookie},
+        )
+        assert status == 200
+        assert "Analizar Consorcio con RADAR" in page
+        assert "Antigüedad de deuda" in page
+        assert "Gastos contra presupuesto e histórico" in page
+
+        aging_form = urlencode(
+            {
+                "sheet_name": "Expensas",
+                "unidad_funcional": "unidad_funcional",
+                "saldo_anterior": "saldo_anterior",
+                "expensa_mes": "expensa_mes",
+            }
+        ).encode("utf-8")
+        status, _, aging_page = _request(
+            server,
+            "POST",
+            "/run-consorcios-collection-aging",
+            body=aging_form,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": str(len(aging_form)),
+                "Cookie": cookie,
+                "Authorization": "Bearer test-token",
+            },
+        )
+        assert status == 200
+        assert "Antigüedad de deuda" in aging_page
+        assert "UF-12" in aging_page
+        assert "2.5" in aging_page
+        assert "RADAR" in aging_page
+        assert "ALERT" in aging_page
+        assert "consorcios.debt_equivalent_periods" in aging_page
+        assert "GTE 2" in aging_page
+
+        expense_form = urlencode(
+            {
+                "expense_sheet": "Gastos",
+                "expense_rubro": "rubro",
+                "expense_importe": "importe",
+                "budget_sheet": "Presupuesto",
+                "budget_rubro": "rubro",
+                "presupuesto_mensual": "presupuesto_mensual",
+                "promedio_historico": "promedio_historico",
+            }
+        ).encode("utf-8")
+        status, _, expense_page = _request(
+            server,
+            "POST",
+            "/run-consorcios-expense-variance",
+            body=expense_form,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": str(len(expense_form)),
+                "Cookie": cookie,
+                "Authorization": "Bearer test-token",
+            },
+        )
+        assert status == 200
+        assert "Gastos del consorcio" in expense_page
+        assert "Limpieza" in expense_page
+        assert "50.0" in expense_page
+        assert "RADAR" in expense_page
+        assert "NOTIFICATION" in expense_page
+        assert "consorcios.expense_budget_deviation_pct" in expense_page
+        assert "GT 40" in expense_page
+        assert "HIGH" not in expense_page
+        assert "MODERATE" not in expense_page
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)

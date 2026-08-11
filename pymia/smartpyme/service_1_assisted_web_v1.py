@@ -33,6 +33,8 @@ from pymia.smartpyme.service_1_consorcios_radar_owner_policy_wiring_v1 import (
 )
 from pymia.smartpyme.service_1_consorcios_radar_plug_v1 import (
     project_bank_reconciliation_to_radar_v1,
+    project_collection_aging_to_radar_v1,
+    project_expense_variance_to_radar_v1,
 )
 from pymia.smartpyme.service_1_radar_supabase_persistence_v1 import (
     Service1RadarSupabasePersistenceAdapterV1,
@@ -324,6 +326,168 @@ class AssistedWebApplicationV1:
                 error=str(exc),
             )
         return HTTPStatus.OK, _radar_owner_policy_saved_page(policy)
+
+    def consorcios_radar_analysis_menu(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        if state.tenant_identity_contract is None or not state.ingestion_output:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero cargá un caso identificado de Consorcios."
+            )
+        tables = _canonical_tables_for_consorcios(state.ingestion_output)
+        if not tables:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "El archivo cargado no tiene tablas utilizables para Consorcios."
+            )
+        return HTTPStatus.OK, _consorcios_radar_analysis_page(tables)
+
+    def run_consorcios_collection_aging(
+        self,
+        *,
+        session_id: str,
+        fields: dict[str, str],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        if state.tenant_identity_contract is None or not state.ingestion_output:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero cargá un caso identificado de Consorcios."
+            )
+        tables = _canonical_tables_for_consorcios(state.ingestion_output)
+        try:
+            table = _selected_consorcios_table(tables, fields.get("sheet_name", ""))
+            bindings = {
+                "unidad_funcional": _selected_consorcios_column(table, fields.get("unidad_funcional", "")),
+                "saldo_anterior": _selected_consorcios_column(table, fields.get("saldo_anterior", "")),
+                "expensa_mes": _selected_consorcios_column(table, fields.get("expensa_mes", "")),
+            }
+        except ValueError as exc:
+            return HTTPStatus.BAD_REQUEST, _consorcios_radar_analysis_page(tables, error=str(exc))
+        approved = list(dict.fromkeys(bindings.values()))
+        request = {
+            "owner_requested": True,
+            "case_id": str(getattr(state.tenant_identity_contract, "case_id", "") or ""),
+            "sheet_name": str(table.get("sheet_name") or "Expensas"),
+            "rows": list(table.get("rows") or []),
+            "field_bindings": bindings,
+            "governance": _consorcios_owner_governance(approved),
+        }
+        packet = run_service_1_product_pipeline_v1(
+            ingestion_output=None,
+            tool_requests=[],
+            output_dir=self._review_output_dir(session_id=session_id),
+            collection_aging_request=request,
+        )
+        if packet.get("status") == STATUS_BLOCKED:
+            return HTTPStatus.OK, _blocked_message_page(
+                "No se pudo calcular la antigüedad de deuda con las columnas confirmadas."
+            )
+        computation = packet.get("computation_result")
+        computation = computation if isinstance(computation, dict) else {}
+        try:
+            observations = project_collection_aging_to_radar_v1(
+                computation_result=computation
+            )
+            radar_events = self._radar_events_for_observations(
+                state=state,
+                observations=observations,
+            )
+        except ValueError:
+            radar_events = []
+        state.last_review_result = packet
+        return HTTPStatus.OK, _consorcios_collection_aging_result_page(
+            computation,
+            radar_events=radar_events,
+        )
+
+    def run_consorcios_expense_variance(
+        self,
+        *,
+        session_id: str,
+        fields: dict[str, str],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        if state.tenant_identity_contract is None or not state.ingestion_output:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero cargá un caso identificado de Consorcios."
+            )
+        tables = _canonical_tables_for_consorcios(state.ingestion_output)
+        try:
+            expense_table = _selected_consorcios_table(tables, fields.get("expense_sheet", ""))
+            budget_table = _selected_consorcios_table(tables, fields.get("budget_sheet", ""))
+            expense_bindings = {
+                "rubro": _selected_consorcios_column(expense_table, fields.get("expense_rubro", "")),
+                "importe": _selected_consorcios_column(expense_table, fields.get("expense_importe", "")),
+            }
+            budget_bindings = {
+                "rubro": _selected_consorcios_column(budget_table, fields.get("budget_rubro", "")),
+                "presupuesto_mensual": _selected_consorcios_column(
+                    budget_table, fields.get("presupuesto_mensual", "")
+                ),
+                "promedio_historico": _selected_consorcios_column(
+                    budget_table, fields.get("promedio_historico", "")
+                ),
+            }
+        except ValueError as exc:
+            return HTTPStatus.BAD_REQUEST, _consorcios_radar_analysis_page(tables, error=str(exc))
+        approved = list(
+            dict.fromkeys([*expense_bindings.values(), *budget_bindings.values()])
+        )
+        request = {
+            "owner_requested": True,
+            "case_id": str(getattr(state.tenant_identity_contract, "case_id", "") or ""),
+            "expense_rows": list(expense_table.get("rows") or []),
+            "budget_rows": list(budget_table.get("rows") or []),
+            "expense_bindings": expense_bindings,
+            "budget_bindings": budget_bindings,
+            "governance": _consorcios_owner_governance(approved),
+        }
+        packet = run_service_1_product_pipeline_v1(
+            ingestion_output=None,
+            tool_requests=[],
+            output_dir=self._review_output_dir(session_id=session_id),
+            expense_variance_request=request,
+        )
+        if packet.get("status") == STATUS_BLOCKED:
+            return HTTPStatus.OK, _blocked_message_page(
+                "No se pudo comparar gastos con presupuesto e histórico usando las columnas confirmadas."
+            )
+        computation = packet.get("computation_result")
+        computation = computation if isinstance(computation, dict) else {}
+        try:
+            observations = project_expense_variance_to_radar_v1(
+                computation_result=computation
+            )
+            radar_events = self._radar_events_for_observations(
+                state=state,
+                observations=observations,
+            )
+        except ValueError:
+            radar_events = []
+        state.last_review_result = packet
+        return HTTPStatus.OK, _consorcios_expense_variance_result_page(
+            computation,
+            radar_events=radar_events,
+        )
+
+    def _radar_events_for_observations(
+        self,
+        *,
+        state: AssistedWebSessionV1,
+        observations: object,
+    ) -> list[dict[str, object]]:
+        if self._radar_policy_store is None or state.tenant_identity_contract is None:
+            return []
+        rendered: list[dict[str, object]] = []
+        for observation in observations if isinstance(observations, tuple) else tuple(observations or ()):
+            events = evaluate_consorcios_radar_observation_with_owner_policy_v1(
+                identity_contract=state.tenant_identity_contract,
+                observation=observation,
+                policy_store=self._radar_policy_store,
+            )
+            for event in events:
+                payload = event.to_dict()
+                payload["entity_ref"] = observation.entity_ref
+                rendered.append(payload)
+        return rendered
 
     def bind_consorcio_case_context(
         self,
@@ -1010,6 +1174,10 @@ def _handler_for(
                 session_id = self._session_id()
                 status, content_html = application.radar_owner_menu(session_id=session_id)
                 self._send_html(status, content_html, session_id=session_id)
+            elif self.path == "/consorcios-radar-analysis":
+                session_id = self._session_id()
+                status, content_html = application.consorcios_radar_analysis_menu(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
             elif self.path == "/download-sales-collections":
                 session_id = self._session_id()
                 try:
@@ -1145,6 +1313,16 @@ def _handler_for(
                         status, content_html = application.run_review(session_id=session_id, requested_capability=fields.get("review", ""))
                     elif self.path == "/save-radar-policy":
                         status, content_html = application.save_radar_owner_policy(
+                            session_id=session_id,
+                            fields=fields,
+                        )
+                    elif self.path == "/run-consorcios-collection-aging":
+                        status, content_html = application.run_consorcios_collection_aging(
+                            session_id=session_id,
+                            fields=fields,
+                        )
+                    elif self.path == "/run-consorcios-expense-variance":
+                        status, content_html = application.run_consorcios_expense_variance(
                             session_id=session_id,
                             fields=fields,
                         )
@@ -1906,6 +2084,143 @@ def _data_used(computation: dict[str, Any], outcome: dict[str, Any]) -> str:
 def _blocked_result_page(packet: dict[str, Any], requested_capability: str | None = None) -> str:
     title = _REVIEW_BY_REF.get(requested_capability or "", ("", "Resultado", ""))[1]
     return _blocked_message_page(f"No se puede completar {title.lower()} con los datos confirmados. Revisá las columnas elegidas o seleccioná otra revisión.")
+
+
+def _canonical_tables_for_consorcios(ingestion_output: dict[str, Any]) -> list[dict[str, Any]]:
+    raw = ingestion_output.get("normalized_tables")
+    tables = [item for item in (raw or []) if isinstance(item, dict)]
+    return [table for table in tables if isinstance(table.get("rows"), list) and table.get("rows")]
+
+
+def _selected_consorcios_table(tables: list[dict[str, Any]], sheet_name: str) -> dict[str, Any]:
+    selected = str(sheet_name or "").strip()
+    for table in tables:
+        if str(table.get("sheet_name") or "").strip() == selected:
+            return table
+    raise ValueError("Elegí una hoja disponible.")
+
+
+def _consorcios_table_columns(table: dict[str, Any]) -> tuple[str, ...]:
+    rows = table.get("rows")
+    if not isinstance(rows, list):
+        return ()
+    columns: list[str] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        for key in row:
+            ref = str(key or "").strip()
+            if ref and ref not in columns:
+                columns.append(ref)
+    return tuple(columns)
+
+
+def _selected_consorcios_column(table: dict[str, Any], column: str) -> str:
+    selected = str(column or "").strip()
+    if selected not in _consorcios_table_columns(table):
+        raise ValueError("Elegí una columna disponible.")
+    return selected
+
+
+def _consorcios_owner_governance(approved_columns: list[str]) -> dict[str, object]:
+    return {
+        "p5_status": "CONFIRMED",
+        "p6_decisions": [
+            {"column_ref": column, "status": "APPROVED"}
+            for column in approved_columns
+        ],
+        "p7_status": "REQUIREMENT_MATCHED",
+        "p8_status": "COMPUTABLE",
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
+
+
+def _column_select(name: str, columns: tuple[str, ...]) -> str:
+    options = '<option value="">Elegir columna</option>' + "".join(
+        f'<option value="{_esc(column)}">{_esc(column)}</option>' for column in columns
+    )
+    return f'<select name="{_esc(name)}" required>{options}</select>'
+
+
+def _sheet_select(name: str, tables: list[dict[str, Any]]) -> str:
+    options = '<option value="">Elegir hoja</option>' + "".join(
+        f'<option value="{_esc(table.get("sheet_name"))}">{_esc(table.get("sheet_name"))}</option>'
+        for table in tables
+    )
+    return f'<select name="{_esc(name)}" required>{options}</select>'
+
+
+def _consorcios_radar_analysis_page(
+    tables: list[dict[str, Any]], error: str | None = None
+) -> str:
+    union_columns: list[str] = []
+    for table in tables:
+        for column in _consorcios_table_columns(table):
+            if column not in union_columns:
+                union_columns.append(column)
+    columns = tuple(union_columns)
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>Analizar Consorcio con RADAR</h1>
+      {_error(error)}
+      <p>Elegí las hojas y columnas que representan cada dato. PymIA no asigna significado sin tu confirmación.</p>
+      <h2>Antigüedad de deuda</h2>
+      <form action="/run-consorcios-collection-aging" method="post" hx-post="/run-consorcios-collection-aging" hx-target="#app" hx-swap="outerHTML">
+        <label>Hoja {_sheet_select('sheet_name', tables)}</label>
+        <label>Unidad funcional {_column_select('unidad_funcional', columns)}</label>
+        <label>Saldo anterior {_column_select('saldo_anterior', columns)}</label>
+        <label>Expensa del mes {_column_select('expensa_mes', columns)}</label>
+        <button type="submit">Calcular y evaluar RADAR</button>
+      </form>
+      <h2>Gastos contra presupuesto e histórico</h2>
+      <form action="/run-consorcios-expense-variance" method="post" hx-post="/run-consorcios-expense-variance" hx-target="#app" hx-swap="outerHTML">
+        <label>Hoja de gastos {_sheet_select('expense_sheet', tables)}</label>
+        <label>Rubro gasto {_column_select('expense_rubro', columns)}</label>
+        <label>Importe gasto {_column_select('expense_importe', columns)}</label>
+        <label>Hoja de presupuesto {_sheet_select('budget_sheet', tables)}</label>
+        <label>Rubro presupuesto {_column_select('budget_rubro', columns)}</label>
+        <label>Presupuesto mensual {_column_select('presupuesto_mensual', columns)}</label>
+        <label>Promedio histórico {_column_select('promedio_historico', columns)}</label>
+        <button type="submit">Comparar y evaluar RADAR</button>
+      </form>
+      <p><a href="/radar">Configurar reglas RADAR</a></p>
+    </main>"""
+
+
+def _consorcios_collection_aging_result_page(
+    computation: dict[str, Any], *, radar_events: list[dict[str, object]]
+) -> str:
+    rows = computation.get("rows") if isinstance(computation.get("rows"), list) else []
+    body = "".join(
+        f'<tr><td>{_esc(row.get("unidad_funcional"))}</td><td>{_esc(row.get("saldo_anterior"))}</td><td>{_esc(row.get("expensa_mes"))}</td><td>{_esc(row.get("periodos_equivalentes"))}</td></tr>'
+        for row in rows if isinstance(row, dict)
+    )
+    return f"""
+    <main id="app" tabindex="-1"><h1>Antigüedad de deuda</h1>
+      <table><thead><tr><th>Unidad</th><th>Saldo anterior</th><th>Expensa mes</th><th>Períodos equivalentes</th></tr></thead><tbody>{body}</tbody></table>
+      {_radar_event_panel(radar_events)}
+      <p><a href="/consorcios-radar-analysis">Volver a análisis Consorcios</a></p>
+    </main>"""
+
+
+def _consorcios_expense_variance_result_page(
+    computation: dict[str, Any], *, radar_events: list[dict[str, object]]
+) -> str:
+    rows = computation.get("rows") if isinstance(computation.get("rows"), list) else []
+    body = "".join(
+        f'<tr><td>{_esc(row.get("rubro"))}</td><td>{_esc(row.get("gasto_real"))}</td><td>{_esc(row.get("desvio_presupuesto_pct"))}</td><td>{_esc(row.get("desvio_promedio_pct"))}</td></tr>'
+        for row in rows if isinstance(row, dict)
+    )
+    return f"""
+    <main id="app" tabindex="-1"><h1>Gastos del consorcio</h1>
+      <table><thead><tr><th>Rubro</th><th>Gasto real</th><th>Desvío presupuesto %</th><th>Desvío histórico %</th></tr></thead><tbody>{body}</tbody></table>
+      {_radar_event_panel(radar_events)}
+      <p><a href="/consorcios-radar-analysis">Volver a análisis Consorcios</a></p>
+    </main>"""
 
 
 def _radar_owner_policy_page(menu: dict[str, object], error: str | None = None) -> str:
