@@ -26,6 +26,13 @@ from pymia.smartpyme.service_1_assisted_web_tenant_wiring_v1 import (
     build_service_1_assisted_web_tenant_identity_v1,
     persist_service_1_assisted_web_owner_events_v1,
 )
+from pymia.smartpyme.service_1_consorcios_radar_owner_policy_wiring_v1 import (
+    build_consorcios_radar_owner_menu_v1,
+    persist_consorcios_radar_owner_policy_v1,
+)
+from pymia.smartpyme.service_1_radar_supabase_persistence_v1 import (
+    Service1RadarSupabasePersistenceAdapterV1,
+)
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
     STATUS_COMPUTATION_PLAN_READY,
@@ -210,6 +217,7 @@ class AssistedWebApplicationV1:
         load_tenant_memory: Callable[[str], tuple[dict[str, object], ...]] | None = None,
         load_prior_semantic_contract: Callable[[str, str, str, str, str], object | None] | None = None,
         require_tenant_persistence: bool = False,
+        radar_policy_store: object | None = None,
     ) -> None:
         if require_tenant_persistence and persist_tenant_confirmation is None:
             raise ValueError("tenant persistence adapter is required")
@@ -218,6 +226,7 @@ class AssistedWebApplicationV1:
         self._load_tenant_memory = load_tenant_memory
         self._load_prior_semantic_contract = load_prior_semantic_contract
         self._require_tenant_persistence = require_tenant_persistence
+        self._radar_policy_store = radar_policy_store
         self.output_dir = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="pymia-service-1-web-"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -252,6 +261,65 @@ class AssistedWebApplicationV1:
         state.owner_actor_role = role
         if identity_changed:
             state.tenant_identity_contract = None
+
+    def radar_owner_menu(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        if state.tenant_identity_contract is None:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero cargá un caso identificado antes de configurar RADAR."
+            )
+        if self._radar_policy_store is None:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "RADAR todavía no está habilitado en este entorno."
+            )
+        menu = build_consorcios_radar_owner_menu_v1(
+            identity_contract=state.tenant_identity_contract
+        )
+        return HTTPStatus.OK, _radar_owner_policy_page(menu)
+
+    def save_radar_owner_policy(
+        self,
+        *,
+        session_id: str,
+        fields: dict[str, str],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        if state.tenant_identity_contract is None:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero cargá un caso identificado antes de configurar RADAR."
+            )
+        if self._radar_policy_store is None:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "RADAR todavía no está habilitado en este entorno."
+            )
+        comparison_raw = fields.get("comparison_value", "").strip()
+        if comparison_raw.lower() in {"true", "false"}:
+            comparison_value: str | bool = comparison_raw.lower() == "true"
+        else:
+            comparison_value = comparison_raw
+        try:
+            policy = persist_consorcios_radar_owner_policy_v1(
+                identity_contract=state.tenant_identity_contract,
+                owner_request={
+                    "policy_ref": fields.get("policy_ref", "").strip(),
+                    "observable_ref": fields.get("observable_ref", "").strip(),
+                    "enabled": fields.get("enabled") == "true",
+                    "operator": fields.get("operator", "").strip(),
+                    "comparison_value": comparison_value,
+                    "communication_level": fields.get("communication_level", "").strip(),
+                    "confirmed_by_owner": fields.get("confirmed_by_owner") == "true",
+                },
+                policy_store=self._radar_policy_store,
+            )
+        except ValueError as exc:
+            menu = build_consorcios_radar_owner_menu_v1(
+                identity_contract=state.tenant_identity_contract
+            )
+            return HTTPStatus.BAD_REQUEST, _radar_owner_policy_page(
+                menu,
+                error=str(exc),
+            )
+        return HTTPStatus.OK, _radar_owner_policy_saved_page(policy)
 
     def bind_consorcio_case_context(
         self,
@@ -857,6 +925,7 @@ def create_assisted_web_server_v1(
     load_prior_semantic_contract: Callable[[str, str, str, str, str], object | None] | None = None,
     require_tenant_persistence: bool = False,
     tenant_identity_resolver: Callable[[BaseHTTPRequestHandler], dict[str, str] | None] | None = None,
+    radar_policy_store: object | None = None,
 ) -> ThreadingHTTPServer:
     application = AssistedWebApplicationV1(
         output_dir=output_dir,
@@ -864,6 +933,7 @@ def create_assisted_web_server_v1(
         load_tenant_memory=load_tenant_memory,
         load_prior_semantic_contract=load_prior_semantic_contract,
         require_tenant_persistence=require_tenant_persistence,
+        radar_policy_store=radar_policy_store,
     )
     return ThreadingHTTPServer(
         (host, port),
@@ -884,6 +954,10 @@ def _handler_for(
                 self._send(HTTPStatus.OK, _STYLES_PATH.read_bytes(), "text/css; charset=utf-8")
             elif self.path == "/healthz":
                 self._send(HTTPStatus.OK, b'{"status":"ok"}', "application/json; charset=utf-8")
+            elif self.path == "/radar":
+                session_id = self._session_id()
+                status, content_html = application.radar_owner_menu(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
             elif self.path == "/download-sales-collections":
                 session_id = self._session_id()
                 try:
@@ -1017,6 +1091,11 @@ def _handler_for(
                         status, content_html = application.confirm_meanings(session_id=session_id, fields=fields)
                     elif self.path == "/run-review":
                         status, content_html = application.run_review(session_id=session_id, requested_capability=fields.get("review", ""))
+                    elif self.path == "/save-radar-policy":
+                        status, content_html = application.save_radar_owner_policy(
+                            session_id=session_id,
+                            fields=fields,
+                        )
                     else:
                         status, content_html = HTTPStatus.NOT_FOUND, _error_page("No encontramos esa acción.")
             except ValueError:
@@ -1600,6 +1679,7 @@ def _review_selection_page(error: str | None = None) -> str:
     return f"""
     <main id="app" tabindex="-1"><h1>¿Qué querés revisar?</h1>{_error(error)}
       <form action="/run-review" method="post" hx-post="/run-review" hx-target="#app" hx-swap="outerHTML">{options}<button type="submit">Ver resultado</button></form>
+      <hr><p><a href="/radar">Configurar RADAR para este consorcio</a></p>
       <div class="notice" aria-live="polite"></div></main>"""
 
 
@@ -1746,6 +1826,71 @@ def _blocked_result_page(packet: dict[str, Any], requested_capability: str | Non
     return _blocked_message_page(f"No se puede completar {title.lower()} con los datos confirmados. Revisá las columnas elegidas o seleccioná otra revisión.")
 
 
+def _radar_owner_policy_page(menu: dict[str, object], error: str | None = None) -> str:
+    observables = menu.get("observables") if isinstance(menu.get("observables"), list) else []
+    cards: list[str] = []
+    for item in observables:
+        if not isinstance(item, dict):
+            continue
+        operators = item.get("supported_operators") if isinstance(item.get("supported_operators"), list) else []
+        operator_options = "".join(
+            f'<option value="{_esc(operator)}">{_esc(operator)}</option>'
+            for operator in operators
+        )
+        observable_kind = str(item.get("observable_kind") or "")
+        if observable_kind == "OPERATION":
+            comparison_control = '<select name="comparison_value" required><option value="true">Sí</option><option value="false">No</option></select>'
+        else:
+            comparison_control = '<input name="comparison_value" type="number" step="any" required>'
+        cards.append(f"""
+        <section class="choice">
+          <h2>{_esc(item.get('display_name'))}</h2>
+          <p>{_esc(item.get('description') or '')}</p>
+          <p>Unidad: {_esc(item.get('unit'))} · Alcance: {_esc(item.get('entity_scope'))}</p>
+          <form action="/save-radar-policy" method="post" hx-post="/save-radar-policy" hx-target="#app" hx-swap="outerHTML">
+            <input type="hidden" name="observable_ref" value="{_esc(item.get('observable_ref'))}">
+            <input type="hidden" name="enabled" value="true">
+            <label>Identificador de esta regla</label>
+            <input name="policy_ref" type="text" required autocomplete="off">
+            <label>Condición</label>
+            <select name="operator" required>{operator_options}</select>
+            <label>Valor de comparación</label>
+            {comparison_control}
+            <label>Nivel de comunicación</label>
+            <select name="communication_level" required>
+              <option value="REPORT">Reporte a demanda</option>
+              <option value="NOTIFICATION">Notificación</option>
+              <option value="ALERT">Alerta</option>
+              <option value="URGENCY">Urgencia</option>
+            </select>
+            <label><input type="checkbox" name="confirmed_by_owner" value="true" required> Confirmo que esta condición y este nivel fueron elegidos por mí.</label>
+            <button type="submit">Guardar regla RADAR</button>
+          </form>
+        </section>""")
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>Configurar RADAR del consorcio</h1>
+      {_error(error)}
+      <p>Elegí qué querés observar, la frontera matemática y cómo querés que PymIA lo comunique.</p>
+      <p>RADAR no decide por vos qué es riesgo, positivo o urgente.</p>
+      {''.join(cards)}
+      <div class="notice" aria-live="polite"></div>
+    </main>"""
+
+
+def _radar_owner_policy_saved_page(policy: object) -> str:
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>Regla RADAR guardada</h1>
+      <p><strong>{_esc(getattr(policy, 'observable_ref', ''))}</strong></p>
+      <p>Condición: {_esc(getattr(policy, 'operator', ''))} {_esc(getattr(policy, 'comparison_value', ''))}</p>
+      <p>Nivel: {_esc(getattr(policy, 'communication_level', ''))}</p>
+      <p>La regla quedó asociada al tenant identificado y confirmada por el dueño.</p>
+      <p><a href="/radar">Configurar otra regla</a></p>
+      <div aria-live="polite">Regla RADAR guardada.</div>
+    </main>"""
+
+
 def _blocked_message_page(message: str) -> str:
     return f'<main id="app" tabindex="-1"><h1>No se puede continuar</h1><p role="alert">{_esc(message)}</p><p>La descarga no está habilitada.</p><div aria-live="polite">Necesita revisión.</div></main>'
 
@@ -1769,6 +1914,7 @@ def main() -> None:
     args = parser.parse_args()
     tenant_identity_resolver = Service1SupabaseIdentityResolverV1.from_environment()
     tenant_persistence = Service1SupabasePersistenceAdapterV1.from_environment()
+    radar_policy_store = Service1RadarSupabasePersistenceAdapterV1.from_environment()
     server = create_assisted_web_server_v1(
         host=args.host,
         port=args.port,
@@ -1777,6 +1923,7 @@ def main() -> None:
         load_prior_semantic_contract=tenant_persistence.load_current_semantic_contract,
         require_tenant_persistence=True,
         tenant_identity_resolver=tenant_identity_resolver,
+        radar_policy_store=radar_policy_store,
     )
     print(f"Servicio 1 disponible en http://{args.host}:{args.port}")
     server.serve_forever()
