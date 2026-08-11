@@ -28,7 +28,11 @@ from pymia.smartpyme.service_1_assisted_web_tenant_wiring_v1 import (
 )
 from pymia.smartpyme.service_1_consorcios_radar_owner_policy_wiring_v1 import (
     build_consorcios_radar_owner_menu_v1,
+    evaluate_consorcios_radar_observation_with_owner_policy_v1,
     persist_consorcios_radar_owner_policy_v1,
+)
+from pymia.smartpyme.service_1_consorcios_radar_plug_v1 import (
+    project_bank_reconciliation_to_radar_v1,
 )
 from pymia.smartpyme.service_1_radar_supabase_persistence_v1 import (
     Service1RadarSupabasePersistenceAdapterV1,
@@ -547,7 +551,12 @@ class AssistedWebApplicationV1:
                 "No se pudo preparar la conciliación con estos datos. Revisá los archivos y las columnas elegidas."
             )
         if packet.get("status") == STATUS_RECONCILIATION_REVIEW_READY:
-            return HTTPStatus.OK, _reconciliation_result_page(packet)
+            radar_events = self._radar_events_for_bank_reconciliation(
+                state=state, packet=packet
+            )
+            return HTTPStatus.OK, _reconciliation_result_page(
+                packet, radar_events=radar_events
+            )
         if packet.get("status") == STATUS_RECONCILIATION_NEEDS_EVIDENCE:
             reconciliation_run = packet.get("reconciliation_run")
             assisted_review = (
@@ -556,7 +565,12 @@ class AssistedWebApplicationV1:
                 else None
             )
             if isinstance(assisted_review, dict):
-                return HTTPStatus.OK, _reconciliation_result_page(packet)
+                radar_events = self._radar_events_for_bank_reconciliation(
+                    state=state, packet=packet
+                )
+                return HTTPStatus.OK, _reconciliation_result_page(
+                    packet, radar_events=radar_events
+                )
             return HTTPStatus.OK, _blocked_message_page(
                 "Faltan columnas o datos obligatorios para preparar la conciliación. "
                 "Revisá los archivos y las columnas elegidas."
@@ -564,6 +578,44 @@ class AssistedWebApplicationV1:
         return HTTPStatus.OK, _blocked_message_page(
             "La conciliación quedó en un estado que necesita revisión antes de continuar."
         )
+
+    def _radar_events_for_bank_reconciliation(
+        self,
+        *,
+        state: AssistedWebSessionV1,
+        packet: dict[str, Any],
+    ) -> list[dict[str, object]]:
+        if self._radar_policy_store is None or state.tenant_identity_contract is None:
+            return []
+        reconciliation_run = packet.get("reconciliation_run")
+        run = reconciliation_run if isinstance(reconciliation_run, dict) else {}
+        if str(run.get("reconciliation_type") or "") != BANK_RECONCILIATION:
+            return []
+        assisted_raw = run.get("assisted_review")
+        assisted = assisted_raw if isinstance(assisted_raw, dict) else {}
+        review_raw = assisted.get("review_result")
+        review = review_raw if isinstance(review_raw, dict) else {}
+        source_raw = review.get("source_result")
+        source_result = source_raw if isinstance(source_raw, dict) else review
+        try:
+            observations = project_bank_reconciliation_to_radar_v1(
+                reconciliation_result=source_result
+            )
+        except ValueError:
+            return []
+
+        rendered: list[dict[str, object]] = []
+        for observation in observations:
+            events = evaluate_consorcios_radar_observation_with_owner_policy_v1(
+                identity_contract=state.tenant_identity_contract,
+                observation=observation,
+                policy_store=self._radar_policy_store,
+            )
+            for event in events:
+                payload = event.to_dict()
+                payload["entity_ref"] = observation.entity_ref
+                rendered.append(payload)
+        return rendered
 
     def decide_reconciliation_item(
         self,
@@ -1420,6 +1472,7 @@ def _reconciliation_result_page(
     decisions: list[dict[str, Any]] | None = None,
     notice: str | None = None,
     error: str | None = None,
+    radar_events: list[dict[str, object]] | None = None,
 ) -> str:
     reconciliation_run = packet.get("reconciliation_run")
     run = reconciliation_run if isinstance(reconciliation_run, dict) else {}
@@ -1463,6 +1516,7 @@ def _reconciliation_result_page(
         decisions=decision_history,
     )
     decision_count = len(decision_history)
+    radar_panel = _radar_event_panel(radar_events or [])
     return f"""
     <main id="app" tabindex="-1">
       <h1>{_esc(title)}</h1>
@@ -1471,12 +1525,40 @@ def _reconciliation_result_page(
       <p><strong>Revisión humana requerida.</strong> {_esc(status_note)}</p>
       <p>Decisiones registradas en esta revisión: <strong>{decision_count}</strong>.</p>
       <table><tbody>{rows}</tbody></table>
+      {radar_panel}
       {details}
       <p><a href="/download-reconciliation-workpaper">Descargar papel de trabajo (.xlsx)</a></p>
       <p>El archivo incluye resultados, decisiones humanas y casos todavía pendientes.</p>
       <p class="notice">PymIA no marcó ningún movimiento como conciliado, no modificó los archivos y no realizó ningún cierre contable.</p>
       <div aria-live="polite">Resultado de conciliación listo para revisar.</div>
     </main>"""
+
+
+def _radar_event_panel(events: list[dict[str, object]]) -> str:
+    if not events:
+        return ""
+    items = []
+    for event in events:
+        level = str(event.get("communication_level") or "")
+        observable_ref = str(event.get("observable_ref") or "")
+        observed_value = event.get("observed_value")
+        operator = str(event.get("operator") or "")
+        comparison_value = event.get("comparison_value")
+        items.append(
+            "<li>"
+            f"<strong>{_esc(level)}</strong> — {_esc(observable_ref)}: "
+            f"valor observado <strong>{_esc(observed_value)}</strong>; "
+            f"regla del dueño {_esc(operator)} {_esc(comparison_value)}."
+            "</li>"
+        )
+    return (
+        '<section aria-label="Eventos RADAR">'
+        '<h2>RADAR</h2>'
+        '<p>Se cumplieron reglas de observación que configuraste para este tenant.</p>'
+        f"<ul>{''.join(items)}</ul>"
+        '<p>El nivel mostrado es el nivel de comunicación elegido por el dueño; no es una severidad asignada por PymIA.</p>'
+        "</section>"
+    )
 
 
 def _reconciliation_review_sections(
