@@ -192,6 +192,8 @@ class ConsorcioCaseContextV1:
     source_files: tuple[str, ...] = ()
     requested_review: str | None = None
     case_status: str = "OPEN"
+    collection_aging_bindings: dict[str, str] = field(default_factory=dict)
+    expense_variance_bindings: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -327,6 +329,22 @@ class AssistedWebApplicationV1:
             )
         return HTTPStatus.OK, _radar_owner_policy_saved_page(policy)
 
+    def consorcios_case_workspace(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        if state.tenant_identity_contract is None or not state.ingestion_output or state.consorcio_case_context is None:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero cargá un caso identificado de Consorcios."
+            )
+        tables = _canonical_tables_for_consorcios(state.ingestion_output)
+        if not tables:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "El archivo cargado no tiene tablas utilizables para Consorcios."
+            )
+        return HTTPStatus.OK, _consorcios_case_workspace_page(
+            state.consorcio_case_context,
+            tables,
+        )
+
     def consorcios_radar_analysis_menu(self, *, session_id: str) -> tuple[int, str]:
         state = self.session(session_id)
         if state.tenant_identity_contract is None or not state.ingestion_output:
@@ -352,15 +370,30 @@ class AssistedWebApplicationV1:
                 "Primero cargá un caso identificado de Consorcios."
             )
         tables = _canonical_tables_for_consorcios(state.ingestion_output)
+        context = state.consorcio_case_context
+        saved = context.collection_aging_bindings if context is not None else {}
+        effective = {
+            "sheet_name": fields.get("sheet_name", "").strip() or saved.get("sheet_name", ""),
+            "unidad_funcional": fields.get("unidad_funcional", "").strip() or saved.get("unidad_funcional", ""),
+            "saldo_anterior": fields.get("saldo_anterior", "").strip() or saved.get("saldo_anterior", ""),
+            "expensa_mes": fields.get("expensa_mes", "").strip() or saved.get("expensa_mes", ""),
+        }
         try:
-            table = _selected_consorcios_table(tables, fields.get("sheet_name", ""))
+            table = _selected_consorcios_table(tables, effective["sheet_name"])
             bindings = {
-                "unidad_funcional": _selected_consorcios_column(table, fields.get("unidad_funcional", "")),
-                "saldo_anterior": _selected_consorcios_column(table, fields.get("saldo_anterior", "")),
-                "expensa_mes": _selected_consorcios_column(table, fields.get("expensa_mes", "")),
+                "unidad_funcional": _selected_consorcios_column(table, effective["unidad_funcional"]),
+                "saldo_anterior": _selected_consorcios_column(table, effective["saldo_anterior"]),
+                "expensa_mes": _selected_consorcios_column(table, effective["expensa_mes"]),
             }
         except ValueError as exc:
-            return HTTPStatus.BAD_REQUEST, _consorcios_radar_analysis_page(tables, error=str(exc))
+            return HTTPStatus.BAD_REQUEST, _consorcios_case_workspace_page(
+                context, tables, error=str(exc)
+            ) if context is not None else _consorcios_radar_analysis_page(tables, error=str(exc))
+        if context is not None:
+            context.collection_aging_bindings = {
+                "sheet_name": str(table.get("sheet_name") or ""),
+                **bindings,
+            }
         approved = list(dict.fromkeys(bindings.values()))
         request = {
             "owner_requested": True,
@@ -410,24 +443,47 @@ class AssistedWebApplicationV1:
                 "Primero cargá un caso identificado de Consorcios."
             )
         tables = _canonical_tables_for_consorcios(state.ingestion_output)
+        context = state.consorcio_case_context
+        saved = context.expense_variance_bindings if context is not None else {}
+        effective = {
+            "expense_sheet": fields.get("expense_sheet", "").strip() or saved.get("expense_sheet", ""),
+            "expense_rubro": fields.get("expense_rubro", "").strip() or saved.get("expense_rubro", ""),
+            "expense_importe": fields.get("expense_importe", "").strip() or saved.get("expense_importe", ""),
+            "budget_sheet": fields.get("budget_sheet", "").strip() or saved.get("budget_sheet", ""),
+            "budget_rubro": fields.get("budget_rubro", "").strip() or saved.get("budget_rubro", ""),
+            "presupuesto_mensual": fields.get("presupuesto_mensual", "").strip() or saved.get("presupuesto_mensual", ""),
+            "promedio_historico": fields.get("promedio_historico", "").strip() or saved.get("promedio_historico", ""),
+        }
         try:
-            expense_table = _selected_consorcios_table(tables, fields.get("expense_sheet", ""))
-            budget_table = _selected_consorcios_table(tables, fields.get("budget_sheet", ""))
+            expense_table = _selected_consorcios_table(tables, effective["expense_sheet"])
+            budget_table = _selected_consorcios_table(tables, effective["budget_sheet"])
             expense_bindings = {
-                "rubro": _selected_consorcios_column(expense_table, fields.get("expense_rubro", "")),
-                "importe": _selected_consorcios_column(expense_table, fields.get("expense_importe", "")),
+                "rubro": _selected_consorcios_column(expense_table, effective["expense_rubro"]),
+                "importe": _selected_consorcios_column(expense_table, effective["expense_importe"]),
             }
             budget_bindings = {
-                "rubro": _selected_consorcios_column(budget_table, fields.get("budget_rubro", "")),
+                "rubro": _selected_consorcios_column(budget_table, effective["budget_rubro"]),
                 "presupuesto_mensual": _selected_consorcios_column(
-                    budget_table, fields.get("presupuesto_mensual", "")
+                    budget_table, effective["presupuesto_mensual"]
                 ),
                 "promedio_historico": _selected_consorcios_column(
-                    budget_table, fields.get("promedio_historico", "")
+                    budget_table, effective["promedio_historico"]
                 ),
             }
         except ValueError as exc:
-            return HTTPStatus.BAD_REQUEST, _consorcios_radar_analysis_page(tables, error=str(exc))
+            return HTTPStatus.BAD_REQUEST, _consorcios_case_workspace_page(
+                context, tables, error=str(exc)
+            ) if context is not None else _consorcios_radar_analysis_page(tables, error=str(exc))
+        if context is not None:
+            context.expense_variance_bindings = {
+                "expense_sheet": str(expense_table.get("sheet_name") or ""),
+                "expense_rubro": expense_bindings["rubro"],
+                "expense_importe": expense_bindings["importe"],
+                "budget_sheet": str(budget_table.get("sheet_name") or ""),
+                "budget_rubro": budget_bindings["rubro"],
+                "presupuesto_mensual": budget_bindings["presupuesto_mensual"],
+                "promedio_historico": budget_bindings["promedio_historico"],
+            }
         approved = list(
             dict.fromkeys([*expense_bindings.values(), *budget_bindings.values()])
         )
@@ -996,6 +1052,8 @@ class AssistedWebApplicationV1:
                 answers[question_id] = selected
         state.semantic_answers = answers
         state.semantic_questions = []
+        if state.consorcio_case_context is not None and state.tenant_identity_contract is not None:
+            return self.consorcios_case_workspace(session_id=session_id)
         return HTTPStatus.OK, _review_selection_page()
 
     def run_review(self, *, session_id: str, requested_capability: str) -> tuple[int, str]:
@@ -1173,6 +1231,10 @@ def _handler_for(
             elif self.path == "/radar":
                 session_id = self._session_id()
                 status, content_html = application.radar_owner_menu(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
+            elif self.path == "/consorcios-case":
+                session_id = self._session_id()
+                status, content_html = application.consorcios_case_workspace(session_id=session_id)
                 self._send_html(status, content_html, session_id=session_id)
             elif self.path == "/consorcios-radar-analysis":
                 session_id = self._session_id()
@@ -2154,6 +2216,98 @@ def _sheet_select(name: str, tables: list[dict[str, Any]]) -> str:
     return f'<select name="{_esc(name)}" required>{options}</select>'
 
 
+def _consorcios_case_workspace_page(
+    context: ConsorcioCaseContextV1,
+    tables: list[dict[str, Any]],
+    error: str | None = None,
+) -> str:
+    union_columns: list[str] = []
+    for table in tables:
+        for column in _consorcios_table_columns(table):
+            if column not in union_columns:
+                union_columns.append(column)
+    columns = tuple(union_columns)
+
+    aging_saved = all(
+        context.collection_aging_bindings.get(key)
+        for key in ("sheet_name", "unidad_funcional", "saldo_anterior", "expensa_mes")
+    )
+    if aging_saved:
+        aging_block = """
+        <p>Las columnas de este control ya fueron confirmadas para este caso.</p>
+        <form action="/run-consorcios-collection-aging" method="post" hx-post="/run-consorcios-collection-aging" hx-target="#app" hx-swap="outerHTML">
+          <button type="submit">Revisar cobranzas y deuda</button>
+        </form>"""
+    else:
+        aging_block = f"""
+        <p>Confirmá únicamente qué columnas representan estos datos para este caso.</p>
+        <form action="/run-consorcios-collection-aging" method="post" hx-post="/run-consorcios-collection-aging" hx-target="#app" hx-swap="outerHTML">
+          <label>Hoja {_sheet_select('sheet_name', tables)}</label>
+          <label>Unidad funcional {_column_select('unidad_funcional', columns)}</label>
+          <label>Saldo anterior {_column_select('saldo_anterior', columns)}</label>
+          <label>Expensa del mes {_column_select('expensa_mes', columns)}</label>
+          <button type="submit">Confirmar y revisar cobranzas</button>
+        </form>"""
+
+    expense_saved = all(
+        context.expense_variance_bindings.get(key)
+        for key in (
+            "expense_sheet", "expense_rubro", "expense_importe", "budget_sheet",
+            "budget_rubro", "presupuesto_mensual", "promedio_historico",
+        )
+    )
+    if expense_saved:
+        expense_block = """
+        <p>Las columnas de gastos y presupuesto ya fueron confirmadas para este caso.</p>
+        <form action="/run-consorcios-expense-variance" method="post" hx-post="/run-consorcios-expense-variance" hx-target="#app" hx-swap="outerHTML">
+          <button type="submit">Revisar gastos</button>
+        </form>"""
+    else:
+        expense_block = f"""
+        <p>Confirmá únicamente las relaciones necesarias para comparar gastos.</p>
+        <form action="/run-consorcios-expense-variance" method="post" hx-post="/run-consorcios-expense-variance" hx-target="#app" hx-swap="outerHTML">
+          <label>Hoja de gastos {_sheet_select('expense_sheet', tables)}</label>
+          <label>Rubro gasto {_column_select('expense_rubro', columns)}</label>
+          <label>Importe gasto {_column_select('expense_importe', columns)}</label>
+          <label>Hoja de presupuesto {_sheet_select('budget_sheet', tables)}</label>
+          <label>Rubro presupuesto {_column_select('budget_rubro', columns)}</label>
+          <label>Presupuesto mensual {_column_select('presupuesto_mensual', columns)}</label>
+          <label>Promedio histórico {_column_select('promedio_historico', columns)}</label>
+          <button type="submit">Confirmar y revisar gastos</button>
+        </form>"""
+
+    files = "".join(f"<li>{_esc(name)}</li>" for name in context.source_files)
+    return f"""
+    <main id="app" tabindex="-1">
+      <h1>{_esc(context.consorcio_name)} · {_esc(context.period)}</h1>
+      {_error(error)}
+      <p>Estado del caso: <strong>{_esc(context.case_status)}</strong></p>
+      <h2>Archivos del período</h2>
+      <ul>{files}</ul>
+      <section>
+        <h2>Cobranzas y deuda</h2>
+        {aging_block}
+      </section>
+      <section>
+        <h2>Gastos</h2>
+        {expense_block}
+      </section>
+      <section>
+        <h2>Banco</h2>
+        <p>Compará movimientos del banco con los registros internos y revisá excepciones.</p>
+        <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
+          <input type="hidden" name="reconciliation_type" value="BANK_RECONCILIATION">
+          <button type="submit">Conciliar banco</button>
+        </form>
+      </section>
+      <section>
+        <h2>RADAR</h2>
+        <p>Definí qué situaciones querés que PymIA te comunique para este tenant.</p>
+        <p><a href="/radar">Configurar RADAR</a></p>
+      </section>
+    </main>"""
+
+
 def _consorcios_radar_analysis_page(
     tables: list[dict[str, Any]], error: str | None = None
 ) -> str:
@@ -2203,7 +2357,7 @@ def _consorcios_collection_aging_result_page(
     <main id="app" tabindex="-1"><h1>Antigüedad de deuda</h1>
       <table><thead><tr><th>Unidad</th><th>Saldo anterior</th><th>Expensa mes</th><th>Períodos equivalentes</th></tr></thead><tbody>{body}</tbody></table>
       {_radar_event_panel(radar_events)}
-      <p><a href="/consorcios-radar-analysis">Volver a análisis Consorcios</a></p>
+      <p><a href="/consorcios-case">Volver al caso</a></p>
     </main>"""
 
 
@@ -2219,7 +2373,7 @@ def _consorcios_expense_variance_result_page(
     <main id="app" tabindex="-1"><h1>Gastos del consorcio</h1>
       <table><thead><tr><th>Rubro</th><th>Gasto real</th><th>Desvío presupuesto %</th><th>Desvío histórico %</th></tr></thead><tbody>{body}</tbody></table>
       {_radar_event_panel(radar_events)}
-      <p><a href="/consorcios-radar-analysis">Volver a análisis Consorcios</a></p>
+      <p><a href="/consorcios-case">Volver al caso</a></p>
     </main>"""
 
 
