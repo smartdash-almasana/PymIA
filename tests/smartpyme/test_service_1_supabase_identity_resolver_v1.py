@@ -136,6 +136,7 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
     resolver = object()
     memory_loader = object()
     prior_loader = object()
+    radar_store = object()
     persistence = SimpleNamespace(
         list_owner_confirmation_memory=memory_loader,
         load_current_semantic_contract=prior_loader,
@@ -152,6 +153,11 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
         assisted_web,
         "Service1SupabasePersistenceAdapterV1",
         SimpleNamespace(from_environment=lambda: persistence),
+    )
+    monkeypatch.setattr(
+        assisted_web,
+        "Service1RadarSupabasePersistenceAdapterV1",
+        SimpleNamespace(from_environment=lambda: radar_store),
     )
 
     def create_server(**kwargs):
@@ -171,5 +177,6 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
         "load_prior_semantic_contract": prior_loader,
         "require_tenant_persistence": True,
         "tenant_identity_resolver": resolver,
+        "radar_policy_store": radar_store,
     }
     assert calls["served"] is True
