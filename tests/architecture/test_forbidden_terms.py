@@ -64,23 +64,27 @@ TERM_ALLOWED_PATH_PREFIXES = {
 
 # Excepciones para prohibiciones explicitas (en docs o docstrings/tests)
 ALLOW_PATTERNS = [
-    "forbidden",
-    "no incluye",
-    "no recibe",
-    "no devuelve",
-    " no debe",
-    " no se",
-    "ni ",
-    "sin ",
-    "ausencia",
-    "without",
-    "ningún",
-    "ningun",
-    "boundary",
-    "intenta",
-    "- create_job",
-    "crear workflows",
-    "escalar a orchestration",
+    # Literales del protocolo HTTP (campo de cabecera Authorization/Bearer),
+    # no conceptos de autoridad PymIA. Aplican solo a la forma exacta del
+    # protocolo; los identificadores arquitectonicos (p.ej.
+    # runtime_authorization, authorization_granted) siguen siendo detectados.
+    'forbidden',
+    'no incluye',
+    'no recibe',
+    'no devuelve',
+    ' no debe',
+    ' no se',
+    'ni ',
+    'sin ',
+    'ausencia',
+    'without',
+    'ningún',
+    'ningun',
+    'boundary',
+    'intenta',
+    '- create_job',
+    'crear workflows',
+    'escalar a orchestration',
     '"workflow",',
     '"authorization",',
     '"orchestration",',
@@ -90,7 +94,10 @@ ALLOW_PATTERNS = [
     "'authorization',",
     "'orchestration',",
     "'create_job',",
-    "'decision_type',"
+    "'decision_type',",
+    '"authorization":',
+    '"authorization")',
+    'authorization: bearer',
 ]
 
 def test_no_forbidden_terms_in_code():
@@ -121,3 +128,28 @@ def test_no_forbidden_terms_in_code():
             violations.append(f"{fpath.relative_to(root)}:{lineno} -> {term} (context: {context})")
             
     assert not violations, "Found forbidden terms in code:\n" + "\n".join(violations)
+
+
+def test_http_authorization_header_literal_is_allowed(tmp_path) -> None:
+    sample = tmp_path / "sample_http_handler.py"
+    sample.write_text(
+        '# HTTP protocol literal is allowed\n'
+        'headers = {"Authorization": "Bearer token-123"}\n'
+        'def get(name):\n'
+        '    return headers.get("Authorization")\n',
+        encoding="utf-8",
+    )
+    findings = scan_file_for_terms(sample, FORBIDDEN_TERMS, ALLOW_PATTERNS)
+    assert all(term != "authorization" for _, term, _ in findings)
+
+
+def test_architectural_authorization_concepts_stay_forbidden(tmp_path) -> None:
+    for snippet in (
+        "runtime_authorization",
+        "delivery_authorization",
+        "authorization_granted",
+    ):
+        sample = tmp_path / (snippet + ".py")
+        sample.write_text(snippet + " = True\n", encoding="utf-8")
+        findings = scan_file_for_terms(sample, FORBIDDEN_TERMS, ALLOW_PATTERNS)
+        assert any(term == "authorization" for _, term, _ in findings), snippet

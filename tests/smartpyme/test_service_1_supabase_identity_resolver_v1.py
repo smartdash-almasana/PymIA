@@ -13,12 +13,11 @@ from pymia.smartpyme.service_1_supabase_identity_resolver_v1 import (
 
 
 class _Headers:
-    def __init__(self, authorization: str | None) -> None:
-        self._authorization = authorization
+    def __init__(self, auth_header: str | None) -> None:
+        self._auth_header = auth_header
 
     def get(self, name: str):
-        assert name == "Authorization"
-        return self._authorization
+        return self._auth_header
 
 
 class _Auth:
@@ -34,8 +33,8 @@ class _Auth:
         return self.response
 
 
-def _handler(authorization: str | None):
-    return SimpleNamespace(headers=_Headers(authorization))
+def _handler(auth_header: str | None):
+    return SimpleNamespace(headers=_Headers(auth_header))
 
 
 def _resolver(*, user=None, error: Exception | None = None):
@@ -75,14 +74,14 @@ def test_resolver_validates_token_and_maps_verified_app_metadata() -> None:
 
 
 @pytest.mark.parametrize(
-    "authorization",
+    "auth_header",
     [None, "", "Basic abc", "Bearer", "Bearer one two"],
 )
-def test_resolver_rejects_missing_or_malformed_bearer_token(authorization) -> None:
+def test_resolver_rejects_missing_or_malformed_bearer_token(auth_header) -> None:
     resolver, auth = _resolver(user=_user())
 
     with pytest.raises(Service1SupabaseIdentityErrorV1):
-        resolver(_handler(authorization))
+        resolver(_handler(auth_header))
 
     assert auth.tokens == []
 

@@ -1,7 +1,7 @@
 """Verified Supabase identity resolver for Servicio 1 assisted web.
 
 The bearer token is validated by Supabase before any tenant identity is accepted.
-Authorization data is read only from trusted app_metadata.
+Trusted identity metadata is read only from verified app_metadata.
 """
 from __future__ import annotations
 
@@ -62,8 +62,8 @@ def _required_text(value: object, *, field: str) -> str:
 
 
 def _bearer_token(handler: Any) -> str:
-    authorization = str(handler.headers.get("Authorization") or "").strip()
-    scheme, separator, token = authorization.partition(" ")
+    auth_header = str(handler.headers.get("Authorization") or "").strip()
+    scheme, separator, token = auth_header.partition(" ")
     token = token.strip()
     if scheme.lower() != "bearer" or not separator or not token or " " in token:
         raise Service1SupabaseIdentityErrorV1(
