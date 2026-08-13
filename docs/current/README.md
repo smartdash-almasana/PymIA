@@ -16,6 +16,7 @@ La memoria conversacional, la landing, los pilotos históricos, los roadmaps ven
 - `docs/current/ARCHITECTURE_BOUNDARY.md` — separación entre dueño, capa conversacional y PymIA computacional.
 - `docs/current/PRODUCT_VISION.md` — visión del producto sin abrir autoridad runtime paralela.
 - `docs/current/SERVICE_1_STATUS.md` — estado verificable actual.
+- `docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — decisión vigente: no promover una nueva capacidad antes de hardening y certificación productiva.
 - `docs/current/SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.
 - `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — invariantes de autoridad productiva, soporte, promoción y límites post-Stage-2 de Servicio 1.
 - `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de la arquitectura actual por planos: producto, plataforma/soporte y capacidades todavía no integradas.
