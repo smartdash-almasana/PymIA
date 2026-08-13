@@ -23,7 +23,7 @@ PROVIDER_OR_HOST
 PUBLIC_HTTPS_BASE_URL
 DEPLOYED_GIT_SHA
 BOOT_COMMAND
-HEALTH_ENDPOINT=/healthz
+HEALTH_ENDPOINT=GET / (Cloud Run) | GET /healthz (local)
 LOG_TARGET
 RESTART_OR_REDEPLOY_COMMAND
 ROLLBACK_OR_PREVIOUS_REVISION_MECHANISM
@@ -77,11 +77,22 @@ No alternative productive pipeline or web business-computation root is authorize
 
 ## HEALTH CONTRACT
 
+Local and non-Cloud-Run deployments:
+
 ```text
 GET /healthz
 → HTTP 200
 → {"status":"ok"}
 ```
+
+Cloud Run deployments:
+
+```text
+GET /
+→ HTTP 200 with application page
+```
+
+The Google Frontend serving Cloud Run intercepts `GET /healthz` and answers HTTP 404 before the request reaches the container (observed 2026-08-13 on pymia-service1 with two distinct hostnames; container logs show the request never arrived). `/healthz` remains the canonical local health endpoint and is covered by the local HTTP e2e tests; the production smoke must use the root path on Cloud Run targets.
 
 The public production URL must use HTTPS.
 

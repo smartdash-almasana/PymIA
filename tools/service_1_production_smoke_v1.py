@@ -124,9 +124,10 @@ def run() -> dict[str, object]:
     opener = build_opener()
     checks: dict[str, str] = {}
 
-    status, _, body = _request(opener, "GET", base_url + "/healthz")
-    _assert(status == 200 and b'"status":"ok"' in body, f"healthz failed: HTTP {status}")
-    checks["healthz"] = "PASS"
+    status, _, body = _request(opener, "GET", base_url + "/")
+    _assert(status == 200, f"root health failed: HTTP {status}")
+    _assert(b"Revisar informaci" in body or b"html" in body.lower(), "root health did not return the application page")
+    checks["health_root"] = "PASS"
 
     xlsx = _xlsx_bytes()
     upload_body, content_type = _multipart("production_smoke_ventas.xlsx", xlsx, launch_review="sold_vs_collected_gap")
