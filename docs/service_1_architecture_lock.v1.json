@@ -29,7 +29,6 @@
     "service_1_generic_capability_engine_v1",
     "service_1_liq_001_evaluator_v1",
     "service_1_liq_001_outcome_v1",
-
     "service_1_ren_001_evaluator_v1",
     "service_1_ren_001_normalized_evidence_v1",
     "service_1_ren_001_outcome_v1",
@@ -48,7 +47,9 @@
     "service_1_semantic_evidence_binding_contracts_v1",
     "service_1_semantic_evidence_binding_engine_v1",
     "service_1_variable_family_bindings_v1",
-    "service_1_xlsx_delivery_v1"
+    "service_1_xlsx_delivery_v1",
+    "service_1_consorcios_collection_aging_v1",
+    "service_1_consorcios_expense_variance_v1"
   ],
   "retained_support_decisions": [
     {
