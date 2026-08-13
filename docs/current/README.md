@@ -19,7 +19,7 @@ La autoridad actual de Servicio 1 es el estado físico del repo y esta secuencia
 SERVICE_1_TECHNICAL_CLOSURE: PASS
 FULL_SUITE: 3538 passed / 0 failed / 6 skipped
 CURRENT_FRONT: PRODUCT_AND_OPERATIONAL_CLOSURE
-NEXT_GATE: PROVE_REAL_SELLABLE_JOURNEY
+NEXT_GATE: CLOSE_REAL_PRODUCTION_BLOCKERS + PRODUCTION_SMOKE
 ```
 
 Secuencia única:
@@ -39,6 +39,8 @@ Los documentos históricos que describan estados anteriores no gobiernan por enc
 - `docs/current/ARCHITECTURE_BOUNDARY.md` — separación entre dueño, capa conversacional y PymIA computacional.
 - `docs/current/PRODUCT_VISION.md` — visión del producto sin abrir autoridad runtime paralela.
 - `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md` — estado vigente y secuencia única de cierre productivo/operacional.
+- `docs/current/SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md` — contrato comercial congelado del portfolio disponible V1.
+- `docs/current/SERVICE_1_REAL_SELLABLE_JOURNEY_GATE_V1.md` — evidencia física consolidada de los tres journeys vendibles.
 - `docs/current/SERVICE_1_STATUS.md` — estado técnico detallado; subordinado al estado vigente cuando conserva checkpoints históricos.
 - `docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — decisión vigente: no promover una nueva capacidad antes de hardening y certificación productiva.
 - `docs/current/SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.

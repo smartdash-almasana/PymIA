@@ -66,6 +66,17 @@ def _sales_xlsx(tmp_path: Path) -> bytes:
     return path.read_bytes()
 
 
+def _margin_xlsx(tmp_path: Path) -> bytes:
+    path = tmp_path / "margen.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Resumen"
+    sheet.append(["ventas_periodo", "cmv_total", "impuestos_periodo"])
+    sheet.append([100000, 60000, 10000])
+    workbook.save(path)
+    return path.read_bytes()
+
+
 def _cookie(headers: list[tuple[str, str]]) -> str:
     for key, value in headers:
         if key.lower() == "set-cookie":
@@ -200,6 +211,41 @@ def test_launch_service_first_flow_runs_selected_control_after_confirmation(assi
     assert "Total vendido" in page
     assert "Diferencia" in page
     assert 'href="/download-sales-collections"' in page
+
+
+def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path: Path) -> None:
+    body, headers = _multipart(
+        "margen.xlsx",
+        _margin_xlsx(tmp_path),
+        launch_review="net_margin_real",
+    )
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    assert "Confirmar qué significa cada dato" in page
+    cookie = _cookie(response_headers)
+
+    status, _, page = _form(
+        assisted_server,
+        "/confirm-meanings",
+        _semantic_confirmation_answers(page),
+        cookie,
+    )
+    assert status == 200
+    assert "Margen" in page
+    assert 'href="/download-net-margin"' in page
+
+    status, download_headers, content = _request_raw(
+        assisted_server,
+        "GET",
+        "/download-net-margin",
+        headers={"Cookie": cookie},
+    )
+    assert status == 200
+    assert content.startswith(b"PK")
+    assert any(
+        key.lower() == "content-disposition" and "service_1_ren_001_result.xlsx" in value
+        for key, value in download_headers
+    )
 
 
 def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assisted_server, tmp_path: Path) -> None:
