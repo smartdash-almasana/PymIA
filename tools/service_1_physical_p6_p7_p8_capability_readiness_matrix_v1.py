@@ -139,8 +139,6 @@ def _owner_events_for_known_roles(case, candidates) -> tuple[dict, ...]:
         if expected_role == "unknown":
             continue
         candidate = by_column[column]
-        if not candidate.owner_confirmation_required:
-            continue
         metadata = dict(candidate.metadata or {})
         question_ref = str(metadata.get("column_ref_id") or metadata.get("question_id") or column)
         events.append({

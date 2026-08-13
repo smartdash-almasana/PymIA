@@ -205,10 +205,19 @@ def test_ren_001_traverses_p6_p7_p8_from_column_understanding_without_monkeypatc
                 "primary_semantic_role": primary.semantic_role,
             },
         )
+        owner_event = {
+            "question_ref": candidate.metadata["column_ref_id"],
+            "sheet_ref": candidate.sheet_name,
+            "column_ref": candidate.source_column_name,
+            "confirmed_by_owner": True,
+            "confirmation_scope": "SEMANTIC_ROLE",
+            "confirmed_role": primary.semantic_role,
+        }
         p6.append(
             build_service_1_p6_approval_decision_v1(
                 case_id="case_period_net_margin",
                 candidate=candidate,
+                owner_confirmation_events=[owner_event],
             )
         )
 
