@@ -3,7 +3,8 @@
 ## Status
 
 ```text
-POST_STAGE2_PRODUCT_READINESS
+PRODUCT_AND_OPERATIONAL_CLOSURE
+CURRENT_AUTHORITY: docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md
 ```
 
 ## Canonical baseline
@@ -33,10 +34,14 @@ P0 intake
 ## Current active front
 
 ```text
-IMPLEMENT_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1
+RECONCILE_SERVICE_1_CURRENT_PRODUCT_AUTHORITY_V1
+→ FREEZE_SELLABLE_PRODUCT
+→ PROVE_REAL_SELLABLE_JOURNEY
+→ CLOSE_REAL_PRODUCTION_BLOCKERS + PRODUCTION_SMOKE
+→ REAL_CLIENT_CASE_001 + PRODUCTION_CERTIFICATION
 ```
 
-The prior bounded cut is integrated in `main` at `8aced9c`. The current worktree implements the specified immutable contract and append-only tenant store. Focal and neighboring tests are green; independent review and Git integration remain pending. Product-root/web wiring, automatic reuse and drift logic are not part of this foundation cut.
+Stage 2, tenant identity/persistence, owner confirmation/reentry, the assisted web surface and the currently governed P0→P10 execution chain are already integrated. The active front is product and operational closure; no new capability or parallel architecture is authorized before production certification.
 
 ## Priority sequence
 
@@ -161,13 +166,13 @@ SaaS/autonomy is deferred until after the controlled product is proven and a pro
 
 ## Next methodological action
 
-The bounded foundation is implemented and locally validated. The next methodological action is:
+Technical closure is complete. The next methodological action is:
 
 ```text
-INDEPENDENT_REVIEW_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1
+FREEZE_SELLABLE_PRODUCT
 ```
 
-Only after independent PASS and Git integration may the identity/persistence wiring slice be defined. Web/product-root wiring, automatic mapping reuse, drift resolution, LLM runtime authority and a second product root remain unauthorized in the current cut.
+Identity/persistence wiring and assisted web integration are already closed on the current product path. Web/product-root wiring, automatic mapping reuse, drift resolution, LLM runtime authority and a second product root remain unauthorized in the current cut.
 
 Current closure evidence:
 

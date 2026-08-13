@@ -1,5 +1,7 @@
 # SERVICE_1_OPERATIVE_XLSX_FIRST_CLOSEOUT_V1
 
+> HISTORICAL_CLOSEOUT — este documento certifica el carril XLSX-first de su corte. No describe la superficie actual completa de Servicio 1. La continuidad vigente está en `SERVICE_1_CURRENT_PRODUCT_STATE_V1.md`.
+
 ## VERDICT
 
 ```text
@@ -172,7 +174,7 @@ Servicio 1 debe preferir bloqueo honesto antes que salida falsa.
 
 Limitaciones conocidas que no impiden el cierre operativo:
 
-1. No hay interfaz web oficial.
+1. HISTÓRICO EN ESTE CORTE: no había interfaz web oficial; la superficie actual sí incluye web asistida.
 2. No hay entrega autónoma al cliente.
 3. No hay ejecución SaaS.
 4. No hay runtime contable definitivo.

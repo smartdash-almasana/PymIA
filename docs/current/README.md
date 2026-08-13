@@ -11,11 +11,35 @@ Esta carpeta contiene la documentación rectora vigente. **No todo archivo prese
 
 La memoria conversacional, la landing, los pilotos históricos, los roadmaps vencidos y cualquier documentación legacy no autorizan arquitectura ni código salvo cita explícita desde esta carpeta.
 
+## Autoridad vigente de cierre
+
+La autoridad actual de Servicio 1 es el estado físico del repo y esta secuencia de cierre, sin expansión lateral:
+
+```text
+SERVICE_1_TECHNICAL_CLOSURE: PASS
+FULL_SUITE: 3538 passed / 0 failed / 6 skipped
+CURRENT_FRONT: PRODUCT_AND_OPERATIONAL_CLOSURE
+NEXT_GATE: FREEZE_SELLABLE_PRODUCT
+```
+
+Secuencia única:
+
+```text
+0. RECONCILE_SERVICE_1_CURRENT_PRODUCT_AUTHORITY_V1
+1. FREEZE_SELLABLE_PRODUCT
+2. PROVE_REAL_SELLABLE_JOURNEY
+3. CLOSE_REAL_PRODUCTION_BLOCKERS + PRODUCTION_SMOKE
+4. REAL_CLIENT_CASE_001 + PRODUCTION_CERTIFICATION
+```
+
+Los documentos históricos que describan estados anteriores no gobiernan por encima de esta secuencia ni del código/tests actuales.
+
 ## Documentos rectores
 
 - `docs/current/ARCHITECTURE_BOUNDARY.md` — separación entre dueño, capa conversacional y PymIA computacional.
 - `docs/current/PRODUCT_VISION.md` — visión del producto sin abrir autoridad runtime paralela.
-- `docs/current/SERVICE_1_STATUS.md` — estado verificable actual.
+- `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md` — estado vigente y secuencia única de cierre productivo/operacional.
+- `docs/current/SERVICE_1_STATUS.md` — estado técnico detallado; subordinado al estado vigente cuando conserva checkpoints históricos.
 - `docs/current/SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — decisión vigente: no promover una nueva capacidad antes de hardening y certificación productiva.
 - `docs/current/SERVICE_1_CANONICAL_AXIS.md` — raíz, recorrido y límites de Servicio 1.
 - `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — invariantes de autoridad productiva, soporte, promoción y límites post-Stage-2 de Servicio 1.
