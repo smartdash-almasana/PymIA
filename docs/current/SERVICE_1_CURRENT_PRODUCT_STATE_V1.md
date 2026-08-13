@@ -9,7 +9,7 @@ FULL_SUITE: 3538 passed / 0 failed / 6 skipped
 STAGE_2: CLOSED_PASS
 CURRENT_FRONT: PRODUCT_AND_OPERATIONAL_CLOSURE
 NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
-NEXT_GATE: CLOSE_REAL_PRODUCTION_BLOCKERS + PRODUCTION_SMOKE
+NEXT_GATE: PRODUCTION_SMOKE
 ```
 
 Este documento fija el estado actual de Servicio 1 para decisiones de continuidad. Los closeouts históricos siguen siendo evidencia de los cortes que certificaron, pero no reemplazan este estado vigente cuando describen una etapa anterior.

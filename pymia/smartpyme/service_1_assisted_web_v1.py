@@ -7,6 +7,7 @@ import json
 import math
 import secrets
 import tempfile
+import threading
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -253,6 +254,8 @@ class AssistedWebApplicationV1:
         if require_tenant_persistence and persist_tenant_confirmation is None:
             raise ValueError("tenant persistence adapter is required")
         self._sessions: dict[str, AssistedWebSessionV1] = {}
+        self._session_locks: dict[str, threading.RLock] = {}
+        self._session_locks_guard = threading.Lock()
         self._case_snapshots: dict[str, dict[str, dict[str, Any]]] = {}
         self._persist_tenant_confirmation = persist_tenant_confirmation
         self._load_tenant_memory = load_tenant_memory
@@ -263,7 +266,12 @@ class AssistedWebApplicationV1:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def session(self, session_id: str) -> AssistedWebSessionV1:
-        return self._sessions.setdefault(session_id, AssistedWebSessionV1())
+        with self._session_locks_guard:
+            return self._sessions.setdefault(session_id, AssistedWebSessionV1())
+
+    def session_lock(self, session_id: str) -> threading.RLock:
+        with self._session_locks_guard:
+            return self._session_locks.setdefault(session_id, threading.RLock())
 
     def _case_scope(self, *, session_id: str) -> str:
         state = self.session(session_id)
@@ -1449,6 +1457,11 @@ def _handler_for(
 ) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
+            session_id = self._session_id()
+            with application.session_lock(session_id):
+                self._do_GET_locked()
+
+        def _do_GET_locked(self) -> None:
             parsed = urlsplit(self.path)
             if parsed.path == "/":
                 self._send_html(HTTPStatus.OK, _home_page())
@@ -1556,6 +1569,10 @@ def _handler_for(
 
         def do_POST(self) -> None:  # noqa: N802
             session_id = self._session_id()
+            with application.session_lock(session_id):
+                self._do_POST_locked(session_id)
+
+        def _do_POST_locked(self, session_id: str) -> None:
             try:
                 if tenant_identity_resolver is not None:
                     identity = tenant_identity_resolver(self)
