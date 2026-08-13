@@ -1821,6 +1821,15 @@ def _home_page(error: str | None = None) -> str:
         <h2 id="launch-controls">Controles disponibles</h2>
         <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
           {launch_options}
+          <fieldset>
+            <legend>Contexto del consorcio (opcional)</legend>
+            <label for="consorcio_id">Código del consorcio</label>
+            <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
+            <label for="consorcio_name">Nombre del consorcio</label>
+            <input id="consorcio_name" name="consorcio_name" type="text" autocomplete="organization">
+            <label for="period">Período</label>
+            <input id="period" name="period" type="month">
+          </fieldset>
           <label for="file">Archivo de Excel</label>
           <input id="file" name="file" type="file" accept=".xlsx" required>
           <p>Tu archivo no se modifica. Si un dato es ambiguo, PymIA te pide confirmación antes de calcular.</p>
