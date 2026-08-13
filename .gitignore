@@ -43,3 +43,4 @@ dist/
 
 # Canonical tracked validation fixture
 !prueba_excels/CASE_001_ventas_junio_2026_margin_leak.xlsx
+!prueba_excels/SERVICE_1_BOUNDED_SIX_PHYSICAL_CONTROLS.xlsx

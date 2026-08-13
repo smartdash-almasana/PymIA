@@ -7,7 +7,7 @@ from typing import Final
 
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import build_service_1_web_column_confirmation_intake_boundary_v1
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import build_service_1_canonical_ingestion_output_from_owner_confirmation_v1
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import run_initial_pass, build_computability_decision_from_confirmed_bindings_v1
+from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import run_initial_pass, run_owner_reentry, build_computability_decision_from_confirmed_bindings_v1
 from pymia.smartpyme.service_1_product_pipeline_v1 import run_service_1_product_pipeline_v1
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_BOUNDED_SIX_PHYSICAL_COMPUTABLE_CONTROLS_V1"
@@ -43,6 +43,22 @@ NEGATIVES: Final[tuple[tuple[str, str], ...]] = (
 def _answers(boundary: dict) -> dict[str, str]:
     return {str(q["field_id"]): f"La columna {q['column_name']} representa {q['column_name']}" for q in boundary["owner_questions"]}
 
+def _canonical_answers(questions: list[dict]) -> dict[str, str]:
+    answers: dict[str, str] = {}
+    for question in questions:
+        option = next(
+            (
+                item
+                for item in question.get("options", [])
+                if item.get("option_id") not in {"OTHER", "IGNORE"}
+            ),
+            None,
+        )
+        if option is not None:
+            answers[str(question["question_id"])] = str(option["option_id"])
+    return answers
+
+
 def _semantic_state(repo: Path, sheet: str) -> tuple[dict, dict]:
     source = repo / "prueba_excels" / FIXTURE
     boundary = build_service_1_web_column_confirmation_intake_boundary_v1(local_xlsx_path=source, sheet_name=sheet)
@@ -53,6 +69,16 @@ def _semantic_state(repo: Path, sheet: str) -> tuple[dict, dict]:
         raise AssertionError(f"{sheet}:CONNECTOR:{connector.get('blocked_reason')}")
     ingestion = connector["ingestion_output"]
     semantic = run_initial_pass(ingestion_output=ingestion, sheet_name=sheet)
+    if semantic.get("status") == "OWNER_QUESTIONS":
+        answers = {
+            str(question["column_name"]): next(
+                item["option_id"]
+                for item in question["options"]
+                if item["option_id"] not in {"OTHER", "IGNORE"}
+            )
+            for question in semantic["owner_questions"]
+        }
+        semantic = run_owner_reentry(previous_run=semantic, owner_answers=answers)
     return ingestion, semantic
 
 def evaluate_service_1_bounded_six_physical_computable_controls_v1(root: Path | None = None) -> dict:
@@ -74,7 +100,19 @@ def evaluate_service_1_bounded_six_physical_computable_controls_v1(root: Path | 
             sheet_name=spec.sheet,
             requested_capability=spec.capability,
             deliver_result=False,
-        ) if decision.status == "COMPUTABLE" else {}
+        )
+        if product.get("status") == "NEEDS_OWNER_CONFIRMATION":
+            product = run_service_1_product_pipeline_v1(
+                ingestion_output=ingestion,
+                tool_requests=(),
+                output_dir=repo / ".tmp" / "bounded_six_physical" / spec.sheet,
+                sheet_name=spec.sheet,
+                requested_capability=spec.capability,
+                owner_answers=_canonical_answers(
+                    list(product.get("owner_questions") or [])
+                ),
+                deliver_result=False,
+            ) if decision.status == "COMPUTABLE" else {}
         computation = product.get("computation_result") or {}
         observed = (computation.get("computed") or {}).get(spec.result_key)
         ok = (
