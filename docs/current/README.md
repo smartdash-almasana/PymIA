@@ -19,7 +19,7 @@ La autoridad actual de Servicio 1 es el estado físico del repo y esta secuencia
 SERVICE_1_TECHNICAL_CLOSURE: PASS
 FULL_SUITE: 3538 passed / 0 failed / 6 skipped
 CURRENT_FRONT: PRODUCT_AND_OPERATIONAL_CLOSURE
-NEXT_GATE: FREEZE_SELLABLE_PRODUCT
+NEXT_GATE: PROVE_REAL_SELLABLE_JOURNEY
 ```
 
 Secuencia única:
