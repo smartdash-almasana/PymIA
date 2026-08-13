@@ -97,15 +97,14 @@ def test_cycle_053_all_generic_outcomes_remain_bounded_and_non_causal() -> None:
         assert definition.outcome_policy.forbidden_claims
 
 
-def test_cycle_053_delivery_is_closed_for_every_non_authorized_pathology() -> None:
+def test_cycle_053_delivery_is_closed_for_every_non_authorized_generic_pathology() -> None:
     for definition in _generic_productive_definitions():
         assert product._delivery_block_reason(definition) == (
             f"{definition.pathology_code}_DELIVERY_NOT_AUTHORIZED"
         )
 
-    assert "REN_001_DELIVERY_NOT_AUTHORIZED" in inspect.getsource(
-        product.run_service_1_product_pipeline_v1
-    )
+    source = inspect.getsource(product.run_service_1_product_pipeline_v1)
+    assert "deliver_ren_001_outcome_xlsx_v1" in source
 
 
 def test_cycle_053_preserves_explicit_selection_and_no_automatic_capability_choice() -> None:
