@@ -136,10 +136,14 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
     resolver = object()
     memory_loader = object()
     prior_loader = object()
+    persisted_cases_loader = object()
+    persisted_case_loader = object()
     radar_store = object()
     persistence = SimpleNamespace(
         list_owner_confirmation_memory=memory_loader,
         load_current_semantic_contract=prior_loader,
+        list_persisted_cases=persisted_cases_loader,
+        load_persisted_case=persisted_case_loader,
     )
     calls: dict[str, object] = {}
     server = SimpleNamespace(serve_forever=lambda: calls.setdefault("served", True))
@@ -175,6 +179,8 @@ def test_assisted_web_main_wires_supabase_identity_resolver(monkeypatch) -> None
         "persist_tenant_confirmation": persistence,
         "load_tenant_memory": memory_loader,
         "load_prior_semantic_contract": prior_loader,
+        "load_persisted_cases": persisted_cases_loader,
+        "load_persisted_case": persisted_case_loader,
         "require_tenant_persistence": True,
         "tenant_identity_resolver": resolver,
         "radar_policy_store": radar_store,

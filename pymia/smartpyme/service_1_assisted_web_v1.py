@@ -296,6 +296,8 @@ class AssistedWebApplicationV1:
         persist_tenant_confirmation: Callable[[Any, Any], object] | None = None,
         load_tenant_memory: Callable[[str], tuple[dict[str, object], ...]] | None = None,
         load_prior_semantic_contract: Callable[[str, str, str, str, str], object | None] | None = None,
+        load_persisted_cases: Callable[[str], tuple[dict[str, object], ...]] | None = None,
+        load_persisted_case: Callable[[str, str], dict[str, object] | None] | None = None,
         require_tenant_persistence: bool = False,
         radar_policy_store: object | None = None,
         semantic_provider: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
@@ -309,6 +311,8 @@ class AssistedWebApplicationV1:
         self._persist_tenant_confirmation = persist_tenant_confirmation
         self._load_tenant_memory = load_tenant_memory
         self._load_prior_semantic_contract = load_prior_semantic_contract
+        self._load_persisted_cases = load_persisted_cases
+        self._load_persisted_case = load_persisted_case
         self._require_tenant_persistence = require_tenant_persistence
         self._radar_policy_store = radar_policy_store
         self._semantic_provider = semantic_provider or build_service_1_deterministic_semantic_proposal_v1
@@ -360,27 +364,70 @@ class AssistedWebApplicationV1:
     def recent_cases(self, *, session_id: str) -> tuple[int, str]:
         scope = self._case_scope(session_id=session_id)
         snapshots = list(self._case_snapshots.get(scope, {}).values())
+        state = self.session(session_id)
+        tenant = str(state.tenant_id or "").strip()
+        if tenant and self._load_persisted_cases is not None:
+            try:
+                persisted = self._load_persisted_cases(tenant)
+            except Exception:
+                if self._require_tenant_persistence:
+                    return HTTPStatus.BAD_REQUEST, _error_page(
+                        "No pudimos recuperar los casos persistidos del tenant."
+                    )
+                persisted = ()
+            seen_case_ids = {str(item.get("case_id") or "").strip() for item in snapshots}
+            for item in persisted:
+                row = dict(item)
+                case_id = str(row.get("case_id") or "").strip()
+                if case_id and case_id not in seen_case_ids:
+                    snapshots.append(row)
+                    seen_case_ids.add(case_id)
         snapshots.sort(key=lambda item: str(item.get("updated_at") or ""), reverse=True)
         return HTTPStatus.OK, _recent_cases_page(snapshots)
 
     def open_case(self, *, session_id: str, case_ref: str) -> tuple[int, str]:
+        normalized_ref = str(case_ref or "").strip()
         scope = self._case_scope(session_id=session_id)
-        snapshot = self._case_snapshots.get(scope, {}).get(str(case_ref or "").strip())
-        if snapshot is None:
-            return HTTPStatus.NOT_FOUND, _error_page("No encontramos ese caso en tus casos recientes.")
-        packet = snapshot.get("packet")
-        packet = packet if isinstance(packet, dict) else {}
-        if snapshot.get("kind") == "reconciliation":
-            return HTTPStatus.OK, _reconciliation_result_page(packet)
-        if snapshot.get("kind") == "working_capital":
-            return HTTPStatus.OK, _working_capital_result_page(packet)
-        service_ref = str(snapshot.get("service_ref") or "")
-        ingestion_output = snapshot.get("ingestion_output")
-        return HTTPStatus.OK, _evaluated_result_page(
-            packet,
-            service_ref,
-            ingestion_output=ingestion_output if isinstance(ingestion_output, dict) else {},
-        )
+        scoped = self._case_snapshots.get(scope, {})
+        snapshot = scoped.get(normalized_ref)
+        if snapshot is None and normalized_ref:
+            snapshot = next(
+                (
+                    item
+                    for item in scoped.values()
+                    if str(item.get("case_id") or "").strip() == normalized_ref
+                ),
+                None,
+            )
+        if snapshot is not None:
+            packet = snapshot.get("packet")
+            packet = packet if isinstance(packet, dict) else {}
+            if snapshot.get("kind") == "reconciliation":
+                return HTTPStatus.OK, _reconciliation_result_page(packet)
+            if snapshot.get("kind") == "working_capital":
+                return HTTPStatus.OK, _working_capital_result_page(packet)
+            service_ref = str(snapshot.get("service_ref") or "")
+            ingestion_output = snapshot.get("ingestion_output")
+            return HTTPStatus.OK, _evaluated_result_page(
+                packet,
+                service_ref,
+                ingestion_output=ingestion_output if isinstance(ingestion_output, dict) else {},
+            )
+
+        state = self.session(session_id)
+        tenant = str(state.tenant_id or "").strip()
+        if tenant and normalized_ref and self._load_persisted_case is not None:
+            try:
+                persisted_case = self._load_persisted_case(tenant, normalized_ref)
+            except Exception:
+                if self._require_tenant_persistence:
+                    return HTTPStatus.BAD_REQUEST, _error_page(
+                        "No pudimos recuperar el caso persistido del tenant."
+                    )
+                persisted_case = None
+            if isinstance(persisted_case, dict):
+                return HTTPStatus.OK, _persisted_case_page(persisted_case)
+        return HTTPStatus.NOT_FOUND, _error_page("No encontramos ese caso para este tenant.")
 
     def bind_tenant_identity(
         self,
@@ -1958,6 +2005,8 @@ def create_assisted_web_server_v1(
     persist_tenant_confirmation: Callable[[Any, Any], object] | None = None,
     load_tenant_memory: Callable[[str], tuple[dict[str, object], ...]] | None = None,
     load_prior_semantic_contract: Callable[[str, str, str, str, str], object | None] | None = None,
+    load_persisted_cases: Callable[[str], tuple[dict[str, object], ...]] | None = None,
+    load_persisted_case: Callable[[str, str], dict[str, object] | None] | None = None,
     require_tenant_persistence: bool = False,
     tenant_identity_resolver: Callable[[BaseHTTPRequestHandler], dict[str, str] | None] | None = None,
     radar_policy_store: object | None = None,
@@ -1968,6 +2017,8 @@ def create_assisted_web_server_v1(
         persist_tenant_confirmation=persist_tenant_confirmation,
         load_tenant_memory=load_tenant_memory,
         load_prior_semantic_contract=load_prior_semantic_contract,
+        load_persisted_cases=load_persisted_cases,
+        load_persisted_case=load_persisted_case,
         require_tenant_persistence=require_tenant_persistence,
         radar_policy_store=radar_policy_store,
         semantic_provider=semantic_provider,
@@ -1987,18 +2038,38 @@ def _handler_for(
         def do_GET(self) -> None:  # noqa: N802
             session_id = self._session_id()
             with application.session_lock(session_id):
-                self._do_GET_locked()
+                self._do_GET_locked(session_id)
 
-        def _do_GET_locked(self) -> None:
+        def _do_GET_locked(self, session_id: str) -> None:
             parsed = urlsplit(self.path)
+            if (
+                parsed.path in {"/cases", "/case"}
+                and tenant_identity_resolver is not None
+                and not str(application.session(session_id).tenant_id or "").strip()
+            ):
+                try:
+                    identity = tenant_identity_resolver(self)
+                    if identity is not None:
+                        application.bind_tenant_identity(
+                            session_id=session_id,
+                            tenant_id=identity.get("tenant_id", ""),
+                            cliente_id=identity.get("cliente_id") or None,
+                            owner_actor_id=identity.get("owner_actor_id", ""),
+                            owner_actor_role=identity.get("owner_actor_role", ""),
+                        )
+                except ValueError as exc:
+                    self._send_html(
+                        HTTPStatus.BAD_REQUEST,
+                        _error_page(str(exc)),
+                        session_id=session_id,
+                    )
+                    return
             if parsed.path == "/":
                 self._send_html(HTTPStatus.OK, _home_page())
             elif parsed.path == "/cases":
-                session_id = self._session_id()
                 status, content_html = application.recent_cases(session_id=session_id)
                 self._send_html(status, content_html, session_id=session_id)
             elif parsed.path == "/case":
-                session_id = self._session_id()
                 query = parse_qs(parsed.query)
                 case_ref = str((query.get("case_ref") or [""])[-1]).strip()
                 status, content_html = application.open_case(
@@ -2392,7 +2463,39 @@ def _recent_cases_page(snapshots: list[dict[str, Any]]) -> str:
       <section aria-label="Listado de casos recientes">
         <table><thead><tr><th>Servicio</th><th>Estado</th><th>Actualizado</th><th>Acción</th></tr></thead><tbody>{rows}</tbody></table>
       </section>
-      <p class="notice">Esta vista conserva resultados mientras la instancia web está activa. La persistencia durable de casos completos todavía no está habilitada.</p>
+      <p class="notice">Los casos con evidencia owner persistida sobreviven reinicios. Los resultados completos y archivos de entrega sólo se reabren mientras exista su snapshot de ejecución.</p>
+    </main>"""
+
+
+def _persisted_case_page(case: dict[str, Any]) -> str:
+    evidence = case.get("evidence")
+    rows = evidence if isinstance(evidence, list) else []
+    evidence_rows = "".join(
+        f'''<tr>
+          <td>{_esc(item.get("sheet_ref"))}</td>
+          <td>{_esc(item.get("column_ref"))}</td>
+          <td>{_esc(item.get("owner_answer"))}</td>
+          <td>{_esc(item.get("confirmed_at"))}</td>
+        </tr>'''
+        for item in rows
+        if isinstance(item, dict)
+    )
+    return f"""
+    <main id="app" tabindex="-1">
+      <p class="eyebrow">Caso persistido</p>
+      <div class="result-head"><div><h1>Servicio 1 · evidencia confirmada</h1><p>Reingreso durable del caso {_esc(case.get("case_id"))}.</p></div><a class="secondary" href="/cases">Volver a casos</a></div>
+      <section>
+        <dl>
+          <dt>Archivo de origen</dt><dd>{_esc(case.get("workbook_ref"))}</dd>
+          <dt>Tenant</dt><dd>{_esc(case.get("tenant_id"))}</dd>
+          <dt>Actor</dt><dd>{_esc(case.get("owner_actor_id"))}</dd>
+        </dl>
+      </section>
+      <section aria-label="Evidencia confirmada por el dueño">
+        <h2>Evidencia confirmada por el dueño</h2>
+        <table><thead><tr><th>Hoja</th><th>Columna</th><th>Confirmación</th><th>Fecha</th></tr></thead><tbody>{evidence_rows}</tbody></table>
+      </section>
+      <p class="notice">La evidencia semántica es durable y no se reinterpreta al reingresar. El resultado completo y su archivo de entrega requieren un snapshot de ejecución todavía disponible.</p>
     </main>"""
 
 
@@ -3767,6 +3870,8 @@ def main() -> None:
         persist_tenant_confirmation=tenant_persistence,
         load_tenant_memory=tenant_persistence.list_owner_confirmation_memory,
         load_prior_semantic_contract=tenant_persistence.load_current_semantic_contract,
+        load_persisted_cases=tenant_persistence.list_persisted_cases,
+        load_persisted_case=tenant_persistence.load_persisted_case,
         require_tenant_persistence=True,
         tenant_identity_resolver=tenant_identity_resolver,
         radar_policy_store=radar_policy_store,

@@ -302,3 +302,182 @@ def test_tenant_memory_recall_is_visible_but_never_preselected(tmp_path: Path) -
     assert "La vez anterior confirmaste" in page
     assert "Ventas registradas" in page
     assert "checked" not in page
+
+
+def test_persisted_case_reentry_survives_fresh_application_without_ram_state(tmp_path: Path) -> None:
+    persisted_case = {
+        "case_ref": "case_abc",
+        "case_id": "case_abc",
+        "tenant_id": "tenant-acme",
+        "workbook_ref": "ventas.xlsx",
+        "owner_actor_id": "owner-001",
+        "kind": "persisted_owner_evidence",
+        "evidence": [
+            {
+                "sheet_ref": "Ventas",
+                "column_ref": "VentaTotal",
+                "owner_answer": "ACCEPT",
+                "confirmed_at": "2026-08-14T20:00:00Z",
+            }
+        ],
+    }
+    provider_calls = []
+
+    def provider(_payload):
+        provider_calls.append(True)
+        raise AssertionError("semantic provider must not run during persisted reentry")
+
+    app = AssistedWebApplicationV1(
+        output_dir=tmp_path / "fresh-instance",
+        persist_tenant_confirmation=lambda _event, _contract: True,
+        load_persisted_cases=lambda tenant: (
+            ({
+                **persisted_case,
+                "service_name": "Servicio 1 · evidencia confirmada",
+                "status": "EVIDENCIA PERSISTIDA",
+                "updated_at": "2026-08-14T20:00:00Z",
+            },)
+            if tenant == "tenant-acme"
+            else ()
+        ),
+        load_persisted_case=lambda tenant, case_id: (
+            dict(persisted_case)
+            if tenant == "tenant-acme" and case_id == "case_abc"
+            else None
+        ),
+        require_tenant_persistence=True,
+        semantic_provider=provider,
+    )
+    app.bind_tenant_identity(
+        session_id="new-session",
+        tenant_id="tenant-acme",
+        cliente_id="cliente-001",
+        owner_actor_id="owner-001",
+        owner_actor_role="OWNER",
+    )
+
+    status, cases_page = app.recent_cases(session_id="new-session")
+    assert status == 200
+    assert "case_abc" in cases_page
+    assert "EVIDENCIA PERSISTIDA" in cases_page
+
+    status, case_page = app.open_case(session_id="new-session", case_ref="case_abc")
+    assert status == 200
+    assert "Reingreso durable del caso case_abc" in case_page
+    assert "VentaTotal" in case_page
+    assert "ACCEPT" in case_page
+    assert provider_calls == []
+
+    app.bind_tenant_identity(
+        session_id="other-session",
+        tenant_id="tenant-other",
+        cliente_id="cliente-other",
+        owner_actor_id="owner-other",
+        owner_actor_role="OWNER",
+    )
+    status, other_cases = app.recent_cases(session_id="other-session")
+    assert status == 200
+    assert "case_abc" not in other_cases
+    status, _ = app.open_case(session_id="other-session", case_ref="case_abc")
+    assert status == 404
+    assert provider_calls == []
+
+
+def test_http_get_reentry_binds_verified_tenant_and_reads_persisted_case(tmp_path: Path) -> None:
+    def resolver(handler):
+        assert handler.headers.get("Authorization") == "Bearer verified-token"
+        return {
+            "tenant_id": "tenant-acme",
+            "cliente_id": "cliente-001",
+            "owner_actor_id": "owner-001",
+            "owner_actor_role": "OWNER",
+        }
+
+    summary = {
+        "case_ref": "case_abc",
+        "case_id": "case_abc",
+        "tenant_id": "tenant-acme",
+        "service_name": "Servicio 1 · evidencia confirmada",
+        "status": "EVIDENCIA PERSISTIDA",
+        "updated_at": "2026-08-14T20:00:00Z",
+        "kind": "persisted_owner_evidence",
+    }
+    detail = {
+        **summary,
+        "workbook_ref": "ventas.xlsx",
+        "owner_actor_id": "owner-001",
+        "evidence": [
+            {
+                "sheet_ref": "Ventas",
+                "column_ref": "VentaTotal",
+                "owner_answer": "ACCEPT",
+                "confirmed_at": "2026-08-14T20:00:00Z",
+            }
+        ],
+    }
+    server = create_assisted_web_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "reentry-http",
+        persist_tenant_confirmation=lambda _event, _contract: True,
+        load_persisted_cases=lambda tenant: (dict(summary),) if tenant == "tenant-acme" else (),
+        load_persisted_case=lambda tenant, case_id: dict(detail) if (tenant, case_id) == ("tenant-acme", "case_abc") else None,
+        require_tenant_persistence=True,
+        tenant_identity_resolver=resolver,
+    )
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+        connection.request("GET", "/cases", headers={"Authorization": "Bearer verified-token"})
+        response = connection.getresponse()
+        cases_page = response.read().decode("utf-8")
+        assert response.status == 200
+        assert "case_abc" in cases_page
+
+        connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+        connection.request(
+            "GET",
+            "/case?case_ref=case_abc",
+            headers={"Authorization": "Bearer verified-token"},
+        )
+        response = connection.getresponse()
+        case_page = response.read().decode("utf-8")
+        assert response.status == 200
+        assert "Reingreso durable del caso case_abc" in case_page
+        assert "VentaTotal" in case_page
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_required_persisted_case_read_model_fails_closed_on_backend_error(tmp_path: Path) -> None:
+    def fail_list(_tenant):
+        raise RuntimeError("backend unavailable")
+
+    def fail_case(_tenant, _case_id):
+        raise RuntimeError("backend unavailable")
+
+    app = AssistedWebApplicationV1(
+        output_dir=tmp_path / "failed-reentry",
+        persist_tenant_confirmation=lambda _event, _contract: True,
+        load_persisted_cases=fail_list,
+        load_persisted_case=fail_case,
+        require_tenant_persistence=True,
+    )
+    app.bind_tenant_identity(
+        session_id="session-1",
+        tenant_id="tenant-acme",
+        cliente_id="cliente-001",
+        owner_actor_id="owner-001",
+        owner_actor_role="OWNER",
+    )
+
+    status, page = app.recent_cases(session_id="session-1")
+    assert status == 400
+    assert "No pudimos recuperar los casos persistidos" in page
+
+    status, page = app.open_case(session_id="session-1", case_ref="case_abc")
+    assert status == 400
+    assert "No pudimos recuperar el caso persistido" in page

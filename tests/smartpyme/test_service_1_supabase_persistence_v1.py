@@ -364,3 +364,106 @@ def test_load_current_semantic_contract_blocks_ambiguous_latest_revision():
             first.sheet_ref,
             first.source_column_name,
         )
+
+
+def test_list_persisted_cases_groups_owner_evidence_by_case_and_tenant():
+    client = _Client(
+        {
+            OWNER_CONFIRMATIONS_TABLE: [
+                {
+                    "tenant_id": "tenant-acme",
+                    "cliente_id": "cliente-001",
+                    "case_id": "case_abc",
+                    "workbook_ref": "ventas.xlsx",
+                    "source_system_ref": "xlsx_upload",
+                    "source_context_ref": "service1-assisted-web",
+                    "owner_actor_id": "owner-001",
+                    "owner_actor_role": "OWNER",
+                    "confirmed_at": "2026-08-14T20:00:00Z",
+                },
+                {
+                    "tenant_id": "tenant-acme",
+                    "cliente_id": "cliente-001",
+                    "case_id": "case_abc",
+                    "workbook_ref": "ventas.xlsx",
+                    "source_system_ref": "xlsx_upload",
+                    "source_context_ref": "service1-assisted-web",
+                    "owner_actor_id": "owner-001",
+                    "owner_actor_role": "OWNER",
+                    "confirmed_at": "2026-08-14T19:59:00Z",
+                },
+            ],
+            SEMANTIC_CONTRACTS_TABLE: [],
+        }
+    )
+    adapter = Service1SupabasePersistenceAdapterV1(client)
+
+    cases = adapter.list_persisted_cases("tenant-acme")
+
+    assert len(cases) == 1
+    assert cases[0]["case_ref"] == "case_abc"
+    assert cases[0]["case_id"] == "case_abc"
+    assert cases[0]["tenant_id"] == "tenant-acme"
+    assert cases[0]["status"] == "EVIDENCIA PERSISTIDA"
+    assert (OWNER_CONFIRMATIONS_TABLE, "eq", "tenant_id", "tenant-acme") in client.calls
+
+
+def test_load_persisted_case_returns_exact_owner_evidence_without_reinterpretation():
+    client = _Client(
+        {
+            OWNER_CONFIRMATIONS_TABLE: [
+                {
+                    "confirmation_event_ref": "evt-1",
+                    "tenant_id": "tenant-acme",
+                    "cliente_id": "cliente-001",
+                    "case_id": "case_abc",
+                    "workbook_ref": "ventas.xlsx",
+                    "source_system_ref": "xlsx_upload",
+                    "source_context_ref": "service1-assisted-web",
+                    "owner_actor_id": "owner-001",
+                    "owner_actor_role": "OWNER",
+                    "sheet_ref": "Ventas",
+                    "column_ref": "VentaTotal",
+                    "question_ref": "q-1",
+                    "confirmation_scope": "SEMANTIC_ROLE",
+                    "owner_answer": "ACCEPT",
+                    "confirmed_role": "period_sales_total",
+                    "corrected_meaning": None,
+                    "confirmed_at": "2026-08-14T20:00:00Z",
+                    "event_payload": {"owner_answer": "ACCEPT"},
+                }
+            ],
+            SEMANTIC_CONTRACTS_TABLE: [],
+        }
+    )
+    adapter = Service1SupabasePersistenceAdapterV1(client)
+
+    case = adapter.load_persisted_case("tenant-acme", "case_abc")
+
+    assert case is not None
+    assert case["case_id"] == "case_abc"
+    assert case["tenant_id"] == "tenant-acme"
+    assert len(case["evidence"]) == 1
+    assert case["evidence"][0]["owner_answer"] == "ACCEPT"
+    assert case["evidence"][0]["confirmed_role"] == "period_sales_total"
+    assert (OWNER_CONFIRMATIONS_TABLE, "eq", "case_id", "case_abc") in client.calls
+
+
+def test_persisted_case_read_model_blocks_cross_tenant_payload():
+    client = _Client(
+        {
+            OWNER_CONFIRMATIONS_TABLE: [
+                {
+                    "confirmation_event_ref": "evt-foreign",
+                    "tenant_id": "tenant-other",
+                    "case_id": "case_abc",
+                    "confirmed_at": "2026-08-14T20:00:00Z",
+                }
+            ],
+            SEMANTIC_CONTRACTS_TABLE: [],
+        }
+    )
+    adapter = Service1SupabasePersistenceAdapterV1(client)
+
+    with pytest.raises(Service1SupabasePersistenceErrorV1, match="crossed tenant/case boundary"):
+        adapter.load_persisted_case("tenant-acme", "case_abc")

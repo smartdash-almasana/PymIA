@@ -14,3 +14,13 @@ def test_production_smoke_fails_closed_when_target_is_missing(monkeypatch) -> No
         monkeypatch.delenv(name, raising=False)
     with pytest.raises(smoke.SmokeFailure, match=smoke.BASE_URL_ENV):
         smoke.run()
+
+
+def test_production_smoke_accepts_sem8_owner_actions() -> None:
+    page = '<input type="radio" name="action_decision-1" value="ACCEPT">'
+    assert smoke._answers(page) == {"action_decision-1": "ACCEPT"}
+
+
+def test_production_smoke_still_accepts_canonical_answer_fields() -> None:
+    page = '<input type="radio" name="answer_q-1" value="period_sales_total">'
+    assert smoke._answers(page) == {"answer_q-1": "period_sales_total"}

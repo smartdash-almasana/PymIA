@@ -103,6 +103,10 @@ def _answers(page: str) -> dict[str, str]:
     for question_id, option_id in re.findall(r'name="answer_([^"]+)" value="([^"]+)"', page):
         if option_id not in {"OTHER", "IGNORE", "not_sure"}:
             answers.setdefault(f"answer_{question_id}", option_id)
+    if answers:
+        return answers
+    for decision_id in re.findall(r'name="action_([^"]+)" value="ACCEPT"', page):
+        answers.setdefault(f"action_{decision_id}", "ACCEPT")
     if not answers:
         raise SmokeFailure("owner confirmation page exposed no acceptable semantic answers")
     return answers
@@ -160,7 +164,10 @@ def run() -> dict[str, object]:
     )
     page = content.decode("utf-8", errors="replace")
     _assert(status == 200, f"authenticated upload failed: HTTP {status}")
-    _assert("Confirmar qué significa cada dato" in page, "upload did not reach owner confirmation")
+    _assert(
+        "Confirmá la interpretación material" in page and "SEM-8 · Confirmación empresarial" in page,
+        "upload did not reach the SEM-8 owner confirmation flow",
+    )
     cookie = _cookie(response_headers)
     checks["authenticated_upload"] = "PASS"
 
@@ -211,22 +218,37 @@ def run() -> dict[str, object]:
     _assert("service_1_liq_001_result.xlsx" in disposition, "unexpected delivery filename")
     checks["delivery_download"] = "PASS"
 
-    status, _, content = _request(opener, "GET", base_url + "/cases", headers={"Cookie": cookie})
+    status, _, content = _request(
+        opener,
+        "GET",
+        base_url + "/cases",
+        headers=auth,
+    )
     cases = content.decode("utf-8", errors="replace")
-    _assert(status == 200 and "Control de Cobros y Conciliación" in cases, "recent-case reentry listing failed")
-    match = re.search(r'href="(/case\?case_ref=[^"]+)"', cases)
-    _assert(match is not None, "recent cases exposed no reentry link")
-    status, _, content = _request(opener, "GET", base_url + match.group(1), headers={"Cookie": cookie})
+    _assert(status == 200 and "EVIDENCIA PERSISTIDA" in cases, "durable case reentry listing failed")
+    match = re.search(r'href="(/case\?case_ref=case_[^"]+)"', cases)
+    _assert(match is not None, "persisted cases exposed no case_* reentry link")
+    status, _, content = _request(
+        opener,
+        "GET",
+        base_url + match.group(1),
+        headers=auth,
+    )
     reopened = content.decode("utf-8", errors="replace")
-    _assert(status == 200 and "Total vendido" in reopened, "case reentry failed")
-    checks["reentry_current_instance"] = "PASS"
+    _assert(
+        status == 200
+        and "Reingreso durable del caso" in reopened
+        and "Evidencia confirmada por el dueño" in reopened,
+        "persisted case reentry failed",
+    )
+    checks["reentry_persisted_case"] = "PASS"
 
     return {
         "verdict": "PASS",
         "base_url": base_url,
         "checks": checks,
         "non_claims": [
-            "Does not prove durable case snapshots across restart.",
+            "Durable reentry proves persisted owner evidence, not restoration of ephemeral XLSX result artifacts.",
             "Does not expose or print access tokens or passwords.",
         ],
     }

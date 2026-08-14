@@ -173,6 +173,129 @@ class Service1SupabasePersistenceAdapterV1:
             rows.append(dict(raw))
         return tuple(rows)
 
+    def list_persisted_cases(
+        self,
+        tenant_id: str,
+    ) -> tuple[dict[str, object], ...]:
+        """Return one durable owner-evidence read-model row per case for a tenant."""
+        tenant = str(tenant_id or "").strip()
+        if not tenant:
+            raise Service1SupabasePersistenceErrorV1("tenant_id is required for case lookup")
+        try:
+            response = (
+                self._client.table(OWNER_CONFIRMATIONS_TABLE)
+                .select(
+                    "tenant_id,cliente_id,case_id,workbook_ref,source_system_ref,"
+                    "source_context_ref,owner_actor_id,owner_actor_role,confirmed_at"
+                )
+                .eq("tenant_id", tenant)
+                .order("confirmed_at", desc=True)
+                .execute()
+            )
+        except Exception as exc:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase persisted case listing failed"
+            ) from exc
+        data = _response_data(response)
+        if data is None:
+            return ()
+        if not isinstance(data, list):
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase persisted case listing returned invalid data"
+            )
+        by_case: dict[str, dict[str, object]] = {}
+        for raw in data:
+            if not isinstance(raw, Mapping) or str(raw.get("tenant_id") or "") != tenant:
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase persisted case listing crossed tenant boundary"
+                )
+            case_id = str(raw.get("case_id") or "").strip()
+            if not case_id:
+                continue
+            if case_id not in by_case:
+                by_case[case_id] = {
+                    "case_ref": case_id,
+                    "case_id": case_id,
+                    "tenant_id": tenant,
+                    "cliente_id": raw.get("cliente_id"),
+                    "workbook_ref": str(raw.get("workbook_ref") or "").strip(),
+                    "source_system_ref": str(raw.get("source_system_ref") or "").strip(),
+                    "source_context_ref": str(raw.get("source_context_ref") or "").strip(),
+                    "owner_actor_id": str(raw.get("owner_actor_id") or "").strip(),
+                    "owner_actor_role": str(raw.get("owner_actor_role") or "").strip(),
+                    "updated_at": str(raw.get("confirmed_at") or "").strip(),
+                    "service_ref": "SERVICE_1",
+                    "service_name": "Servicio 1 · evidencia confirmada",
+                    "status": "EVIDENCIA PERSISTIDA",
+                    "kind": "persisted_owner_evidence",
+                }
+        return tuple(by_case.values())
+
+    def load_persisted_case(
+        self,
+        tenant_id: str,
+        case_id: str,
+    ) -> dict[str, object] | None:
+        """Load durable owner evidence for one exact tenant/case identity."""
+        tenant = str(tenant_id or "").strip()
+        case_ref = str(case_id or "").strip()
+        if not tenant or not case_ref:
+            raise Service1SupabasePersistenceErrorV1(
+                "tenant_id and case_id are required for case reentry"
+            )
+        try:
+            response = (
+                self._client.table(OWNER_CONFIRMATIONS_TABLE)
+                .select(
+                    "confirmation_event_ref,tenant_id,cliente_id,case_id,workbook_ref,"
+                    "source_system_ref,source_context_ref,owner_actor_id,owner_actor_role,"
+                    "sheet_ref,column_ref,question_ref,confirmation_scope,owner_answer,"
+                    "confirmed_role,corrected_meaning,confirmed_at,event_payload"
+                )
+                .eq("tenant_id", tenant)
+                .eq("case_id", case_ref)
+                .order("confirmed_at", desc=False)
+                .execute()
+            )
+        except Exception as exc:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase persisted case lookup failed"
+            ) from exc
+        data = _response_data(response)
+        if data is None or data == []:
+            return None
+        if not isinstance(data, list):
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase persisted case lookup returned invalid data"
+            )
+        evidence: list[dict[str, object]] = []
+        first: Mapping[str, object] | None = None
+        for raw in data:
+            if (
+                not isinstance(raw, Mapping)
+                or str(raw.get("tenant_id") or "") != tenant
+                or str(raw.get("case_id") or "") != case_ref
+            ):
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase persisted case lookup crossed tenant/case boundary"
+                )
+            first = first or raw
+            evidence.append(dict(raw))
+        assert first is not None
+        return {
+            "case_ref": case_ref,
+            "case_id": case_ref,
+            "tenant_id": tenant,
+            "cliente_id": first.get("cliente_id"),
+            "workbook_ref": str(first.get("workbook_ref") or "").strip(),
+            "source_system_ref": str(first.get("source_system_ref") or "").strip(),
+            "source_context_ref": str(first.get("source_context_ref") or "").strip(),
+            "owner_actor_id": str(first.get("owner_actor_id") or "").strip(),
+            "owner_actor_role": str(first.get("owner_actor_role") or "").strip(),
+            "kind": "persisted_owner_evidence",
+            "evidence": evidence,
+        }
+
     def load_current_semantic_contract(
         self,
         tenant_id: str,
