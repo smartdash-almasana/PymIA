@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import os
 import re
@@ -126,11 +127,11 @@ def _answers(page: str) -> dict[str, str]:
     answers: dict[str, str] = {}
     for question_id, option_id in re.findall(r'name="answer_([^"]+)" value="([^"]+)"', page):
         if option_id not in {"OTHER", "IGNORE", "not_sure"}:
-            answers.setdefault(f"answer_{question_id}", option_id)
+            answers.setdefault(f"answer_{html.unescape(question_id)}", option_id)
     if answers:
         return answers
     for decision_id in re.findall(r'name="action_([^"]+)" value="ACCEPT"', page):
-        answers.setdefault(f"action_{decision_id}", "ACCEPT")
+        answers.setdefault(f"action_{html.unescape(decision_id)}", "ACCEPT")
     if not answers:
         raise SmokeFailure("owner confirmation page exposed no acceptable semantic answers")
     return answers

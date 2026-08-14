@@ -49,3 +49,14 @@ def test_production_smoke_builds_governed_ren_001_fixture() -> None:
 def test_production_smoke_maps_discount_fraction_owner_unit() -> None:
     page = '<input type="radio" name="unit_discount-q" value="DISCOUNT_FRACTION_0_1">'
     assert smoke._unit_answers(page) == {"unit_discount-q": "DISCOUNT_FRACTION_0_1"}
+
+
+def test_production_smoke_unescapes_sem8_relationship_action_names() -> None:
+    page = (
+        '<input type="radio" '
+        'name="action_dialogue:relationship:baseline:relationship:1:Productos.ProductoID-&gt;Ventas.ProductoID" '
+        'value="ACCEPT">'
+    )
+    assert smoke._answers(page) == {
+        "action_dialogue:relationship:baseline:relationship:1:Productos.ProductoID->Ventas.ProductoID": "ACCEPT"
+    }
