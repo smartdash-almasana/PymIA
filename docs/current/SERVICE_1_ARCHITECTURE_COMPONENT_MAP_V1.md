@@ -1,465 +1,215 @@
 # Servicio 1 — mapa actual de arquitectura y componentes V1
 
 **Estado:** `ACTIVE_ARCHITECTURE_MAP`  
-**Fecha de corte:** 2026-07-29  
-**Alcance:** arquitectura física actual de Servicio 1 y componentes de plataforma integrados alrededor de su raíz productiva.  
-**No autoriza:** nuevas capacidades, nuevas raíces productivas, APIs, runtime LLM, delivery autónomo ni integración automática de componentes SUPPORT.
+**Fecha de corte:** 2026-08-14
 
----
-
-## 1. Propósito
-
-Este documento explica la arquitectura de Servicio 1 después de la convergencia de Stage 2 y de la integración posterior de fundaciones de dominio, narrativa, admisión, harness operacional y operador fiel.
-
-La regla principal es distinguir tres cosas que pueden coexistir en el mismo repositorio:
+## 1. Autoridad productiva
 
 ```text
-A. autoridad productiva de Servicio 1
-B. infraestructura o soporte reutilizable
-C. capacidades/contratos todavía no integrados a la raíz productiva
+CLI:  pymia/cli/service_1_product.py
+WEB:  pymia/smartpyme/service_1_assisted_web_v1.py
+ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
-La existencia física de un módulo no lo convierte en autoridad productiva.
+Sólo `service_1_product_pipeline_v1.py` es raíz productiva. La CLI y la web son entradas/adaptadores hacia esa raíz.
 
-La autoridad de ejecución de Servicio 1 sigue determinada por:
-
-```text
-pymia/cli/service_1_product.py
-→ pymia/smartpyme/service_1_product_pipeline_v1.py
-→ módulos PRODUCTIVE de docs/service_1_module_disposition.v1.json
-```
-
----
-
-## 2. Vista de alto nivel
+## 2. Mapa de alto nivel
 
 ```text
-                         DUEÑO PYME
-                             │
-                             │ aporta evidencia / confirma significado
-                             ▼
-┌───────────────────────────────────────────────────────────────┐
-│ CAPA DE RECEPCIÓN Y APLICACIÓN                               │
-│                                                               │
-│ admission v1 / faithful_operator / vertical slice            │
-│                                                               │
-│ Rol: recibir, estructurar, pedir evidencia, presentar         │
-│ candidatos.                                                   │
-│ No autoriza verdad operacional ni ejecución productiva.       │
-└──────────────────────────────┬────────────────────────────────┘
-                               │
-                               ▼
-┌───────────────────────────────────────────────────────────────┐
-│ SERVICIO 1 — RAÍZ PRODUCTIVA CANÓNICA                         │
-│                                                               │
-│ service_1_product_pipeline_v1                                 │
-│                                                               │
-│ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → P9 → P10      │
-│                                                               │
-│ evidencia → semántica → dueño → aprobación →                 │
-│ requisitos → computabilidad → cálculo → outcome → delivery   │
-│ solicitud de conciliación → compuerta → revisión humana      │
-└──────────────────────────────┬────────────────────────────────┘
-                               │
-                               ▼
-┌───────────────────────────────────────────────────────────────┐
-│ SALIDA Y PRESENTACIÓN                                         │
-│                                                               │
-│ bounded outcomes / XLSX delivery / narrative adapters         │
-│                                                               │
-│ La narrativa proyecta evidencia; no crea hechos ni            │
-│ computabilidad.                                               │
-└───────────────────────────────────────────────────────────────┘
-
-CROSS-CUTTING, SIN AUTORIDAD PRODUCTIVA AUTOMÁTICA:
-- pymia/domain/*
-- pymia/diagnostic_core/*
-- pymia/narrative/*
-- pymia/operational_harness/*
-- contratos contables generales, workpapers y superficies todavía no integradas
-- radiografía, corpus, quality gates y herramientas de auditoría
-```
-
----
-
-## 3. Plano A — autoridad productiva de Servicio 1
-
-### 3.1 Entrada oficial
-
-```text
-pymia/cli/service_1_product.py
-```
-
-Es la entrada oficial del producto Servicio 1.
-
-No debe aparecer una segunda entrada con igual autoridad.
-
-### 3.2 Raíz productiva única
-
-```text
-pymia/smartpyme/service_1_product_pipeline_v1.py
-```
-
-La raíz coordina:
-
-- recorrido semántico determinístico;
-- preguntas al dueño cuando los bindings no están confirmados;
-- P8 y construcción de `GovernedComputationInput`;
-- dispatch explícito por `requested_capability`;
-- evaluadores especializados sólo donde existe comportamiento realmente especializado;
-- kernel genérico para las capacidades gobernadas por registry;
-- acceso exclusivo a conciliación bancaria o Mercado Pago mediante compuertas gobernadas;
-- paquete de conciliación siempre dirigido a revisión humana;
-- outcome acotado;
-- delivery sólo cuando está explícitamente autorizado.
-
-### 3.3 Recorrido P0–P10
-
-```text
-P0  intake
-P1  canonical XLSX ingestion
-P2  profiling / physical evidence
-P3  semantic hypothesis
-P4  contextual evidence
-P5  OwnerConfirmationEvent
-P6  ApprovalDecision
-P7  RequirementMatch + Grain
-P8  ComputabilityDecision + GovernedComputationInput
-P9  deterministic execution
-P10 QA / delivery
-```
-
-P0–P10 describe autoridades y orden lógico. No exigen once módulos físicos.
-
-### 3.4 Autoridad semántica
-
-La secuencia canónica conserva la separación:
-
-```text
-hipótesis semántica
-≠ confirmación del dueño
-≠ decisión P6
-≠ match P7
-≠ computabilidad P8
-```
-
-El dueño confirma significado. No autoriza por ese solo acto ejecución, diagnóstico o entrega.
-
-### 3.5 Autoridad de computabilidad
-
-La ejecución requiere un artefacto gobernado producido después de P6/P7/P8.
-
-```text
+XLSX
+↓
+canonical ingestion / normalized_tables
+↓
+SEM-1 WorkbookProfiler
+↓
+SEM-2 provider-neutral semantic context
+↓
+semantic provider
+  ├─ baseline determinística segura actual
+  └─ provider externo futuro, inyectado desde infraestructura
+↓
+SEM-3 deterministic validator
+↓
+SEM-4 OwnerDialoguePlan
+↓
+DUEÑO PYME
+↓
+SEM-5 owner evidence
+↓
+SEM-6 reentry
+↓
 P6 ApprovalDecision
-→ P7 RequirementMatch + Grain
-→ P8 ComputabilityDecision
-→ GovernedComputationInput
+↓
+P7 RequirementMatch + Grain
+↓
+P8 ComputabilityDecision + GovernedComputationInput
+↓
+Derived Evidence cuando la capability lo requiere
+↓
+KERNEL / FormulaEngineService
+↓
+bounded outcome
+↓
+controlled delivery
 ```
 
-Un score, una hipótesis, un nombre de columna o una respuesta libre no reemplazan esta cadena.
-
-### 3.6 Autoridad de ejecución
-
-Existen dos formas de ejecución dentro de la misma raíz:
+## 3. SEM-1 → SEM-9
 
 ```text
-comportamiento especializado probado
-→ evaluador especializado
-
-capacidad registry-governed
-→ CapabilityRegistry
-→ GenericCapabilityEngine
+SEM-1  WorkbookProfilerV1
+SEM-2  provider-neutral closed semantic contract
+SEM-3  deterministic semantic proposal validator
+SEM-4  minimal owner dialogue planner
+SEM-5  canonical owner evidence projection
+SEM-6  owner evidence reentry to existing semantic gate/P6
+SEM-7  tenant structural compatibility
+SEM-8  assisted semantic wiring into canonical product root
+SEM-9  assisted web wiring for sellable Cobros/Margen journeys
 ```
 
-La incorporación de una nueva capacidad genérica no debe crear una nueva rama identitaria en la raíz salvo necesidad especializada demostrada.
+SEM-9 no está completo para toda la web: `working_capital` conserva el piloto semántico legacy en el worktree actual.
 
----
+## 4. División de autoridad
 
-## 4. Plano B — infraestructura y soporte integrados
+### Semantic provider
 
-Estos componentes están presentes en el repositorio y son relevantes para la arquitectura global, pero no sustituyen la clasificación `PRODUCTIVE` de Servicio 1.
-
-### 4.1 Modelo de dominio
+Puede:
 
 ```text
-pymia/domain/*
+proponer significado
+proponer relaciones basadas en refs reales
+marcar ambigüedad
+usar hints tenant compatibles como evidencia histórica
 ```
 
-Fundación de objetos de dominio puros: entidades, snapshots, primitivas y tipos.
-
-Principio observado en el paquete:
+No puede:
 
 ```text
-pure domain objects
-zero infrastructure dependencies
+confirmar por el dueño
+crear owner evidence falsa
+autorizar runtime/tool/delivery
+calcular fórmulas
+inventar columnas o relaciones
 ```
 
-Uso arquitectónico permitido:
+### Owner
 
-- expresar conceptos del dominio;
-- servir como vocabulario común;
-- sostener contratos futuros.
+Confirma o corrige significado empresarial material. Su confirmación es evidencia, no permiso de ejecución.
 
-No puede por existir:
-
-- ejecutar Servicio 1;
-- saltar P6/P7/P8;
-- declarar una patología productiva;
-- autorizar delivery.
-
-### 4.2 Pipeline de admisión
+### P6/P7/P8
 
 ```text
-pymia/pipeline/admission/v1/*
-pymia/contracts/admission_v1.py
+P6 = aprobación semántica gobernada
+P7 = match de requisitos + grain
+P8 = única autoridad de computabilidad
 ```
 
-Convierte una narrativa inicial en un artefacto estructurado de síntomas e hipótesis mediante lógica determinística/heurística.
+### Derived Evidence
 
-Su rol es preanalítico:
+Transforma evidencia confirmada en variables canónicas cuando el workbook no trae directamente el agregado requerido por la fórmula.
+
+Ejemplo REN_001:
 
 ```text
-relato inicial
-→ síntoma estructurado
-→ hipótesis de trabajo
-→ evidencia requerida
+Ventas.Cantidad
+Ventas.PrecioUnitario
+Ventas.Descuento
+Ventas.ProductoID
+Productos.ProductoID
+Productos.Costo
+↓
+relación owner-confirmed + unidad owner-confirmed
+↓
+period_sales_total / sale_price
+period_costs_total / costs
 ```
 
-Los `confidence_score` de admisión son priorización de hipótesis de trabajo. No son autoridad de verdad, matching, aprobación semántica, computabilidad ni ejecución de Servicio 1.
+Derived Evidence no ejecuta la fórmula final y no inventa impuestos ausentes.
 
-### 4.3 Faithful Operator
-
-```text
-pymia/faithful_operator.py
-```
-
-FSM determinística para interacción inicial con el dueño y procesamiento local de evidencia.
-
-Fases observadas:
+### Kernel
 
 ```text
-LISTENING
-EVIDENCE_REQUESTED
-PROCESSING
-CANDIDATE_DELIVERED
-OWNER_CONFIRMATION_PENDING
-BLOCKED
-CLOSED
-```
-
-Su función es mantener una conversación operativa trazable y fail-closed.
-
-No constituye una segunda raíz productiva. La confirmación de un candidato por el operador fiel no sustituye P6/P7/P8 de la raíz canónica.
-
-### 4.4 Vertical slice / application pipeline
-
-```text
-pymia/cli/vertical_slice.py
-pymia/application/vertical_pipeline.py
-```
-
-Sirve para flujos locales de lectura, estructuración de evidencia, reportes y trazabilidad.
-
-Debe tratarse como superficie de aplicación/soporte. No puede promoverse por documentación a raíz productiva paralela.
-
-### 4.5 Diagnostic Core
-
-```text
-pymia/diagnostic_core/*
 pymia/services/formula_engine_service.py
 ```
 
-El core calcula fórmulas y devuelve resultados/candidatos o bloqueos según evidencia.
+Es la autoridad de ejecución matemática. Los evaluators validan/adaptan y proyectan resultados; no deben mantener implementaciones matemáticas paralelas.
 
-En el código actual, una fórmula calculada produce explícitamente un resultado diagnóstico `CANDIDATE`; no confirma diagnóstico final.
-
-Por tanto:
+## 5. REN_001 actual
 
 ```text
-formula calculada
-≠ diagnóstico confirmado
+formula_id: REN_001_margen_neto_real
+expression: ((sale_price - costs - taxes) / sale_price) * 100
 ```
 
-Este core puede aportar computación reusable, pero no puede romper la autoridad P6/P7/P8 de Servicio 1 cuando se usa dentro de esa cadena.
+La fórmula se ejecuta en el kernel.
 
-### 4.6 Narrative layer
+La web ya no posee un cálculo manual de margen disponible. La ausencia de impuestos o unidad de descuento material bloquea/solicita evidencia; no genera defaults silenciosos.
+
+## 6. Memoria tenant
 
 ```text
-pymia/narrative/*
+owner evidence
+→ TenantSemanticContractV1
+→ append-only tenant store
+→ structural signature
+→ SEM-7 compatibility classification
+→ compatible hint only
+→ SEM-2 context
 ```
 
-Proyecta evidencia existente a reportes legibles, con claims vinculados a `evidence_ids`.
-
-Regla:
+Estados:
 
 ```text
-narrativa explica evidencia
-narrativa no crea evidencia
-narrativa no decide computabilidad
-narrativa no autoriza delivery
+COMPATIBLE_HINT
+OBSOLETE_HINT
+LEGACY_UNVERIFIED_HINT
 ```
 
-### 4.7 Operational Harness y Pipeline Radiography
+Ninguno autoriza reutilización automática.
+
+## 7. Provider actual
 
 ```text
-pymia/operational_harness/*
-pymia/pipeline_radiography/*
+EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
+DEFAULT_SAFE_PROVIDER: service_1_deterministic_semantic_proposal_provider_v1.py
 ```
 
-Son capas de observación, medición, escenarios y clasificación operativa.
+El default seguro sólo proyecta hipótesis determinísticas relevantes y relaciones estructurales verificables al contrato SEM-2.
 
-Pueden producir estados como `GREEN`, `YELLOW`, `RED`, detectar escenarios ambiguos o capacidades parciales y sugerir una próxima acción de ingeniería.
+Los SDK de providers externos no deben importarse dentro de `pymia/` bajo la política actual. La integración futura entra desde bootstrap/infraestructura por callable inyectado.
 
-No forman parte de la decisión productiva del caso PyME y no reemplazan los gates del producto.
-
----
-
-## 5. Plano C — contratos y capacidades todavía no integrados
-
-### 5.1 Familia contable
-
-Existe infraestructura contractual para:
-
-- conciliación bancaria;
-- conciliación Mercado Pago;
-- matching factura/cobranza;
-- revisión compra/proveedor;
-- workpapers contables.
-
-El módulo Service 1:
+## 8. Superficie web
 
 ```text
-service_1_accounting_contracts_v1
+Cobros:         SEM-8 assisted semantics
+Margen Real:    SEM-8 assisted semantics + Derived Evidence
+Working Capital: legacy pilot semantics retained
+Consorcios/reconciliation/RADAR: superficies acotadas ya existentes; no son segunda raíz
 ```
 
-está clasificado como `SUPPORT_NECESSARY` en el registro de disposición vigente.
-
-Por tanto, los contratos contables expresan lenguaje y límites, pero no se convierten automáticamente en ejecución productiva.
-
-### 5.2 Conciliación algorítmica
-
-El matcher existente:
-
-```text
-service_2_reconciliation_match_candidates_v1
-```
-
-es la pieza que ejecuta matching algorítmico de conciliación.
-
-Está expuesto a la raíz de Servicio 1 de forma controlada: la compuerta `service_1_reconciliation_request_gate_v1` valida la solicitud explícita del dueño y el adaptador `service_1_reconciliation_candidate_to_assisted_review_v1` prepara candidatos únicamente para revisión humana. Esta integración no convierte al matcher en autoridad productiva autónoma.
-
-La arquitectura vigente exige:
-
-```text
-ambigüedad explícita
-referencia como evidencia, no verdad
-sin confidence score como autoridad
-sin matching codicioso para resolver colisiones
-human review para casos ambiguos
-```
-
-El acceso a la conciliación desde la raíz productiva existe exclusivamente a través de las compuertas gobernadas y siempre deriva a revisión humana.
-
----
-
-## 6. Clasificación física actual de módulos Service 1
-
-Fuente:
-
-```text
-docs/service_1_module_disposition.v1.json
-```
-
-Estado observado al redactar este mapa:
-
-```text
-TOTAL_SERVICE_1_MODULES = 60
-PRODUCTIVE = 30
-SUPPORT_NECESSARY = 30
-CANONICAL_PRODUCT_ROOT = service_1_product_pipeline_v1
-```
-
-Sólo `PRODUCTIVE` define el closure ejecutable de la raíz canónica.
-
-`SUPPORT_NECESSARY` significa que el componente es útil o necesario para ingeniería, ingesta, delivery, catálogo, medición o soporte de dominio; no significa que posea autoridad de ejecución.
-
----
-
-## 7. Evolución integrada posterior a Stage 2
-
-Git registra, después de la convergencia principal, las siguientes fundaciones integradas:
-
-```text
-039f0cd  feat(domain): integrate domain model foundation
-1b62053  feat(narrative): integrate deterministic narrative layer
-05cf07b  feat(pipeline): integrate admission pipeline foundation
-bc2fabf  feat(tooling): integrate pipeline radiography and operational harness
-c240080  refactor(service1): remove live root dependency and legacy evidence bridge
-9181abf  feat(service1): integrate faithful operator and document parsing support
-48aa4a0  docs(service1): reconcile current authority and retire Hermes legacy
-17e36a2  test(repo): retain regression coverage and local tooling
-```
-
-Estas integraciones amplían la plataforma alrededor de Servicio 1, pero no modifican por sí solas la regla de raíz productiva única.
-
----
-
-## 8. Dependencias de autoridad
-
-```text
-Código físico + tests
-        ↓
-ARCHITECTURE_GUARDRAILS.md
-        ↓
-docs/current/README.md
-        ↓
-SERVICE_1_CANONICAL_AXIS.md
-SERVICE_1_ARCHITECTURE_LOCK.md
-SERVICE_1_STATUS.md
-        ↓
-este mapa de componentes
-        ↓
-evidencia técnica y contratos específicos
-```
-
-Si un componente contradice la raíz canónica, el componente debe clasificarse, corregirse, aislarse o retirarse; no se redefine la raíz para justificarlo.
-
----
-
-## 9. Invariantes
+## 9. Invariantes arquitectónicos
 
 ```text
 ONE_CANONICAL_PRODUCT_ROOT
-ONE_CANONICAL_SERVICE_1_EXECUTION_AUTHORITY
-NO_LLM_RUNTIME_AUTHORITY
-NO_SECOND_XLSX_PRODUCT_PARSER
+NO_SECOND_XLSX_PARSER
 NO_PARALLEL_PRODUCTIVE_PIPELINE
+NO_LLM_RUNTIME_AUTHORITY
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
-ADMISSION_HYPOTHESIS_IS_NOT_APPROVAL
-NARRATIVE_IS_NOT_EVIDENCE
-HARNESS_IS_NOT_PRODUCT_RUNTIME
-SUPPORT_NECESSARY_IS_NOT_PRODUCTIVE
-ACCOUNTING_CONTRACT_IS_NOT_EXECUTION
-RECONCILIATION_AMBIGUITY_ESCALATES_TO_HUMAN
+NO_SEMANTIC_REBIND_AFTER_P6
+P7_AND_P8_REMAIN_SEPARATE
+P8_IS_COMPUTABILITY_AUTHORITY
+DERIVED_EVIDENCE_IS_NOT_FORMULA_AUTHORITY
+KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
+FAIL_CLOSED
 ```
 
----
-
-## 10. Regla para próximas integraciones
-
-Todo componente que pretenda pasar de soporte a ejecución productiva debe demostrar, como mínimo:
+## 10. Estado de certificación
 
 ```text
-contrato explícito
-ubicación exacta en P0–P10
-caller productivo legítimo
-sin segunda autoridad paralela
-tests focales
-tests vecinos
-guard arquitectónico
-fail-closed ante evidencia insuficiente o ambigua
-actualización de module_disposition
-actualización de la documentación rectora
+LAST_DEPLOYED_PRODUCTION_CUT: smoke PASS
+CURRENT_WORKTREE_CUT: 297 relevant tests PASS
+CURRENT_WORKTREE_FULL_SUITE: PASS_BY_EXHAUSTIVE_SHARDS (3614 PASS / 7 SKIPPED / 0 FAILED)
+CURRENT_WORKTREE_DEPLOYED: NO
 ```
 
-No se promueve arquitectura por similitud conceptual ni por mera existencia de código.
+No ampliar claims más allá de esas fronteras.

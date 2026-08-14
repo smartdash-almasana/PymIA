@@ -84,6 +84,7 @@ No raw cell values, workbook bytes, credentials, tokens, or unrestricted free-te
 - `COLUMN_EXCLUSION` requires `column_excluded=true` and no confirmed role.
 - `FREE_TEXT_MEANING` requires non-empty `corrected_meaning` and remains non-computable by itself.
 - Event case, sheet, column, question and semantic decision must match the projected contract.
+- `Service1OwnerConfirmationEventV1.column_ref` and `source_column_name` use the physical/source column identity as presented by canonical ingestion; `normalized_column_ref` is the separate normalized internal identity. A physical/normalized pair such as `Importe` / `importe` is valid and expected.
 - `tenant_id`, source context and actor identity must be non-empty.
 - `revision >= 1`.
 - `revision > 1` requires `supersedes_contract_id`.

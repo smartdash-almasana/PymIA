@@ -8,45 +8,77 @@ La autoridad documental vigente está en:
 docs/current/README.md
 ```
 
-Ningún otro índice, auditoría, closeout, roadmap histórico, documento de producto, landing, protocolo Hermes o corpus migrado puede gobernar implementación salvo referencia explícita desde esa autoridad.
+Ningún otro índice, auditoría, closeout, roadmap histórico, documento de producto, landing, protocolo Hermes o corpus migrado gobierna implementación salvo referencia explícita desde esa autoridad.
 
-## Regla de uso
+## Jerarquía
 
 ```text
-Código + tests + evidencia observada
-→ docs/current
-→ contratos/ADR citados explícitamente
+código físico + tests observados
+→ docs/current/README.md
+→ documentos rectores enumerados allí
+→ ADR/contratos citados
+→ evidencia histórica acotada
 ```
-
-`docs/DOCUMENTATION_INDEX.md`, `docs/DEPRECATED_DOCS.md` y otros inventarios anteriores conservan valor histórico hasta su eliminación, pero no son autoridad soberana.
 
 ## Política de saneamiento
 
-- La documentación obsoleta se elimina del árbol activo.
+```text
+NO_MUSEUM_DIRECTORY
+NO_ARCHIVE_DIRECTORY
+GIT_PRESERVES_HISTORY
+```
+
+- La documentación obsoleta se elimina del árbol activo sólo con prueba de no dependencia.
 - No se mueve a museo, archive, legacy o cuarentena documental.
-- Git conserva la trazabilidad histórica.
-- No se crea un documento nuevo cuando corresponde corregir uno vigente.
-- Una auditoría o plan ya ejecutado no permanece como orientación actual.
-- Los documentos de evidencia pueden conservarse solo cuando prueban un hecho que sigue siendo relevante y su alcance está claramente limitado.
+- No se crea un documento nuevo cuando corresponde corregir uno rector existente.
+- Una auditoría, TaskSpec, checkpoint o plan ya ejecutado no conserva autoridad de continuidad.
+- Los documentos de evidencia sólo prueban el alcance exacto que observaron.
+- La presencia física de un archivo en `docs/current/` no lo convierte en documento rector; gobierna únicamente el índice de `docs/current/README.md`.
 
 ## Servicio 1
 
-La orientación actual se reduce a:
+La continuidad debe empezar en:
 
 ```text
+docs/current/README.md
+docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md
 docs/current/SERVICE_1_STATUS.md
-docs/current/SERVICE_1_CANONICAL_AXIS.md
-docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
-docs/current/ARCHITECTURE_BOUNDARY.md
+docs/current/ACTIVE_ROADMAP.md
 ```
 
-La raíz productiva real está en:
+Arquitectura y operación:
+
+```text
+docs/current/SERVICE_1_CANONICAL_AXIS.md
+docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
+docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md
+docs/current/SERVICE_1_OPERABILITY_PACKET.md
+docs/current/SERVICE_1_DEPLOYMENT_TARGET_CONTRACT_V1.md
+```
+
+Producto vendible:
+
+```text
+docs/current/SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md
+```
+
+Raíz física:
 
 ```text
 pymia/smartpyme/service_1_product_pipeline_v1.py
 pymia/cli/service_1_product.py
 ```
 
-## Catálogos
+## Regla de reconciliación
 
-Los catálogos JSON y contratos técnicos se consideran fuentes válidas únicamente cuando están cargados o referenciados por la raíz productiva y cubiertos por tests.
+Si un documento no rector contradice código/tests o un documento rector actualizado, se trata como:
+
+```text
+HISTORICAL_OR_SUPERSEDED
+```
+
+No se corrige arquitectura para hacer coincidir un documento histórico.
+
+## Catálogos y contratos
+
+Los JSON, schemas, ADRs y contratos técnicos son fuentes válidas sólo dentro de su scope y cuando la raíz productiva o un documento rector vigente los referencia explícitamente.

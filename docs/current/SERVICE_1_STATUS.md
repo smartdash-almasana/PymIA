@@ -1,342 +1,157 @@
-# Servicio 1 — estado actual
+# Servicio 1 — estado técnico actual
 
-**Fecha de corte vigente:** 2026-08-13
-**Estado documental:** reconciliado con cierre técnico completo y frente productivo/operacional.
-**HEAD vigente:** `13e3247402ad4543f683d56666de2fbc3127fa0d`.
-**Autoridad de continuidad:** `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md`.
+**Fecha de corte:** 2026-08-14
+**Autoridad de continuidad:** `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md`
 
-## Estado ejecutivo
+## Resumen
 
 ```text
+CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 SERVICE_1_PRODUCT_COMPLETION_GATE: PASS
 SERVICIO 1 MVP DETERMINÍSTICO ASISTIDO: COMPLETO
-12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS
-RAÍZ PRODUCTIVA CANÓNICA ÚNICA: ACTIVA
-CLI PRODUCTIVA CANÓNICA: ACTIVA
-P0–P10: ARQUITECTURA VIGENTE
-STAGE 2: CLOSED_PASS
-12/12 CAPACIDADES PRODUCTIVAS HISTÓRICAMENTE CONECTADAS: CONSERVADAS
+LAST_DEPLOYED_PRODUCTION_SMOKE: PASS (2026-08-13)
+CURRENT_WORKTREE_SEM_1_TO_9: IMPLEMENTED
+DERIVED_EVIDENCE_REN_001: IMPLEMENTED
+REN_001_FORMULA_AUTHORITY: KERNEL_ONLY
+EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
+SAFE_DETERMINISTIC_PROVIDER: ACTIVE
 KERNEL GENÉRICO PRODUCTIVO: ACTIVO
-KERNEL GENÉRICO: ACTIVO
-OWNER CONFIRMATION: EVIDENCIA, NO PERMISO
-P8 GOVERNED INPUT: AUTORIDAD DE COMPUTABILIDAD
-LLM RUNTIME AUTHORITY: NO
-SIN LLM RUNTIME
 SIN DIAGNÓSTICO CAUSAL
-SEGUNDA RAÍZ PRODUCTIVA: NO
-DELIVERY AUTÓNOMO: NO AUTORIZADO
-API PRODUCTIVA: NO AUTORIZADA
-CAPABILITY_PHYSICAL_COVERAGE_GATE_V1: CLOSED_PASS
-FIRST_CONTACT_EXPLICIT_OWNER_CONFIRMATION: CLOSED_PASS
-CONCILIACIÓN CONTROLADA: PILOTO CERRADO PASS
-MATCHING 1:N / N:1: CANDIDATOS TRAZABLES
-DUPLICADOS EXACTOS: EXPLÍCITOS
-REVISIÓN HUMANA: OBLIGATORIA
-TENANT SEMANTIC CONTRACT V1: INTEGRATED
-TENANT-ISOLATED APPEND-ONLY STORE: IMPLEMENTED
-TENANT IDENTITY/PERSISTENCE: ACTIVE
-TENANT MEMORY RECALL: ACTIVE_WITHOUT_SILENT_PRESELECTION
-AUTOMATIC TENANT MAPPING REUSE: NOT_AUTHORIZED
-12/12 PRODUCTIVAS CONECTADAS ≠ TODAS CON DELIVERY AUTÓNOMO
+WORKING_CAPITAL_SEMANTICS: LEGACY_PILOT
+RELEVANT_REGRESSION: 297 PASS
+FULL_SUITE_COVERAGE: PASS_BY_EXHAUSTIVE_SHARDS
+FULL_SUITE_RESULT: 3614 PASS / 7 SKIPPED / 0 FAILED
+MONOLITHIC_MCP_RUNNER: HTTP_502_TIMEOUT
+CURRENT_WORKTREE_COMMIT: NO
+CURRENT_WORKTREE_DEPLOYED: NO
+12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS: CONSERVADAS
 ```
 
-## 1. Autoridad productiva
+## Autoridad productiva
 
-Entrada oficial:
+Entrada CLI canónica:
 
 ```text
 pymia/cli/service_1_product.py
 ```
 
-Raíz productiva:
+Raíz productiva única:
 
 ```text
 pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
-No existe una segunda raíz productiva autorizada.
-
-## 2. Clasificación física Service 1
-
-Fuente:
+Web productiva:
 
 ```text
-docs/service_1_module_disposition.v1.json
+pymia/smartpyme/service_1_assisted_web_v1.py
 ```
 
-Estado observado:
+La web es superficie de interacción; no es autoridad matemática ni segunda raíz de negocio.
+
+## Cadena vigente
 
 ```text
-TOTAL_SERVICE_1_MODULES = 60
-PRODUCTIVE = 30
-SUPPORT_NECESSARY = 30
-```
-
-La clasificación `PRODUCTIVE` sigue siendo la frontera para determinar el closure ejecutable de la raíz.
-
-## 3. Cadena vigente
-
-```text
-P0 intake
-→ P1 canonical XLSX ingestion
-→ P2 profiling / physical evidence
-→ P3 semantic hypothesis
-→ P4 contextual evidence
-→ P5 OwnerConfirmationEvent
+canonical XLSX ingestion
+→ physical/workbook evidence
+→ semantic assistance proposal
+→ deterministic validation
+→ owner material confirmation
 → P6 ApprovalDecision
 → P7 RequirementMatch + Grain
 → P8 ComputabilityDecision + GovernedComputationInput
-→ P9 deterministic execution
-→ P10 QA / delivery
+→ deterministic execution/kernel
+→ bounded outcome
+→ controlled delivery
 ```
 
-Los límites siguen siendo:
+Autoridades separadas:
 
 ```text
-owner confirmation ≠ runtime authorization
-semantic hypothesis ≠ approval
-approval ≠ computability
-computation ≠ diagnosis final
-delivery result ≠ delivery authorization general
+provider/LLM → propone
+owner        → confirma significado empresarial
+P6/P7/P8    → gobiernan aprobación/requisitos/computabilidad
+Derived Evidence → transforma evidencia confirmada en inputs canónicos
+kernel       → ejecuta fórmulas
+P10/delivery → controla salida autorizada
 ```
 
-## 4. Capacidades productivas vigentes
+## SEM-1 → SEM-9
 
-El catálogo productivo conserva las 12 capacidades cerradas previamente:
+| Corte | Estado | Responsabilidad |
+|---|---|---|
+| SEM-1 | PASS | WorkbookProfilerV1 sobre normalized_tables canónicas |
+| SEM-2 | PASS | contrato provider-neutral, sin SDK |
+| SEM-3 | PASS | validator determinístico, fail-closed |
+| SEM-4 | PASS | diálogo owner mínimo y agrupado |
+| SEM-5 | PASS | proyección a evidencia owner canónica |
+| SEM-6 | PASS | reentry hacia reinjection/P6 existente |
+| SEM-7 | PASS | compatibilidad estructural de memoria tenant |
+| SEM-8 | PASS | wiring a la raíz productiva canónica |
+| SEM-9 | PASS acotado | web de Cobros y Margen usa SEM-8; Working Capital conserva piloto legacy |
 
-| Patología | Capacidad |
-|---|---|
-| `LIQ_001` | `sold_vs_collected_gap` |
-| `REN_001` | `net_margin_real` |
-| `LIQ_002` | `projected_closing_cash_balance` |
-| `PYME_011` | `dso` |
-| `PYME_013` | `payment_collection_gap` |
-| `INV_001` | `reorder_point` |
-| `INV_002` | `inventory_turnover` |
-| `PYME_024` | `current_ratio` |
-| `PYME_033` | `sales_concentration` |
-| `REN_002` | `index_update_ratio` |
-| `PYME_027` | `interest_burden_ratio` |
-| `PYME_026` | `adjusted_operating_cash_flow` |
+## REN_001
 
-DPO continúa como prerrequisito técnico de `PYME_013`, no como decimotercera patología productiva.
-
-El gate consolidado `CAPABILITY_PHYSICAL_COVERAGE_GATE_V1` está cerrado y vuelve a pasar bajo el contrato vigente de confirmación explícita. Conserva exactamente doce capacidades productivas; DPO sigue siendo prerrequisito técnico de `PYME_013`, no una decimotercera capacidad. `adjusted_operating_cash_flow` permanece `PHYSICAL_PARTIAL` con bloqueo explícito `CAPABILITY_NOT_GOVERNED`, y `payment_collection_gap` conserva su deferimiento contractual hasta completar sus prerrequisitos físicos. El gate no autoriza delivery autónomo.
-
-La existencia de una capacidad productiva no implica que su delivery esté autorizado automáticamente.
-
-## 5. Arquitectura nueva integrada alrededor de Servicio 1
-
-Después de Stage 2 se integraron varias fundaciones de plataforma.
-
-### Modelo de dominio
+Fórmula gobernada:
 
 ```text
-pymia/domain/*
+REN_001_margen_neto_real
+((sale_price - costs - taxes) / sale_price) * 100
 ```
 
-Objetivo: lenguaje de dominio puro, entidades, primitivas, snapshots y tipos sin dependencia de infraestructura.
-
-Estado frente a Servicio 1:
+Autoridad ejecutable única:
 
 ```text
-PLATFORM_FOUNDATION
-NOT_SECOND_PRODUCT_ROOT
-```
-
-### Admisión
-
-```text
-pymia/contracts/admission_v1.py
-pymia/pipeline/admission/v1/*
-```
-
-Objetivo: transformar narrativa inicial en síntomas, hipótesis y evidencia requerida.
-
-Estado frente a Servicio 1:
-
-```text
-PREANALYTIC_SUPPORT
-HYPOTHESIS_NOT_AUTHORITY
-CONFIDENCE_SCORE_NOT_EXECUTION_AUTHORITY
-```
-
-### Faithful Operator
-
-```text
-pymia/faithful_operator.py
-```
-
-Objetivo: interacción determinística con el dueño, pedido de evidencia, resultado candidato y corrección/confirmación.
-
-Estado frente a Servicio 1:
-
-```text
-APPLICATION_SUPPORT
-FAIL_CLOSED
-NOT_SECOND_PRODUCT_ROOT
-```
-
-### Vertical application pipeline
-
-```text
-pymia/cli/vertical_slice.py
-pymia/application/vertical_pipeline.py
-```
-
-Objetivo: flujo local de evidencia, reporte, registro y presentación.
-
-Estado:
-
-```text
-APPLICATION_SUPPORT
-NOT_CANONICAL_PRODUCT_AUTHORITY
-```
-
-### Diagnostic Core
-
-```text
-pymia/diagnostic_core/*
 pymia/services/formula_engine_service.py
 ```
 
-Objetivo: cálculo reusable y resultados candidatos/bloqueados basados en evidencia.
+`service_1_ren_001_evaluator_v1.py` valida/proyecta, pero no mantiene otra implementación matemática.
 
-Estado:
+Derived Evidence puede construir `sale_price` y `costs` desde líneas/relaciones confirmadas. No pone `taxes=0` por ausencia y no interpreta descuentos no nulos sin evidencia owner de unidad.
 
-```text
-COMPUTATION_SUPPORT
-CALCULATED_NOT_EQUAL_DIAGNOSED
-```
-
-### Narrative layer
+## Tenant semantics
 
 ```text
-pymia/narrative/*
+TENANT_SEMANTIC_CONTRACT: IMPLEMENTED
+TENANT_STORE: APPEND_ONLY / TENANT_ISOLATED
+STRUCTURAL_COMPATIBILITY: IMPLEMENTED
+COMPATIBLE_MEMORY: HINT_ONLY
+AUTOMATIC_REUSE: FORBIDDEN
+SEMANTIC_REBIND: FORBIDDEN
 ```
 
-Objetivo: convertir evidencia y señales en claims legibles y trazables.
+## Provider externo
 
-Estado:
+No hay SDK externo empaquetado ni provider de red productivo conectado en el worktree actual.
 
 ```text
-PRESENTATION_SUPPORT
-NARRATIVE_NOT_EQUAL_EVIDENCE
+semantic_provider=<callable>
 ```
 
-### Operational Harness + Pipeline Radiography
+es una frontera de inyección. La baseline determinística segura permite operar el contrato SEM-2 sin convertir una heurística en autoridad.
+
+## Producción
+
+El último corte desplegado conserva evidencia de smoke PASS. El worktree SEM-1→SEM-9 ya cerró cobertura completa por shards exhaustivos y todavía necesita commit, deploy y smoke propios antes de reemplazar esa baseline en producción.
+
+## Gate de release actual
 
 ```text
-pymia/operational_harness/*
-pymia/pipeline_radiography/*
+1. REVIEW WORKTREE CLASSIFICATION
+2. AUTHORIZED THEMATIC COMMITS
+3. DEPLOY NEW SHA
+4. PRODUCTION_SMOKE NEW SHA
 ```
 
-Objetivo: escenarios, observación, clasificación del estado técnico y detección de ambigüedad/partial readiness.
-
-Estado:
+## Invariantes
 
 ```text
-ENGINEERING_OBSERVABILITY
-NOT_PRODUCT_RUNTIME
+ONE_CANONICAL_PRODUCT_ROOT
+NO_SECOND_XLSX_PARSER
+NO_PARALLEL_PRODUCTIVE_PIPELINE
+NO_LLM_RUNTIME_AUTHORITY
+OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
+FAIL_CLOSED
+P8_IS_COMPUTABILITY_AUTHORITY
+KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
 ```
-
-## 6. Contabilidad y conciliación
-
-Existe una familia de contratos contables y workpapers, incluida:
-
-```text
-service_1_accounting_contracts_v1
-```
-
-Su disposición vigente es:
-
-```text
-SUPPORT_NECESSARY
-```
-
-También existen contratos específicos de:
-
-- conciliación bancaria;
-- Mercado Pago;
-- factura/cobranza;
-- compra/proveedor.
-
-El matcher algorítmico actual está en:
-
-```text
-service_2_reconciliation_match_candidates_v1
-```
-
-Estado actual del frente:
-
-```text
-MATCHER_EXISTS
-ALGORITHMIC_MATCHING_EXISTS
-MATCHING_1N_N1_CLOSED_FOR_CONTROLLED_PILOT
-EXACT_DUPLICATES_EXPLICIT
-AMBIGUITY_EXPOSED_TO_HUMAN_REVIEW
-CONTROLLED_PILOT_MATCHES_EXPECTED_CATEGORIES
-WORKPAPER_XLSX_TRACEABLE
-PRODUCTIVE_S1_WIRING_ACTIVE
-NO_AUTOMATIC_ACCOUNTING_CLOSURE
-```
-
-Decisiones cerradas:
-
-- referencia es evidencia, no identidad;
-- fecha + importe no prueba identidad;
-- float confidence no decide conciliación;
-- 1:N / N:1 / N:M debe quedar explícito;
-- no resolver colisiones mediante matching codicioso;
-- diferencias de importe no pueden hacer desaparecer movimientos no imputados;
-- `AMBIGUOUS` escala a revisión humana.
-
-## 7. Evolución Git relevante
-
-```text
-039f0cd  feat(domain): integrate domain model foundation
-1b62053  feat(narrative): integrate deterministic narrative layer
-05cf07b  feat(pipeline): integrate admission pipeline foundation
-bc2fabf  feat(tooling): integrate pipeline radiography and operational harness
-c240080  refactor(service1): remove live root dependency and legacy evidence bridge
-9181abf  feat(service1): integrate faithful operator and document parsing support
-48aa4a0  docs(service1): reconcile current authority and retire Hermes legacy
-17e36a2  test(repo): retain regression coverage and local tooling
-```
-
-## 8. Límites actuales
-
-- Completo no significa ERP total, CRM, SaaS autónomo ni Servicios 2/3 completos.
-- No existe LLM soberano en runtime de Servicio 1.
-- No existe selección de capacidad por texto libre con autoridad productiva.
-- La confirmación del dueño sigue siendo evidencia semántica, no permiso general.
-- Las capas de admisión, operador fiel, dominio, narrativa y harness no sustituyen la raíz canónica.
-- Los contratos contables no ejecutan por existir.
-- El piloto controlado de conciliación está cerrado con comparación contra control, pero sus `76/76` decisiones permanecen `PENDING` para revisión humana.
-- No existe aceptación automática, asiento contable ni cierre definitivo de conciliación.
-- La confirmación explícita del primer contacto está implementada y conectada al journey web real con identidad Supabase por tenant, persistencia durable append-only, memory recall asistido y supersesión versionada. La segunda carga puede mostrar antecedentes del mismo tenant sin preselección ni auto-reuse, exige reconfirmación explícita y persiste nuevas revisiones encadenadas (`revision=n+1`, `supersedes_contract_id=prior.contract_id`). El E2E físico real de LIQ_001 cerró memoria, supersesión, P6/P7/P8, P10 y descarga XLSX. Drift/contradiction resolution y semantic rebinding automático siguen fuera de alcance.
-- API y microservicios distribuidos no son el siguiente paso autorizado de conciliación.
-
-## 9. Documentación de arquitectura
-
-```text
-docs/current/SERVICE_1_CANONICAL_AXIS.md
-docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
-docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md
-docs/current/SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_ENGINEERING_METHOD_V1.md
-docs/current/SERVICE_1_ENTERPRISE_EXECUTION_STATE_V1.md
-```
-
-## 10. Regla de continuidad
-
-Todo nuevo desarrollo de Servicio 1 debe responder primero:
-
-```text
-¿es producto, soporte o incubación?
-¿en qué punto P0–P10 entra?
-¿qué contrato gobierna?
-¿qué evidencia lo autoriza?
-¿crea una segunda autoridad?
-```
-
-Si la última respuesta es sí, el diseño está bloqueado hasta reconciliación arquitectónica.

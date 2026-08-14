@@ -1,6 +1,8 @@
 # SERVICE 1 — DOCUMENTARY PURGE AUDIT V2
 
-Status: `AUDIT_COMPLETE_PURGE_NOT_EXECUTED`
+Status: `SUPERSEDED_REFERENCE_ONLY`
+
+> Superseded on 2026-08-14 by `docs/README.md` and `docs/current/README.md`. Its proposed `docs/museum/` relocation is **not authorized** under the current documentation policy. Retained only as historical audit evidence until safe physical deletion is performed.
 
 ## Scope
 

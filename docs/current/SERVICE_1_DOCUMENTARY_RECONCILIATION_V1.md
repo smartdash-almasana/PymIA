@@ -1,7 +1,10 @@
 # Service 1 Documentary Reconciliation V1
 
-Status: DOCUMENTARY_RECONCILIATION
+Status: SUPERSEDED_REFERENCE_ONLY
 Date: 2026-07-10
+Superseded-by: docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md (2026-08-14)
+
+> This reconciliation remains historical evidence only. It must not be used for current next-step planning, readiness claims, or semantic-runtime status.
 Scope: Servicio 1 XLSX-first closeout, active roadmap, SaaS checkpoint, and semantic runtime candidate lane.
 
 ## Verdict

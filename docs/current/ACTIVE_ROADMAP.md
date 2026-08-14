@@ -1,188 +1,151 @@
-# Active Roadmap — Service 1 Post-Stage-2
+# Active Roadmap — Servicio 1
 
-## Status
+**Fecha de corte:** 2026-08-14
+**Autoridad:** `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md`
 
-```text
-PRODUCT_AND_OPERATIONAL_CLOSURE
-CURRENT_AUTHORITY: docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md
-```
-
-## Canonical baseline
+## Estado
 
 ```text
-STAGE2 = CLOSED_PASS
-ARCHITECTURE_BASELINE = PASS_ARCHITECTURE_BASELINE_V1
-CANONICAL_PRODUCT_ROOT = service_1_product_pipeline_v1
+LAST_DEPLOYED_PRODUCTION_CUT: SMOKE_PASS
+CURRENT_WORKTREE: SEM_1_TO_9 + DERIVED_EVIDENCE
+RELEVANT_REGRESSION: 297 PASS
+FULL_SUITE_COVERAGE: PASS_BY_EXHAUSTIVE_SHARDS
+FULL_SUITE_RESULT: 3614 PASS / 7 SKIPPED / 0 FAILED
+COMMIT: NOT_DONE
+DEPLOY: NOT_DONE
 ```
 
-Stage 2 closed the semantic-to-execution architecture:
+## Frente actual único
 
 ```text
-P0 intake
-→ P1 canonical XLSX ingestion
-→ P2 profiling / physical evidence
-→ P3 semantic hypothesis
-→ P4 contextual evidence
-→ P5 OwnerConfirmationEvent
-→ P6 ApprovalDecision
-→ P7 RequirementMatch + Grain
-→ P8 ComputabilityDecision + GovernedComputationInput
-→ P9 deterministic execution
-→ P10 QA / delivery
+REPO_AND_DOCUMENTATION_HYGIENE_V1: CLOSED_PASS
+→ RESTORE_FULL_SUITE_EXECUTION: CLOSED_PASS_BY_EXHAUSTIVE_SHARDS
+→ THEMATIC_COMMIT_CUT
+→ DEPLOY CURRENT SHA
+→ PRODUCTION_SMOKE CURRENT SHA
 ```
 
-## Current active front
+No hay un frente productivo paralelo autorizado.
+
+## Hitos cerrados del worktree actual
 
 ```text
-RECONCILE_SERVICE_1_CURRENT_PRODUCT_AUTHORITY_V1
-→ FREEZE_SELLABLE_PRODUCT
-→ PROVE_REAL_SELLABLE_JOURNEY
-→ CLOSE_REAL_PRODUCTION_BLOCKERS + PRODUCTION_SMOKE
-→ REAL_CLIENT_CASE_001 + PRODUCTION_CERTIFICATION
+SEM-0 ADR-029 boundary
+SEM-1 WorkbookProfiler
+SEM-2 provider-neutral semantic contract
+SEM-3 deterministic semantic validator
+SEM-4 owner dialogue planner
+SEM-5 owner evidence projection
+SEM-6 reentry → existing P6
+SEM-7 tenant structural compatibility
+SEM-8 canonical product-root wiring
+SEM-9 assisted web wiring for Cobros and Margen
+Derived Evidence REN_001
+REN_001 kernel-only formula authority
+owner-confirmed discount unit evidence
+removal of parallel web margin calculation
 ```
 
-Stage 2, tenant identity/persistence, owner confirmation/reentry, the assisted web surface and the currently governed P0→P10 execution chain are already integrated. The active front is product and operational closure; no new capability or parallel architecture is authorized before production certification.
-
-## Priority sequence
+## Salvedades activas
 
 ```text
-1. CONTROLLED_PRODUCT_READINESS_CORPUS_V1 — SEMANTIC_SCOPE_PASS
-2. SEMANTIC_CATALOG_EXPANSION_V1 — PASS (supported-scope precision 1.0000; safety 1.0000)
-3. PHYSICAL_XLSX_MULTI_SECTOR_PRODUCT_READINESS_CORPUS_V1 — SEMANTIC_PASS (59/59 known semantics; safety 1.0000)
-4. FIX_PHYSICAL_CORPUS_FALSE_CONFIDENT_ERRORS_WITH_CONTEXTUAL_SCORING_V1 — PASS (0 false confident / 0 dangerous errors)
-5. RAISE_PHYSICAL_CORPUS_PRECISION_TO_090_WITH_SAFETY_1_0_V1 — CLOSED_PASS (precision 1.0000)
-6. BUILD_PHYSICAL_P6_P7_P8_CAPABILITY_READINESS_MATRIX_V1 — READY (P6 7/7; P7 7/7; P8 negatives 14/14; positive COMPUTABLE 3/3)
-7. BUILD_PHYSICAL_COMPUTABLE_POSITIVE_CONTROLS_V1 — CLOSED_PASS (LIQ_001 + LIQ_002 + DSO physical COMPUTABLE + executed)
-8. EXPAND_PHYSICAL_COMPUTABLE_CONTROLS_TO_LIQ002_AND_DSO_V1 — CLOSED_PASS
-9. AUDIT_REMAINING_CAPABILITY_GOVERNANCE_CONVERGENCE_V1 — UPDATED (3 governance gaps remain)
-10. DEFINE_AND_AUTHORIZE_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1 — CLOSED_PASS (6 authorized / 3 deferred)
-11. IMPLEMENT_BOUNDED_REMAINING_CAPABILITY_GOVERNANCE_EXPANSION_V1 — CLOSED_PASS
-12. BUILD_PHYSICAL_COMPUTABLE_CONTROLS_FOR_BOUNDED_SIX_V1 — CLOSED_PASS (6/6 positive, 6/6 negative, unsafe=0)
-13. CAPABILITY_PHYSICAL_COVERAGE_GATE_V1 — CLOSED_PASS
-14. FIRST_CONTACT_EXPLICIT_OWNER_CONFIRMATION_V1 — CLOSED_PASS
-15. CONTROLLED_RECONCILIATION_PILOT_V1 — CLOSED_PASS
-16. RECONCILE_FREEZE_AND_INTEGRATE_CURRENT_SERVICE_1_CUT_V1 — CLOSED_IN_MAIN (8aced9c)
-17. DEFINE_TENANT_SEMANTIC_CONTRACT_V1 — SPECIFIED
-18. IMPLEMENT_TENANT_SEMANTIC_CONTRACT_FOUNDATION_V1 — IMPLEMENTED_AWAITING_INDEPENDENT_REVIEW
-19. DEFINE_TENANT_IDENTITY_AND_CONFIRMATION_PERSISTENCE_WIRING_V1 — AFTER_INDEPENDENT_FOUNDATION_PASS
-20. TENANT_MAPPING_REUSE_AND_DRIFT — DEFERRED_UNTIL_WIRING_CLOSEOUT
-21. STAGE_3_PRODUCT_AND_OPERATIONAL_HARDENING
-22. PRODUCTION_CERTIFICATION
-23. SAAS_AUTONOMY_RECONSIDERATION_ONLY_AFTER_CERTIFICATION_DECISION
+EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
+WORKING_CAPITAL_SEMANTICS: LEGACY_PILOT_RETAINED
+MONOLITHIC_MCP_FULL_SUITE: NOT_OBSERVED_DUE_TO_502_TIMEOUT
+CURRENT_WORKTREE: NOT_COMMITTED
+CURRENT_WORKTREE: NOT_DEPLOYED
 ```
 
-## Product-readiness gate
+Estas salvedades no invalidan la cobertura exhaustiva `3614 PASS / 7 skipped / 0 failed`, pero impiden declarar el corte actual released hasta commit/deploy/smoke del nuevo SHA.
 
-Required evidence:
+## Secuencia inmediata
+
+### 1. REPO_AND_DOCUMENTATION_HYGIENE_V1 — CLOSED_PASS
+
+Objetivo:
 
 ```text
-varied sectors and workbook shapes
-expected semantic bindings
-P6/P7/P8 trace
-correct computable / needs-evidence / needs-owner outcomes
-all supported capabilities exercised
-owner reentry verified
-zero invented semantics
-zero dangerous confident errors
+canonical docs reconciled
+worktree changes classified
+historical docs removed from authority index
+unrelated landing/UI changes preserved
+no commit/push without authorization
 ```
 
-Current physical XLSX corpus baseline:
+### 2. RESTORE_FULL_SUITE_EXECUTION — CLOSED_PASS_BY_EXHAUSTIVE_SHARDS
+
+El wrapper monolítico `python -m pytest -q` devuelve HTTP 502 por límite de transporte. La suite se ejecutó mediante shards exhaustivos sin excluir tests ni agregar skips.
 
 ```text
-59 exact matches / 59 known semantic columns
-semantic precision = 1.0000
-direct-resolution coverage = 0.7564
-safe-resolution rate = 1.0000
-false confident = 0
-dangerous errors = 0
+3614 passed
+7 skipped
+0 failed
 ```
 
-Target:
+### 3. THEMATIC_COMMIT_CUT
+
+Separar al menos conceptualmente:
 
 ```text
-semantic understanding >= 0.90 on approved corpus
-safe-resolution = 1.0
-zero dangerous confident errors
+A. SEM-1→SEM-9 / tenant / Derived Evidence / kernel
+B. documentation authority reconciliation
+C. landing / visual work unrelated to Service 1 runtime
 ```
 
-## Architecture invariants
+No mezclar C con A en un commit productivo.
+
+### 4. DEPLOY + PRODUCTION_SMOKE
+
+Sólo después de full-suite y commits autorizados:
 
 ```text
-NO_LLM_RUNTIME_AUTHORITY
-NO_SECOND_XLSX_PARSER
-ONE_CANONICAL_PRODUCT_ROOT
-OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
-NO_SEMANTIC_REBIND_AFTER_P6
-P7_AND_P8_REMAIN_SEPARATE
-GENERIC_CAPABILITY_EXTENSION_WITHOUT_ROOT_BRANCH
-NO_NEW_PARALLEL_GATE_CHAIN
-NO_NEW_COMPUTATION_PLAN_AUTHORITY
-NO_AUTONOMOUS_DELIVERY
-FAIL_CLOSED
+new SHA
+→ Cloud Run deploy
+→ health
+→ auth fail-closed
+→ Supabase login
+→ authenticated upload
+→ owner confirmation
+→ deterministic execution + persistence
+→ delivery download
+→ reentry
 ```
 
-## Maintenance lane
+## Después del release
 
-Deletion is allowed only with caller/dependency proof.
+El siguiente frente de producto se decide recién con el nuevo corte desplegado y smokeado.
 
-Candidates include:
+Candidatos permitidos para evaluación posterior:
 
 ```text
-Package 1 temporary adapter
-historical LIQ_002/PYME_011 specialized SUPPORT clusters
-legacy ComputationPlan projection
-other explicit compatibility projections
+1. conectar provider semántico externo real desde infraestructura/bootstrap
+2. migrar working_capital desde semantic scoping legacy a SEM-8
+3. probar caso real cliente sobre el nuevo journey
 ```
 
-Maintenance must not delay product-readiness unless a residue actively blocks or confuses the canonical path.
+No ejecutar los tres en paralelo.
 
-## Future engineering stage
-
-The next genuinely new architecture/engineering stage is:
+## Expansión prohibida antes del release
 
 ```text
-STAGE_3_PRODUCT_AND_OPERATIONAL_HARDENING
+nueva capability productiva
+segundo product root
+segundo XLSX parser
+segundo semantic pipeline
+segundo computability gate
+LLM runtime authority
+formula authority fuera del kernel
+implicit taxes/defaults materiales
+refactor amplio sin blocker causal
 ```
 
-It begins only after sufficient product-readiness evidence and covers:
+## Regla de método
 
 ```text
-resource limits
-structured errors
-idempotence/replay
-recovery
-observability
-provenance
-sensitive-data handling
-concurrency/session behavior
-release/rollback reproducibility
+una tarea
+→ una verificación
+→ un resultado
+→ una decisión
 ```
 
-## SaaS/autonomy
-
-Historical autonomous SaaS gate-chain roadmaps are superseded and must not be resumed from old documents.
-
-SaaS/autonomy is deferred until after the controlled product is proven and a production-certification decision exists.
-
-## Next methodological action
-
-Technical closure is complete. The next methodological action is:
-
-```text
-FREEZE_SELLABLE_PRODUCT
-```
-
-Identity/persistence wiring and assisted web integration are already closed on the current product path. Web/product-root wiring, automatic mapping reuse, drift resolution, LLM runtime authority and a second product root remain unauthorized in the current cut.
-
-Current closure evidence:
-
-```text
-docs/current/SERVICE_1_CONTROLLED_PRODUCT_READINESS_CORPUS_V1.md
-docs/current/SERVICE_1_CONTROLLED_RECONCILIATION_PILOT_CLOSEOUT_V1.md
-```
-
-Reference audit:
-
-```text
-docs/current/SERVICE_1_POST_STAGE2_ROADMAP_AUDIT_V1.md
-```
+Documentar únicamente cuando cambia una verdad rectora. Los closeouts, TaskSpecs y auditorías consumados no vuelven a gobernar el roadmap.
