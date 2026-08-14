@@ -117,6 +117,14 @@ def _assert(condition: bool, message: str) -> None:
         raise SmokeFailure(message)
 
 
+def _durable_case_link(cases_page: str) -> str:
+    case_links = re.findall(r'href="(/case\?case_ref=case_[^"]+)"', cases_page)
+    durable_links = [link for link in case_links if "::" not in link]
+    if not durable_links:
+        raise SmokeFailure("persisted cases exposed no durable case_* reentry link")
+    return durable_links[0]
+
+
 def run() -> dict[str, object]:
     base_url = _required_env(BASE_URL_ENV).rstrip("/")
     supabase_url = _required_env(SUPABASE_URL_ENV)
@@ -226,12 +234,11 @@ def run() -> dict[str, object]:
     )
     cases = content.decode("utf-8", errors="replace")
     _assert(status == 200 and "EVIDENCIA PERSISTIDA" in cases, "durable case reentry listing failed")
-    match = re.search(r'href="(/case\?case_ref=case_[^"]+)"', cases)
-    _assert(match is not None, "persisted cases exposed no case_* reentry link")
+    durable_link = _durable_case_link(cases)
     status, _, content = _request(
         opener,
         "GET",
-        base_url + match.group(1),
+        base_url + durable_link,
         headers=auth,
     )
     reopened = content.decode("utf-8", errors="replace")

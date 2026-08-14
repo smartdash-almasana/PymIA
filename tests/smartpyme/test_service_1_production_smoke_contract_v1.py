@@ -24,3 +24,11 @@ def test_production_smoke_accepts_sem8_owner_actions() -> None:
 def test_production_smoke_still_accepts_canonical_answer_fields() -> None:
     page = '<input type="radio" name="answer_q-1" value="period_sales_total">'
     assert smoke._answers(page) == {"answer_q-1": "period_sales_total"}
+
+
+def test_production_smoke_selects_durable_case_link_without_snapshot_suffix() -> None:
+    page = (
+        '<a href="/case?case_ref=case_new::sold_vs_collected_gap">resultado</a>'
+        '<a href="/case?case_ref=case_persisted">evidencia</a>'
+    )
+    assert smoke._durable_case_link(page) == "/case?case_ref=case_persisted"
