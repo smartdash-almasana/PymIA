@@ -107,6 +107,7 @@ def persist_service_1_owner_confirmation_v1(
     inferred_data_type: str | None = None,
     neighboring_column_refs: tuple[str, ...] = (),
     vertical_ref: str | None = None,
+    structural_signature: Mapping[str, object] | None = None,
 ) -> Service1TenantConfirmationPersistenceResultV1:
     """Build canonical semantic persistence and fail closed on infrastructure errors.
 
@@ -174,6 +175,7 @@ def persist_service_1_owner_confirmation_v1(
         inferred_data_type=inferred_data_type,
         neighboring_column_refs=neighboring_column_refs,
         vertical_ref=vertical_ref,
+        structural_signature=structural_signature,
     )
 
     try:

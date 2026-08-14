@@ -8,6 +8,8 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Final
 
+from pymia.contracts.formula_contract import FormulaInput, FormulaStatus, calculate_formula
+
 SCHEMA_VERSION: Final[str] = "SERVICE_1_REN_001_EVALUATION_V1"
 PATHOLOGY_CODE: Final[str] = "REN_001"
 FORMULA_REF: Final[str] = "REN_001_margen_neto_real"
@@ -73,13 +75,10 @@ def evaluate_ren_001_from_computation_plan_v1(
 def evaluate_ren_001_v1(
     *, sale_price: object, costs: object, taxes: object
 ) -> dict[str, object]:
-    """Compute real net margin from explicit monetary values.
+    """Validate explicit REN_001 inputs and project the canonical kernel result.
 
-    Domain:
-    - sale_price must be finite and strictly greater than zero;
-    - costs and taxes must be finite and greater than or equal to zero;
-    - net_margin_amount = sale_price - costs - taxes;
-    - net_margin_percentage = net_margin_amount / sale_price * 100.
+    Mathematical authority lives in ``FormulaEngineService``. This adapter owns
+    only input-domain validation, classification and Servicio 1 packet shape.
     """
     normalized, errors = _normalize_inputs(
         sale_price=sale_price,
@@ -94,11 +93,26 @@ def evaluate_ren_001_v1(
             errors=errors,
         )
 
-    sale = normalized["sale_price"]
-    total_costs = normalized["costs"]
-    total_taxes = normalized["taxes"]
-    margin_amount = sale - total_costs - total_taxes
-    margin_percentage = margin_amount / sale * 100.0
+    kernel_result = calculate_formula(
+        FORMULA_REF,
+        [
+            FormulaInput(name="sale_price", value=normalized["sale_price"], source_refs=["REN_001:sale_price"]),
+            FormulaInput(name="costs", value=normalized["costs"], source_refs=["REN_001:costs"]),
+            FormulaInput(name="taxes", value=normalized["taxes"], source_refs=["REN_001:taxes"]),
+        ],
+    )
+    if kernel_result.status != FormulaStatus.OK or kernel_result.value is None:
+        return _packet(
+            status=STATUS_INVALID_INPUT,
+            classification=None,
+            inputs=normalized,
+            errors=[kernel_result.blocking_reason or "REN_001 kernel calculation blocked."],
+        )
+
+    metadata = dict(kernel_result.metadata or {})
+    margin_amount = float(metadata["net_margin_amount"])
+    margin_percentage = float(metadata["net_margin_percentage"])
+    total_outflows = float(metadata["total_outflows"])
 
     if margin_amount > 0:
         classification = CLASS_POSITIVE_MARGIN
@@ -115,7 +129,7 @@ def evaluate_ren_001_v1(
         computed={
             "net_margin_amount": margin_amount,
             "net_margin_percentage": margin_percentage,
-            "total_outflows": total_costs + total_taxes,
+            "total_outflows": total_outflows,
         },
         mathematical_limits={
             "sale_price_min_exclusive": 0.0,

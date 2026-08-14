@@ -96,6 +96,35 @@ def test_assisted_web_persists_canonical_owner_events_after_successful_review(tm
         assert contract.confirmation_event_ref
 
 
+def test_owner_confirmation_is_persisted_even_when_requested_control_needs_more_evidence(tmp_path: Path) -> None:
+    recorded = []
+
+    def persist(event, contract):
+        recorded.append((event, contract))
+        return True
+
+    app = _bound_app(tmp_path, persist)
+    status, page = app.receive_xlsx(
+        session_id="session-1",
+        filename="ventas.xlsx",
+        content=_xlsx_bytes(),
+    )
+    assert status == 200
+    status, page = app.confirm_meanings(
+        session_id="session-1",
+        fields=_answers(page),
+    )
+    assert status == 200
+    status, page = app.run_review(
+        session_id="session-1",
+        requested_capability="net_margin_real",
+    )
+    assert status == 200
+    assert recorded
+    assert "No se registró como memoria del tenant" not in page
+    assert all(contract.tenant_id == "tenant-acme" for _, contract in recorded)
+
+
 def test_required_tenant_persistence_blocks_upload_without_explicit_identity(tmp_path: Path) -> None:
     app = AssistedWebApplicationV1(
         output_dir=tmp_path / "outputs",

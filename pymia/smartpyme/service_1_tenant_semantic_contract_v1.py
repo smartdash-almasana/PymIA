@@ -11,6 +11,9 @@ from pymia.smartpyme.service_1_owner_confirmation_event_v1 import (
     SCHEMA_VERSION as OWNER_CONFIRMATION_SCHEMA_VERSION,
     Service1OwnerConfirmationEventV1,
 )
+from pymia.smartpyme.service_1_structural_compatibility_v1 import (
+    service_1_structural_signature_from_mapping_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_TENANT_SEMANTIC_CONTRACT_V1"
 STATUS_READY = "TENANT_SEMANTIC_CONTRACT_READY"
@@ -159,6 +162,7 @@ class Service1TenantSemanticContractV1:
     automatic_reuse_authorized: bool = False
     semantic_rebind_authorized: bool = False
     status: str = STATUS_READY
+    structural_signature: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.schema_version != SCHEMA_VERSION:
@@ -212,6 +216,30 @@ class Service1TenantSemanticContractV1:
                 or self.confirmed_variable is not None
             ):
                 raise _blocked("BLOCKED_EVENT_CONTEXT_MISMATCH", "invalid free-text meaning")
+        if self.structural_signature is not None:
+            try:
+                signature = service_1_structural_signature_from_mapping_v1(
+                    self.structural_signature
+                )
+            except (TypeError, ValueError) as exc:
+                raise _blocked(
+                    "BLOCKED_STRUCTURAL_SIGNATURE_INVALID",
+                    "structural signature is invalid",
+                ) from exc
+            if (
+                signature.column_ref != f"{self.sheet_ref}.{self.source_column_name}"
+                or signature.source_system_ref != self.source_system_ref
+                or signature.source_context_ref != self.source_context_ref
+            ):
+                raise _blocked(
+                    "BLOCKED_STRUCTURAL_SIGNATURE_MISMATCH",
+                    "structural signature does not match tenant source context",
+                )
+            object.__setattr__(
+                self,
+                "structural_signature",
+                MappingProxyType(signature.to_dict()),
+            )
 
         expected_series = _mapping_series_id(
             tenant_id=self.tenant_id,
@@ -269,6 +297,11 @@ class Service1TenantSemanticContractV1:
             "supersedes_contract_id": self.supersedes_contract_id,
             "validity_status": self.validity_status,
             "provenance": dict(self.provenance),
+            "structural_signature": (
+                dict(self.structural_signature)
+                if self.structural_signature is not None
+                else None
+            ),
             **{flag: False for flag in _SAFETY_FLAGS},
             "status": self.status,
         }
@@ -410,6 +443,11 @@ def service_1_tenant_semantic_contract_from_mapping_v1(
         automatic_reuse_authorized=payload.get("automatic_reuse_authorized") is True,
         semantic_rebind_authorized=payload.get("semantic_rebind_authorized") is True,
         status=str(payload.get("status") or ""),
+        structural_signature=(
+            dict(payload.get("structural_signature"))
+            if isinstance(payload.get("structural_signature"), Mapping)
+            else None
+        ),
     )
 
 
@@ -434,6 +472,7 @@ def build_service_1_tenant_semantic_contract_v1(
     neighboring_column_refs: Sequence[str] = (),
     vertical_ref: str | None = None,
     service_ref: str = "SERVICE_1",
+    structural_signature: Mapping[str, Any] | None = None,
 ) -> Service1TenantSemanticContractV1:
     tenant = _required(tenant_id, field="tenant_id", code="BLOCKED_MISSING_TENANT_ID")
     actor_id = _required(owner_actor_id, field="owner_actor_id", code="BLOCKED_MISSING_ACTOR_IDENTITY")
@@ -458,7 +497,7 @@ def build_service_1_tenant_semantic_contract_v1(
         )
     if (
         event.file_ref != workbook
-        or event.column_ref != normalized_column
+        or event.column_ref != source_column
         or event.case_id != case_ref
         or event.sheet_ref != sheet_ref
         or event.question_ref != question_ref
@@ -542,6 +581,7 @@ def build_service_1_tenant_semantic_contract_v1(
         supersedes_contract_id=supersedes_contract_id,
         validity_status=VALIDITY_STATUS,
         provenance=MappingProxyType(dict(_PROVENANCE)),
+        structural_signature=(dict(structural_signature) if structural_signature is not None else None),
     )
 
 

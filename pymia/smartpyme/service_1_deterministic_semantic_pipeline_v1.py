@@ -7,7 +7,7 @@ execution, delivery or frontend behavior.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
     STATUS_READY as BRIDGE_READY,
@@ -189,6 +189,7 @@ def build_computability_decision_from_confirmed_bindings_v1(
     *,
     confirmed_bindings: Any,
     requested_capability: str,
+    derived_evidence_packet: Mapping[str, Any] | None = None,
     formula_catalog_path: str | Path | None = None,
     pathology_catalog_path: str | Path | None = None,
     evidence_matrix_path: str | Path | None = None,
@@ -212,6 +213,7 @@ def build_computability_decision_from_confirmed_bindings_v1(
         requested_capability=capability,
         p6_decisions=list(evidence.get("p6_decisions") or []),
         requirement_matches=list(evidence.get("requirement_matches") or []),
+        derived_evidence_packet=derived_evidence_packet,
         formula_catalog_path=formula_catalog_path,
         pathology_catalog_path=pathology_catalog_path,
         evidence_matrix_path=evidence_matrix_path,

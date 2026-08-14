@@ -4,6 +4,10 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final
 
+from pymia.smartpyme.service_1_derived_evidence_v1 import (
+    SCHEMA_VERSION as DERIVED_EVIDENCE_SCHEMA_VERSION,
+    STATUS_READY as DERIVED_EVIDENCE_READY,
+)
 from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
     evaluate_ren_001_from_computation_plan_v1,
 )
@@ -14,7 +18,11 @@ _REQUIRED_VARIABLES: Final[tuple[str, str, str]] = ("sale_price", "costs", "taxe
 
 
 def evaluate_ren_001_from_normalized_tables_v1(
-    *, computation_plan: object, normalized_tables: object, column_refs: object
+    *,
+    computation_plan: object,
+    normalized_tables: object,
+    column_refs: object,
+    derived_evidence_packet: object = None,
 ) -> dict[str, object]:
     if not isinstance(computation_plan, dict):
         return _blocked(["computation_plan must be an object."])
@@ -56,7 +64,25 @@ def evaluate_ren_001_from_normalized_tables_v1(
     expected_row_count: int | None = None
 
     for variable_name in _REQUIRED_VARIABLES:
-        source_column = str(source_bindings.get(variable_name) or "").strip()
+        raw_binding = source_bindings.get(variable_name)
+        if isinstance(raw_binding, dict):
+            if str(raw_binding.get("source_kind") or "").strip() != "DERIVED_EVIDENCE":
+                errors.append(f"unsupported structured source binding for {variable_name}.")
+                continue
+            derived_value, derived_meta, derived_error = _resolve_derived_value(
+                variable_name=variable_name,
+                source_binding=raw_binding,
+                derived_evidence_packet=derived_evidence_packet,
+                governed=governed,
+            )
+            if derived_error:
+                errors.append(derived_error)
+                continue
+            totals[variable_name] = derived_value
+            aggregation_sources[variable_name] = derived_meta
+            continue
+
+        source_column = str(raw_binding or "").strip()
         if not source_column:
             errors.append(f"missing source binding for {variable_name}.")
             continue
@@ -87,7 +113,7 @@ def evaluate_ren_001_from_normalized_tables_v1(
         if expected_row_count is None:
             expected_row_count = len(rows)
         elif len(rows) != expected_row_count:
-            errors.append("REN_001 source columns must cover the same row count.")
+            errors.append("REN_001 direct source columns must cover the same row count.")
             continue
 
         total = Decimal("0")
@@ -104,6 +130,7 @@ def evaluate_ren_001_from_normalized_tables_v1(
             total += value
         totals[variable_name] = float(total)
         aggregation_sources[variable_name] = {
+            "source_kind": "DIRECT_COLUMN_EVIDENCE",
             "sheet_name": sheet_name,
             "column_name": source_column,
             "normalized_column_name": normalized_column,
@@ -127,6 +154,61 @@ def evaluate_ren_001_from_normalized_tables_v1(
         "sample_based": False,
     }
     return result
+
+
+def _resolve_derived_value(
+    *,
+    variable_name: str,
+    source_binding: dict[str, object],
+    derived_evidence_packet: object,
+    governed: dict[str, object],
+) -> tuple[float, dict[str, object], str | None]:
+    if not isinstance(derived_evidence_packet, dict):
+        return 0.0, {}, f"derived evidence packet is required for {variable_name}."
+    if derived_evidence_packet.get("schema_version") != DERIVED_EVIDENCE_SCHEMA_VERSION:
+        return 0.0, {}, "derived evidence schema is invalid."
+    if derived_evidence_packet.get("status") != DERIVED_EVIDENCE_READY:
+        return 0.0, {}, "derived evidence is not ready."
+    if any(
+        derived_evidence_packet.get(flag) is not False
+        for flag in (
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+        )
+    ):
+        return 0.0, {}, "derived evidence safety flags must remain false."
+    if str(derived_evidence_packet.get("case_id") or "").strip() != str(governed.get("case_id") or "").strip():
+        return 0.0, {}, "derived evidence case_id does not match governed computation input."
+    if str(derived_evidence_packet.get("requested_capability") or "").strip() != str(governed.get("requested_capability") or "").strip():
+        return 0.0, {}, "derived evidence capability does not match governed computation input."
+
+    variables = derived_evidence_packet.get("derived_variables")
+    if not isinstance(variables, dict):
+        return 0.0, {}, "derived evidence variables must be an object."
+    item = variables.get(variable_name)
+    if not isinstance(item, dict):
+        return 0.0, {}, f"derived evidence variable is missing: {variable_name}."
+    derivation_id = str(item.get("derivation_id") or "").strip()
+    if derivation_id != str(source_binding.get("derivation_id") or "").strip():
+        return 0.0, {}, f"derived evidence derivation_id mismatch for {variable_name}."
+    value, value_error = _parse_nonnegative(item.get("value"))
+    if value_error:
+        return 0.0, {}, f"derived evidence {variable_name} {value_error}"
+    return (
+        float(value),
+        {
+            "source_kind": "DERIVED_EVIDENCE",
+            "derivation_id": derivation_id,
+            "semantic_role": str(item.get("semantic_role") or "").strip(),
+            "source_column_refs": list(item.get("source_column_refs") or []),
+            "relationship_refs": list(item.get("relationship_refs") or []),
+            "row_coverage": dict(item.get("row_coverage") or {}),
+        },
+        None,
+    )
 
 
 def _parse_nonnegative(value: object) -> tuple[Decimal, str | None]:

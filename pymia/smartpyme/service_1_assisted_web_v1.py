@@ -16,9 +16,25 @@ from email.parser import BytesParser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping, Sequence
 from urllib.parse import parse_qs, urlsplit
 
+from pymia.smartpyme.service_1_column_understanding_engine_v1 import normalize_service_1_column_understanding_header_v1
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
+)
+from pymia.smartpyme.service_1_structural_compatibility_v1 import (
+    STATUS_READY as STRUCTURAL_MEMORY_READY,
+    select_service_1_compatible_tenant_memory_hints_v1,
+)
+from pymia.smartpyme.service_1_workbook_profiler_v1 import (
+    STATUS_READY as WORKBOOK_PROFILE_READY,
+    build_service_1_workbook_profile_v1,
+)
+from pymia.smartpyme.service_1_owner_unit_confirmation_event_v1 import (
+    ALLOWED_UNIT_KINDS,
+    build_service_1_owner_unit_confirmation_event_v1,
+)
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     STATUS_UNCONFIRMED_READY as CANONICAL_UNCONFIRMED_READY,
     build_service_1_unconfirmed_canonical_ingestion_output_v1,
@@ -109,6 +125,34 @@ _LAUNCH_REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
     ),
 )
 _LAUNCH_REVIEW_BY_REF = {item[0]: item for item in _LAUNCH_REVIEW_OPTIONS}
+
+_LAUNCH_REVIEW_RELEVANT_HEADERS: dict[str, frozenset[str]] = {
+    # Legacy pilot scoping retained only for the working-capital composite.
+    # Launch Cobros and Margen now obtain relevance from SEM-8/P7/derived-evidence contracts.
+    "working_capital": frozenset({
+        "fecha", "saldo_inicial", "cobros_esperados", "pagos_esperados",
+        "cuentas_por_cobrar", "pendiente", "ventas_periodo", "periodo_dias",
+        "dias", "dias_periodo", "activos_corrientes", "activo_corriente", "pasivos_corrientes", "pasivo_corriente", "vencimiento",
+        "fecha_vencimiento",
+    }),
+}
+
+_LAUNCH_REVIEW_RELEVANT_ROLES: dict[str, frozenset[str]] = {
+    # Legacy pilot scoping retained only for the working-capital composite.
+    "working_capital": frozenset({
+        "operation_date",
+        "initial_balance",
+        "expected_collections",
+        "expected_payments",
+        "accounts_receivable_amount",
+        "sales_amount",
+        "period_days",
+        "days",
+        "current_assets",
+        "current_liabilities",
+        "due_date",
+    }),
+}
 
 _RECONCILIATION_OPTIONS: tuple[tuple[str, str, str], ...] = (
     (
@@ -222,6 +266,10 @@ class AssistedWebSessionV1:
     ingestion_output: dict[str, Any] | None = None
     semantic_questions: list[dict[str, Any]] = field(default_factory=list)
     semantic_answers: dict[str, Any] = field(default_factory=dict)
+    semantic_scope_answers: dict[str, Any] = field(default_factory=dict)
+    semantic_confirmed_roles: dict[str, str] = field(default_factory=dict)
+    semantic_assistance_state: dict[str, Any] | None = None
+    owner_unit_confirmation_events: list[dict[str, Any]] = field(default_factory=list)
     tenant_id: str | None = None
     cliente_id: str | None = None
     owner_actor_id: str | None = None
@@ -250,6 +298,7 @@ class AssistedWebApplicationV1:
         load_prior_semantic_contract: Callable[[str, str, str, str, str], object | None] | None = None,
         require_tenant_persistence: bool = False,
         radar_policy_store: object | None = None,
+        semantic_provider: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     ) -> None:
         if require_tenant_persistence and persist_tenant_confirmation is None:
             raise ValueError("tenant persistence adapter is required")
@@ -262,6 +311,7 @@ class AssistedWebApplicationV1:
         self._load_prior_semantic_contract = load_prior_semantic_contract
         self._require_tenant_persistence = require_tenant_persistence
         self._radar_policy_store = radar_policy_store
+        self._semantic_provider = semantic_provider or build_service_1_deterministic_semantic_proposal_v1
         self.output_dir = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="pymia-service-1-web-"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1096,6 +1146,10 @@ class AssistedWebApplicationV1:
         state.ingestion_output = canonical["ingestion_output"]
         state.semantic_questions = []
         state.semantic_answers = {}
+        state.semantic_scope_answers = {}
+        state.semantic_confirmed_roles = {}
+        state.semantic_assistance_state = None
+        state.owner_unit_confirmation_events = []
         state.selected_launch_review = selected_launch_review
         state.last_review_result = None
         state.tenant_identity_contract = None
@@ -1125,22 +1179,94 @@ class AssistedWebApplicationV1:
                     "No se pudo establecer una identidad válida para este caso."
                 )
 
+        assisted_launch = state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real"}
         try:
-            first_run = _run_product_root(
-                ingestion_output=state.ingestion_output,
-                output_dir=self.output_dir,
-            )
+            if assisted_launch:
+                first_run = _run_product_root(
+                    ingestion_output=state.ingestion_output,
+                    requested_capability=state.selected_launch_review,
+                    output_dir=self.output_dir,
+                    semantic_provider=self._semantic_provider,
+                    compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
+                    use_assisted_semantics=True,
+                )
+            else:
+                first_run = _run_product_root(
+                    ingestion_output=state.ingestion_output,
+                    output_dir=self.output_dir,
+                )
         except ValueError as error:
             if "requires at least one tool request" in str(error):
                 return HTTPStatus.OK, _review_selection_page()
             raise
         if first_run.get("status") == STATUS_NEEDS_OWNER:
-            state.semantic_questions = list(first_run.get("owner_questions") or [])
+            if assisted_launch:
+                assistance_state = first_run.get("semantic_assistance_state")
+                if not isinstance(assistance_state, dict):
+                    return HTTPStatus.OK, _blocked_message_page(
+                        "La interpretación asistida no produjo un estado trazable para confirmar."
+                    )
+                state.semantic_assistance_state = assistance_state
+                state.semantic_questions = list(first_run.get("owner_questions") or [])
+                return HTTPStatus.OK, _assisted_semantic_dialogue_page(state.semantic_questions)
+            scoped_questions, scope_answers = _scope_owner_questions_for_launch_review(
+                first_run,
+                state.selected_launch_review,
+            )
+            state.semantic_scope_answers = scope_answers
+            state.semantic_questions = scoped_questions
             state.semantic_questions = self._with_tenant_memory_hints(state)
+            if not state.semantic_questions and state.selected_launch_review in _LAUNCH_REVIEW_BY_REF:
+                state.semantic_answers = dict(state.semantic_scope_answers)
+                return self.run_review(
+                    session_id=session_id,
+                    requested_capability=state.selected_launch_review,
+                )
             return HTTPStatus.OK, _semantic_questions_page(state.semantic_questions)
         if first_run.get("status") == STATUS_BLOCKED:
-            return HTTPStatus.OK, _blocked_result_page(first_run)
+            return HTTPStatus.OK, _blocked_result_page(first_run, state.selected_launch_review)
         return HTTPStatus.OK, _review_selection_page()
+
+    def _compatible_tenant_memory_hints(
+        self,
+        state: AssistedWebSessionV1,
+    ) -> tuple[dict[str, Any], ...]:
+        if (
+            self._load_tenant_memory is None
+            or not state.tenant_id
+            or not isinstance(state.ingestion_output, dict)
+            or state.tenant_identity_contract is None
+        ):
+            return ()
+        try:
+            memory_rows = self._load_tenant_memory(state.tenant_id)
+            profile = build_service_1_workbook_profile_v1(
+                ingestion_output=state.ingestion_output
+            )
+        except Exception:
+            return ()
+        if profile.get("status") != WORKBOOK_PROFILE_READY:
+            return ()
+        source_system_ref = str(
+            getattr(state.tenant_identity_contract, "source_system_ref", "") or ""
+        ).strip()
+        source_context_ref = str(
+            getattr(state.tenant_identity_contract, "source_context_ref", "") or ""
+        ).strip()
+        selection = select_service_1_compatible_tenant_memory_hints_v1(
+            tenant_id=state.tenant_id,
+            source_system_ref=source_system_ref,
+            source_context_ref=source_context_ref,
+            workbook_profile=profile,
+            memory_rows=tuple(item for item in memory_rows if isinstance(item, Mapping)),
+        )
+        if selection.get("status") != STRUCTURAL_MEMORY_READY:
+            return ()
+        return tuple(
+            dict(item)
+            for item in (selection.get("compatible_hints") or [])
+            if isinstance(item, Mapping)
+        )
 
     def _with_tenant_memory_hints(
         self,
@@ -1191,22 +1317,63 @@ class AssistedWebApplicationV1:
         state = self.session(session_id)
         if not state.ingestion_output or not state.semantic_questions:
             return HTTPStatus.BAD_REQUEST, _error_page("Primero confirmá las columnas del archivo.")
+        if state.semantic_assistance_state is not None:
+            if any(
+                isinstance(item, Mapping) and item.get("question_kind") == "UNIT_MEANING"
+                for item in state.semantic_questions
+            ):
+                return self._confirm_derived_unit_evidence(
+                    session_id=session_id,
+                    fields=fields,
+                )
+            return self._confirm_assisted_semantics(
+                session_id=session_id,
+                fields=fields,
+            )
         answers: dict[str, Any] = {}
+        confirmed_roles = dict(state.semantic_confirmed_roles)
+        unresolved: list[str] = []
         for question in state.semantic_questions:
             question_id = str(question.get("question_id") or "")
             selected = fields.get(f"answer_{question_id}", "").strip()
             if not selected:
-                return HTTPStatus.BAD_REQUEST, _semantic_questions_page(state.semantic_questions, "Elegí una respuesta para cada columna.")
+                return HTTPStatus.BAD_REQUEST, _semantic_questions_page(
+                    state.semantic_questions,
+                    "Elegí una respuesta para cada columna.",
+                    selected_answers=answers,
+                )
             if selected == "not_sure":
-                return HTTPStatus.OK, _blocked_message_page("No se puede continuar hasta confirmar el significado de esas columnas. Podés volver a elegir el archivo cuando tengas esa información.")
+                answers[question_id] = selected
+                unresolved.append(question_id)
+                continue
             if selected == "OTHER":
                 free_text = fields.get(f"other_{question_id}", "").strip()
                 if not free_text:
-                    return HTTPStatus.BAD_REQUEST, _semantic_questions_page(state.semantic_questions, "Explicá qué significa la columna cuando elegís Otra cosa.")
+                    return HTTPStatus.BAD_REQUEST, _semantic_questions_page(
+                        state.semantic_questions,
+                        "Explicá qué significa la columna cuando elegís Otra cosa.",
+                        selected_answers={**answers, question_id: selected},
+                    )
                 answers[question_id] = {"option_id": "OTHER", "free_text": free_text}
             else:
                 answers[question_id] = selected
-        state.semantic_answers = answers
+                _capture_confirmed_role_v1(
+                    confirmed_roles=confirmed_roles,
+                    question_id=question_id,
+                    selected=selected,
+                    question=question,
+                )
+        if unresolved:
+            state.semantic_answers = answers
+            state.semantic_confirmed_roles = confirmed_roles
+            return HTTPStatus.OK, _semantic_questions_page(
+                state.semantic_questions,
+                "Todavía hay columnas sin confirmar. Elegí un significado, 'No usar esta columna' o corregí la interpretación para continuar.",
+                selected_answers=answers,
+            )
+        merged_answers = dict(state.semantic_scope_answers)
+        merged_answers.update(answers)
+        state.semantic_answers = merged_answers
         state.semantic_questions = []
         if state.consorcio_case_context is not None and state.tenant_identity_contract is not None:
             return self.consorcios_case_workspace(session_id=session_id)
@@ -1216,6 +1383,289 @@ class AssistedWebApplicationV1:
                 requested_capability=state.selected_launch_review,
             )
         return HTTPStatus.OK, _review_selection_page()
+
+    def _confirm_assisted_semantics(
+        self,
+        *,
+        session_id: str,
+        fields: dict[str, str],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        if (
+            not isinstance(state.semantic_assistance_state, dict)
+            or not isinstance(state.ingestion_output, dict)
+            or not state.selected_launch_review
+        ):
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "No hay una interpretación asistida pendiente para confirmar."
+            )
+        responses: list[dict[str, Any]] = []
+        selected: dict[str, str] = {}
+        for decision in state.semantic_questions:
+            if not isinstance(decision, Mapping):
+                continue
+            decision_id = str(decision.get("decision_id") or "").strip()
+            if not decision_id:
+                return HTTPStatus.OK, _blocked_message_page(
+                    "La decisión semántica no tiene identidad trazable."
+                )
+            action = str(fields.get(f"action_{decision_id}") or "").strip().upper()
+            if action not in {"ACCEPT", "REJECT", "CORRECT"}:
+                return HTTPStatus.BAD_REQUEST, _assisted_semantic_dialogue_page(
+                    state.semantic_questions,
+                    "Elegí confirmar, rechazar o corregir cada interpretación.",
+                    selected_actions=selected,
+                )
+            selected[decision_id] = action
+            response: dict[str, Any] = {
+                "decision_id": decision_id,
+                "action": action,
+            }
+            if action == "CORRECT":
+                correction = str(fields.get(f"correction_{decision_id}") or "").strip()
+                if not correction:
+                    return HTTPStatus.BAD_REQUEST, _assisted_semantic_dialogue_page(
+                        state.semantic_questions,
+                        "Escribí la corrección cuando elegís corregir una interpretación.",
+                        selected_actions=selected,
+                    )
+                response["correction_text"] = correction
+            responses.append(response)
+
+        actor_id = str(state.owner_actor_id or "").strip()
+        actor_role = str(state.owner_actor_role or "").strip()
+        if not actor_id or not actor_role:
+            if self._require_tenant_persistence:
+                return HTTPStatus.BAD_REQUEST, _error_page(
+                    "Falta la identidad verificada de la persona que confirma."
+                )
+            actor_id = f"session:{session_id}"
+            actor_role = "SESSION_OWNER"
+
+        packet = _run_product_root(
+            ingestion_output=state.ingestion_output,
+            requested_capability=state.selected_launch_review,
+            output_dir=self._review_output_dir(session_id=session_id),
+            deliver_result=state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real"},
+            semantic_assistance_state=state.semantic_assistance_state,
+            semantic_dialogue_responses=responses,
+            semantic_owner_actor_id=actor_id,
+            semantic_owner_actor_role=actor_role,
+            use_assisted_semantics=True,
+        )
+        state.last_review_result = packet
+        next_state = packet.get("semantic_assistance_state")
+        if isinstance(next_state, dict):
+            state.semantic_assistance_state = next_state
+
+        semantic_run = packet.get("semantic_run")
+        if isinstance(semantic_run, dict) and semantic_run.get("status") == "CONFIRMED_BINDINGS":
+            try:
+                self._persist_owner_confirmation_events(state=state, packet=packet)
+            except Service1AssistedWebTenantPersistenceErrorV1:
+                return HTTPStatus.OK, _blocked_message_page(
+                    "La confirmación fue recibida, pero no pudo guardarse de forma durable."
+                )
+
+        if packet.get("status") == STATUS_NEEDS_OWNER:
+            state.semantic_questions = list(packet.get("owner_questions") or [])
+            if any(
+                isinstance(item, Mapping) and item.get("question_kind") == "UNIT_MEANING"
+                for item in state.semantic_questions
+            ):
+                return HTTPStatus.OK, _derived_unit_questions_page(state.semantic_questions)
+            return HTTPStatus.OK, _assisted_semantic_dialogue_page(
+                state.semantic_questions,
+                "La corrección o rechazo requiere una confirmación más granular.",
+            )
+
+        state.semantic_questions = []
+        if packet.get("status") == STATUS_BLOCKED:
+            case_id = str(
+                state.ingestion_output.get("case_id")
+                or state.ingestion_output.get("source_file_ref")
+                or state.selected_launch_review
+            ).strip()
+            service_name = _LAUNCH_REVIEW_BY_REF.get(
+                state.selected_launch_review,
+                _REVIEW_BY_REF.get(
+                    state.selected_launch_review,
+                    (state.selected_launch_review, state.selected_launch_review, ""),
+                ),
+            )[1]
+            self._remember_case(
+                session_id=session_id,
+                case_id=case_id,
+                service_ref=state.selected_launch_review,
+                service_name=service_name,
+                status="FALTA INFORMACIÓN",
+                kind="review",
+                packet=packet,
+                ingestion_output=state.ingestion_output,
+            )
+            return HTTPStatus.OK, _blocked_result_page(
+                packet,
+                state.selected_launch_review,
+                ingestion_output=state.ingestion_output,
+            )
+
+        case_id = str(state.ingestion_output.get("case_id") or "").strip()
+        service_name = _LAUNCH_REVIEW_BY_REF.get(
+            state.selected_launch_review,
+            _REVIEW_BY_REF.get(
+                state.selected_launch_review,
+                (state.selected_launch_review, state.selected_launch_review, ""),
+            ),
+        )[1]
+        self._remember_case(
+            session_id=session_id,
+            case_id=case_id,
+            service_ref=state.selected_launch_review,
+            service_name=service_name,
+            status="LISTO",
+            kind="review",
+            packet=packet,
+            ingestion_output=state.ingestion_output,
+        )
+        return HTTPStatus.OK, _evaluated_result_page(
+            packet,
+            state.selected_launch_review,
+            ingestion_output=state.ingestion_output,
+        )
+
+    def _confirm_derived_unit_evidence(
+        self,
+        *,
+        session_id: str,
+        fields: dict[str, str],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        if (
+            not isinstance(state.semantic_assistance_state, dict)
+            or not isinstance(state.ingestion_output, dict)
+            or not state.selected_launch_review
+        ):
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "No hay una interpretación confirmada a la cual asociar esta unidad."
+            )
+
+        actor_id = str(state.owner_actor_id or "").strip()
+        actor_role = str(state.owner_actor_role or "").strip()
+        if not actor_id or not actor_role:
+            if self._require_tenant_persistence:
+                return HTTPStatus.BAD_REQUEST, _error_page(
+                    "Falta la identidad verificada de la persona que confirma la unidad."
+                )
+            actor_id = f"session:{session_id}"
+            actor_role = "SESSION_OWNER"
+
+        new_events: list[dict[str, Any]] = []
+        selected_units: dict[str, str] = {}
+        for question in state.semantic_questions:
+            if not isinstance(question, Mapping) or question.get("question_kind") != "UNIT_MEANING":
+                return HTTPStatus.BAD_REQUEST, _error_page(
+                    "La evidencia pendiente no corresponde a una confirmación de unidad válida."
+                )
+            question_id = str(question.get("question_id") or "").strip()
+            selected = str(fields.get(f"unit_{question_id}") or "").strip()
+            if selected not in ALLOWED_UNIT_KINDS:
+                return HTTPStatus.BAD_REQUEST, _derived_unit_questions_page(
+                    state.semantic_questions,
+                    "Elegí cómo está expresado el descuento antes de continuar.",
+                    selected_units=selected_units,
+                )
+            selected_units[question_id] = selected
+            try:
+                event = build_service_1_owner_unit_confirmation_event_v1(
+                    case_id=str(question.get("case_id") or "").strip(),
+                    sheet_ref=str(question.get("sheet_ref") or "").strip(),
+                    column_ref=str(question.get("column_ref") or "").strip(),
+                    semantic_role=str(question.get("semantic_role") or "").strip(),
+                    unit_kind=selected,
+                    owner_answer=selected,
+                    question_ref=question_id,
+                    file_ref=str(
+                        state.ingestion_output.get("source_file_ref")
+                        or state.ingestion_output.get("filename")
+                        or ""
+                    ).strip()
+                    or None,
+                    provenance={
+                        "producer": "service_1_assisted_web_v1",
+                        "owner_actor_id": actor_id,
+                        "owner_actor_role": actor_role,
+                    },
+                )
+            except ValueError:
+                return HTTPStatus.OK, _blocked_message_page(
+                    "La confirmación de unidad no pudo convertirse en evidencia válida."
+                )
+            new_events.append(event.to_dict())
+
+        state.owner_unit_confirmation_events.extend(new_events)
+        packet = _run_product_root(
+            ingestion_output=state.ingestion_output,
+            requested_capability=state.selected_launch_review,
+            output_dir=self._review_output_dir(session_id=session_id),
+            deliver_result=state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real"},
+            semantic_assistance_state=state.semantic_assistance_state,
+            owner_unit_confirmation_events=tuple(state.owner_unit_confirmation_events),
+            use_assisted_semantics=True,
+        )
+        state.last_review_result = packet
+        state.semantic_questions = []
+
+        if packet.get("status") == STATUS_NEEDS_OWNER:
+            state.semantic_questions = list(packet.get("owner_questions") or [])
+            return HTTPStatus.OK, _derived_unit_questions_page(
+                state.semantic_questions,
+                "Todavía falta una confirmación material para completar la derivación.",
+            )
+
+        case_id = str(
+            state.ingestion_output.get("case_id")
+            or state.ingestion_output.get("source_file_ref")
+            or state.selected_launch_review
+        ).strip()
+        service_name = _LAUNCH_REVIEW_BY_REF.get(
+            state.selected_launch_review,
+            _REVIEW_BY_REF.get(
+                state.selected_launch_review,
+                (state.selected_launch_review, state.selected_launch_review, ""),
+            ),
+        )[1]
+        if packet.get("status") == STATUS_BLOCKED:
+            self._remember_case(
+                session_id=session_id,
+                case_id=case_id,
+                service_ref=state.selected_launch_review,
+                service_name=service_name,
+                status="FALTA INFORMACIÓN",
+                kind="review",
+                packet=packet,
+                ingestion_output=state.ingestion_output,
+            )
+            return HTTPStatus.OK, _blocked_result_page(
+                packet,
+                state.selected_launch_review,
+                ingestion_output=state.ingestion_output,
+            )
+
+        self._remember_case(
+            session_id=session_id,
+            case_id=case_id,
+            service_ref=state.selected_launch_review,
+            service_name=service_name,
+            status="LISTO",
+            kind="review",
+            packet=packet,
+            ingestion_output=state.ingestion_output,
+        )
+        return HTTPStatus.OK, _evaluated_result_page(
+            packet,
+            state.selected_launch_review,
+            ingestion_output=state.ingestion_output,
+        )
 
     def run_working_capital(self, *, session_id: str) -> tuple[int, str]:
         state = self.session(session_id)
@@ -1289,6 +1739,16 @@ class AssistedWebApplicationV1:
         if state.consorcio_case_context is not None:
             state.consorcio_case_context.requested_review = requested_capability
         state.last_review_result = packet
+
+        semantic_run = packet.get("semantic_run")
+        if isinstance(semantic_run, dict) and semantic_run.get("status") == "CONFIRMED_BINDINGS":
+            try:
+                self._persist_owner_confirmation_events(state=state, packet=packet)
+            except Service1AssistedWebTenantPersistenceErrorV1:
+                return HTTPStatus.OK, _blocked_message_page(
+                    "La confirmación fue recibida, pero no pudo guardarse de forma durable. No se registró como memoria del tenant."
+                )
+
         if packet.get("status") == STATUS_NEEDS_OWNER:
             if state.consorcio_case_context is not None:
                 state.consorcio_case_context.case_status = "IN_REVIEW"
@@ -1299,17 +1759,34 @@ class AssistedWebApplicationV1:
         if packet.get("status") == STATUS_BLOCKED:
             if state.consorcio_case_context is not None:
                 state.consorcio_case_context.case_status = "IN_REVIEW"
-            return HTTPStatus.OK, _blocked_result_page(packet, requested_capability)
+            case_id = str(
+                state.ingestion_output.get("case_id")
+                or state.ingestion_output.get("source_file_ref")
+                or requested_capability
+            ).strip()
+            service_name = _LAUNCH_REVIEW_BY_REF.get(
+                requested_capability,
+                _REVIEW_BY_REF.get(requested_capability, (requested_capability, requested_capability, "")),
+            )[1]
+            self._remember_case(
+                session_id=session_id,
+                case_id=case_id,
+                service_ref=requested_capability,
+                service_name=service_name,
+                status="FALTA INFORMACIÓN",
+                kind="review",
+                packet=packet,
+                ingestion_output=state.ingestion_output,
+            )
+            return HTTPStatus.OK, _blocked_result_page(
+                packet,
+                requested_capability,
+                ingestion_output=state.ingestion_output,
+                semantic_answers=state.semantic_answers,
+            )
 
         if state.consorcio_case_context is not None:
             state.consorcio_case_context.case_status = "READY"
-
-        try:
-            self._persist_owner_confirmation_events(state=state, packet=packet)
-        except Service1AssistedWebTenantPersistenceErrorV1:
-            return HTTPStatus.OK, _blocked_message_page(
-                "La confirmación fue recibida, pero no pudo guardarse de forma durable. No se registró como memoria del tenant."
-            )
 
         service_name = _LAUNCH_REVIEW_BY_REF.get(
             requested_capability,
@@ -1405,6 +1882,39 @@ class AssistedWebApplicationV1:
         return target.name, target.read_bytes()
 
 
+def _scope_owner_questions_for_launch_review(packet, selected_launch_review):
+    questions = [dict(item) for item in (packet.get("owner_questions") or []) if isinstance(item, dict)]
+    review_ref = str(selected_launch_review or "").strip()
+    relevant_roles = _LAUNCH_REVIEW_RELEVANT_ROLES.get(review_ref)
+    relevant_headers = _LAUNCH_REVIEW_RELEVANT_HEADERS.get(review_ref, frozenset())
+    if not relevant_roles or not questions:
+        return questions, {}
+    semantic_run = packet.get("semantic_run") if isinstance(packet.get("semantic_run"), dict) else {}
+    gate = semantic_run.get("gate_packet") if isinstance(semantic_run.get("gate_packet"), dict) else {}
+    candidates = gate.get("owner_confirmation_candidates")
+    candidate_list = list(candidates) if isinstance(candidates, (list, tuple)) else []
+    relevant_refs = set()
+    for candidate in candidate_list:
+        roles = {str(role).strip() for role in (getattr(candidate, "candidate_semantic_roles", ()) or ()) if str(role).strip()}
+        if not roles.intersection(relevant_roles):
+            continue
+        metadata = dict(getattr(candidate, "metadata", {}) or {})
+        ref_id = str(metadata.get("column_ref_id") or metadata.get("question_id") or getattr(candidate, "source_column_name", "") or "").strip()
+        if ref_id:
+            relevant_refs.add(ref_id)
+    visible = []
+    exclusions = {}
+    for question in questions:
+        ref_id = str(question.get("question_id") or question.get("field_id") or question.get("column_name") or "").strip()
+        column_name = str(question.get("column_name") or "").strip()
+        normalized_header = normalize_service_1_column_understanding_header_v1(column_name)
+        if ref_id in relevant_refs or normalized_header in relevant_headers:
+            visible.append(question)
+        elif ref_id:
+            exclusions[ref_id] = {"option_id": "IGNORE", "scope_excluded": True}
+    return visible, exclusions
+
+
 def _run_product_root(
     *,
     ingestion_output: dict[str, Any],
@@ -1412,6 +1922,14 @@ def _run_product_root(
     requested_capability: str | None = None,
     output_dir: str | Path | None = None,
     deliver_result: bool = False,
+    semantic_provider: Any = None,
+    semantic_assistance_state: Mapping[str, Any] | None = None,
+    semantic_dialogue_responses: Sequence[Mapping[str, Any]] | None = None,
+    semantic_owner_actor_id: str | None = None,
+    semantic_owner_actor_role: str | None = None,
+    compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
+    owner_unit_confirmation_events: Sequence[Mapping[str, Any]] = (),
+    use_assisted_semantics: bool = False,
 ) -> dict[str, Any]:
     return run_service_1_product_pipeline_v1(
         ingestion_output=ingestion_output,
@@ -1421,6 +1939,14 @@ def _run_product_root(
         owner_answers=owner_answers,
         requested_capability=requested_capability,
         deliver_result=deliver_result,
+        semantic_provider=semantic_provider,
+        semantic_assistance_state=semantic_assistance_state,
+        semantic_dialogue_responses=semantic_dialogue_responses,
+        semantic_owner_actor_id=semantic_owner_actor_id,
+        semantic_owner_actor_role=semantic_owner_actor_role,
+        compatible_tenant_memory_hints=compatible_tenant_memory_hints,
+        owner_unit_confirmation_events=owner_unit_confirmation_events,
+        use_assisted_semantics=use_assisted_semantics,
     )
 
 
@@ -1435,6 +1961,7 @@ def create_assisted_web_server_v1(
     require_tenant_persistence: bool = False,
     tenant_identity_resolver: Callable[[BaseHTTPRequestHandler], dict[str, str] | None] | None = None,
     radar_policy_store: object | None = None,
+    semantic_provider: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> ThreadingHTTPServer:
     application = AssistedWebApplicationV1(
         output_dir=output_dir,
@@ -1443,6 +1970,7 @@ def create_assisted_web_server_v1(
         load_prior_semantic_contract=load_prior_semantic_contract,
         require_tenant_persistence=require_tenant_persistence,
         radar_policy_store=radar_policy_store,
+        semantic_provider=semantic_provider,
     )
     return ThreadingHTTPServer(
         (host, port),
@@ -1758,34 +2286,84 @@ def _safe_path_segment(value: str) -> str:
 
 def _document(content: str) -> str:
     template = _TEMPLATE_PATH.read_text(encoding="utf-8")
-    enterprise_styles = """
+    visual_system = """
     <style>
-      :root{--navy:#0f172a;--slate:#475569;--line:#dbe3ec;--surface:#ffffff;--soft:#f8fafc;--blue:#1d4ed8;--blue2:#dbeafe;--green:#166534;--green2:#dcfce7;--amber:#92400e;--amber2:#fef3c7;--red:#991b1b;--red2:#fee2e2}
-      body{background:#f1f5f9;color:var(--navy)}
-      .app-shell{max-width:74rem;margin:0 auto;padding:1.25rem}
-      .app-topbar{display:flex;align-items:center;gap:1rem;justify-content:space-between;background:var(--navy);color:#fff;padding:.9rem 1.25rem;border-radius:0 0 .9rem .9rem;box-shadow:0 10px 30px rgba(15,23,42,.12)}
-      .app-brand{font-weight:800;letter-spacing:-.02em}.app-brand span{color:#93c5fd}.app-topbar nav{display:flex;gap:.8rem;flex-wrap:wrap}.app-topbar a{color:#e2e8f0;text-decoration:none;font-weight:650}
-      main#app{max-width:none;margin:0;background:transparent;border:0;padding:1.25rem 0 2rem}
-      main#app>h1{font-size:clamp(1.8rem,3vw,2.6rem);margin:.2rem 0 .75rem;letter-spacing:-.025em}
-      .eyebrow{display:inline-block;margin:0 0 .35rem;color:var(--blue);font-weight:800;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
-      section,.panel,fieldset,details{background:var(--surface);border:1px solid var(--line);border-radius:.8rem;padding:1rem}
-      section+section,section+hr,hr+section{margin-top:1rem} hr{border:0;border-top:1px solid var(--line);margin:1.25rem 0}
-      .choice{background:#fff;border:1px solid var(--line);border-radius:.75rem;padding:1rem;transition:.15s}.choice:has(input:checked){border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.10);background:#f8fbff}.choice strong{font-size:1rem}.choice span{display:block;margin:.3rem 0 0 1.75rem;color:var(--slate)}
-      input,select,button{font:inherit} input[type=file],input[type=text],select{border:1px solid #cbd5e1;border-radius:.55rem;padding:.65rem;background:#fff} button{border-radius:.55rem;padding:.7rem 1rem;font-weight:750;background:var(--blue);color:#fff;border:0} button:hover{filter:brightness(.96)}
-      table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:.75rem;overflow:hidden} th,td{text-align:left;padding:.8rem;border-bottom:1px solid #edf2f7} tr:last-child th,tr:last-child td{border-bottom:0} td{font-weight:700}
-      .result{font-size:2rem;font-weight:800;letter-spacing:-.02em}.notice{border:1px solid #bfdbfe;border-radius:.65rem;background:#eff6ff;color:#1e3a8a;padding:.8rem 1rem}
-      .status-chip{display:inline-flex;align-items:center;gap:.35rem;border-radius:999px;padding:.35rem .7rem;font-size:.78rem;font-weight:800}.status-ready{background:var(--green2);color:var(--green)}.status-review{background:var(--amber2);color:var(--amber)}.status-missing{background:var(--red2);color:var(--red)}
-      .result-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}.result-actions{display:flex;gap:.65rem;flex-wrap:wrap;margin:1rem 0}.result-actions a{display:inline-flex;padding:.65rem .9rem;border-radius:.55rem;background:var(--navy);color:#fff;text-decoration:none;font-weight:750}.result-actions a.secondary{background:#fff;color:var(--navy);border:1px solid var(--line)}
-      .metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}.metric{background:#fff;border:1px solid var(--line);border-radius:.75rem;padding:1rem}.metric small{display:block;color:var(--slate);font-weight:650}.metric strong{display:block;margin-top:.25rem;font-size:1.35rem}
-      @media(max-width:760px){.app-shell{padding:.8rem}.app-topbar{align-items:flex-start;flex-direction:column}.metric-grid{grid-template-columns:1fr}.choice span{margin-left:0}.result-head{display:block}}
+      :root{--ink:#17201c;--ink-strong:#0d1512;--muted:#5d6760;--paper:#f4f1e8;--paper-2:#fbfaf5;--paper-3:#ece7dc;--rule:#c9c4b7;--rule-strong:#8e978f;--green:#1d5b43;--green-strong:#123c2d;--green-soft:#dfe9e2;--amber:#8b5b16;--amber-soft:#f2e7c8;--red:#873b34;--red-soft:#f0ddda;--slate:#49534d;--white:#fffef9;--sans:"Aptos","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono","Cascadia Mono",Consolas,monospace;--serif:Georgia,"Times New Roman",serif;color-scheme:light;font-family:var(--sans);color:var(--ink);background:var(--paper-3)}
+      *{box-sizing:border-box}html{min-width:320px;background:var(--paper-3)}body{margin:0;min-height:100vh;background:linear-gradient(rgba(71,82,75,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(71,82,75,.035) 1px,transparent 1px),var(--paper);background-size:32px 32px;color:var(--ink);line-height:1.45}a{color:var(--green-strong);text-underline-offset:.16em}a:hover{color:var(--green)}button,input,select{font:inherit}
+      .pymia-frame{min-height:100vh}.app-topbar{min-height:62px;display:grid;grid-template-columns:minmax(280px,1fr) auto;align-items:center;gap:1rem;padding:.75rem 1.15rem;background:var(--ink-strong);color:#edf2ed;border-bottom:4px solid var(--green)}.app-brand{display:flex;align-items:center;gap:.65rem;min-width:0}.brand-mark{display:inline-grid;grid-template-columns:repeat(3,4px);gap:3px;align-items:end;width:18px;height:20px}.brand-mark i{display:block;width:4px;background:#8fb59e}.brand-mark i:nth-child(1){height:20px}.brand-mark i:nth-child(2){height:13px}.brand-mark i:nth-child(3){height:7px}.brand-word{font-family:var(--mono);font-size:.86rem;letter-spacing:.16em;font-weight:700}.brand-divider{color:#9aa39c}.brand-system{font-size:.72rem;letter-spacing:.14em;color:#aebbb4;font-weight:700}.system-context{display:flex;align-items:center;gap:1.25rem;font-family:var(--mono);font-size:.62rem;color:#b9c4be;white-space:nowrap}.system-context b{color:#dce4df;letter-spacing:.08em;font-weight:700}
+      .workspace{display:grid;grid-template-columns:184px minmax(0,1fr);min-height:calc(100vh - 62px)}.service-rail{background:#e5e0d5;border-right:1px solid var(--rule-strong);padding:1rem .8rem;position:sticky;top:0;align-self:start;min-height:calc(100vh - 62px)}.rail-index{display:inline-block;font-family:var(--mono);font-size:1.6rem;letter-spacing:-.04em;font-weight:700;color:var(--green-strong);border-top:5px solid var(--green);padding-top:.15rem;margin-bottom:1.2rem}.service-rail nav{display:grid;border-top:1px solid var(--rule-strong)}.service-rail nav a,.rail-disabled{position:relative;display:block;padding:.66rem .2rem .66rem 2.1rem;border-bottom:1px solid var(--rule);text-decoration:none;color:var(--ink-strong);font-size:.82rem;font-weight:680}.service-rail nav a::before,.rail-disabled::before{content:attr(data-ref);position:absolute;left:.1rem;top:.72rem;font-family:var(--mono);font-size:.58rem;letter-spacing:.08em;color:#6d766f}.service-rail nav a:hover{background:rgba(255,255,255,.48)}.rail-disabled{color:#5d6760}.rail-note{margin-top:1.3rem;padding-top:.8rem;border-top:3px double var(--rule-strong);font-family:var(--mono);font-size:.58rem;line-height:1.6;letter-spacing:.11em;color:#5d6760}
+      .app-shell{width:min(1120px,calc(100% - 48px));margin:0 auto;padding:1.6rem 0 3rem}main#app{max-width:none;margin:0;padding:0;background:transparent;border:0}main#app>h1,.result-head h1{margin:.15rem 0 .65rem;font-family:var(--serif);font-size:clamp(1.75rem,3vw,2.55rem);line-height:1.05;font-weight:700;letter-spacing:-.025em;color:var(--ink-strong)}main#app>p,section>p,fieldset>p,details>p{color:var(--slate)}.eyebrow{display:inline-block;margin:0 0 .45rem;font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.16em;color:var(--green-strong);font-weight:700}.eyebrow::before{content:"PYMIA / ";color:#5d6760}
+      section,fieldset,details,.choice,.notice{border-radius:0}section{margin:1rem 0;padding:1rem 1.05rem 1.1rem;background:var(--paper-2);border:1px solid var(--rule);border-left:4px solid #9da69f}section>h2{margin:0 0 .65rem;font-size:.9rem;line-height:1.2;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-strong)}section>h2::before{content:"§ ";color:var(--green);font-family:var(--mono)}hr{border:0;border-top:3px double var(--rule-strong);margin:1.35rem 0}
+      form{display:grid;gap:.75rem}fieldset{margin:.4rem 0;padding:.95rem 1rem 1rem;background:#f8f5ed;border:1px solid var(--rule-strong)}legend{padding:0 .4rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--green-strong)}label{display:grid;gap:.28rem;cursor:pointer;color:var(--ink);font-size:.9rem}input[type=text],input[type=month],input[type=number],input[type=file],select{width:100%;min-height:2.7rem;padding:.58rem .68rem;border:1px solid #9aa39c;border-radius:0;background:var(--white);color:var(--ink-strong)}input[type=radio],input[type=checkbox]{accent-color:var(--green)}button{min-height:2.65rem;width:fit-content;padding:.55rem 1rem;border:1px solid var(--green-strong);border-radius:0;background:var(--green-strong);color:white;font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}button:hover{background:var(--green)}
+      .choice{position:relative;padding:.9rem .9rem .9rem 2.8rem;background:var(--paper-2);border:1px solid var(--rule);border-left:3px solid var(--rule-strong)}.choice::before{content:"SERVICE";position:absolute;left:.55rem;top:1.05rem;writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-size:.5rem;letter-spacing:.14em;color:#5d6760}.choice:has(input:checked){border-color:var(--green);border-left-color:var(--green);background:#edf2ed}.choice strong{font-size:.96rem;color:var(--ink-strong)}.choice span{display:block;margin:.25rem 0 0 1.7rem;color:var(--muted);font-size:.83rem}.notice{margin:1rem 0;padding:.8rem .9rem;background:#eeece5;border:1px solid var(--rule);border-left:4px solid var(--green);color:var(--ink);font-size:.86rem}p[role=alert]{padding:.72rem .85rem;background:var(--red-soft);border:1px solid #d0a29c;border-left:4px solid var(--red);color:#662a25}
+      .result-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.2rem;align-items:start;padding:.85rem 0 1rem;border-top:5px solid var(--ink-strong);border-bottom:1px solid var(--rule-strong);margin-bottom:1rem}.status-chip{display:inline-flex;align-items:center;min-height:2rem;padding:.35rem .55rem;border:1px solid currentColor;border-radius:0;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;font-weight:700;text-transform:uppercase;background:var(--paper-2)}.status-chip::before{content:"STATUS / ";opacity:.62}.status-ready{color:var(--green-strong);background:var(--green-soft)}.status-review{color:var(--amber);background:var(--amber-soft)}.status-missing{color:var(--red);background:var(--red-soft)}.result{font-family:var(--mono);font-size:clamp(1.45rem,3vw,2.15rem);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+      .metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:1rem 0;border:1px solid var(--rule-strong);background:var(--rule)}.metric{min-width:0;padding:.85rem .9rem;background:var(--paper-2);border-right:1px solid var(--rule)}.metric:last-child{border-right:0}.metric small{display:block;color:var(--muted);font-size:.68rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;margin-top:.3rem;font-family:var(--mono);font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--ink-strong)}
+      .result-actions{display:flex;flex-wrap:wrap;gap:.55rem;margin:1rem 0}.result-actions a{display:inline-flex;align-items:center;min-height:2.55rem;padding:.55rem .8rem;border:1px solid var(--green-strong);background:var(--green-strong);color:white;text-decoration:none;font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;font-weight:700;text-transform:uppercase}.result-actions a.secondary{background:transparent;color:var(--green-strong);border-color:var(--rule-strong)}table{width:100%;border-collapse:collapse;background:var(--paper-2);border:1px solid var(--rule-strong);font-size:.83rem}th,td{padding:.62rem .68rem;border-bottom:1px solid var(--rule);vertical-align:top}th{text-align:left;font-family:var(--mono);font-size:.64rem;letter-spacing:.07em;text-transform:uppercase;color:#59635d;background:#ece8de;font-weight:700}td{font-variant-numeric:tabular-nums;color:var(--ink-strong)}tbody tr:hover{background:#f4f0e6}
+      details{margin:.65rem 0;border:1px solid var(--rule);background:var(--paper-2)}summary{padding:.7rem .8rem;cursor:pointer;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;font-weight:700;text-transform:uppercase}details>*:not(summary){margin-left:.8rem;margin-right:.8rem}details>form,details>ol,details>ul{margin-bottom:.8rem}ol,ul{padding-left:1.25rem}li+li{margin-top:.35rem}.skip-link{position:absolute;left:-9999px}.skip-link:focus{left:.75rem;top:.75rem;z-index:999;background:var(--white);color:var(--ink);padding:.5rem .7rem;border:2px solid var(--green)}:focus-visible{outline:3px solid #bb7a1c;outline-offset:2px}
+      @media(max-width:1024px){.workspace{grid-template-columns:148px minmax(0,1fr)}.service-rail nav a,.rail-disabled{padding-left:1.9rem;font-size:.78rem}.app-shell{width:min(100% - 32px,980px)}.system-context{gap:.65rem;font-size:.56rem}}
+      @media(max-width:768px){.app-topbar{grid-template-columns:1fr;gap:.4rem}.system-context{display:none}.workspace{display:block}.service-rail{position:static;min-height:auto;padding:.55rem .7rem;border-right:0;border-bottom:1px solid var(--rule-strong)}.rail-index,.rail-note{display:none}.service-rail nav{grid-template-columns:repeat(5,minmax(0,1fr));border-top:0;gap:0}.service-rail nav a,.rail-disabled{padding:.5rem .35rem .45rem;text-align:center;border-bottom:0;border-right:1px solid var(--rule);font-size:.68rem}.service-rail nav a::before,.rail-disabled::before{position:static;display:block;margin-bottom:.12rem}.service-rail nav>:nth-child(6){display:none}.app-shell{width:min(100% - 24px,720px);padding-top:1rem}.metric-grid{grid-template-columns:1fr}.metric{border-right:0;border-bottom:1px solid var(--rule)}.metric:last-child{border-bottom:0}.result-head{grid-template-columns:1fr}.choice span{margin-left:0}}
+      @media(max-width:390px){.app-topbar{min-height:56px;padding:.65rem .8rem}.brand-system,.brand-divider{display:none}.service-rail nav{grid-template-columns:repeat(5,1fr);overflow-x:auto}.service-rail nav a,.rail-disabled{min-width:62px;font-size:.62rem}.app-shell{width:calc(100% - 18px)}main#app>h1,.result-head h1{font-size:1.65rem}section,fieldset{padding:.8rem}table{display:block;overflow-x:auto;white-space:nowrap}button,.result-actions a{width:100%;justify-content:center}}
+      /* PYMIA ENTERPRISE WORKSTATION — presentation-only override */
+      :root{--ink:#18211d;--ink-strong:#0f1713;--muted:#66716b;--paper:#f5f7f5;--paper-2:#ffffff;--paper-3:#eef1ee;--rule:#d9dfda;--rule-strong:#b8c1ba;--green:#185c43;--green-strong:#104632;--green-soft:#e8f1ec;--amber:#8a5b12;--amber-soft:#fff7e4;--red:#9b4038;--red-soft:#fff0ee;--slate:#52605a;--white:#ffffff;--sans:"Aptos","Segoe UI",Inter,system-ui,sans-serif;--mono:"Cascadia Mono","SFMono-Regular",Consolas,monospace;--serif:var(--sans)}
+      html,body{background:#f5f7f5}body{background:#f5f7f5;font-size:15px;line-height:1.5;color:var(--ink)}
+      .app-topbar{height:64px;min-height:64px;display:flex;justify-content:space-between;padding:0 24px;background:#fff;color:var(--ink-strong);border-bottom:1px solid var(--rule);box-shadow:0 1px 0 rgba(15,23,19,.02)}
+      .app-brand{gap:.55rem}.brand-mark{width:18px;height:18px;grid-template-columns:repeat(3,3px);gap:2px}.brand-mark i{width:3px;background:var(--green)}.brand-mark i:nth-child(1){height:18px}.brand-mark i:nth-child(2){height:12px}.brand-mark i:nth-child(3){height:7px}.brand-word{font-family:var(--sans);font-size:.92rem;letter-spacing:.08em;font-weight:800}.brand-divider{color:#c1c8c3}.brand-system{font-size:.72rem;letter-spacing:.09em;color:#69736d;font-weight:700}.system-context{font-family:var(--sans);font-size:.72rem;color:#6d7771;gap:1rem}.system-context span{padding-left:1rem;border-left:1px solid var(--rule)}.system-context b{color:#323c36;letter-spacing:.03em;font-size:.67rem}
+      .workspace{grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 64px)}
+      .service-rail{position:sticky;top:0;min-height:calc(100vh - 64px);padding:22px 14px;background:#17231d;border-right:0;color:#e9efeb}
+      .rail-index{display:flex;align-items:center;justify-content:center;width:38px;height:38px;margin:0 8px 26px;padding:0;border:1px solid #3c5046;border-radius:8px;color:#fff;background:#203128;font-family:var(--sans);font-size:.78rem;letter-spacing:.08em;font-weight:800}
+      .service-rail nav{gap:4px;border:0}.service-rail nav a,.rail-disabled{min-height:42px;display:flex;align-items:center;padding:0 10px 0 44px;border:0;border-radius:7px;color:#bdc9c2;font-size:.82rem;font-weight:600}.service-rail nav a::before,.rail-disabled::before{left:12px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:22px;height:22px;border:1px solid #3b4d44;border-radius:5px;color:#8fa096;font-family:var(--mono);font-size:.55rem}.service-rail nav a:hover{background:#203128;color:#fff}.service-rail nav a:first-child{background:#24372d;color:#fff}.service-rail nav a:first-child::before{border-color:#5e7e6c;color:#cfe1d7;background:#1b4935}.rail-disabled{opacity:.56}.rail-note{position:absolute;left:22px;right:22px;bottom:22px;margin:0;padding:14px 0 0;border-top:1px solid #34463d;color:#82938a;font-size:.56rem;letter-spacing:.1em}
+      .app-shell{width:min(1180px,calc(100% - 64px));margin:0 auto;padding:40px 0 64px}
+      main#app{max-width:none}main#app>h1,.result-head h1{font-family:var(--sans);font-size:clamp(1.9rem,3vw,2.8rem);font-weight:750;letter-spacing:-.045em;line-height:1.05;color:#111a15;margin:.18rem 0 .7rem}main#app>p{max-width:780px;font-size:1rem;color:#61706a}.eyebrow{font-family:var(--sans);font-size:.69rem;letter-spacing:.08em;color:#557064;font-weight:800}.eyebrow::before{content:""}
+      .page-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;padding-bottom:28px;margin-bottom:24px;border-bottom:1px solid var(--rule)}.page-kicker{display:flex;align-items:center;gap:8px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#66736c;font-weight:800}.page-kicker::before{content:"";width:8px;height:8px;border-radius:50%;background:#2d7a58;box-shadow:0 0 0 3px #e3efe8}.page-intro h1{margin:8px 0 8px;font-size:clamp(2rem,3vw,3rem);letter-spacing:-.05em;line-height:1.03}.page-intro p{max-width:780px;margin:0;color:#5f6d66;font-size:1rem}.env-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #cfd8d2;border-radius:999px;background:#fff;color:#47534d;font-size:.68rem;font-weight:800;white-space:nowrap}.env-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#2b7a57}
+      section{margin:18px 0;padding:0;background:#fff;border:1px solid var(--rule);border-left:1px solid var(--rule);border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(18,31,24,.03)}section>h2{margin:0;padding:16px 18px 13px;border-bottom:1px solid var(--rule);font-size:.76rem;letter-spacing:.06em;color:#536159;background:#fafbfa}section>h2::before{content:""}section>p,section>form,section>table,section>ul,section>details,section>.service-grid,section>.section-body{margin-left:18px;margin-right:18px}section>p:first-of-type{margin-top:16px}section>p:last-child{margin-bottom:18px}
+      .service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px;margin-bottom:18px}.service-grid .choice{margin:0}
+      form{gap:12px}.choice{display:block;position:relative;padding:16px 16px 16px 44px;border:1px solid #d8dfda;border-left:1px solid #d8dfda;border-radius:8px;background:#fff;transition:border-color .15s,box-shadow .15s,background .15s}.choice::before{display:none}.choice:hover{border-color:#aebdb3;box-shadow:0 2px 8px rgba(17,31,23,.05)}.choice:has(input:checked){border-color:#2b7052;background:#f5faf7;box-shadow:0 0 0 1px #2b7052}.choice>input{position:absolute;left:16px;top:19px}.choice strong{font-size:.9rem;font-weight:750;color:#19231e}.choice span{margin:5px 0 0;color:#69756f;font-size:.79rem;line-height:1.42}.service-code{display:block;margin-bottom:5px;font-family:var(--mono);font-size:.58rem;letter-spacing:.06em;color:#708078;text-transform:uppercase}.service-state{display:inline-flex;margin-top:10px;padding:3px 6px;border-radius:4px;background:#edf5f0;color:#2e674d;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+      fieldset{margin:6px 0;padding:16px;border:1px solid #d9dfda;border-radius:8px;background:#fbfcfb}legend{font-family:var(--sans);font-size:.68rem;letter-spacing:.05em;color:#526159}label{font-size:.82rem;font-weight:650;color:#3f4b45}input[type=text],input[type=month],input[type=number],input[type=file],select{min-height:42px;padding:8px 10px;border:1px solid #cbd3ce;border-radius:7px;background:#fff;color:#17211c;box-shadow:inset 0 1px 1px rgba(17,31,23,.02)}input:focus,select:focus{border-color:#2c6f53;outline:3px solid #e0eee6;outline-offset:0}
+      button{min-height:42px;padding:0 16px;border:1px solid #174e39;border-radius:7px;background:#185c43;font-family:var(--sans);font-size:.74rem;letter-spacing:.01em;font-weight:750;text-transform:none;box-shadow:0 1px 2px rgba(15,50,35,.15)}button:hover{background:#124b36}.button-row{display:flex;gap:8px;flex-wrap:wrap}
+      .notice{border-radius:8px;margin:16px 0;padding:12px 14px;background:#f4f7f5;border:1px solid #d8dfda;border-left:3px solid #39745a;color:#4f5e56;font-size:.82rem}.notice strong{color:#24322a}.upload-band{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1.2fr) auto;gap:12px;align-items:end;margin:4px 18px 18px;padding:16px;border:1px solid #d7dfd9;border-radius:8px;background:#f8faf8}.upload-copy{display:grid;gap:3px;align-self:center}.upload-copy strong{font-size:.84rem}.upload-copy span{font-size:.72rem;color:#6a7770}.upload-band>label.file-field{display:none}.upload-band input[type=file]{margin:0}.upload-band button{white-space:nowrap}.context-details{margin:0 18px 18px!important;background:#fbfcfb}.context-details fieldset{border:0;margin:0;border-top:1px solid var(--rule);border-radius:0}.service-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}.operations-footer{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.operations-footer>div{display:grid;gap:3px;padding:13px 14px;border-top:2px solid #1d5f45;background:#eef4f0}.operations-footer strong{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#315945}.operations-footer span{font-size:.78rem;color:#607068}.semantic-memory{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;margin:12px 0;padding:10px 12px;border:1px solid #dbe2dd;border-radius:7px;background:#f8faf9;font-size:.78rem}.semantic-memory b{font-size:.62rem;letter-spacing:.06em;color:#65736b}.semantic-memory span{color:#55635c}
+      .semantic-card{padding:0!important}.semantic-card legend{display:block;width:100%;padding:14px 16px;border-bottom:1px solid var(--rule);font-size:.82rem;color:#28362f}.semantic-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:0}.semantic-detected{padding:16px;border-right:1px solid var(--rule);background:#fafbfa}.semantic-detected small,.semantic-owner small{display:block;margin-bottom:7px;font-size:.6rem;font-weight:800;letter-spacing:.07em;color:#728078;text-transform:uppercase}.semantic-owner{padding:16px}.semantic-owner label{padding:6px 0;font-weight:600}.semantic-options{display:grid;gap:2px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--rule)}.semantic-owner .owner-label{margin-top:8px;color:#315d49}.semantic-detected>strong{display:block;font-family:var(--mono);font-size:.76rem;color:#2f3d35}.semantic-detected>p{font-size:.8rem;color:#66736c}
+      .semantic-review-form{display:block;gap:0}.semantic-review-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px;padding:9px 14px;border:1px solid var(--rule);border-bottom:0;border-radius:8px 8px 0 0;background:#eef2ef;color:#69766f;font-size:.61rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}.semantic-review-list{border:1px solid var(--rule);border-radius:0 0 8px 8px;background:#fff;overflow:hidden}.semantic-review-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--rule)}.semantic-review-row:last-child{border-bottom:0}.semantic-review-row:hover{background:#fafcfa}.semantic-review-datum{min-width:0}.semantic-review-datum .semantic-sheet{display:block;margin-bottom:2px;font-family:var(--mono);font-size:.58rem;letter-spacing:.05em;color:#7a867f;text-transform:uppercase}.semantic-review-datum strong{display:block;font-size:.84rem;color:#1b2720;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.semantic-review-datum p{margin:3px 0 0;max-width:680px;color:#6b7770;font-size:.73rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.semantic-review-decision{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,.8fr);gap:6px 8px;align-items:end}.semantic-review-decision small{grid-column:1/-1;margin:0;font-size:.57rem;font-weight:800;letter-spacing:.07em;color:#728078;text-transform:uppercase}.semantic-proposal{grid-column:1/-1;margin:0;color:#34443b;font-size:.76rem}.semantic-proposal strong{color:#174f39}.semantic-owner-label{grid-column:1/-1;margin:0;font-size:.63rem;color:#315d49}.semantic-review-decision select,.semantic-review-decision input[type=text]{width:100%;min-height:36px;height:36px;padding:6px 8px;font-size:.75rem}.semantic-review-actions{position:sticky;bottom:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px;padding:10px 12px;border:1px solid #cfd8d2;border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 -8px 24px rgba(22,35,28,.06);backdrop-filter:blur(8px)}.semantic-review-actions span{font-size:.7rem;color:#69766f}.semantic-memory-detail{margin:7px 0 0!important;border:0;background:transparent}.semantic-memory-detail summary{display:inline-flex;padding:0;color:#557064;font-size:.65rem;font-weight:700}.semantic-memory-detail .semantic-memory{margin:6px 0 0;padding:8px 10px;grid-template-columns:90px minmax(0,1fr);font-size:.68rem}
+      .result-head{padding:0 0 22px;margin-bottom:18px;border-top:0;border-bottom:1px solid var(--rule)}.status-chip{min-height:28px;padding:0 9px;border-radius:999px;font-family:var(--sans);font-size:.61rem;letter-spacing:.04em}.status-chip::before{content:""}.metric-grid{gap:10px;border:0;background:transparent}.metric{padding:16px;border:1px solid var(--rule);border-radius:9px;background:#fff}.metric:last-child{border:1px solid var(--rule)}.metric small{font-family:var(--sans);font-size:.62rem}.metric strong{font-family:var(--sans);font-size:1.45rem;letter-spacing:-.03em}.result{font-family:var(--sans);font-size:clamp(1.7rem,3vw,2.4rem);font-weight:750;letter-spacing:-.04em}
+      .result-actions{padding-top:8px}.result-actions a{min-height:40px;padding:0 14px;border-radius:7px;font-family:var(--sans);font-size:.7rem;letter-spacing:0;text-transform:none}.result-actions a.secondary{background:#fff;color:#334139;border-color:#cbd3ce}
+      table{border:1px solid var(--rule);border-radius:8px;overflow:hidden;font-size:.8rem}th,td{padding:11px 12px}th{font-family:var(--sans);font-size:.61rem;background:#f7f9f7;color:#68756e}tbody tr:hover{background:#f8faf8}.case-id{font-family:var(--mono);font-size:.68rem;color:#65736b}.case-status{display:inline-flex;padding:3px 7px;border-radius:999px;background:#eef4f0;color:#39634e;font-size:.61rem;font-weight:800}
+      details{border-radius:8px;background:#fff}summary{font-family:var(--sans);font-size:.72rem;letter-spacing:.01em;text-transform:none}.recon-workbench{display:grid;grid-template-columns:1fr 1fr;gap:12px}.review-item{padding:14px;border:1px solid var(--rule);border-radius:8px;background:#fff}
+      @media(max-width:1024px){.workspace{grid-template-columns:190px minmax(0,1fr)}.app-shell{width:min(100% - 40px,1020px)}.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.system-context span:first-child{display:none}}
+      @media(max-width:768px){.app-topbar{height:60px;min-height:60px;padding:0 16px}.workspace{display:block}.service-rail{position:static;min-height:auto;padding:8px;background:#17231d}.rail-index,.rail-note{display:none}.service-rail nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.service-rail nav a,.rail-disabled{min-height:38px;padding:0 6px;border-radius:5px;justify-content:center;text-align:center;font-size:.68rem}.service-rail nav a::before,.rail-disabled::before{display:none}.service-rail nav>:nth-child(6){display:none}.app-shell{width:min(100% - 28px,720px);padding:28px 0 48px}.service-grid{grid-template-columns:1fr}.page-intro{grid-template-columns:1fr}.env-badge{width:max-content}.semantic-grid,.recon-workbench{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid var(--rule)}.semantic-review-head{display:none}.semantic-review-list{border-radius:8px}.semantic-review-row{grid-template-columns:1fr;gap:10px;padding:14px}.semantic-review-datum p{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.semantic-review-decision{grid-template-columns:1fr}.semantic-review-decision small,.semantic-owner-label{grid-column:1}.semantic-review-actions{align-items:stretch;flex-direction:column}.semantic-review-actions button{width:100%}.metric-grid{grid-template-columns:1fr}}
+      @media(max-width:390px){.brand-system,.brand-divider{display:none}.app-shell{width:calc(100% - 20px)}.service-rail nav{grid-template-columns:repeat(4,1fr)}.service-rail nav>:nth-child(5),.service-rail nav>:nth-child(6){display:none}.page-intro h1,main#app>h1,.result-head h1{font-size:1.75rem}section>p,section>form,section>table,section>ul,section>details,section>.service-grid,section>.section-body{margin-left:12px;margin-right:12px}section>h2{padding-left:12px;padding-right:12px}.semantic-memory{grid-template-columns:1fr}button,.result-actions a{width:100%;justify-content:center}}
+      @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
     </style>
     """
     if "</head>" in template:
-        template = template.replace("</head>", enterprise_styles + "</head>")
+        template = template.replace("</head>", visual_system + "</head>")
     shell = (
-        '<header class="app-topbar"><div class="app-brand">Pym<span>IA</span> · Servicio 1</div>'
-        '<nav aria-label="Navegación"><a href="/">Controles</a><a href="/cases">Casos</a><a href="/radar">RADAR</a></nav></header>'
+        '<div class="pymia-frame">'
+        '<header class="app-topbar">'
+        '<div class="app-brand" aria-label="PymIA Mesa de Operaciones">'
+        '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>'
+        '<span class="brand-word">PYMIA</span>'
+        '<span class="brand-divider">/</span>'
+        '<span class="brand-system">MESA DE OPERACIONES</span>'
+        '</div>'
+        '<div class="system-context" aria-label="Contexto operativo">'
+        '<span><b>EMPRESA</b> contexto verificado al operar</span>'
+        '<span><b>USUARIO / ROL</b> identidad verificada al operar</span>'
+        '</div>'
+        '</header>'
+        '<div class="workspace">'
+        '<aside class="service-rail" aria-label="Navegación principal">'
+        '<div class="rail-index">S1</div>'
+        '<nav>'
+        '<a href="/" data-ref="01">Operaciones</a>'
+        '<a href="/cases" data-ref="02">Casos</a>'
+        '<a href="/radar" data-ref="03">RADAR</a>'
+        '<span class="rail-disabled" data-ref="04">Evidencia</span>'
+        '<span class="rail-disabled" data-ref="05">Administración</span>'
+        '</nav>'
+        '<div class="rail-note">SERVICIO 1<br>CONTROL Y EVIDENCIA<br><br>PRODUCCIÓN</div>'
+        '</aside>'
         f'<div class="app-shell">{content}</div>'
+        '</div>'
+        '</div>'
     )
     return template.replace("{{content}}", shell)
 
@@ -1819,59 +2397,72 @@ def _recent_cases_page(snapshots: list[dict[str, Any]]) -> str:
 
 
 def _home_page(error: str | None = None) -> str:
+    launch_states = {
+        "sold_vs_collected_gap": "DISPONIBLE",
+        "net_margin_real": "DISPONIBLE",
+        "working_capital": "PILOTO",
+    }
     launch_options = "".join(
-        f'<label class="choice"><input type="radio" name="launch_review" value="{_esc(ref)}" required><strong>{_esc(name)}</strong><span>{_esc(description)}</span></label>'
-        for ref, name, description in _LAUNCH_REVIEW_OPTIONS
+        f'<label class="choice"><input type="radio" name="launch_review" value="{_esc(ref)}" required>'
+        f'<span class="service-code">S1 / {index:02d}</span><strong>{_esc(name)}</strong>'
+        f'<span>{_esc(description)}</span><span class="service-state">{_esc(launch_states.get(ref, "DISPONIBLE"))}</span></label>'
+        for index, (ref, name, description) in enumerate(_LAUNCH_REVIEW_OPTIONS, start=1)
     )
     reconciliation_options = "".join(
-        f'<label class="choice"><input type="radio" name="reconciliation_type" value="{_esc(ref)}" required><strong>{_esc(name)}</strong><span>{_esc(description)}</span></label>'
-        for ref, name, description in _RECONCILIATION_OPTIONS
+        f'<label class="choice"><input type="radio" name="reconciliation_type" value="{_esc(ref)}" required>'
+        f'<span class="service-code">RECON / {index:02d}</span><strong>{_esc(name)}</strong>'
+        f'<span>{_esc(description)}</span><span class="service-state">DISPONIBLE</span></label>'
+        for index, (ref, name, description) in enumerate(_RECONCILIATION_OPTIONS, start=1)
     )
     return f"""
     <main id="app" tabindex="-1">
-      <p class="eyebrow">Servicio 1 · Controles empresariales</p>
-      <h1>¿Qué querés controlar hoy?</h1>
+      <header class="page-intro">
+        <div>
+          <div class="page-kicker">Servicio 1 · Control operacional</div>
+          <h1>¿Qué querés controlar hoy?</h1>
+          <p>Seleccioná un control, aportá la evidencia y revisá el resultado con trazabilidad. PymIA no interpreta silenciosamente datos ambiguos.</p>
+        </div>
+        <span class="env-badge">Producción operativa</span>
+      </header>
       {_error(error)}
-      <p>Elegí un servicio, cargá tus archivos y PymIA te muestra el resultado, la evidencia y lo que necesita revisión.</p>
 
       <section aria-labelledby="launch-controls">
-        <h2 id="launch-controls">Controles disponibles</h2>
+        <h2 id="launch-controls">Controles sobre evidencia empresarial</h2>
         <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
-          {launch_options}
-          <fieldset>
-            <legend>Contexto del consorcio (opcional)</legend>
-            <label for="consorcio_id">Código del consorcio</label>
-            <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
-            <label for="consorcio_name">Nombre del consorcio</label>
-            <input id="consorcio_name" name="consorcio_name" type="text" autocomplete="organization">
-            <label for="period">Período</label>
-            <input id="period" name="period" type="month">
-          </fieldset>
-          <label for="file">Archivo de Excel</label>
-          <input id="file" name="file" type="file" accept=".xlsx" required>
-          <p>Tu archivo no se modifica. Si un dato es ambiguo, PymIA te pide confirmación antes de calcular.</p>
-          <button type="submit">Iniciar control</button>
+          <div class="service-grid">{launch_options}</div>
+          <div class="upload-band">
+            <div class="upload-copy"><strong>Archivo de Excel</strong><span>Evidencia de entrada · .xlsx · Tu archivo no se modifica</span></div>
+            <label class="file-field" for="file">Seleccionar archivo</label>
+            <input id="file" name="file" type="file" accept=".xlsx" required>
+            <button type="submit">Iniciar control</button>
+          </div>
+          <details class="context-details">
+            <summary>Contexto del consorcio (opcional · piloto)</summary>
+            <fieldset>
+              <label for="consorcio_id">Código del consorcio</label>
+              <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
+              <label for="consorcio_name">Nombre del consorcio</label>
+              <input id="consorcio_name" name="consorcio_name" type="text" autocomplete="organization">
+              <label for="period">Período</label>
+              <input id="period" name="period" type="month">
+            </fieldset>
+          </details>
         </form>
       </section>
 
-      <hr>
       <section aria-labelledby="bank-reconciliation">
-        <h2 id="bank-reconciliation">Conciliación bancaria</h2>
-        <p>Compará dos fuentes y revisá solamente coincidencias dudosas, diferencias y movimientos sin correspondencia.</p>
+        <h2 id="bank-reconciliation">Mesa de conciliación</h2>
+        <div class="section-body"><p>Compará dos fuentes y llevá a revisión humana sólo diferencias, coincidencias dudosas y movimientos sin correspondencia.</p></div>
         <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
-          {reconciliation_options}
-          <button type="submit">Empezar conciliación</button>
+          <div class="service-grid service-grid--two">{reconciliation_options}</div>
+          <button type="submit">Abrir conciliación bancaria</button>
         </form>
       </section>
 
-      <aside class="notice">
-        <strong>RADAR</strong> · Después de cada control compatible podés definir condiciones para seguimiento, sin que PymIA decida por vos qué es importante.
-      </aside>
-      <details>
-        <summary>Contexto de Consorcios en validación</summary>
-        <p>La vertical Consorcios sigue disponible para pruebas de campo, pero no forma parte del portfolio general de lanzamiento.</p>
-        <p>Para usarla, cargá el archivo desde el flujo de prueba indicando código, nombre y período del consorcio.</p>
-      </details>
+      <div class="operations-footer">
+        <div><strong>Control humano</strong><span>La confirmación del owner queda como evidencia; no autoriza decisiones automáticas.</span></div>
+        <div><strong>RADAR</strong><span>Observa condiciones definidas por el dueño después de controles compatibles.</span></div>
+      </div>
       <div class="notice" aria-live="polite"></div>
     </main>"""
 
@@ -2307,33 +2898,191 @@ def _reconciliation_item_text(item: Any) -> str:
 
 def _tenant_memory_note(memory_hint: str) -> str:
     if not memory_hint:
-        return ""
+        return '<div class="semantic-memory"><b>MEMORIA PREVIA</b><span>Sin antecedente aplicable para esta columna.</span></div>'
     return (
-        '<p class="notice">La vez anterior confirmaste: '
-        f'<strong>{_esc(memory_hint)}</strong>. Confirmalo nuevamente para continuar.</p>'
+        '<div class="semantic-memory"><b>MEMORIA PREVIA</b><span>La vez anterior confirmaste: '
+        f'<strong>{_esc(memory_hint)}</strong>. Es antecedente, no decisión automática.</span></div>'
     )
 
 
-def _semantic_questions_page(questions: list[dict[str, Any]], error: str | None = None) -> str:
-    items = []
+def _derived_unit_questions_page(
+    questions: list[dict[str, Any]],
+    error: str | None = None,
+    *,
+    selected_units: dict[str, str] | None = None,
+) -> str:
+    selected_units = selected_units or {}
+    cards: list[str] = []
     for question in questions:
-        question_id = _esc(question.get("question_id"))
+        if not isinstance(question, Mapping) or question.get("question_kind") != "UNIT_MEANING":
+            continue
+        question_id = str(question.get("question_id") or "").strip()
+        selected = selected_units.get(question_id, "")
         options = "".join(
-            f'<label><input type="radio" name="answer_{question_id}" value="{_esc(option.get("option_id"))}" required> {_esc(option.get("label"))}</label>'
-            for option in question.get("options") or []
+            f'<label><input type="radio" name="unit_{_esc(question_id)}" value="{_esc(option.get("unit_kind"))}" required'
+            f'{" checked" if str(option.get("unit_kind") or "") == selected else ""}> '
+            f'<strong>{_esc(option.get("label"))}</strong> · {_esc(option.get("example"))}</label>'
+            for option in (question.get("options") or [])
+            if isinstance(option, Mapping)
+        )
+        cards.append(
+            f'<fieldset class="semantic-card"><legend>Unidad del dato</legend>'
+            f'<div class="semantic-grid"><div class="semantic-detected">'
+            f'<small>Evidencia</small><strong>{_esc(question.get("sheet_ref"))}.{_esc(question.get("column_ref"))}</strong>'
+            f'<p>{_esc(question.get("materiality_reason"))}</p></div>'
+            f'<div class="semantic-owner"><small>Confirmación requerida</small>'
+            f'<p>{_esc(question.get("presentation_text"))}</p>{options}</div></div></fieldset>'
+        )
+    return f"""
+    <main id="app" tabindex="-1">
+      <header class="page-intro">
+        <div><div class="page-kicker">Evidencia derivada · Unidad material</div>
+        <h1>Confirmá cómo está expresado el descuento</h1>
+        <p>La columna ya fue confirmada como descuento. Falta únicamente su unidad para aplicar la transformación determinística correcta.</p></div>
+        <span class="env-badge">Confirmación owner</span>
+      </header>
+      {_error(error)}
+      <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
+        {''.join(cards)}
+        <div class="semantic-review-actions"><span>La unidad confirmada queda ligada al caso y a la columna fuente.</span><button type="submit">Confirmar unidad y calcular</button></div>
+      </form>
+      <div class="notice" aria-live="polite"></div>
+    </main>"""
+
+
+def _assisted_semantic_dialogue_page(
+    decisions: list[dict[str, Any]],
+    error: str | None = None,
+    *,
+    selected_actions: dict[str, str] | None = None,
+) -> str:
+    selected_actions = selected_actions or {}
+    rows: list[str] = []
+    for decision in decisions:
+        if not isinstance(decision, Mapping):
+            continue
+        decision_id = str(decision.get("decision_id") or "").strip()
+        if not decision_id:
+            continue
+        kind = str(decision.get("decision_kind") or "DECISION").strip()
+        presentation = str(decision.get("presentation_text") or "").strip()
+        materiality = str(decision.get("materiality_reason") or "").strip()
+        refs = [
+            str(ref)
+            for ref in (
+                list(decision.get("column_refs") or [])
+                + list(decision.get("relationship_refs") or [])
+            )
+            if str(ref).strip()
+        ]
+        selected = selected_actions.get(decision_id, "")
+        rows.append(
+            f'<fieldset class="semantic-card"><legend>{_esc(kind.replace("_", " "))}</legend>'
+            f'<div class="semantic-grid"><div class="semantic-detected">'
+            f'<small>Evidencia involucrada</small><strong>{_esc(" · ".join(refs) or decision_id)}</strong>'
+            f'<p>{_esc(materiality)}</p></div><div class="semantic-owner">'
+            f'<small>Propuesta para confirmar</small><p>{_esc(presentation)}</p>'
+            f'<label><input type="radio" name="action_{_esc(decision_id)}" value="ACCEPT" required'
+            f'{" checked" if selected == "ACCEPT" else ""}> Confirmar</label>'
+            f'<label><input type="radio" name="action_{_esc(decision_id)}" value="REJECT"'
+            f'{" checked" if selected == "REJECT" else ""}> No es correcto</label>'
+            f'<label><input type="radio" name="action_{_esc(decision_id)}" value="CORRECT"'
+            f'{" checked" if selected == "CORRECT" else ""}> Corregir / explicar</label>'
+            f'<input type="text" name="correction_{_esc(decision_id)}" placeholder="Escribí la corrección si elegís corregir">'
+            f'</div></div></fieldset>'
+        )
+    return f"""
+    <main id="app" tabindex="-1">
+      <header class="page-intro">
+        <div><div class="page-kicker">SEM-8 · Confirmación empresarial</div>
+        <h1>Confirmá la interpretación material</h1>
+        <p>PymIA propone una lectura con evidencia estructural. El owner confirma, rechaza o corrige; la confirmación no autoriza el cálculo por sí sola.</p></div>
+        <span class="env-badge">{len(rows)} decisiones</span>
+      </header>
+      {_error(error)}
+      <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
+        {''.join(rows)}
+        <div class="semantic-review-actions"><span>Las decisiones quedan trazadas por caso.</span><button type="submit">Confirmar y continuar</button></div>
+      </form>
+      <div class="notice" aria-live="polite"></div>
+    </main>"""
+
+
+def _semantic_questions_page(
+    questions: list[dict[str, Any]],
+    error: str | None = None,
+    *,
+    selected_answers: dict[str, Any] | None = None,
+) -> str:
+    rows = []
+    selected_answers = selected_answers or {}
+    for question in questions:
+        raw_question_id = str(question.get("question_id") or "")
+        question_id = _esc(raw_question_id)
+        previous = selected_answers.get(raw_question_id)
+        previous_option = str(previous.get("option_id") if isinstance(previous, dict) else previous or "").strip()
+        previous_other = str(previous.get("free_text") if isinstance(previous, dict) else "").strip()
+        raw_options = [
+            option
+            for option in (question.get("options") or [])
+            if isinstance(option, dict)
+        ]
+        option_items = "".join(
+            f'<option name="answer_{question_id}" value="{_esc(option.get("option_id"))}"{" selected" if str(option.get("option_id") or "").strip() == previous_option else ""}>{_esc(option.get("label"))}</option>'
+            for option in raw_options
+        )
+        proposed_option = next(
+            (
+                option
+                for option in raw_options
+                if str(option.get("option_id") or "").strip() not in {"OTHER", "IGNORE"}
+            ),
+            None,
+        )
+        proposal = (
+            f'<p class="semantic-proposal">PymIA interpreta: <strong>{_esc(proposed_option.get("label"))}</strong>. ¿Es correcto?</p>'
+            if proposed_option is not None
+            else ""
         )
         memory_hint = str(question.get("tenant_memory_hint") or "").strip()
-        memory_note = _tenant_memory_note(memory_hint)
-        items.append(f"""
-        <fieldset><legend>{_esc(question.get('question') or '¿Qué representa esta columna?')}</legend>
-          <p>{_esc(question.get('context'))}</p>{memory_note}{options}
-          <label><input type="radio" name="answer_{question_id}" value="not_sure"> No estoy seguro</label>
-          <label for="other_{question_id}">Si elegís Otra cosa, explicala</label><input id="other_{question_id}" name="other_{question_id}" type="text">
-        </fieldset>""")
+        memory_note = (
+            f'<details class="semantic-memory-detail"><summary>Memoria previa</summary>{_tenant_memory_note(memory_hint)}</details>'
+            if memory_hint
+            else ""
+        )
+        sheet_name = _esc(question.get("sheet_name") or "Hoja")
+        column_name = _esc(question.get("column_name") or "Columna")
+        rows.append(f"""
+        <div class="semantic-review-row">
+          <div class="semantic-review-datum">
+            <span class="semantic-sheet">{sheet_name}</span>
+            <strong>{column_name}</strong>
+            <p>{_esc(question.get('context'))}</p>
+            {memory_note}
+          </div>
+          <div class="semantic-review-decision">
+            <small>Lo que PymIA propone</small>
+            {proposal}
+            <label for="answer_{question_id}" class="semantic-owner-label">Lo que owner confirma</label>
+            <select id="answer_{question_id}" name="answer_{question_id}" required>
+              <option value="" disabled{" selected" if not previous_option else ""}>Seleccionar significado…</option>
+              {option_items}
+              <option value="not_sure"{" selected" if previous_option == "not_sure" else ""}>No estoy seguro</option>
+            </select>
+            <input id="other_{question_id}" name="other_{question_id}" type="text" value="{_esc(previous_other)}" placeholder="Otra interpretación, sólo si corresponde">
+          </div>
+        </div>""")
     return f"""
-    <main id="app" tabindex="-1"><h1>Confirmar qué significa cada dato</h1>{_error(error)}
-      <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">{''.join(items)}<button type="submit">Continuar</button></form>
-      <div class="notice" aria-live="polite"></div></main>"""
+    <main id="app" tabindex="-1">
+      <header class="page-intro"><div><div class="page-kicker">Confirmación semántica · Control humano</div><h1>{"Confirmar qué " + "significa cada dato"}</h1><p>Revisá únicamente las columnas detectadas. No hay confirmaciones automáticas: cada significado queda explícitamente elegido por el owner.</p></div><span class="env-badge">{len(questions)} por revisar</span></header>
+      {_error(error)}
+      <form class="semantic-review-form" action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
+        <div class="semantic-review-head"><span>Lo detectado</span><span>Decisión</span></div>
+        <div class="semantic-review-list">{''.join(rows)}</div>
+        <div class="semantic-review-actions"><span>{len(questions)} decisiones requeridas</span><button type="submit">Confirmar y continuar</button></div>
+      </form>
+      <div class="notice" aria-live="polite"></div>
+    </main>"""
 
 
 def _review_selection_page(error: str | None = None) -> str:
@@ -2533,9 +3282,71 @@ def _data_used(computation: dict[str, Any], outcome: dict[str, Any]) -> str:
     return "<ul>" + "".join(f"<li>Dato confirmado {index}: {_esc(value)}</li>" for index, value in enumerate(values, start=1)) + "</ul>"
 
 
-def _blocked_result_page(packet: dict[str, Any], requested_capability: str | None = None) -> str:
-    title = _REVIEW_BY_REF.get(requested_capability or "", ("", "Resultado", ""))[1]
-    return _blocked_message_page(f"No se puede completar {title.lower()} con los datos confirmados. Revisá las columnas elegidas o seleccioná otra revisión.")
+def _capture_confirmed_role_v1(
+    *, confirmed_roles: dict[str, str], question_id: str, selected: str, question: dict[str, Any]
+) -> None:
+    for option in question.get("options") or []:
+        if not isinstance(option, dict) or str(option.get("option_id") or "").strip() != selected:
+            continue
+        linked = option.get("linked_hypothesis")
+        if isinstance(linked, dict):
+            role = str(linked.get("semantic_role") or "").strip()
+            if role:
+                confirmed_roles[question_id] = role
+        return
+
+
+def _blocked_result_page(packet: dict[str, Any], requested_capability: str | None = None, *, ingestion_output: dict[str, Any] | None = None, semantic_answers: dict[str, Any] | None = None) -> str:
+    title = _REVIEW_BY_REF.get(
+        requested_capability or "",
+        _LAUNCH_REVIEW_BY_REF.get(requested_capability or "", ("", "Resultado", "")),
+    )[1]
+    decision = packet.get("computability_decision")
+    decision = decision if isinstance(decision, dict) else {}
+    groups = decision.get("missing_role_groups")
+    groups = groups if isinstance(groups, list) else []
+    labels = {
+        "period_sales_total": "ventas totales del período",
+        "period_costs_total": "costos totales del período",
+        "period_taxes_total": "impuestos y comisiones del período",
+        "sales_amount": "importe vendido",
+        "collected_amount": "importe cobrado",
+        "operation_date": "fecha de operación",
+    }
+    missing = []
+    for group in groups:
+        if isinstance(group, list):
+            missing.append(" o ".join(labels.get(str(role), str(role).replace("_", " ")) for role in group))
+
+    if requested_capability == "net_margin_real":
+        derived = packet.get("derived_evidence")
+        derived = derived if isinstance(derived, dict) else {}
+        requirements = [str(item) for item in (derived.get("evidence_requirements") or [])]
+        derived_block = str(derived.get("blocked_reason") or "").strip()
+        if "DISCOUNT_UNIT_CONFIRMATION_REQUIRED" in requirements:
+            evidence = (
+                "<p><strong>PymIA encontró ventas, cantidades, precios y costos utilizables, pero no va a adivinar cómo aplicar el descuento.</strong></p>"
+                "<p>Hay descuentos no nulos y falta confirmar si esa columna representa un porcentaje/tasa o un importe monetario.</p>"
+            )
+            next_step = "Confirmá la unidad del descuento antes de recalcular el margen."
+        elif derived_block == "BLOCK_DERIVED_EVIDENCE_RELATIONSHIP_NOT_CONFIRMED":
+            evidence = (
+                "<p><strong>PymIA encontró ventas por línea y costos por producto, pero no va a unir hojas por parecido de nombres.</strong></p>"
+                "<p>Falta evidencia explícita que confirme la relación entre la clave de producto de Ventas y la clave de producto de Productos.</p>"
+            )
+            next_step = "Confirmá la relación entre las columnas de producto. El caso permanece abierto hasta contar con esa evidencia."
+        else:
+            evidence = (
+                "<p><strong>PymIA no calcula Margen neto real con valores inventados.</strong></p>"
+                "<p>Ventas y costos pueden provenir de evidencia derivada gobernada; impuestos y comisiones deben estar explícitamente informados o confirmados como evidencia del mismo período.</p>"
+            )
+            next_step = "Completá la evidencia material indicada y volvé a ejecutar el control."
+
+    else:
+        evidence = "<ul>" + "".join(f"<li>{_esc(item)}</li>" for item in missing) + "</ul>" if missing else "<p>El control necesita evidencia adicional antes de poder calcularse.</p>"
+        next_step = "Subí evidencia complementaria o elegí otro control compatible con este archivo."
+
+    return f'<main id="app" tabindex="-1"><header class="page-intro"><div><div class="page-kicker">Caso abierto · Evidencia insuficiente</div><h1>{_esc(title)}</h1><p>Las confirmaciones hechas se conservaron. El caso sigue abierto hasta completar la evidencia.</p></div><span class="env-badge">FALTA INFORMACIÓN</span></header><section><h2>Qué encontró PymIA y qué falta</h2>{evidence}</section><section><h2>Próximo paso exacto</h2><p>{_esc(next_step)}</p><p>La descarga no está habilitada hasta completar la evidencia requerida.</p><p><a href="/">Agregar evidencia</a> · <a href="/cases">Ver casos</a></p></section><div class="notice" aria-live="polite">Caso guardado con estado FALTA INFORMACIÓN.</div></main>'
 
 
 def _canonical_tables_for_consorcios(ingestion_output: dict[str, Any]) -> list[dict[str, Any]]:

@@ -60,9 +60,9 @@
     "no_auto_tool_selection_claim": true
   },
   "registry_expected_counts": {
-    "total_modules": 76,
-    "PRODUCTIVE": 32,
-    "SUPPORT_NECESSARY": 44,
+    "total_modules": 89,
+    "PRODUCTIVE": 42,
+    "SUPPORT_NECESSARY": 47,
     "EXPERIMENTAL_FROZEN": 0
   },
   "acceptance_tests": [

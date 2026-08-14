@@ -224,6 +224,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
 
     confirmed: dict[str, str] = {}
     followup: list[dict[str, Any]] = []
+    system_scope_exclusions: set[str] = set()
     missing: list[str] = []
     empty: list[str] = []
     invalid_options: list[str] = []
@@ -239,6 +240,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             missing.append(ref_id)
             continue
         option_id, free_text = _parse_owner_answer(raw)
+        system_scope_exclusion = _is_system_scope_exclusion(raw)
         if not option_id:
             empty.append(ref_id)
             continue
@@ -290,6 +292,12 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         if not canonical_answer:
             invalid_options.append(ref_id)
             continue
+        if system_scope_exclusion:
+            if option_id != OWNER_OPTION_IGNORE or canonical_answer != "IGNORED_NOT_RELEVANT":
+                conflicting_answers.append(ref_id)
+                continue
+            system_scope_exclusions.add(ref_id)
+            continue
         confirmed[ref_id] = canonical_answer
 
     if empty:
@@ -331,6 +339,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         owner_answers=owner_answers,
         confirmed=confirmed,
         followup=followup,
+        system_scope_exclusions=system_scope_exclusions,
     )
     if followup:
         return _packet(
@@ -342,6 +351,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             confirmed_answers={},
             owner_followup=followup,
             owner_confirmation_events=events,
+            system_scope_exclusions=system_scope_exclusions,
         )
 
     return _packet(
@@ -352,6 +362,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         owner_questions=[],
         confirmed_answers=confirmed,
         owner_confirmation_events=events,
+        system_scope_exclusions=system_scope_exclusions,
     )
 
 
@@ -516,6 +527,10 @@ def _parse_owner_answer(value: Any) -> tuple[str, str | None]:
     return "", None
 
 
+def _is_system_scope_exclusion(value: Any) -> bool:
+    return isinstance(value, dict) and value.get("scope_excluded") is True
+
+
 def _owner_confirmation_events(
     *,
     case_id: Any,
@@ -524,6 +539,7 @@ def _owner_confirmation_events(
     owner_answers: dict[Any, Any],
     confirmed: dict[str, str],
     followup: list[dict[str, Any]],
+    system_scope_exclusions=None,
 ) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     followup_by_ref = {
@@ -531,6 +547,8 @@ def _owner_confirmation_events(
         for item in followup
     }
     for ref_id, question in questions_by_ref.items():
+        if ref_id in set(system_scope_exclusions or ()):
+            continue
         raw = _answer_for(owner_answers, ref_id)
         option_id, free_text = _parse_owner_answer(raw)
         column = str(question.get("column_name") or ref_id).strip()
@@ -619,6 +637,7 @@ def _packet(
     owner_followup: list[dict[str, Any]] | None = None,
     owner_confirmation_events: list[dict[str, Any]] | None = None,
     owner_answer_bindings: dict[str, dict[str, str]] | None = None,
+    system_scope_exclusions: set[str] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -632,6 +651,7 @@ def _packet(
         "owner_questions": owner_questions,
         "owner_question_count": len(owner_questions),
         "confirmed_answers": confirmed_answers,
+        "system_scope_exclusions": sorted(system_scope_exclusions or ()),
         "owner_answer_bindings": {
             ref_id: dict(bindings)
             for ref_id, bindings in (owner_answer_bindings or {}).items()

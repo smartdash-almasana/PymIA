@@ -138,23 +138,23 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
             source_kind=semantic_bridge_packet.get("source_kind"),
             filename=semantic_bridge_packet.get("filename"),
         )
-    event_answers = {
-        str(event.get("question_ref") or "").strip(): (
-            "IGNORED_NOT_RELEVANT"
-            if event.get("confirmation_scope") == "COLUMN_EXCLUSION"
-            else str(event.get("confirmed_role") or "").strip()
-        )
-        for event in raw_events
-        if isinstance(event, dict)
-        and event.get("confirmed_by_owner") is True
-        and event.get("confirmation_scope") in {"SEMANTIC_ROLE", "COLUMN_EXCLUSION"}
-    }
-    event_answers = {key: value for key, value in event_answers.items() if key and value}
+    # Canonical events may come from the legacy one-column loop or from SEM-5
+    # grouped dialogue projection. Resolve them to candidate refs only after the
+    # bridge candidates are known; SEM-5 keeps the grouped dialogue question_ref
+    # and is matched by physical (sheet_ref, column_ref) identity.
+    event_answers: dict[str, str] = {}
 
     # During Package 2 migration the legacy map remains a compatibility
     # projection/checksum. Events are the canonical evidence source, but a
     # malformed legacy projection still fails closed until its callers migrate.
     confirmed_answers = owner_confirmation_loop_packet.get("confirmed_answers") or {}
+    system_scope_exclusions = {
+        str(ref).strip(): "IGNORED_NOT_RELEVANT"
+        for ref in (owner_confirmation_loop_packet.get("system_scope_exclusions") or [])
+        if str(ref).strip()
+    }
+    if isinstance(confirmed_answers, dict):
+        confirmed_answers = {**confirmed_answers, **system_scope_exclusions}
     if not isinstance(confirmed_answers, dict) or not confirmed_answers:
         return _blocked(
             BLOCK_LOOP_NO_ANSWERS,
@@ -180,6 +180,18 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
             case_id=semantic_bridge_packet.get("case_id"),
             source_kind=semantic_bridge_packet.get("source_kind"),
             filename=semantic_bridge_packet.get("filename"),
+        )
+    event_answers, event_projection_error = _event_answers_by_candidate_ref(
+        raw_events=raw_events,
+        candidate_list=candidate_list,
+    )
+    if event_projection_error is not None:
+        return _blocked(
+            BLOCK_EVENT_PROJECTION_MISMATCH,
+            case_id=semantic_bridge_packet.get("case_id"),
+            source_kind=semantic_bridge_packet.get("source_kind"),
+            filename=semantic_bridge_packet.get("filename"),
+            detail=event_projection_error,
         )
     pending_refs = {
         _candidate_ref_id(candidate)
@@ -229,15 +241,20 @@ def build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1(
             detail=empty,
         )
 
-    if event_answers and cleaned != event_answers:
+    human_confirmed_answers = {
+        key: value
+        for key, value in cleaned.items()
+        if key not in system_scope_exclusions
+    }
+    if event_answers and human_confirmed_answers != event_answers:
         return _blocked(
             BLOCK_EVENT_PROJECTION_MISMATCH,
             case_id=semantic_bridge_packet.get("case_id"),
             source_kind=semantic_bridge_packet.get("source_kind"),
             filename=semantic_bridge_packet.get("filename"),
-            detail=sorted(set(cleaned) ^ set(event_answers)),
+            detail=sorted(set(human_confirmed_answers) ^ set(event_answers)),
         )
-    canonical_answers = event_answers or cleaned
+    canonical_answers = {**(event_answers or human_confirmed_answers), **system_scope_exclusions}
     reinjected = _reinject(candidate_list, canonical_answers)
 
     # Re-pack a bridge packet WITHOUT mutating the original input.
@@ -317,6 +334,53 @@ def _candidate_ref_id(candidate: Service1ColumnSemanticCandidateV1) -> str:
         or candidate.source_column_name
         or ""
     ).strip()
+
+
+def _event_answers_by_candidate_ref(
+    *,
+    raw_events: list[Any],
+    candidate_list: list[Service1ColumnSemanticCandidateV1],
+) -> tuple[dict[str, str], list[str] | None]:
+    candidate_refs = {_candidate_ref_id(candidate) for candidate in candidate_list}
+    identity_to_ref = {
+        (
+            str(candidate.sheet_name or "sheet1").strip(),
+            str(candidate.source_column_name or "").strip(),
+        ): _candidate_ref_id(candidate)
+        for candidate in candidate_list
+    }
+    answers: dict[str, str] = {}
+    for event in raw_events:
+        if not isinstance(event, dict) or event.get("confirmed_by_owner") is not True:
+            continue
+        scope = str(event.get("confirmation_scope") or "").strip()
+        if scope not in {"SEMANTIC_ROLE", "COLUMN_EXCLUSION"}:
+            continue
+        answer = (
+            "IGNORED_NOT_RELEVANT"
+            if scope == "COLUMN_EXCLUSION"
+            else str(event.get("confirmed_role") or "").strip()
+        )
+        if not answer:
+            return {}, ["event_confirmed_answer_missing"]
+
+        question_ref = str(event.get("question_ref") or "").strip()
+        legacy_ref = question_ref if question_ref in candidate_refs else None
+        identity = (
+            str(event.get("sheet_ref") or "").strip(),
+            str(event.get("column_ref") or "").strip(),
+        )
+        identity_ref = identity_to_ref.get(identity) if all(identity) else None
+        if legacy_ref and identity_ref and legacy_ref != identity_ref:
+            return {}, [f"event_identity_conflict:{question_ref}"]
+        ref_id = identity_ref or legacy_ref
+        if not ref_id:
+            label = f"{identity[0]}.{identity[1]}" if all(identity) else question_ref
+            return {}, [f"event_target_not_found:{label}"]
+        if ref_id in answers:
+            return {}, [f"duplicate_owner_event:{ref_id}"]
+        answers[ref_id] = answer
+    return answers, None
 
 
 def _reinject(

@@ -12,6 +12,12 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
+from pymia.smartpyme.service_1_derived_evidence_v1 import (
+    SCHEMA_VERSION as DERIVED_EVIDENCE_SCHEMA_VERSION,
+    STATUS_BLOCKED as DERIVED_EVIDENCE_BLOCKED,
+    STATUS_NEEDS_EVIDENCE as DERIVED_EVIDENCE_NEEDS,
+    STATUS_READY as DERIVED_EVIDENCE_READY,
+)
 from pymia.smartpyme.service_1_semantic_catalog_loader_v1 import (
     STATUS_CATALOGS_LOADED,
     STATUS_CATALOGS_PARTIALLY_LOADED,
@@ -118,6 +124,7 @@ def build_service_1_computability_decision_v1(
     requested_capability: str,
     p6_decisions: list[Mapping[str, Any]] | tuple[Mapping[str, Any], ...],
     requirement_matches: list[Mapping[str, Any]] | tuple[Mapping[str, Any], ...],
+    derived_evidence_packet: Mapping[str, Any] | None = None,
     formula_catalog_path: str | Path | None = None,
     pathology_catalog_path: str | Path | None = None,
     evidence_matrix_path: str | Path | None = None,
@@ -136,14 +143,21 @@ def build_service_1_computability_decision_v1(
     if match is None:
         return _decision(case, capability, STATUS_UNSUPPORTED_CAPABILITY, "CAPABILITY_NOT_GOVERNED")
     family_id = str(match.get("family_id") or "").strip() or None
-    if str(match.get("status") or "") != "REQUIREMENT_MATCHED":
-        missing = tuple(tuple(group) for group in (match.get("missing_role_groups") or ()))
-        return _decision(case, capability, STATUS_NEEDS_EVIDENCE, "REQUIREMENTS_NOT_MATCHED", family_id=family_id, missing=missing)
+    match_status = str(match.get("status") or "")
+    missing_role_groups = tuple(tuple(group) for group in (match.get("missing_role_groups") or ()))
 
-    source_by_variable = {
+    family_roles = {
+        str(role).strip()
+        for group in (match.get("required_role_groups") or ())
+        for role in group
+        if str(role).strip()
+    }
+    source_by_variable: dict[str, Any] = {
         str(item.get("approved_variable") or "").strip(): str(item.get("column_ref") or "").strip()
         for item in decisions
-        if str(item.get("approved_variable") or "").strip() and str(item.get("column_ref") or "").strip()
+        if (not family_roles or str(item.get("approved_role") or "").strip() in family_roles)
+        and str(item.get("approved_variable") or "").strip()
+        and str(item.get("column_ref") or "").strip()
     }
     # Canonical formula-variable aliases may share the same approved semantic
     # evidence without changing the P6 role. Example: sales_amount is named
@@ -152,8 +166,26 @@ def build_service_1_computability_decision_v1(
     for item in decisions:
         role = str(item.get("approved_role") or "").strip()
         column = str(item.get("column_ref") or "").strip()
-        if role == "sales_amount" and column:
+        if role == "sales_amount" and role in family_roles and column:
             source_by_variable.setdefault("sales", column)
+
+    derived_sources, derived_error = _validated_derived_source_bindings(
+        packet=derived_evidence_packet,
+        case_id=case,
+        requested_capability=capability,
+    )
+    if derived_error is not None:
+        return _decision(case, capability, STATUS_BLOCKED, derived_error, family_id=family_id)
+    for variable_name, source in derived_sources.items():
+        if variable_name in source_by_variable:
+            return _decision(
+                case,
+                capability,
+                STATUS_BLOCKED,
+                f"DUPLICATE_FORMULA_INPUT_SOURCE:{variable_name}",
+                family_id=family_id,
+            )
+        source_by_variable[variable_name] = source
 
     paths = _catalog_paths(formula_catalog_path, pathology_catalog_path, evidence_matrix_path)
     try:
@@ -193,7 +225,24 @@ def build_service_1_computability_decision_v1(
         return _decision(case, capability, STATUS_NEEDS_EVIDENCE, "FORMULA_REQUIRES_ADDITIONAL_ASSUMPTIONS", family_id=family_id)
     missing_variables = tuple(v for v in required if v not in source_by_variable)
     if missing_variables:
-        return _decision(case, capability, STATUS_NEEDS_EVIDENCE, "FORMULA_INPUTS_NOT_READY", family_id=family_id)
+        reason = "REQUIREMENTS_NOT_MATCHED" if match_status != "REQUIREMENT_MATCHED" else "FORMULA_INPUTS_NOT_READY"
+        return _decision(
+            case,
+            capability,
+            STATUS_NEEDS_EVIDENCE,
+            reason,
+            family_id=family_id,
+            missing=missing_role_groups,
+        )
+    if match_status != "REQUIREMENT_MATCHED" and not derived_sources:
+        return _decision(
+            case,
+            capability,
+            STATUS_NEEDS_EVIDENCE,
+            "REQUIREMENTS_NOT_MATCHED",
+            family_id=family_id,
+            missing=missing_role_groups,
+        )
 
     versions = _catalog_versions(paths, matrix)
     governed = Service1GovernedComputationInputV1(
@@ -217,8 +266,81 @@ def build_service_1_computability_decision_v1(
         reason=None,
         family_id=family_id,
         governed_computation_input=governed,
-        provenance={"source": "P6_PLUS_P7_PLUS_GOVERNED_CATALOGS"},
+        provenance={
+            "source": (
+                "P6_PLUS_P7_PLUS_DERIVED_EVIDENCE_PLUS_GOVERNED_CATALOGS"
+                if derived_sources
+                else "P6_PLUS_P7_PLUS_GOVERNED_CATALOGS"
+            )
+        },
     )
+
+
+def _validated_derived_source_bindings(
+    *,
+    packet: Mapping[str, Any] | None,
+    case_id: str,
+    requested_capability: str,
+) -> tuple[dict[str, Any], str | None]:
+    if packet is None:
+        return {}, None
+    if not isinstance(packet, Mapping):
+        return {}, "DERIVED_EVIDENCE_PACKET_INVALID"
+    if packet.get("schema_version") != DERIVED_EVIDENCE_SCHEMA_VERSION:
+        return {}, "DERIVED_EVIDENCE_SCHEMA_INVALID"
+    if str(packet.get("case_id") or "").strip() != case_id:
+        return {}, "DERIVED_EVIDENCE_CASE_MISMATCH"
+    if str(packet.get("requested_capability") or "").strip() != requested_capability:
+        return {}, "DERIVED_EVIDENCE_CAPABILITY_MISMATCH"
+    if any(
+        bool(packet.get(flag))
+        for flag in (
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+        )
+    ):
+        return {}, "DERIVED_EVIDENCE_AUTHORITY_FORBIDDEN"
+    status = str(packet.get("status") or "")
+    if status == DERIVED_EVIDENCE_BLOCKED:
+        return {}, str(packet.get("blocked_reason") or "DERIVED_EVIDENCE_BLOCKED")
+    if status not in {DERIVED_EVIDENCE_READY, DERIVED_EVIDENCE_NEEDS}:
+        return {}, "DERIVED_EVIDENCE_STATUS_INVALID"
+    raw_variables = packet.get("derived_variables") or {}
+    if not isinstance(raw_variables, Mapping):
+        return {}, "DERIVED_EVIDENCE_VARIABLES_INVALID"
+
+    sources: dict[str, Any] = {}
+    for raw_name, raw_item in raw_variables.items():
+        name = str(raw_name or "").strip()
+        if not name or not isinstance(raw_item, Mapping):
+            return {}, "DERIVED_EVIDENCE_VARIABLE_INVALID"
+        derivation_id = str(raw_item.get("derivation_id") or "").strip()
+        semantic_role = str(raw_item.get("semantic_role") or "").strip()
+        if not derivation_id or not semantic_role or "value" not in raw_item:
+            return {}, f"DERIVED_EVIDENCE_VARIABLE_INVALID:{name}"
+        if any(
+            bool(raw_item.get(flag))
+            for flag in (
+                "runtime_authorized",
+                "tool_execution_authorized",
+                "product_ready",
+                "delivery_authorized",
+                "diagnosis_generated",
+            )
+        ):
+            return {}, f"DERIVED_EVIDENCE_AUTHORITY_FORBIDDEN:{name}"
+        sources[name] = {
+            "source_kind": "DERIVED_EVIDENCE",
+            "schema_version": DERIVED_EVIDENCE_SCHEMA_VERSION,
+            "derivation_id": derivation_id,
+            "semantic_role": semantic_role,
+            "source_column_refs": list(raw_item.get("source_column_refs") or []),
+            "relationship_refs": list(raw_item.get("relationship_refs") or []),
+        }
+    return sources, None
 
 
 def build_service_1_composite_governed_computation_input_v1(*, case_id: str, capability_ref: str) -> Service1GovernedComputationInputV1:

@@ -269,8 +269,21 @@ class FormulaEngineService:
                 blocking_reason="DIVISION_BY_ZERO: sale_price",
             )
 
-        value = ((sale_price - costs - taxes) / sale_price) * 100
-        return self._ok(formula_id, value, inputs, source_refs)
+        total_outflows = costs + taxes
+        net_margin_amount = sale_price - total_outflows
+        value = (net_margin_amount / sale_price) * 100
+        return FormulaResult(
+            formula_id=formula_id,
+            status=FormulaStatus.OK,
+            value=float(value),
+            inputs=inputs,
+            source_refs=source_refs,
+            metadata={
+                "net_margin_amount": float(net_margin_amount),
+                "net_margin_percentage": float(value),
+                "total_outflows": float(total_outflows),
+            },
+        )
 
     def _calculate_inv_002_rotacion_stock(
         self,

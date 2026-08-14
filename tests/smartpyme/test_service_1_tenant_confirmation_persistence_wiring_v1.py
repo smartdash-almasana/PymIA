@@ -41,7 +41,7 @@ def _event(
         file_ref=file_ref,
         region_ref=None,
         sheet_ref="Hoja1",
-        column_ref="saldo",
+        column_ref="Saldo",
         question_ref="q-001",
         owner_answer="saldo pendiente de cobro",
         confirmation_scope="FREE_TEXT_MEANING",

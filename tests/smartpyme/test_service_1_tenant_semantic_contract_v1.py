@@ -17,7 +17,7 @@ def _event(
     *,
     case_id: str = "case_1",
     sheet_ref: str = "Ventas",
-    column_ref: str = "importe",
+    column_ref: str = "Importe",
     question_ref: str = "q_importe",
     scope: str = "SEMANTIC_ROLE",
     confirmed_role: str | None = "sales_amount",
@@ -120,7 +120,7 @@ def test_missing_tenant_blocks() -> None:
     ("overrides",),
     [
         ({"workbook_ref": "sha256:another-workbook"},),
-        ({"normalized_column_ref": "total"},),
+        ({"source_column_name": "Total"},),
         ({"expected_case_id": "case_other"},),
         ({"expected_sheet_ref": "Cobros"},),
         ({"expected_question_ref": "q_other"},),
@@ -129,6 +129,22 @@ def test_missing_tenant_blocks() -> None:
 def test_ts08_event_context_mismatch_blocks(overrides: dict[str, object]) -> None:
     with pytest.raises(Service1TenantSemanticContractErrorV1) as exc:
         _build(**overrides)
+    _assert_code(exc, "BLOCKED_EVENT_CONTEXT_MISMATCH")
+
+
+def test_source_column_identity_is_physical_while_normalized_ref_is_internal() -> None:
+    contract = _build()
+
+    assert contract.source_column_name == "Importe"
+    assert contract.normalized_column_ref == "importe"
+    assert contract.source_column_name != contract.normalized_column_ref
+
+
+def test_owner_event_column_must_match_physical_source_column() -> None:
+    mismatched_event = _event(column_ref="OtraColumna")
+
+    with pytest.raises(Service1TenantSemanticContractErrorV1) as exc:
+        _build(owner_confirmation_event=mismatched_event)
     _assert_code(exc, "BLOCKED_EVENT_CONTEXT_MISMATCH")
 
 
@@ -214,7 +230,7 @@ def test_ts17_forbidden_authority_claim_in_event_provenance_blocks() -> None:
             file_ref="safe",
             region_ref=None,
             sheet_ref="Ventas",
-            column_ref="importe",
+            column_ref="Importe",
             question_ref="q_importe",
             owner_answer="OWNER_CONFIRMED",
             confirmed_role="sales_amount",
@@ -233,7 +249,7 @@ def test_ts17_reuse_or_rebind_claim_in_event_provenance_blocks(flag: str) -> Non
         file_ref="sha256:workbook-safe-ref",
         region_ref="region_1",
         sheet_ref="Ventas",
-        column_ref="importe",
+        column_ref="Importe",
         question_ref="q_importe",
         owner_answer="OWNER_CONFIRMED",
         proposed_role="sales_amount",

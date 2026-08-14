@@ -25,7 +25,7 @@ def _event(*, role: str = "sales_amount", timestamp: str = "2026-08-07T12:00:00+
         file_ref="sha256:workbook-safe-ref",
         region_ref="region_1",
         sheet_ref="Ventas",
-        column_ref="importe",
+        column_ref="Importe",
         question_ref="q_importe",
         owner_answer="OWNER_CONFIRMED",
         proposed_role=role,

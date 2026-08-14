@@ -15,10 +15,10 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "PRODUCTIVE": 32,
-    "SUPPORT_NECESSARY": 44
+    "PRODUCTIVE": 42,
+    "SUPPORT_NECESSARY": 47
   },
-  "total_modules": 76,
+  "total_modules": 89,
   "modules": [
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
@@ -139,11 +139,13 @@
       "module": "service_1_product_pipeline_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
+        "service_1_assisted_semantic_product_wiring_v1",
         "service_1_capability_registry_v1",
         "service_1_computability_v1",
         "service_1_consorcios_collection_aging_v1",
         "service_1_consorcios_expense_variance_v1",
         "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_derived_evidence_v1",
         "service_1_generic_capability_engine_v1",
         "service_1_liq_001_evaluator_v1",
         "service_1_liq_001_outcome_v1",
@@ -439,8 +441,11 @@
       "module": "service_1_assisted_web_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
+        "service_1_deterministic_semantic_proposal_provider_v1",
         "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
+        "service_1_owner_unit_confirmation_event_v1",
         "service_1_product_pipeline_v1",
+        "service_1_structural_compatibility_v1",
         "service_1_reconciliation_human_review_decision_v1",
         "service_1_reconciliation_workpaper_xlsx_v1",
         "service_1_web_column_confirmation_intake_boundary_v1"
@@ -592,6 +597,119 @@
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
         "service_1_owner_confirmation_event_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_assisted_semantic_product_wiring_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_capability_registry_v1",
+        "service_1_derived_evidence_v1",
+        "service_1_deterministic_semantic_pipeline_v1",
+        "service_1_llm_semantic_contract_v1",
+        "service_1_llm_semantic_interpreter_v1",
+        "service_1_owner_semantic_answer_projection_v1",
+        "service_1_owner_semantic_dialogue_v1",
+        "service_1_owner_semantic_evidence_reentry_v1",
+        "service_1_semantic_proposal_validator_v1",
+        "service_1_variable_family_bindings_v1",
+        "service_1_workbook_profiler_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_derived_evidence_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_llm_semantic_contract_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_llm_semantic_interpreter_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_relationship_confirmation_event_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_semantic_answer_projection_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_owner_confirmation_event_v1",
+        "service_1_owner_relationship_confirmation_event_v1",
+        "service_1_owner_semantic_dialogue_v1",
+        "service_1_semantic_proposal_validator_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_semantic_dialogue_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_semantic_proposal_validator_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_semantic_evidence_reentry_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+        "service_1_owner_semantic_answer_projection_v1",
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_semantic_proposal_validator_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_workbook_profiler_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_deterministic_semantic_proposal_provider_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_derived_evidence_v1",
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_owner_unit_confirmation_event_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_structural_compatibility_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_workbook_profiler_v1"
       ],
       "canonical_root_reachable": false
     }

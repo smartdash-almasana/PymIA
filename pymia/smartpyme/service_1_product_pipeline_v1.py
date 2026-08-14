@@ -4,6 +4,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Final, Mapping, Sequence
 
+from pymia.smartpyme.service_1_derived_evidence_v1 import (
+    STATUS_BLOCKED as DERIVED_EVIDENCE_BLOCKED,
+    STATUS_NEEDS_EVIDENCE as DERIVED_EVIDENCE_NEEDS,
+    STATUS_READY as DERIVED_EVIDENCE_READY,
+    build_service_1_derived_evidence_v1,
+)
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
     STATUS_OWNER_FOLLOWUP,
@@ -11,6 +17,14 @@ from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     build_computability_decision_from_confirmed_bindings_v1,
     run_initial_pass,
     run_owner_reentry,
+)
+from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
+    STATUS_BLOCKED as ASSISTED_SEMANTIC_BLOCKED,
+    STATUS_CONFIRMED as ASSISTED_SEMANTIC_CONFIRMED,
+    STATUS_OWNER_DIALOGUE_FOLLOWUP as ASSISTED_SEMANTIC_FOLLOWUP,
+    STATUS_OWNER_DIALOGUE_REQUIRED as ASSISTED_SEMANTIC_OWNER_REQUIRED,
+    run_service_1_assisted_semantic_initial_v1,
+    run_service_1_assisted_semantic_reentry_v1,
 )
 from pymia.smartpyme.service_1_liq_001_evaluator_v1 import (
     CAPABILITY_REF as LIQ_001_CAPABILITY_REF,
@@ -98,6 +112,14 @@ def run_service_1_product_pipeline_v1(
     reconciliation_request: Mapping[str, Any] | None = None,
     collection_aging_request: Mapping[str, Any] | None = None,
     expense_variance_request: Mapping[str, Any] | None = None,
+    semantic_provider: Any = None,
+    semantic_assistance_state: Mapping[str, Any] | None = None,
+    semantic_dialogue_responses: Sequence[Mapping[str, Any]] | None = None,
+    semantic_owner_actor_id: str | None = None,
+    semantic_owner_actor_role: str | None = None,
+    compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
+    owner_unit_confirmation_events: Sequence[Mapping[str, Any]] = (),
+    use_assisted_semantics: bool = False,
 ) -> dict[str, Any]:
     if expense_variance_request is not None:
         if (
@@ -191,23 +213,115 @@ def run_service_1_product_pipeline_v1(
             reconciliation_run=reconciliation_run,
         )
 
-    semantic_run = run_initial_pass(ingestion_output=ingestion_output, sheet_name=sheet_name)
+    assisted_semantic_requested = any(
+        (
+            use_assisted_semantics,
+            semantic_provider is not None,
+            semantic_assistance_state is not None,
+            semantic_dialogue_responses is not None,
+        )
+    )
+    assisted_state = None
+    if assisted_semantic_requested:
+        if owner_answers is not None:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="ASSISTED_SEMANTIC_AND_LEGACY_OWNER_ANSWERS_CONFLICT",
+            )
+        if requested_capability is None:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="ASSISTED_SEMANTIC_REQUIRES_REQUESTED_CAPABILITY",
+            )
+        if semantic_assistance_state is None:
+            if semantic_dialogue_responses is not None:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="ASSISTED_SEMANTIC_STATE_REQUIRED_FOR_OWNER_REENTRY",
+                )
+            assisted_state = run_service_1_assisted_semantic_initial_v1(
+                ingestion_output=ingestion_output,
+                requested_capability=requested_capability,
+                provider=semantic_provider,
+                sheet_name=sheet_name,
+                compatible_tenant_memory_hints=compatible_tenant_memory_hints,
+            )
+        else:
+            current_case_id = str(
+                ingestion_output.get("case_id") if isinstance(ingestion_output, dict) else ""
+            ).strip()
+            state_case_id = str(semantic_assistance_state.get("case_id") or "").strip()
+            state_capability = str(
+                semantic_assistance_state.get("requested_capability") or ""
+            ).strip()
+            if (
+                not current_case_id
+                or current_case_id != state_case_id
+                or state_capability != requested_capability
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="ASSISTED_SEMANTIC_STATE_CONTEXT_MISMATCH",
+                    semantic_assistance_state=dict(semantic_assistance_state),
+                )
+            if semantic_dialogue_responses is None:
+                assisted_state = dict(semantic_assistance_state)
+            else:
+                assisted_state = run_service_1_assisted_semantic_reentry_v1(
+                    previous_state=dict(semantic_assistance_state),
+                    owner_responses=semantic_dialogue_responses,
+                    owner_actor_id=str(semantic_owner_actor_id or ""),
+                    owner_actor_role=str(semantic_owner_actor_role or ""),
+                    file_ref=str(
+                        (ingestion_output or {}).get("source_file_ref")
+                        or (ingestion_output or {}).get("filename")
+                        or ""
+                    ).strip()
+                    or None,
+                )
 
-    if semantic_run.get("status") == STATUS_OWNER_QUESTIONS:
-        if not isinstance(owner_answers, dict) or not owner_answers:
+        assisted_status = str((assisted_state or {}).get("status") or "")
+        if assisted_status in {
+            ASSISTED_SEMANTIC_OWNER_REQUIRED,
+            ASSISTED_SEMANTIC_FOLLOWUP,
+        }:
             return _packet(
                 status=STATUS_NEEDS_OWNER,
-                semantic_run=semantic_run,
-                owner_questions=list(semantic_run.get("owner_questions") or []),
+                owner_questions=list((assisted_state or {}).get("owner_questions") or []),
+                semantic_assistance_state=assisted_state,
             )
-        semantic_run = run_owner_reentry(previous_run=semantic_run, owner_answers=owner_answers)
-        if semantic_run.get("status") == STATUS_OWNER_FOLLOWUP:
+        if assisted_status == ASSISTED_SEMANTIC_BLOCKED:
             return _packet(
-                status=STATUS_NEEDS_OWNER,
-                semantic_run=semantic_run,
-                owner_questions=list(semantic_run.get("owner_questions") or []),
-                owner_followup=list(semantic_run.get("owner_followup") or []),
+                status=STATUS_BLOCKED,
+                blocked_reason=(assisted_state or {}).get("blocked_reason")
+                or "ASSISTED_SEMANTIC_BLOCKED",
+                semantic_assistance_state=assisted_state,
             )
+        if assisted_status != ASSISTED_SEMANTIC_CONFIRMED:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="ASSISTED_SEMANTIC_STATE_INVALID",
+                semantic_assistance_state=assisted_state,
+            )
+        semantic_run = (assisted_state or {}).get("semantic_run")
+    else:
+        semantic_run = run_initial_pass(ingestion_output=ingestion_output, sheet_name=sheet_name)
+
+        if semantic_run.get("status") == STATUS_OWNER_QUESTIONS:
+            if not isinstance(owner_answers, dict) or not owner_answers:
+                return _packet(
+                    status=STATUS_NEEDS_OWNER,
+                    semantic_run=semantic_run,
+                    owner_questions=list(semantic_run.get("owner_questions") or []),
+                )
+            semantic_run = run_owner_reentry(previous_run=semantic_run, owner_answers=owner_answers)
+            if semantic_run.get("status") == STATUS_OWNER_FOLLOWUP:
+                return _packet(
+                    status=STATUS_NEEDS_OWNER,
+                    semantic_run=semantic_run,
+                    owner_questions=list(semantic_run.get("owner_questions") or []),
+                    owner_followup=list(semantic_run.get("owner_followup") or []),
+                )
 
     if semantic_run.get("status") != STATUS_CONFIRMED_BINDINGS:
         return _packet(
@@ -215,6 +329,17 @@ def run_service_1_product_pipeline_v1(
             blocked_reason=semantic_run.get("blocked_reason") or "SEMANTIC_BINDINGS_NOT_CONFIRMED",
             semantic_run=semantic_run,
         )
+
+    evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
+    normalized_tables = evidence.get("normalized_tables")
+    column_refs = evidence.get("column_refs")
+    has_complete_row_evidence = (
+        isinstance(normalized_tables, list)
+        and bool(normalized_tables)
+        and isinstance(column_refs, list)
+        and bool(column_refs)
+    )
+    derived_evidence = None
 
     if requested_capability is not None:
         capability_definition = get_capability_definition_v1(requested_capability)
@@ -245,12 +370,70 @@ def run_service_1_product_pipeline_v1(
                     blocked_reason=str(exc) or "P8_COMPUTABILITY_BLOCKED",
                     semantic_run=semantic_run,
                 )
+            if (
+                computability_decision.status != P8_STATUS_COMPUTABLE
+                or computability_decision.governed_computation_input is None
+            ) and has_complete_row_evidence:
+                derived_evidence = build_service_1_derived_evidence_v1(
+                    ingestion_output=evidence,
+                    semantic_run=semantic_run,
+                    requested_capability=requested_capability,
+                    owner_unit_confirmation_events=owner_unit_confirmation_events,
+                )
+                derived_owner_questions = [
+                    dict(item)
+                    for item in (derived_evidence.get("owner_questions") or [])
+                    if isinstance(item, Mapping)
+                ]
+                if (
+                    derived_evidence.get("status") == DERIVED_EVIDENCE_NEEDS
+                    and derived_owner_questions
+                ):
+                    return _packet(
+                        status=STATUS_NEEDS_OWNER,
+                        blocked_reason=(derived_evidence.get("evidence_requirements") or [None])[0],
+                        semantic_run=semantic_run,
+                        computability_decision=computability_decision.to_dict(),
+                        derived_evidence=derived_evidence,
+                        owner_questions=derived_owner_questions,
+                        semantic_assistance_state=assisted_state,
+                        owner_unit_confirmation_events=owner_unit_confirmation_events,
+                    )
+                should_retry_with_derived = (
+                    derived_evidence.get("status") != DERIVED_EVIDENCE_BLOCKED
+                    and (
+                        int(derived_evidence.get("derived_variable_count") or 0) > 0
+                        or derived_evidence.get("status") == DERIVED_EVIDENCE_NEEDS
+                    )
+                )
+                if should_retry_with_derived:
+                    try:
+                        computability_decision = build_computability_decision_from_confirmed_bindings_v1(
+                            confirmed_bindings=semantic_run,
+                            requested_capability=requested_capability,
+                            derived_evidence_packet=derived_evidence,
+                        )
+                    except ValueError as exc:
+                        return _packet(
+                            status=STATUS_BLOCKED,
+                            blocked_reason=str(exc) or "P8_DERIVED_COMPUTABILITY_BLOCKED",
+                            semantic_run=semantic_run,
+                            derived_evidence=derived_evidence,
+                        )
             if computability_decision.status != P8_STATUS_COMPUTABLE or computability_decision.governed_computation_input is None:
                 return _packet(
                     status=STATUS_BLOCKED,
-                    blocked_reason=computability_decision.reason or computability_decision.status,
+                    blocked_reason=(
+                        derived_evidence.get("evidence_requirements", [None])[0]
+                        if isinstance(derived_evidence, dict)
+                        and derived_evidence.get("status") == DERIVED_EVIDENCE_NEEDS
+                        and derived_evidence.get("evidence_requirements")
+                        else computability_decision.reason or computability_decision.status
+                    ),
                     semantic_run=semantic_run,
                     computability_decision=computability_decision.to_dict(),
+                    derived_evidence=derived_evidence,
+                    owner_unit_confirmation_events=owner_unit_confirmation_events,
                 )
             governed_input = computability_decision.governed_computation_input
 
@@ -258,16 +441,6 @@ def run_service_1_product_pipeline_v1(
         computation_result = None
         bounded_outcome = None
         delivery_result = None
-
-        evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
-        normalized_tables = evidence.get("normalized_tables")
-        column_refs = evidence.get("column_refs")
-        has_complete_row_evidence = (
-            isinstance(normalized_tables, list)
-            and bool(normalized_tables)
-            and isinstance(column_refs, list)
-            and bool(column_refs)
-        )
 
         if requested_capability == LIQ_001_CAPABILITY_REF and has_complete_row_evidence:
             computation_result = evaluate_liq_001_from_normalized_tables_v1(
@@ -317,6 +490,7 @@ def run_service_1_product_pipeline_v1(
                 computation_plan=governed_payload,
                 normalized_tables=normalized_tables,
                 column_refs=column_refs,
+                derived_evidence_packet=derived_evidence,
             )
             if computation_result.get("status") != REN_001_STATUS_EVALUATED:
                 return _packet(
@@ -324,6 +498,7 @@ def run_service_1_product_pipeline_v1(
                     blocked_reason=computation_result.get("status") or "REN_001_COMPUTATION_BLOCKED",
                     semantic_run=semantic_run,
                     computability_decision=computability_decision.to_dict() if computability_decision else None,
+                    derived_evidence=derived_evidence,
                     governed_computation_input=governed_payload,
                     computation_result=computation_result,
                 )
@@ -407,10 +582,12 @@ def run_service_1_product_pipeline_v1(
             status=STATUS_COMPUTATION_PLAN_READY,
             semantic_run=semantic_run,
             computability_decision=computability_decision.to_dict() if computability_decision else None,
+            derived_evidence=derived_evidence,
             governed_computation_input=governed_payload,
             computation_result=computation_result,
             bounded_outcome=bounded_outcome,
             delivery_result=delivery_result,
+            owner_unit_confirmation_events=owner_unit_confirmation_events,
         )
 
     if deliver_result:
@@ -438,6 +615,7 @@ def _packet(
     semantic_run: Any = None,
     physical_run: Any = None,
     computability_decision: Any = None,
+    derived_evidence: Any = None,
     governed_computation_input: Any = None,
     computation_result: Any = None,
     bounded_outcome: Any = None,
@@ -447,6 +625,8 @@ def _packet(
     expense_variance_run: Any = None,
     owner_questions: list[dict[str, Any]] | None = None,
     owner_followup: list[dict[str, Any]] | None = None,
+    semantic_assistance_state: Any = None,
+    owner_unit_confirmation_events: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -456,6 +636,7 @@ def _packet(
         "semantic_run": _public_semantic_run(semantic_run),
         "physical_run": physical_run,
         "computability_decision": computability_decision,
+        "derived_evidence": derived_evidence,
         "governed_computation_input": governed_computation_input,
         "computation_result": computation_result,
         "bounded_outcome": bounded_outcome,
@@ -465,6 +646,12 @@ def _packet(
         "expense_variance_run": expense_variance_run,
         "owner_questions": list(owner_questions or []),
         "owner_followup": [dict(item) for item in (owner_followup or [])],
+        "semantic_assistance_state": semantic_assistance_state,
+        "owner_unit_confirmation_events": [
+            dict(item)
+            for item in (owner_unit_confirmation_events or [])
+            if isinstance(item, Mapping)
+        ],
         "semantic_bindings_confirmed": bool(
             isinstance(semantic_run, dict) and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
         ),
@@ -524,6 +711,11 @@ def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
         if isinstance(events, list) and events:
             payload["owner_confirmation_events"] = [
                 dict(item) for item in events if isinstance(item, dict)
+            ]
+        relationship_events = owner_loop.get("owner_relationship_confirmation_events")
+        if isinstance(relationship_events, list) and relationship_events:
+            payload["owner_relationship_confirmation_events"] = [
+                dict(item) for item in relationship_events if isinstance(item, dict)
             ]
     return payload
 

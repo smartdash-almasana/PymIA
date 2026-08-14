@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import re
 from http.client import HTTPConnection
 from pathlib import Path
@@ -103,6 +104,14 @@ def _semantic_confirmation_answers(page: str) -> dict[str, str]:
     ):
         if option_id not in {"OTHER", "IGNORE", "not_sure"}:
             answers.setdefault(f"answer_{question_id}", option_id)
+    if answers:
+        return answers
+    for decision_id in re.findall(
+        r'name="action_([^"]+)" value="ACCEPT"',
+        page,
+    ):
+        clean = html.unescape(decision_id)
+        answers[f"action_{clean}"] = "ACCEPT"
     assert answers
     return answers
 
@@ -197,7 +206,8 @@ def test_launch_service_first_flow_runs_selected_control_after_confirmation(assi
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Confirmar qué significa cada dato" in page
+    assert "Confirmá la interpretación material" in page
+    assert "SEM-8 · Confirmación empresarial" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -221,7 +231,8 @@ def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Confirmar qué significa cada dato" in page
+    assert "Confirmá la interpretación material" in page
+    assert "SEM-8 · Confirmación empresarial" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -342,6 +353,32 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
     assert "No determinan por sí solos insolvencia" in page
 
 
+def test_not_sure_keeps_case_open_and_preserves_confirmed_choices(assisted_server, tmp_path: Path) -> None:
+    body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    cookie = _cookie(response_headers)
+    answers = _semantic_confirmation_answers(page)
+    unresolved_key = next(iter(answers))
+    partial = dict(answers)
+    partial[unresolved_key] = "not_sure"
+
+    status, _, page = _form(assisted_server, "/confirm-meanings", partial, cookie)
+
+    assert status == 200
+    assert "Confirmar qué significa cada dato" in page
+    assert "Todavía hay columnas sin confirmar" in page
+    assert 'value="not_sure" selected' in page
+    for key, value in answers.items():
+        if key == unresolved_key:
+            continue
+        assert f'value="{value}" selected' in page
+
+    status, _, page = _form(assisted_server, "/confirm-meanings", answers, cookie)
+    assert status == 200
+    assert "¿Qué querés revisar?" in page
+
+
 def test_htmx_upload_returns_only_needed_semantic_questions_fragment(
     assisted_server,
     tmp_path: Path,
@@ -393,5 +430,6 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
 
     status, _, page = _form(assisted_server, "/run-review", {"review": "payment_collection_gap"}, cookie)
     assert status == 200
-    assert "No se puede continuar" in page
+    assert "FALTA INFORMACIÓN" in page
+    assert "Caso guardado" in page
     assert "La descarga no está habilitada" in page
