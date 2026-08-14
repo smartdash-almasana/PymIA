@@ -297,3 +297,26 @@ def test_sem4_surfaces_ambiguous_relationship_exactly_once() -> None:
     assert len(surfaced) == 1
     assert surfaced[0]["decision_kind"] == "RELATIONSHIP"
     assert plan["zero_duplicate_questions"] is True
+
+
+def test_sem4_deduplicates_confident_mirror_relationships_and_absorbs_concepts_once() -> None:
+    packet = _validated_packet()
+    mirror = dict(next(item for item in packet["decisions"] if item["decision_id"] == "r-product"))
+    mirror["decision_id"] = "r-product-mirror"
+    mirror["target_refs"] = ["Productos.ProductoID", "Ventas.ProductoID"]
+    mirror["evidence_refs"] = ["ev:relationship:Productos.ProductoID->Ventas.ProductoID:overlap"]
+    packet["decisions"].append(mirror)
+
+    plan = build_service_1_owner_dialogue_plan_v1(validated_packet=packet)
+
+    assert plan["status"] == STATUS_READY
+    relation_questions = [
+        item for item in plan["decisions"] if item["decision_kind"] == DECISION_KIND_RELATIONSHIP
+    ]
+    assert len(relation_questions) == 1
+    proposals = relation_questions[0]["proposal_refs"]
+    assert "r-product" in proposals
+    assert "r-product-mirror" in proposals
+    assert proposals.count("p-sales-id") == 1
+    assert proposals.count("p-product-id") == 1
+    assert plan["zero_duplicate_questions"] is True

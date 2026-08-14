@@ -138,9 +138,9 @@ def build_service_1_owner_dialogue_plan_v1(*, validated_packet: Any) -> dict[str
         for ref in item.get("target_refs") or []
     }
 
-    relation_items = [
-        item for item in active if item.get("source_kind") == "RELATIONSHIP"
-    ]
+    relation_items = _deduplicate_mirror_relationships(
+        [item for item in active if item.get("source_kind") == "RELATIONSHIP"]
+    )
     concept_items = [
         item
         for item in active
@@ -169,7 +169,11 @@ def build_service_1_owner_dialogue_plan_v1(*, validated_packet: Any) -> dict[str
             and not set(str(ref) for ref in item.get("target_refs") or ()).intersection(ambiguous_refs)
         ]
         absorbed_proposal_ids.update(str(item["decision_id"]) for item in absorbed)
-        proposal_refs = (str(relation["decision_id"]),) + tuple(
+        relationship_proposal_refs = tuple(
+            str(ref)
+            for ref in relation.get("mirror_decision_ids") or (relation["decision_id"],)
+        )
+        proposal_refs = relationship_proposal_refs + tuple(
             str(item["decision_id"]) for item in absorbed
         )
         relationship_ref = "->".join(endpoints)
@@ -353,6 +357,21 @@ def _valid_validated_packet(value: Any) -> bool:
         and value.get("status") == VALIDATED_READY
         and isinstance(value.get("decisions"), list)
     )
+
+
+def _deduplicate_mirror_relationships(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, ...], dict[str, Any]] = {}
+    order: list[tuple[str, ...]] = []
+    for item in items:
+        endpoints = tuple(str(ref) for ref in item.get("target_refs") or ())
+        key = tuple(sorted(endpoints))
+        if key not in grouped:
+            grouped[key] = dict(item)
+            grouped[key]["mirror_decision_ids"] = [str(item.get("decision_id") or "")]
+            order.append(key)
+            continue
+        grouped[key]["mirror_decision_ids"].append(str(item.get("decision_id") or ""))
+    return [grouped[key] for key in order]
 
 
 def _ordered_unique(values: Any) -> tuple[str, ...]:
