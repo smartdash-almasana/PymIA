@@ -149,8 +149,11 @@ def build_service_1_owner_dialogue_plan_v1(*, validated_packet: Any) -> dict[str
     ambiguity_items = [
         item
         for item in active
-        if item.get("source_kind") == "MATERIAL_AMBIGUITY"
-        or item.get("status") in {DECISION_MATERIAL_AMBIGUOUS, DECISION_CONFLICTING_EVIDENCE}
+        if item.get("source_kind") != "RELATIONSHIP"
+        and (
+            item.get("source_kind") == "MATERIAL_AMBIGUITY"
+            or item.get("status") in {DECISION_MATERIAL_AMBIGUOUS, DECISION_CONFLICTING_EVIDENCE}
+        )
     ]
 
     planned: list[Service1OwnerDialogueDecisionV1] = []

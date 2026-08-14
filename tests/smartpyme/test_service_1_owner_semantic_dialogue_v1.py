@@ -275,3 +275,25 @@ def test_sem4_rejects_upstream_authority_true() -> None:
     result = build_service_1_owner_dialogue_plan_v1(validated_packet=packet)
     assert result["status"] == "BLOCKED"
     assert result["question_count"] == 0
+
+
+def test_sem4_surfaces_ambiguous_relationship_exactly_once() -> None:
+    packet = _validated_packet()
+    relationship = next(
+        item for item in packet["decisions"] if item["decision_id"] == "r-product"
+    )
+    relationship["status"] = "MATERIAL_AMBIGUOUS"
+    relationship["confidence"] = 0.8
+    relationship["reason"] = "La relación material requiere confirmación del owner."
+
+    plan = build_service_1_owner_dialogue_plan_v1(validated_packet=packet)
+
+    assert plan["status"] == STATUS_READY
+    surfaced = [
+        item
+        for item in plan["decisions"]
+        if "r-product" in item["proposal_refs"]
+    ]
+    assert len(surfaced) == 1
+    assert surfaced[0]["decision_kind"] == "RELATIONSHIP"
+    assert plan["zero_duplicate_questions"] is True

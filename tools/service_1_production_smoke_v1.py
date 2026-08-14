@@ -42,6 +42,30 @@ def _xlsx_bytes() -> bytes:
     return stream.getvalue()
 
 
+def _ren_001_xlsx_bytes(*, include_taxes: bool) -> bytes:
+    stream = BytesIO()
+    workbook = Workbook()
+    ventas = workbook.active
+    ventas.title = "Ventas"
+    ventas.append([
+        "VentaID", "Fecha", "ProductoID", "Cantidad", "PrecioUnitario", "Descuento"
+    ])
+    ventas.append(["V0001", "2026-01-01", "P008", 1, 60, 0])
+    ventas.append(["V0002", "2026-01-01", "P008", 2, 60, 0.10])
+
+    productos = workbook.create_sheet("Productos")
+    productos.append(["ProductoID", "Producto", "Costo"])
+    productos.append(["P008", "Brownie", 28])
+
+    if include_taxes:
+        resumen = workbook.create_sheet("Resumen")
+        resumen.append(["impuestos_periodo"])
+        resumen.append([20])
+
+    workbook.save(stream)
+    return stream.getvalue()
+
+
 def _request(opener, method: str, url: str, *, body: bytes = b"", headers: dict[str, str] | None = None):
     request = Request(url, data=body if method != "GET" else None, method=method, headers=headers or {})
     try:
@@ -112,6 +136,16 @@ def _answers(page: str) -> dict[str, str]:
     return answers
 
 
+def _unit_answers(page: str) -> dict[str, str]:
+    question_ids = re.findall(
+        r'name="unit_([^"]+)" value="DISCOUNT_FRACTION_0_1"',
+        page,
+    )
+    if not question_ids:
+        raise SmokeFailure("REN_001 unit confirmation page exposed no discount fraction option")
+    return {f"unit_{question_id}": "DISCOUNT_FRACTION_0_1" for question_id in question_ids}
+
+
 def _assert(condition: bool, message: str) -> None:
     if not condition:
         raise SmokeFailure(message)
@@ -123,6 +157,73 @@ def _durable_case_link(cases_page: str) -> str:
     if not durable_links:
         raise SmokeFailure("persisted cases exposed no durable case_* reentry link")
     return durable_links[0]
+
+
+def _post_form(opener, *, url: str, fields: dict[str, str], cookie: str, auth: dict[str, str]):
+    body = urlencode(fields).encode("utf-8")
+    return _request(
+        opener,
+        "POST",
+        url,
+        body=body,
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cookie": cookie,
+            **auth,
+        },
+    )
+
+
+def _run_ren_001_journey(
+    opener,
+    *,
+    base_url: str,
+    auth: dict[str, str],
+    include_taxes: bool,
+) -> tuple[str, str]:
+    xlsx = _ren_001_xlsx_bytes(include_taxes=include_taxes)
+    upload_body, content_type = _multipart(
+        "production_smoke_ren_001.xlsx",
+        xlsx,
+        launch_review="net_margin_real",
+    )
+    status, response_headers, content = _request(
+        opener,
+        "POST",
+        base_url + "/upload",
+        body=upload_body,
+        headers={"Content-Type": content_type, **auth},
+    )
+    page = content.decode("utf-8", errors="replace")
+    _assert(status == 200, f"REN_001 authenticated upload failed: HTTP {status}")
+    _assert(
+        "Confirmá la interpretación material" in page and "SEM-8 · Confirmación empresarial" in page,
+        "REN_001 upload did not reach SEM-8 owner confirmation",
+    )
+    cookie = _cookie(response_headers)
+
+    status, _, content = _post_form(
+        opener,
+        url=base_url + "/confirm-meanings",
+        fields=_answers(page),
+        cookie=cookie,
+        auth=auth,
+    )
+    page = content.decode("utf-8", errors="replace")
+    _assert(status == 200, f"REN_001 semantic confirmation failed: HTTP {status}")
+    _assert(
+        "Confirmá cómo está expresado el descuento" in page,
+        "REN_001 did not request governed discount-unit evidence",
+    )
+
+    status, _, content = _post_form(
+        opener,
+        url=base_url + "/confirm-meanings",
+        fields=_unit_answers(page),
+        cookie=cookie,
+        auth=auth,
+    )
+    return cookie, content.decode("utf-8", errors="replace")
 
 
 def run() -> dict[str, object]:
@@ -249,6 +350,46 @@ def run() -> dict[str, object]:
         "persisted case reentry failed",
     )
     checks["reentry_persisted_case"] = "PASS"
+
+    _, incomplete_margin_page = _run_ren_001_journey(
+        opener,
+        base_url=base_url,
+        auth=auth,
+        include_taxes=False,
+    )
+    _assert(
+        "FALTA INFORMACIÓN" in incomplete_margin_page
+        and "/download-net-margin" not in incomplete_margin_page,
+        "REN_001 must fail closed when taxes are missing",
+    )
+    checks["ren_001_missing_taxes_fail_closed"] = "PASS"
+
+    margin_cookie, margin_page = _run_ren_001_journey(
+        opener,
+        base_url=base_url,
+        auth=auth,
+        include_taxes=True,
+    )
+    _assert(
+        "Margen neto real" in margin_page
+        and "/download-net-margin" in margin_page
+        and "FALTA INFORMACIÓN" not in margin_page,
+        "REN_001 complete derived-evidence journey did not produce a sellable result",
+    )
+    checks["ren_001_sem8_owner_flow"] = "PASS"
+    checks["ren_001_discount_unit_confirmation"] = "PASS"
+    checks["ren_001_derived_evidence_execution"] = "PASS"
+
+    status, headers, content = _request(
+        opener,
+        "GET",
+        base_url + "/download-net-margin",
+        headers={"Cookie": margin_cookie},
+    )
+    _assert(status == 200 and content.startswith(b"PK"), f"REN_001 XLSX download failed: HTTP {status}")
+    disposition = str(headers.get("Content-Disposition") or "")
+    _assert("service_1_ren_001_result.xlsx" in disposition, "unexpected REN_001 delivery filename")
+    checks["ren_001_delivery_download"] = "PASS"
 
     return {
         "verdict": "PASS",

@@ -32,3 +32,20 @@ def test_production_smoke_selects_durable_case_link_without_snapshot_suffix() ->
         '<a href="/case?case_ref=case_persisted">evidencia</a>'
     )
     assert smoke._durable_case_link(page) == "/case?case_ref=case_persisted"
+
+
+def test_production_smoke_builds_governed_ren_001_fixture() -> None:
+    from io import BytesIO
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(BytesIO(smoke._ren_001_xlsx_bytes(include_taxes=True)), data_only=True)
+    assert workbook["Ventas"]["D2"].value == 1
+    assert workbook["Ventas"]["E2"].value == 60
+    assert workbook["Ventas"]["F3"].value == 0.1
+    assert workbook["Productos"]["C2"].value == 28
+    assert workbook["Resumen"]["A2"].value == 20
+
+
+def test_production_smoke_maps_discount_fraction_owner_unit() -> None:
+    page = '<input type="radio" name="unit_discount-q" value="DISCOUNT_FRACTION_0_1">'
+    assert smoke._unit_answers(page) == {"unit_discount-q": "DISCOUNT_FRACTION_0_1"}
