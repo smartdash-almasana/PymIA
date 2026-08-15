@@ -13,11 +13,16 @@ from pymia.smartpyme.service_1_supabase_identity_resolver_v1 import (
 
 
 class _Headers:
-    def __init__(self, auth_header: str | None) -> None:
+    def __init__(self, auth_header: str | None, cookie: str | None = None) -> None:
         self._auth_header = auth_header
+        self._cookie = cookie
 
     def get(self, name: str):
-        return self._auth_header
+        if name == "Authorization":
+            return self._auth_header
+        if name == "Cookie":
+            return self._cookie
+        return None
 
 
 class _Auth:
@@ -25,6 +30,15 @@ class _Auth:
         self.response = response
         self.error = error
         self.tokens: list[str] = []
+        self.signin_response = None
+        self.signin_error: Exception | None = None
+        self.signin_credentials: list[dict[str, str]] = []
+
+    def sign_in_with_password(self, credentials: dict[str, str]):
+        self.signin_credentials.append(dict(credentials))
+        if self.signin_error is not None:
+            raise self.signin_error
+        return self.signin_response
 
     def get_user(self, token: str):
         self.tokens.append(token)
@@ -33,8 +47,8 @@ class _Auth:
         return self.response
 
 
-def _handler(auth_header: str | None):
-    return SimpleNamespace(headers=_Headers(auth_header))
+def _handler(auth_header: str | None, cookie: str | None = None):
+    return SimpleNamespace(headers=_Headers(auth_header, cookie))
 
 
 def _resolver(*, user=None, error: Exception | None = None):
@@ -71,6 +85,31 @@ def test_resolver_validates_token_and_maps_verified_app_metadata() -> None:
         "cliente_id": "cliente-001",
         "owner_actor_role": "owner",
     }
+
+
+def test_resolver_accepts_verified_browser_session_cookie() -> None:
+    resolver, auth = _resolver(user=_user())
+
+    identity = resolver(
+        _handler(None, "service1_access_token=browser.jwt; service1_session=session-1")
+    )
+
+    assert auth.tokens == ["browser.jwt"]
+    assert identity["tenant_id"] == "tenant-acme"
+
+
+def test_password_login_returns_supabase_access_token() -> None:
+    resolver, auth = _resolver(user=_user())
+    auth.signin_response = SimpleNamespace(
+        session=SimpleNamespace(access_token="browser.jwt")
+    )
+
+    token = resolver.sign_in_with_password("owner@example.test", "secret")
+
+    assert token == "browser.jwt"
+    assert auth.signin_credentials == [
+        {"email": "owner@example.test", "password": "secret"}
+    ]
 
 
 @pytest.mark.parametrize(

@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 SUPABASE_URL_ENV = "PYMIA_SUPABASE_URL"
 SUPABASE_PUBLISHABLE_KEY_ENV = "PYMIA_SUPABASE_PUBLISHABLE_KEY"
+SERVICE_1_ACCESS_TOKEN_COOKIE = "service1_access_token"
 
 
 class Service1SupabaseIdentityErrorV1(ValueError):
@@ -61,15 +62,26 @@ def _required_text(value: object, *, field: str) -> str:
     return text
 
 
-def _bearer_token(handler: Any) -> str:
+def _access_token(handler: Any) -> str:
     auth_header = str(handler.headers.get("Authorization") or "").strip()
-    scheme, separator, token = auth_header.partition(" ")
-    token = token.strip()
-    if scheme.lower() != "bearer" or not separator or not token or " " in token:
-        raise Service1SupabaseIdentityErrorV1(
-            "valid Authorization: Bearer token is required"
-        )
-    return token
+    if auth_header:
+        scheme, separator, token = auth_header.partition(" ")
+        token = token.strip()
+        if scheme.lower() != "bearer" or not separator or not token or " " in token:
+            raise Service1SupabaseIdentityErrorV1(
+                "valid Authorization: Bearer token is required"
+            )
+        return token
+
+    cookie_header = str(handler.headers.get("Cookie") or "")
+    for part in cookie_header.split(";"):
+        name, separator, value = part.strip().partition("=")
+        if name == SERVICE_1_ACCESS_TOKEN_COOKIE and separator and value.strip():
+            return value.strip()
+
+    raise Service1SupabaseIdentityErrorV1(
+        "verified Supabase session is required"
+    )
 
 
 class Service1SupabaseIdentityResolverV1:
@@ -86,8 +98,31 @@ class Service1SupabaseIdentityResolverV1:
         config = load_service_1_supabase_identity_config_v1(environ)
         return cls(create_service_1_supabase_identity_client_v1(config))
 
+    def sign_in_with_password(self, email: str, password: str) -> str:
+        email_text = str(email or "").strip()
+        password_text = str(password or "")
+        if not email_text or not password_text:
+            raise Service1SupabaseIdentityErrorV1(
+                "email and password are required"
+            )
+        try:
+            response = self._client.auth.sign_in_with_password(
+                {"email": email_text, "password": password_text}
+            )
+        except Exception:
+            raise Service1SupabaseIdentityErrorV1(
+                "Supabase rejected the email/password credentials"
+            ) from None
+        session = getattr(response, "session", None)
+        token = str(getattr(session, "access_token", None) or "").strip()
+        if not token:
+            raise Service1SupabaseIdentityErrorV1(
+                "Supabase login did not return an access token"
+            )
+        return token
+
     def __call__(self, handler: Any) -> dict[str, str]:
-        token = _bearer_token(handler)
+        token = _access_token(handler)
         try:
             response = self._client.auth.get_user(token)
         except Exception:
@@ -122,6 +157,7 @@ class Service1SupabaseIdentityResolverV1:
 __all__ = [
     "SUPABASE_URL_ENV",
     "SUPABASE_PUBLISHABLE_KEY_ENV",
+    "SERVICE_1_ACCESS_TOKEN_COOKIE",
     "Service1SupabaseIdentityConfigV1",
     "Service1SupabaseIdentityErrorV1",
     "Service1SupabaseIdentityResolverV1",

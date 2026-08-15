@@ -81,6 +81,7 @@ from pymia.smartpyme.service_1_reconciliation_workpaper_xlsx_v1 import (
     build_service_1_reconciliation_workpaper_xlsx_v1,
 )
 from pymia.smartpyme.service_1_supabase_identity_resolver_v1 import (
+    SERVICE_1_ACCESS_TOKEN_COOKIE,
     Service1SupabaseIdentityResolverV1,
 )
 from pymia.smartpyme.service_1_supabase_persistence_v1 import (
@@ -2124,6 +2125,24 @@ def _handler_for(
 
         def _do_GET_locked(self, session_id: str) -> None:
             parsed = urlsplit(self.path)
+            if parsed.path == "/" and tenant_identity_resolver is not None:
+                try:
+                    identity = tenant_identity_resolver(self)
+                    if identity is not None:
+                        application.bind_tenant_identity(
+                            session_id=session_id,
+                            tenant_id=identity.get("tenant_id", ""),
+                            cliente_id=identity.get("cliente_id") or None,
+                            owner_actor_id=identity.get("owner_actor_id", ""),
+                            owner_actor_role=identity.get("owner_actor_role", ""),
+                        )
+                except ValueError:
+                    self._send_html(
+                        HTTPStatus.OK,
+                        _login_page(),
+                        session_id=session_id,
+                    )
+                    return
             if (
                 parsed.path in {"/cases", "/case"}
                 and tenant_identity_resolver is not None
@@ -2254,6 +2273,42 @@ def _handler_for(
                 self._do_POST_locked(session_id)
 
         def _do_POST_locked(self, session_id: str) -> None:
+            if self.path == "/login":
+                fields = _form_fields(self)
+                authenticator = getattr(tenant_identity_resolver, "sign_in_with_password", None)
+                if not callable(authenticator):
+                    self._send_html(
+                        HTTPStatus.BAD_REQUEST,
+                        _login_page("El acceso web no está configurado."),
+                        session_id=session_id,
+                    )
+                    return
+                try:
+                    token = authenticator(
+                        fields.get("email", ""),
+                        fields.get("password", ""),
+                    )
+                except ValueError:
+                    self._send_html(
+                        HTTPStatus.BAD_REQUEST,
+                        _login_page("No pudimos iniciar sesión con esos datos."),
+                        session_id=session_id,
+                    )
+                    return
+                self._send(
+                    HTTPStatus.OK,
+                    _document(_home_page()).encode("utf-8"),
+                    "text/html; charset=utf-8",
+                    session_id=session_id,
+                    extra_headers={
+                        "Set-Cookie": (
+                            f"{SERVICE_1_ACCESS_TOKEN_COOKIE}={token}; Path=/; "
+                            "SameSite=Lax; HttpOnly; Secure"
+                        ),
+                        "Cache-Control": "no-store",
+                    },
+                )
+                return
             try:
                 if tenant_identity_resolver is not None:
                     identity = tenant_identity_resolver(self)
@@ -2578,6 +2633,30 @@ def _persisted_case_page(case: dict[str, Any]) -> str:
         <table><thead><tr><th>Hoja</th><th>Columna</th><th>Confirmación</th><th>Fecha</th></tr></thead><tbody>{evidence_rows}</tbody></table>
       </section>
       <p class="notice">La evidencia semántica es durable y no se reinterpreta al reingresar. El resultado completo y su archivo de entrega requieren un snapshot de ejecución todavía disponible.</p>
+    </main>"""
+
+
+def _login_page(error: str | None = None) -> str:
+    return f"""
+    <main id="app" tabindex="-1">
+      <header class="page-intro">
+        <div>
+          <div class="page-kicker">Servicio 1 · Acceso</div>
+          <h1>Ingresar a PymIA</h1>
+          <p>Iniciá sesión para trabajar con los controles y la evidencia de tu empresa.</p>
+        </div>
+      </header>
+      {_error(error)}
+      <section aria-labelledby="login-title">
+        <h2 id="login-title">Cuenta</h2>
+        <form action="/login" method="post">
+          <label for="email">Correo electrónico</label>
+          <input id="email" name="email" type="email" autocomplete="username" required>
+          <label for="password">Contraseña</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button type="submit">Ingresar</button>
+        </form>
+      </section>
     </main>"""
 
 

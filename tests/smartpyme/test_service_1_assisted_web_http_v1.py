@@ -96,6 +96,24 @@ def _form(server, path: str, values: dict[str, str], cookie: str):
     )
 
 
+class _BrowserAuthResolver:
+    def sign_in_with_password(self, email: str, password: str) -> str:
+        if email != "owner@example.test" or password != "secret":
+            raise ValueError("invalid credentials")
+        return "browser.jwt"
+
+    def __call__(self, handler) -> dict[str, str]:
+        cookie = str(handler.headers.get("Cookie") or "")
+        if "service1_access_token=browser.jwt" not in cookie:
+            raise ValueError("verified session required")
+        return {
+            "tenant_id": "tenant-browser",
+            "cliente_id": "cliente-browser",
+            "owner_actor_id": "owner-browser",
+            "owner_actor_role": "OWNER",
+        }
+
+
 def _semantic_confirmation_answers(page: str) -> dict[str, str]:
     answers: dict[str, str] = {}
     for question_id, option_id in re.findall(
@@ -114,6 +132,61 @@ def _semantic_confirmation_answers(page: str) -> dict[str, str]:
         answers[f"action_{clean}"] = "ACCEPT"
     assert answers
     return answers
+
+
+def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tmp_path: Path) -> None:
+    resolver = _BrowserAuthResolver()
+    server = create_assisted_web_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "browser-auth",
+        tenant_identity_resolver=resolver,
+    )
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status, response_headers, page = _request(server, "GET", "/")
+        assert status == 200
+        assert "Ingresar a PymIA" in page
+        session_cookie = _cookie(response_headers)
+
+        login_body = urlencode(
+            {"email": "owner@example.test", "password": "secret"}
+        ).encode("utf-8")
+        status, login_headers, page = _request(
+            server,
+            "POST",
+            "/login",
+            login_body,
+            {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": str(len(login_body)),
+                "Cookie": session_cookie,
+            },
+        )
+        assert status == 200
+        assert "¿Qué querés controlar hoy?" in page
+        cookies = "; ".join(
+            value.split(";", 1)[0]
+            for key, value in login_headers
+            if key.lower() == "set-cookie"
+        )
+        assert "service1_access_token=browser.jwt" in cookies
+        assert "service1_session=" in cookies
+
+        body, headers = _multipart(
+            "ventas.xlsx",
+            _sales_xlsx(tmp_path),
+            launch_review="sold_vs_collected_gap",
+        )
+        headers["Cookie"] = cookies
+        status, _, page = _request(server, "POST", "/upload", body, headers)
+        assert status == 200
+        assert "SEM-8 · Confirmación empresarial" in page
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server, tmp_path: Path) -> None:
