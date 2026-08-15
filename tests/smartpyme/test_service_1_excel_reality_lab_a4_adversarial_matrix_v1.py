@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from pymia.smartpyme.excel_lab_ingestion_v1 import curate_xlsx_document
 from tools.service_1_excel_reality_lab_a4_adversarial_matrix_v1 import (
-    FAIL_DEFECT,
-    VERDICT_FAIL,
+    VERDICT_PASS,
     evaluate_service_1_excel_reality_lab_a4_adversarial_matrix_v1,
 )
 
@@ -10,15 +12,12 @@ from tools.service_1_excel_reality_lab_a4_adversarial_matrix_v1 import (
 def test_a4_adversarial_matrix_is_reproducible_and_has_no_unsafe_execution() -> None:
     result = evaluate_service_1_excel_reality_lab_a4_adversarial_matrix_v1()
 
-    assert result["verdict"] == VERDICT_FAIL
+    assert result["verdict"] == VERDICT_PASS
     assert result["cases"] == 11
     assert result["unsafe_executions"] == 0
     assert result["uncontrolled_crashes"] == 0
     assert result["second_xlsx_parser_created"] is False
-
-    defects = {row["case_id"]: row for row in result["defects"]}
-    assert set(defects) == {"S1-A4-005"}
-    assert all(row["terminal_class"] == FAIL_DEFECT for row in defects.values())
+    assert result["defects"] == []
 
 
 def test_a4_safe_cases_keep_expected_terminal_classes() -> None:
@@ -52,6 +51,23 @@ def test_a4_002_total_rows_require_owner_signal() -> None:
     assert row["reason"] == "TOTAL_ROWS_PRESENT_WITH_SAFE_SIGNAL"
     assert row["execution_attempted"] is False
     assert "__embedded_total_rows__" in row["ambiguous_fields"]
+
+
+def test_a4_005_out_of_period_dates_require_explicit_period_signal() -> None:
+    result = evaluate_service_1_excel_reality_lab_a4_adversarial_matrix_v1()
+    row = next(r for r in result["rows"] if r["case_id"] == "S1-A4-005")
+
+    assert row["terminal_class"] == "PASS_NEEDS_OWNER"
+    assert row["reason"] == "UNKNOWN_OR_AMBIGUOUS_EVIDENCE_REQUIRES_OWNER"
+    assert row["execution_attempted"] is False
+    assert "__out_of_period_dates__" in row["ambiguous_fields"]
+
+
+def test_a4_005_does_not_infer_period_when_period_ref_is_absent() -> None:
+    source = Path(__file__).resolve().parents[2] / "excel-prueba" / "S1_A4_ADV_005_out_of_period_dates.xlsx"
+    curated = curate_xlsx_document(source)
+
+    assert "__out_of_period_dates__" not in curated.report.ambiguous_fields
 
 
 def test_a4_006_duplicate_rows_requires_owner_signal() -> None:

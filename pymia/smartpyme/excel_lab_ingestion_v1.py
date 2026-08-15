@@ -58,6 +58,7 @@ NUMERIC_FIELDS = {
 DUPLICATE_ROWS_AMBIGUITY_MARKER: str = "__duplicate_rows__"
 TOTAL_ROWS_AMBIGUITY_MARKER: str = "__embedded_total_rows__"
 MIXED_CURRENCY_AMBIGUITY_MARKER: str = "__mixed_currency__"
+OUT_OF_PERIOD_AMBIGUITY_MARKER: str = "__out_of_period_dates__"
 
 
 class _BaseTypedRow(BaseModel):
@@ -490,7 +491,14 @@ class DocumentCurator:
     def __init__(self) -> None:
         self._confirmation_builder = ColumnConfirmationBuilder()
 
-    def build_report(self, *, file_name: str, raw_tables: list[RawTable], normalized_tables: list[NormalizedTable]) -> DocumentCurationReport:
+    def build_report(
+        self,
+        *,
+        file_name: str,
+        raw_tables: list[RawTable],
+        normalized_tables: list[NormalizedTable],
+        period_ref: str | None = None,
+    ) -> DocumentCurationReport:
         mapped_fields: dict[str, str] = {}
         unknown_fields: set[str] = set()
         ambiguous_fields: set[str] = set()
@@ -545,6 +553,12 @@ class DocumentCurator:
             # aggregation unsafe without a governed conversion contract. Preserve
             # original values and require owner review; never invent an FX rate.
             ambiguous_fields.add(MIXED_CURRENCY_AMBIGUITY_MARKER)
+
+        if period_ref is not None and self._has_out_of_period_dates(normalized_tables, period_ref):
+            # Period membership is evaluated only against an explicit governed
+            # period supplied by the caller. Never infer the analysis period from
+            # the distribution or majority of dates present in the workbook.
+            ambiguous_fields.add(OUT_OF_PERIOD_AMBIGUITY_MARKER)
 
         rows_count = sum(len(table.records) for table in raw_tables)
         status = "CURATED"
@@ -604,6 +618,23 @@ class DocumentCurator:
             }
             if len(currencies) > 1:
                 return True
+        return False
+
+    @staticmethod
+    def _has_out_of_period_dates(normalized_tables: list[NormalizedTable], period_ref: str) -> bool:
+        try:
+            governed_period = datetime.strptime(str(period_ref).strip(), "%Y-%m").strftime("%Y-%m")
+        except ValueError as exc:
+            raise ValueError("period_ref must use YYYY-MM") from exc
+
+        for table in normalized_tables:
+            for record in table.records:
+                date_value = record.get("fecha")
+                if date_value is None:
+                    continue
+                normalized_date = _to_date(date_value)
+                if normalized_date is not None and normalized_date[:7] != governed_period:
+                    return True
         return False
 
     def _validate_normalized_record(self, sheet_name: str, row_number: int, record: JsonObject, *, context: str) -> list[CellValidationIssue]:
@@ -1067,11 +1098,22 @@ class XlsxCurationPipeline:
         self._mapper = SemanticFieldMapper()
         self._curator = DocumentCurator()
 
-    def curate(self, excel_path: str | Path, document_type: str = "xlsx_operational_evidence") -> CuratedDocument:
+    def curate(
+        self,
+        excel_path: str | Path,
+        document_type: str = "xlsx_operational_evidence",
+        *,
+        period_ref: str | None = None,
+    ) -> CuratedDocument:
         path = Path(excel_path)
         raw_tables = self._ingestor.ingest(path)
         normalized_tables = self._mapper.normalize_tables(raw_tables)
-        report = self._curator.build_report(file_name=path.name, raw_tables=raw_tables, normalized_tables=normalized_tables)
+        report = self._curator.build_report(
+            file_name=path.name,
+            raw_tables=raw_tables,
+            normalized_tables=normalized_tables,
+            period_ref=period_ref,
+        )
         return CuratedDocument(
             file_name=path.name,
             document_type=document_type,
@@ -1081,8 +1123,17 @@ class XlsxCurationPipeline:
         )
 
 
-def curate_xlsx_document(excel_path: str | Path, document_type: str = "xlsx_operational_evidence") -> CuratedDocument:
-    return XlsxCurationPipeline().curate(excel_path, document_type=document_type)
+def curate_xlsx_document(
+    excel_path: str | Path,
+    document_type: str = "xlsx_operational_evidence",
+    *,
+    period_ref: str | None = None,
+) -> CuratedDocument:
+    return XlsxCurationPipeline().curate(
+        excel_path,
+        document_type=document_type,
+        period_ref=period_ref,
+    )
 
 
 def build_structured_evidence_from_xlsx(

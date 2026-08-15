@@ -1,7 +1,7 @@
 # Servicio 1 — Excel Reality Lab A4 Adversarial Matrix V1
 
 **Fecha:** 2026-08-15
-**Estado:** BLOCKED_BY_1_CONFIRMED_DEFECT
+**Estado:** PASS_ADVERSARIAL_MATRIX_V1
 
 ## Objetivo
 
@@ -20,13 +20,13 @@ Evaluador:
 ```text
 CASES: 11
 PASS_COMPUTABLE: 1
-PASS_NEEDS_OWNER: 7
+PASS_NEEDS_OWNER: 8
 PASS_NEEDS_EVIDENCE: 2
 PASS_BLOCKED_FAIL_CLOSED: 0
-FAIL_DEFECT: 1
+FAIL_DEFECT: 0
 UNSAFE_EXECUTIONS: 0
 UNCONTROLLED_CRASHES: 0
-VERDICT: FAIL_ADVERSARIAL_MATRIX_V1
+VERDICT: PASS_ADVERSARIAL_MATRIX_V1
 ```
 
 A4 no autoriza cambios productivos por sí mismo. Cada defecto requiere corte causal independiente.
@@ -94,15 +94,18 @@ fix: FIX_A4_TOTAL_ROWS_SAFE_SIGNAL_V1 — DocumentCurator detecta SUBTOTAL/TOTAL
 resultado: A4-002 = PASS_NEEDS_OWNER (TOTAL_ROWS_PRESENT_WITH_SAFE_SIGNAL)
 ```
 
-### A4-D03 — OUT_OF_PERIOD_DATES_WITHOUT_SAFE_SIGNAL
+### A4-D03 — OUT_OF_PERIOD_DATES_WITHOUT_SAFE_SIGNAL — RESUELTO
 
 ```text
 case_id: S1-A4-005
 fixture: S1_A4_ADV_005_out_of_period_dates.xlsx
-observed: curation_status=CURATED; fechas 2025-12-31, julio 2026 y 2026-08-01 conviven sin señal
-risk: un cálculo con período implícito podría consumir filas fuera de alcance
-root_cause_candidate: intake no posee authority de período; la protección debe existir donde el período del cálculo esté gobernado
-required_resolution: validar membership temporal contra período explícito antes de agregación; no inferir período sólo por mayoría de fechas
+observed (pre-fix): curation_status=CURATED; fechas 2025-12-31, julio 2026 y 2026-08-01 convivían sin señal
+risk: un cálculo con período gobernado podía consumir filas fuera de alcance temporal
+root_cause: la curación no recibía un período explícito contra el cual validar membership temporal
+fix: FIX_A4_OUT_OF_PERIOD_DATES_SAFE_SIGNAL_V1 — la curación acepta period_ref explícito en formato YYYY-MM y valida fecha normalizada contra ese período.
+     Si existen fechas fuera del período gobernado, emite __out_of_period_dates__ en ambiguous_fields → curation PARTIAL → requiere owner review.
+     Sin period_ref, no se infiere período desde las fechas del archivo; no se borran filas ni se altera ninguna fecha.
+resultado: A4-005 = PASS_NEEDS_OWNER con period_ref=2026-07
 ```
 
 ### A4-D04 — DUPLICATE_ROWS_WITHOUT_SAFE_SIGNAL — RESUELTO
@@ -132,17 +135,18 @@ NO_UNSAFE_EXECUTION
 ## Decisión
 
 ```text
-A4_STATUS: BLOCKED_BY_1_CONFIRMED_DEFECT
+A4_STATUS: PASS_ADVERSARIAL_MATRIX_V1
 A5_REAL_CLIENT_SHADOW_RUNS: NOT_AUTHORIZED_YET
 A4-D01 MIXED_CURRENCY_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_MIXED_CURRENCY_SAFE_SIGNAL_V1)
 A4-D02 TOTAL_ROWS_CAN_FLOW_AS_OPERATIONS_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_TOTAL_ROWS_SAFE_SIGNAL_V1)
+A4-D03 OUT_OF_PERIOD_DATES_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_OUT_OF_PERIOD_DATES_SAFE_SIGNAL_V1)
 A4-D04 DUPLICATE_ROWS_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_DUPLICATE_ROWS_SAFE_SIGNAL_V1)
 ```
 
 Orden de resolución restante:
 
 ```text
-1. OUT_OF_PERIOD period-membership guard (A4-D03)
+NONE
 ```
 
-Cada defecto debe cerrarse en un corte independiente con fixture de regresión A4, cambio mínimo en la authority correcta, focal tests, architecture baseline y rerun completo de A4.
+A4 queda cerrado con los cuatro defectos resueltos en cortes independientes, fixtures de regresión, focal tests y architecture baseline.

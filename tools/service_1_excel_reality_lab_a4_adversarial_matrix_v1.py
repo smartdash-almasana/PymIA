@@ -39,6 +39,7 @@ class Spec:
     sheet_name: str
     capability: str | None = None
     expected_role_map: dict[str, str] | None = None
+    period_ref: str | None = None
 
 
 SPECS: Final[tuple[Spec, ...]] = (
@@ -46,7 +47,7 @@ SPECS: Final[tuple[Spec, ...]] = (
     Spec("S1-A4-002", "S1_A4_ADV_002_subtotal_as_operation.xlsx", "SUBTOTAL_AS_OPERATION", "Ventas"),
     Spec("S1-A4-003", "S1_A4_ADV_003_zero_vs_blank.xlsx", "ZERO_VS_BLANK", "Resumen"),
     Spec("S1-A4-004", "S1_A4_ADV_004_inverted_signs.xlsx", "INVERTED_SIGNS", "Caja"),
-    Spec("S1-A4-005", "S1_A4_ADV_005_out_of_period_dates.xlsx", "OUT_OF_PERIOD_DATES", "Ventas"),
+    Spec("S1-A4-005", "S1_A4_ADV_005_out_of_period_dates.xlsx", "OUT_OF_PERIOD_DATES", "Ventas", period_ref="2026-07"),
     Spec("S1-A4-006", "S1_A4_ADV_006_duplicate_rows.xlsx", "DUPLICATE_ROWS", "Ventas"),
     Spec("S1-A4-007", "S1_A4_ADV_007_mixed_granularity.xlsx", "MIXED_GRANULARITY", "Ventas"),
     Spec("S1-A4-008", "S1_A4_ADV_008_missing_material_input.xlsx", "MISSING_MATERIAL_INPUT", "Resumen", "net_margin_real", {
@@ -194,7 +195,7 @@ def evaluate_service_1_excel_reality_lab_a4_adversarial_matrix_v1(root: Path | N
     for spec in SPECS:
         source = repo / ROOT_DIR / spec.filename
         try:
-            curated = curate_xlsx_document(source)
+            curated = curate_xlsx_document(source, period_ref=spec.period_ref)
             p8_status, governed, p8_error = _p8_for_spec(source, spec)
             terminal, reason = _classify(spec, curated, p8_status, governed, p8_error)
             rows.append({
