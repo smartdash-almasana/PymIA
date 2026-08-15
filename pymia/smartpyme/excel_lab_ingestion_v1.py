@@ -56,6 +56,7 @@ NUMERIC_FIELDS = {
 # Not a column name: signals that duplicate rows require owner review before any
 # affected calculation. Never used for automatic deduplication or row selection.
 DUPLICATE_ROWS_AMBIGUITY_MARKER: str = "__duplicate_rows__"
+TOTAL_ROWS_AMBIGUITY_MARKER: str = "__embedded_total_rows__"
 
 
 class _BaseTypedRow(BaseModel):
@@ -532,6 +533,12 @@ class DocumentCurator:
             # the ambiguity so any affected calculation requires owner review.
             ambiguous_fields.add(DUPLICATE_ROWS_AMBIGUITY_MARKER)
 
+        if self._has_embedded_total_rows(raw_tables):
+            # Exact SUBTOTAL/TOTAL labels mixed with detail rows are a governed
+            # granularity ambiguity. Preserve every row and require owner review
+            # instead of silently treating aggregate rows as operations.
+            ambiguous_fields.add(TOTAL_ROWS_AMBIGUITY_MARKER)
+
         rows_count = sum(len(table.records) for table in raw_tables)
         status = "CURATED"
         if issues or ambiguous_fields or unknown_fields:
@@ -567,6 +574,17 @@ class DocumentCurator:
                 if key in seen:
                     return True
                 seen.add(key)
+        return False
+
+    @staticmethod
+    def _has_embedded_total_rows(raw_tables: list[RawTable]) -> bool:
+        aggregate_labels = {"SUBTOTAL", "TOTAL"}
+        for table in raw_tables:
+            labels = [str(record.get("comprobante") or "").strip().upper() for record in table.records]
+            has_aggregate = any(label in aggregate_labels for label in labels)
+            has_detail = any(label and label not in aggregate_labels for label in labels)
+            if has_aggregate and has_detail:
+                return True
         return False
 
     def _validate_normalized_record(self, sheet_name: str, row_number: int, record: JsonObject, *, context: str) -> list[CellValidationIssue]:

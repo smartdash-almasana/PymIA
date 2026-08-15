@@ -1,7 +1,7 @@
 # Servicio 1 — Excel Reality Lab A4 Adversarial Matrix V1
 
 **Fecha:** 2026-08-15
-**Estado:** BLOCKED_BY_3_CONFIRMED_DEFECTS
+**Estado:** BLOCKED_BY_2_CONFIRMED_DEFECTS
 
 ## Objetivo
 
@@ -20,10 +20,10 @@ Evaluador:
 ```text
 CASES: 11
 PASS_COMPUTABLE: 1
-PASS_NEEDS_OWNER: 5
+PASS_NEEDS_OWNER: 6
 PASS_NEEDS_EVIDENCE: 2
 PASS_BLOCKED_FAIL_CLOSED: 0
-FAIL_DEFECT: 3
+FAIL_DEFECT: 2
 UNSAFE_EXECUTIONS: 0
 UNCONTROLLED_CRASHES: 0
 VERDICT: FAIL_ADVERSARIAL_MATRIX_V1
@@ -77,15 +77,18 @@ root_cause_candidate: la curación perfila semántica de columnas pero no gobier
 required_resolution: detectar incompatibilidad de moneda/unidad antes de autorizar un cálculo monetario agregado; no convertir moneda ni inventar FX
 ```
 
-### A4-D02 — TOTAL_ROWS_CAN_FLOW_AS_OPERATIONS_WITHOUT_SAFE_SIGNAL
+### A4-D02 — TOTAL_ROWS_CAN_FLOW_AS_OPERATIONS_WITHOUT_SAFE_SIGNAL — RESUELTO
 
 ```text
 case_id: S1-A4-002
 fixture: S1_A4_ADV_002_subtotal_as_operation.xlsx
-observed: curation_status=CURATED; filas SUBTOTAL/TOTAL permanecen dentro de la tabla
+observed (pre-fix): curation_status=CURATED; filas SUBTOTAL/TOTAL permanecían dentro de la tabla sin señal gobernada
 risk: doble conteo si detalle y agregados se consumen como la misma granularidad
-root_cause_candidate: falta de guardia de row-kind/granularidad para totales embebidos
-required_resolution: distinguir operación vs fila agregada o bloquear cuando no sea demostrable; nunca eliminar filas sólo por texto genérico sin contrato
+root_cause: DocumentCurator no señalizaba la coexistencia de filas detalle con etiquetas exactas SUBTOTAL/TOTAL en comprobante
+fix: FIX_A4_TOTAL_ROWS_SAFE_SIGNAL_V1 — DocumentCurator detecta SUBTOTAL/TOTAL exactos mezclados con comprobantes de detalle y emite
+     ambigüedad gobernada (__embedded_total_rows__ en ambiguous_fields) → curation PARTIAL → requiere owner review.
+     Sin eliminar filas, sin recalcular totales, sin reclasificar silenciosamente ni inferir granularidad por texto débil.
+resultado: A4-002 = PASS_NEEDS_OWNER (TOTAL_ROWS_PRESENT_WITH_SAFE_SIGNAL)
 ```
 
 ### A4-D03 — OUT_OF_PERIOD_DATES_WITHOUT_SAFE_SIGNAL
@@ -126,17 +129,17 @@ NO_UNSAFE_EXECUTION
 ## Decisión
 
 ```text
-A4_STATUS: BLOCKED_BY_3_CONFIRMED_DEFECTS
+A4_STATUS: BLOCKED_BY_2_CONFIRMED_DEFECTS
 A5_REAL_CLIENT_SHADOW_RUNS: NOT_AUTHORIZED_YET
+A4-D02 TOTAL_ROWS_CAN_FLOW_AS_OPERATIONS_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_TOTAL_ROWS_SAFE_SIGNAL_V1)
 A4-D04 DUPLICATE_ROWS_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_DUPLICATE_ROWS_SAFE_SIGNAL_V1)
 ```
 
 Orden de resolución restante:
 
 ```text
-1. SUBTOTAL/TOTAL row-kind/granularity guard (A4-D02)
-2. MIXED_CURRENCY unit consistency guard (A4-D01)
-3. OUT_OF_PERIOD period-membership guard (A4-D03)
+1. MIXED_CURRENCY unit consistency guard (A4-D01)
+2. OUT_OF_PERIOD period-membership guard (A4-D03)
 ```
 
 Cada defecto debe cerrarse en un corte independiente con fixture de regresión A4, cambio mínimo en la authority correcta, focal tests, architecture baseline y rerun completo de A4.
