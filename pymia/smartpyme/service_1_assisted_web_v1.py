@@ -66,6 +66,9 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_RECONCILIATION_REVIEW_READY,
     run_service_1_product_pipeline_v1,
 )
+from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
+    resolve_service_1_legacy_semantic_run_v1,
+)
 from pymia.smartpyme.service_1_reconciliation_human_review_decision_v1 import (
     ALLOWED_DECISIONS as ALLOWED_RECONCILIATION_DECISIONS,
     build_reconciliation_human_review_decision_v1,
@@ -2048,12 +2051,20 @@ def _run_product_root(
     semantic_scope_capabilities: Sequence[str] = (),
     use_assisted_semantics: bool = False,
 ) -> dict[str, Any]:
+    sheet_name = str(ingestion_output.get("sheet_name") or "sheet1")
+    semantic_run_override = None
+    if owner_answers is not None and not use_assisted_semantics:
+        semantic_run_override = resolve_service_1_legacy_semantic_run_v1(
+            ingestion_output=ingestion_output,
+            sheet_name=sheet_name,
+            owner_answers=owner_answers,
+        )
     return run_service_1_product_pipeline_v1(
         ingestion_output=ingestion_output,
         tool_requests=[],
         output_dir=output_dir or tempfile.gettempdir(),
-        sheet_name=str(ingestion_output.get("sheet_name") or "sheet1"),
-        owner_answers=owner_answers,
+        sheet_name=sheet_name,
+        semantic_run_override=semantic_run_override,
         requested_capability=requested_capability,
         deliver_result=deliver_result,
         semantic_provider=semantic_provider,

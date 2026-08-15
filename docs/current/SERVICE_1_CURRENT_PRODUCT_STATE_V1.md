@@ -150,7 +150,7 @@ La frontera de provider no posee autoridad semántica final, matemática, de run
 ## 8. Deuda arquitectónica abierta
 
 ```text
-1. run_owner_reentry sigue teniendo caller productivo de compatibilidad y debe MIGRATE, no borrarse todavía.
+1. run_owner_reentry ya no es caller del canonical product root; queda aislado en un adapter SUPPORT_NECESSARY para compatibilidad CLI/harness históricos.
 2. la proyección legacy build_computation_plan/ComputationPlanV1 fue removida localmente; P8 canónico conserva la cobertura.
 3. tres completion slices sandbox sin callers productivos fueron removidos localmente junto con sus tests directos.
 4. persisten compatibilidades P6/reentry que requieren clasificación antes de eliminación.

@@ -30,6 +30,11 @@ def test_product_entrypoint_routes_through_canonical_root(tmp_path: Path, monkey
     )
     monkeypatch.setattr(
         cli,
+        "resolve_service_1_legacy_semantic_run_v1",
+        lambda **_: calls.append("compat") or {"status": "CONFIRMED_BINDINGS"},
+    )
+    monkeypatch.setattr(
+        cli,
         "run_service_1_product_pipeline_v1",
         lambda **_: calls.append("product") or {
             "status": "PRODUCT_PIPELINE_READY",
@@ -47,7 +52,7 @@ def test_product_entrypoint_routes_through_canonical_root(tmp_path: Path, monkey
     )
 
     assert result["status"] == "PRODUCT_PIPELINE_READY"
-    assert calls == ["boundary", "connector", "product"]
+    assert calls == ["boundary", "connector", "compat", "product"]
 
 
 def test_product_entrypoint_blocks_before_root_when_connector_blocks(tmp_path: Path, monkeypatch) -> None:

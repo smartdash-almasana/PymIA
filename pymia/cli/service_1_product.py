@@ -16,6 +16,9 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_READY,
     run_service_1_product_pipeline_v1,
 )
+from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
+    resolve_service_1_legacy_semantic_run_v1,
+)
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
 )
@@ -103,12 +106,19 @@ def run_service_1_product_entrypoint_v1(
     if isinstance(normalized_tables, list):
         ingestion_output["normalized_tables"] = normalized_tables
 
+    semantic_run_override = None
+    if semantic_owner_answers is not None:
+        semantic_run_override = resolve_service_1_legacy_semantic_run_v1(
+            ingestion_output=ingestion_output,
+            sheet_name=sheet_name or "sheet1",
+            owner_answers=semantic_owner_answers,
+        )
     product = run_service_1_product_pipeline_v1(
         ingestion_output=ingestion_output,
         tool_requests=tool_requests,
         output_dir=output_dir,
         sheet_name=sheet_name or "sheet1",
-        owner_answers=semantic_owner_answers,
+        semantic_run_override=semantic_run_override,
         requested_capability=requested_capability,
         deliver_result=deliver_result,
     )

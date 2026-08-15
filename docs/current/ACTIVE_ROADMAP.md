@@ -87,7 +87,7 @@ PRODUCTION_CERTIFIED: YES
 ## Deuda abierta confirmada
 
 ```text
-1. run_owner_reentry mantiene caller productivo de compatibilidad: MIGRATE, no DELETE.
+1. run_owner_reentry ya salió del canonical product root; queda aislado en adapter SUPPORT_NECESSARY para compatibilidad CLI/harness históricos.
 2. build_computation_plan/ComputationPlanV1: REMOVED_LOCAL_PASS; cobertura migrada a P8 canónico.
 3. tres completion slices sandbox sin callers productivos: REMOVED_LOCAL_PASS.
 4. compatibilidades P6/reentry restantes: OPEN.
@@ -138,4 +138,4 @@ una tarea
 → una decisión
 ```
 
-El próximo corte es clasificar y migrar los callers productivos restantes de `run_owner_reentry` sin romper compatibilidad CLI/product-root; no se elimina mientras exista caller productivo.
+El próximo corte es reducir o retirar el adapter legacy de reentry desde CLI/harness históricos; `run_owner_reentry` ya no pertenece a la canonical product root closure.

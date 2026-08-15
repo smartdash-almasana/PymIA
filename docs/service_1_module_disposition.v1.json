@@ -16,9 +16,9 @@
   ],
   "counts": {
     "PRODUCTIVE": 42,
-    "SUPPORT_NECESSARY": 47
+    "SUPPORT_NECESSARY": 48
   },
-  "total_modules": 89,
+  "total_modules": 90,
   "modules": [
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
@@ -80,6 +80,14 @@
         "service_1_semantic_bridge_to_controlled_execution_gate_v1"
       ],
       "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_legacy_semantic_reentry_compat_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_deterministic_semantic_pipeline_v1"
+      ],
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_liq_001_evaluator_v1",

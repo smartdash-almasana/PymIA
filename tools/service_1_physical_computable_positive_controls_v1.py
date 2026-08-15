@@ -19,6 +19,9 @@ from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     run_service_1_product_pipeline_v1,
 )
+from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
+    run_service_1_product_pipeline_with_legacy_owner_answers_v1,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_PHYSICAL_COMPUTABLE_POSITIVE_CONTROLS_V1"
 VERDICT_PASS: Final[str] = "PASS_PHYSICAL_COMPUTABLE_POSITIVE_CONTROLS_V1"
@@ -157,7 +160,7 @@ def evaluate_physical_computable_positive_controls_v1(root: Path | None = None) 
             deliver_result=False,
         )
         product = (
-            run_service_1_product_pipeline_v1(
+            run_service_1_product_pipeline_with_legacy_owner_answers_v1(
                 ingestion_output=ingestion,
                 tool_requests=(),
                 output_dir=repo / ".tmp" / "service_1_positive_controls" / control.control_id,

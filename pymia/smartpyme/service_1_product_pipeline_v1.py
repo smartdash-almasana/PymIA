@@ -16,7 +16,6 @@ from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_OWNER_QUESTIONS,
     build_computability_decision_from_confirmed_bindings_v1,
     run_initial_pass,
-    run_owner_reentry,
 )
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     STATUS_BLOCKED as ASSISTED_SEMANTIC_BLOCKED,
@@ -106,6 +105,7 @@ def run_service_1_product_pipeline_v1(
     output_dir: str | Path,
     sheet_name: str = "sheet1",
     owner_answers: Any = None,
+    semantic_run_override: Mapping[str, Any] | None = None,
     requested_capability: str | None = None,
     deliver_result: bool = False,
     governed_results: object = None,
@@ -130,6 +130,7 @@ def run_service_1_product_pipeline_v1(
             or bool(tool_requests)
             or deliver_result
             or owner_answers is not None
+            or semantic_run_override is not None
             or governed_results is not None
         ):
             return _packet(
@@ -157,6 +158,7 @@ def run_service_1_product_pipeline_v1(
             or bool(tool_requests)
             or deliver_result
             or owner_answers is not None
+            or semantic_run_override is not None
             or governed_results is not None
         ):
             return _packet(
@@ -183,6 +185,7 @@ def run_service_1_product_pipeline_v1(
             or bool(tool_requests)
             or deliver_result
             or owner_answers is not None
+            or semantic_run_override is not None
             or governed_results is not None
         ):
             return _packet(
@@ -224,10 +227,10 @@ def run_service_1_product_pipeline_v1(
     )
     assisted_state = None
     if assisted_semantic_requested:
-        if owner_answers is not None:
+        if owner_answers is not None or semantic_run_override is not None:
             return _packet(
                 status=STATUS_BLOCKED,
-                blocked_reason="ASSISTED_SEMANTIC_AND_LEGACY_OWNER_ANSWERS_CONFLICT",
+                blocked_reason="ASSISTED_SEMANTIC_AND_PRECONFIRMED_SEMANTIC_CONFLICT",
             )
         if requested_capability is None:
             return _packet(
@@ -316,23 +319,46 @@ def run_service_1_product_pipeline_v1(
             )
         semantic_run = (assisted_state or {}).get("semantic_run")
     else:
-        semantic_run = run_initial_pass(ingestion_output=ingestion_output, sheet_name=sheet_name)
+        if owner_answers is not None:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="LEGACY_OWNER_ANSWERS_REQUIRE_UPSTREAM_COMPATIBILITY",
+            )
+        if semantic_run_override is None:
+            semantic_run = run_initial_pass(
+                ingestion_output=ingestion_output,
+                sheet_name=sheet_name,
+            )
+        else:
+            semantic_run = dict(semantic_run_override)
+            current_case_id = str(
+                ingestion_output.get("case_id") if isinstance(ingestion_output, dict) else ""
+            ).strip()
+            semantic_case_id = str(
+                ((semantic_run.get("bridge_packet") or {}).get("case_id"))
+                if isinstance(semantic_run.get("bridge_packet"), dict)
+                else ""
+            ).strip()
+            if current_case_id and semantic_case_id and current_case_id != semantic_case_id:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="SEMANTIC_RUN_OVERRIDE_CONTEXT_MISMATCH",
+                    semantic_run=semantic_run,
+                )
 
         if semantic_run.get("status") == STATUS_OWNER_QUESTIONS:
-            if not isinstance(owner_answers, dict) or not owner_answers:
-                return _packet(
-                    status=STATUS_NEEDS_OWNER,
-                    semantic_run=semantic_run,
-                    owner_questions=list(semantic_run.get("owner_questions") or []),
-                )
-            semantic_run = run_owner_reentry(previous_run=semantic_run, owner_answers=owner_answers)
-            if semantic_run.get("status") == STATUS_OWNER_FOLLOWUP:
-                return _packet(
-                    status=STATUS_NEEDS_OWNER,
-                    semantic_run=semantic_run,
-                    owner_questions=list(semantic_run.get("owner_questions") or []),
-                    owner_followup=list(semantic_run.get("owner_followup") or []),
-                )
+            return _packet(
+                status=STATUS_NEEDS_OWNER,
+                semantic_run=semantic_run,
+                owner_questions=list(semantic_run.get("owner_questions") or []),
+            )
+        if semantic_run.get("status") == STATUS_OWNER_FOLLOWUP:
+            return _packet(
+                status=STATUS_NEEDS_OWNER,
+                semantic_run=semantic_run,
+                owner_questions=list(semantic_run.get("owner_questions") or []),
+                owner_followup=list(semantic_run.get("owner_followup") or []),
+            )
 
     if semantic_run.get("status") != STATUS_CONFIRMED_BINDINGS:
         return _packet(

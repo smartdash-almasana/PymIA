@@ -9,6 +9,7 @@ from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import build_service_1_canonical_ingestion_output_from_owner_confirmation_v1
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import run_initial_pass, run_owner_reentry, build_computability_decision_from_confirmed_bindings_v1
 from pymia.smartpyme.service_1_product_pipeline_v1 import run_service_1_product_pipeline_v1
+from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import run_service_1_product_pipeline_with_legacy_owner_answers_v1
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_BOUNDED_SIX_PHYSICAL_COMPUTABLE_CONTROLS_V1"
 VERDICT_PASS: Final[str] = "PASS_BOUNDED_SIX_PHYSICAL_COMPUTABLE_CONTROLS_V1"
@@ -102,7 +103,7 @@ def evaluate_service_1_bounded_six_physical_computable_controls_v1(root: Path | 
             deliver_result=False,
         )
         if product.get("status") == "NEEDS_OWNER_CONFIRMATION":
-            product = run_service_1_product_pipeline_v1(
+            product = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
                 ingestion_output=ingestion,
                 tool_requests=(),
                 output_dir=repo / ".tmp" / "bounded_six_physical" / spec.sheet,

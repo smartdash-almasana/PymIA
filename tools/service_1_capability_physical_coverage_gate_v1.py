@@ -39,6 +39,9 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
     execute_generic_capability_v1,
 )
+from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
+    run_service_1_product_pipeline_with_legacy_owner_answers_v1,
+)
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1,
 )
@@ -204,6 +207,9 @@ def _structural_guards_v1() -> dict[str, str]:
         + inspect.getsource(_run_product_counted_v1)
     )
     product_source = inspect.getsource(product_root.run_service_1_product_pipeline_v1)
+    legacy_compat_source = inspect.getsource(
+        run_service_1_product_pipeline_with_legacy_owner_answers_v1
+    )
     ingestion_checks = {
         "boundary_module": build_service_1_web_column_confirmation_intake_boundary_v1.__module__
         == "pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1",
@@ -216,11 +222,24 @@ def _structural_guards_v1() -> dict[str, str]:
         "no_load_workbook_import": "load_workbook" not in imported_modules,
         "no_openpyxl_module_import": "openpyxl" not in imported_modules,
     }
+    compat_calls_root = "run_service_1_product_pipeline_v1(" in legacy_compat_source
     product_checks = {
         "root_module": product_root.run_service_1_product_pipeline_v1.__module__
         == "pymia.smartpyme.service_1_product_pipeline_v1",
-        "chain_calls_root": "run_service_1_product_pipeline_v1" in chain_source,
-        "ren_calls_root": "run_service_1_product_pipeline_v1" in ren_source,
+        "chain_calls_root": (
+            "run_service_1_product_pipeline_v1" in chain_source
+            or (
+                "run_service_1_product_pipeline_with_legacy_owner_answers_v1" in chain_source
+                and compat_calls_root
+            )
+        ),
+        "ren_calls_root": (
+            "run_service_1_product_pipeline_v1" in ren_source
+            or (
+                "run_service_1_product_pipeline_with_legacy_owner_answers_v1" in ren_source
+                and compat_calls_root
+            )
+        ),
         "root_uses_generic_engine": "execute_generic_capability_v1" in product_source,
     }
     ingestion_ok = all(ingestion_checks.values())
@@ -310,7 +329,7 @@ def _physical_chain(repo: Path, filename: str, sheet_name: str, capability: str)
             "governed_input": False, "p9": None,
             "safety": {"unsafe": False, "executed_without_governed_input": False},
         }
-    product = product_root.run_service_1_product_pipeline_v1(
+    product = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
         ingestion_output=ingestion,
         tool_requests=(),
         output_dir=repo / ".tmp" / "capability_physical_coverage_gate" / capability,
@@ -417,7 +436,10 @@ def _ren_001_semantic_case(path: Path, *, include_taxes: bool) -> dict[str, Any]
 
 def _run_product_counted_v1(counters: dict[str, int], **kwargs: Any) -> dict[str, Any]:
     counters["product_root_calls"] += 1
-    product = product_root.run_service_1_product_pipeline_v1(**kwargs)
+    if "owner_answers" in kwargs:
+        product = run_service_1_product_pipeline_with_legacy_owner_answers_v1(**kwargs)
+    else:
+        product = product_root.run_service_1_product_pipeline_v1(**kwargs)
     computation = product.get("computation_result") or {}
     if computation.get("status") == STATUS_EVALUATED:
         counters["p9_calls"] += 1

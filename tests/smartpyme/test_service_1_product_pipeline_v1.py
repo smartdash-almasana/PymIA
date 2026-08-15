@@ -11,6 +11,9 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_READY,
     run_service_1_product_pipeline_v1,
 )
+from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
+    run_service_1_product_pipeline_with_legacy_owner_answers_v1,
+)
 
 
 
@@ -88,7 +91,7 @@ def test_confirmed_semantics_execute_existing_physical_pipeline(tmp_path: Path) 
         question["column_name"]: _first_semantic_option_id(question)
         for question in first["owner_questions"]
     }
-    out = run_service_1_product_pipeline_v1(
+    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
         ingestion_output=_clear_ingestion(),
         tool_requests=_tool_requests(),
         output_dir=tmp_path,
@@ -143,6 +146,25 @@ def test_owner_questions_block_before_any_tool_or_delivery(tmp_path: Path) -> No
     _assert_closed(out)
 
 
+def test_product_root_rejects_direct_legacy_owner_answers(tmp_path: Path) -> None:
+    first = run_service_1_product_pipeline_v1(
+        ingestion_output=_ambiguous_ingestion(),
+        tool_requests=_tool_requests(),
+        output_dir=tmp_path,
+    )
+    question = first["owner_questions"][0]
+    out = run_service_1_product_pipeline_v1(
+        ingestion_output=_ambiguous_ingestion(),
+        tool_requests=_tool_requests(),
+        output_dir=tmp_path,
+        owner_answers={question["column_name"]: _first_semantic_option_id(question)},
+    )
+    assert out["status"] == STATUS_BLOCKED
+    assert out["blocked_reason"] == "LEGACY_OWNER_ANSWERS_REQUIRE_UPSTREAM_COMPATIBILITY"
+    assert out["tools_executed"] is False
+    _assert_closed(out)
+
+
 def test_owner_reentry_can_unlock_physical_execution(tmp_path: Path) -> None:
     first = run_service_1_product_pipeline_v1(
         ingestion_output=_ambiguous_ingestion(),
@@ -152,7 +174,7 @@ def test_owner_reentry_can_unlock_physical_execution(tmp_path: Path) -> None:
     question = first["owner_questions"][0]
     answer = _first_semantic_option_id(question)
 
-    out = run_service_1_product_pipeline_v1(
+    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
         ingestion_output=_ambiguous_ingestion(),
         tool_requests=_tool_requests(),
         output_dir=tmp_path,
@@ -227,7 +249,7 @@ def test_product_root_builds_plan_without_executing_tools(tmp_path: Path) -> Non
         )
         for question in first["owner_questions"]
     }
-    out = run_service_1_product_pipeline_v1(
+    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
         ingestion_output=_cash_collection_ingestion(),
         tool_requests=[],
         output_dir=tmp_path,
@@ -255,7 +277,7 @@ def test_other_free_text_never_executes_tools(tmp_path: Path) -> None:
     )
     question = first["owner_questions"][0]
 
-    out = run_service_1_product_pipeline_v1(
+    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
         ingestion_output=_ambiguous_ingestion(),
         tool_requests=_tool_requests(),
         output_dir=tmp_path,
@@ -284,7 +306,7 @@ def test_ignore_all_blocks_without_execution(tmp_path: Path) -> None:
     )
     question = first["owner_questions"][0]
 
-    out = run_service_1_product_pipeline_v1(
+    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
         ingestion_output=_ambiguous_ingestion(),
         tool_requests=_tool_requests(),
         output_dir=tmp_path,

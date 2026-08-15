@@ -116,6 +116,11 @@ def structural_checks(root: Path) -> list[Check]:
         "legacy_computation_plan" not in generic_engine_source
         and "SERVICE_1_COMPUTATION_PLAN_V1" not in generic_engine_source
     )
+    legacy_owner_reentry_outside_product_root = (
+        "run_owner_reentry" not in product_source
+        and "resolve_service_1_legacy_semantic_run_v1(" not in product_source
+        and "semantic_run_override" in product_source
+    )
     product_root_executes_p8_directly = (
         "build_computability_decision_from_confirmed_bindings_v1(" in product_source
         and "build_computation_plan(" not in product_source
@@ -195,6 +200,13 @@ def structural_checks(root: Path) -> list[Check]:
             "deterministic semantic pipeline no longer exposes ComputationPlanV1 compatibility projection"
             if legacy_computation_plan_projection_removed
             else "legacy build_computation_plan/ComputationPlanV1 projection remains in deterministic semantic pipeline",
+        ),
+        Check(
+            "LEGACY_OWNER_REENTRY_OUTSIDE_PRODUCT_ROOT",
+            legacy_owner_reentry_outside_product_root,
+            "canonical product root no longer imports/calls run_owner_reentry directly; compatibility is explicit"
+            if legacy_owner_reentry_outside_product_root
+            else "canonical product root still owns direct legacy owner reentry",
         ),
         Check(
             "NO_P7_MATCHING_BEFORE_P6",
