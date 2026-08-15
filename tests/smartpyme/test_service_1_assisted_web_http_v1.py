@@ -335,7 +335,8 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Confirmar qué significa cada dato" in page:
+    if "Confirmar qué significa cada dato" in page or "SEM-8 · Confirmación empresarial" in page:
+        assert "SEM-8 · Confirmación empresarial" in page
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",

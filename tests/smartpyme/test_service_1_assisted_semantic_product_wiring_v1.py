@@ -5,6 +5,9 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
+)
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     build_service_1_unconfirmed_canonical_ingestion_output_v1,
 )
@@ -198,6 +201,75 @@ def test_sem8_invented_column_is_blocked_before_owner_and_execution(tmp_path: Pa
     assert state["validated_packet"]["blocked_reason"] == "BLOCKED_COLUMN_REF_NOT_FOUND"
     assert packet["semantic_bindings_confirmed"] is False
     assert packet["computation_executed"] is False
+
+
+def test_sem8_composite_scope_reuses_one_owner_state_only_for_declared_component_capabilities(tmp_path: Path) -> None:
+    ingestion = _ingestion(
+        "capital_trabajo.xlsx",
+        _xlsx_bytes(
+            {
+                "CapitalTrabajo": (
+                    [
+                        "saldo_inicial",
+                        "cobros_esperados",
+                        "pagos_esperados",
+                        "cuentas_por_cobrar",
+                        "ventas_periodo",
+                        "dias_periodo",
+                        "activo_corriente",
+                        "pasivo_corriente",
+                    ],
+                    [[1000, 2500, 1800, 3000, 9000, 30, 15000, 10000]],
+                )
+            }
+        ),
+    )
+
+    scope = (
+        "projected_closing_cash_balance",
+        "dso",
+        "current_ratio",
+    )
+    initial = run_service_1_product_pipeline_v1(
+        ingestion_output=ingestion,
+        tool_requests=[],
+        output_dir=tmp_path,
+        requested_capability="working_capital",
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+        semantic_scope_capabilities=scope,
+        use_assisted_semantics=True,
+    )
+    assert initial["status"] == STATUS_NEEDS_OWNER
+    state = initial["semantic_assistance_state"]
+    assert tuple(state["semantic_scope_capabilities"]) == scope
+
+    dso = run_service_1_product_pipeline_v1(
+        ingestion_output=ingestion,
+        tool_requests=[],
+        output_dir=tmp_path,
+        requested_capability="dso",
+        semantic_assistance_state=state,
+        semantic_dialogue_responses=_accept_all(initial),
+        semantic_owner_actor_id="owner-1",
+        semantic_owner_actor_role="OWNER",
+        use_assisted_semantics=True,
+    )
+    assert dso["status"] == STATUS_COMPUTATION_PLAN_READY
+    assert dso["computation_result"]["status"] == "EVALUATED"
+
+    outside_scope = run_service_1_product_pipeline_v1(
+        ingestion_output=ingestion,
+        tool_requests=[],
+        output_dir=tmp_path,
+        requested_capability="net_margin_real",
+        semantic_assistance_state=state,
+        semantic_dialogue_responses=_accept_all(initial),
+        semantic_owner_actor_id="owner-1",
+        semantic_owner_actor_role="OWNER",
+        use_assisted_semantics=True,
+    )
+    assert outside_scope["status"] == STATUS_BLOCKED
+    assert outside_scope["blocked_reason"] == "ASSISTED_SEMANTIC_STATE_CONTEXT_MISMATCH"
 
 
 def test_sem8_assisted_route_reuses_exact_state_and_executes_existing_deterministic_capability(tmp_path: Path) -> None:

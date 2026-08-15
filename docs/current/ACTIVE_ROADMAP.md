@@ -6,137 +6,124 @@
 ## Estado
 
 ```text
-LAST_DEPLOYED_PRODUCTION_CUT: SMOKE_PASS
-CURRENT_WORKTREE: SEM_1_TO_9 + DERIVED_EVIDENCE
-RELEVANT_REGRESSION: 297 PASS
-FULL_SUITE_COVERAGE: PASS_BY_EXHAUSTIVE_SHARDS
-FULL_SUITE_RESULT: 3614 PASS / 7 SKIPPED / 0 FAILED
-COMMIT: NOT_DONE
-DEPLOY: NOT_DONE
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
+PRODUCTION_REVISION: pymia-service1-00005-d5l
+PRODUCTION_TRAFFIC: 100%
+RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+LIQ_001: PRODUCTION_CERTIFIED
+REN_001: PRODUCTION_CERTIFIED
+WORKING_CAPITAL: TECHNICAL_E2E_READY / NOT_PRODUCTION_CERTIFIED
+WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
 ```
 
 ## Frente actual único
 
 ```text
-REPO_AND_DOCUMENTATION_HYGIENE_V1: CLOSED_PASS
-→ RESTORE_FULL_SUITE_EXECUTION: CLOSED_PASS_BY_EXHAUSTIVE_SHARDS
-→ THEMATIC_COMMIT_CUT
-→ DEPLOY CURRENT SHA
-→ PRODUCTION_SMOKE CURRENT SHA
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
 ```
 
 No hay un frente productivo paralelo autorizado.
 
-## Hitos cerrados del worktree actual
+## Objetivo
+
+Reducir deuda técnica, arquitectónica y documental; converger journeys y eliminar compatibilidades probadamente innecesarias sin ampliar alcance ni introducir nuevas authorities.
+
+## Secuencia obligatoria
 
 ```text
-SEM-0 ADR-029 boundary
-SEM-1 WorkbookProfiler
-SEM-2 provider-neutral semantic contract
-SEM-3 deterministic semantic validator
-SEM-4 owner dialogue planner
-SEM-5 owner evidence projection
-SEM-6 reentry → existing P6
-SEM-7 tenant structural compatibility
-SEM-8 canonical product-root wiring
-SEM-9 assisted web wiring for Cobros and Margen
-Derived Evidence REN_001
-REN_001 kernel-only formula authority
-owner-confirmed discount unit evidence
-removal of parallel web margin calculation
+1. DOCUMENTATION_AUTHORITY_SYNC
+2. PHYSICAL_JOURNEY_MAP
+3. LEGACY_DEPENDENCY_INVENTORY
+4. CONVERGE_WEB_JOURNEYS
+5. NORMALIZE_PERSISTENCE_REENTRY_DELIVERY
+6. DELETE_PROVEN_DEAD_PATHS
+7. FULL_REGRESSION
+8. PRODUCTION_RECERTIFICATION
 ```
 
-## Salvedades activas
+## Estado por journey
+
+### LIQ_001
 
 ```text
-EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
-WORKING_CAPITAL_SEMANTICS: LEGACY_PILOT_RETAINED
-MONOLITHIC_MCP_FULL_SUITE: NOT_OBSERVED_DUE_TO_502_TIMEOUT
-CURRENT_WORKTREE: NOT_COMMITTED
-CURRENT_WORKTREE: NOT_DEPLOYED
+SEM-8: YES
+P8: YES
+KERNEL/DETERMINISTIC_EXECUTION: YES
+XLSX_DELIVERY: YES
+PRODUCTION_CERTIFIED: YES
 ```
 
-Estas salvedades no invalidan la cobertura exhaustiva `3614 PASS / 7 skipped / 0 failed`, pero impiden declarar el corte actual released hasta commit/deploy/smoke del nuevo SHA.
-
-## Secuencia inmediata
-
-### 1. REPO_AND_DOCUMENTATION_HYGIENE_V1 — CLOSED_PASS
-
-Objetivo:
+### REN_001
 
 ```text
-canonical docs reconciled
-worktree changes classified
-historical docs removed from authority index
-unrelated landing/UI changes preserved
-no commit/push without authorization
+SEM-8: YES
+OWNER_RELATIONSHIP_CONFIRMATION: YES
+DISCOUNT_UNIT_CONFIRMATION: YES
+DERIVED_EVIDENCE: YES
+P8: YES
+KERNEL: YES
+XLSX_DELIVERY: YES
+PRODUCTION_CERTIFIED: YES
 ```
 
-### 2. RESTORE_FULL_SUITE_EXECUTION — CLOSED_PASS_BY_EXHAUSTIVE_SHARDS
-
-El wrapper monolítico `python -m pytest -q` devuelve HTTP 502 por límite de transporte. La suite se ejecutó mediante shards exhaustivos sin excluir tests ni agregar skips.
+### working_capital
 
 ```text
-3614 passed
-7 skipped
-0 failed
+TECHNICAL_E2E_READY: YES
+SEM-8: NO
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+COMPONENTS:
+- projected_closing_cash_balance
+- dso
+- current_ratio
+COMPOSITE_DELIVERY: NO
+PRODUCTION_CERTIFIED: NO
 ```
 
-### 3. THEMATIC_COMMIT_CUT
-
-Separar al menos conceptualmente:
+## Deuda abierta confirmada
 
 ```text
-A. SEM-1→SEM-9 / tenant / Derived Evidence / kernel
-B. documentation authority reconciliation
-C. landing / visual work unrelated to Service 1 runtime
+1. fork semántico legacy de working_capital cerrado localmente; pendiente certificación productiva
+2. múltiples mecanismos/superficies de reentry
+3. proyecciones legacy de compatibilidad P8/P6
+4. slices/sandboxes sin callers productivos pendientes de clasificación
+5. documentación histórica que no debe gobernar estado actual
 ```
 
-No mezclar C con A en un commit productivo.
-
-### 4. DEPLOY + PRODUCTION_SMOKE
-
-Sólo después de full-suite y commits autorizados:
+Clasificación para cada deuda de código:
 
 ```text
-new SHA
-→ Cloud Run deploy
-→ health
-→ auth fail-closed
-→ Supabase login
-→ authenticated upload
-→ owner confirmation
-→ deterministic execution + persistence
-→ delivery download
-→ reentry
+KEEP
+MIGRATE
+DELETE_CANDIDATE
 ```
 
-## Después del release
+`DELETE_CANDIDATE` requiere cero callers productivos en Graphify, búsqueda física consistente y cobertura del camino canónico.
 
-El siguiente frente de producto se decide recién con el nuevo corte desplegado y smokeado.
-
-Candidatos permitidos para evaluación posterior:
+## Congelamiento durante sanidad
 
 ```text
-1. conectar provider semántico externo real desde infraestructura/bootstrap
-2. migrar working_capital desde semantic scoping legacy a SEM-8
-3. probar caso real cliente sobre el nuevo journey
+NEW_FEATURES: FROZEN
+NEW_CAPABILITIES: FROZEN
+WORKING_CAPITAL_EXPANSION: FROZEN
+DPO_PAYMENT_COLLECTION_GAP: FROZEN
+EXTERNAL_LLM_PROVIDER: FROZEN
+SERVICE_2_EXPANSION: FROZEN
+LANDING_UI: OUT_OF_SCOPE
 ```
 
-No ejecutar los tres en paralelo.
-
-## Expansión prohibida antes del release
+## Invariantes
 
 ```text
-nueva capability productiva
-segundo product root
-segundo XLSX parser
-segundo semantic pipeline
-segundo computability gate
-LLM runtime authority
-formula authority fuera del kernel
-implicit taxes/defaults materiales
-refactor amplio sin blocker causal
+ONE_CANONICAL_PRODUCT_ROOT
+NO_SECOND_XLSX_PARSER
+NO_PARALLEL_PRODUCTIVE_PIPELINE
+NO_LLM_RUNTIME_AUTHORITY
+FAIL_CLOSED
+OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
+P8_IS_COMPUTABILITY_AUTHORITY
+KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
 ```
 
 ## Regla de método
@@ -148,4 +135,4 @@ una tarea
 → una decisión
 ```
 
-Documentar únicamente cuando cambia una verdad rectora. Los closeouts, TaskSpecs y auditorías consumados no vuelven a gobernar el roadmap.
+El próximo paso después de esta sincronización documental es `PHYSICAL_JOURNEY_MAP`, usando Graphify como evidencia primaria y grep/tests como verificación puntual.

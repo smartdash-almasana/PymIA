@@ -23,39 +23,37 @@ NO_SECOND_XLSX_PARSER: ENFORCED
 NO_LLM_RUNTIME_AUTHORITY: ENFORCED
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION: ENFORCED
 
-LAST_DEPLOYED_PRODUCTION_CUT:
-  CLOUD_RUN: DEPLOYED
-  PRODUCTION_SMOKE: PASS (2026-08-13)
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
+PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00005-d5l
+PRODUCTION_TRAFFIC: 100%
+PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 
-CURRENT_WORKTREE_CUT:
-  SEM_1_TO_SEM_9: IMPLEMENTED
-  DERIVED_EVIDENCE_REN_001: IMPLEMENTED
-  REN_001_FORMULA_AUTHORITY: KERNEL_ONLY
-  ASSISTED_WEB_COBROS_AND_MARGIN: SEM_8_WIRED
-  EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
-  SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: ACTIVE_FALLBACK
-  WORKING_CAPITAL_SEMANTICS: LEGACY_PILOT_RETAINED
-  RELEVANT_REGRESSION: 297 passed
-  FULL_SUITE_COVERAGE: PASS_BY_EXHAUSTIVE_SHARDS
-  FULL_SUITE_RESULT: 3614 passed / 7 skipped / 0 failed
-  MONOLITHIC_MCP_RUNNER: HTTP_502_TIMEOUT
-  COMMIT: NOT_DONE
-  DEPLOYMENT: NOT_DONE
+LIQ_001: PRODUCTION_CERTIFIED
+REN_001: PRODUCTION_CERTIFIED
+
+WORKING_CAPITAL:
+  TECHNICAL_E2E_READY: YES
+  SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+  PRODUCTION_CERTIFIED: NO
+
+EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
+SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: ACTIVE
+NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
+CURRENT_FRONT: SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
 ```
-
-Nunca usar el smoke del corte desplegado para afirmar que el worktree SEM-1→SEM-9 ya está certificado en producción.
 
 ## Núcleo documental rector
 
 Estos documentos forman la superficie de continuidad de Servicio 1:
 
-- `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md` — estado vigente, diferencia entre baseline desplegado y worktree actual, gates y deuda real.
+- `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md` — estado productivo vigente, journeys certificados y deuda abierta.
 - `docs/current/SERVICE_1_STATUS.md` — inventario técnico resumido y verificable.
 - `docs/current/SERVICE_1_CANONICAL_AXIS.md` — eje canónico e invariantes permanentes.
 - `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — prohibiciones y límites de autoridad.
-- `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes actuales, incluida la cadena SEM-1→SEM-9 y Derived Evidence.
+- `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
 - `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
-- `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y gates de release.
+- `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.
 - `docs/current/SERVICE_1_DEPLOYMENT_TARGET_CONTRACT_V1.md` — contrato de despliegue Cloud Run/Supabase.
 - `docs/current/SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md` — contrato del producto vendible vigente.
 
@@ -67,16 +65,16 @@ Gobierno de presentación únicamente:
 
 Algunas evidencias y decisiones previas siguen indexadas porque tests y operación las usan como referencias acotadas, pero **no gobiernan el próximo paso**:
 
-- `SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — evidencia/plan de la serie controlada histórica.
-- `SERVICE_1_FIRST_OPERATORLESS_CASE.md` — evidencia del primer caso operatorless certificado en su corte.
-- `SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — conserva la decisión de no promover nuevas capabilities antes de hardening/certificación.
-- `SERVICE_1_PRODUCT_COMPLETION_GATE.md` — evidencia del cierre MVP del corte histórico que lo certificó; no sustituye el estado worktree actual.
-- `SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md` — evidencia del piloto 003.
-- `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md` — evidencia del piloto 004.
-- `SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md` — evidencia del piloto 005.
-- `SERVICE_1_PILOT_006_TALLER_MECANICO.md` — evidencia del piloto 006.
-- `SERVICE_1_PILOT_007_CONSTRUCTORA.md` — evidencia del piloto 007.
-- `SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md` — evidencia del piloto 008.
+- `SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md`
+- `SERVICE_1_FIRST_OPERATORLESS_CASE.md`
+- `SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md`
+- `SERVICE_1_PRODUCT_COMPLETION_GATE.md`
+- `SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md`
+- `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md`
+- `SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md`
+- `SERVICE_1_PILOT_006_TALLER_MECANICO.md`
+- `SERVICE_1_PILOT_007_CONSTRUCTORA.md`
+- `SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md`
 
 Todo otro archivo en `docs/current/` se clasifica, hasta su eliminación física, como una de estas categorías:
 
@@ -89,7 +87,18 @@ PILOT_RECORD
 REFERENCE_ONLY
 ```
 
-No puede definir el “próximo paso” ni contradecir el núcleo rector anterior.
+No puede definir el próximo paso ni contradecir el núcleo rector anterior.
+
+## Deuda arquitectónica abierta
+
+```text
+SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_LOCAL_PASS / PENDING_PRODUCTION_CERTIFICATION
+MULTIPLE_REENTRY_MECHANISMS: OPEN
+LEGACY_P8/P6_COMPATIBILITY_PROJECTIONS: OPEN
+UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
+```
+
+La deuda se clasifica con Graphify + búsqueda física + tests en `KEEP / MIGRATE / DELETE_CANDIDATE`. No se elimina código por nombre o antigüedad.
 
 ## Política de saneamiento
 
@@ -119,6 +128,14 @@ KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
 P8_REMAINS_COMPUTABILITY_AUTHORITY
 ```
 
+## Frente vigente
+
+```text
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
+```
+
+Durante este frente permanecen congelados nuevas features, nuevas capabilities, provider externo, expansión de `working_capital`, DPO/payment_collection_gap y Servicio 2.
+
 ## Regla operativa de mantenimiento
 
 ```text
@@ -130,5 +147,3 @@ una tarea
 → commit temático
 → worktree limpio
 ```
-
-No hacer commit ni push como parte de una limpieza documental salvo autorización explícita.

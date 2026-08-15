@@ -119,6 +119,7 @@ def run_service_1_product_pipeline_v1(
     semantic_owner_actor_role: str | None = None,
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
     owner_unit_confirmation_events: Sequence[Mapping[str, Any]] = (),
+    semantic_scope_capabilities: Sequence[str] = (),
     use_assisted_semantics: bool = False,
 ) -> dict[str, Any]:
     if expense_variance_request is not None:
@@ -245,6 +246,7 @@ def run_service_1_product_pipeline_v1(
                 provider=semantic_provider,
                 sheet_name=sheet_name,
                 compatible_tenant_memory_hints=compatible_tenant_memory_hints,
+                semantic_scope_capabilities=semantic_scope_capabilities,
             )
         else:
             current_case_id = str(
@@ -254,10 +256,19 @@ def run_service_1_product_pipeline_v1(
             state_capability = str(
                 semantic_assistance_state.get("requested_capability") or ""
             ).strip()
+            state_scope_capabilities = {
+                str(item or "").strip()
+                for item in (semantic_assistance_state.get("semantic_scope_capabilities") or ())
+                if str(item or "").strip()
+            }
+            capability_matches_state = (
+                state_capability == requested_capability
+                or requested_capability in state_scope_capabilities
+            )
             if (
                 not current_case_id
                 or current_case_id != state_case_id
-                or state_capability != requested_capability
+                or not capability_matches_state
             ):
                 return _packet(
                     status=STATUS_BLOCKED,

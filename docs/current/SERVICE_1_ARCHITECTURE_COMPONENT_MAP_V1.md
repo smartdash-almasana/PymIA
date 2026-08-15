@@ -1,6 +1,6 @@
 # Servicio 1 — mapa actual de arquitectura y componentes V1
 
-**Estado:** `ACTIVE_ARCHITECTURE_MAP`  
+**Estado:** `ACTIVE_ARCHITECTURE_MAP`
 **Fecha de corte:** 2026-08-14
 
 ## 1. Autoridad productiva
@@ -11,9 +11,22 @@ WEB:  pymia/smartpyme/service_1_assisted_web_v1.py
 ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
-Sólo `service_1_product_pipeline_v1.py` es raíz productiva. La CLI y la web son entradas/adaptadores hacia esa raíz.
+Sólo `service_1_product_pipeline_v1.py` es raíz productiva. CLI y web son adaptadores.
 
-## 2. Mapa de alto nivel
+## 2. Producción vigente
+
+```text
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
+CLOUD_RUN_REVISION: pymia-service1-00005-d5l
+TRAFFIC: 100%
+RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+LIQ_001: PRODUCTION_CERTIFIED
+REN_001: PRODUCTION_CERTIFIED
+WORKING_CAPITAL: SEM8_MIGRATION_LOCAL_PASS / NOT_PRODUCTION_CERTIFIED
+```
+
+## 3. Mapa canónico de alto nivel
 
 ```text
 XLSX
@@ -25,8 +38,6 @@ SEM-1 WorkbookProfiler
 SEM-2 provider-neutral semantic context
 ↓
 semantic provider
-  ├─ baseline determinística segura actual
-  └─ provider externo futuro, inyectado desde infraestructura
 ↓
 SEM-3 deterministic validator
 ↓
@@ -53,7 +64,9 @@ bounded outcome
 controlled delivery
 ```
 
-## 3. SEM-1 → SEM-9
+Este es el carril canónico de LIQ_001 y REN_001. `working_capital` ya converge localmente a SEM-8 mediante un scope compuesto sobre sus tres capabilities existentes, pero todavía no está certificado en producción.
+
+## 4. SEM-1 → SEM-9
 
 ```text
 SEM-1  WorkbookProfilerV1
@@ -64,37 +77,20 @@ SEM-5  canonical owner evidence projection
 SEM-6  owner evidence reentry to existing semantic gate/P6
 SEM-7  tenant structural compatibility
 SEM-8  assisted semantic wiring into canonical product root
-SEM-9  assisted web wiring for sellable Cobros/Margen journeys
+SEM-9  assisted web wiring for LIQ_001 / REN_001
 ```
 
-SEM-9 no está completo para toda la web: `working_capital` conserva el piloto semántico legacy en el worktree actual.
+`working_capital` ya no usa semantic scoping legacy en el worktree actual. La deuda abierta es certificar el nuevo scope compuesto SEM-8 en producción y luego retirar compatibilidad legacy probadamente muerta.
 
-## 4. División de autoridad
+## 5. División de autoridad
 
 ### Semantic provider
 
-Puede:
-
-```text
-proponer significado
-proponer relaciones basadas en refs reales
-marcar ambigüedad
-usar hints tenant compatibles como evidencia histórica
-```
-
-No puede:
-
-```text
-confirmar por el dueño
-crear owner evidence falsa
-autorizar runtime/tool/delivery
-calcular fórmulas
-inventar columnas o relaciones
-```
+Puede proponer significado, relaciones e incertidumbre basada en evidencia real. No puede confirmar por el owner, crear owner evidence, autorizar runtime/delivery ni calcular fórmulas.
 
 ### Owner
 
-Confirma o corrige significado empresarial material. Su confirmación es evidencia, no permiso de ejecución.
+Confirma o corrige significado empresarial material. Su confirmación es evidencia, no permiso.
 
 ### P6/P7/P8
 
@@ -106,25 +102,7 @@ P8 = única autoridad de computabilidad
 
 ### Derived Evidence
 
-Transforma evidencia confirmada en variables canónicas cuando el workbook no trae directamente el agregado requerido por la fórmula.
-
-Ejemplo REN_001:
-
-```text
-Ventas.Cantidad
-Ventas.PrecioUnitario
-Ventas.Descuento
-Ventas.ProductoID
-Productos.ProductoID
-Productos.Costo
-↓
-relación owner-confirmed + unidad owner-confirmed
-↓
-period_sales_total / sale_price
-period_costs_total / costs
-```
-
-Derived Evidence no ejecuta la fórmula final y no inventa impuestos ausentes.
+Transforma evidencia confirmada en variables canónicas cuando el workbook no trae directamente el agregado requerido. No ejecuta la fórmula final ni inventa inputs materiales ausentes.
 
 ### Kernel
 
@@ -132,20 +110,73 @@ Derived Evidence no ejecuta la fórmula final y no inventa impuestos ausentes.
 pymia/services/formula_engine_service.py
 ```
 
-Es la autoridad de ejecución matemática. Los evaluators validan/adaptan y proyectan resultados; no deben mantener implementaciones matemáticas paralelas.
+Única autoridad matemática ejecutable.
 
-## 5. REN_001 actual
+## 6. Journeys
+
+### LIQ_001
 
 ```text
-formula_id: REN_001_margen_neto_real
-expression: ((sale_price - costs - taxes) / sale_price) * 100
+upload
+→ SEM-8
+→ owner confirmation
+→ P6/P7/P8
+→ deterministic execution
+→ bounded outcome
+→ XLSX delivery
+→ persisted owner evidence / durable case reentry
 ```
 
-La fórmula se ejecuta en el kernel.
+### REN_001
 
-La web ya no posee un cálculo manual de margen disponible. La ausencia de impuestos o unidad de descuento material bloquea/solicita evidencia; no genera defaults silenciosos.
+```text
+upload
+→ SEM-8
+→ owner semantic confirmation
+→ owner-confirmed product relationship
+→ discount unit confirmation cuando corresponde
+→ Derived Evidence
+→ P8
+→ FormulaEngineService/kernel
+→ bounded outcome
+→ XLSX delivery
+→ persisted owner evidence / durable case reentry
+```
 
-## 6. Memoria tenant
+### working_capital
+
+```text
+upload
+→ legacy semantic scoping
+→ projected_closing_cash_balance
+→ dso
+→ current_ratio
+→ web composition
+→ result page
+```
+
+Estado:
+
+```text
+TECHNICAL_E2E_READY: YES
+SEM8_CONVERGED: NO
+PRODUCTION_CERTIFIED: NO
+COMPOSITE_XLSX_DELIVERY: NO
+```
+
+## 7. Persistencia y reentry
+
+Producción certificada:
+
+```text
+PERSISTED_CASE_LISTING: PASS
+PERSISTED_CASE_REENTRY: PASS
+DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+```
+
+La auditoría de sanidad detectó múltiples mecanismos/superficies de reentry. Deben clasificarse y converger sin ampliar claims de durabilidad.
+
+## 8. Memoria tenant
 
 ```text
 owner evidence
@@ -157,37 +188,20 @@ owner evidence
 → SEM-2 context
 ```
 
-Estados:
+La memoria no autoriza reuse automático ni semantic rebind.
+
+## 9. Deuda arquitectónica abierta
 
 ```text
-COMPATIBLE_HINT
-OBSOLETE_HINT
-LEGACY_UNVERIFIED_HINT
+SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_LOCAL_PASS / PENDING_PRODUCTION_CERTIFICATION
+MULTIPLE_REENTRY_MECHANISMS: OPEN
+LEGACY_P8/P6_COMPATIBILITY_PROJECTIONS: OPEN
+UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
 ```
 
-Ninguno autoriza reutilización automática.
+Graphify es evidencia primaria para dependency/journey mapping; grep físico y tests verifican decisiones KEEP/MIGRATE/DELETE_CANDIDATE.
 
-## 7. Provider actual
-
-```text
-EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
-DEFAULT_SAFE_PROVIDER: service_1_deterministic_semantic_proposal_provider_v1.py
-```
-
-El default seguro sólo proyecta hipótesis determinísticas relevantes y relaciones estructurales verificables al contrato SEM-2.
-
-Los SDK de providers externos no deben importarse dentro de `pymia/` bajo la política actual. La integración futura entra desde bootstrap/infraestructura por callable inyectado.
-
-## 8. Superficie web
-
-```text
-Cobros:         SEM-8 assisted semantics
-Margen Real:    SEM-8 assisted semantics + Derived Evidence
-Working Capital: legacy pilot semantics retained
-Consorcios/reconciliation/RADAR: superficies acotadas ya existentes; no son segunda raíz
-```
-
-## 9. Invariantes arquitectónicos
+## 10. Invariantes arquitectónicos
 
 ```text
 ONE_CANONICAL_PRODUCT_ROOT
@@ -203,13 +217,10 @@ KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
 FAIL_CLOSED
 ```
 
-## 10. Estado de certificación
+## 11. Frente actual
 
 ```text
-LAST_DEPLOYED_PRODUCTION_CUT: smoke PASS
-CURRENT_WORKTREE_CUT: 297 relevant tests PASS
-CURRENT_WORKTREE_FULL_SUITE: PASS_BY_EXHAUSTIVE_SHARDS (3614 PASS / 7 SKIPPED / 0 FAILED)
-CURRENT_WORKTREE_DEPLOYED: NO
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
 ```
 
-No ampliar claims más allá de esas fronteras.
+No ampliar producto hasta cerrar convergencia, regresión y recertificación.

@@ -22,6 +22,8 @@ def test_sellable_product_contract_is_frozen_and_bounded() -> None:
     gate = (root / "docs" / "current" / "SERVICE_1_REAL_SELLABLE_JOURNEY_GATE_V1.md").read_text(encoding="utf-8")
     assert "PROVE_REAL_SELLABLE_JOURNEY: CLOSED_PASS" in gate
     assert "SERVICE_1_REAL_SELLABLE_JOURNEY_GATE: PASS" in gate
-    assert "LAST_DEPLOYED_PRODUCTION_SMOKE: PASS (2026-08-13)" in state
-    assert "NEXT_GATE: THEMATIC_COMMIT_CUT_AWAITING_APPROVAL" in state
-    assert "PRODUCTION_SMOKE: PASS (2026-08-13)" in readme
+    assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in state
+    assert "PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d" in state
+    assert "SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1" in state
+    assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in readme
+    assert "PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d" in readme

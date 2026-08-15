@@ -8,133 +8,156 @@
 ```text
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 SERVICE_1_TECHNICAL_BASELINE: CLOSED
-LAST_DEPLOYED_PRODUCTION_SMOKE: PASS (2026-08-13)
-CURRENT_FRONT: SEMANTIC_PRODUCT_INTEGRATION_AND_RELEASE_HARDENING
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
+PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00005-d5l
+PRODUCTION_TRAFFIC: 100%
+PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+LIQ_001: PRODUCTION_CERTIFIED
+REN_001: PRODUCTION_CERTIFIED
+WORKING_CAPITAL: SEM8_MIGRATION_IMPLEMENTED_IN_WORKTREE / NOT_PRODUCTION_CERTIFIED
+WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
 NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 ```
 
-Hay dos estados que no deben mezclarse:
+Servicio 1 ya no está en estado de worktree pendiente de release. El corte SEM-1→SEM-9 para Cobros/Margen, Derived Evidence REN_001, persistencia durable de owner evidence y hardening SEM-8 está integrado, desplegado y certificado en producción.
+
+## 2. Cadena canónica vigente
 
 ```text
-A. LAST_DEPLOYED_PRODUCTION_CUT
-   Cloud Run desplegado y smokeado con PASS.
-
-B. CURRENT_WORKTREE_CUT
-   SEM-1→SEM-9 + Derived Evidence + REN_001 kernel convergence.
-   Todavía sin commit, sin deploy y sin production smoke propio.
+canonical XLSX ingestion
+→ WorkbookProfiler / physical evidence
+→ semantic assistance proposal
+→ deterministic validation
+→ owner material confirmation
+→ canonical owner evidence
+→ P6 ApprovalDecision
+→ P7 RequirementMatch + Grain
+→ P8 ComputabilityDecision + GovernedComputationInput
+→ Derived Evidence cuando corresponde
+→ deterministic execution / kernel
+→ bounded outcome
+→ controlled delivery
 ```
 
-## 2. Worktree actual verificado
+Autoridades:
 
 ```text
-SEM-0 ADR-029 boundary                         CLOSED
-SEM-1 WorkbookProfilerV1                       CLOSED
-SEM-2 provider-neutral semantic contract       CLOSED
-SEM-3 deterministic semantic validator         CLOSED
-SEM-4 OwnerDialoguePlanV1                      CLOSED
-SEM-5 owner semantic evidence                  CLOSED
-SEM-6 owner evidence reentry → existing P6     CLOSED
-SEM-7 tenant structural compatibility          CLOSED
-SEM-8 canonical product-root semantic wiring   CLOSED
-SEM-9 assisted web → SEM-8                     CLOSED_FOR_COBROS_AND_MARGIN
+provider/LLM → propone
+owner        → confirma significado empresarial
+P6/P7/P8    → gobiernan aprobación/requisitos/computabilidad
+Derived Evidence → transforma evidencia confirmada en inputs canónicos
+kernel       → única autoridad matemática
+P10/delivery → controla salida autorizada
 ```
 
-Además:
+## 3. SEM-1 → SEM-9
 
 ```text
-DERIVED_EVIDENCE_ENGINE_REN_001: IMPLEMENTED
-REN_001_FORMULA_EXECUTION_AUTHORITY: FormulaEngineService/kernel
-PARALLEL_WEB_MARGIN_CALCULATION: REMOVED
-OWNER_CONFIRMED_PRODUCT_RELATIONSHIP: REQUIRED
-DISCOUNT_UNIT_OWNER_EVIDENCE: IMPLEMENTED
-IMPLICIT_TAX_ZERO: FORBIDDEN
-TENANT_MEMORY_SILENT_REUSE: FORBIDDEN
+SEM-0 ADR boundary                         CLOSED
+SEM-1 WorkbookProfilerV1                  CLOSED
+SEM-2 provider-neutral semantic contract  CLOSED
+SEM-3 deterministic semantic validator    CLOSED
+SEM-4 OwnerDialoguePlanV1                 CLOSED
+SEM-5 owner semantic evidence             CLOSED
+SEM-6 owner evidence reentry → P6         CLOSED
+SEM-7 tenant structural compatibility     CLOSED
+SEM-8 canonical product-root wiring       CLOSED
+SEM-9 assisted web                        CLOSED_FOR_LIQ_001_AND_REN_001
 ```
 
-## 3. Evidencia de tests del worktree
+`working_capital` ya migró localmente al carril SEM-8 mediante un scope compuesto sobre sus tres capabilities existentes. Aún no forma parte de la certificación productiva vigente hasta commit, deploy y smoke del nuevo corte.
 
-Regresión focal/integrada previa:
+## 4. Estado productivo por journey
+
+### LIQ_001 — Control de Cobros y Conciliación
 
 ```text
-297 passed in 34.30s
+PRODUCTION_CERTIFIED: YES
+AUTH_FAIL_CLOSED: PASS
+AUTHENTICATED_UPLOAD: PASS
+SEM8_OWNER_FLOW: PASS
+OWNER_CONFIRMATION: PASS
+DETERMINISTIC_EXECUTION: PASS
+XLSX_DELIVERY: PASS
 ```
 
-Cobertura completa del árbol `tests/` obtenida mediante shards exhaustivos por límite de transporte del MCP:
+### REN_001 — Margen Real
 
 ```text
-FULL_SUITE_COVERAGE: PASS_BY_EXHAUSTIVE_SHARDS
-PASS: 3614
-SKIPPED: 7
-FAILED: 0
-MONOLITHIC_MCP_RUNNER: HTTP_502_TIMEOUT
+PRODUCTION_CERTIFIED: YES
+MISSING_TAXES_FAIL_CLOSED: PASS
+SEM8_OWNER_FLOW: PASS
+RELATIONSHIP_DEDUPLICATION: PASS
+DISCOUNT_UNIT_CONFIRMATION: PASS
+DERIVED_EVIDENCE: PASS
+DETERMINISTIC_EXECUTION: PASS
+XLSX_DELIVERY: PASS
 ```
 
-Los shards cubrieron todos los directorios top-level, todos los tests raíz, `tests/smartpyme` completo y los 151 archivos `test_service_1_*.py` inventariados físicamente. No se añadieron exclusiones ni skips. La única limitación es que no existe una observación monolítica en un único proceso porque el wrapper MCP excede su ventana de transporte.
+La fórmula permanece gobernada por `FormulaEngineService/kernel`. Derived Evidence no inventa impuestos ni interpreta descuentos no confirmados.
 
-## 4. Provider semántico
-
-La arquitectura acepta un provider inyectado:
+### working_capital — Caja y Capital de Trabajo
 
 ```text
-semantic_provider=<callable>
+TECHNICAL_E2E_READY: YES
+PRODUCTION_CERTIFIED: NO
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+COMPONENTS:
+- projected_closing_cash_balance
+- dso
+- current_ratio
+OWN_COMPOSITE_DELIVERY: NO
 ```
 
-Estado:
+No incorporar DPO ni `payment_collection_gap` mientras este journey no converja al contrato semántico canónico.
+
+## 5. Persistencia y reentry
+
+Producción certificó:
+
+```text
+PERSISTED_CASE_LISTING: PASS
+PERSISTED_CASE_REENTRY: PASS
+DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+```
+
+La reentrada durable actual prueba evidencia semántica persistida del owner. No implica restauración durable del XLSX ni del snapshot completo de resultado tras reinicio.
+
+## 6. Tenant semantics
+
+```text
+TENANT_SEMANTIC_CONTRACT: IMPLEMENTED
+TENANT_STORE: APPEND_ONLY / TENANT_ISOLATED
+STRUCTURAL_COMPATIBILITY: IMPLEMENTED
+COMPATIBLE_MEMORY: HINT_ONLY
+AUTOMATIC_REUSE: FORBIDDEN
+SEMANTIC_REBIND: FORBIDDEN
+```
+
+## 7. Provider semántico
 
 ```text
 EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
 DETERMINISTIC_SAFE_BASELINE_PROVIDER: ACTIVE
+semantic_provider=<callable>
 ```
 
-La baseline determinística proyecta únicamente evidencia e hipótesis gobernadas al contrato SEM-2. No adquiere autoridad semántica, matemática, de runtime o delivery.
+La frontera de provider no posee autoridad semántica final, matemática, de runtime ni de delivery.
 
-Un provider externo futuro debe entrar desde infraestructura/bootstrap; los SDK de OpenAI/Anthropic/Gemini siguen prohibidos dentro de `pymia/` por la política arquitectónica actual.
-
-## 5. Recorrido actual de Margen Real
+## 8. Deuda arquitectónica abierta
 
 ```text
-XLSX canónico
-→ WorkbookProfiler
-→ propuesta semántica provider-neutral
-→ validator determinístico
-→ diálogo owner material
-→ SEM-5 evidence
-→ SEM-6 / P6 existente
-→ relación owner-confirmed
-→ Derived Evidence Engine
-→ P8
-→ GovernedComputationInput
-→ FormulaEngineService / kernel
-→ REN_001 outcome
-→ delivery autorizado
+1. working_capital ya eliminó localmente su fork semántico legacy; queda pendiente certificar ese corte en producción.
+2. existen múltiples mecanismos/superficies de reentry que deben converger.
+3. sobreviven proyecciones de compatibilidad legacy alrededor de P8/P6.
+4. existen slices/sandboxes sin callers productivos que requieren clasificación KEEP/MIGRATE/DELETE_CANDIDATE.
+5. la documentación histórica debe permanecer fuera de autoridad activa.
 ```
 
-La semántica decide significado. Derived Evidence transforma evidencia confirmada en variables canónicas. El kernel es la única autoridad de ejecución matemática.
+Estas deudas no invalidan la certificación productiva de LIQ_001/REN_001, pero son el frente prioritario de sanidad antes de ampliar producto.
 
-## 6. Superficie web
-
-```text
-sold_vs_collected_gap: SEM-8 assisted semantics
-net_margin_real:       SEM-8 assisted semantics
-working_capital:       legacy pilot semantic scoping retained
-```
-
-La retención del piloto `working_capital` es explícita y acotada. No se debe presentar como SEM-9 completo para toda la web.
-
-## 7. Producción
-
-El corte previamente desplegado en Google Cloud Run conserva smoke real PASS con autenticación Supabase, upload autenticado, confirmación owner, ejecución/persistencia, download y reentry.
-
-Ese resultado pertenece al corte desplegado anterior. El worktree actual necesita, en este orden:
-
-```text
-1. revisar la clasificación final del worktree
-2. commit(s) temáticos autorizados
-3. deploy del nuevo corte
-4. production smoke del nuevo SHA
-```
-
-## 8. Invariantes
+## 9. Invariantes
 
 ```text
 ONE_CANONICAL_PRODUCT_ROOT
@@ -149,77 +172,23 @@ KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
 DERIVED_EVIDENCE_NEVER_INVENTS_MISSING_MATERIAL_INPUTS
 ```
 
-## 9. Siguiente gate
+## 10. Frente actual
 
 ```text
-NEXT_GATE: THEMATIC_COMMIT_CUT_AWAITING_APPROVAL
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
 ```
 
-No conectar un provider LLM externo, no ampliar capacidades ni desplegar el worktree actual antes de separar los cambios runtime/documentación de los cambios landing/visual y realizar los commits temáticos autorizados.
-
-## 10. Clasificación del worktree para commit hygiene
-
-Estado físico observado el 2026-08-14:
-
-### A. Runtime/semántica Servicio 1 — mismo corte lógico
+Secuencia:
 
 ```text
-pymia/services/formula_engine_service.py
-pymia/smartpyme/service_1_product_pipeline_v1.py
-pymia/smartpyme/service_1_assisted_web_v1.py
-pymia/smartpyme/service_1_computability_v1.py
-pymia/smartpyme/service_1_ren_001_evaluator_v1.py
-pymia/smartpyme/service_1_ren_001_normalized_evidence_v1.py
-pymia/smartpyme/service_1_*semantic*
-pymia/smartpyme/service_1_derived_evidence_v1.py
-pymia/smartpyme/service_1_owner_unit_confirmation_event_v1.py
-pymia/smartpyme/service_1_*tenant*
-corresponding tests/smartpyme/test_service_1_*.py
+1. documentation authority sync
+2. physical journey map
+3. legacy dependency inventory
+4. converge web journeys
+5. normalize persistence/reentry/delivery policies
+6. delete proven dead paths
+7. full regression
+8. production recertification
 ```
 
-Este grupo representa SEM-1→SEM-9, tenant compatibility/persistence, Derived Evidence y convergencia REN_001/kernel.
-
-### B. Documentación de autoridad — corte separado
-
-```text
-docs/README.md
-docs/current/README.md
-docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md
-docs/current/SERVICE_1_STATUS.md
-docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md
-docs/current/ACTIVE_ROADMAP.md
-docs/current/SERVICE_1_OPERABILITY_PACKET.md
-docs/current/SERVICE_1_DEPLOYMENT_TARGET_CONTRACT_V1.md
-docs/adr/ADR-029-service-1-llm-semantic-assistance-boundary.md
-```
-
-### C. Landing / visual — preservar fuera del commit runtime
-
-```text
-landing/src/components/*
-landing/src/styles/global.css
-landing/DESIGN.md
-docs/current/SERVICE_1_ENTERPRISE_VISUAL_SYSTEM_V1.md
-```
-
-Este grupo no gobierna runtime y no debe mezclarse con el commit técnico SEM-1→SEM-9.
-
-### D. Documentación histórica tocada por reconciliación
-
-```text
-docs/current/SERVICE_1_DOCUMENTARY_PURGE_AUDIT_V2.md
-docs/current/SERVICE_1_DOCUMENTARY_RECONCILIATION_V1.md
-```
-
-Se modificaron sólo para marcar su estado `SUPERSEDED_REFERENCE_ONLY` y evitar que vuelvan a gobernar decisiones.
-
-### Regla de commit
-
-```text
-A ≠ C
-B puede acompañar A sólo si describe exactamente ese mismo corte.
-D es hygiene documental y puede mantenerse separado.
-NO_PUSH_WITH_DIRTY_UNRELATED_LANDING
-```
-
-No se hizo commit ni push durante `REPO_AND_DOCUMENTATION_HYGIENE_V1`.
+Features, nuevas capabilities, provider externo y expansión de `working_capital` permanecen congelados hasta cerrar este frente.

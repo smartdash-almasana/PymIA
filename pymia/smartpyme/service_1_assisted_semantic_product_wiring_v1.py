@@ -122,6 +122,7 @@ def run_service_1_assisted_semantic_initial_v1(
     provider: Any,
     sheet_name: str = "sheet1",
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
+    semantic_scope_capabilities: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Create one exact assisted semantic state and its minimal owner dialogue."""
     if not isinstance(ingestion_output, dict) or not ingestion_output:
@@ -167,6 +168,7 @@ def run_service_1_assisted_semantic_initial_v1(
         requested_capability=capability,
         deterministic_hypotheses=deterministic_hypotheses,
         allowed_roles=allowed_roles,
+        semantic_scope_capabilities=semantic_scope_capabilities,
     )
     try:
         context = build_service_1_llm_semantic_context_v1(
@@ -240,6 +242,7 @@ def run_service_1_assisted_semantic_initial_v1(
         validated_packet=validated,
         dialogue_plan=dialogue,
         owner_questions=list(dialogue.get("decisions") or []),
+        semantic_scope_capabilities=semantic_scope_capabilities,
     )
 
 
@@ -315,6 +318,7 @@ def run_service_1_assisted_semantic_reentry_v1(
             dialogue_plan=dialogue,
             owner_questions=[decisions[item] for item in missing],
             blocked_reason=BLOCK_OWNER_RESPONSE_MISSING,
+            semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
         )
 
     column_events: list[dict[str, Any]] = []
@@ -386,6 +390,7 @@ def run_service_1_assisted_semantic_reentry_v1(
             dialogue_plan=dialogue,
             owner_questions=followup_questions,
             dialogue_responses=dialogue_responses,
+            semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
         )
 
     evidence_packet = {
@@ -458,6 +463,7 @@ def run_service_1_assisted_semantic_reentry_v1(
         owner_evidence_packet=evidence_packet,
         sem6_packet=sem6,
         semantic_run=semantic_run,
+        semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
     )
 
 
@@ -499,44 +505,56 @@ def _capability_relevant_roles(
     requested_capability: str,
     deterministic_hypotheses: Sequence[Mapping[str, Any]],
     allowed_roles: Sequence[str],
+    semantic_scope_capabilities: Sequence[str] = (),
 ) -> tuple[str, ...]:
-    capability = str(requested_capability or "").strip()
+    primary = str(requested_capability or "").strip()
+    scope = tuple(
+        dict.fromkeys(
+            item
+            for item in (
+                str(value or "").strip()
+                for value in (semantic_scope_capabilities or (primary,))
+            )
+            if item
+        )
+    ) or (primary,)
     allowed = set(allowed_roles)
     relevant: list[str] = []
 
-    definition = get_capability_definition_v1(capability)
-    if definition is not None and definition.kind == "ATOMIC":
-        required_variables = {
-            str(item.name or "").strip()
-            for item in definition.variables
-            if str(item.name or "").strip()
-        }
-        for hypothesis in deterministic_hypotheses:
-            candidates = hypothesis.get("candidate_meanings")
-            if not isinstance(candidates, (list, tuple)):
-                continue
-            for candidate in candidates:
-                if not isinstance(candidate, Mapping):
+    for capability in scope:
+        definition = get_capability_definition_v1(capability)
+        if definition is not None and definition.kind == "ATOMIC":
+            required_variables = {
+                str(item.name or "").strip()
+                for item in definition.variables
+                if str(item.name or "").strip()
+            }
+            for hypothesis in deterministic_hypotheses:
+                candidates = hypothesis.get("candidate_meanings")
+                if not isinstance(candidates, (list, tuple)):
                     continue
-                variable = str(candidate.get("variable_name") or "").strip()
-                role = str(candidate.get("semantic_role") or "").strip()
-                if variable in required_variables and role in allowed and role not in relevant:
-                    relevant.append(role)
+                for candidate in candidates:
+                    if not isinstance(candidate, Mapping):
+                        continue
+                    variable = str(candidate.get("variable_name") or "").strip()
+                    role = str(candidate.get("semantic_role") or "").strip()
+                    if variable in required_variables and role in allowed and role not in relevant:
+                        relevant.append(role)
 
-    for family in VARIABLE_FAMILY_DEFINITIONS:
-        if capability not in family.target_capabilities:
-            continue
-        for group in family.required_role_groups:
-            for role in group:
+        for family in VARIABLE_FAMILY_DEFINITIONS:
+            if capability not in family.target_capabilities:
+                continue
+            for group in family.required_role_groups:
+                for role in group:
+                    if role in allowed and role not in relevant:
+                        relevant.append(role)
+            for role in family.optional_roles:
                 if role in allowed and role not in relevant:
                     relevant.append(role)
-        for role in family.optional_roles:
+
+        for role in service_1_derived_evidence_semantic_support_roles_v1(capability):
             if role in allowed and role not in relevant:
                 relevant.append(role)
-
-    for role in service_1_derived_evidence_semantic_support_roles_v1(capability):
-        if role in allowed and role not in relevant:
-            relevant.append(role)
 
     return tuple(relevant or allowed_roles)
 
@@ -572,6 +590,7 @@ def _packet(
     owner_evidence_packet: dict[str, Any] | None = None,
     sem6_packet: dict[str, Any] | None = None,
     semantic_run: dict[str, Any] | None = None,
+    semantic_scope_capabilities: Sequence[str] = (),
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -580,6 +599,11 @@ def _packet(
         "detail": None,
         "case_id": case_id,
         "requested_capability": requested_capability,
+        "semantic_scope_capabilities": [
+            str(item).strip()
+            for item in semantic_scope_capabilities
+            if str(item).strip()
+        ],
         "bridge_packet": bridge_packet,
         "workbook_profile": workbook_profile,
         "context": context,

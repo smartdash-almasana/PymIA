@@ -125,34 +125,14 @@ _LAUNCH_REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
     ),
 )
 _LAUNCH_REVIEW_BY_REF = {item[0]: item for item in _LAUNCH_REVIEW_OPTIONS}
+_WORKING_CAPITAL_COMPONENT_CAPABILITIES: tuple[str, ...] = (
+    "projected_closing_cash_balance",
+    "dso",
+    "current_ratio",
+)
 
-_LAUNCH_REVIEW_RELEVANT_HEADERS: dict[str, frozenset[str]] = {
-    # Legacy pilot scoping retained only for the working-capital composite.
-    # Launch Cobros and Margen now obtain relevance from SEM-8/P7/derived-evidence contracts.
-    "working_capital": frozenset({
-        "fecha", "saldo_inicial", "cobros_esperados", "pagos_esperados",
-        "cuentas_por_cobrar", "pendiente", "ventas_periodo", "periodo_dias",
-        "dias", "dias_periodo", "activos_corrientes", "activo_corriente", "pasivos_corrientes", "pasivo_corriente", "vencimiento",
-        "fecha_vencimiento",
-    }),
-}
-
-_LAUNCH_REVIEW_RELEVANT_ROLES: dict[str, frozenset[str]] = {
-    # Legacy pilot scoping retained only for the working-capital composite.
-    "working_capital": frozenset({
-        "operation_date",
-        "initial_balance",
-        "expected_collections",
-        "expected_payments",
-        "accounts_receivable_amount",
-        "sales_amount",
-        "period_days",
-        "days",
-        "current_assets",
-        "current_liabilities",
-        "due_date",
-    }),
-}
+_LAUNCH_REVIEW_RELEVANT_HEADERS: dict[str, frozenset[str]] = {}
+_LAUNCH_REVIEW_RELEVANT_ROLES: dict[str, frozenset[str]] = {}
 
 _RECONCILIATION_OPTIONS: tuple[tuple[str, str, str], ...] = (
     (
@@ -1226,7 +1206,7 @@ class AssistedWebApplicationV1:
                     "No se pudo establecer una identidad válida para este caso."
                 )
 
-        assisted_launch = state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real"}
+        assisted_launch = state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real", "working_capital"}
         try:
             if assisted_launch:
                 first_run = _run_product_root(
@@ -1235,6 +1215,11 @@ class AssistedWebApplicationV1:
                     output_dir=self.output_dir,
                     semantic_provider=self._semantic_provider,
                     compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
+                    semantic_scope_capabilities=(
+                        _WORKING_CAPITAL_COMPONENT_CAPABILITIES
+                        if state.selected_launch_review == "working_capital"
+                        else ()
+                    ),
                     use_assisted_semantics=True,
                 )
             else:
@@ -1488,6 +1473,90 @@ class AssistedWebApplicationV1:
                 )
             actor_id = f"session:{session_id}"
             actor_role = "SESSION_OWNER"
+
+        if state.selected_launch_review == "working_capital":
+            component_packets: dict[str, dict[str, Any]] = {}
+            followup_packet: dict[str, Any] | None = None
+            persisted_confirmation = False
+            for capability_ref in _WORKING_CAPITAL_COMPONENT_CAPABILITIES:
+                component_packet = _run_product_root(
+                    ingestion_output=state.ingestion_output,
+                    requested_capability=capability_ref,
+                    output_dir=self._review_output_dir(session_id=session_id),
+                    deliver_result=False,
+                    semantic_assistance_state=state.semantic_assistance_state,
+                    semantic_dialogue_responses=responses,
+                    semantic_owner_actor_id=actor_id,
+                    semantic_owner_actor_role=actor_role,
+                    use_assisted_semantics=True,
+                )
+                component_packets[capability_ref] = component_packet
+                if component_packet.get("status") == STATUS_NEEDS_OWNER and followup_packet is None:
+                    followup_packet = component_packet
+                semantic_run = component_packet.get("semantic_run")
+                if (
+                    not persisted_confirmation
+                    and isinstance(semantic_run, dict)
+                    and semantic_run.get("status") == "CONFIRMED_BINDINGS"
+                ):
+                    try:
+                        self._persist_owner_confirmation_events(state=state, packet=component_packet)
+                    except Service1AssistedWebTenantPersistenceErrorV1:
+                        return HTTPStatus.OK, _blocked_message_page(
+                            "La confirmación fue recibida, pero no pudo guardarse de forma durable."
+                        )
+                    persisted_confirmation = True
+
+            if followup_packet is not None:
+                next_state = followup_packet.get("semantic_assistance_state")
+                if isinstance(next_state, dict):
+                    state.semantic_assistance_state = next_state
+                state.semantic_questions = list(followup_packet.get("owner_questions") or [])
+                return HTTPStatus.OK, _assisted_semantic_dialogue_page(
+                    state.semantic_questions,
+                    "La corrección o rechazo requiere una confirmación más granular.",
+                )
+
+            computations = {
+                capability_ref: packet.get("computation_result")
+                if isinstance(packet.get("computation_result"), dict)
+                else {}
+                for capability_ref, packet in component_packets.items()
+            }
+            ready = {
+                capability_ref: computation
+                for capability_ref, computation in computations.items()
+                if computation.get("status") == "EVALUATED"
+            }
+            service_packet: dict[str, Any] = {
+                "schema_version": "SERVICE_1_WORKING_CAPITAL_SERVICE_V1",
+                "status": (
+                    "READY"
+                    if len(ready) == len(_WORKING_CAPITAL_COMPONENT_CAPABILITIES)
+                    else "NEEDS_EVIDENCE"
+                ),
+                "service_ref": "working_capital",
+                "component_packets": component_packets,
+                "computed_components": ready,
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+            state.last_review_result = service_packet
+            state.semantic_questions = []
+            case_id = str(state.ingestion_output.get("case_id") or "").strip()
+            self._remember_case(
+                session_id=session_id,
+                case_id=case_id,
+                service_ref="working_capital",
+                service_name="Caja y Capital de Trabajo",
+                status="LISTO" if service_packet["status"] == "READY" else "FALTA INFORMACIÓN",
+                kind="working_capital",
+                packet=service_packet,
+                ingestion_output=state.ingestion_output,
+            )
+            return HTTPStatus.OK, _working_capital_result_page(service_packet)
 
         packet = _run_product_root(
             ingestion_output=state.ingestion_output,
@@ -1976,6 +2045,7 @@ def _run_product_root(
     semantic_owner_actor_role: str | None = None,
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
     owner_unit_confirmation_events: Sequence[Mapping[str, Any]] = (),
+    semantic_scope_capabilities: Sequence[str] = (),
     use_assisted_semantics: bool = False,
 ) -> dict[str, Any]:
     return run_service_1_product_pipeline_v1(
@@ -1993,6 +2063,7 @@ def _run_product_root(
         semantic_owner_actor_role=semantic_owner_actor_role,
         compatible_tenant_memory_hints=compatible_tenant_memory_hints,
         owner_unit_confirmation_events=owner_unit_confirmation_events,
+        semantic_scope_capabilities=semantic_scope_capabilities,
         use_assisted_semantics=use_assisted_semantics,
     )
 

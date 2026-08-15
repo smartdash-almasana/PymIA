@@ -13,23 +13,23 @@ ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 
 No crear otra entrada con autoridad productiva equivalente.
 
-## 2. Producción
-
-Target vigente:
+## 2. Producción vigente
 
 ```text
-Google Cloud Run
-web entrypoint: pymia.smartpyme.service_1_assisted_web_v1
-identity/persistence: Supabase
+TARGET: Google Cloud Run
+SERVICE: pymia-service1
+APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
+REVISION: pymia-service1-00005-d5l
+TRAFFIC: 100%
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 ```
 
-El último corte desplegado obtuvo production smoke PASS el 2026-08-13.
-
-El worktree actual SEM-1→SEM-9 no está desplegado. Antes de reemplazar el corte productivo vigente requiere full-suite, commit autorizado, deploy y smoke sobre el nuevo SHA.
+Identidad/persistencia productiva: Supabase.
 
 ## 3. Variables de producción
 
-Requeridas por el runtime productivo:
+Runtime:
 
 ```text
 PYMIA_SUPABASE_URL
@@ -49,7 +49,7 @@ Nunca imprimir ni commitear valores secretos.
 
 ## 4. CLI compatibility surface
 
-La CLI oficial sigue soportando los modos gobernados existentes:
+La CLI oficial mantiene compatibilidad gobernada existente:
 
 ```text
 python -m pymia.cli.service_1_product
@@ -60,13 +60,9 @@ python -m pymia.cli.service_1_product
   --result-json <result.json>
 ```
 
-Para plan/capability gobernada se usa `--requested-capability` en lugar de `--tool-requests`. La reentrada semántica legacy de CLI usa `--semantic-owner-answers` y cada respuesta debe provenir de `allowed_option_ids`; no se acepta texto libre como binding canónico.
+Para capability gobernada se usa `--requested-capability`. Las superficies legacy de CLI son compatibilidad, no patrón arquitectónico para nuevos journeys.
 
-Esta compatibilidad CLI no crea una segunda raíz ni reemplaza el journey SEM-8 de Cobros/Margen en la web.
-
-## 5. Local web
-
-Arranque canónico:
+## 5. Web local
 
 ```text
 python -m pymia.smartpyme.service_1_assisted_web_v1 --host 127.0.0.1 --port 8766
@@ -80,68 +76,70 @@ GET /healthz
 → {"status":"ok"}
 ```
 
-En Cloud Run el smoke utiliza `GET /` conforme al contrato de deployment vigente.
+Cloud Run se certifica mediante el smoke productivo oficial.
 
-## 5. Journey Cobros
+## 6. Journey LIQ_001
 
 ```text
 upload XLSX
 → SEM-8 semantic proposal
 → owner material confirmation
 → P6/P7/P8
-→ LIQ_001 deterministic execution
+→ deterministic execution
 → bounded outcome
 → controlled XLSX delivery
 ```
 
-La web no debe volver a mantener listas semánticas propias para este journey.
+Estado:
 
-## 6. Journey Margen Real
+```text
+PRODUCTION_CERTIFIED: YES
+AUTH_FAIL_CLOSED: PASS
+DELIVERY: PASS
+```
+
+## 7. Journey REN_001
 
 ```text
 upload XLSX
-→ WorkbookProfiler
-→ semantic proposal
-→ owner confirms columns + product relation
-→ optional owner unit confirmation for discount
+→ WorkbookProfiler / SEM-8
+→ owner semantic confirmation
+→ owner-confirmed product relationship
+→ discount unit confirmation cuando aplica
 → Derived Evidence
 → P8
 → FormulaEngineService/kernel
-→ REN_001 outcome
+→ REN_001 bounded outcome
 → controlled XLSX delivery
 ```
 
-### Fail-closed
+Fail-closed productivo certificado ante ausencia de impuestos requeridos. No usar `taxes=0` implícito.
 
-Debe bloquear o pedir evidencia si:
-
-```text
-product relationship is not owner-confirmed
-join coverage is incomplete
-unit cost/quantity/unit price semantics are missing
-non-zero discount unit is not confirmed
-required taxes are absent
-numeric evidence is invalid
-```
-
-No usar `taxes=0` implícito.
-
-## 7. Provider semántico
-
-Estado actual:
+Estado:
 
 ```text
-external provider: not connected
-safe deterministic baseline provider: active
+PRODUCTION_CERTIFIED: YES
+RELATIONSHIP_DEDUPLICATION: PASS
+DISCOUNT_UNIT_CONFIRMATION: PASS
+DERIVED_EVIDENCE: PASS
+DELIVERY: PASS
 ```
 
-La dependencia se inyecta por `semantic_provider`. No importar SDK externo dentro de `pymia/` mientras rija la policy actual.
+## 8. Persistencia y reentry
 
-## 8. Tenant identity y memoria
+```text
+PERSISTED_CASE_LISTING: PASS
+PERSISTED_CASE_REENTRY: PASS
+DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+```
+
+No afirmar restauración durable del workbook ni del result snapshot completo después de restart.
+
+La sanidad arquitectónica debe converger las múltiples superficies/mecanismos de reentry detectados sin ampliar claims.
+
+## 9. Tenant identity y memoria
 
 Producción exige identidad verificada antes de persistir owner evidence.
-
-Memoria:
 
 ```text
 historical tenant contract
@@ -152,46 +150,80 @@ historical tenant contract
 
 No hay auto-confirmación ni semantic rebind por memoria.
 
-## 9. Working Capital
+## 10. Provider semántico
 
-`working_capital` conserva en este corte su semantic scoping legacy. Es una excepción explícita de piloto y no debe utilizarse como patrón para nuevos journeys.
+```text
+EXTERNAL_PROVIDER: NOT_CONNECTED
+SAFE_DETERMINISTIC_BASELINE_PROVIDER: ACTIVE
+```
 
-## 10. QA de cambio
+La dependencia se inyecta por `semantic_provider`. No importar SDK externo dentro de `pymia/` mientras rija la policy actual.
+
+## 11. Working Capital
+
+```text
+TECHNICAL_E2E_READY: YES
+PRODUCTION_CERTIFIED: NO
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+COMPONENTS:
+- projected_closing_cash_balance
+- dso
+- current_ratio
+COMPOSITE_DELIVERY: NO
+```
+
+No incorporar DPO/payment_collection_gap ni nuevas fórmulas durante el frente de sanidad.
+
+## 12. QA de cambio
 
 ```text
 small isolated change      → focal tests
 integration change         → focal + relevant regression
 semantic/runtime cut       → relevant regression + architecture gates
-release candidate          → full suite
-production deployment      → production smoke on deployed SHA
+release candidate          → full suite / exhaustive shards si el wrapper monolítico falla por transporte
+production deployment      → production smoke on exact deployed SHA
 ```
 
-Última evidencia del worktree:
+## 13. Deuda operativa/arquitectónica abierta
 
 ```text
-297 relevant tests PASS
-FULL_SUITE_COVERAGE: PASS_BY_EXHAUSTIVE_SHARDS
-3614 passed / 7 skipped / 0 failed
-MONOLITHIC_MCP_RUNNER: HTTP_502_TIMEOUT
+WORKING_CAPITAL_LEGACY_SEMANTIC_FORK: CLOSED_LOCAL_PASS / PENDING_PRODUCTION_CERTIFICATION
+MULTIPLE_REENTRY_MECHANISMS: OPEN
+LEGACY_P8/P6_PROJECTIONS: OPEN
+UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
 ```
 
-## 11. Release gate actual
+## 14. Release gate actual
+
+No hay un release pendiente del corte SEM-1→SEM-9 para LIQ_001/REN_001: ya está certificado.
+
+Frente vigente:
 
 ```text
-1. review worktree classification
-2. authorized thematic commits
-3. deploy exact SHA
-4. production smoke exact SHA
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
 ```
 
-## 12. Prohibiciones operativas
+Orden:
+
+```text
+document authority sync
+→ physical journey map
+→ legacy dependency inventory
+→ convergence cuts
+→ full regression
+→ production recertification
+```
+
+## 15. Prohibiciones operativas
 
 ```text
 NO_SECOND_XLSX_PARSER
 NO_SECOND_PRODUCT_ROOT
+NO_PARALLEL_PRODUCTIVE_PIPELINE
 NO_LLM_RUNTIME_AUTHORITY
 NO_PARALLEL_MARGIN_CALCULATION
 NO_IMPLICIT_MATERIAL_DEFAULTS
 NO_DELIVERY_WITHOUT_GOVERNED_PATH
 NO_SECRET_PRINTING
+NO_FEATURE_EXPANSION_DURING_SANITATION
 ```

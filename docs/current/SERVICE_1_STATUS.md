@@ -8,46 +8,32 @@
 ```text
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 SERVICE_1_PRODUCT_COMPLETION_GATE: PASS
-SERVICIO 1 MVP DETERMINÍSTICO ASISTIDO: COMPLETO
-LAST_DEPLOYED_PRODUCTION_SMOKE: PASS (2026-08-13)
-CURRENT_WORKTREE_SEM_1_TO_9: IMPLEMENTED
-DERIVED_EVIDENCE_REN_001: IMPLEMENTED
-REN_001_FORMULA_AUTHORITY: KERNEL_ONLY
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
+PRODUCTION_REVISION: pymia-service1-00005-d5l
+PRODUCTION_TRAFFIC: 100%
+RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+LIQ_001: PRODUCTION_CERTIFIED
+REN_001: PRODUCTION_CERTIFIED
+WORKING_CAPITAL: SEM8_MIGRATION_IMPLEMENTED_IN_WORKTREE / NOT_PRODUCTION_CERTIFIED
+WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
 EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
 SAFE_DETERMINISTIC_PROVIDER: ACTIVE
-KERNEL GENÉRICO PRODUCTIVO: ACTIVO
-SIN DIAGNÓSTICO CAUSAL
-WORKING_CAPITAL_SEMANTICS: LEGACY_PILOT
-RELEVANT_REGRESSION: 297 PASS
-FULL_SUITE_COVERAGE: PASS_BY_EXHAUSTIVE_SHARDS
-FULL_SUITE_RESULT: 3614 PASS / 7 SKIPPED / 0 FAILED
-MONOLITHIC_MCP_RUNNER: HTTP_502_TIMEOUT
-CURRENT_WORKTREE_COMMIT: NO
-CURRENT_WORKTREE_DEPLOYED: NO
-12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS: CONSERVADAS
+KERNEL_GENÉRICO_PRODUCTIVO: ACTIVO
+SIN_DIAGNÓSTICO_CAUSAL
+12/12_PATOLOGÍAS_PRODUCTIVAS_CONECTADAS: CONSERVADAS
+NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 ```
 
 ## Autoridad productiva
 
-Entrada CLI canónica:
-
 ```text
-pymia/cli/service_1_product.py
+CLI:  pymia/cli/service_1_product.py
+WEB:  pymia/smartpyme/service_1_assisted_web_v1.py
+ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
-Raíz productiva única:
-
-```text
-pymia/smartpyme/service_1_product_pipeline_v1.py
-```
-
-Web productiva:
-
-```text
-pymia/smartpyme/service_1_assisted_web_v1.py
-```
-
-La web es superficie de interacción; no es autoridad matemática ni segunda raíz de negocio.
+La web y la CLI son superficies de entrada; no crean una segunda raíz ni una segunda autoridad matemática.
 
 ## Cadena vigente
 
@@ -60,54 +46,76 @@ canonical XLSX ingestion
 → P6 ApprovalDecision
 → P7 RequirementMatch + Grain
 → P8 ComputabilityDecision + GovernedComputationInput
+→ Derived Evidence cuando corresponda
 → deterministic execution/kernel
 → bounded outcome
 → controlled delivery
-```
-
-Autoridades separadas:
-
-```text
-provider/LLM → propone
-owner        → confirma significado empresarial
-P6/P7/P8    → gobiernan aprobación/requisitos/computabilidad
-Derived Evidence → transforma evidencia confirmada en inputs canónicos
-kernel       → ejecuta fórmulas
-P10/delivery → controla salida autorizada
 ```
 
 ## SEM-1 → SEM-9
 
 | Corte | Estado | Responsabilidad |
 |---|---|---|
-| SEM-1 | PASS | WorkbookProfilerV1 sobre normalized_tables canónicas |
-| SEM-2 | PASS | contrato provider-neutral, sin SDK |
-| SEM-3 | PASS | validator determinístico, fail-closed |
+| SEM-1 | PASS | WorkbookProfilerV1 |
+| SEM-2 | PASS | contrato provider-neutral |
+| SEM-3 | PASS | validator determinístico fail-closed |
 | SEM-4 | PASS | diálogo owner mínimo y agrupado |
-| SEM-5 | PASS | proyección a evidencia owner canónica |
-| SEM-6 | PASS | reentry hacia reinjection/P6 existente |
-| SEM-7 | PASS | compatibilidad estructural de memoria tenant |
-| SEM-8 | PASS | wiring a la raíz productiva canónica |
-| SEM-9 | PASS acotado | web de Cobros y Margen usa SEM-8; Working Capital conserva piloto legacy |
+| SEM-5 | PASS | owner evidence canónica |
+| SEM-6 | PASS | reentry hacia P6 existente |
+| SEM-7 | PASS | compatibilidad estructural tenant |
+| SEM-8 | PASS | wiring a raíz productiva canónica |
+| SEM-9 | PASS acotado | Cobros y Margen; Working Capital conserva piloto legacy |
 
-## REN_001
+## Producción certificada
 
-Fórmula gobernada:
-
-```text
-REN_001_margen_neto_real
-((sale_price - costs - taxes) / sale_price) * 100
-```
-
-Autoridad ejecutable única:
+### LIQ_001
 
 ```text
-pymia/services/formula_engine_service.py
+HEALTH: PASS
+UNAUTHENTICATED_FAIL_CLOSED: PASS
+SUPABASE_LOGIN: PASS
+AUTHENTICATED_UPLOAD: PASS
+SEM8_OWNER_FLOW: PASS
+OWNER_CONFIRMATION: PASS
+DETERMINISTIC_EXECUTION: PASS
+XLSX_DELIVERY: PASS
 ```
 
-`service_1_ren_001_evaluator_v1.py` valida/proyecta, pero no mantiene otra implementación matemática.
+### REN_001
 
-Derived Evidence puede construir `sale_price` y `costs` desde líneas/relaciones confirmadas. No pone `taxes=0` por ausencia y no interpreta descuentos no nulos sin evidencia owner de unidad.
+```text
+MISSING_TAXES_FAIL_CLOSED: PASS
+SEM8_OWNER_FLOW: PASS
+RELATIONSHIP_DEDUPLICATION: PASS
+DISCOUNT_UNIT_CONFIRMATION: PASS
+DERIVED_EVIDENCE: PASS
+DETERMINISTIC_EXECUTION: PASS
+XLSX_DELIVERY: PASS
+```
+
+## Persistencia / reentry
+
+```text
+PERSISTED_CASE_LISTING: PASS
+PERSISTED_CASE_REENTRY: PASS
+DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+```
+
+No afirmar restauración durable del XLSX/result snapshot después de restart.
+
+## Working Capital
+
+```text
+TECHNICAL_E2E_READY: YES
+PRODUCTION_CERTIFIED: NO
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+COMPONENTS:
+- projected_closing_cash_balance
+- dso
+- current_ratio
+```
+
+La composición usa capacidades ya gobernadas, pero no está todavía alineada al carril SEM-8 certificado. DPO/payment_collection_gap siguen fuera del alcance.
 
 ## Tenant semantics
 
@@ -120,28 +128,23 @@ AUTOMATIC_REUSE: FORBIDDEN
 SEMANTIC_REBIND: FORBIDDEN
 ```
 
-## Provider externo
-
-No hay SDK externo empaquetado ni provider de red productivo conectado en el worktree actual.
+## Deuda abierta prioritaria
 
 ```text
-semantic_provider=<callable>
+SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_LOCAL_PASS / PENDING_PRODUCTION_CERTIFICATION
+MULTIPLE_REENTRY_MECHANISMS: OPEN
+LEGACY_P8/P6_COMPATIBILITY_PROJECTIONS: OPEN
+UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
+DOCUMENTATION_HISTORICAL_DRIFT: SANITATION_IN_PROGRESS
 ```
 
-es una frontera de inyección. La baseline determinística segura permite operar el contrato SEM-2 sin convertir una heurística en autoridad.
-
-## Producción
-
-El último corte desplegado conserva evidencia de smoke PASS. El worktree SEM-1→SEM-9 ya cerró cobertura completa por shards exhaustivos y todavía necesita commit, deploy y smoke propios antes de reemplazar esa baseline en producción.
-
-## Gate de release actual
+## Frente actual
 
 ```text
-1. REVIEW WORKTREE CLASSIFICATION
-2. AUTHORIZED THEMATIC COMMITS
-3. DEPLOY NEW SHA
-4. PRODUCTION_SMOKE NEW SHA
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
 ```
+
+No agregar features/capabilities ni conectar provider externo hasta cerrar sanidad, convergencia, regresión y recertificación.
 
 ## Invariantes
 
