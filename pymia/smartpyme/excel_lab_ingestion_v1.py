@@ -282,6 +282,11 @@ class XlsxDocumentIngestor:
                 continue
             if sheet.sheet_kind not in {"tabular", "summary"}:
                 continue
+            if any(column.duplicate_column for column in sheet.columns):
+                # Duplicate column names are a governed ambiguity: do not select,
+                # rename or merge them silently. Skip the table so downstream fails
+                # closed instead of collapsing duplicate labels.
+                continue
 
             raw = pd.read_excel(path, sheet_name=sheet.sheet_name, header=None, dtype=object)
             header_idx = sheet.probable_header_row - 1

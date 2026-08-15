@@ -169,7 +169,33 @@ class ExcelProfileBuilder:
     def _profile_columns(self, table_df: pd.DataFrame) -> tuple[list[ColumnProfile], list[str]]:
         columns: list[ColumnProfile] = []
         empty_columns: list[str] = []
-        for idx, col_name in enumerate(table_df.columns):
+        column_names = list(table_df.columns)
+        duplicate_names = {
+            name for name in column_names if column_names.count(name) > 1
+        }
+        for idx, col_name in enumerate(column_names):
+            is_duplicate = col_name in duplicate_names
+            if is_duplicate:
+                # DUPLICATE_COLUMN_NAME != AUTOMATIC_RENAME != SILENT_COLUMN_SELECTION.
+                # Do not select table_df[col_name] (pandas would return a DataFrame),
+                # do not rename, do not pick one occurrence arbitrarily, do not merge.
+                # Preserve physical identity via index and surface a governed state.
+                semantic_label, _, _ = self.classifier.classify(str(col_name))
+                col_profile = ColumnProfile(
+                    name=str(col_name),
+                    index=idx,
+                    inferred_type="duplicate",
+                    null_pct=0.0,
+                    unique_count_sample=0,
+                    sample_values=[],
+                    semantic_label=semantic_label,
+                    is_ambiguous=True,
+                    ambiguity_reason="duplicate_column_name",
+                    duplicate_column=True,
+                )
+                columns.append(col_profile)
+                continue
+
             series = table_df[col_name]
             cleaned = series.dropna()
             inferred_type = self._infer_series_type(cleaned)

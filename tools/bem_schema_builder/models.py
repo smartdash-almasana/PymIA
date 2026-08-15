@@ -15,6 +15,7 @@ class ColumnProfile:
     semantic_label: str = "unknown"
     is_ambiguous: bool = False
     ambiguity_reason: str | None = None
+    duplicate_column: bool = False
 
 
 @dataclass(slots=True)
