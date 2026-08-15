@@ -8,6 +8,7 @@ This module provides the logic to:
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -50,6 +51,11 @@ NUMERIC_FIELDS = {
     "ingreso",
     "egreso",
 }
+
+# Governed structural marker for exact duplicate business rows in curated tables.
+# Not a column name: signals that duplicate rows require owner review before any
+# affected calculation. Never used for automatic deduplication or row selection.
+DUPLICATE_ROWS_AMBIGUITY_MARKER: str = "__duplicate_rows__"
 
 
 class _BaseTypedRow(BaseModel):
@@ -519,6 +525,13 @@ class DocumentCurator:
             else:
                 sheet_reports[table.sheet_name] = "BLOCKED"
 
+        if self._has_exact_duplicate_rows(raw_tables):
+            # Exact duplicate business rows are a governed structural signal.
+            # Do not deduplicate, do not choose which row to keep, do not assume
+            # they are an error: they may be real repeated operations. Surface
+            # the ambiguity so any affected calculation requires owner review.
+            ambiguous_fields.add(DUPLICATE_ROWS_AMBIGUITY_MARKER)
+
         rows_count = sum(len(table.records) for table in raw_tables)
         status = "CURATED"
         if issues or ambiguous_fields or unknown_fields:
@@ -544,6 +557,17 @@ class DocumentCurator:
             validation_issues=issues,
             column_confirmation_matrix=matrix,
         )
+
+    @staticmethod
+    def _has_exact_duplicate_rows(raw_tables: list[RawTable]) -> bool:
+        for table in raw_tables:
+            seen: set[str] = set()
+            for record in table.records:
+                key = json.dumps(record, ensure_ascii=False, sort_keys=True, default=str)
+                if key in seen:
+                    return True
+                seen.add(key)
+        return False
 
     def _validate_normalized_record(self, sheet_name: str, row_number: int, record: JsonObject, *, context: str) -> list[CellValidationIssue]:
         issues: list[CellValidationIssue] = []
