@@ -23,9 +23,9 @@ def test_sellable_product_contract_is_frozen_and_bounded() -> None:
     assert "PROVE_REAL_SELLABLE_JOURNEY: CLOSED_PASS" in gate
     assert "SERVICE_1_REAL_SELLABLE_JOURNEY_GATE: PASS" in gate
     assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in state
-    assert "PRODUCTION_APP_SHA: 225f2c4" in state
-    assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00006-h45" in state
+    assert "PRODUCTION_APP_SHA: d2c9c24" in state
+    assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf" in state
     assert "SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1" in state
     assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in readme
-    assert "PRODUCTION_APP_SHA: 225f2c4" in readme
-    assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00006-h45" in readme
+    assert "PRODUCTION_APP_SHA: d2c9c24" in readme
+    assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf" in readme

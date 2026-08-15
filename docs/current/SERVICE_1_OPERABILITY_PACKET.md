@@ -83,7 +83,7 @@ Cloud Run se certifica mediante el smoke productivo oficial.
 ```text
 upload XLSX
 → SEM-8 semantic proposal
-→ owner material confirmation
+→ owner material confirmation (opciones canónicas en allowed_option_ids)
 → P6/P7/P8
 → deterministic execution
 → bounded outcome
@@ -97,6 +97,8 @@ PRODUCTION_CERTIFIED: YES
 AUTH_FAIL_CLOSED: PASS
 DELIVERY: PASS
 ```
+
+Las respuestas del dueño deben ser option_ids canónicos (allowed_option_ids); texto libre no canónico se bloquea (INVALID_OWNER_OPTION_ID).
 
 ## 7. Journey REN_001
 
@@ -163,7 +165,7 @@ La dependencia se inyecta por `semantic_provider`. No importar SDK externo dentr
 
 ```text
 TECHNICAL_E2E_READY: YES
-PRODUCTION_CERTIFIED: NO
+PRODUCTION_CERTIFIED: YES
 SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
 COMPONENTS:
 - projected_closing_cash_balance

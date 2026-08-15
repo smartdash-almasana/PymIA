@@ -6,8 +6,8 @@
 DEPLOYMENT_TARGET: GOOGLE_CLOUD_RUN
 SERVICE: pymia-service1
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-DEPLOYED_GIT_SHA: 225f2c4
-CLOUD_RUN_REVISION: pymia-service1-00006-h45
+DEPLOYED_GIT_SHA: d2c9c24
+CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 TRAFFIC: 100%
 PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 RUNTIME_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
@@ -194,10 +194,12 @@ working_capital production certification
 ## SANITATION FRONT
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
+SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
+SERVICE_1_TECHNICAL_CLOSURE: PASS
 ```
 
-During sanitation, new capabilities, provider expansion, DPO/payment_collection_gap and new productive pipelines remain frozen.
+During sanitation closure, new capabilities, provider expansion, DPO/payment_collection_gap and new productive pipelines remain frozen until a new cycle authorization.
 
 ## DEPLOYMENT OPERATOR RETURN CONTRACT
 

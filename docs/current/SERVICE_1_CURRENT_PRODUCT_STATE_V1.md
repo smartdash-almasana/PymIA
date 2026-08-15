@@ -9,16 +9,19 @@
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 SERVICE_1_TECHNICAL_BASELINE: CLOSED
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-PRODUCTION_APP_SHA: 225f2c4
-PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00006-h45
+PRODUCTION_APP_SHA: d2c9c24
+PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 PRODUCTION_TRAFFIC: 100%
 SERVICE_1_PRODUCTION_SMOKE: PASS
 LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
 WORKING_CAPITAL: PRODUCTION_CERTIFIED
 WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-LOCAL_SANITATION_CUT: LEGACY_COMPUTATION_PLAN_PROJECTION_REMOVED / 3_DEAD_SANDBOX_SLICES_REMOVED
-LOCAL_SANITATION_DEPLOYED: NO
+LOCAL_SANITATION_CUT: LEGACY_COMPUTATION_PLAN_PROJECTION_REMOVED / 3_DEAD_SANDBOX_SLICES_REMOVED / LEGACY_OWNER_REENTRY_ISOLATED
+LOCAL_SANITATION_DEPLOYED: YES
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
+SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
+SERVICE_1_TECHNICAL_CLOSURE: PASS
 NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 ```
 
@@ -177,20 +180,23 @@ DERIVED_EVIDENCE_NEVER_INVENTS_MISSING_MATERIAL_INPUTS
 ## 10. Frente actual
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
+SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
+SERVICE_1_TECHNICAL_CLOSURE: PASS
 ```
 
-Secuencia:
+Secuencia (cerrada):
 
 ```text
-1. documentation authority sync
-2. physical journey map
-3. legacy dependency inventory
-4. converge web journeys
-5. normalize persistence/reentry/delivery policies
-6. delete proven dead paths
-7. full regression
-8. production recertification
+1. documentation authority sync — CLOSED
+2. physical journey map — CLOSED
+3. legacy dependency inventory — CLOSED
+4. converge web journeys — CLOSED_PRODUCTION_PASS
+5. legacy reentry and P8 projection sanitation — CLOSED_PRODUCTION_PASS
+6. normalize persistence/reentry/delivery policies — CLOSED
+7. delete proven dead paths — CLOSED
+8. full regression — CLOSED (3602 passed / 0 failed / 7 skipped)
+9. production recertification — CLOSED (smoke final PASS)
 ```
 
-Features, nuevas capabilities, provider externo y expansión de `working_capital` permanecen congelados hasta cerrar este frente.
+Features, nuevas capabilities, provider externo y expansión de `working_capital` permanecen congelados; el próximo ciclo queda PENDING_ASSIGNMENT.

@@ -17,8 +17,8 @@ Sólo `service_1_product_pipeline_v1.py` es raíz productiva. CLI y web son adap
 
 ```text
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-APP_SHA: 225f2c4
-CLOUD_RUN_REVISION: pymia-service1-00006-h45
+APP_SHA: d2c9c24
+CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 TRAFFIC: 100%
 RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 LIQ_001: PRODUCTION_CERTIFIED
@@ -220,7 +220,9 @@ FAIL_CLOSED
 ## 11. Frente actual
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
+SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
+SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
+SERVICE_1_TECHNICAL_CLOSURE: PASS
 ```
 
-No ampliar producto hasta cerrar convergencia, regresión y recertificación.
+Cierre técnico: PASS (full suite 3602/0/7, baseline BLOCKERS NONE, smoke final PASS, 3 journeys re-certificados). No ampliar producto sin nueva autorización de ciclo.
