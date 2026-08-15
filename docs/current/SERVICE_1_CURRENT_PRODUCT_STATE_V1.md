@@ -9,14 +9,16 @@
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 SERVICE_1_TECHNICAL_BASELINE: CLOSED
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
-PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00005-d5l
+PRODUCTION_APP_SHA: 225f2c4
+PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00006-h45
 PRODUCTION_TRAFFIC: 100%
-PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+SERVICE_1_PRODUCTION_SMOKE: PASS
 LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
-WORKING_CAPITAL: SEM8_MIGRATION_IMPLEMENTED_IN_WORKTREE / NOT_PRODUCTION_CERTIFIED
-WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+WORKING_CAPITAL: PRODUCTION_CERTIFIED
+WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
+LOCAL_SANITATION_CUT: LEGACY_COMPUTATION_PLAN_PROJECTION_REMOVED / 3_DEAD_SANDBOX_SLICES_REMOVED
+LOCAL_SANITATION_DEPLOYED: NO
 NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 ```
 
@@ -66,7 +68,7 @@ SEM-8 canonical product-root wiring       CLOSED
 SEM-9 assisted web                        CLOSED_FOR_LIQ_001_AND_REN_001
 ```
 
-`working_capital` ya migró localmente al carril SEM-8 mediante un scope compuesto sobre sus tres capabilities existentes. Aún no forma parte de la certificación productiva vigente hasta commit, deploy y smoke del nuevo corte.
+`working_capital` está desplegado y certificado en producción sobre SEM-8 mediante un scope compuesto que reutiliza una única confirmación owner para `projected_closing_cash_balance`, `dso` y `current_ratio`.
 
 ## 4. Estado productivo por journey
 
@@ -101,8 +103,8 @@ La fórmula permanece gobernada por `FormulaEngineService/kernel`. Derived Evide
 
 ```text
 TECHNICAL_E2E_READY: YES
-PRODUCTION_CERTIFIED: NO
-SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+PRODUCTION_CERTIFIED: YES
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
 COMPONENTS:
 - projected_closing_cash_balance
 - dso
@@ -110,7 +112,7 @@ COMPONENTS:
 OWN_COMPOSITE_DELIVERY: NO
 ```
 
-No incorporar DPO ni `payment_collection_gap` mientras este journey no converja al contrato semántico canónico.
+No incorporar DPO ni `payment_collection_gap` durante el frente de sanidad; no forman parte del corte certificado.
 
 ## 5. Persistencia y reentry
 
@@ -148,10 +150,10 @@ La frontera de provider no posee autoridad semántica final, matemática, de run
 ## 8. Deuda arquitectónica abierta
 
 ```text
-1. working_capital ya eliminó localmente su fork semántico legacy; queda pendiente certificar ese corte en producción.
-2. existen múltiples mecanismos/superficies de reentry que deben converger.
-3. sobreviven proyecciones de compatibilidad legacy alrededor de P8/P6.
-4. existen slices/sandboxes sin callers productivos que requieren clasificación KEEP/MIGRATE/DELETE_CANDIDATE.
+1. run_owner_reentry sigue teniendo caller productivo de compatibilidad y debe MIGRATE, no borrarse todavía.
+2. la proyección legacy build_computation_plan/ComputationPlanV1 fue removida localmente; P8 canónico conserva la cobertura.
+3. tres completion slices sandbox sin callers productivos fueron removidos localmente junto con sus tests directos.
+4. persisten compatibilidades P6/reentry que requieren clasificación antes de eliminación.
 5. la documentación histórica debe permanecer fuera de autoridad activa.
 ```
 

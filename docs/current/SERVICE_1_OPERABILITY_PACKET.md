@@ -18,8 +18,8 @@ No crear otra entrada con autoridad productiva equivalente.
 ```text
 TARGET: Google Cloud Run
 SERVICE: pymia-service1
-APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
-REVISION: pymia-service1-00005-d5l
+APP_SHA: 225f2c4
+REVISION: pymia-service1-00006-h45
 TRAFFIC: 100%
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
 RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
@@ -164,7 +164,7 @@ La dependencia se inyecta por `semantic_provider`. No importar SDK externo dentr
 ```text
 TECHNICAL_E2E_READY: YES
 PRODUCTION_CERTIFIED: NO
-SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
 COMPONENTS:
 - projected_closing_cash_balance
 - dso
@@ -187,7 +187,7 @@ production deployment      → production smoke on exact deployed SHA
 ## 13. Deuda operativa/arquitectónica abierta
 
 ```text
-WORKING_CAPITAL_LEGACY_SEMANTIC_FORK: CLOSED_LOCAL_PASS / PENDING_PRODUCTION_CERTIFICATION
+WORKING_CAPITAL_LEGACY_SEMANTIC_FORK: CLOSED_PRODUCTION_PASS
 MULTIPLE_REENTRY_MECHANISMS: OPEN
 LEGACY_P8/P6_PROJECTIONS: OPEN
 UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION

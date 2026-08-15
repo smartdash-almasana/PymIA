@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from pymia.smartpyme import service_1_product_pipeline_v1 as product
+from pymia.smartpyme.service_1_computability_v1 import STATUS_COMPUTABLE
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
-    STATUS_READY_FOR_COMPUTATION,
-    build_computation_plan,
+    build_computability_decision_from_confirmed_bindings_v1,
 )
 from pymia.smartpyme.service_1_pyme_011_evaluator_v1 import (
     CLASS_EXCEEDS_PERIOD,
@@ -145,19 +145,23 @@ def test_pyme_011_math_blocks_zero_sales() -> None:
     assert any("sales must be greater than 0" in error for error in result["errors"])
 
 
-def test_pyme_011_builds_real_governed_plan_without_monkeypatch() -> None:
-    plan = build_computation_plan(confirmed_bindings=_confirmed_packet(), requested_capability="dso")
-    assert plan["status"] == STATUS_READY_FOR_COMPUTATION
-    assert plan["family_id"] == FAMILY_RECEIVABLES_DSO
-    assert plan["pathology_code"] == "PYME_011"
-    assert plan["formula_id"] == "PYME_011_dso"
-    assert plan["source_bindings"] == {
+def test_pyme_011_builds_real_governed_p8_input_without_monkeypatch() -> None:
+    decision = build_computability_decision_from_confirmed_bindings_v1(
+        confirmed_bindings=_confirmed_packet(),
+        requested_capability="dso",
+    )
+    assert decision.status == STATUS_COMPUTABLE
+    assert decision.family_id == FAMILY_RECEIVABLES_DSO
+    governed = decision.governed_computation_input
+    assert governed is not None
+    assert governed.pathology_code == "PYME_011"
+    assert governed.formula_id == "PYME_011_dso"
+    assert dict(governed.source_bindings) == {
         "accounts_receivable": "cuentas_por_cobrar",
         "sales": "ventas_periodo",
         "days": "dias_periodo",
     }
-    assert plan["catalog_versions"]["evidence_matrix"] == "2.0"
-    assert plan["computation_candidate_ready"] is True
+    assert governed.catalog_versions["evidence_matrix"] == "2.0"
 
 
 def test_pyme_011_aggregates_confirmed_evidence_and_builds_bounded_outcome() -> None:

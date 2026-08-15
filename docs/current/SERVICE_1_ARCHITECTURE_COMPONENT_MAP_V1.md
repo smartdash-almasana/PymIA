@@ -17,13 +17,13 @@ Sólo `service_1_product_pipeline_v1.py` es raíz productiva. CLI y web son adap
 
 ```text
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
-CLOUD_RUN_REVISION: pymia-service1-00005-d5l
+APP_SHA: 225f2c4
+CLOUD_RUN_REVISION: pymia-service1-00006-h45
 TRAFFIC: 100%
 RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
-WORKING_CAPITAL: SEM8_MIGRATION_LOCAL_PASS / NOT_PRODUCTION_CERTIFIED
+WORKING_CAPITAL: PRODUCTION_CERTIFIED / SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
 ```
 
 ## 3. Mapa canónico de alto nivel
@@ -64,7 +64,7 @@ bounded outcome
 controlled delivery
 ```
 
-Este es el carril canónico de LIQ_001 y REN_001. `working_capital` ya converge localmente a SEM-8 mediante un scope compuesto sobre sus tres capabilities existentes, pero todavía no está certificado en producción.
+Este es el carril canónico de LIQ_001, REN_001 y `working_capital`. La composición usa un scope SEM-8 compuesto sobre sus tres capabilities existentes y está certificada en producción.
 
 ## 4. SEM-1 → SEM-9
 
@@ -80,7 +80,7 @@ SEM-8  assisted semantic wiring into canonical product root
 SEM-9  assisted web wiring for LIQ_001 / REN_001
 ```
 
-`working_capital` ya no usa semantic scoping legacy en el worktree actual. La deuda abierta es certificar el nuevo scope compuesto SEM-8 en producción y luego retirar compatibilidad legacy probadamente muerta.
+`working_capital` ya no usa semantic scoping legacy y su scope compuesto SEM-8 está certificado en producción. La deuda abierta se concentra en compatibilidad legacy de reentry/P6 y en superficies muertas probadamente aisladas.
 
 ## 5. División de autoridad
 
@@ -193,7 +193,7 @@ La memoria no autoriza reuse automático ni semantic rebind.
 ## 9. Deuda arquitectónica abierta
 
 ```text
-SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_LOCAL_PASS / PENDING_PRODUCTION_CERTIFICATION
+SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_PRODUCTION_PASS
 MULTIPLE_REENTRY_MECHANISMS: OPEN
 LEGACY_P8/P6_COMPATIBILITY_PROJECTIONS: OPEN
 UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION

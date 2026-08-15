@@ -28,10 +28,6 @@ from pymia.smartpyme.service_1_owner_confirmation_reinjection_to_semantic_gate_v
     build_service_1_owner_confirmation_reinjection_to_semantic_gate_v1,
 )
 from pymia.smartpyme.service_1_computability_v1 import (
-    STATUS_BLOCKED as P8_STATUS_BLOCKED,
-    STATUS_COMPUTABLE as P8_STATUS_COMPUTABLE,
-    STATUS_NEEDS_EVIDENCE as P8_STATUS_NEEDS_EVIDENCE,
-    STATUS_UNSUPPORTED_CAPABILITY as P8_STATUS_UNSUPPORTED_CAPABILITY,
     build_service_1_computability_decision_v1,
 )
 
@@ -41,13 +37,6 @@ STATUS_OWNER_QUESTIONS = "OWNER_QUESTIONS"
 STATUS_OWNER_FOLLOWUP = "OWNER_FOLLOWUP_REQUIRED"
 STATUS_BLOCKED_PIPELINE = "BLOCKED"
 
-COMPUTATION_PLAN_SCHEMA_VERSION = "SERVICE_1_COMPUTATION_PLAN_V1"
-STATUS_READY_FOR_COMPUTATION = "READY_FOR_COMPUTATION"
-STATUS_NEEDS_EVIDENCE = "NEEDS_EVIDENCE"
-STATUS_NEEDS_OWNER_CONFIRMATION_PLAN = "NEEDS_OWNER_CONFIRMATION"
-STATUS_UNSUPPORTED_CAPABILITY = "UNSUPPORTED_CAPABILITY"
-STATUS_BLOCKED_BY_POLICY = "BLOCKED_BY_POLICY"
-STATUS_COMPUTATION_PLAN_BLOCKED = "BLOCKED"
 
 def run_initial_pass(
     *, ingestion_output: Any, sheet_name: str = "sheet1"
@@ -220,82 +209,6 @@ def build_computability_decision_from_confirmed_bindings_v1(
     )
 
 
-def build_computation_plan(
-    *,
-    confirmed_bindings: Any,
-    requested_capability: str,
-    formula_catalog_path: str | Path | None = None,
-    pathology_catalog_path: str | Path | None = None,
-    evidence_matrix_path: str | Path | None = None,
-    runtime_authorized: bool = False,
-    tool_execution_authorized: bool = False,
-    product_ready: bool = False,
-    delivery_authorized: bool = False,
-    diagnosis_generated: bool = False,
-) -> dict[str, Any]:
-    """Legacy computation-plan projection over canonical P8."""
-    if any((runtime_authorized, tool_execution_authorized, product_ready, delivery_authorized, diagnosis_generated)):
-        return _computation_plan_packet(status=STATUS_BLOCKED_BY_POLICY, blocked_reason="REQUEST_SAFETY_FLAGS_FORBIDDEN", requested_capability=requested_capability)
-    capability = str(requested_capability or "").strip()
-    if not capability:
-        return _computation_plan_packet(status=STATUS_COMPUTATION_PLAN_BLOCKED, blocked_reason="REQUESTED_CAPABILITY_REQUIRED")
-    if not isinstance(confirmed_bindings, dict) or confirmed_bindings.get("schema_version") != SCHEMA_VERSION or confirmed_bindings.get("status") != STATUS_CONFIRMED_BINDINGS:
-        return _computation_plan_packet(status=STATUS_COMPUTATION_PLAN_BLOCKED, blocked_reason="CONFIRMED_BINDINGS_REQUIRED", requested_capability=capability)
-    if any(confirmed_bindings.get(flag) for flag in ("runtime_authorized", "tool_execution_authorized", "product_ready", "delivery_authorized", "diagnosis_generated")):
-        return _computation_plan_packet(status=STATUS_BLOCKED_BY_POLICY, blocked_reason="CONFIRMED_BINDINGS_SAFETY_FLAGS_FORBIDDEN", requested_capability=capability)
-
-    evidence = _confirmed_evidence_packet(confirmed_bindings)
-    if evidence is None:
-        return _computation_plan_packet(status=STATUS_COMPUTATION_PLAN_BLOCKED, blocked_reason="CONFIRMED_EVIDENCE_PACKET_MISSING", requested_capability=capability)
-    case_id = str(evidence.get("case_id") or (confirmed_bindings.get("bridge_packet") or {}).get("case_id") or "").strip()
-    if not case_id:
-        return _computation_plan_packet(status=STATUS_COMPUTATION_PLAN_BLOCKED, blocked_reason="CASE_ID_REQUIRED_FOR_COMPUTATION_PLAN", requested_capability=capability)
-    decision = build_computability_decision_from_confirmed_bindings_v1(
-        confirmed_bindings=confirmed_bindings,
-        requested_capability=capability,
-        formula_catalog_path=formula_catalog_path,
-        pathology_catalog_path=pathology_catalog_path,
-        evidence_matrix_path=evidence_matrix_path,
-    )
-    if decision.status == P8_STATUS_UNSUPPORTED_CAPABILITY:
-        return _computation_plan_packet(status=STATUS_UNSUPPORTED_CAPABILITY, blocked_reason=decision.reason, requested_capability=capability, family_id=decision.family_id)
-    if decision.status == P8_STATUS_NEEDS_EVIDENCE:
-        return _computation_plan_packet(status=STATUS_NEEDS_EVIDENCE, blocked_reason=_legacy_p8_reason(decision.reason), requested_capability=capability, family_id=decision.family_id, family_status=_legacy_family_status(decision), missing_role_groups=[list(g) for g in decision.missing_role_groups])
-    if decision.status != P8_STATUS_COMPUTABLE or decision.governed_computation_input is None:
-        legacy_status = STATUS_BLOCKED_BY_POLICY if decision.reason in {"MATRIX_COMPUTATION_PLANNING_NOT_ALLOWED", "COMPUTATION_CANDIDATE_NOT_ALLOWED", "MATRIX_FORMULA_VARIABLE_DRIFT"} else STATUS_COMPUTATION_PLAN_BLOCKED
-        return _computation_plan_packet(status=legacy_status, blocked_reason=decision.reason, requested_capability=capability, family_id=decision.family_id)
-
-    governed = decision.governed_computation_input
-    return _computation_plan_packet(
-        status=STATUS_READY_FOR_COMPUTATION,
-        blocked_reason=None,
-        requested_capability=capability,
-        family_id=governed.family_id,
-        family_status="VARIABLE_FAMILY_READY",
-        pathology_code=governed.pathology_code,
-        formula_id=governed.formula_id,
-        formula_expression=governed.formula_expression,
-        calculation_state="CALCULABLE",
-        required_variables=list(governed.required_variables),
-        required_evidence=list(governed.required_evidence),
-        source_bindings=dict(governed.source_bindings),
-        catalog_versions=dict(governed.catalog_versions),
-        computation_candidate_ready=True,
-        p8_decision=decision.to_dict(),
-        governed_computation_input=governed.to_dict(),
-    )
-
-
-def _legacy_p8_reason(reason: str | None) -> str | None:
-    if reason == "REQUIREMENTS_NOT_MATCHED":
-        return "VARIABLE_FAMILY_NOT_READY"
-    return reason
-
-
-def _legacy_family_status(decision: Any) -> str | None:
-    return "VARIABLE_FAMILY_MISSING_REQUIRED_ROLES" if decision.missing_role_groups else None
-
-
 def _confirmed_evidence_packet(confirmed_bindings: dict[str, Any]) -> dict[str, Any] | None:
     reentry = confirmed_bindings.get("reentry_packet")
     if isinstance(reentry, dict) and reentry.get("column_candidates"):
@@ -310,62 +223,6 @@ def _confirmed_evidence_packet(confirmed_bindings: dict[str, Any]) -> dict[str, 
         merged["requirement_matches"] = gate.get("requirement_matches", [])
         return merged
     return None
-
-
-def _computation_plan_packet(
-    *,
-    status: str,
-    blocked_reason: str | None,
-    requested_capability: str | None = None,
-    family_id: str | None = None,
-    family_status: str | None = None,
-    pathology_code: str | None = None,
-    formula_id: str | None = None,
-    formula_expression: str | None = None,
-    calculation_state: str | None = None,
-    required_variables: list[str] | None = None,
-    required_evidence: list[str] | None = None,
-    missing_role_groups: list[list[str]] | None = None,
-    ambiguous_role_groups: list[list[str]] | None = None,
-    missing_variables: list[str] | None = None,
-    pending_variables: list[str] | None = None,
-    source_bindings: dict[str, str] | None = None,
-    catalog_versions: dict[str, str | None] | None = None,
-    computation_candidate_ready: bool = False,
-    p8_decision: dict[str, Any] | None = None,
-    governed_computation_input: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    return {
-        "schema_version": COMPUTATION_PLAN_SCHEMA_VERSION,
-        "service_name": "SERVICE_1",
-        "packet_type": "COMPUTATION_PLAN",
-        "status": status,
-        "blocked_reason": blocked_reason,
-        "requested_capability": requested_capability,
-        "family_id": family_id,
-        "family_status": family_status,
-        "pathology_code": pathology_code,
-        "formula_id": formula_id,
-        "formula_expression": formula_expression,
-        "calculation_state": calculation_state,
-        "required_variables": list(required_variables or []),
-        "required_evidence": list(required_evidence or []),
-        "missing_role_groups": list(missing_role_groups or []),
-        "ambiguous_role_groups": list(ambiguous_role_groups or []),
-        "missing_variables": list(missing_variables or []),
-        "pending_variables": list(pending_variables or []),
-        "source_bindings": dict(source_bindings or {}),
-        "catalog_versions": dict(catalog_versions or {}),
-        "computation_candidate_ready": bool(computation_candidate_ready),
-        "p8_decision": p8_decision,
-        "governed_computation_input": governed_computation_input,
-        "computation_executed": False,
-        "runtime_authorized": False,
-        "tool_execution_authorized": False,
-        "product_ready": False,
-        "delivery_authorized": False,
-        "diagnosis_generated": False,
-    }
 
 
 
@@ -407,14 +264,7 @@ __all__ = [
     "STATUS_OWNER_QUESTIONS",
     "STATUS_OWNER_FOLLOWUP",
     "STATUS_BLOCKED_PIPELINE",
-    "COMPUTATION_PLAN_SCHEMA_VERSION",
-    "STATUS_READY_FOR_COMPUTATION",
-    "STATUS_NEEDS_EVIDENCE",
-    "STATUS_NEEDS_OWNER_CONFIRMATION_PLAN",
-    "STATUS_UNSUPPORTED_CAPABILITY",
-    "STATUS_BLOCKED_BY_POLICY",
-    "STATUS_COMPUTATION_PLAN_BLOCKED",
     "run_initial_pass",
     "run_owner_reentry",
-    "build_computation_plan",
+    "build_computability_decision_from_confirmed_bindings_v1",
 ]

@@ -7,14 +7,16 @@
 
 ```text
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-PRODUCTION_APP_SHA: 53a0016085c864eb4ddbd3baa42dba48f2d7173d
-PRODUCTION_REVISION: pymia-service1-00005-d5l
+PRODUCTION_APP_SHA: 225f2c4
+PRODUCTION_REVISION: pymia-service1-00006-h45
 PRODUCTION_TRAFFIC: 100%
-RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+SERVICE_1_PRODUCTION_SMOKE: PASS
 LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
-WORKING_CAPITAL: TECHNICAL_E2E_READY / NOT_PRODUCTION_CERTIFIED
-WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+WORKING_CAPITAL: PRODUCTION_CERTIFIED
+WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
+LOCAL_SANITATION: P8_LEGACY_PROJECTION_REMOVED / 3_DEAD_SANDBOX_SLICES_REMOVED
+LOCAL_SANITATION_DEPLOYED: NO
 ```
 
 ## Frente actual único
@@ -32,14 +34,15 @@ Reducir deuda técnica, arquitectónica y documental; converger journeys y elimi
 ## Secuencia obligatoria
 
 ```text
-1. DOCUMENTATION_AUTHORITY_SYNC
-2. PHYSICAL_JOURNEY_MAP
-3. LEGACY_DEPENDENCY_INVENTORY
-4. CONVERGE_WEB_JOURNEYS
-5. NORMALIZE_PERSISTENCE_REENTRY_DELIVERY
-6. DELETE_PROVEN_DEAD_PATHS
-7. FULL_REGRESSION
-8. PRODUCTION_RECERTIFICATION
+1. DOCUMENTATION_AUTHORITY_SYNC — CLOSED
+2. PHYSICAL_JOURNEY_MAP — CLOSED
+3. LEGACY_DEPENDENCY_INVENTORY — CLOSED
+4. CONVERGE_WEB_JOURNEYS — CLOSED_PRODUCTION_PASS
+5. LEGACY_REENTRY_AND_P8_PROJECTION_SANITATION — IN_PROGRESS
+6. NORMALIZE_PERSISTENCE_REENTRY_DELIVERY — PENDING
+7. DELETE_PROVEN_DEAD_PATHS — PARTIAL
+8. FULL_REGRESSION — PENDING
+9. PRODUCTION_RECERTIFICATION — PENDING
 ```
 
 ## Estado por journey
@@ -71,24 +74,24 @@ PRODUCTION_CERTIFIED: YES
 
 ```text
 TECHNICAL_E2E_READY: YES
-SEM-8: NO
-SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_LOCAL_PASS
+SEM-8: YES
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
 COMPONENTS:
 - projected_closing_cash_balance
 - dso
 - current_ratio
 COMPOSITE_DELIVERY: NO
-PRODUCTION_CERTIFIED: NO
+PRODUCTION_CERTIFIED: YES
 ```
 
 ## Deuda abierta confirmada
 
 ```text
-1. fork semántico legacy de working_capital cerrado localmente; pendiente certificación productiva
-2. múltiples mecanismos/superficies de reentry
-3. proyecciones legacy de compatibilidad P8/P6
-4. slices/sandboxes sin callers productivos pendientes de clasificación
-5. documentación histórica que no debe gobernar estado actual
+1. run_owner_reentry mantiene caller productivo de compatibilidad: MIGRATE, no DELETE.
+2. build_computation_plan/ComputationPlanV1: REMOVED_LOCAL_PASS; cobertura migrada a P8 canónico.
+3. tres completion slices sandbox sin callers productivos: REMOVED_LOCAL_PASS.
+4. compatibilidades P6/reentry restantes: OPEN.
+5. documentación histórica: REFERENCE_ONLY, fuera de autoridad activa.
 ```
 
 Clasificación para cada deuda de código:
@@ -135,4 +138,4 @@ una tarea
 → una decisión
 ```
 
-El próximo paso después de esta sincronización documental es `PHYSICAL_JOURNEY_MAP`, usando Graphify como evidencia primaria y grep/tests como verificación puntual.
+El próximo corte es clasificar y migrar los callers productivos restantes de `run_owner_reentry` sin romper compatibilidad CLI/product-root; no se elimina mientras exista caller productivo.

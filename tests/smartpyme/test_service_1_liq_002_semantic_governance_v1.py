@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from pymia.smartpyme.service_1_computability_v1 import STATUS_COMPUTABLE
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
-    STATUS_READY_FOR_COMPUTATION,
-    build_computation_plan,
+    build_computability_decision_from_confirmed_bindings_v1,
 )
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
@@ -110,32 +110,32 @@ def test_cash_projection_family_is_ready_only_with_three_confirmed_roles() -> No
     assert cash_projection.delivery_authorized is False
 
 
-def test_liq_002_builds_real_governed_plan_without_monkeypatch() -> None:
-    plan = build_computation_plan(
+def test_liq_002_builds_real_governed_p8_input_without_monkeypatch() -> None:
+    decision = build_computability_decision_from_confirmed_bindings_v1(
         confirmed_bindings=_confirmed_packet(),
         requested_capability="projected_closing_cash_balance",
     )
 
-    assert plan["status"] == STATUS_READY_FOR_COMPUTATION
-    assert plan["family_id"] == FAMILY_CASH_PROJECTION
-    assert plan["family_status"] == STATUS_READY
-    assert plan["pathology_code"] == "LIQ_002"
-    assert plan["formula_id"] == "LIQ_002_saldo_final_proyectado"
-    assert plan["required_variables"] == [
+    assert decision.status == STATUS_COMPUTABLE
+    assert decision.family_id == FAMILY_CASH_PROJECTION
+    governed = decision.governed_computation_input
+    assert governed is not None
+    assert governed.pathology_code == "LIQ_002"
+    assert governed.formula_id == "LIQ_002_saldo_final_proyectado"
+    assert list(governed.required_variables) == [
         "initial_balance",
         "expected_collections",
         "expected_payments",
     ]
-    assert plan["source_bindings"] == {
+    assert dict(governed.source_bindings) == {
         "initial_balance": "saldo_inicial",
         "expected_collections": "cobros_esperados",
         "expected_payments": "pagos_esperados",
     }
-    assert plan["catalog_versions"]["evidence_matrix"] == "2.0"
-    assert plan["computation_candidate_ready"] is True
-    assert plan["runtime_authorized"] is False
-    assert plan["tool_execution_authorized"] is False
-    assert plan["product_ready"] is False
-    assert plan["delivery_authorized"] is False
-    assert plan["diagnosis_generated"] is False
-    assert plan["computation_executed"] is False
+    assert governed.catalog_versions["evidence_matrix"] == "2.0"
+    payload = governed.to_dict()
+    assert payload["runtime_authorized"] is False
+    assert payload["tool_execution_authorized"] is False
+    assert payload["product_ready"] is False
+    assert payload["delivery_authorized"] is False
+    assert payload["diagnosis_generated"] is False

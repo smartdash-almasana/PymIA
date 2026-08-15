@@ -70,9 +70,12 @@ def structural_checks(root: Path) -> list[Check]:
     canonical_bridge_source = (root / "pymia" / "smartpyme" / "service_1_canonical_ingestion_output_to_semantic_bridge_v1.py").read_text(encoding="utf-8")
     generic_engine_source = (root / "pymia" / "smartpyme" / "service_1_generic_capability_engine_v1.py").read_text(encoding="utf-8")
 
-    computation_section = deterministic_source.split("def build_computation_plan", 1)[1] if "def build_computation_plan" in deterministic_source else ""
-    post_p6_rebinding = "build_service_1_semantic_evidence_binding_result_v1(" in computation_section
-    fused_p7_p8 = "P7/P8" in computation_section or "P7/P8" in deterministic_source
+    legacy_computation_plan_projection_removed = (
+        "def build_computation_plan(" not in deterministic_source
+        and "SERVICE_1_COMPUTATION_PLAN_V1" not in deterministic_source
+    )
+    post_p6_rebinding = "build_service_1_semantic_evidence_binding_result_v1(" in deterministic_source
+    fused_p7_p8 = "P7/P8" in deterministic_source
     gate_owns_questions = "owner_questions" in gate_source and "_owner_questions(" in gate_source
     gate_owns_family_matching = "build_service_1_variable_family_bindings_v1(" in gate_source
     capability_branch_count = product_source.count("requested_capability ==")
@@ -99,10 +102,11 @@ def structural_checks(root: Path) -> list[Check]:
         and "class Service1ComputabilityDecisionV1" in p8_source
         and "class Service1GovernedComputationInputV1" in p8_source
         and "build_service_1_computability_decision_v1(" in deterministic_source
-        and "build_service_1_semantic_evidence_binding_result_v1(" not in computation_section
+        and "build_service_1_semantic_evidence_binding_result_v1(" not in deterministic_source
+        and legacy_computation_plan_projection_removed
     )
     pre_p6_p7_removed = "build_service_1_variable_family_bindings_v1(" not in canonical_bridge_source
-    semantic_binding_projection_removed = "semantic_binding_result" not in computation_section
+    semantic_binding_projection_removed = "semantic_binding_result" not in deterministic_source
     generic_execution_consumes_governed_input = (
         "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1" in generic_engine_source
         and "governed_computation_input" in generic_engine_source
@@ -120,7 +124,6 @@ def structural_checks(root: Path) -> list[Check]:
         and '"computability_decision"' in product_source
     )
     allowed_legacy_plan_modules = {
-        "service_1_deterministic_semantic_pipeline_v1",
         "service_1_liq_002_evaluator_v1",
         "service_1_pyme_011_evaluator_v1",
     }
@@ -185,6 +188,13 @@ def structural_checks(root: Path) -> list[Check]:
             "canonical ComputabilityDecision and GovernedComputationInput are wired without semantic rebinding"
             if p8_authority
             else "canonical P8 computability authority not fully wired",
+        ),
+        Check(
+            "LEGACY_COMPUTATION_PLAN_PROJECTION_REMOVED",
+            legacy_computation_plan_projection_removed,
+            "deterministic semantic pipeline no longer exposes ComputationPlanV1 compatibility projection"
+            if legacy_computation_plan_projection_removed
+            else "legacy build_computation_plan/ComputationPlanV1 projection remains in deterministic semantic pipeline",
         ),
         Check(
             "NO_P7_MATCHING_BEFORE_P6",
