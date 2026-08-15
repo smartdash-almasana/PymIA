@@ -1,7 +1,7 @@
 # Servicio 1 — Excel Reality Lab A4 Adversarial Matrix V1
 
 **Fecha:** 2026-08-15
-**Estado:** BLOCKED_BY_2_CONFIRMED_DEFECTS
+**Estado:** BLOCKED_BY_1_CONFIRMED_DEFECT
 
 ## Objetivo
 
@@ -20,10 +20,10 @@ Evaluador:
 ```text
 CASES: 11
 PASS_COMPUTABLE: 1
-PASS_NEEDS_OWNER: 6
+PASS_NEEDS_OWNER: 7
 PASS_NEEDS_EVIDENCE: 2
 PASS_BLOCKED_FAIL_CLOSED: 0
-FAIL_DEFECT: 2
+FAIL_DEFECT: 1
 UNSAFE_EXECUTIONS: 0
 UNCONTROLLED_CRASHES: 0
 VERDICT: FAIL_ADVERSARIAL_MATRIX_V1
@@ -65,16 +65,19 @@ S1-A4-011 INCOMPLETE_RELATIONSHIPS
 
 ## Defectos confirmados
 
-### A4-D01 — MIXED_CURRENCY_WITHOUT_SAFE_SIGNAL
+### A4-D01 — MIXED_CURRENCY_WITHOUT_SAFE_SIGNAL — RESUELTO
 
 ```text
 case_id: S1-A4-001
 fixture: S1_A4_ADV_001_mixed_currency.xlsx
-observed: curation_status=CURATED; unknown_fields=[]; ambiguous_fields=[]
-pathology: una misma columna monetaria contiene ARS y USD sin evidencia FX
-risk: montos de distinta moneda podrían atravesar curación sin señal material de conflicto
-root_cause_candidate: la curación perfila semántica de columnas pero no gobierna consistencia de unidad/moneda a nivel de valores
-required_resolution: detectar incompatibilidad de moneda/unidad antes de autorizar un cálculo monetario agregado; no convertir moneda ni inventar FX
+observed (pre-fix): curation_status=CURATED; ARS y USD convivían sin señal gobernada
+pathology: una misma evidencia monetaria contiene más de una moneda explícita sin contrato FX
+risk: montos de distinta moneda podrían atravesar curación y agregarse como si fueran compatibles
+root_cause: DocumentCurator no gobernaba consistencia de moneda a nivel de valores dentro de una tabla
+fix: FIX_A4_MIXED_CURRENCY_SAFE_SIGNAL_V1 — DocumentCurator detecta múltiples códigos de moneda explícitos dentro de la misma tabla y emite
+     ambigüedad gobernada (__mixed_currency__ en ambiguous_fields) → curation PARTIAL → requiere owner review.
+     Sin conversión automática, sin tipo de cambio inferido y sin modificar los importes originales.
+resultado: A4-001 = PASS_NEEDS_OWNER (MIXED_CURRENCY_WITH_SAFE_SIGNAL)
 ```
 
 ### A4-D02 — TOTAL_ROWS_CAN_FLOW_AS_OPERATIONS_WITHOUT_SAFE_SIGNAL — RESUELTO
@@ -129,8 +132,9 @@ NO_UNSAFE_EXECUTION
 ## Decisión
 
 ```text
-A4_STATUS: BLOCKED_BY_2_CONFIRMED_DEFECTS
+A4_STATUS: BLOCKED_BY_1_CONFIRMED_DEFECT
 A5_REAL_CLIENT_SHADOW_RUNS: NOT_AUTHORIZED_YET
+A4-D01 MIXED_CURRENCY_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_MIXED_CURRENCY_SAFE_SIGNAL_V1)
 A4-D02 TOTAL_ROWS_CAN_FLOW_AS_OPERATIONS_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_TOTAL_ROWS_SAFE_SIGNAL_V1)
 A4-D04 DUPLICATE_ROWS_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_DUPLICATE_ROWS_SAFE_SIGNAL_V1)
 ```
@@ -138,8 +142,7 @@ A4-D04 DUPLICATE_ROWS_WITHOUT_SAFE_SIGNAL: RESOLVED (FIX_A4_DUPLICATE_ROWS_SAFE_
 Orden de resolución restante:
 
 ```text
-1. MIXED_CURRENCY unit consistency guard (A4-D01)
-2. OUT_OF_PERIOD period-membership guard (A4-D03)
+1. OUT_OF_PERIOD period-membership guard (A4-D03)
 ```
 
 Cada defecto debe cerrarse en un corte independiente con fixture de regresión A4, cambio mínimo en la authority correcta, focal tests, architecture baseline y rerun completo de A4.

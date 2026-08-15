@@ -57,6 +57,7 @@ NUMERIC_FIELDS = {
 # affected calculation. Never used for automatic deduplication or row selection.
 DUPLICATE_ROWS_AMBIGUITY_MARKER: str = "__duplicate_rows__"
 TOTAL_ROWS_AMBIGUITY_MARKER: str = "__embedded_total_rows__"
+MIXED_CURRENCY_AMBIGUITY_MARKER: str = "__mixed_currency__"
 
 
 class _BaseTypedRow(BaseModel):
@@ -539,6 +540,12 @@ class DocumentCurator:
             # instead of silently treating aggregate rows as operations.
             ambiguous_fields.add(TOTAL_ROWS_AMBIGUITY_MARKER)
 
+        if self._has_mixed_currency(raw_tables):
+            # Multiple explicit currency codes within the same table make monetary
+            # aggregation unsafe without a governed conversion contract. Preserve
+            # original values and require owner review; never invent an FX rate.
+            ambiguous_fields.add(MIXED_CURRENCY_AMBIGUITY_MARKER)
+
         rows_count = sum(len(table.records) for table in raw_tables)
         status = "CURATED"
         if issues or ambiguous_fields or unknown_fields:
@@ -584,6 +591,18 @@ class DocumentCurator:
             has_aggregate = any(label in aggregate_labels for label in labels)
             has_detail = any(label and label not in aggregate_labels for label in labels)
             if has_aggregate and has_detail:
+                return True
+        return False
+
+    @staticmethod
+    def _has_mixed_currency(raw_tables: list[RawTable]) -> bool:
+        for table in raw_tables:
+            currencies = {
+                str(record.get("moneda") or "").strip().upper()
+                for record in table.records
+                if record.get("moneda") is not None and str(record.get("moneda")).strip()
+            }
+            if len(currencies) > 1:
                 return True
         return False
 
