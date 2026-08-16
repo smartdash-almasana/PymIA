@@ -63,6 +63,10 @@ Gobierno de presentación únicamente:
 
 - `SERVICE_1_ENTERPRISE_VISUAL_SYSTEM_V1.md` — UX/presentación; nunca autoridad de cálculo, semántica o ejecución.
 
+Modelo arquitectónico conceptual subordinado:
+
+- `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica; refleja como brechas actuales la memoria durable completa de resultados y la ausencia de un LLM externo conectado al runtime.
+
 ## Documentos subordinados
 
 Algunas evidencias y decisiones previas siguen indexadas porque tests y operación las usan como referencias acotadas, pero **no gobiernan el próximo paso**:
