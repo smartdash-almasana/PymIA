@@ -1,6 +1,6 @@
 # SERVICE_1_CURRENT_PRODUCT_STATE_V1
 
-**Fecha de corte:** 2026-08-14
+**Fecha de corte:** 2026-08-16
 **Estado:** `CURRENT_AUTHORITY`
 
 ## 1. Estado ejecutivo
@@ -9,6 +9,7 @@
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 SERVICE_1_TECHNICAL_BASELINE: CLOSED
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+MAIN_HEAD: 26ef6c8c57bb201da1a36a1073147c641d1309f4
 PRODUCTION_APP_SHA: d2c9c24
 PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 PRODUCTION_TRAFFIC: 100%
@@ -17,15 +18,16 @@ LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
 WORKING_CAPITAL: PRODUCTION_CERTIFIED
 WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-LOCAL_SANITATION_CUT: LEGACY_COMPUTATION_PLAN_PROJECTION_REMOVED / 3_DEAD_SANDBOX_SLICES_REMOVED / LEGACY_OWNER_REENTRY_ISOLATED
-LOCAL_SANITATION_DEPLOYED: YES
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
-SERVICE_1_TECHNICAL_CLOSURE: PASS
+LLM_COLUMN_INTERPRETER_IMPLEMENTATION: MERGED_IN_MAIN
+SEQUENTIAL_OWNER_CORROBORATION: MERGED_IN_MAIN
+PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: PENDING
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
+DETERMINISTIC_SEMANTIC_FALLBACK: PRESERVED
+LLM_AUTHORITY: NONE
 NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 ```
 
-Servicio 1 ya no está en estado de worktree pendiente de release. El corte SEM-1→SEM-9 para Cobros/Margen, Derived Evidence REN_001, persistencia durable de owner evidence y hardening SEM-8 está integrado, desplegado y certificado en producción.
+Servicio 1 mantiene su certificación productiva previa. El corte de recepción semántica secuencial con provider PydanticAI está integrado en `main`, pero todavía no está certificado como desplegado en producción. No debe confundirse `main` con la revisión productiva vigente.
 
 ## 2. Cadena canónica vigente
 
@@ -48,13 +50,15 @@ canonical XLSX ingestion
 Autoridades:
 
 ```text
-provider/LLM → propone
+provider/LLM → propone significado de columnas dentro de contrato cerrado
 owner        → confirma significado empresarial
 P6/P7/P8    → gobiernan aprobación/requisitos/computabilidad
 Derived Evidence → transforma evidencia confirmada en inputs canónicos
 kernel       → única autoridad matemática
 P10/delivery → controla salida autorizada
 ```
+
+El provider LLM no posee autoridad matemática, de runtime, tools, persistencia ni delivery.
 
 ## 3. SEM-1 → SEM-9
 
@@ -72,6 +76,8 @@ SEM-9 assisted web                        CLOSED_FOR_LIQ_001_AND_REN_001
 ```
 
 `working_capital` está desplegado y certificado en producción sobre SEM-8 mediante un scope compuesto que reutiliza una única confirmación owner para `projected_closing_cash_balance`, `dso` y `current_ratio`.
+
+El corte posterior `LLM_COLUMN_INTERPRETER_V1 + SEQUENTIAL_OWNER_CORROBORATION_V1` está `MERGED_IN_MAIN / PRODUCTION_PENDING`.
 
 ## 4. Estado productivo por journey
 
@@ -115,7 +121,7 @@ COMPONENTS:
 OWN_COMPOSITE_DELIVERY: NO
 ```
 
-No incorporar DPO ni `payment_collection_gap` durante el frente de sanidad; no forman parte del corte certificado.
+No incorporar DPO ni `payment_collection_gap` durante el cierre vigente; no forman parte del corte certificado.
 
 ## 5. Persistencia y reentry
 
@@ -143,24 +149,24 @@ SEMANTIC_REBIND: FORBIDDEN
 ## 7. Provider semántico
 
 ```text
-EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
-DETERMINISTIC_SAFE_BASELINE_PROVIDER: ACTIVE
-semantic_provider=<callable>
+PYDANTIC_AI_COLUMN_PROVIDER: IMPLEMENTED_AND_MERGED_IN_MAIN
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
+DETERMINISTIC_SAFE_BASELINE_PROVIDER: PRESERVED
+SEQUENTIAL_OWNER_CORROBORATION: IMPLEMENTED_AND_MERGED_IN_MAIN
+QUESTIONS_VISIBLE_AT_ONCE: 1 (FOCUSED_TEST_AND_LOCAL_SMOKE_PASS)
 ```
 
-La frontera de provider no posee autoridad semántica final, matemática, de runtime ni de delivery.
+La frontera de provider no posee autoridad semántica final, matemática, de runtime, tools, persistencia ni delivery. Si no existe configuración de modelo externo, el diseño preserva el provider determinístico seguro. La activación real del provider externo en producción sólo puede declararse después de deploy y smoke productivo.
 
 ## 8. Deuda arquitectónica abierta
 
 ```text
 1. run_owner_reentry ya no es caller del canonical product root; queda aislado en un adapter SUPPORT_NECESSARY para compatibilidad CLI/harness históricos.
-2. la proyección legacy build_computation_plan/ComputationPlanV1 fue removida localmente; P8 canónico conserva la cobertura.
-3. tres completion slices sandbox sin callers productivos fueron removidos localmente junto con sus tests directos.
-4. persisten compatibilidades P6/reentry que requieren clasificación antes de eliminación.
-5. la documentación histórica debe permanecer fuera de autoridad activa.
+2. persisten compatibilidades P6/reentry que requieren clasificación antes de eliminación.
+3. la documentación histórica debe permanecer fuera de autoridad activa.
 ```
 
-Estas deudas no invalidan la certificación productiva de LIQ_001/REN_001, pero son el frente prioritario de sanidad antes de ampliar producto.
+Estas deudas no invalidan la certificación productiva de LIQ_001/REN_001/working_capital.
 
 ## 9. Invariantes
 
@@ -180,23 +186,12 @@ DERIVED_EVIDENCE_NEVER_INVENTS_MISSING_MATERIAL_INPUTS
 ## 10. Frente actual
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
 SERVICE_1_TECHNICAL_CLOSURE: PASS
+SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
+DOCUMENTATION_RECONCILIATION: CLOSED
+PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: NEXT
+PRODUCTION_SMOKE_OF_SEMANTIC_RECEPTION_CUT: AFTER_DEPLOY
+PYMIARADAR: FUTURE_REFERENCE_ONLY / OUT_OF_CURRENT_SCOPE
 ```
 
-Secuencia (cerrada):
-
-```text
-1. documentation authority sync — CLOSED
-2. physical journey map — CLOSED
-3. legacy dependency inventory — CLOSED
-4. converge web journeys — CLOSED_PRODUCTION_PASS
-5. legacy reentry and P8 projection sanitation — CLOSED_PRODUCTION_PASS
-6. normalize persistence/reentry/delivery policies — CLOSED
-7. delete proven dead paths — CLOSED
-8. full regression — CLOSED (3602 passed / 0 failed / 7 skipped)
-9. production recertification — CLOSED (smoke final PASS)
-```
-
-Features, nuevas capabilities, provider externo y expansión de `working_capital` permanecen congelados; el próximo ciclo queda PENDING_ASSIGNMENT.
+No agregar nuevas capabilities ni ampliar alcance. El próximo paso autorizado es desplegar el corte semántico ya integrado y certificarlo en producción. PymiaRadar permanece fuera del camino crítico hasta finalizar Servicio 1.

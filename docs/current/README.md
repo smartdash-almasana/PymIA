@@ -1,6 +1,6 @@
 # PymIA — autoridad documental actual
 
-**Fecha de reconciliación:** 2026-08-14
+**Fecha de reconciliación:** 2026-08-16
 
 Esta carpeta contiene documentación vigente, evidencia histórica y documentos de cortes anteriores. **La presencia física en `docs/current/` no concede autoridad.** Sólo gobiernan los documentos enumerados en este índice, subordinados siempre al código físico y a los tests observados.
 
@@ -23,6 +23,14 @@ NO_SECOND_XLSX_PARSER: ENFORCED
 NO_LLM_RUNTIME_AUTHORITY: ENFORCED
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION: ENFORCED
 
+MAIN_HEAD: 26ef6c8c57bb201da1a36a1073147c641d1309f4
+LLM_COLUMN_INTERPRETER_IMPLEMENTATION: MERGED_IN_MAIN
+SEQUENTIAL_OWNER_CORROBORATION: MERGED_IN_MAIN
+PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: PENDING
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
+DETERMINISTIC_SEMANTIC_FALLBACK: PRESERVED
+LLM_AUTHORITY: NONE
+
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
 PRODUCTION_APP_SHA: d2c9c24
 PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
@@ -37,13 +45,15 @@ WORKING_CAPITAL:
   SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
   PRODUCTION_CERTIFIED: YES
 
-EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
-SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: ACTIVE
 NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
 SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
 SERVICE_1_TECHNICAL_CLOSURE: PASS
+
+PYMIARADAR: FUTURE_REFERENCE_ONLY / OUT_OF_CURRENT_SERVICE_1_SCOPE
 ```
+
+El estado de `main` y el estado de producción no deben confundirse: el corte de recepción semántica secuencial con provider PydanticAI está integrado en `main`, pero todavía no está certificado como desplegado en producción. La implementación conserva fallback determinístico y el LLM no adquiere autoridad matemática, de runtime, tools, persistencia ni delivery.
 
 ## Núcleo documental rector
 
@@ -65,7 +75,11 @@ Gobierno de presentación únicamente:
 
 Modelo arquitectónico conceptual subordinado:
 
-- `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica; refleja como brechas actuales la memoria durable completa de resultados y la ausencia de un LLM externo conectado al runtime.
+- `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica.
+
+Referencia futura fuera del frente vigente:
+
+- `docs/PYMIARADAR_PRODUCT_ARCHITECTURE_V1.md` — definición conceptual futura. `REFERENCE_ONLY`; no gobierna Servicio 1, no autoriza implementación de Radar y queda fuera del camino crítico hasta finalizar Servicio 1.
 
 ## Documentos subordinados
 
@@ -140,9 +154,13 @@ P8_REMAINS_COMPUTABILITY_AUTHORITY
 SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
 SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
 SERVICE_1_TECHNICAL_CLOSURE: PASS
+SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
+PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: PENDING
+PRODUCTION_SMOKE_OF_SEMANTIC_RECEPTION_CUT: PENDING
+PYMIARADAR: OUT_OF_SCOPE_UNTIL_SERVICE_1_FINALIZED
 ```
 
-El cierre técnico de Servicio 1 está declarado con evidencia (full suite 3602/0/7, baseline BLOCKERS NONE, smoke final PASS, LIQ_001/REN_001/WORKING_CAPITAL re-certificados en producción). Permanecen congelados nuevas features, nuevas capabilities, provider externo, expansión de `working_capital`, DPO/payment_collection_gap y Servicio 2 hasta nueva autorización de ciclo.
+La prioridad inmediata es desplegar y certificar en producción el corte ya integrado de recepción semántica secuencial. No se autoriza ninguna expansión adicional de producto durante ese cierre.
 
 ## Regla operativa de mantenimiento
 
