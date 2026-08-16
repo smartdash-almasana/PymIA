@@ -123,6 +123,10 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
     assert status == 200
     assert "Confirmá cómo está expresado el descuento" in unit_page
     assert "0,10 = 10%" in unit_page
+    assert "Valores observados en esta columna" in unit_page
+    assert "<code>0</code>" in unit_page
+    assert "<code>0.1</code>" in unit_page
+    assert "No lo puedo confirmar ahora" in unit_page
     assert persisted
 
     status, result_page = app.confirm_meanings(
@@ -142,6 +146,44 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
     )
     assert {"Cantidad", "PrecioUnitario", "Costo"}.issubset(persisted_columns)
 
+
+
+def test_cafeteria_margin_can_defer_discount_unit_without_creating_evidence_or_calculating(tmp_path: Path) -> None:
+    app = AssistedWebApplicationV1(output_dir=tmp_path / "outputs")
+
+    status, semantic_page = app.receive_xlsx(
+        session_id="cafeteria-defer-unit",
+        filename="cafeteria_defer.xlsx",
+        content=_cafeteria_xlsx_bytes(include_taxes=True),
+        selected_launch_review="net_margin_real",
+    )
+    assert status == 200
+
+    status, unit_page = app.confirm_meanings(
+        session_id="cafeteria-defer-unit",
+        fields=_answers(semantic_page),
+    )
+    assert status == 200
+    assert "No lo puedo confirmar ahora" in unit_page
+    question_ids = [
+        html.unescape(item)
+        for item in re.findall(r'name="unit_([^"]+)" value="not_sure"', unit_page)
+    ]
+    assert question_ids
+
+    status, deferred_page = app.confirm_meanings(
+        session_id="cafeteria-defer-unit",
+        fields={f"unit_{question_id}": "not_sure" for question_id in question_ids},
+    )
+
+    assert status == 200
+    assert "No calculamos sin esa confirmación" in deferred_page
+    assert "FALTA INFORMACIÓN" in deferred_page
+    assert "No se generó ningún cálculo ni confirmación de unidad" in deferred_page
+    state = app.session("cafeteria-defer-unit")
+    assert state.owner_unit_confirmation_events == []
+    packet = state.last_review_result or {}
+    assert packet.get("computation_executed") is False
 
 
 def test_cafeteria_margin_confirms_semantics_then_discount_unit_and_executes_kernel_once_semantics_are_fixed(tmp_path: Path) -> None:

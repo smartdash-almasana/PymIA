@@ -1593,7 +1593,10 @@ class AssistedWebApplicationV1:
                 isinstance(item, Mapping) and item.get("question_kind") == "UNIT_MEANING"
                 for item in state.semantic_questions
             ):
-                return HTTPStatus.OK, _derived_unit_questions_page(state.semantic_questions)
+                return HTTPStatus.OK, _derived_unit_questions_page(
+                    state.semantic_questions,
+                    ingestion_output=state.ingestion_output,
+                )
             return HTTPStatus.OK, _assisted_semantic_dialogue_page(
                 state.semantic_questions,
                 "La corrección o rechazo requiere una confirmación más granular.",
@@ -1681,6 +1684,7 @@ class AssistedWebApplicationV1:
 
         new_events: list[dict[str, Any]] = []
         selected_units: dict[str, str] = {}
+        deferred = False
         for question in state.semantic_questions:
             if not isinstance(question, Mapping) or question.get("question_kind") != "UNIT_MEANING":
                 return HTTPStatus.BAD_REQUEST, _error_page(
@@ -1688,11 +1692,16 @@ class AssistedWebApplicationV1:
                 )
             question_id = str(question.get("question_id") or "").strip()
             selected = str(fields.get(f"unit_{question_id}") or "").strip()
+            if selected == "not_sure":
+                selected_units[question_id] = selected
+                deferred = True
+                continue
             if selected not in ALLOWED_UNIT_KINDS:
                 return HTTPStatus.BAD_REQUEST, _derived_unit_questions_page(
                     state.semantic_questions,
                     "Elegí cómo está expresado el descuento antes de continuar.",
                     selected_units=selected_units,
+                    ingestion_output=state.ingestion_output,
                 )
             selected_units[question_id] = selected
             try:
@@ -1722,6 +1731,45 @@ class AssistedWebApplicationV1:
                 )
             new_events.append(event.to_dict())
 
+        if deferred:
+            case_id = str(
+                state.ingestion_output.get("case_id")
+                or state.ingestion_output.get("source_file_ref")
+                or state.selected_launch_review
+            ).strip()
+            service_name = _LAUNCH_REVIEW_BY_REF.get(
+                state.selected_launch_review,
+                _REVIEW_BY_REF.get(
+                    state.selected_launch_review,
+                    (state.selected_launch_review, state.selected_launch_review, ""),
+                ),
+            )[1]
+            pending_packet = {
+                "status": STATUS_NEEDS_OWNER,
+                "blocked_reason": "DISCOUNT_UNIT_CONFIRMATION_REQUIRED",
+                "derived_evidence": {
+                    "status": "DERIVED_EVIDENCE_NEEDS_EVIDENCE",
+                    "blocked_reason": "DISCOUNT_UNIT_CONFIRMATION_REQUIRED",
+                    "evidence_requirements": ["DISCOUNT_UNIT_CONFIRMATION_REQUIRED"],
+                },
+                "computation_executed": False,
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+            self._remember_case(
+                session_id=session_id,
+                case_id=case_id,
+                service_ref=state.selected_launch_review,
+                service_name=service_name,
+                status="FALTA INFORMACIÓN",
+                kind="review",
+                packet=pending_packet,
+                ingestion_output=state.ingestion_output,
+            )
+            return HTTPStatus.OK, _unit_confirmation_deferred_page(state.semantic_questions)
+
         state.owner_unit_confirmation_events.extend(new_events)
         packet = _run_product_root(
             ingestion_output=state.ingestion_output,
@@ -1740,6 +1788,7 @@ class AssistedWebApplicationV1:
             return HTTPStatus.OK, _derived_unit_questions_page(
                 state.semantic_questions,
                 "Todavía falta una confirmación material para completar la derivación.",
+                ingestion_output=state.ingestion_output,
             )
 
         case_id = str(
@@ -3169,11 +3218,82 @@ def _tenant_memory_note(memory_hint: str) -> str:
     )
 
 
+def _unit_column_evidence_preview(
+    ingestion_output: Mapping[str, Any] | None,
+    *,
+    sheet_ref: str,
+    column_ref: str,
+    limit: int = 8,
+) -> tuple[list[str], int]:
+    if not isinstance(ingestion_output, Mapping):
+        return [], 0
+
+    evidence = ingestion_output.get("column_evidence")
+    if isinstance(evidence, Mapping):
+        for item in evidence.values():
+            if not isinstance(item, Mapping):
+                continue
+            if (
+                str(item.get("sheet_name") or "").strip() == sheet_ref
+                and str(item.get("column_name") or "").strip() == column_ref
+            ):
+                values = item.get("sample_values")
+                if isinstance(values, list):
+                    samples: list[str] = []
+                    seen: set[str] = set()
+                    for value in values:
+                        if value is None or (isinstance(value, str) and not value.strip()):
+                            continue
+                        text = str(value)
+                        if text not in seen and len(samples) < limit:
+                            seen.add(text)
+                            samples.append(text)
+                    return samples, len([value for value in values if value not in (None, "")])
+
+    tables = ingestion_output.get("normalized_tables")
+    if not isinstance(tables, list):
+        return [], 0
+    samples = []
+    seen: set[str] = set()
+    populated = 0
+    for table in tables:
+        if not isinstance(table, Mapping):
+            continue
+        if str(table.get("sheet_name") or "").strip() != sheet_ref:
+            continue
+        rows = table.get("rows")
+        if not isinstance(rows, list):
+            continue
+        headers = [str(value or "").strip() for value in (table.get("headers") or [])]
+        normalized_headers = [str(value or "").strip() for value in (table.get("normalized_headers") or [])]
+        candidate_keys = [column_ref]
+        if column_ref in headers:
+            index = headers.index(column_ref)
+            if index < len(normalized_headers) and normalized_headers[index]:
+                candidate_keys.insert(0, normalized_headers[index])
+        for row in rows:
+            if not isinstance(row, Mapping):
+                continue
+            key = next((candidate for candidate in candidate_keys if candidate in row), None)
+            if key is None:
+                continue
+            value = row.get(key)
+            if value is None or (isinstance(value, str) and not value.strip()):
+                continue
+            populated += 1
+            text = str(value)
+            if text not in seen and len(samples) < limit:
+                seen.add(text)
+                samples.append(text)
+    return samples, populated
+
+
 def _derived_unit_questions_page(
     questions: list[dict[str, Any]],
     error: str | None = None,
     *,
     selected_units: dict[str, str] | None = None,
+    ingestion_output: Mapping[str, Any] | None = None,
 ) -> str:
     selected_units = selected_units or {}
     cards: list[str] = []
@@ -3181,7 +3301,25 @@ def _derived_unit_questions_page(
         if not isinstance(question, Mapping) or question.get("question_kind") != "UNIT_MEANING":
             continue
         question_id = str(question.get("question_id") or "").strip()
+        sheet_ref = str(question.get("sheet_ref") or "").strip()
+        column_ref = str(question.get("column_ref") or "").strip()
         selected = selected_units.get(question_id, "")
+        samples, _ = _unit_column_evidence_preview(
+            ingestion_output,
+            sheet_ref=sheet_ref,
+            column_ref=column_ref,
+        )
+        if samples:
+            sample_items = "".join(f"<li><code>{_esc(value)}</code></li>" for value in samples)
+            sample_block = (
+                '<div class="semantic-evidence-values"><small>Valores observados en esta columna</small>'
+                f'<ul>{sample_items}</ul><p>Muestra visible: {len(samples)} valores distintos de la evidencia disponible.</p></div>'
+            )
+        else:
+            sample_block = (
+                '<div class="semantic-evidence-values"><small>Valores observados en esta columna</small>'
+                '<p>No hay valores no vacíos disponibles para mostrar.</p></div>'
+            )
         options = "".join(
             f'<label><input type="radio" name="unit_{_esc(question_id)}" value="{_esc(option.get("unit_kind"))}" required'
             f'{" checked" if str(option.get("unit_kind") or "") == selected else ""}> '
@@ -3189,11 +3327,16 @@ def _derived_unit_questions_page(
             for option in (question.get("options") or [])
             if isinstance(option, Mapping)
         )
+        options += (
+            f'<label><input type="radio" name="unit_{_esc(question_id)}" value="not_sure" required'
+            f'{" checked" if selected == "not_sure" else ""}> '
+            '<strong>No lo puedo confirmar ahora</strong> · El caso queda pendiente y PymIA no calcula con una unidad supuesta.</label>'
+        )
         cards.append(
             f'<fieldset class="semantic-card"><legend>Unidad del dato</legend>'
             f'<div class="semantic-grid"><div class="semantic-detected">'
-            f'<small>Evidencia</small><strong>{_esc(question.get("sheet_ref"))}.{_esc(question.get("column_ref"))}</strong>'
-            f'<p>{_esc(question.get("materiality_reason"))}</p></div>'
+            f'<small>Evidencia</small><strong>{_esc(sheet_ref)}.{_esc(column_ref)}</strong>'
+            f'{sample_block}<p>{_esc(question.get("materiality_reason"))}</p></div>'
             f'<div class="semantic-owner"><small>Confirmación requerida</small>'
             f'<p>{_esc(question.get("presentation_text"))}</p>{options}</div></div></fieldset>'
         )
@@ -3202,15 +3345,42 @@ def _derived_unit_questions_page(
       <header class="page-intro">
         <div><div class="page-kicker">Evidencia derivada · Unidad material</div>
         <h1>Confirmá cómo está expresado el descuento</h1>
-        <p>La columna ya fue confirmada como descuento. Falta únicamente su unidad para aplicar la transformación determinística correcta.</p></div>
+        <p>La columna ya fue confirmada como descuento. Mirá sus valores antes de decidir la unidad. Si no podés confirmarla, el caso queda pendiente sin calcular.</p></div>
         <span class="env-badge">Confirmación owner</span>
       </header>
       {_error(error)}
       <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
         {''.join(cards)}
-        <div class="semantic-review-actions"><span>La unidad confirmada queda ligada al caso y a la columna fuente.</span><button type="submit">Confirmar unidad y calcular</button></div>
+        <div class="semantic-review-actions"><span>Solo una unidad confirmada se convierte en evidencia para el cálculo.</span><button type="submit">Continuar</button></div>
       </form>
       <div class="notice" aria-live="polite"></div>
+    </main>"""
+
+
+def _unit_confirmation_deferred_page(questions: list[dict[str, Any]]) -> str:
+    refs = [
+        f"{str(question.get('sheet_ref') or '').strip()}.{str(question.get('column_ref') or '').strip()}"
+        for question in questions
+        if isinstance(question, Mapping) and question.get("question_kind") == "UNIT_MEANING"
+    ]
+    evidence = " · ".join(ref for ref in refs if ref and ref != ".")
+    return f"""
+    <main id="app" tabindex="-1">
+      <header class="page-intro">
+        <div><div class="page-kicker">Caso abierto · Confirmación pendiente</div>
+        <h1>No calculamos sin esa confirmación</h1>
+        <p>Elegiste no confirmar ahora cómo está expresado el descuento. PymIA conserva el caso abierto y no supone una unidad.</p></div>
+        <span class="env-badge">FALTA INFORMACIÓN</span>
+      </header>
+      <section>
+        <h2>Evidencia pendiente</h2>
+        <p><strong>{_esc(evidence or "Unidad del descuento")}</strong></p>
+        <p>Cuando puedas verificarlo en tu sistema o con la persona responsable, volvé a ejecutar el control con esa evidencia.</p>
+      </section>
+      <section>
+        <p><a href="/">Volver a Operaciones</a> · <a href="/cases">Ver casos</a></p>
+      </section>
+      <div class="notice" aria-live="polite">No se generó ningún cálculo ni confirmación de unidad.</div>
     </main>"""
 
 
