@@ -23,6 +23,25 @@ from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
 class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
     """Existing web application with bounded LLM semantics and sequential HITL."""
 
+    @staticmethod
+    def _normalize_dialogue_decision(question: Mapping[str, Any]) -> dict[str, Any]:
+        normalized = dict(question)
+        if not normalized.get("column_refs") and not normalized.get("relationship_refs"):
+            column_ref = str(normalized.get("column_ref") or "").strip()
+            if column_ref:
+                normalized["column_refs"] = [column_ref]
+        if not str(normalized.get("presentation_text") or "").strip():
+            proposed = str(normalized.get("proposed_meaning") or "").strip()
+            if not proposed:
+                proposed = str(normalized.get("proposed_label") or "").strip()
+            column_name = str(normalized.get("column_name") or "").strip()
+            if proposed:
+                subject = column_name or str(normalized.get("column_ref") or "").strip() or "este dato"
+                normalized["presentation_text"] = (
+                    f"PymIA interpreta que {subject} se refiere a {proposed}. ¿Es correcto?"
+                )
+        return normalized
+
     def _render_one_pending_question(
         self,
         *,
@@ -47,7 +66,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             return (
                 HTTPStatus.OK,
                 base._assisted_semantic_dialogue_page(
-                    state.semantic_questions,
+                    [self._normalize_dialogue_decision(question)],
                     message,
                 ),
             )
