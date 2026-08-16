@@ -214,8 +214,6 @@ def _decision_payload(
                 }
             )
 
-    # Preserve deterministic relationship proposals; the LLM has no relationship
-    # authority in V1. Columns not confidently interpreted stay irrelevant/pending.
     return {
         "schema_version": PROPOSAL_SCHEMA_VERSION,
         "concept_proposals": concepts,
@@ -259,8 +257,7 @@ def build_service_1_pydantic_ai_column_semantic_provider_v1(
     agent = agent_factory(
         model_name,
         output_type=ColumnSemanticBatchV1,
-        system_prompt=_SYSTEM_PROMPT,
-        tools=[],
+        instructions=_SYSTEM_PROMPT,
     )
     return Service1PydanticAIColumnSemanticProviderV1(agent=agent)
 
