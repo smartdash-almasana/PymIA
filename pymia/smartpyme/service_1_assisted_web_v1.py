@@ -114,21 +114,32 @@ _REVIEW_BY_REF = {item[0]: item for item in _REVIEW_OPTIONS}
 _LAUNCH_REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
     (
         "sold_vs_collected_gap",
-        "Ventas vs. cobros",
-        "Vas a ver cuánto vendiste, cuánto cobraste y qué diferencia quedó pendiente de revisar.",
+        "Ventas y cobranzas",
+        "¿Cuánto vendiste, cuánto cobraste y qué quedó pendiente?",
     ),
     (
         "net_margin_real",
         "Margen real",
-        "Vas a ver cuánto margen dejan tus ventas usando los precios, costos e impuestos disponibles.",
+        "¿Cuánto te queda realmente después de los costos que aparecen en tu Excel?",
     ),
     (
         "working_capital",
-        "Caja y corto plazo",
-        "Vas a revisar caja proyectada, tiempo de cobro y capacidad de cubrir obligaciones de corto plazo.",
+        "Flujo de caja",
+        "¿Cuánto dinero te quedaría después de los cobros y pagos previstos?",
     ),
 )
 _LAUNCH_REVIEW_BY_REF = {item[0]: item for item in _LAUNCH_REVIEW_OPTIONS}
+_LAUNCH_REVIEW_FILE_GUIDANCE: dict[str, str] = {
+    "sold_vs_collected_gap": (
+        "El Excel debería incluir ventas y cobranzas del mismo período, con sus importes y, si existen, fechas o referencias."
+    ),
+    "net_margin_real": (
+        "El Excel debería incluir ventas y costos. Si vende por producto, ayudan cantidad, precio, costo y descuentos cuando existan."
+    ),
+    "working_capital": (
+        "El Excel debería incluir saldo inicial, ingresos o cobros previstos y egresos o pagos previstos del período."
+    ),
+}
 _WORKING_CAPITAL_COMPONENT_CAPABILITIES: tuple[str, ...] = (
     "projected_closing_cash_balance",
     "dso",
@@ -2553,7 +2564,7 @@ def _document(content: str) -> str:
       section,fieldset,details,.choice,.notice{border-radius:0}section{margin:1rem 0;padding:1rem 1.05rem 1.1rem;background:var(--paper-2);border:1px solid var(--rule);border-left:4px solid #9da69f}section>h2{margin:0 0 .65rem;font-size:.9rem;line-height:1.2;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-strong)}section>h2::before{content:"§ ";color:var(--green);font-family:var(--mono)}hr{border:0;border-top:3px double var(--rule-strong);margin:1.35rem 0}
       form{display:grid;gap:.75rem}fieldset{margin:.4rem 0;padding:.95rem 1rem 1rem;background:#f8f5ed;border:1px solid var(--rule-strong)}legend{padding:0 .4rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--green-strong)}label{display:grid;gap:.28rem;cursor:pointer;color:var(--ink);font-size:.9rem}input[type=text],input[type=month],input[type=number],input[type=file],select{width:100%;min-height:2.7rem;padding:.58rem .68rem;border:1px solid #9aa39c;border-radius:0;background:var(--white);color:var(--ink-strong)}input[type=radio],input[type=checkbox]{accent-color:var(--green)}button{min-height:2.65rem;width:fit-content;padding:.55rem 1rem;border:1px solid var(--green-strong);border-radius:0;background:var(--green-strong);color:white;font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}button:hover{background:var(--green)}
       .choice{position:relative;padding:.9rem .9rem .9rem 2.8rem;background:var(--paper-2);border:1px solid var(--rule);border-left:3px solid var(--rule-strong)}.choice::before{content:"SERVICE";position:absolute;left:.55rem;top:1.05rem;writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-size:.5rem;letter-spacing:.14em;color:#5d6760}.choice:has(input:checked){border-color:var(--green);border-left-color:var(--green);background:#edf2ed}.choice strong{font-size:.96rem;color:var(--ink-strong)}.choice span{display:block;margin:.25rem 0 0 1.7rem;color:var(--muted);font-size:.83rem}.notice{margin:1rem 0;padding:.8rem .9rem;background:#eeece5;border:1px solid var(--rule);border-left:4px solid var(--green);color:var(--ink);font-size:.86rem}p[role=alert]{padding:.72rem .85rem;background:var(--red-soft);border:1px solid #d0a29c;border-left:4px solid var(--red);color:#662a25}
-      .result-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.2rem;align-items:start;padding:.85rem 0 1rem;border-top:5px solid var(--ink-strong);border-bottom:1px solid var(--rule-strong);margin-bottom:1rem}.status-chip{display:inline-flex;align-items:center;min-height:2rem;padding:.35rem .55rem;border:1px solid currentColor;border-radius:0;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;font-weight:700;text-transform:uppercase;background:var(--paper-2)}.status-chip::before{content:"STATUS / ";opacity:.62}.status-ready{color:var(--green-strong);background:var(--green-soft)}.status-review{color:var(--amber);background:var(--amber-soft)}.status-missing{color:var(--red);background:var(--red-soft)}.result{font-family:var(--mono);font-size:clamp(1.45rem,3vw,2.15rem);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+      .result-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.2rem;align-items:start;padding:.85rem 0 1rem;border-top:5px solid var(--ink-strong);border-bottom:1px solid var(--rule-strong);margin-bottom:1rem}.status-chip{display:inline-flex;align-items:center;min-height:2rem;padding:.35rem .55rem;border:1px solid currentColor;border-radius:0;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;font-weight:700;text-transform:uppercase;background:var(--paper-2)}.status-chip::before{content:""}.status-ready{color:var(--green-strong);background:var(--green-soft)}.status-review{color:var(--amber);background:var(--amber-soft)}.status-missing{color:var(--red);background:var(--red-soft)}.result{font-family:var(--mono);font-size:clamp(1.45rem,3vw,2.15rem);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
       .metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:1rem 0;border:1px solid var(--rule-strong);background:var(--rule)}.metric{min-width:0;padding:.85rem .9rem;background:var(--paper-2);border-right:1px solid var(--rule)}.metric:last-child{border-right:0}.metric small{display:block;color:var(--muted);font-size:.68rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;margin-top:.3rem;font-family:var(--mono);font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--ink-strong)}
       .result-actions{display:flex;flex-wrap:wrap;gap:.55rem;margin:1rem 0}.result-actions a{display:inline-flex;align-items:center;min-height:2.55rem;padding:.55rem .8rem;border:1px solid var(--green-strong);background:var(--green-strong);color:white;text-decoration:none;font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;font-weight:700;text-transform:uppercase}.result-actions a.secondary{background:transparent;color:var(--green-strong);border-color:var(--rule-strong)}table{width:100%;border-collapse:collapse;background:var(--paper-2);border:1px solid var(--rule-strong);font-size:.83rem}th,td{padding:.62rem .68rem;border-bottom:1px solid var(--rule);vertical-align:top}th{text-align:left;font-family:var(--mono);font-size:.64rem;letter-spacing:.07em;text-transform:uppercase;color:#59635d;background:#ece8de;font-weight:700}td{font-variant-numeric:tabular-nums;color:var(--ink-strong)}tbody tr:hover{background:#f4f0e6}
       details{margin:.65rem 0;border:1px solid var(--rule);background:var(--paper-2)}summary{padding:.7rem .8rem;cursor:pointer;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;font-weight:700;text-transform:uppercase}details>*:not(summary){margin-left:.8rem;margin-right:.8rem}details>form,details>ol,details>ul{margin-bottom:.8rem}ol,ul{padding-left:1.25rem}li+li{margin-top:.35rem}.skip-link{position:absolute;left:-9999px}.skip-link:focus{left:.75rem;top:.75rem;z-index:999;background:var(--white);color:var(--ink);padding:.5rem .7rem;border:2px solid var(--green)}:focus-visible{outline:3px solid #bb7a1c;outline-offset:2px}
@@ -2598,8 +2609,8 @@ def _document(content: str) -> str:
       .semantic-card{box-shadow:0 5px 20px rgba(25,46,35,.04)}.semantic-card legend{padding:15px 18px!important;font-size:.78rem!important;font-weight:750!important}.semantic-detected,.semantic-owner{padding:18px}.semantic-detected small,.semantic-owner small{color:#61736a}.semantic-owner>p{margin:0 0 12px;font-size:.95rem;line-height:1.5}.semantic-owner label{position:relative;margin:8px 0;padding:11px 12px 11px 38px;line-height:1.4}.semantic-owner label input[type=radio]{position:absolute;left:13px;top:13px}.semantic-owner label strong{display:block;font-size:.86rem}.choice-help{display:block;margin-top:3px!important;color:#69766f!important;font-size:.74rem!important;font-weight:450!important}.semantic-evidence-values{padding:13px 14px;background:#f5f8f6}.semantic-evidence-values small{margin:0!important}.semantic-evidence-values code{font-size:.8rem}.semantic-review-actions{padding:12px 14px;border-radius:9px}.semantic-review-actions button{min-width:132px}
       .result-head{align-items:start;margin-top:4px;padding-bottom:20px}.result-head h1{font-size:clamp(2rem,3.4vw,3rem)}.result-head p{max-width:700px;margin:.45rem 0 0;color:#65716a}.metric-grid{gap:12px}.metric{padding:18px 18px;border-radius:10px}.metric strong{font-size:1.6rem}.metric--focus{border-color:#9ec2ad;background:#f1f8f4}.result-summary{padding:20px 22px!important;border-left:4px solid #2a7354!important;background:#fff!important}.result-summary>h2{padding:0 0 10px!important;border:0!important;background:transparent!important}.result-summary .result{margin:.15rem 0 .4rem;font-size:clamp(2rem,5vw,3rem)}.result-finding{font-size:1rem!important;line-height:1.55;color:#34433a!important}.result-detail{margin:10px 0;border-color:#dfe5e0;background:#fff}.result-detail summary{padding:13px 15px;font-size:.8rem;color:#3f5047}.result-detail .detail-body{padding:0 15px 14px;color:#5f6d65}.result-detail .detail-body p,.result-detail .detail-body ul{margin-top:8px}.result-actions a{min-height:42px}.notice{margin-top:16px}
       /* HOME — one screen, one task */
-      .home-intro{display:block;max-width:760px;margin:6px auto 18px;padding:0;border:0;text-align:left}.home-intro .page-kicker{margin-bottom:8px}.home-intro h1{margin:0 0 10px;font-size:clamp(2.1rem,4vw,3.1rem);line-height:1.02}.home-intro p{margin:0;font-size:.98rem;color:#657169}.home-task{max-width:760px;margin:0 auto;padding:22px!important;border-radius:12px!important}.home-task>form{margin:0!important}.home-question{margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;font-size:.96rem!important;text-transform:none!important;letter-spacing:0!important}.home-task .service-grid{grid-template-columns:1fr!important;gap:8px!important}.home-task .service-grid .choice{display:grid;grid-template-columns:24px 160px 1fr;align-items:center;min-height:auto;padding:13px 14px!important;border-radius:8px!important}.home-task .service-grid .choice>input{position:static;margin:0}.home-task .service-grid .choice strong{font-size:.92rem}.home-task .service-grid .choice span{margin:0!important;font-size:.78rem;line-height:1.35}.home-task .service-state{position:static;justify-self:end;font-size:.65rem!important}.home-upload{grid-template-columns:1fr;margin:18px 0 8px;padding:16px;border-style:solid;background:#f8faf8}.home-upload .upload-copy{margin-bottom:2px}.home-upload input[type=file]{width:100%;min-height:46px}.home-upload button{width:100%;min-height:48px;font-size:.92rem}.home-assurance{margin:10px 0 0!important;color:#6b766f;font-size:.76rem;text-align:center}.compact-details{max-width:760px;margin:12px auto 0!important;border:0!important;background:transparent!important}.compact-details>summary{padding:7px 0!important;color:#728078!important;font-size:.72rem!important;font-weight:600!important}.compact-details>section{margin-top:6px}.home-task .context-details{margin-top:10px!important}.home-task .context-details fieldset{padding-left:0;padding-right:0}
-      @media(max-width:768px){.app-topbar{padding:0 14px}.app-shell{width:min(100% - 24px,720px);padding-top:22px}.page-intro h1{font-size:2.05rem}.flow-steps{grid-template-columns:1fr}.flow-step{padding:9px 11px}.workspace-heading{display:block}.control-workspace>form{margin-left:12px;margin-right:12px}.simple-nav a{padding:7px 8px}.semantic-grid{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid #dfe4e0}.upload-band{grid-template-columns:1fr}.upload-band button{width:100%}.operations-footer{grid-template-columns:1fr}.service-grid .choice{min-height:auto}}
+      .home-intro{display:block;max-width:760px;margin:6px auto 18px;padding:0;border:0;text-align:left}.home-intro .page-kicker{margin-bottom:8px}.home-intro h1{margin:0 0 10px;font-size:clamp(2.1rem,4vw,3.1rem);line-height:1.02}.home-intro p{margin:0;font-size:.98rem;color:#657169}.home-task{max-width:760px;margin:0 auto;padding:22px!important;border-radius:12px!important}.home-task>form{margin:0!important}.home-question{margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;font-size:.96rem!important;text-transform:none!important;letter-spacing:0!important}.home-task .service-grid{grid-template-columns:1fr!important;gap:8px!important}.home-task .service-grid .choice{display:grid;grid-template-columns:24px 175px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:12px;row-gap:4px;align-items:center;min-height:auto;padding:14px!important;border-radius:8px!important}.home-task .service-grid .choice>input{position:static;margin:0;grid-column:1;grid-row:1/3}.home-task .service-grid .choice>strong{grid-column:2;grid-row:1/3;font-size:.94rem;align-self:start;padding-top:1px}.home-task .choice-question{grid-column:3;grid-row:1;margin:0!important;font-size:.84rem!important;line-height:1.35;color:#314038;font-weight:700}.home-task .choice-evidence{grid-column:3;grid-row:2;margin:0!important;font-size:.74rem!important;line-height:1.42;color:#6b766f}.home-task .choice-evidence b{color:#536159;font-weight:700}.home-task .service-state{position:static;grid-column:4;grid-row:1/3;justify-self:end;align-self:start;font-size:.65rem!important}.home-upload{grid-template-columns:1fr;margin:18px 0 8px;padding:16px;border-style:solid;background:#f8faf8}.home-upload .upload-copy{margin-bottom:2px}.home-upload input[type=file]{width:100%;min-height:46px}.home-upload button{width:100%;min-height:48px;font-size:.92rem}.home-assurance{margin:10px 0 0!important;color:#6b766f;font-size:.76rem;text-align:center}.compact-details{max-width:760px;margin:12px auto 0!important;border:0!important;background:transparent!important}.compact-details>summary{padding:7px 0!important;color:#728078!important;font-size:.72rem!important;font-weight:600!important}.compact-details>section{margin-top:6px}.home-task .context-details{margin-top:10px!important}.home-task .context-details fieldset{padding-left:0;padding-right:0}
+      @media(max-width:768px){.app-topbar{padding:0 14px}.app-shell{width:min(100% - 24px,720px);padding-top:22px}.page-intro h1{font-size:2.05rem}.flow-steps{grid-template-columns:1fr}.flow-step{padding:9px 11px}.workspace-heading{display:block}.control-workspace>form{margin-left:12px;margin-right:12px}.simple-nav a{padding:7px 8px}.semantic-grid{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid #dfe4e0}.upload-band{grid-template-columns:1fr}.upload-band button{width:100%}.operations-footer{grid-template-columns:1fr}.service-grid .choice{min-height:auto}.home-task .service-grid .choice{grid-template-columns:24px minmax(0,1fr);grid-template-rows:auto auto auto;align-items:start}.home-task .service-grid .choice>input{grid-column:1;grid-row:1/4;margin-top:3px}.home-task .service-grid .choice>strong{grid-column:2;grid-row:1;padding:0}.home-task .choice-question{grid-column:2;grid-row:2}.home-task .choice-evidence{grid-column:2;grid-row:3}.home-task .service-state{grid-column:2;grid-row:4;justify-self:start}}
       @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
     </style>
     """
@@ -2710,12 +2721,14 @@ def _home_page(error: str | None = None) -> str:
     launch_states = {
         "sold_vs_collected_gap": "",
         "net_margin_real": "",
-        "working_capital": "EN PRUEBA",
+        "working_capital": "",
     }
     launch_options = "".join(
         (
             f'<label class="choice"><input type="radio" name="launch_review" value="{_esc(ref)}" required>'
-            f'<strong>{_esc(name)}</strong><span>{_esc(description)}</span>'
+            f'<strong>{_esc(name)}</strong>'
+            f'<span class="choice-question">{_esc(description)}</span>'
+            f'<span class="choice-evidence"><b>Qué debería traer tu Excel:</b> {_esc(_LAUNCH_REVIEW_FILE_GUIDANCE[ref])}</span>'
             + (f'<span class="service-state">{_esc(launch_states[ref])}</span>' if launch_states.get(ref) else "")
             + '</label>'
         )
@@ -3357,15 +3370,15 @@ def _derived_unit_questions_page(
     return f"""
     <main id="app" tabindex="-1">
       <header class="page-intro">
-        <div><div class="page-kicker">Paso 2 de 3 · Una última duda</div>
-        <h1>Confirmá cómo está expresado el descuento</h1>
-        <p>Te mostramos valores reales de esa columna para que puedas decidir. Si no lo sabés ahora, dejalo pendiente: PymIA no va a suponerlo.</p></div>
-        <span class="env-badge">1 dato por revisar</span>
+        <div><div class="page-kicker">Revisión del archivo</div>
+        <h1>Esto encontré en tu Excel</h1>
+        <p>Encontré una columna de descuento y necesito confirmar cómo están expresados sus valores antes de calcular.</p></div>
+        <span class="env-badge">1 dato por confirmar</span>
       </header>
       <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
-        <div class="flow-step is-current"><strong>2 · Confirmar</strong>Revisá esta duda.</div>
-        <div class="flow-step"><strong>3 · Resultado</strong>Se calcula si alcanza la evidencia.</div>
+        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
+        <div class="flow-step is-current"><strong>Revisar</strong>Confirmá este dato.</div>
+        <div class="flow-step"><strong>Resultado</strong>Después de esta revisión.</div>
       </div>
       {_error(error)}
       <form action="/confirm-meanings" method="post">
@@ -3443,11 +3456,11 @@ def _assisted_semantic_dialogue_page(
         ]
         selected = selected_actions.get(decision_id, "")
         rows.append(
-            f'<fieldset class="semantic-card"><legend>Dato a revisar</legend>'
+            f'<fieldset class="semantic-card"><legend>Quiero confirmar una cosa</legend>'
             f'<div class="semantic-grid"><div class="semantic-detected">'
-            f'<small>Lo que encontramos en tu Excel</small><strong>{_esc(" · ".join(refs) or decision_id)}</strong>'
-            f'<p>{_esc(materiality)}</p></div><div class="semantic-owner">'
-            f'<small>Lo que necesitamos confirmar</small><p>{_esc(presentation)}</p>'
+            f'<small>Esto encontré en tu Excel</small><strong>{_esc(" · ".join(refs) or decision_id)}</strong>'
+            f'<p>Esta definición puede cambiar el resultado, por eso prefiero confirmarla con vos.</p></div><div class="semantic-owner">'
+            f'<small>¿Es correcto?</small><p>{_esc(presentation)}</p>'
             f'<label><input type="radio" name="action_{_esc(decision_id)}" value="ACCEPT" required'
             f'{" checked" if selected == "ACCEPT" else ""}> Sí, es correcto</label>'
             f'<label><input type="radio" name="action_{_esc(decision_id)}" value="REJECT"'
@@ -3460,15 +3473,15 @@ def _assisted_semantic_dialogue_page(
     return f"""
     <main id="app" tabindex="-1">
       <header class="page-intro">
-        <div><div class="page-kicker">Paso 2 de 3 · Confirmar</div>
-        <h1>Necesito confirmar {len(rows)} {"dato" if len(rows) == 1 else "datos"}</h1>
-        <p>Mostramos únicamente las dudas que pueden cambiar el resultado. Revisalas con la información de tu negocio.</p></div>
-        <span class="env-badge">{len(rows)} por revisar</span>
+        <div><div class="page-kicker">Revisión del archivo</div>
+        <h1>Esto encontré en tu Excel</h1>
+        <p>PymIA ya leyó el archivo. Antes de calcular, necesito confirmar {len(rows)} {"dato" if len(rows) == 1 else "datos"} que pueden cambiar el resultado.</p></div>
+        <span class="env-badge">{len(rows)} por confirmar</span>
       </header>
       <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
-        <div class="flow-step is-current"><strong>2 · Confirmar</strong>Revisá estas dudas.</div>
-        <div class="flow-step"><strong>3 · Resultado</strong>Se calcula después.</div>
+        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
+        <div class="flow-step is-current"><strong>Revisar</strong>Confirmá lo que entendí.</div>
+        <div class="flow-step"><strong>Resultado</strong>Después de esta revisión.</div>
       </div>
       {_error(error)}
       <form action="/confirm-meanings" method="post">
@@ -3545,11 +3558,11 @@ def _semantic_questions_page(
         </div>""")
     return f"""
     <main id="app" tabindex="-1">
-      <header class="page-intro"><div><div class="page-kicker">Paso 2 de 3 · Confirmar</div><h1>{"Confirmar qué " + "significa cada dato"}</h1><p>PymIA ya descartó lo que no necesita. Revisá solamente estas columnas antes de continuar.</p></div><span class="env-badge">{len(questions)} por revisar</span></header>
+      <header class="page-intro"><div><div class="page-kicker">Revisión del archivo</div><h1>Esto encontré en tu Excel</h1><p>Reconocí los datos que necesito para este análisis. Sólo te muestro {len(questions)} {"dato" if len(questions) == 1 else "datos"} cuyo significado necesito confirmar antes de calcular.</p></div><span class="env-badge">{len(questions)} por confirmar</span></header>
       <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
-        <div class="flow-step is-current"><strong>2 · Confirmar</strong>Revisá las dudas.</div>
-        <div class="flow-step"><strong>3 · Resultado</strong>Se calcula después.</div>
+        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
+        <div class="flow-step is-current"><strong>Revisar</strong>Confirmá lo que entendí.</div>
+        <div class="flow-step"><strong>Resultado</strong>Después de esta revisión.</div>
       </div>
       {_error(error)}
       <form class="semantic-review-form" action="/confirm-meanings" method="post">
@@ -3601,11 +3614,11 @@ def _evaluated_result_page(
     return f"""
     <main id="app" tabindex="-1">
       <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
-        <div class="flow-step is-done"><strong>2 · Confirmar</strong>Dudas resueltas.</div>
-        <div class="flow-step is-current"><strong>3 · Resultado</strong>Listo para revisar.</div>
+        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
+        <div class="flow-step is-done"><strong>Revisión</strong>Datos confirmados.</div>
+        <div class="flow-step is-current"><strong>Resultado</strong>Listo para revisar.</div>
       </div>
-      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>{_esc(title)}</h1><p>Calculado únicamente con los datos que PymIA pudo usar de forma segura.</p></div><span class="status-chip status-ready">LISTO</span></div>
+      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>{_esc('Margen real' if requested_capability == 'net_margin_real' else title)}</h1><p>Calculado con los datos que encontré y confirmaste en tu Excel.</p></div><span class="status-chip status-ready">RESULTADO LISTO</span></div>
       <section class="result-summary" aria-labelledby="summary-title"><h2 id="summary-title">Tu resultado</h2><p class="result"><strong>{_esc(value)} {_esc(unit)}</strong></p><p class="result-finding">{_esc(finding)}</p></section>
       <details class="result-detail"><summary>Datos utilizados</summary><div class="detail-body">{data}</div></details>
       <details class="result-detail"><summary>Qué conviene tener en cuenta</summary><div class="detail-body">
@@ -3629,8 +3642,15 @@ def _working_capital_result_page(packet: dict[str, Any]) -> str:
     ratio_value = (ratio.get("computed") or {}).get("current_ratio_value") if isinstance(ratio.get("computed"), dict) else None
     ready_count = sum(value is not None for value in (cash_value, dso_value, ratio_value))
     complete = packet.get("status") == "READY"
-    status_label = "LISTO" if complete else "FALTA INFORMACIÓN"
-    status_class = "status-ready" if complete else "status-missing"
+    if complete:
+        status_label = "RESULTADO LISTO"
+        status_class = "status-ready"
+    elif ready_count > 0:
+        status_label = "RESULTADO PARCIAL"
+        status_class = "status-review"
+    else:
+        status_label = "NECESITO UN DATO MÁS"
+        status_class = "status-missing"
 
     def metric(label: str, value: object, suffix: str = "") -> str:
         rendered = "No disponible" if value is None else f"{value}{suffix}"
@@ -3647,23 +3667,23 @@ def _working_capital_result_page(packet: dict[str, Any]) -> str:
     return f"""
     <main id="app" tabindex="-1">
       <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
-        <div class="flow-step is-done"><strong>2 · Confirmar</strong>Dudas resueltas.</div>
-        <div class="flow-step is-current"><strong>3 · Resultado</strong>Listo para revisar.</div>
+        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
+        <div class="flow-step is-done"><strong>Revisión</strong>Datos confirmados.</div>
+        <div class="flow-step is-current"><strong>Resultado</strong>Listo para revisar.</div>
       </div>
-      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Caja y Capital de Trabajo</h1><p>Tres indicadores para entender la posición inmediata del negocio con la información disponible.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
+      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Flujo de caja</h1><p>Esto es lo que pude calcular con la información que encontré en tu Excel.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
       <div class="metric-grid">
-        {metric('Caja proyectada', cash_value)}
-        {metric('Tiempo de cobro', dso_value, ' días')}
-        {metric('Relación de corto plazo', ratio_value)}
+        {metric('Flujo de caja proyectado', cash_value)}
+        {metric('Tiempo promedio de cobro', dso_value, ' días')}
+        {metric('Capacidad para cubrir obligaciones de corto plazo', ratio_value)}
       </div>
-      <section class="result-summary"><h2>Qué encontramos</h2><p>Se pudieron calcular <strong>{ready_count} de 3</strong> indicadores con los datos recibidos.</p></section>
-      <details class="result-detail" {'open' if missing else ''}><summary>{'Qué falta para completar el análisis' if missing else 'Datos utilizados y alcance'}</summary><div class="detail-body">
-        {'<p>No faltan datos para estos tres indicadores.</p>' if not missing else '<ul>' + ''.join(f'<li>Faltan datos suficientes para { _esc(item) }.</li>' for item in missing) + '</ul>'}
-        <p>Estos números describen relaciones matemáticas sobre datos confirmados. No determinan por sí solos insolvencia, mala gestión, necesidad de financiamiento ni causas del descalce.</p>
+      <section class="result-summary"><h2>Qué encontré</h2><p>{'Pude calcular los tres indicadores con los datos recibidos.' if ready_count == 3 else f'Pude calcular <strong>{ready_count} de 3</strong> indicadores. Lo que sí pude calcular es válido; los demás necesitan información adicional.'}</p></section>
+      <details class="result-detail" {'open' if missing else ''}><summary>{'Qué datos ayudarían a ampliar el análisis' if missing else 'Datos utilizados y alcance'}</summary><div class="detail-body">
+        {'<p>No faltan datos para estos tres indicadores.</p>' if not missing else '<ul>' + ''.join(f'<li>Para calcular también este indicador necesito { _esc(item) }.</li>' for item in missing) + '</ul>'}
+        <p>Estos indicadores describen la situación financiera a partir de los datos confirmados del Excel. No explican por sí solos la causa de un problema ni reemplazan una decisión profesional.</p>
       </div></details>
       <div class="result-actions"><a class="secondary" href="/">Revisar otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div>
-      <div class="notice" aria-live="polite">Resultado de caja y corto plazo listo para revisar.</div>
+      <div class="notice" aria-live="polite">Resultado de flujo de caja listo para revisar.</div>
     </main>"""
 
 
@@ -3722,15 +3742,15 @@ def _sales_collections_result_page(
         else '<p class="notice">La descarga no está disponible para este resultado.</p>'
     )
     status_class = "status-review" if gap != 0 else "status-ready"
-    status_label = "REQUIERE REVISIÓN" if gap != 0 else "LISTO"
+    status_label = "HAY UNA DIFERENCIA" if gap != 0 else "SIN DIFERENCIAS"
     return f"""
     <main id="app" tabindex="-1">
       <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
-        <div class="flow-step is-done"><strong>2 · Confirmar</strong>Dudas resueltas.</div>
-        <div class="flow-step is-current"><strong>3 · Resultado</strong>Listo para revisar.</div>
+        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
+        <div class="flow-step is-done"><strong>Revisión</strong>Datos confirmados.</div>
+        <div class="flow-step is-current"><strong>Resultado</strong>Listo para revisar.</div>
       </div>
-      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Ventas vs. cobros</h1><p><strong>Ventas y cobranzas</strong> · Cuánto vendiste, cuánto cobraste y qué diferencia queda en los registros analizados.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
+      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Ventas y cobranzas</h1><p>Cuánto vendiste, cuánto cobraste y qué diferencia aparece en los registros analizados.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
       <div class="metric-grid">
         <div class="metric"><small>Total vendido</small><strong>{_esc(_format_amount(sold))}</strong></div>
         <div class="metric"><small>Total cobrado</small><strong>{_esc(_format_amount(collected))}</strong></div>

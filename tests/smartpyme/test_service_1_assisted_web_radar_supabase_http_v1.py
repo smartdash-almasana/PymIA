@@ -115,7 +115,7 @@ def test_assisted_web_owner_radar_policy_physical_supabase_http_roundtrip(tmp_pa
             headers=upload_headers,
         )
         assert status == 200
-        assert "Confirmar qué significa cada dato" in page or "¿Qué querés revisar?" in page
+        assert "Esto encontré en tu Excel" in page or "¿Qué querés revisar?" in page
         cookie = _cookie(headers)
 
         status, _, radar_page = _request(

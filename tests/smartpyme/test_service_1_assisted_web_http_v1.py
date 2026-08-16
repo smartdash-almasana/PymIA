@@ -182,7 +182,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
         headers["Cookie"] = cookies
         status, _, page = _request(server, "POST", "/upload", body, headers)
         assert status == 200
-        assert "Necesito confirmar" in page
+        assert "Esto encontré en tu Excel" in page
     finally:
         server.shutdown()
         server.server_close()
@@ -202,7 +202,7 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Confirmar qué significa cada dato" in page
+    assert "Esto encontré en tu Excel" in page
     assert "No estoy seguro" in page
     cookie = _cookie(response_headers)
 
@@ -268,8 +268,10 @@ def test_launch_service_first_flow_runs_selected_control_after_confirmation(assi
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
     assert "¿Qué querés entender de tu Excel?" in home
-    assert "Ventas vs. cobros" in home
+    assert "Ventas y cobranzas" in home
     assert "Margen real" in home
+    assert "Flujo de caja" in home
+    assert "Qué debería traer tu Excel" in home
     assert "Saldo de caja proyectado" not in home
 
     body, headers = _multipart(
@@ -279,8 +281,8 @@ def test_launch_service_first_flow_runs_selected_control_after_confirmation(assi
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Necesito confirmar" in page
-    assert "Lo que necesitamos confirmar" in page
+    assert "Esto encontré en tu Excel" in page
+    assert "¿Es correcto?" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -304,8 +306,8 @@ def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Necesito confirmar" in page
-    assert "Lo que necesitamos confirmar" in page
+    assert "Esto encontré en tu Excel" in page
+    assert "¿Es correcto?" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -315,7 +317,7 @@ def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path
         cookie,
     )
     assert status == 200
-    assert "Margen" in page
+    assert "Margen real" in page
     assert 'href="/download-net-margin"' in page
 
     status, download_headers, content = _request_raw(
@@ -348,7 +350,7 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
         cookie,
     )
     assert status == 200
-    assert "Ventas vs. cobros" in page
+    assert "Ventas y cobranzas" in page
 
     status, _, cases = _request(
         assisted_server,
@@ -358,7 +360,7 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
     )
     assert status == 200
     assert "Casos recientes" in cases
-    assert "Ventas vs. cobros" in cases
+    assert "Ventas y cobranzas" in cases
     match = re.search(r'href="(/case\?case_ref=[^"]+)"', cases)
     assert match is not None
 
@@ -369,14 +371,14 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
         headers={"Cookie": cookie},
     )
     assert status == 200
-    assert "Ventas vs. cobros" in reopened
+    assert "Ventas y cobranzas" in reopened
     assert "Total vendido" in reopened
     assert "3.000,00" in reopened
 
     status, _, other_session_cases = _request(assisted_server, "GET", "/cases")
     assert status == 200
     assert "Todavía no hay controles terminados en esta sesión." in other_session_cases
-    assert "Ventas vs. cobros" not in other_session_cases
+    assert "Ventas y cobranzas" not in other_session_cases
 
 
 def _working_capital_xlsx(tmp_path: Path) -> bytes:
@@ -408,8 +410,8 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Confirmar qué significa cada dato" in page or "Necesito confirmar" in page:
-        assert "Necesito confirmar" in page or "Confirmar qué significa cada dato" in page
+    if "Esto encontré en tu Excel" in page:
+        assert "Esto encontré en tu Excel" in page
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
@@ -417,14 +419,48 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
             cookie,
         )
         assert status == 200
-    assert "Caja y Capital de Trabajo" in page
-    assert "Caja proyectada" in page
-    assert "Tiempo de cobro" in page
-    assert "Relación de corto plazo" in page
+    assert "Flujo de caja" in page
+    assert "Flujo de caja proyectado" in page
+    assert "Tiempo promedio de cobro" in page
+    assert "Capacidad para cubrir obligaciones de corto plazo" in page
     assert "1.700" in page or "1700" in page
     assert "10.0 días" in page or "10 días" in page
     assert "1.5" in page
-    assert "No determinan por sí solos insolvencia" in page
+    assert "no explican por sí solos la causa de un problema" in page.lower()
+
+
+def test_working_capital_cash_only_is_presented_as_partial_valid_result(assisted_server, tmp_path: Path) -> None:
+    path = tmp_path / "flujo_caja.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Proyeccion_Caja"
+    sheet.append(["saldo_inicial", "cobros_esperados", "pagos_esperados"])
+    sheet.append([1000, 2500, 1800])
+    workbook.save(path)
+
+    body, headers = _multipart(
+        "flujo_caja.xlsx",
+        path.read_bytes(),
+        launch_review="working_capital",
+    )
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    cookie = _cookie(response_headers)
+    if "Esto encontré en tu Excel" in page:
+        status, _, page = _form(
+            assisted_server,
+            "/confirm-meanings",
+            _semantic_confirmation_answers(page),
+            cookie,
+        )
+        assert status == 200
+
+    assert "Flujo de caja" in page
+    assert "RESULTADO PARCIAL" in page
+    assert "Flujo de caja proyectado" in page
+    assert "1700" in page or "1.700" in page
+    assert "Lo que sí pude calcular es válido" in page
+    assert "FALTA INFORMACIÓN" not in page
 
 
 def test_not_sure_keeps_case_open_and_preserves_confirmed_choices(assisted_server, tmp_path: Path) -> None:
@@ -440,7 +476,7 @@ def test_not_sure_keeps_case_open_and_preserves_confirmed_choices(assisted_serve
     status, _, page = _form(assisted_server, "/confirm-meanings", partial, cookie)
 
     assert status == 200
-    assert "Confirmar qué significa cada dato" in page
+    assert "Esto encontré en tu Excel" in page
     assert "Todavía hay columnas sin confirmar" in page
     assert 'value="not_sure" selected' in page
     for key, value in answers.items():
@@ -470,7 +506,7 @@ def test_htmx_upload_returns_only_needed_semantic_questions_fragment(
     assert status == 200
     assert fragment.lstrip().startswith("<main")
     assert "<!doctype" not in fragment.lower()
-    assert "Confirmar qué significa cada dato" in fragment
+    assert "Esto encontré en tu Excel" in fragment
     assert "cobrado" in fragment
     assert "¿Qué representa la columna fecha?" not in fragment
 

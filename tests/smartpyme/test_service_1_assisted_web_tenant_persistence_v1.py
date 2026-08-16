@@ -69,7 +69,7 @@ def test_assisted_web_persists_canonical_owner_events_after_successful_review(tm
         content=_xlsx_bytes(),
     )
     assert status == 200
-    assert "Confirmar qué significa cada dato" in page
+    assert "Esto encontré en tu Excel" in page
 
     status, page = app.confirm_meanings(
         session_id="session-1",
@@ -214,7 +214,7 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         upload_page = response.read().decode("utf-8")
         cookie = response.getheader("Set-Cookie").split(";", 1)[0]
         assert response.status == 200
-        assert "Confirmar qué significa cada dato" in upload_page
+        assert "Esto encontré en tu Excel" in upload_page
 
         confirm_body = urlencode(_answers(upload_page)).encode("utf-8")
         connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)

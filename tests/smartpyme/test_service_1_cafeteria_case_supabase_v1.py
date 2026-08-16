@@ -83,7 +83,7 @@ def test_cafeteria_case_persists_semantics_and_stays_actionable_when_margin_evid
             selected_launch_review="net_margin_real",
         )
         assert status == 200
-        assert "Confirmar qué significa cada dato" in page
+        assert "Esto encontré en tu Excel" in page
         status, page = app.confirm_meanings(session_id="cafeteria-session", fields=_answers(page))
         assert status == 200
         assert "FALTA INFORMACIÓN" in page
