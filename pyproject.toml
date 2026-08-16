@@ -9,6 +9,7 @@ description = "PymIA — núcleo operativo canónico para Servicio 1"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0",
+    "pydantic-ai>=2.17,<3",
     "openpyxl>=3.1",
     "pandas>=2.2",
     "PyYAML>=6.0",
