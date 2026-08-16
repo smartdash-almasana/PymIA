@@ -29,9 +29,9 @@ def test_visible_interface_uses_plain_spanish() -> None:
 
     required_text = (
         "Revisar información de mi negocio",
-        "Subí tu Excel. PymIA te ayuda a entender qué dicen tus números.",
-        "¿Qué querés saber?",
-        "PymIA no modifica tu archivo original",
+        "¿Qué querés entender de tu Excel?",
+        "Elegí qué querés revisar",
+        "no modificamos el original",
         "No estoy seguro",
         "¿Qué querés revisar?",
         "Qué conviene tener en cuenta",

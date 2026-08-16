@@ -102,7 +102,7 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
     assert "Conciliación bancaria" in home
-    assert "Subí tu Excel. PymIA te ayuda a entender qué dicen tus números." in home
+    assert "¿Qué querés entender de tu Excel?" in home
 
     status, response_headers, page = _form(
         assisted_server,

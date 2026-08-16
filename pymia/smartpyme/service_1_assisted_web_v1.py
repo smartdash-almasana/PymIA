@@ -2597,6 +2597,8 @@ def _document(content: str) -> str:
       body{background:#f6f8f6;color:#17211b}.app-shell{width:min(1040px,calc(100% - 48px));padding-top:38px}.app-topbar{border-bottom:1px solid #e3e8e4}.brand-word{font-size:1rem;letter-spacing:.065em}.simple-nav a{font-size:.8rem;color:#5a675f}.page-intro{margin-bottom:18px;padding-bottom:22px;border-bottom:0}.page-intro h1{max-width:780px;font-size:clamp(2.25rem,4vw,3.35rem);font-weight:760;letter-spacing:-.055em}.page-intro p{max-width:760px;font-size:1.02rem;line-height:1.6;color:#637068}.page-kicker{color:#2f6b50}.env-badge{background:#f0f6f2;border-color:#d4e2d8;color:#315c48}.flow-steps{margin:14px 0 22px;border-color:#e0e5e1;background:#e0e5e1;box-shadow:0 1px 2px rgba(18,35,25,.03)}.flow-step{padding:12px 14px;font-size:.76rem}.flow-step strong{font-size:.64rem}.control-workspace{box-shadow:0 8px 28px rgba(28,50,38,.055)!important;border-color:#dfe5e0!important}.workspace-heading{padding:20px 22px 16px!important;background:#fff!important}.workspace-heading h2{font-size:1.05rem}.workspace-heading p{font-size:.82rem}.control-workspace>form{margin:18px 22px 0}.service-grid{gap:12px}.service-grid .choice{min-height:148px;padding:20px 18px 18px 48px;border-color:#dde4df;border-radius:10px;background:#fff}.service-grid .choice>input{left:18px;top:23px}.service-grid .choice strong{font-size:1rem;letter-spacing:-.012em}.service-grid .choice span{margin-top:8px;font-size:.81rem;line-height:1.48}.service-grid .choice:hover{border-color:#aebdb3;box-shadow:0 7px 22px rgba(25,47,35,.07);transform:translateY(-1px)}.service-grid .choice:has(input:checked){border-color:#287052;background:#f5faf7;box-shadow:0 0 0 2px rgba(40,112,82,.12)}.service-state{position:absolute;right:12px;top:12px;margin:0!important}.upload-band{grid-template-columns:minmax(170px,.8fr) minmax(280px,1.35fr) auto;margin:18px 0 22px;padding:18px 18px;border:1px dashed #aebdb3;border-radius:10px;background:#f8fbf9}.upload-copy strong{font-size:.92rem}.upload-copy span{font-size:.75rem}.upload-band input[type=file]{min-height:44px;background:#fff}.upload-band button{min-height:44px;padding-inline:20px}.context-details{margin:0 0 4px!important}.secondary-tools{margin-top:22px;background:#fbfcfb}.operations-footer>div{padding:15px 16px;background:#f2f7f4}.operations-footer strong{font-size:.7rem}.operations-footer span{font-size:.8rem;line-height:1.45}
       .semantic-card{box-shadow:0 5px 20px rgba(25,46,35,.04)}.semantic-card legend{padding:15px 18px!important;font-size:.78rem!important;font-weight:750!important}.semantic-detected,.semantic-owner{padding:18px}.semantic-detected small,.semantic-owner small{color:#61736a}.semantic-owner>p{margin:0 0 12px;font-size:.95rem;line-height:1.5}.semantic-owner label{position:relative;margin:8px 0;padding:11px 12px 11px 38px;line-height:1.4}.semantic-owner label input[type=radio]{position:absolute;left:13px;top:13px}.semantic-owner label strong{display:block;font-size:.86rem}.choice-help{display:block;margin-top:3px!important;color:#69766f!important;font-size:.74rem!important;font-weight:450!important}.semantic-evidence-values{padding:13px 14px;background:#f5f8f6}.semantic-evidence-values small{margin:0!important}.semantic-evidence-values code{font-size:.8rem}.semantic-review-actions{padding:12px 14px;border-radius:9px}.semantic-review-actions button{min-width:132px}
       .result-head{align-items:start;margin-top:4px;padding-bottom:20px}.result-head h1{font-size:clamp(2rem,3.4vw,3rem)}.result-head p{max-width:700px;margin:.45rem 0 0;color:#65716a}.metric-grid{gap:12px}.metric{padding:18px 18px;border-radius:10px}.metric strong{font-size:1.6rem}.metric--focus{border-color:#9ec2ad;background:#f1f8f4}.result-summary{padding:20px 22px!important;border-left:4px solid #2a7354!important;background:#fff!important}.result-summary>h2{padding:0 0 10px!important;border:0!important;background:transparent!important}.result-summary .result{margin:.15rem 0 .4rem;font-size:clamp(2rem,5vw,3rem)}.result-finding{font-size:1rem!important;line-height:1.55;color:#34433a!important}.result-detail{margin:10px 0;border-color:#dfe5e0;background:#fff}.result-detail summary{padding:13px 15px;font-size:.8rem;color:#3f5047}.result-detail .detail-body{padding:0 15px 14px;color:#5f6d65}.result-detail .detail-body p,.result-detail .detail-body ul{margin-top:8px}.result-actions a{min-height:42px}.notice{margin-top:16px}
+      /* HOME — one screen, one task */
+      .home-intro{display:block;max-width:760px;margin:6px auto 18px;padding:0;border:0;text-align:left}.home-intro .page-kicker{margin-bottom:8px}.home-intro h1{margin:0 0 10px;font-size:clamp(2.1rem,4vw,3.1rem);line-height:1.02}.home-intro p{margin:0;font-size:.98rem;color:#657169}.home-task{max-width:760px;margin:0 auto;padding:22px!important;border-radius:12px!important}.home-task>form{margin:0!important}.home-question{margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;font-size:.96rem!important;text-transform:none!important;letter-spacing:0!important}.home-task .service-grid{grid-template-columns:1fr!important;gap:8px!important}.home-task .service-grid .choice{display:grid;grid-template-columns:24px 160px 1fr;align-items:center;min-height:auto;padding:13px 14px!important;border-radius:8px!important}.home-task .service-grid .choice>input{position:static;margin:0}.home-task .service-grid .choice strong{font-size:.92rem}.home-task .service-grid .choice span{margin:0!important;font-size:.78rem;line-height:1.35}.home-task .service-state{position:static;justify-self:end;font-size:.65rem!important}.home-upload{grid-template-columns:1fr;margin:18px 0 8px;padding:16px;border-style:solid;background:#f8faf8}.home-upload .upload-copy{margin-bottom:2px}.home-upload input[type=file]{width:100%;min-height:46px}.home-upload button{width:100%;min-height:48px;font-size:.92rem}.home-assurance{margin:10px 0 0!important;color:#6b766f;font-size:.76rem;text-align:center}.compact-details{max-width:760px;margin:12px auto 0!important;border:0!important;background:transparent!important}.compact-details>summary{padding:7px 0!important;color:#728078!important;font-size:.72rem!important;font-weight:600!important}.compact-details>section{margin-top:6px}.home-task .context-details{margin-top:10px!important}.home-task .context-details fieldset{padding-left:0;padding-right:0}
       @media(max-width:768px){.app-topbar{padding:0 14px}.app-shell{width:min(100% - 24px,720px);padding-top:22px}.page-intro h1{font-size:2.05rem}.flow-steps{grid-template-columns:1fr}.flow-step{padding:9px 11px}.workspace-heading{display:block}.control-workspace>form{margin-left:12px;margin-right:12px}.simple-nav a{padding:7px 8px}.semantic-grid{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid #dfe4e0}.upload-band{grid-template-columns:1fr}.upload-band button{width:100%}.operations-footer{grid-template-columns:1fr}.service-grid .choice{min-height:auto}}
       @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
     </style>
@@ -2727,36 +2729,31 @@ def _home_page(error: str | None = None) -> str:
     )
     return f"""
     <main id="app" tabindex="-1">
-      <header class="page-intro">
+      <header class="page-intro home-intro">
         <div>
-          <div class="page-kicker">PymIA · Control de Excel</div>
-          <h1>Subí tu Excel. PymIA te ayuda a entender qué dicen tus números.</h1>
-          <p>Primero elegís qué querés revisar. Después subís el archivo. Antes de calcular, PymIA te muestra qué entendió y te pregunta sólo lo que realmente necesita confirmar.</p>
+          <div class="page-kicker">PymIA</div>
+          <h1>¿Qué querés entender de tu Excel?</h1>
+          <p>Elegí una opción, seleccioná el archivo y continuá.</p>
         </div>
-        <span class="env-badge">Operativo</span>
       </header>
       {_error(error)}
 
-      <div class="flow-steps" aria-label="Cómo funciona">
-        <div class="flow-step is-current"><strong>1 · Elegir y subir</strong>Decís qué querés revisar y seleccionás tu Excel.</div>
-        <div class="flow-step"><strong>2 · Revisar</strong>Ves qué entendió PymIA y confirmás sólo lo necesario.</div>
-        <div class="flow-step"><strong>3 · Ver resultado</strong>Recibís el cálculo, los datos usados y lo que quedó pendiente.</div>
-      </div>
-
-      <section class="control-workspace" aria-labelledby="launch-controls">
-        <div class="workspace-heading">
-          <div><h2 id="launch-controls">1. ¿Qué querés saber?</h2><p>Elegí una sola opción. No hace falta conocer términos contables ni preparar una planilla especial.</p></div>
-        </div>
+      <section class="control-workspace home-task" aria-labelledby="launch-controls">
         <form action="/upload" method="post" enctype="multipart/form-data">
+          <h2 id="launch-controls" class="home-question">Elegí qué querés revisar</h2>
           <div class="service-grid">{launch_options}</div>
-          <div class="upload-band">
-            <div class="upload-copy"><strong>2. Elegí el Excel que querés revisar</strong><span>.xlsx · PymIA no modifica tu archivo original</span></div>
-            <label class="file-field" for="file">Seleccionar archivo</label>
+
+          <div class="upload-band home-upload">
+            <div class="upload-copy"><strong>Elegí tu archivo</strong><span>Excel .xlsx · no modificamos el original</span></div>
+            <label class="file-field" for="file">Seleccionar Excel</label>
             <input id="file" name="file" type="file" accept=".xlsx" required>
-            <button type="submit">Continuar</button>
+            <button type="submit">Analizar mi Excel</button>
           </div>
-          <details class="context-details">
-            <summary>Agregar contexto de consorcio, sólo si corresponde</summary>
+
+          <p class="home-assurance">Si un dato importante no está claro, PymIA te lo pregunta antes de calcular.</p>
+
+          <details class="context-details compact-details">
+            <summary>Datos opcionales para administradores de consorcios</summary>
             <fieldset>
               <label for="consorcio_id">Código del consorcio</label>
               <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
@@ -2769,22 +2766,17 @@ def _home_page(error: str | None = None) -> str:
         </form>
       </section>
 
-      <details class="secondary-tools">
-        <summary>Necesito conciliar dos archivos</summary>
+      <details class="secondary-tools compact-details">
+        <summary>Conciliar dos archivos</summary>
         <section aria-labelledby="bank-reconciliation">
           <h2 id="bank-reconciliation">Conciliación</h2>
-          <div class="section-body"><p>Compará dos fuentes y revisá únicamente diferencias y coincidencias dudosas.</p></div>
           <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
             <div class="service-grid service-grid--two">{reconciliation_options}</div>
-            <button type="submit">Abrir conciliación</button>
+            <button type="submit">Continuar con conciliación</button>
           </form>
         </section>
       </details>
 
-      <div class="operations-footer">
-        <div><strong>No adivina</strong><span>Si un dato importante es ambiguo, te lo muestra antes de calcular.</span></div>
-        <div><strong>Podés dejarlo pendiente</strong><span>Si no podés confirmar algo, el caso queda abierto sin inventar una respuesta.</span></div>
-      </div>
       <div class="notice" aria-live="polite"></div>
     </main>"""
 
