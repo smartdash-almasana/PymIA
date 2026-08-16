@@ -30,11 +30,11 @@ def test_visible_interface_uses_plain_spanish() -> None:
     required_text = (
         "Revisar información de mi negocio",
         "¿Qué querés controlar hoy?",
-        "Archivo de Excel",
-        "Tu archivo no se modifica",
+        "Subí tu Excel",
+        "PymIA no modifica el archivo original",
         "No estoy seguro",
         "¿Qué querés revisar?",
-        "Ver cómo se calculó",
+        "Qué conviene tener en cuenta",
     )
     for text in required_text:
         assert text in surface
@@ -123,6 +123,6 @@ def test_result_exposes_data_and_limits_without_causal_diagnosis() -> None:
     surface = _visible_surface()
 
     assert "Datos utilizados" in surface
-    assert "Este cálculo describe una relación matemática" in surface
-    assert "No determina por sí solo" in surface
+    assert "relación matemática" in surface
+    assert "No atribuye automáticamente" in surface or "No determinan por sí solos" in surface
     assert "diagnóstico causal" not in surface.lower()

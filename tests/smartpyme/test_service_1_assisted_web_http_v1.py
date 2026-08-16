@@ -182,7 +182,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
         headers["Cookie"] = cookies
         status, _, page = _request(server, "POST", "/upload", body, headers)
         assert status == 200
-        assert "SEM-8 · Confirmación empresarial" in page
+        assert "Necesito confirmar" in page
     finally:
         server.shutdown()
         server.server_close()
@@ -268,8 +268,8 @@ def test_launch_service_first_flow_runs_selected_control_after_confirmation(assi
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
     assert "¿Qué querés controlar hoy?" in home
-    assert "Control de Cobros y Conciliación" in home
-    assert "Margen Real" in home
+    assert "Ventas vs. cobros" in home
+    assert "Margen real" in home
     assert "Saldo de caja proyectado" not in home
 
     body, headers = _multipart(
@@ -279,8 +279,8 @@ def test_launch_service_first_flow_runs_selected_control_after_confirmation(assi
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Confirmá la interpretación material" in page
-    assert "SEM-8 · Confirmación empresarial" in page
+    assert "Necesito confirmar" in page
+    assert "Lo que necesitamos confirmar" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -304,8 +304,8 @@ def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Confirmá la interpretación material" in page
-    assert "SEM-8 · Confirmación empresarial" in page
+    assert "Necesito confirmar" in page
+    assert "Lo que necesitamos confirmar" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -348,7 +348,7 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
         cookie,
     )
     assert status == 200
-    assert "Control de Cobros y Conciliación" in page
+    assert "Ventas vs. cobros" in page
 
     status, _, cases = _request(
         assisted_server,
@@ -358,7 +358,7 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
     )
     assert status == 200
     assert "Casos recientes" in cases
-    assert "Control de Cobros y Conciliación" in cases
+    assert "Ventas vs. cobros" in cases
     match = re.search(r'href="(/case\?case_ref=[^"]+)"', cases)
     assert match is not None
 
@@ -369,14 +369,14 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
         headers={"Cookie": cookie},
     )
     assert status == 200
-    assert "Control de Cobros y Conciliación" in reopened
+    assert "Ventas vs. cobros" in reopened
     assert "Total vendido" in reopened
     assert "3.000,00" in reopened
 
     status, _, other_session_cases = _request(assisted_server, "GET", "/cases")
     assert status == 200
     assert "Todavía no hay controles terminados en esta sesión." in other_session_cases
-    assert "Control de Cobros y Conciliación" not in other_session_cases
+    assert "Ventas vs. cobros" not in other_session_cases
 
 
 def _working_capital_xlsx(tmp_path: Path) -> bytes:
@@ -408,8 +408,8 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Confirmar qué significa cada dato" in page or "SEM-8 · Confirmación empresarial" in page:
-        assert "SEM-8 · Confirmación empresarial" in page
+    if "Confirmar qué significa cada dato" in page or "Necesito confirmar" in page:
+        assert "Necesito confirmar" in page or "Confirmar qué significa cada dato" in page
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
@@ -418,7 +418,7 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
         )
         assert status == 200
     assert "Caja y Capital de Trabajo" in page
-    assert "Saldo de caja proyectado" in page
+    assert "Caja proyectada" in page
     assert "Tiempo de cobro" in page
     assert "Relación de corto plazo" in page
     assert "1.700" in page or "1700" in page

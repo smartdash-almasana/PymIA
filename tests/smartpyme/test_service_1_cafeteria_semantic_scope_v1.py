@@ -105,9 +105,9 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
     )
 
     assert status == 200
-    assert "Confirmá la interpretación material" in page
-    assert "SEM-8 · Confirmación empresarial" in page
-    assert "Propuesta para confirmar" in page
+    assert "Necesito confirmar" in page
+    assert "Lo que encontramos en tu Excel" in page
+    assert "Lo que necesitamos confirmar" in page
     assert 1 <= page.count('class="semantic-card"') < 10
 
     for relevant in ("ProductoID", "Cantidad", "PrecioUnitario", "Descuento", "Costo"):
@@ -122,7 +122,7 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
 
     assert status == 200
     assert "Confirmá cómo está expresado el descuento" in unit_page
-    assert "0,10 = 10%" in unit_page
+    assert "0,10 significa 10%" in unit_page
     assert "Valores observados en esta columna" in unit_page
     assert "<code>0</code>" in unit_page
     assert "<code>0.1</code>" in unit_page
@@ -207,7 +207,7 @@ def test_cafeteria_margin_confirms_semantics_then_discount_unit_and_executes_ker
     )
     assert status == 200
     assert provider_calls == 1
-    assert "Confirmá la interpretación material" in semantic_page
+    assert "Necesito confirmar" in semantic_page
 
     status, unit_page = app.confirm_meanings(
         session_id="cafeteria-full",

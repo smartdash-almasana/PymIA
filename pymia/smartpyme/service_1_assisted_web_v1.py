@@ -114,18 +114,18 @@ _REVIEW_BY_REF = {item[0]: item for item in _REVIEW_OPTIONS}
 _LAUNCH_REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
     (
         "sold_vs_collected_gap",
-        "Control de Cobros y Conciliación",
-        "Compará lo vendido con lo cobrado y detectá diferencias que requieren revisión.",
+        "Ventas vs. cobros",
+        "Vas a ver cuánto vendiste, cuánto cobraste y qué diferencia quedó pendiente de revisar.",
     ),
     (
         "net_margin_real",
-        "Margen Real",
-        "Calculá el margen con los componentes confirmados y conservá la evidencia utilizada.",
+        "Margen real",
+        "Vas a ver cuánto margen dejan tus ventas usando los precios, costos e impuestos disponibles.",
     ),
     (
         "working_capital",
-        "Caja y Capital de Trabajo",
-        "Revisá caja proyectada, tiempo de cobro y liquidez de corto plazo con datos confirmados.",
+        "Caja y corto plazo",
+        "Vas a revisar caja proyectada, tiempo de cobro y capacidad de cubrir obligaciones de corto plazo.",
     ),
 )
 _LAUNCH_REVIEW_BY_REF = {item[0]: item for item in _LAUNCH_REVIEW_OPTIONS}
@@ -2587,6 +2587,17 @@ def _document(content: str) -> str:
       @media(max-width:1024px){.workspace{grid-template-columns:190px minmax(0,1fr)}.app-shell{width:min(100% - 40px,1020px)}.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.system-context span:first-child{display:none}}
       @media(max-width:768px){.app-topbar{height:60px;min-height:60px;padding:0 16px}.workspace{display:block}.service-rail{position:static;min-height:auto;padding:8px;background:#17231d}.rail-index,.rail-note{display:none}.service-rail nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.service-rail nav a,.rail-disabled{min-height:38px;padding:0 6px;border-radius:5px;justify-content:center;text-align:center;font-size:.68rem}.service-rail nav a::before,.rail-disabled::before{display:none}.service-rail nav>:nth-child(6){display:none}.app-shell{width:min(100% - 28px,720px);padding:28px 0 48px}.service-grid{grid-template-columns:1fr}.page-intro{grid-template-columns:1fr}.env-badge{width:max-content}.semantic-grid,.recon-workbench{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid var(--rule)}.semantic-review-head{display:none}.semantic-review-list{border-radius:8px}.semantic-review-row{grid-template-columns:1fr;gap:10px;padding:14px}.semantic-review-datum p{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.semantic-review-decision{grid-template-columns:1fr}.semantic-review-decision small,.semantic-owner-label{grid-column:1}.semantic-review-actions{align-items:stretch;flex-direction:column}.semantic-review-actions button{width:100%}.metric-grid{grid-template-columns:1fr}}
       @media(max-width:390px){.brand-system,.brand-divider{display:none}.app-shell{width:calc(100% - 20px)}.service-rail nav{grid-template-columns:repeat(4,1fr)}.service-rail nav>:nth-child(5),.service-rail nav>:nth-child(6){display:none}.page-intro h1,main#app>h1,.result-head h1{font-size:1.75rem}section>p,section>form,section>table,section>ul,section>details,section>.service-grid,section>.section-body{margin-left:12px;margin-right:12px}section>h2{padding-left:12px;padding-right:12px}.semantic-memory{grid-template-columns:1fr}button,.result-actions a{width:100%;justify-content:center}}
+      /* CLIENT JOURNEY — interaction-first override */
+      .app-topbar{height:58px;min-height:58px;padding:0 max(18px,calc((100vw - 1180px)/2));border-bottom:1px solid #dfe4e0;background:#fff;box-shadow:none}.app-brand{color:#17231d;text-decoration:none}.brand-system,.brand-divider,.system-context{display:none}.simple-nav{display:flex;align-items:center;gap:6px}.simple-nav a{padding:8px 10px;border-radius:6px;color:#56635c;text-decoration:none;font-size:.78rem;font-weight:700}.simple-nav a:hover{background:#f0f5f2;color:#174f39}.app-shell{width:min(980px,calc(100% - 40px));padding:34px 0 64px}.page-intro{align-items:start}.page-intro h1{max-width:720px}.page-intro p{max-width:720px}.env-badge{margin-top:3px}
+      .flow-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin:20px 0 24px;border:1px solid #d7ded9;border-radius:8px;overflow:hidden;background:#d7ded9}.flow-step{padding:11px 13px;background:#fff;color:#68756e;font-size:.75rem;line-height:1.35}.flow-step strong{display:block;margin-bottom:2px;color:#35423b;font-size:.65rem;letter-spacing:.04em;text-transform:uppercase}.flow-step.is-current{background:#edf5f0;box-shadow:inset 0 -3px #247454}.flow-step.is-done strong:before{content:"✓ ";color:#247454}
+      .control-workspace{padding:0 0 18px!important;border:1px solid #d9dfda!important;border-radius:10px!important;background:#fff!important;overflow:hidden}.control-workspace>h2,.control-workspace>.workspace-heading{margin:0;padding:16px 18px 13px;border-bottom:1px solid #dfe4e0;background:#fafbfa}.workspace-heading{display:flex;align-items:end;justify-content:space-between;gap:20px}.workspace-heading h2{margin:0 0 3px;font-size:.92rem;text-transform:none;letter-spacing:-.01em}.workspace-heading p{margin:0;color:#6a7770;font-size:.78rem}.control-workspace>form{margin:16px 18px 0}.control-workspace .service-grid{margin:0}.secondary-tools{margin-top:28px;border:1px solid #d9dfda;border-radius:8px;background:#fff}.secondary-tools>summary{padding:12px 14px;color:#617068;font-size:.78rem;font-weight:700}.secondary-tools>section{margin:0;border:0;border-top:1px solid #dfe4e0;border-radius:0;box-shadow:none}.operations-footer{margin-top:22px}.operations-footer>div{border-radius:7px;border-top:0;border-left:3px solid #2e7254;background:#eef5f0}
+      .semantic-card{margin:0 0 14px!important;border-radius:9px!important;overflow:hidden}.semantic-card legend{font-size:.72rem!important;text-transform:none!important;letter-spacing:0!important;background:#f8faf8}.semantic-detected small,.semantic-owner small{font-size:.61rem!important}.semantic-detected>strong{font-size:.82rem!important}.semantic-owner>p{font-size:.9rem;color:#26342c}.semantic-owner label{display:block;margin:7px 0;padding:9px 10px;border:1px solid #d8dfda;border-radius:7px;background:#fff}.semantic-owner label:has(input:checked){border-color:#2c7052;background:#f0f7f3}.semantic-owner input[type=radio]{margin-right:7px}.semantic-owner input[type=text]{margin-top:8px}.semantic-evidence-values{margin:12px 0;padding:11px 12px;border:1px solid #dfe4e0;border-radius:7px;background:#f7f9f7}.semantic-evidence-values ul{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0;padding:0;list-style:none}.semantic-evidence-values code{display:inline-block;padding:4px 7px;border:1px solid #d2dad4;border-radius:5px;background:#fff;font-family:var(--mono);font-size:.74rem}.semantic-evidence-values p{margin:0;color:#6b7770;font-size:.7rem}.semantic-review-actions{margin-top:12px}.semantic-review-actions span{font-size:.74rem}.semantic-review-actions button{min-width:120px}
+      .result-head{padding-top:8px}.metric-grid{margin-top:20px}.result-actions{margin-top:22px}.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+      /* COMMERCIAL FRIENDLY FINISH */
+      body{background:#f6f8f6;color:#17211b}.app-shell{width:min(1040px,calc(100% - 48px));padding-top:38px}.app-topbar{border-bottom:1px solid #e3e8e4}.brand-word{font-size:1rem;letter-spacing:.065em}.simple-nav a{font-size:.8rem;color:#5a675f}.page-intro{margin-bottom:18px;padding-bottom:22px;border-bottom:0}.page-intro h1{max-width:780px;font-size:clamp(2.25rem,4vw,3.35rem);font-weight:760;letter-spacing:-.055em}.page-intro p{max-width:760px;font-size:1.02rem;line-height:1.6;color:#637068}.page-kicker{color:#2f6b50}.env-badge{background:#f0f6f2;border-color:#d4e2d8;color:#315c48}.flow-steps{margin:14px 0 22px;border-color:#e0e5e1;background:#e0e5e1;box-shadow:0 1px 2px rgba(18,35,25,.03)}.flow-step{padding:12px 14px;font-size:.76rem}.flow-step strong{font-size:.64rem}.control-workspace{box-shadow:0 8px 28px rgba(28,50,38,.055)!important;border-color:#dfe5e0!important}.workspace-heading{padding:20px 22px 16px!important;background:#fff!important}.workspace-heading h2{font-size:1.05rem}.workspace-heading p{font-size:.82rem}.control-workspace>form{margin:18px 22px 0}.service-grid{gap:12px}.service-grid .choice{min-height:148px;padding:20px 18px 18px 48px;border-color:#dde4df;border-radius:10px;background:#fff}.service-grid .choice>input{left:18px;top:23px}.service-grid .choice strong{font-size:1rem;letter-spacing:-.012em}.service-grid .choice span{margin-top:8px;font-size:.81rem;line-height:1.48}.service-grid .choice:hover{border-color:#aebdb3;box-shadow:0 7px 22px rgba(25,47,35,.07);transform:translateY(-1px)}.service-grid .choice:has(input:checked){border-color:#287052;background:#f5faf7;box-shadow:0 0 0 2px rgba(40,112,82,.12)}.service-state{position:absolute;right:12px;top:12px;margin:0!important}.upload-band{grid-template-columns:minmax(170px,.8fr) minmax(280px,1.35fr) auto;margin:18px 0 22px;padding:18px 18px;border:1px dashed #aebdb3;border-radius:10px;background:#f8fbf9}.upload-copy strong{font-size:.92rem}.upload-copy span{font-size:.75rem}.upload-band input[type=file]{min-height:44px;background:#fff}.upload-band button{min-height:44px;padding-inline:20px}.context-details{margin:0 0 4px!important}.secondary-tools{margin-top:22px;background:#fbfcfb}.operations-footer>div{padding:15px 16px;background:#f2f7f4}.operations-footer strong{font-size:.7rem}.operations-footer span{font-size:.8rem;line-height:1.45}
+      .semantic-card{box-shadow:0 5px 20px rgba(25,46,35,.04)}.semantic-card legend{padding:15px 18px!important;font-size:.78rem!important;font-weight:750!important}.semantic-detected,.semantic-owner{padding:18px}.semantic-detected small,.semantic-owner small{color:#61736a}.semantic-owner>p{margin:0 0 12px;font-size:.95rem;line-height:1.5}.semantic-owner label{position:relative;margin:8px 0;padding:11px 12px 11px 38px;line-height:1.4}.semantic-owner label input[type=radio]{position:absolute;left:13px;top:13px}.semantic-owner label strong{display:block;font-size:.86rem}.choice-help{display:block;margin-top:3px!important;color:#69766f!important;font-size:.74rem!important;font-weight:450!important}.semantic-evidence-values{padding:13px 14px;background:#f5f8f6}.semantic-evidence-values small{margin:0!important}.semantic-evidence-values code{font-size:.8rem}.semantic-review-actions{padding:12px 14px;border-radius:9px}.semantic-review-actions button{min-width:132px}
+      .result-head{align-items:start;margin-top:4px;padding-bottom:20px}.result-head h1{font-size:clamp(2rem,3.4vw,3rem)}.result-head p{max-width:700px;margin:.45rem 0 0;color:#65716a}.metric-grid{gap:12px}.metric{padding:18px 18px;border-radius:10px}.metric strong{font-size:1.6rem}.metric--focus{border-color:#9ec2ad;background:#f1f8f4}.result-summary{padding:20px 22px!important;border-left:4px solid #2a7354!important;background:#fff!important}.result-summary>h2{padding:0 0 10px!important;border:0!important;background:transparent!important}.result-summary .result{margin:.15rem 0 .4rem;font-size:clamp(2rem,5vw,3rem)}.result-finding{font-size:1rem!important;line-height:1.55;color:#34433a!important}.result-detail{margin:10px 0;border-color:#dfe5e0;background:#fff}.result-detail summary{padding:13px 15px;font-size:.8rem;color:#3f5047}.result-detail .detail-body{padding:0 15px 14px;color:#5f6d65}.result-detail .detail-body p,.result-detail .detail-body ul{margin-top:8px}.result-actions a{min-height:42px}.notice{margin-top:16px}
+      @media(max-width:768px){.app-topbar{padding:0 14px}.app-shell{width:min(100% - 24px,720px);padding-top:22px}.page-intro h1{font-size:2.05rem}.flow-steps{grid-template-columns:1fr}.flow-step{padding:9px 11px}.workspace-heading{display:block}.control-workspace>form{margin-left:12px;margin-right:12px}.simple-nav a{padding:7px 8px}.semantic-grid{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid #dfe4e0}.upload-band{grid-template-columns:1fr}.upload-band button{width:100%}.operations-footer{grid-template-columns:1fr}.service-grid .choice{min-height:auto}}
       @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
     </style>
     """
@@ -2595,31 +2606,16 @@ def _document(content: str) -> str:
     shell = (
         '<div class="pymia-frame">'
         '<header class="app-topbar">'
-        '<div class="app-brand" aria-label="PymIA Mesa de Operaciones">'
+        '<a class="app-brand" href="/" aria-label="PymIA inicio">'
         '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>'
         '<span class="brand-word">PYMIA</span>'
-        '<span class="brand-divider">/</span>'
-        '<span class="brand-system">MESA DE OPERACIONES</span>'
-        '</div>'
-        '<div class="system-context" aria-label="Contexto operativo">'
-        '<span><b>EMPRESA</b> contexto verificado al operar</span>'
-        '<span><b>USUARIO / ROL</b> identidad verificada al operar</span>'
-        '</div>'
-        '</header>'
-        '<div class="workspace">'
-        '<aside class="service-rail" aria-label="Navegación principal">'
-        '<div class="rail-index">S1</div>'
-        '<nav>'
-        '<a href="/" data-ref="01">Operaciones</a>'
-        '<a href="/cases" data-ref="02">Casos</a>'
-        '<a href="/radar" data-ref="03">RADAR</a>'
-        '<span class="rail-disabled" data-ref="04">Evidencia</span>'
-        '<span class="rail-disabled" data-ref="05">Administración</span>'
+        '</a>'
+        '<nav class="simple-nav" aria-label="Navegación principal">'
+        '<a href="/">Inicio</a>'
+        '<a href="/cases">Mis casos</a>'
         '</nav>'
-        '<div class="rail-note">SERVICIO 1<br>CONTROL Y EVIDENCIA<br><br>PRODUCCIÓN</div>'
-        '</aside>'
+        '</header>'
         f'<div class="app-shell">{content}</div>'
-        '</div>'
         '</div>'
     )
     return template.replace("{{content}}", shell)
@@ -2711,15 +2707,18 @@ def _login_page(error: str | None = None) -> str:
 
 def _home_page(error: str | None = None) -> str:
     launch_states = {
-        "sold_vs_collected_gap": "DISPONIBLE",
-        "net_margin_real": "DISPONIBLE",
-        "working_capital": "PILOTO",
+        "sold_vs_collected_gap": "",
+        "net_margin_real": "",
+        "working_capital": "EN PRUEBA",
     }
     launch_options = "".join(
-        f'<label class="choice"><input type="radio" name="launch_review" value="{_esc(ref)}" required>'
-        f'<span class="service-code">S1 / {index:02d}</span><strong>{_esc(name)}</strong>'
-        f'<span>{_esc(description)}</span><span class="service-state">{_esc(launch_states.get(ref, "DISPONIBLE"))}</span></label>'
-        for index, (ref, name, description) in enumerate(_LAUNCH_REVIEW_OPTIONS, start=1)
+        (
+            f'<label class="choice"><input type="radio" name="launch_review" value="{_esc(ref)}" required>'
+            f'<strong>{_esc(name)}</strong><span>{_esc(description)}</span>'
+            + (f'<span class="service-state">{_esc(launch_states[ref])}</span>' if launch_states.get(ref) else "")
+            + '</label>'
+        )
+        for ref, name, description in _LAUNCH_REVIEW_OPTIONS
     )
     reconciliation_options = "".join(
         f'<label class="choice"><input type="radio" name="reconciliation_type" value="{_esc(ref)}" required>'
@@ -2731,26 +2730,34 @@ def _home_page(error: str | None = None) -> str:
     <main id="app" tabindex="-1">
       <header class="page-intro">
         <div>
-          <div class="page-kicker">Servicio 1 · Control operacional</div>
+          <div class="page-kicker">PymIA · Revisá tus números</div>
           <h1>¿Qué querés controlar hoy?</h1>
-          <p>Seleccioná un control, aportá la evidencia y revisá el resultado con trazabilidad. PymIA no interpreta silenciosamente datos ambiguos.</p>
+          <p>Elegí qué querés entender y subí el Excel que ya usás. PymIA ordena la información, te consulta sólo cuando una duda puede cambiar el resultado y te muestra de dónde sale cada número.</p>
         </div>
-        <span class="env-badge">Producción operativa</span>
+        <span class="env-badge">Operativo</span>
       </header>
       {_error(error)}
 
-      <section aria-labelledby="launch-controls">
-        <h2 id="launch-controls">Controles sobre evidencia empresarial</h2>
+      <div class="flow-steps" aria-label="Cómo funciona">
+        <div class="flow-step is-current"><strong>1 · Subir</strong>Elegís el control y el archivo.</div>
+        <div class="flow-step"><strong>2 · Confirmar</strong>Revisás únicamente las dudas importantes.</div>
+        <div class="flow-step"><strong>3 · Resultado</strong>Ves el cálculo, sus datos y sus límites.</div>
+      </div>
+
+      <section class="control-workspace" aria-labelledby="launch-controls">
+        <div class="workspace-heading">
+          <div><h2 id="launch-controls">Elegí qué querés revisar</h2><p>No hace falta preparar una planilla especial.</p></div>
+        </div>
         <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
           <div class="service-grid">{launch_options}</div>
           <div class="upload-band">
-            <div class="upload-copy"><strong>Archivo de Excel</strong><span>Evidencia de entrada · .xlsx · Tu archivo no se modifica</span></div>
+            <div class="upload-copy"><strong>Subí tu Excel</strong><span>.xlsx · PymIA no modifica el archivo original</span></div>
             <label class="file-field" for="file">Seleccionar archivo</label>
             <input id="file" name="file" type="file" accept=".xlsx" required>
-            <button type="submit">Iniciar control</button>
+            <button type="submit">Revisar este Excel</button>
           </div>
           <details class="context-details">
-            <summary>Contexto del consorcio (opcional · piloto)</summary>
+            <summary>Agregar contexto de consorcio, sólo si corresponde</summary>
             <fieldset>
               <label for="consorcio_id">Código del consorcio</label>
               <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
@@ -2763,18 +2770,21 @@ def _home_page(error: str | None = None) -> str:
         </form>
       </section>
 
-      <section aria-labelledby="bank-reconciliation">
-        <h2 id="bank-reconciliation">Mesa de conciliación</h2>
-        <div class="section-body"><p>Compará dos fuentes y llevá a revisión humana sólo diferencias, coincidencias dudosas y movimientos sin correspondencia.</p></div>
-        <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
-          <div class="service-grid service-grid--two">{reconciliation_options}</div>
-          <button type="submit">Abrir conciliación bancaria</button>
-        </form>
-      </section>
+      <details class="secondary-tools">
+        <summary>Necesito conciliar dos archivos</summary>
+        <section aria-labelledby="bank-reconciliation">
+          <h2 id="bank-reconciliation">Conciliación</h2>
+          <div class="section-body"><p>Compará dos fuentes y revisá únicamente diferencias y coincidencias dudosas.</p></div>
+          <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
+            <div class="service-grid service-grid--two">{reconciliation_options}</div>
+            <button type="submit">Abrir conciliación</button>
+          </form>
+        </section>
+      </details>
 
       <div class="operations-footer">
-        <div><strong>Control humano</strong><span>La confirmación del owner queda como evidencia; no autoriza decisiones automáticas.</span></div>
-        <div><strong>RADAR</strong><span>Observa condiciones definidas por el dueño después de controles compatibles.</span></div>
+        <div><strong>No adivina</strong><span>Si un dato importante es ambiguo, te lo muestra antes de calcular.</span></div>
+        <div><strong>Podés dejarlo pendiente</strong><span>Si no podés confirmar algo, el caso queda abierto sin inventar una respuesta.</span></div>
       </div>
       <div class="notice" aria-live="polite"></div>
     </main>"""
@@ -3320,38 +3330,56 @@ def _derived_unit_questions_page(
                 '<div class="semantic-evidence-values"><small>Valores observados en esta columna</small>'
                 '<p>No hay valores no vacíos disponibles para mostrar.</p></div>'
             )
-        options = "".join(
-            f'<label><input type="radio" name="unit_{_esc(question_id)}" value="{_esc(option.get("unit_kind"))}" required'
-            f'{" checked" if str(option.get("unit_kind") or "") == selected else ""}> '
-            f'<strong>{_esc(option.get("label"))}</strong> · {_esc(option.get("example"))}</label>'
-            for option in (question.get("options") or [])
-            if isinstance(option, Mapping)
-        )
+        unit_copy = {
+            "DISCOUNT_FRACTION_0_1": ("Es un porcentaje escrito como decimal", "0,10 significa 10%"),
+            "DISCOUNT_PERCENT_0_100": ("Es un porcentaje escrito como número", "10 significa 10%"),
+            "DISCOUNT_LINE_AMOUNT": ("Es un importe de dinero", "10 significa $10 descontados"),
+        }
+        option_rows: list[str] = []
+        for option in (question.get("options") or []):
+            if not isinstance(option, Mapping):
+                continue
+            unit_kind = str(option.get("unit_kind") or "").strip()
+            label, example = unit_copy.get(
+                unit_kind,
+                (str(option.get("label") or "").strip(), str(option.get("example") or "").strip()),
+            )
+            option_rows.append(
+                f'<label><input type="radio" name="unit_{_esc(question_id)}" value="{_esc(unit_kind)}" required'
+                f'{" checked" if unit_kind == selected else ""}> '
+                f'<strong>{_esc(label)}</strong><span class="choice-help">{_esc(example)}</span></label>'
+            )
+        options = "".join(option_rows)
         options += (
             f'<label><input type="radio" name="unit_{_esc(question_id)}" value="not_sure" required'
             f'{" checked" if selected == "not_sure" else ""}> '
-            '<strong>No lo puedo confirmar ahora</strong> · El caso queda pendiente y PymIA no calcula con una unidad supuesta.</label>'
+            '<strong>No lo puedo confirmar ahora</strong><span class="choice-help">Lo dejamos pendiente. PymIA no supone una respuesta ni calcula con una unidad inventada.</span></label>'
         )
         cards.append(
-            f'<fieldset class="semantic-card"><legend>Unidad del dato</legend>'
+            f'<fieldset class="semantic-card"><legend>Descuento en tu Excel</legend>'
             f'<div class="semantic-grid"><div class="semantic-detected">'
-            f'<small>Evidencia</small><strong>{_esc(sheet_ref)}.{_esc(column_ref)}</strong>'
-            f'{sample_block}<p>{_esc(question.get("materiality_reason"))}</p></div>'
-            f'<div class="semantic-owner"><small>Confirmación requerida</small>'
-            f'<p>{_esc(question.get("presentation_text"))}</p>{options}</div></div></fieldset>'
+            f'<small>Columna encontrada</small><strong>{_esc(column_ref)} · hoja {_esc(sheet_ref)}</strong>'
+            f'{sample_block}<p>Esta respuesta cambia la forma de calcular el importe final de cada venta.</p></div>'
+            f'<div class="semantic-owner"><small>Elegí la opción que corresponde</small>'
+            f'<p>¿Cómo están guardados estos descuentos en tu archivo?</p>{options}</div></div></fieldset>'
         )
     return f"""
     <main id="app" tabindex="-1">
       <header class="page-intro">
-        <div><div class="page-kicker">Evidencia derivada · Unidad material</div>
+        <div><div class="page-kicker">Paso 2 de 3 · Una última duda</div>
         <h1>Confirmá cómo está expresado el descuento</h1>
-        <p>La columna ya fue confirmada como descuento. Mirá sus valores antes de decidir la unidad. Si no podés confirmarla, el caso queda pendiente sin calcular.</p></div>
-        <span class="env-badge">Confirmación owner</span>
+        <p>Te mostramos valores reales de esa columna para que puedas decidir. Si no lo sabés ahora, dejalo pendiente: PymIA no va a suponerlo.</p></div>
+        <span class="env-badge">1 dato por revisar</span>
       </header>
+      <div class="flow-steps" aria-label="Progreso">
+        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
+        <div class="flow-step is-current"><strong>2 · Confirmar</strong>Revisá esta duda.</div>
+        <div class="flow-step"><strong>3 · Resultado</strong>Se calcula si alcanza la evidencia.</div>
+      </div>
       {_error(error)}
       <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
         {''.join(cards)}
-        <div class="semantic-review-actions"><span>Solo una unidad confirmada se convierte en evidencia para el cálculo.</span><button type="submit">Continuar</button></div>
+        <div class="semantic-review-actions"><span>Solo una respuesta que confirmes se usa para calcular.</span><button type="submit">Continuar</button></div>
       </form>
       <div class="notice" aria-live="polite"></div>
     </main>"""
@@ -3384,6 +3412,19 @@ def _unit_confirmation_deferred_page(questions: list[dict[str, Any]]) -> str:
     </main>"""
 
 
+def _friendly_semantic_ref(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "Dato del Excel"
+    if "->" in raw:
+        left, right = raw.split("->", 1)
+        return f"{_friendly_semantic_ref(left)} ↔ {_friendly_semantic_ref(right)}"
+    if "." in raw:
+        sheet, column = raw.split(".", 1)
+        return f"{column} · hoja {sheet}"
+    return raw.replace("_", " ")
+
+
 def _assisted_semantic_dialogue_page(
     decisions: list[dict[str, Any]],
     error: str | None = None,
@@ -3402,7 +3443,7 @@ def _assisted_semantic_dialogue_page(
         presentation = str(decision.get("presentation_text") or "").strip()
         materiality = str(decision.get("materiality_reason") or "").strip()
         refs = [
-            str(ref)
+            _friendly_semantic_ref(ref)
             for ref in (
                 list(decision.get("column_refs") or [])
                 + list(decision.get("relationship_refs") or [])
@@ -3411,32 +3452,37 @@ def _assisted_semantic_dialogue_page(
         ]
         selected = selected_actions.get(decision_id, "")
         rows.append(
-            f'<fieldset class="semantic-card"><legend>{_esc(kind.replace("_", " "))}</legend>'
+            f'<fieldset class="semantic-card"><legend>Dato a revisar</legend>'
             f'<div class="semantic-grid"><div class="semantic-detected">'
-            f'<small>Evidencia involucrada</small><strong>{_esc(" · ".join(refs) or decision_id)}</strong>'
+            f'<small>Lo que encontramos en tu Excel</small><strong>{_esc(" · ".join(refs) or decision_id)}</strong>'
             f'<p>{_esc(materiality)}</p></div><div class="semantic-owner">'
-            f'<small>Propuesta para confirmar</small><p>{_esc(presentation)}</p>'
+            f'<small>Lo que necesitamos confirmar</small><p>{_esc(presentation)}</p>'
             f'<label><input type="radio" name="action_{_esc(decision_id)}" value="ACCEPT" required'
-            f'{" checked" if selected == "ACCEPT" else ""}> Confirmar</label>'
+            f'{" checked" if selected == "ACCEPT" else ""}> Sí, es correcto</label>'
             f'<label><input type="radio" name="action_{_esc(decision_id)}" value="REJECT"'
-            f'{" checked" if selected == "REJECT" else ""}> No es correcto</label>'
+            f'{" checked" if selected == "REJECT" else ""}> No, no es correcto</label>'
             f'<label><input type="radio" name="action_{_esc(decision_id)}" value="CORRECT"'
-            f'{" checked" if selected == "CORRECT" else ""}> Corregir / explicar</label>'
-            f'<input type="text" name="correction_{_esc(decision_id)}" placeholder="Escribí la corrección si elegís corregir">'
+            f'{" checked" if selected == "CORRECT" else ""}> Quiero corregirlo</label>'
+            f'<input type="text" name="correction_{_esc(decision_id)}" placeholder="Contanos cómo debería interpretarse, si corresponde">'
             f'</div></div></fieldset>'
         )
     return f"""
     <main id="app" tabindex="-1">
       <header class="page-intro">
-        <div><div class="page-kicker">SEM-8 · Confirmación empresarial</div>
-        <h1>Confirmá la interpretación material</h1>
-        <p>PymIA propone una lectura con evidencia estructural. El owner confirma, rechaza o corrige; la confirmación no autoriza el cálculo por sí sola.</p></div>
-        <span class="env-badge">{len(rows)} decisiones</span>
+        <div><div class="page-kicker">Paso 2 de 3 · Confirmar</div>
+        <h1>Necesito confirmar {len(rows)} {"dato" if len(rows) == 1 else "datos"}</h1>
+        <p>Mostramos únicamente las dudas que pueden cambiar el resultado. Revisalas con la información de tu negocio.</p></div>
+        <span class="env-badge">{len(rows)} por revisar</span>
       </header>
+      <div class="flow-steps" aria-label="Progreso">
+        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
+        <div class="flow-step is-current"><strong>2 · Confirmar</strong>Revisá estas dudas.</div>
+        <div class="flow-step"><strong>3 · Resultado</strong>Se calcula después.</div>
+      </div>
       {_error(error)}
       <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
         {''.join(rows)}
-        <div class="semantic-review-actions"><span>Las decisiones quedan trazadas por caso.</span><button type="submit">Confirmar y continuar</button></div>
+        <div class="semantic-review-actions"><span>Si algo no coincide, corregilo antes de seguir.</span><button type="submit">Continuar</button></div>
       </form>
       <div class="notice" aria-live="polite"></div>
     </main>"""
@@ -3508,12 +3554,17 @@ def _semantic_questions_page(
         </div>""")
     return f"""
     <main id="app" tabindex="-1">
-      <header class="page-intro"><div><div class="page-kicker">Confirmación semántica · Control humano</div><h1>{"Confirmar qué " + "significa cada dato"}</h1><p>Revisá únicamente las columnas detectadas. No hay confirmaciones automáticas: cada significado queda explícitamente elegido por el owner.</p></div><span class="env-badge">{len(questions)} por revisar</span></header>
+      <header class="page-intro"><div><div class="page-kicker">Paso 2 de 3 · Confirmar</div><h1>{"Confirmar qué " + "significa cada dato"}</h1><p>PymIA ya descartó lo que no necesita. Revisá solamente estas columnas antes de continuar.</p></div><span class="env-badge">{len(questions)} por revisar</span></header>
+      <div class="flow-steps" aria-label="Progreso">
+        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
+        <div class="flow-step is-current"><strong>2 · Confirmar</strong>Revisá las dudas.</div>
+        <div class="flow-step"><strong>3 · Resultado</strong>Se calcula después.</div>
+      </div>
       {_error(error)}
       <form class="semantic-review-form" action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
-        <div class="semantic-review-head"><span>Lo detectado</span><span>Decisión</span></div>
+        <div class="semantic-review-head"><span>Dato del Excel</span><span>Qué significa</span></div>
         <div class="semantic-review-list">{''.join(rows)}</div>
-        <div class="semantic-review-actions"><span>{len(questions)} decisiones requeridas</span><button type="submit">Confirmar y continuar</button></div>
+        <div class="semantic-review-actions"><span>Podés dejar una columna como “No estoy seguro” y retomarla después.</span><button type="submit">Continuar</button></div>
       </form>
       <div class="notice" aria-live="polite"></div>
     </main>"""
@@ -3558,17 +3609,21 @@ def _evaluated_result_page(
     )
     return f"""
     <main id="app" tabindex="-1">
-      <div class="result-head"><div><p class="eyebrow">Resultado del control</p><h1>{_esc(title)}</h1></div><span class="status-chip status-ready">LISTO</span></div>
-      <section aria-labelledby="summary-title"><h2 id="summary-title">Qué encontramos</h2><p class="result"><strong>{_esc(value)} {_esc(unit)}</strong></p><p>{_esc(finding)}</p></section>
-      <section aria-labelledby="data-title"><h2 id="data-title">Datos utilizados</h2>{data}</section>
-      <section aria-labelledby="limits-title"><h2 id="limits-title">Qué puede y qué no puede concluir PymIA</h2>
-        <p>Este cálculo describe una relación matemática a partir de los datos confirmados.</p>
-        <p>No determina por sí solo causas, problemas del negocio ni acciones a tomar.</p>
+      <div class="flow-steps" aria-label="Progreso">
+        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
+        <div class="flow-step is-done"><strong>2 · Confirmar</strong>Dudas resueltas.</div>
+        <div class="flow-step is-current"><strong>3 · Resultado</strong>Listo para revisar.</div>
+      </div>
+      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>{_esc(title)}</h1><p>Calculado únicamente con los datos que PymIA pudo usar de forma segura.</p></div><span class="status-chip status-ready">LISTO</span></div>
+      <section class="result-summary" aria-labelledby="summary-title"><h2 id="summary-title">Tu resultado</h2><p class="result"><strong>{_esc(value)} {_esc(unit)}</strong></p><p class="result-finding">{_esc(finding)}</p></section>
+      <details class="result-detail"><summary>Datos utilizados</summary><div class="detail-body">{data}</div></details>
+      <details class="result-detail"><summary>Qué conviene tener en cuenta</summary><div class="detail-body">
+        <p>Este resultado surge de una relación matemática sobre los datos confirmados. No atribuye automáticamente causas ni decisiones de negocio.</p>
         <ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
-        <details><summary>Ver cómo se calculó</summary><p>Se aplicó el cálculo definido para esta revisión sobre los datos confirmados.</p></details>
-      </section>
-      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Volver a controles</a></div>
-      <div aria-live="polite">Resultado listo para revisar.</div>
+        <p><strong>Cómo se calculó:</strong> se aplicó el cálculo definido para esta revisión sobre los datos confirmados.</p>
+      </div></details>
+      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Revisar otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div>
+      <div class="notice" aria-live="polite">Resultado listo. Podés descargarlo o volver a revisar otro archivo.</div>
     </main>"""
 
 
@@ -3600,23 +3655,24 @@ def _working_capital_result_page(packet: dict[str, Any]) -> str:
 
     return f"""
     <main id="app" tabindex="-1">
-      <div class="result-head"><div><p class="eyebrow">Resultado del servicio</p><h1>Caja y Capital de Trabajo</h1></div><span class="status-chip {status_class}">{status_label}</span></div>
-      <p>Este servicio reúne controles de caja proyectada, tiempo de cobro y relación de corto plazo sin atribuir causas automáticas.</p>
+      <div class="flow-steps" aria-label="Progreso">
+        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
+        <div class="flow-step is-done"><strong>2 · Confirmar</strong>Dudas resueltas.</div>
+        <div class="flow-step is-current"><strong>3 · Resultado</strong>Listo para revisar.</div>
+      </div>
+      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Caja y Capital de Trabajo</h1><p>Tres indicadores para entender la posición inmediata del negocio con la información disponible.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
       <div class="metric-grid">
-        {metric('Saldo de caja proyectado', cash_value)}
+        {metric('Caja proyectada', cash_value)}
         {metric('Tiempo de cobro', dso_value, ' días')}
         {metric('Relación de corto plazo', ratio_value)}
       </div>
-      <section><h2>Qué encontramos</h2><p>Se pudieron completar <strong>{ready_count} de 3</strong> controles previstos para este servicio.</p></section>
-      <section><h2>Qué requiere revisión</h2>
-        {'<p>No faltan componentes para este recorrido sintético.</p>' if not missing else '<ul>' + ''.join(f'<li>Falta evidencia suficiente para { _esc(item) }.</li>' for item in missing) + '</ul>'}
-      </section>
-      <section><h2>Qué puede y qué no puede concluir PymIA</h2>
-        <p>Los resultados describen relaciones matemáticas sobre datos confirmados.</p>
-        <p>No determinan por sí solos insolvencia, mala gestión, necesidad de financiamiento ni causas del descalce.</p>
-      </section>
-      <div class="result-actions"><a class="secondary" href="/">Volver a controles</a><a class="secondary" href="/cases">Ver casos</a></div>
-      <div aria-live="polite">Resultado de Caja y Capital de Trabajo listo para revisar.</div>
+      <section class="result-summary"><h2>Qué encontramos</h2><p>Se pudieron calcular <strong>{ready_count} de 3</strong> indicadores con los datos recibidos.</p></section>
+      <details class="result-detail" {'open' if missing else ''}><summary>{'Qué falta para completar el análisis' if missing else 'Datos utilizados y alcance'}</summary><div class="detail-body">
+        {'<p>No faltan datos para estos tres indicadores.</p>' if not missing else '<ul>' + ''.join(f'<li>Faltan datos suficientes para { _esc(item) }.</li>' for item in missing) + '</ul>'}
+        <p>Estos números describen relaciones matemáticas sobre datos confirmados. No determinan por sí solos insolvencia, mala gestión, necesidad de financiamiento ni causas del descalce.</p>
+      </div></details>
+      <div class="result-actions"><a class="secondary" href="/">Revisar otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div>
+      <div class="notice" aria-live="polite">Resultado de caja y corto plazo listo para revisar.</div>
     </main>"""
 
 
@@ -3678,17 +3734,22 @@ def _sales_collections_result_page(
     status_label = "REQUIERE REVISIÓN" if gap != 0 else "LISTO"
     return f"""
     <main id="app" tabindex="-1">
-      <div class="result-head"><div><p class="eyebrow">Resultado del control</p><h1>Control de Cobros y Conciliación</h1><p><strong>Ventas y cobranzas</strong> · ¿Qué vendiste, qué cobraste y qué diferencia queda en tus registros?</p></div><span class="status-chip {status_class}">{status_label}</span></div>
+      <div class="flow-steps" aria-label="Progreso">
+        <div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div>
+        <div class="flow-step is-done"><strong>2 · Confirmar</strong>Dudas resueltas.</div>
+        <div class="flow-step is-current"><strong>3 · Resultado</strong>Listo para revisar.</div>
+      </div>
+      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Ventas vs. cobros</h1><p><strong>Ventas y cobranzas</strong> · Cuánto vendiste, cuánto cobraste y qué diferencia queda en los registros analizados.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
       <div class="metric-grid">
         <div class="metric"><small>Total vendido</small><strong>{_esc(_format_amount(sold))}</strong></div>
         <div class="metric"><small>Total cobrado</small><strong>{_esc(_format_amount(collected))}</strong></div>
-        <div class="metric"><small>Diferencia</small><strong>{_esc(_format_amount(gap))}</strong></div>
+        <div class="metric metric--focus"><small>Diferencia</small><strong>{_esc(_format_amount(gap))}</strong></div>
       </div>
-      <section aria-labelledby="finding-title"><h2 id="finding-title">Qué encontramos</h2><p><strong>{_esc(commercial_finding)}</strong></p><p>Porcentaje cobrado: <strong>{_esc(rate_text)}</strong> · {_esc(classification_label)}</p></section>
-      <section aria-labelledby="sources-title"><h2 id="sources-title">Datos utilizados</h2><p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p><ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul><p>Período: {_esc(period_text)}</p></section>
-      <section aria-labelledby="limits-sales"><h2 id="limits-sales">Qué puede y qué no puede concluir PymIA</h2><ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul></section>
-      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Volver a controles</a></div>
-      <div aria-live="polite">Resultado de ventas y cobranzas listo para revisar.</div>
+      <section class="result-summary" aria-labelledby="finding-title"><h2 id="finding-title">Qué significa</h2><p class="result-finding"><strong>{_esc(commercial_finding)}</strong></p><p>Porcentaje cobrado: <strong>{_esc(rate_text)}</strong>. {_esc(classification_label)}.</p></section>
+      <details class="result-detail"><summary>Datos utilizados</summary><div class="detail-body"><p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p><ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul><p>Período: {_esc(period_text)}</p></div></details>
+      <details class="result-detail"><summary>Qué conviene tener en cuenta</summary><div class="detail-body"><ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul><p>La diferencia muestra lo que surge de los registros recibidos; no determina por sí sola la causa.</p></div></details>
+      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Revisar otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div>
+      <div class="notice" aria-live="polite">Resultado listo para revisar.</div>
     </main>"""
 
 
@@ -3759,28 +3820,28 @@ def _blocked_result_page(packet: dict[str, Any], requested_capability: str | Non
         derived_block = str(derived.get("blocked_reason") or "").strip()
         if "DISCOUNT_UNIT_CONFIRMATION_REQUIRED" in requirements:
             evidence = (
-                "<p><strong>PymIA encontró ventas, cantidades, precios y costos utilizables, pero no va a adivinar cómo aplicar el descuento.</strong></p>"
-                "<p>Hay descuentos no nulos y falta confirmar si esa columna representa un porcentaje/tasa o un importe monetario.</p>"
+                "<p><strong>Encontramos ventas, cantidades, precios y costos. Falta una sola definición sobre la columna de descuento.</strong></p>"
+                "<p>Necesitamos saber si sus valores representan un porcentaje o un importe de dinero. Hasta confirmarlo, el margen queda pendiente.</p>"
             )
-            next_step = "Confirmá la unidad del descuento antes de recalcular el margen."
+            next_step = "Volvé a revisar el descuento cuando puedas confirmar cómo está guardado en tu archivo."
         elif derived_block == "BLOCK_DERIVED_EVIDENCE_RELATIONSHIP_NOT_CONFIRMED":
             evidence = (
-                "<p><strong>PymIA encontró ventas por línea y costos por producto, pero no va a unir hojas por parecido de nombres.</strong></p>"
-                "<p>Falta evidencia explícita que confirme la relación entre la clave de producto de Ventas y la clave de producto de Productos.</p>"
+                "<p><strong>Encontramos las ventas y los costos, pero necesitamos confirmar cómo se relacionan los productos entre ambas hojas.</strong></p>"
+                "<p>PymIA no une columnas por parecido de nombre porque una relación equivocada cambiaría el resultado.</p>"
             )
-            next_step = "Confirmá la relación entre las columnas de producto. El caso permanece abierto hasta contar con esa evidencia."
+            next_step = "Confirmá qué columna identifica al mismo producto en Ventas y en Productos."
         else:
             evidence = (
-                "<p><strong>PymIA no calcula Margen neto real con valores inventados.</strong></p>"
-                "<p>Ventas y costos pueden provenir de evidencia derivada gobernada; impuestos y comisiones deben estar explícitamente informados o confirmados como evidencia del mismo período.</p>"
+                "<p><strong>Con la información actual no alcanza para cerrar el margen de forma segura.</strong></p>"
+                "<p>Usamos sólo los datos presentes y confirmados. Si faltan impuestos, comisiones u otro componente necesario, el caso queda abierto en lugar de completar valores por suposición.</p>"
             )
-            next_step = "Completá la evidencia material indicada y volvé a ejecutar el control."
+            next_step = "Agregá el dato que falta y volvé a revisar el archivo."
 
     else:
         evidence = "<ul>" + "".join(f"<li>{_esc(item)}</li>" for item in missing) + "</ul>" if missing else "<p>El control necesita evidencia adicional antes de poder calcularse.</p>"
         next_step = "Subí evidencia complementaria o elegí otro control compatible con este archivo."
 
-    return f'<main id="app" tabindex="-1"><header class="page-intro"><div><div class="page-kicker">Caso abierto · Evidencia insuficiente</div><h1>{_esc(title)}</h1><p>Las confirmaciones hechas se conservaron. El caso sigue abierto hasta completar la evidencia.</p></div><span class="env-badge">FALTA INFORMACIÓN</span></header><section><h2>Qué encontró PymIA y qué falta</h2>{evidence}</section><section><h2>Próximo paso exacto</h2><p>{_esc(next_step)}</p><p>La descarga no está habilitada hasta completar la evidencia requerida.</p><p><a href="/">Agregar evidencia</a> · <a href="/cases">Ver casos</a></p></section><div class="notice" aria-live="polite">Caso guardado con estado FALTA INFORMACIÓN.</div></main>'
+    return f'<main id="app" tabindex="-1"><div class="flow-steps" aria-label="Progreso"><div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div><div class="flow-step is-done"><strong>2 · Confirmar</strong>Revisión realizada.</div><div class="flow-step is-current"><strong>3 · Resultado</strong>Falta un dato para completarlo.</div></div><header class="page-intro"><div><div class="page-kicker">Resultado pendiente</div><h1>Todavía no podemos cerrar {_esc(title)}</h1><p>No completamos valores por suposición. Lo que ya confirmaste queda asociado al caso para poder retomarlo.</p></div><span class="env-badge">FALTA INFORMACIÓN</span></header><section class="result-summary"><h2>Qué falta</h2>{evidence}</section><section><h2>Cómo seguir</h2><p><strong>{_esc(next_step)}</strong></p><p>Cuando esté ese dato, PymIA puede volver a ejecutar el control.</p><div class="result-actions"><a href="/">Revisar o subir otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div></section><div class="notice" aria-live="polite">Caso guardado. No se generó un resultado incompleto. La descarga no está habilitada hasta completar la información necesaria.</div></main>'
 
 
 def _canonical_tables_for_consorcios(ingestion_output: dict[str, Any]) -> list[dict[str, Any]]:
