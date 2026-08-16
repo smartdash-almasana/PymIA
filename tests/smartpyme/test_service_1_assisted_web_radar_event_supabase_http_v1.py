@@ -172,7 +172,7 @@ def test_assisted_web_bank_reconciliation_presents_persisted_radar_event_physica
             headers=upload_headers,
         )
         assert status == 200
-        assert "Esto encontré en tu Excel" in page or "¿Qué querés revisar?" in page
+        assert "Esto entendí de tu Excel" in page or "¿Qué querés revisar?" in page
         cookie = _cookie(headers)
 
         status, _, saved_page = _post_form(

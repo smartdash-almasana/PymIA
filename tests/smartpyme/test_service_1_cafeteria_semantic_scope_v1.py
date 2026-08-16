@@ -105,9 +105,9 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
     )
 
     assert status == 200
-    assert "Esto encontré en tu Excel" in page
-    assert "¿Es correcto?" in page
-    assert 1 <= page.count('class="semantic-card"') < 10
+    assert "Esto entendí de tu Excel" in page
+    assert "Sí, es correcto" in page
+    assert 1 <= page.count('class="understanding-card"') < 10
 
     for relevant in ("ProductoID", "Cantidad", "PrecioUnitario", "Descuento", "Costo"):
         assert relevant in page
@@ -120,10 +120,10 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
     )
 
     assert status == 200
-    assert "Esto encontré en tu Excel" in unit_page
-    assert "Encontré una columna de descuento" in unit_page
+    assert "Esto entendí de tu Excel" in unit_page
+    assert "Confirmemos el descuento" in unit_page
     assert "0,10 significa 10%" in unit_page
-    assert "Valores observados en esta columna" in unit_page
+    assert "Valores que encontré en esta columna" in unit_page
     assert "<code>0</code>" in unit_page
     assert "<code>0.1</code>" in unit_page
     assert "No lo puedo confirmar ahora" in unit_page
@@ -135,7 +135,7 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
     )
     assert status == 200
     packet = app.session("cafeteria-session").last_review_result or {}
-    assert "FALTA INFORMACIÓN" in result_page
+    assert "Análisis pendiente" in result_page
     assert "Margen calculado" not in result_page
     assert packet.get("computation_executed") is False
     assert len(app.session("cafeteria-session").owner_unit_confirmation_events) == 1
@@ -177,9 +177,9 @@ def test_cafeteria_margin_can_defer_discount_unit_without_creating_evidence_or_c
     )
 
     assert status == 200
-    assert "No calculamos sin esa confirmación" in deferred_page
-    assert "FALTA INFORMACIÓN" in deferred_page
-    assert "No se generó ningún cálculo ni confirmación de unidad" in deferred_page
+    assert "Necesito una confirmación para continuar" in deferred_page
+    assert "Análisis pendiente" in deferred_page
+    assert "No generé ningún cálculo con este dato pendiente" in deferred_page
     state = app.session("cafeteria-defer-unit")
     assert state.owner_unit_confirmation_events == []
     packet = state.last_review_result or {}
@@ -207,7 +207,7 @@ def test_cafeteria_margin_confirms_semantics_then_discount_unit_and_executes_ker
     )
     assert status == 200
     assert provider_calls == 1
-    assert "Esto encontré en tu Excel" in semantic_page
+    assert "Esto entendí de tu Excel" in semantic_page
 
     status, unit_page = app.confirm_meanings(
         session_id="cafeteria-full",
@@ -215,8 +215,8 @@ def test_cafeteria_margin_confirms_semantics_then_discount_unit_and_executes_ker
     )
     assert status == 200
     assert provider_calls == 1
-    assert "Esto encontré en tu Excel" in unit_page
-    assert "Encontré una columna de descuento" in unit_page
+    assert "Esto entendí de tu Excel" in unit_page
+    assert "Confirmemos el descuento" in unit_page
 
     status, result_page = app.confirm_meanings(
         session_id="cafeteria-full",

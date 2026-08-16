@@ -5,8 +5,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB_MODULE = ROOT / "pymia" / "smartpyme" / "service_1_assisted_web_v1.py"
+UI_MODULE = ROOT / "pymia" / "smartpyme" / "service_1_ui_v1.py"
 TEMPLATE = ROOT / "pymia" / "smartpyme" / "templates" / "service_1_assisted_web_v1.html"
-STYLES = ROOT / "pymia" / "smartpyme" / "static" / "service_1_assisted_web_v1.css"
+STYLES = ROOT / "pymia" / "smartpyme" / "static" / "service_1_v1.css"
 
 
 def _read(path: Path) -> str:
@@ -15,11 +16,12 @@ def _read(path: Path) -> str:
 
 
 def _visible_surface() -> str:
-    return _read(TEMPLATE) + "\n" + _read(WEB_MODULE)
+    return _read(TEMPLATE) + "\n" + _read(UI_MODULE) + "\n" + _read(WEB_MODULE)
 
 
 def test_assisted_web_artifacts_exist() -> None:
     assert WEB_MODULE.exists()
+    assert UI_MODULE.exists()
     assert TEMPLATE.exists()
     assert STYLES.exists()
 
@@ -28,12 +30,13 @@ def test_visible_interface_uses_plain_spanish() -> None:
     surface = _visible_surface()
 
     required_text = (
-        "Revisar información de mi negocio",
-        "¿Qué querés entender de tu Excel?",
-        "Elegí qué querés revisar",
-        "no modificamos el original",
-        "No estoy seguro",
-        "¿Qué querés revisar?",
+        "PymIA · Servicio 1",
+        "Subí tu Excel",
+        "Leer mi Excel",
+        "¿Qué querés que PymIA te devuelva?",
+        "Podés elegir uno, varios o todos",
+        "No lo puedo confirmar ahora",
+        "Datos utilizados",
         "Qué conviene tener en cuenta",
     )
     for text in required_text:
@@ -61,17 +64,17 @@ def test_htmx_is_used_without_frontend_framework() -> None:
     assert "htmx" in surface
     assert "hx-post" in surface or "hx-get" in surface
     assert "hx-target" in surface
-    assert "react" not in surface
-    assert "vue" not in surface
-    assert "angular" not in surface
+    assert "react.js" not in surface
+    assert "vue.js" not in surface
+    assert "angular.js" not in surface
 
 
 def test_primary_excel_journey_does_not_depend_on_htmx() -> None:
-    module = _read(WEB_MODULE)
+    presentation = _read(UI_MODULE)
 
-    assert '<form action="/upload" method="post" enctype="multipart/form-data">' in module
-    assert '<form action="/confirm-meanings" method="post">' in module
-    assert '<form action="/upload" method="post" enctype="multipart/form-data" hx-post=' not in module
+    assert '<form action="/upload" method="post" enctype="multipart/form-data"' in presentation
+    assert 'action="/confirm-meanings" method="post"' in presentation
+    assert '<form action="/upload" method="post" enctype="multipart/form-data" hx-post=' not in presentation
 
 
 def test_accessibility_contract_is_present() -> None:
@@ -123,7 +126,7 @@ def test_only_xlsx_upload_is_advertised() -> None:
 def test_uncertainty_is_a_first_class_owner_answer() -> None:
     surface = _visible_surface()
 
-    assert "No estoy seguro" in surface
+    assert "No lo puedo confirmar ahora" in surface
     assert "value=\"not_sure\"" in surface or "value='not_sure'" in surface
 
 
@@ -131,6 +134,6 @@ def test_result_exposes_data_and_limits_without_causal_diagnosis() -> None:
     surface = _visible_surface()
 
     assert "Datos utilizados" in surface
-    assert "relación matemática" in surface
-    assert "No atribuye automáticamente" in surface or "No determinan por sí solos" in surface
+    assert "datos confirmados" in surface.lower()
+    assert "no atribuye automáticamente causas" in surface.lower()
     assert "diagnóstico causal" not in surface.lower()

@@ -147,7 +147,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
     try:
         status, response_headers, page = _request(server, "GET", "/")
         assert status == 200
-        assert "Ingresar a PymIA" in page
+        assert "Ingresá a PymIA" in page
         session_cookie = _cookie(response_headers)
 
         login_body = urlencode(
@@ -165,7 +165,8 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
             },
         )
         assert status == 200
-        assert "¿Qué querés entender de tu Excel?" in page
+        assert "Subí tu Excel" in page
+        assert "Leer mi Excel" in page
         cookies = "; ".join(
             value.split(";", 1)[0]
             for key, value in login_headers
@@ -182,7 +183,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
         headers["Cookie"] = cookies
         status, _, page = _request(server, "POST", "/upload", body, headers)
         assert status == 200
-        assert "Esto encontré en tu Excel" in page
+        assert "Esto entendí de tu Excel" in page
     finally:
         server.shutdown()
         server.server_close()
@@ -192,7 +193,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
 def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server, tmp_path: Path) -> None:
     status, _, page = _request(assisted_server, "GET", "/")
     assert status == 200
-    assert "Revisar información de mi negocio" in page
+    assert "PymIA · Servicio 1" in page
 
     invalid_body, invalid_headers = _multipart("ventas.csv", b"not an xlsx")
     status, _, page = _request(assisted_server, "POST", "/upload", invalid_body, invalid_headers)
@@ -202,8 +203,8 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Esto encontré en tu Excel" in page
-    assert "No estoy seguro" in page
+    assert "Esto entendí de tu Excel" in page
+    assert "No lo puedo confirmar ahora" in page
     cookie = _cookie(response_headers)
 
     semantic_questions_page = page
@@ -223,9 +224,16 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
         cookie,
     )
     assert status == 200
-    assert "¿Qué querés revisar?" in page
+    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Podés elegir uno, varios o todos" in page
+    assert 'name="review_sold_vs_collected_gap"' in page
 
-    status, _, page = _form(assisted_server, "/run-review", {"review": "sold_vs_collected_gap"}, cookie)
+    status, _, page = _form(
+        assisted_server,
+        "/run-review",
+        {"review_sold_vs_collected_gap": "1"},
+        cookie,
+    )
     assert status == 200
     assert "Ventas y cobranzas" in page
     assert "Total vendido" in page
@@ -237,11 +245,11 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     assert "Porcentaje cobrado" in page
     assert "76.67%" in page
     assert "Diferencia todavía no compensada por cobranzas" in page
-    assert "Archivo: <strong>ventas.xlsx</strong>" in page
-    assert "hoja <strong>Ventas</strong>" in page
-    assert "columna <strong>venta_total</strong>" in page
-    assert "columna <strong>cobrado</strong>" in page
-    assert "Período: no identificado explícitamente en los archivos recibidos." in page
+    assert "Archivo: ventas.xlsx" in page
+    assert "hoja Ventas" in page
+    assert "columna venta_total" in page
+    assert "columna cobrado" in page
+    assert "Período: no identificado explícitamente en los archivos recibidos" in page
     assert "deuda confirmada" not in page.lower()
     assert "dinero perdido" not in page.lower()
     assert "no identifica por sí sola clientes morosos" in page.lower()
@@ -264,25 +272,19 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     ]
 
 
-def test_launch_service_first_flow_runs_selected_control_after_confirmation(assisted_server, tmp_path: Path) -> None:
+def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_server, tmp_path: Path) -> None:
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
-    assert "¿Qué querés entender de tu Excel?" in home
-    assert "Ventas y cobranzas" in home
-    assert "Margen real" in home
-    assert "Flujo de caja" in home
-    assert "Qué debería traer tu Excel" in home
-    assert "Saldo de caja proyectado" not in home
+    assert "Subí tu Excel" in home
+    assert "Leer mi Excel" in home
+    assert "Ventas y cobranzas" not in home
+    assert "Margen real" not in home
+    assert "Flujo de caja" not in home
 
-    body, headers = _multipart(
-        "ventas.xlsx",
-        _sales_xlsx(tmp_path),
-        launch_review="sold_vs_collected_gap",
-    )
+    body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Esto encontré en tu Excel" in page
-    assert "¿Es correcto?" in page
+    assert "Esto entendí de tu Excel" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -292,10 +294,74 @@ def test_launch_service_first_flow_runs_selected_control_after_confirmation(assi
         cookie,
     )
     assert status == 200
+    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Ventas y cobranzas" in page
+    assert "Margen real" in page
+    assert "Flujo de caja" in page
+    assert 'type="checkbox" name="review_sold_vs_collected_gap"' in page
+
+    status, _, page = _form(
+        assisted_server,
+        "/run-review",
+        {"review_sold_vs_collected_gap": "1"},
+        cookie,
+    )
+    assert status == 200
+    assert "Tus análisis" in page
     assert "Ventas y cobranzas" in page
     assert "Total vendido" in page
     assert "Diferencia" in page
     assert 'href="/download-sales-collections"' in page
+
+
+def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_path: Path) -> None:
+    path = tmp_path / "ventas_y_caja.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Resumen"
+    sheet.append([
+        "fecha",
+        "venta_total",
+        "cobrado",
+        "saldo_inicial",
+        "cobros_esperados",
+        "pagos_esperados",
+    ])
+    sheet.append(["2026-06-01", 3000, 2300, 1000, 2500, 1800])
+    workbook.save(path)
+
+    body, headers = _multipart("ventas_y_caja.xlsx", path.read_bytes())
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    cookie = _cookie(response_headers)
+    if "Esto entendí de tu Excel" in page:
+        status, _, page = _form(
+            assisted_server,
+            "/confirm-meanings",
+            _semantic_confirmation_answers(page),
+            cookie,
+        )
+        assert status == 200
+
+    assert "¿Qué querés que PymIA te devuelva?" in page
+    status, _, page = _form(
+        assisted_server,
+        "/run-review",
+        {
+            "review_sold_vs_collected_gap": "1",
+            "review_working_capital": "1",
+        },
+        cookie,
+    )
+
+    assert status == 200
+    assert "Tus análisis" in page
+    assert "Ventas y cobranzas" in page
+    assert "Total vendido" in page
+    assert "3.000,00" in page
+    assert "Flujo de caja" in page
+    assert "Saldo de caja proyectado" in page
+    assert "1.700,00" in page
 
 
 def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path: Path) -> None:
@@ -306,8 +372,8 @@ def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Esto encontré en tu Excel" in page
-    assert "¿Es correcto?" in page
+    assert "Esto entendí de tu Excel" in page
+    assert "Sí, es correcto" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -359,7 +425,7 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
         headers={"Cookie": cookie},
     )
     assert status == 200
-    assert "Casos recientes" in cases
+    assert "Mis análisis" in cases
     assert "Ventas y cobranzas" in cases
     match = re.search(r'href="(/case\?case_ref=[^"]+)"', cases)
     assert match is not None
@@ -377,7 +443,7 @@ def test_completed_launch_control_appears_in_recent_cases_and_can_reopen(assiste
 
     status, _, other_session_cases = _request(assisted_server, "GET", "/cases")
     assert status == 200
-    assert "Todavía no hay controles terminados en esta sesión." in other_session_cases
+    assert "Todavía no hay análisis para mostrar" in other_session_cases
     assert "Ventas y cobranzas" not in other_session_cases
 
 
@@ -410,8 +476,8 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Esto encontré en tu Excel" in page:
-        assert "Esto encontré en tu Excel" in page
+    if "Esto entendí de tu Excel" in page:
+        assert "Esto entendí de tu Excel" in page
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
@@ -420,16 +486,16 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
         )
         assert status == 200
     assert "Flujo de caja" in page
-    assert "Flujo de caja proyectado" in page
+    assert "Saldo de caja proyectado" in page
     assert "Tiempo promedio de cobro" in page
-    assert "Capacidad para cubrir obligaciones de corto plazo" in page
+    assert "Cobertura de corto plazo" in page
     assert "1.700" in page or "1700" in page
     assert "10.0 días" in page or "10 días" in page
     assert "1.5" in page
-    assert "no explican por sí solos la causa de un problema" in page.lower()
+    assert "no explica por sí solo la causa" in page.lower()
 
 
-def test_working_capital_cash_only_is_presented_as_partial_valid_result(assisted_server, tmp_path: Path) -> None:
+def test_working_capital_cash_only_is_presented_as_complete_cash_result(assisted_server, tmp_path: Path) -> None:
     path = tmp_path / "flujo_caja.xlsx"
     workbook = Workbook()
     sheet = workbook.active
@@ -446,7 +512,7 @@ def test_working_capital_cash_only_is_presented_as_partial_valid_result(assisted
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Esto encontré en tu Excel" in page:
+    if "Esto entendí de tu Excel" in page:
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
@@ -456,10 +522,14 @@ def test_working_capital_cash_only_is_presented_as_partial_valid_result(assisted
         assert status == 200
 
     assert "Flujo de caja" in page
-    assert "RESULTADO PARCIAL" in page
-    assert "Flujo de caja proyectado" in page
-    assert "1700" in page or "1.700" in page
-    assert "Lo que sí pude calcular es válido" in page
+    assert "Resultado listo" in page
+    assert "Saldo de caja proyectado" in page
+    assert "1.700,00" in page or "1700" in page
+    assert "Este sería el saldo al cierre" in page
+    assert "Podés ampliar este análisis" in page
+    assert "Tiempo promedio de cobro" in page
+    assert "Cobertura de corto plazo" in page
+    assert "No disponible" not in page
     assert "FALTA INFORMACIÓN" not in page
 
 
@@ -476,7 +546,7 @@ def test_not_sure_keeps_case_open_and_preserves_confirmed_choices(assisted_serve
     status, _, page = _form(assisted_server, "/confirm-meanings", partial, cookie)
 
     assert status == 200
-    assert "Esto encontré en tu Excel" in page
+    assert "Esto entendí de tu Excel" in page
     assert "Todavía hay columnas sin confirmar" in page
     assert 'value="not_sure" selected' in page
     for key, value in answers.items():
@@ -486,7 +556,7 @@ def test_not_sure_keeps_case_open_and_preserves_confirmed_choices(assisted_serve
 
     status, _, page = _form(assisted_server, "/confirm-meanings", answers, cookie)
     assert status == 200
-    assert "¿Qué querés revisar?" in page
+    assert "¿Qué querés que PymIA te devuelva?" in page
 
 
 def test_htmx_upload_returns_only_needed_semantic_questions_fragment(
@@ -506,7 +576,7 @@ def test_htmx_upload_returns_only_needed_semantic_questions_fragment(
     assert status == 200
     assert fragment.lstrip().startswith("<main")
     assert "<!doctype" not in fragment.lower()
-    assert "Esto encontré en tu Excel" in fragment
+    assert "Esto entendí de tu Excel" in fragment
     assert "cobrado" in fragment
     assert "¿Qué representa la columna fecha?" not in fragment
 
@@ -540,6 +610,6 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
 
     status, _, page = _form(assisted_server, "/run-review", {"review": "payment_collection_gap"}, cookie)
     assert status == 200
-    assert "FALTA INFORMACIÓN" in page
-    assert "Caso guardado" in page
-    assert "La descarga no está habilitada" in page
+    assert "Análisis pendiente" in page
+    assert "Todavía no puedo completar" in page
+    assert "No completo valores por suposición" in page

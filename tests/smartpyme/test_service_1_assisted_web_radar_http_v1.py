@@ -109,7 +109,7 @@ def test_authenticated_assisted_web_owner_can_open_radar_menu_and_persist_policy
             headers=upload_headers,
         )
         assert status == 200
-        assert "Esto encontré en tu Excel" in page or "¿Qué querés revisar?" in page
+        assert "Esto entendí de tu Excel" in page or "¿Qué querés revisar?" in page
         cookie = _cookie(headers)
 
         status, _, radar_page = _request(
@@ -306,7 +306,7 @@ def test_bank_reconciliation_result_page_presents_matching_owner_radar_event(
             headers=headers,
         )
         assert status == 200
-        assert "Confirmar columnas para conciliación bancaria" in page
+        assert "Esto entendí de tus archivos" in page
 
         status, _, result_page = _post_form(
             server,

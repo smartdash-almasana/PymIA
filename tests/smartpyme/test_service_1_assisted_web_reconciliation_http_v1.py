@@ -102,7 +102,7 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
     assert "Conciliación bancaria" in home
-    assert "¿Qué querés entender de tu Excel?" in home
+    assert "Subí tu Excel" in home
 
     status, response_headers, page = _form(
         assisted_server,
@@ -147,8 +147,8 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
         assisted_server, "POST", "/upload-reconciliation", body, headers
     )
     assert status == 200
-    assert "Confirmar columnas para conciliación bancaria" in page
-    assert "PymIA no lo va a adivinar" in page
+    assert "Esto entendí de tus archivos" in page
+    assert "PymIA no las elige en silencio" in page
 
     status, _, page = _form(
         assisted_server,
@@ -166,14 +166,14 @@ def test_bank_reconciliation_web_flow_reaches_human_review(
         cookie,
     )
     assert status == 200
-    assert "Revisión humana requerida" in page
+    assert "Revisión humana" in page
     assert "Coincidencias claras" in page
     assert "Banco: B-1" in page
     assert "Interno: C-1" in page
     assert "Confirmar" in page
     assert "Rechazar" in page
     assert "Dejar pendiente" in page
-    assert "no marcó ningún movimiento como conciliado" in page
+    assert "no marca movimientos como conciliados automáticamente" in page
     assert list((tmp_path / "outputs").iterdir()) == []
 
     status, _, page = _form(
@@ -288,10 +288,10 @@ def test_mercado_pago_reconciliation_web_flow_reaches_human_review(
     )
     assert status == 200
     assert "Mercado Pago ↔ Banco" in page
-    assert "Revisión humana requerida" in page
+    assert "Revisión humana" in page
     assert "Coincidencias claras" in page
     assert "Inconsistencias de cálculo" in page
-    assert "no marcó ningún movimiento como conciliado" in page
+    assert "no marca movimientos como conciliados automáticamente" in page
 
 
 def test_reconciliation_web_rejects_reusing_one_column_for_two_meanings(

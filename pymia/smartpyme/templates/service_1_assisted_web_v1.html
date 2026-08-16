@@ -3,18 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Revisar información de mi negocio</title>
-  <link rel="stylesheet" href="/static/service_1_assisted_web_v1.css">
+  <title>PymIA · Servicio 1</title>
+  <link rel="stylesheet" href="/static/service_1_v1.css">
   <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#app">Ir al contenido</a>
   {{content}}
-  <script>
-    document.body.addEventListener("htmx:afterSwap", function (event) {
-      const app = event.target.matches("#app") ? event.target : document.querySelector("#app");
-      if (app) app.focus();
-    });
-  </script>
+  <script>document.body.addEventListener("htmx:afterSwap", function (event) { const app = event.target && event.target.id === "app" ? event.target : document.querySelector("#app"); if (app) app.focus(); });</script>
 </body>
 </html>

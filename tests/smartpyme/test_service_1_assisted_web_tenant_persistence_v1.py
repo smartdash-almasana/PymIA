@@ -69,14 +69,14 @@ def test_assisted_web_persists_canonical_owner_events_after_successful_review(tm
         content=_xlsx_bytes(),
     )
     assert status == 200
-    assert "Esto encontré en tu Excel" in page
+    assert "Esto entendí de tu Excel" in page
 
     status, page = app.confirm_meanings(
         session_id="session-1",
         fields=_answers(page),
     )
     assert status == 200
-    assert "¿Qué querés revisar?" in page
+    assert "¿Qué querés que PymIA te devuelva?" in page
 
     status, page = app.run_review(
         session_id="session-1",
@@ -214,7 +214,7 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         upload_page = response.read().decode("utf-8")
         cookie = response.getheader("Set-Cookie").split(";", 1)[0]
         assert response.status == 200
-        assert "Esto encontré en tu Excel" in upload_page
+        assert "Esto entendí de tu Excel" in upload_page
 
         confirm_body = urlencode(_answers(upload_page)).encode("utf-8")
         connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
@@ -230,9 +230,9 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         )
         response = connection.getresponse()
         assert response.status == 200
-        assert "¿Qué querés revisar?" in response.read().decode("utf-8")
+        assert "¿Qué querés que PymIA te devuelva?" in response.read().decode("utf-8")
 
-        review_body = urlencode({"review": "sold_vs_collected_gap"}).encode("utf-8")
+        review_body = urlencode({"review_sold_vs_collected_gap": "1"}).encode("utf-8")
         connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
         connection.request(
             "POST",
@@ -363,7 +363,8 @@ def test_persisted_case_reentry_survives_fresh_application_without_ram_state(tmp
 
     status, case_page = app.open_case(session_id="new-session", case_ref="case_abc")
     assert status == 200
-    assert "Reingreso durable del caso case_abc" in case_page
+    assert "Datos que confirmaste" in case_page
+    assert "case_abc" in case_page
     assert "VentaTotal" in case_page
     assert "ACCEPT" in case_page
     assert provider_calls == []
@@ -444,7 +445,8 @@ def test_http_get_reentry_binds_verified_tenant_and_reads_persisted_case(tmp_pat
         response = connection.getresponse()
         case_page = response.read().decode("utf-8")
         assert response.status == 200
-        assert "Reingreso durable del caso case_abc" in case_page
+        assert "Datos que confirmaste" in case_page
+        assert "case_abc" in case_page
         assert "VentaTotal" in case_page
     finally:
         server.shutdown()

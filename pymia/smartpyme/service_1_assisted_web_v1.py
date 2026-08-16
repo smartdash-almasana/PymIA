@@ -90,10 +90,30 @@ from pymia.smartpyme.service_1_supabase_persistence_v1 import (
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
 )
+from pymia.smartpyme.service_1_ui_v1 import (
+    render_analysis_bundle_v1,
+    render_analysis_menu_v1,
+    render_blocked_result_v1,
+    render_cash_flow_result_v1,
+    render_document_v1,
+    render_home_v1,
+    render_login_v1,
+    render_margin_result_v1,
+    render_persisted_analysis_v1,
+    render_recent_analyses_v1,
+    render_reconciliation_confirmation_v1,
+    render_reconciliation_result_v1,
+    render_reconciliation_upload_v1,
+    render_sales_collections_result_v1,
+    render_semantic_dialogue_v1,
+    render_semantic_questions_v1,
+    render_unit_deferred_v1,
+    render_unit_questions_v1,
+)
 
 _MODULE_DIR = Path(__file__).resolve().parent
 _TEMPLATE_PATH = _MODULE_DIR / "templates" / "service_1_assisted_web_v1.html"
-_STYLES_PATH = _MODULE_DIR / "static" / "service_1_assisted_web_v1.css"
+_STYLES_PATH = _MODULE_DIR / "static" / "service_1_v1.css"
 
 _REVIEW_OPTIONS: tuple[tuple[str, str, str], ...] = (
     ("sold_vs_collected_gap", "Ventas y cobros", "Compará lo vendido con lo cobrado en el período."),
@@ -278,6 +298,9 @@ class AssistedWebSessionV1:
     consorcios_results: dict[str, dict[str, Any]] = field(default_factory=dict)
     consorcios_radar_events: dict[str, list[dict[str, object]]] = field(default_factory=dict)
     selected_launch_review: str | None = None
+    selected_launch_reviews: list[str] = field(default_factory=list)
+    pending_launch_reviews: list[str] = field(default_factory=list)
+    multi_review_results: dict[str, dict[str, Any]] = field(default_factory=dict)
     last_review_result: dict[str, Any] | None = None
 
 
@@ -1193,6 +1216,9 @@ class AssistedWebApplicationV1:
         state.semantic_assistance_state = None
         state.owner_unit_confirmation_events = []
         state.selected_launch_review = selected_launch_review
+        state.selected_launch_reviews = [selected_launch_review] if selected_launch_review else []
+        state.pending_launch_reviews = []
+        state.multi_review_results = {}
         state.last_review_result = None
         state.tenant_identity_contract = None
 
@@ -1244,7 +1270,7 @@ class AssistedWebApplicationV1:
                 )
         except ValueError as error:
             if "requires at least one tool request" in str(error):
-                return HTTPStatus.OK, _review_selection_page()
+                return HTTPStatus.OK, _analysis_menu_page(state)
             raise
         if first_run.get("status") == STATUS_NEEDS_OWNER:
             if assisted_launch:
@@ -1272,7 +1298,7 @@ class AssistedWebApplicationV1:
             return HTTPStatus.OK, _semantic_questions_page(state.semantic_questions)
         if first_run.get("status") == STATUS_BLOCKED:
             return HTTPStatus.OK, _blocked_result_page(first_run, state.selected_launch_review)
-        return HTTPStatus.OK, _review_selection_page()
+        return HTTPStatus.OK, _analysis_menu_page(state)
 
     def _compatible_tenant_memory_hints(
         self,
@@ -1429,7 +1455,7 @@ class AssistedWebApplicationV1:
                 session_id=session_id,
                 requested_capability=state.selected_launch_review,
             )
-        return HTTPStatus.OK, _review_selection_page()
+        return HTTPStatus.OK, _analysis_menu_page(state)
 
     def _confirm_assisted_semantics(
         self,
@@ -1847,6 +1873,74 @@ class AssistedWebApplicationV1:
             ingestion_output=state.ingestion_output,
         )
 
+    def run_selected_reviews(
+        self,
+        *,
+        session_id: str,
+        requested_capabilities: Sequence[str],
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        if not state.ingestion_output:
+            return HTTPStatus.BAD_REQUEST, _error_page("Primero subí y confirmá un archivo de Excel.")
+        requested: list[str] = []
+        for capability_ref in requested_capabilities:
+            ref = str(capability_ref or "").strip()
+            if ref not in _LAUNCH_REVIEW_BY_REF:
+                return HTTPStatus.BAD_REQUEST, _analysis_menu_page(
+                    state,
+                    "Elegí únicamente análisis disponibles en este menú.",
+                )
+            if ref not in requested:
+                requested.append(ref)
+        if not requested:
+            return HTTPStatus.BAD_REQUEST, _analysis_menu_page(
+                state,
+                "Elegí al menos un análisis para continuar.",
+            )
+        state.selected_launch_reviews = list(requested)
+        state.pending_launch_reviews = list(requested)
+        state.multi_review_results = {}
+        return self._continue_selected_reviews(session_id=session_id)
+
+    def _continue_selected_reviews(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        if not state.pending_launch_reviews:
+            state.selected_launch_review = None
+            return HTTPStatus.OK, _analysis_bundle_page(
+                state.multi_review_results,
+                ingestion_output=state.ingestion_output,
+            )
+        requested_capability = state.pending_launch_reviews[0]
+        state.selected_launch_review = requested_capability
+        return self.run_review(
+            session_id=session_id,
+            requested_capability=requested_capability,
+        )
+
+    def _complete_selected_review(
+        self,
+        *,
+        session_id: str,
+        requested_capability: str,
+        packet: dict[str, Any],
+        rendered_page: str,
+    ) -> tuple[int, str]:
+        state = self.session(session_id)
+        if (
+            state.pending_launch_reviews
+            and state.pending_launch_reviews[0] == requested_capability
+        ):
+            state.multi_review_results[requested_capability] = packet
+            state.pending_launch_reviews.pop(0)
+            if state.pending_launch_reviews:
+                return self._continue_selected_reviews(session_id=session_id)
+            state.selected_launch_review = None
+            return HTTPStatus.OK, _analysis_bundle_page(
+                state.multi_review_results,
+                ingestion_output=state.ingestion_output,
+            )
+        return HTTPStatus.OK, rendered_page
+
     def run_working_capital(self, *, session_id: str) -> tuple[int, str]:
         state = self.session(session_id)
         if not state.ingestion_output:
@@ -1898,7 +1992,12 @@ class AssistedWebApplicationV1:
             packet=service_packet,
             ingestion_output=state.ingestion_output,
         )
-        return HTTPStatus.OK, _working_capital_result_page(service_packet)
+        return self._complete_selected_review(
+            session_id=session_id,
+            requested_capability="working_capital",
+            packet=service_packet,
+            rendered_page=_working_capital_result_page(service_packet),
+        )
 
     def run_review(self, *, session_id: str, requested_capability: str) -> tuple[int, str]:
         state = self.session(session_id)
@@ -1958,11 +2057,17 @@ class AssistedWebApplicationV1:
                 packet=packet,
                 ingestion_output=state.ingestion_output,
             )
-            return HTTPStatus.OK, _blocked_result_page(
+            rendered = _blocked_result_page(
                 packet,
                 requested_capability,
                 ingestion_output=state.ingestion_output,
                 semantic_answers=state.semantic_answers,
+            )
+            return self._complete_selected_review(
+                session_id=session_id,
+                requested_capability=requested_capability,
+                packet=packet,
+                rendered_page=rendered,
             )
 
         if state.consorcio_case_context is not None:
@@ -1987,10 +2092,16 @@ class AssistedWebApplicationV1:
             packet=packet,
             ingestion_output=state.ingestion_output,
         )
-        return HTTPStatus.OK, _evaluated_result_page(
+        rendered = _evaluated_result_page(
             packet,
             requested_capability,
             ingestion_output=state.ingestion_output,
+        )
+        return self._complete_selected_review(
+            session_id=session_id,
+            requested_capability=requested_capability,
+            packet=packet,
+            rendered_page=rendered,
         )
 
     def _persist_owner_confirmation_events(
@@ -2041,7 +2152,10 @@ class AssistedWebApplicationV1:
         expected_capability: str,
         unavailable_message: str,
     ) -> tuple[str, bytes]:
-        packet = self.session(session_id).last_review_result
+        state = self.session(session_id)
+        packet = state.multi_review_results.get(expected_capability)
+        if not isinstance(packet, dict):
+            packet = state.last_review_result
         if not isinstance(packet, dict):
             raise ValueError(unavailable_message)
         outcome = packet.get("bounded_outcome")
@@ -2238,7 +2352,7 @@ def _handler_for(
                     case_ref=case_ref,
                 )
                 self._send_html(status, content_html, session_id=session_id)
-            elif parsed.path == "/static/service_1_assisted_web_v1.css":
+            elif parsed.path in {"/static/service_1_v1.css", "/static/service_1_assisted_web_v1.css"}:
                 self._send(HTTPStatus.OK, _STYLES_PATH.read_bytes(), "text/css; charset=utf-8")
             elif self.path == "/healthz":
                 self._send(HTTPStatus.OK, b'{"status":"ok"}', "application/json; charset=utf-8")
@@ -2436,7 +2550,21 @@ def _handler_for(
                     elif self.path == "/confirm-meanings":
                         status, content_html = application.confirm_meanings(session_id=session_id, fields=fields)
                     elif self.path == "/run-review":
-                        status, content_html = application.run_review(session_id=session_id, requested_capability=fields.get("review", ""))
+                        selected_reviews = [
+                            ref
+                            for ref, _name, _question in _LAUNCH_REVIEW_OPTIONS
+                            if fields.get(f"review_{ref}", "") == "1"
+                        ]
+                        if selected_reviews or "review" not in fields:
+                            status, content_html = application.run_selected_reviews(
+                                session_id=session_id,
+                                requested_capabilities=selected_reviews,
+                            )
+                        else:
+                            status, content_html = application.run_review(
+                                session_id=session_id,
+                                requested_capability=fields.get("review", ""),
+                            )
                     elif self.path == "/save-radar-policy":
                         status, content_html = application.save_radar_owner_policy(
                             session_id=session_id,
@@ -2553,245 +2681,26 @@ def _safe_path_segment(value: str) -> str:
 
 
 def _document(content: str) -> str:
-    template = _TEMPLATE_PATH.read_text(encoding="utf-8")
-    visual_system = """
-    <style>
-      :root{--ink:#17201c;--ink-strong:#0d1512;--muted:#5d6760;--paper:#f4f1e8;--paper-2:#fbfaf5;--paper-3:#ece7dc;--rule:#c9c4b7;--rule-strong:#8e978f;--green:#1d5b43;--green-strong:#123c2d;--green-soft:#dfe9e2;--amber:#8b5b16;--amber-soft:#f2e7c8;--red:#873b34;--red-soft:#f0ddda;--slate:#49534d;--white:#fffef9;--sans:"Aptos","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono","Cascadia Mono",Consolas,monospace;--serif:Georgia,"Times New Roman",serif;color-scheme:light;font-family:var(--sans);color:var(--ink);background:var(--paper-3)}
-      *{box-sizing:border-box}html{min-width:320px;background:var(--paper-3)}body{margin:0;min-height:100vh;background:linear-gradient(rgba(71,82,75,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(71,82,75,.035) 1px,transparent 1px),var(--paper);background-size:32px 32px;color:var(--ink);line-height:1.45}a{color:var(--green-strong);text-underline-offset:.16em}a:hover{color:var(--green)}button,input,select{font:inherit}
-      .pymia-frame{min-height:100vh}.app-topbar{min-height:62px;display:grid;grid-template-columns:minmax(280px,1fr) auto;align-items:center;gap:1rem;padding:.75rem 1.15rem;background:var(--ink-strong);color:#edf2ed;border-bottom:4px solid var(--green)}.app-brand{display:flex;align-items:center;gap:.65rem;min-width:0}.brand-mark{display:inline-grid;grid-template-columns:repeat(3,4px);gap:3px;align-items:end;width:18px;height:20px}.brand-mark i{display:block;width:4px;background:#8fb59e}.brand-mark i:nth-child(1){height:20px}.brand-mark i:nth-child(2){height:13px}.brand-mark i:nth-child(3){height:7px}.brand-word{font-family:var(--mono);font-size:.86rem;letter-spacing:.16em;font-weight:700}.brand-divider{color:#9aa39c}.brand-system{font-size:.72rem;letter-spacing:.14em;color:#aebbb4;font-weight:700}.system-context{display:flex;align-items:center;gap:1.25rem;font-family:var(--mono);font-size:.62rem;color:#b9c4be;white-space:nowrap}.system-context b{color:#dce4df;letter-spacing:.08em;font-weight:700}
-      .workspace{display:grid;grid-template-columns:184px minmax(0,1fr);min-height:calc(100vh - 62px)}.service-rail{background:#e5e0d5;border-right:1px solid var(--rule-strong);padding:1rem .8rem;position:sticky;top:0;align-self:start;min-height:calc(100vh - 62px)}.rail-index{display:inline-block;font-family:var(--mono);font-size:1.6rem;letter-spacing:-.04em;font-weight:700;color:var(--green-strong);border-top:5px solid var(--green);padding-top:.15rem;margin-bottom:1.2rem}.service-rail nav{display:grid;border-top:1px solid var(--rule-strong)}.service-rail nav a,.rail-disabled{position:relative;display:block;padding:.66rem .2rem .66rem 2.1rem;border-bottom:1px solid var(--rule);text-decoration:none;color:var(--ink-strong);font-size:.82rem;font-weight:680}.service-rail nav a::before,.rail-disabled::before{content:attr(data-ref);position:absolute;left:.1rem;top:.72rem;font-family:var(--mono);font-size:.58rem;letter-spacing:.08em;color:#6d766f}.service-rail nav a:hover{background:rgba(255,255,255,.48)}.rail-disabled{color:#5d6760}.rail-note{margin-top:1.3rem;padding-top:.8rem;border-top:3px double var(--rule-strong);font-family:var(--mono);font-size:.58rem;line-height:1.6;letter-spacing:.11em;color:#5d6760}
-      .app-shell{width:min(1120px,calc(100% - 48px));margin:0 auto;padding:1.6rem 0 3rem}main#app{max-width:none;margin:0;padding:0;background:transparent;border:0}main#app>h1,.result-head h1{margin:.15rem 0 .65rem;font-family:var(--serif);font-size:clamp(1.75rem,3vw,2.55rem);line-height:1.05;font-weight:700;letter-spacing:-.025em;color:var(--ink-strong)}main#app>p,section>p,fieldset>p,details>p{color:var(--slate)}.eyebrow{display:inline-block;margin:0 0 .45rem;font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.16em;color:var(--green-strong);font-weight:700}.eyebrow::before{content:"PYMIA / ";color:#5d6760}
-      section,fieldset,details,.choice,.notice{border-radius:0}section{margin:1rem 0;padding:1rem 1.05rem 1.1rem;background:var(--paper-2);border:1px solid var(--rule);border-left:4px solid #9da69f}section>h2{margin:0 0 .65rem;font-size:.9rem;line-height:1.2;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-strong)}section>h2::before{content:"§ ";color:var(--green);font-family:var(--mono)}hr{border:0;border-top:3px double var(--rule-strong);margin:1.35rem 0}
-      form{display:grid;gap:.75rem}fieldset{margin:.4rem 0;padding:.95rem 1rem 1rem;background:#f8f5ed;border:1px solid var(--rule-strong)}legend{padding:0 .4rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--green-strong)}label{display:grid;gap:.28rem;cursor:pointer;color:var(--ink);font-size:.9rem}input[type=text],input[type=month],input[type=number],input[type=file],select{width:100%;min-height:2.7rem;padding:.58rem .68rem;border:1px solid #9aa39c;border-radius:0;background:var(--white);color:var(--ink-strong)}input[type=radio],input[type=checkbox]{accent-color:var(--green)}button{min-height:2.65rem;width:fit-content;padding:.55rem 1rem;border:1px solid var(--green-strong);border-radius:0;background:var(--green-strong);color:white;font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}button:hover{background:var(--green)}
-      .choice{position:relative;padding:.9rem .9rem .9rem 2.8rem;background:var(--paper-2);border:1px solid var(--rule);border-left:3px solid var(--rule-strong)}.choice::before{content:"SERVICE";position:absolute;left:.55rem;top:1.05rem;writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-size:.5rem;letter-spacing:.14em;color:#5d6760}.choice:has(input:checked){border-color:var(--green);border-left-color:var(--green);background:#edf2ed}.choice strong{font-size:.96rem;color:var(--ink-strong)}.choice span{display:block;margin:.25rem 0 0 1.7rem;color:var(--muted);font-size:.83rem}.notice{margin:1rem 0;padding:.8rem .9rem;background:#eeece5;border:1px solid var(--rule);border-left:4px solid var(--green);color:var(--ink);font-size:.86rem}p[role=alert]{padding:.72rem .85rem;background:var(--red-soft);border:1px solid #d0a29c;border-left:4px solid var(--red);color:#662a25}
-      .result-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.2rem;align-items:start;padding:.85rem 0 1rem;border-top:5px solid var(--ink-strong);border-bottom:1px solid var(--rule-strong);margin-bottom:1rem}.status-chip{display:inline-flex;align-items:center;min-height:2rem;padding:.35rem .55rem;border:1px solid currentColor;border-radius:0;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;font-weight:700;text-transform:uppercase;background:var(--paper-2)}.status-chip::before{content:""}.status-ready{color:var(--green-strong);background:var(--green-soft)}.status-review{color:var(--amber);background:var(--amber-soft)}.status-missing{color:var(--red);background:var(--red-soft)}.result{font-family:var(--mono);font-size:clamp(1.45rem,3vw,2.15rem);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-      .metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:1rem 0;border:1px solid var(--rule-strong);background:var(--rule)}.metric{min-width:0;padding:.85rem .9rem;background:var(--paper-2);border-right:1px solid var(--rule)}.metric:last-child{border-right:0}.metric small{display:block;color:var(--muted);font-size:.68rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;margin-top:.3rem;font-family:var(--mono);font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--ink-strong)}
-      .result-actions{display:flex;flex-wrap:wrap;gap:.55rem;margin:1rem 0}.result-actions a{display:inline-flex;align-items:center;min-height:2.55rem;padding:.55rem .8rem;border:1px solid var(--green-strong);background:var(--green-strong);color:white;text-decoration:none;font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;font-weight:700;text-transform:uppercase}.result-actions a.secondary{background:transparent;color:var(--green-strong);border-color:var(--rule-strong)}table{width:100%;border-collapse:collapse;background:var(--paper-2);border:1px solid var(--rule-strong);font-size:.83rem}th,td{padding:.62rem .68rem;border-bottom:1px solid var(--rule);vertical-align:top}th{text-align:left;font-family:var(--mono);font-size:.64rem;letter-spacing:.07em;text-transform:uppercase;color:#59635d;background:#ece8de;font-weight:700}td{font-variant-numeric:tabular-nums;color:var(--ink-strong)}tbody tr:hover{background:#f4f0e6}
-      details{margin:.65rem 0;border:1px solid var(--rule);background:var(--paper-2)}summary{padding:.7rem .8rem;cursor:pointer;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;font-weight:700;text-transform:uppercase}details>*:not(summary){margin-left:.8rem;margin-right:.8rem}details>form,details>ol,details>ul{margin-bottom:.8rem}ol,ul{padding-left:1.25rem}li+li{margin-top:.35rem}.skip-link{position:absolute;left:-9999px}.skip-link:focus{left:.75rem;top:.75rem;z-index:999;background:var(--white);color:var(--ink);padding:.5rem .7rem;border:2px solid var(--green)}:focus-visible{outline:3px solid #bb7a1c;outline-offset:2px}
-      @media(max-width:1024px){.workspace{grid-template-columns:148px minmax(0,1fr)}.service-rail nav a,.rail-disabled{padding-left:1.9rem;font-size:.78rem}.app-shell{width:min(100% - 32px,980px)}.system-context{gap:.65rem;font-size:.56rem}}
-      @media(max-width:768px){.app-topbar{grid-template-columns:1fr;gap:.4rem}.system-context{display:none}.workspace{display:block}.service-rail{position:static;min-height:auto;padding:.55rem .7rem;border-right:0;border-bottom:1px solid var(--rule-strong)}.rail-index,.rail-note{display:none}.service-rail nav{grid-template-columns:repeat(5,minmax(0,1fr));border-top:0;gap:0}.service-rail nav a,.rail-disabled{padding:.5rem .35rem .45rem;text-align:center;border-bottom:0;border-right:1px solid var(--rule);font-size:.68rem}.service-rail nav a::before,.rail-disabled::before{position:static;display:block;margin-bottom:.12rem}.service-rail nav>:nth-child(6){display:none}.app-shell{width:min(100% - 24px,720px);padding-top:1rem}.metric-grid{grid-template-columns:1fr}.metric{border-right:0;border-bottom:1px solid var(--rule)}.metric:last-child{border-bottom:0}.result-head{grid-template-columns:1fr}.choice span{margin-left:0}}
-      @media(max-width:390px){.app-topbar{min-height:56px;padding:.65rem .8rem}.brand-system,.brand-divider{display:none}.service-rail nav{grid-template-columns:repeat(5,1fr);overflow-x:auto}.service-rail nav a,.rail-disabled{min-width:62px;font-size:.62rem}.app-shell{width:calc(100% - 18px)}main#app>h1,.result-head h1{font-size:1.65rem}section,fieldset{padding:.8rem}table{display:block;overflow-x:auto;white-space:nowrap}button,.result-actions a{width:100%;justify-content:center}}
-      /* PYMIA ENTERPRISE WORKSTATION — presentation-only override */
-      :root{--ink:#18211d;--ink-strong:#0f1713;--muted:#66716b;--paper:#f5f7f5;--paper-2:#ffffff;--paper-3:#eef1ee;--rule:#d9dfda;--rule-strong:#b8c1ba;--green:#185c43;--green-strong:#104632;--green-soft:#e8f1ec;--amber:#8a5b12;--amber-soft:#fff7e4;--red:#9b4038;--red-soft:#fff0ee;--slate:#52605a;--white:#ffffff;--sans:"Aptos","Segoe UI",Inter,system-ui,sans-serif;--mono:"Cascadia Mono","SFMono-Regular",Consolas,monospace;--serif:var(--sans)}
-      html,body{background:#f5f7f5}body{background:#f5f7f5;font-size:15px;line-height:1.5;color:var(--ink)}
-      .app-topbar{height:64px;min-height:64px;display:flex;justify-content:space-between;padding:0 24px;background:#fff;color:var(--ink-strong);border-bottom:1px solid var(--rule);box-shadow:0 1px 0 rgba(15,23,19,.02)}
-      .app-brand{gap:.55rem}.brand-mark{width:18px;height:18px;grid-template-columns:repeat(3,3px);gap:2px}.brand-mark i{width:3px;background:var(--green)}.brand-mark i:nth-child(1){height:18px}.brand-mark i:nth-child(2){height:12px}.brand-mark i:nth-child(3){height:7px}.brand-word{font-family:var(--sans);font-size:.92rem;letter-spacing:.08em;font-weight:800}.brand-divider{color:#c1c8c3}.brand-system{font-size:.72rem;letter-spacing:.09em;color:#69736d;font-weight:700}.system-context{font-family:var(--sans);font-size:.72rem;color:#6d7771;gap:1rem}.system-context span{padding-left:1rem;border-left:1px solid var(--rule)}.system-context b{color:#323c36;letter-spacing:.03em;font-size:.67rem}
-      .workspace{grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 64px)}
-      .service-rail{position:sticky;top:0;min-height:calc(100vh - 64px);padding:22px 14px;background:#17231d;border-right:0;color:#e9efeb}
-      .rail-index{display:flex;align-items:center;justify-content:center;width:38px;height:38px;margin:0 8px 26px;padding:0;border:1px solid #3c5046;border-radius:8px;color:#fff;background:#203128;font-family:var(--sans);font-size:.78rem;letter-spacing:.08em;font-weight:800}
-      .service-rail nav{gap:4px;border:0}.service-rail nav a,.rail-disabled{min-height:42px;display:flex;align-items:center;padding:0 10px 0 44px;border:0;border-radius:7px;color:#bdc9c2;font-size:.82rem;font-weight:600}.service-rail nav a::before,.rail-disabled::before{left:12px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:22px;height:22px;border:1px solid #3b4d44;border-radius:5px;color:#8fa096;font-family:var(--mono);font-size:.55rem}.service-rail nav a:hover{background:#203128;color:#fff}.service-rail nav a:first-child{background:#24372d;color:#fff}.service-rail nav a:first-child::before{border-color:#5e7e6c;color:#cfe1d7;background:#1b4935}.rail-disabled{opacity:.56}.rail-note{position:absolute;left:22px;right:22px;bottom:22px;margin:0;padding:14px 0 0;border-top:1px solid #34463d;color:#82938a;font-size:.56rem;letter-spacing:.1em}
-      .app-shell{width:min(1180px,calc(100% - 64px));margin:0 auto;padding:40px 0 64px}
-      main#app{max-width:none}main#app>h1,.result-head h1{font-family:var(--sans);font-size:clamp(1.9rem,3vw,2.8rem);font-weight:750;letter-spacing:-.045em;line-height:1.05;color:#111a15;margin:.18rem 0 .7rem}main#app>p{max-width:780px;font-size:1rem;color:#61706a}.eyebrow{font-family:var(--sans);font-size:.69rem;letter-spacing:.08em;color:#557064;font-weight:800}.eyebrow::before{content:""}
-      .page-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;padding-bottom:28px;margin-bottom:24px;border-bottom:1px solid var(--rule)}.page-kicker{display:flex;align-items:center;gap:8px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#66736c;font-weight:800}.page-kicker::before{content:"";width:8px;height:8px;border-radius:50%;background:#2d7a58;box-shadow:0 0 0 3px #e3efe8}.page-intro h1{margin:8px 0 8px;font-size:clamp(2rem,3vw,3rem);letter-spacing:-.05em;line-height:1.03}.page-intro p{max-width:780px;margin:0;color:#5f6d66;font-size:1rem}.env-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #cfd8d2;border-radius:999px;background:#fff;color:#47534d;font-size:.68rem;font-weight:800;white-space:nowrap}.env-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#2b7a57}
-      section{margin:18px 0;padding:0;background:#fff;border:1px solid var(--rule);border-left:1px solid var(--rule);border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(18,31,24,.03)}section>h2{margin:0;padding:16px 18px 13px;border-bottom:1px solid var(--rule);font-size:.76rem;letter-spacing:.06em;color:#536159;background:#fafbfa}section>h2::before{content:""}section>p,section>form,section>table,section>ul,section>details,section>.service-grid,section>.section-body{margin-left:18px;margin-right:18px}section>p:first-of-type{margin-top:16px}section>p:last-child{margin-bottom:18px}
-      .service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px;margin-bottom:18px}.service-grid .choice{margin:0}
-      form{gap:12px}.choice{display:block;position:relative;padding:16px 16px 16px 44px;border:1px solid #d8dfda;border-left:1px solid #d8dfda;border-radius:8px;background:#fff;transition:border-color .15s,box-shadow .15s,background .15s}.choice::before{display:none}.choice:hover{border-color:#aebdb3;box-shadow:0 2px 8px rgba(17,31,23,.05)}.choice:has(input:checked){border-color:#2b7052;background:#f5faf7;box-shadow:0 0 0 1px #2b7052}.choice>input{position:absolute;left:16px;top:19px}.choice strong{font-size:.9rem;font-weight:750;color:#19231e}.choice span{margin:5px 0 0;color:#69756f;font-size:.79rem;line-height:1.42}.service-code{display:block;margin-bottom:5px;font-family:var(--mono);font-size:.58rem;letter-spacing:.06em;color:#708078;text-transform:uppercase}.service-state{display:inline-flex;margin-top:10px;padding:3px 6px;border-radius:4px;background:#edf5f0;color:#2e674d;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-      fieldset{margin:6px 0;padding:16px;border:1px solid #d9dfda;border-radius:8px;background:#fbfcfb}legend{font-family:var(--sans);font-size:.68rem;letter-spacing:.05em;color:#526159}label{font-size:.82rem;font-weight:650;color:#3f4b45}input[type=text],input[type=month],input[type=number],input[type=file],select{min-height:42px;padding:8px 10px;border:1px solid #cbd3ce;border-radius:7px;background:#fff;color:#17211c;box-shadow:inset 0 1px 1px rgba(17,31,23,.02)}input:focus,select:focus{border-color:#2c6f53;outline:3px solid #e0eee6;outline-offset:0}
-      button{min-height:42px;padding:0 16px;border:1px solid #174e39;border-radius:7px;background:#185c43;font-family:var(--sans);font-size:.74rem;letter-spacing:.01em;font-weight:750;text-transform:none;box-shadow:0 1px 2px rgba(15,50,35,.15)}button:hover{background:#124b36}.button-row{display:flex;gap:8px;flex-wrap:wrap}
-      .notice{border-radius:8px;margin:16px 0;padding:12px 14px;background:#f4f7f5;border:1px solid #d8dfda;border-left:3px solid #39745a;color:#4f5e56;font-size:.82rem}.notice strong{color:#24322a}.upload-band{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1.2fr) auto;gap:12px;align-items:end;margin:4px 18px 18px;padding:16px;border:1px solid #d7dfd9;border-radius:8px;background:#f8faf8}.upload-copy{display:grid;gap:3px;align-self:center}.upload-copy strong{font-size:.84rem}.upload-copy span{font-size:.72rem;color:#6a7770}.upload-band>label.file-field{display:none}.upload-band input[type=file]{margin:0}.upload-band button{white-space:nowrap}.context-details{margin:0 18px 18px!important;background:#fbfcfb}.context-details fieldset{border:0;margin:0;border-top:1px solid var(--rule);border-radius:0}.service-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}.operations-footer{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.operations-footer>div{display:grid;gap:3px;padding:13px 14px;border-top:2px solid #1d5f45;background:#eef4f0}.operations-footer strong{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#315945}.operations-footer span{font-size:.78rem;color:#607068}.semantic-memory{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;margin:12px 0;padding:10px 12px;border:1px solid #dbe2dd;border-radius:7px;background:#f8faf9;font-size:.78rem}.semantic-memory b{font-size:.62rem;letter-spacing:.06em;color:#65736b}.semantic-memory span{color:#55635c}
-      .semantic-card{padding:0!important}.semantic-card legend{display:block;width:100%;padding:14px 16px;border-bottom:1px solid var(--rule);font-size:.82rem;color:#28362f}.semantic-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:0}.semantic-detected{padding:16px;border-right:1px solid var(--rule);background:#fafbfa}.semantic-detected small,.semantic-owner small{display:block;margin-bottom:7px;font-size:.6rem;font-weight:800;letter-spacing:.07em;color:#728078;text-transform:uppercase}.semantic-owner{padding:16px}.semantic-owner label{padding:6px 0;font-weight:600}.semantic-options{display:grid;gap:2px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--rule)}.semantic-owner .owner-label{margin-top:8px;color:#315d49}.semantic-detected>strong{display:block;font-family:var(--mono);font-size:.76rem;color:#2f3d35}.semantic-detected>p{font-size:.8rem;color:#66736c}
-      .semantic-review-form{display:block;gap:0}.semantic-review-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px;padding:9px 14px;border:1px solid var(--rule);border-bottom:0;border-radius:8px 8px 0 0;background:#eef2ef;color:#69766f;font-size:.61rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}.semantic-review-list{border:1px solid var(--rule);border-radius:0 0 8px 8px;background:#fff;overflow:hidden}.semantic-review-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--rule)}.semantic-review-row:last-child{border-bottom:0}.semantic-review-row:hover{background:#fafcfa}.semantic-review-datum{min-width:0}.semantic-review-datum .semantic-sheet{display:block;margin-bottom:2px;font-family:var(--mono);font-size:.58rem;letter-spacing:.05em;color:#7a867f;text-transform:uppercase}.semantic-review-datum strong{display:block;font-size:.84rem;color:#1b2720;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.semantic-review-datum p{margin:3px 0 0;max-width:680px;color:#6b7770;font-size:.73rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.semantic-review-decision{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,.8fr);gap:6px 8px;align-items:end}.semantic-review-decision small{grid-column:1/-1;margin:0;font-size:.57rem;font-weight:800;letter-spacing:.07em;color:#728078;text-transform:uppercase}.semantic-proposal{grid-column:1/-1;margin:0;color:#34443b;font-size:.76rem}.semantic-proposal strong{color:#174f39}.semantic-owner-label{grid-column:1/-1;margin:0;font-size:.63rem;color:#315d49}.semantic-review-decision select,.semantic-review-decision input[type=text]{width:100%;min-height:36px;height:36px;padding:6px 8px;font-size:.75rem}.semantic-review-actions{position:sticky;bottom:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px;padding:10px 12px;border:1px solid #cfd8d2;border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 -8px 24px rgba(22,35,28,.06);backdrop-filter:blur(8px)}.semantic-review-actions span{font-size:.7rem;color:#69766f}.semantic-memory-detail{margin:7px 0 0!important;border:0;background:transparent}.semantic-memory-detail summary{display:inline-flex;padding:0;color:#557064;font-size:.65rem;font-weight:700}.semantic-memory-detail .semantic-memory{margin:6px 0 0;padding:8px 10px;grid-template-columns:90px minmax(0,1fr);font-size:.68rem}
-      .result-head{padding:0 0 22px;margin-bottom:18px;border-top:0;border-bottom:1px solid var(--rule)}.status-chip{min-height:28px;padding:0 9px;border-radius:999px;font-family:var(--sans);font-size:.61rem;letter-spacing:.04em}.status-chip::before{content:""}.metric-grid{gap:10px;border:0;background:transparent}.metric{padding:16px;border:1px solid var(--rule);border-radius:9px;background:#fff}.metric:last-child{border:1px solid var(--rule)}.metric small{font-family:var(--sans);font-size:.62rem}.metric strong{font-family:var(--sans);font-size:1.45rem;letter-spacing:-.03em}.result{font-family:var(--sans);font-size:clamp(1.7rem,3vw,2.4rem);font-weight:750;letter-spacing:-.04em}
-      .result-actions{padding-top:8px}.result-actions a{min-height:40px;padding:0 14px;border-radius:7px;font-family:var(--sans);font-size:.7rem;letter-spacing:0;text-transform:none}.result-actions a.secondary{background:#fff;color:#334139;border-color:#cbd3ce}
-      table{border:1px solid var(--rule);border-radius:8px;overflow:hidden;font-size:.8rem}th,td{padding:11px 12px}th{font-family:var(--sans);font-size:.61rem;background:#f7f9f7;color:#68756e}tbody tr:hover{background:#f8faf8}.case-id{font-family:var(--mono);font-size:.68rem;color:#65736b}.case-status{display:inline-flex;padding:3px 7px;border-radius:999px;background:#eef4f0;color:#39634e;font-size:.61rem;font-weight:800}
-      details{border-radius:8px;background:#fff}summary{font-family:var(--sans);font-size:.72rem;letter-spacing:.01em;text-transform:none}.recon-workbench{display:grid;grid-template-columns:1fr 1fr;gap:12px}.review-item{padding:14px;border:1px solid var(--rule);border-radius:8px;background:#fff}
-      @media(max-width:1024px){.workspace{grid-template-columns:190px minmax(0,1fr)}.app-shell{width:min(100% - 40px,1020px)}.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.system-context span:first-child{display:none}}
-      @media(max-width:768px){.app-topbar{height:60px;min-height:60px;padding:0 16px}.workspace{display:block}.service-rail{position:static;min-height:auto;padding:8px;background:#17231d}.rail-index,.rail-note{display:none}.service-rail nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.service-rail nav a,.rail-disabled{min-height:38px;padding:0 6px;border-radius:5px;justify-content:center;text-align:center;font-size:.68rem}.service-rail nav a::before,.rail-disabled::before{display:none}.service-rail nav>:nth-child(6){display:none}.app-shell{width:min(100% - 28px,720px);padding:28px 0 48px}.service-grid{grid-template-columns:1fr}.page-intro{grid-template-columns:1fr}.env-badge{width:max-content}.semantic-grid,.recon-workbench{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid var(--rule)}.semantic-review-head{display:none}.semantic-review-list{border-radius:8px}.semantic-review-row{grid-template-columns:1fr;gap:10px;padding:14px}.semantic-review-datum p{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.semantic-review-decision{grid-template-columns:1fr}.semantic-review-decision small,.semantic-owner-label{grid-column:1}.semantic-review-actions{align-items:stretch;flex-direction:column}.semantic-review-actions button{width:100%}.metric-grid{grid-template-columns:1fr}}
-      @media(max-width:390px){.brand-system,.brand-divider{display:none}.app-shell{width:calc(100% - 20px)}.service-rail nav{grid-template-columns:repeat(4,1fr)}.service-rail nav>:nth-child(5),.service-rail nav>:nth-child(6){display:none}.page-intro h1,main#app>h1,.result-head h1{font-size:1.75rem}section>p,section>form,section>table,section>ul,section>details,section>.service-grid,section>.section-body{margin-left:12px;margin-right:12px}section>h2{padding-left:12px;padding-right:12px}.semantic-memory{grid-template-columns:1fr}button,.result-actions a{width:100%;justify-content:center}}
-      /* CLIENT JOURNEY — interaction-first override */
-      .app-topbar{height:58px;min-height:58px;padding:0 max(18px,calc((100vw - 1180px)/2));border-bottom:1px solid #dfe4e0;background:#fff;box-shadow:none}.app-brand{color:#17231d;text-decoration:none}.brand-system,.brand-divider,.system-context{display:none}.simple-nav{display:flex;align-items:center;gap:6px}.simple-nav a{padding:8px 10px;border-radius:6px;color:#56635c;text-decoration:none;font-size:.78rem;font-weight:700}.simple-nav a:hover{background:#f0f5f2;color:#174f39}.app-shell{width:min(980px,calc(100% - 40px));padding:34px 0 64px}.page-intro{align-items:start}.page-intro h1{max-width:720px}.page-intro p{max-width:720px}.env-badge{margin-top:3px}
-      .flow-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin:20px 0 24px;border:1px solid #d7ded9;border-radius:8px;overflow:hidden;background:#d7ded9}.flow-step{padding:11px 13px;background:#fff;color:#68756e;font-size:.75rem;line-height:1.35}.flow-step strong{display:block;margin-bottom:2px;color:#35423b;font-size:.65rem;letter-spacing:.04em;text-transform:uppercase}.flow-step.is-current{background:#edf5f0;box-shadow:inset 0 -3px #247454}.flow-step.is-done strong:before{content:"✓ ";color:#247454}
-      .control-workspace{padding:0 0 18px!important;border:1px solid #d9dfda!important;border-radius:10px!important;background:#fff!important;overflow:hidden}.control-workspace>h2,.control-workspace>.workspace-heading{margin:0;padding:16px 18px 13px;border-bottom:1px solid #dfe4e0;background:#fafbfa}.workspace-heading{display:flex;align-items:end;justify-content:space-between;gap:20px}.workspace-heading h2{margin:0 0 3px;font-size:.92rem;text-transform:none;letter-spacing:-.01em}.workspace-heading p{margin:0;color:#6a7770;font-size:.78rem}.control-workspace>form{margin:16px 18px 0}.control-workspace .service-grid{margin:0}.secondary-tools{margin-top:28px;border:1px solid #d9dfda;border-radius:8px;background:#fff}.secondary-tools>summary{padding:12px 14px;color:#617068;font-size:.78rem;font-weight:700}.secondary-tools>section{margin:0;border:0;border-top:1px solid #dfe4e0;border-radius:0;box-shadow:none}.operations-footer{margin-top:22px}.operations-footer>div{border-radius:7px;border-top:0;border-left:3px solid #2e7254;background:#eef5f0}
-      .semantic-card{margin:0 0 14px!important;border-radius:9px!important;overflow:hidden}.semantic-card legend{font-size:.72rem!important;text-transform:none!important;letter-spacing:0!important;background:#f8faf8}.semantic-detected small,.semantic-owner small{font-size:.61rem!important}.semantic-detected>strong{font-size:.82rem!important}.semantic-owner>p{font-size:.9rem;color:#26342c}.semantic-owner label{display:block;margin:7px 0;padding:9px 10px;border:1px solid #d8dfda;border-radius:7px;background:#fff}.semantic-owner label:has(input:checked){border-color:#2c7052;background:#f0f7f3}.semantic-owner input[type=radio]{margin-right:7px}.semantic-owner input[type=text]{margin-top:8px}.semantic-evidence-values{margin:12px 0;padding:11px 12px;border:1px solid #dfe4e0;border-radius:7px;background:#f7f9f7}.semantic-evidence-values ul{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0;padding:0;list-style:none}.semantic-evidence-values code{display:inline-block;padding:4px 7px;border:1px solid #d2dad4;border-radius:5px;background:#fff;font-family:var(--mono);font-size:.74rem}.semantic-evidence-values p{margin:0;color:#6b7770;font-size:.7rem}.semantic-review-actions{margin-top:12px}.semantic-review-actions span{font-size:.74rem}.semantic-review-actions button{min-width:120px}
-      .result-head{padding-top:8px}.metric-grid{margin-top:20px}.result-actions{margin-top:22px}.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-      /* COMMERCIAL FRIENDLY FINISH */
-      body{background:#f6f8f6;color:#17211b}.app-shell{width:min(1040px,calc(100% - 48px));padding-top:38px}.app-topbar{border-bottom:1px solid #e3e8e4}.brand-word{font-size:1rem;letter-spacing:.065em}.simple-nav a{font-size:.8rem;color:#5a675f}.page-intro{margin-bottom:18px;padding-bottom:22px;border-bottom:0}.page-intro h1{max-width:780px;font-size:clamp(2.25rem,4vw,3.35rem);font-weight:760;letter-spacing:-.055em}.page-intro p{max-width:760px;font-size:1.02rem;line-height:1.6;color:#637068}.page-kicker{color:#2f6b50}.env-badge{background:#f0f6f2;border-color:#d4e2d8;color:#315c48}.flow-steps{margin:14px 0 22px;border-color:#e0e5e1;background:#e0e5e1;box-shadow:0 1px 2px rgba(18,35,25,.03)}.flow-step{padding:12px 14px;font-size:.76rem}.flow-step strong{font-size:.64rem}.control-workspace{box-shadow:0 8px 28px rgba(28,50,38,.055)!important;border-color:#dfe5e0!important}.workspace-heading{padding:20px 22px 16px!important;background:#fff!important}.workspace-heading h2{font-size:1.05rem}.workspace-heading p{font-size:.82rem}.control-workspace>form{margin:18px 22px 0}.service-grid{gap:12px}.service-grid .choice{min-height:148px;padding:20px 18px 18px 48px;border-color:#dde4df;border-radius:10px;background:#fff}.service-grid .choice>input{left:18px;top:23px}.service-grid .choice strong{font-size:1rem;letter-spacing:-.012em}.service-grid .choice span{margin-top:8px;font-size:.81rem;line-height:1.48}.service-grid .choice:hover{border-color:#aebdb3;box-shadow:0 7px 22px rgba(25,47,35,.07);transform:translateY(-1px)}.service-grid .choice:has(input:checked){border-color:#287052;background:#f5faf7;box-shadow:0 0 0 2px rgba(40,112,82,.12)}.service-state{position:absolute;right:12px;top:12px;margin:0!important}.upload-band{grid-template-columns:minmax(170px,.8fr) minmax(280px,1.35fr) auto;margin:18px 0 22px;padding:18px 18px;border:1px dashed #aebdb3;border-radius:10px;background:#f8fbf9}.upload-copy strong{font-size:.92rem}.upload-copy span{font-size:.75rem}.upload-band input[type=file]{min-height:44px;background:#fff}.upload-band button{min-height:44px;padding-inline:20px}.context-details{margin:0 0 4px!important}.secondary-tools{margin-top:22px;background:#fbfcfb}.operations-footer>div{padding:15px 16px;background:#f2f7f4}.operations-footer strong{font-size:.7rem}.operations-footer span{font-size:.8rem;line-height:1.45}
-      .semantic-card{box-shadow:0 5px 20px rgba(25,46,35,.04)}.semantic-card legend{padding:15px 18px!important;font-size:.78rem!important;font-weight:750!important}.semantic-detected,.semantic-owner{padding:18px}.semantic-detected small,.semantic-owner small{color:#61736a}.semantic-owner>p{margin:0 0 12px;font-size:.95rem;line-height:1.5}.semantic-owner label{position:relative;margin:8px 0;padding:11px 12px 11px 38px;line-height:1.4}.semantic-owner label input[type=radio]{position:absolute;left:13px;top:13px}.semantic-owner label strong{display:block;font-size:.86rem}.choice-help{display:block;margin-top:3px!important;color:#69766f!important;font-size:.74rem!important;font-weight:450!important}.semantic-evidence-values{padding:13px 14px;background:#f5f8f6}.semantic-evidence-values small{margin:0!important}.semantic-evidence-values code{font-size:.8rem}.semantic-review-actions{padding:12px 14px;border-radius:9px}.semantic-review-actions button{min-width:132px}
-      .result-head{align-items:start;margin-top:4px;padding-bottom:20px}.result-head h1{font-size:clamp(2rem,3.4vw,3rem)}.result-head p{max-width:700px;margin:.45rem 0 0;color:#65716a}.metric-grid{gap:12px}.metric{padding:18px 18px;border-radius:10px}.metric strong{font-size:1.6rem}.metric--focus{border-color:#9ec2ad;background:#f1f8f4}.result-summary{padding:20px 22px!important;border-left:4px solid #2a7354!important;background:#fff!important}.result-summary>h2{padding:0 0 10px!important;border:0!important;background:transparent!important}.result-summary .result{margin:.15rem 0 .4rem;font-size:clamp(2rem,5vw,3rem)}.result-finding{font-size:1rem!important;line-height:1.55;color:#34433a!important}.result-detail{margin:10px 0;border-color:#dfe5e0;background:#fff}.result-detail summary{padding:13px 15px;font-size:.8rem;color:#3f5047}.result-detail .detail-body{padding:0 15px 14px;color:#5f6d65}.result-detail .detail-body p,.result-detail .detail-body ul{margin-top:8px}.result-actions a{min-height:42px}.notice{margin-top:16px}
-      /* HOME — one screen, one task */
-      .home-intro{display:block;max-width:760px;margin:6px auto 18px;padding:0;border:0;text-align:left}.home-intro .page-kicker{margin-bottom:8px}.home-intro h1{margin:0 0 10px;font-size:clamp(2.1rem,4vw,3.1rem);line-height:1.02}.home-intro p{margin:0;font-size:.98rem;color:#657169}.home-task{max-width:760px;margin:0 auto;padding:22px!important;border-radius:12px!important}.home-task>form{margin:0!important}.home-question{margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;font-size:.96rem!important;text-transform:none!important;letter-spacing:0!important}.home-task .service-grid{grid-template-columns:1fr!important;gap:8px!important}.home-task .service-grid .choice{display:grid;grid-template-columns:24px 175px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:12px;row-gap:4px;align-items:center;min-height:auto;padding:14px!important;border-radius:8px!important}.home-task .service-grid .choice>input{position:static;margin:0;grid-column:1;grid-row:1/3}.home-task .service-grid .choice>strong{grid-column:2;grid-row:1/3;font-size:.94rem;align-self:start;padding-top:1px}.home-task .choice-question{grid-column:3;grid-row:1;margin:0!important;font-size:.84rem!important;line-height:1.35;color:#314038;font-weight:700}.home-task .choice-evidence{grid-column:3;grid-row:2;margin:0!important;font-size:.74rem!important;line-height:1.42;color:#6b766f}.home-task .choice-evidence b{color:#536159;font-weight:700}.home-task .service-state{position:static;grid-column:4;grid-row:1/3;justify-self:end;align-self:start;font-size:.65rem!important}.home-upload{grid-template-columns:1fr;margin:18px 0 8px;padding:16px;border-style:solid;background:#f8faf8}.home-upload .upload-copy{margin-bottom:2px}.home-upload input[type=file]{width:100%;min-height:46px}.home-upload button{width:100%;min-height:48px;font-size:.92rem}.home-assurance{margin:10px 0 0!important;color:#6b766f;font-size:.76rem;text-align:center}.compact-details{max-width:760px;margin:12px auto 0!important;border:0!important;background:transparent!important}.compact-details>summary{padding:7px 0!important;color:#728078!important;font-size:.72rem!important;font-weight:600!important}.compact-details>section{margin-top:6px}.home-task .context-details{margin-top:10px!important}.home-task .context-details fieldset{padding-left:0;padding-right:0}
-      @media(max-width:768px){.app-topbar{padding:0 14px}.app-shell{width:min(100% - 24px,720px);padding-top:22px}.page-intro h1{font-size:2.05rem}.flow-steps{grid-template-columns:1fr}.flow-step{padding:9px 11px}.workspace-heading{display:block}.control-workspace>form{margin-left:12px;margin-right:12px}.simple-nav a{padding:7px 8px}.semantic-grid{grid-template-columns:1fr}.semantic-detected{border-right:0;border-bottom:1px solid #dfe4e0}.upload-band{grid-template-columns:1fr}.upload-band button{width:100%}.operations-footer{grid-template-columns:1fr}.service-grid .choice{min-height:auto}.home-task .service-grid .choice{grid-template-columns:24px minmax(0,1fr);grid-template-rows:auto auto auto;align-items:start}.home-task .service-grid .choice>input{grid-column:1;grid-row:1/4;margin-top:3px}.home-task .service-grid .choice>strong{grid-column:2;grid-row:1;padding:0}.home-task .choice-question{grid-column:2;grid-row:2}.home-task .choice-evidence{grid-column:2;grid-row:3}.home-task .service-state{grid-column:2;grid-row:4;justify-self:start}}
-      @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
-    </style>
-    """
-    if "</head>" in template:
-        template = template.replace("</head>", visual_system + "</head>")
-    shell = (
-        '<div class="pymia-frame">'
-        '<header class="app-topbar">'
-        '<a class="app-brand" href="/" aria-label="PymIA inicio">'
-        '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>'
-        '<span class="brand-word">PYMIA</span>'
-        '</a>'
-        '<nav class="simple-nav" aria-label="Navegación principal">'
-        '<a href="/cases">Mis casos</a>'
-        '</nav>'
-        '</header>'
-        f'<div class="app-shell">{content}</div>'
-        '</div>'
-    )
-    return template.replace("{{content}}", shell)
+    return render_document_v1(content)
 
 
 def _recent_cases_page(snapshots: list[dict[str, Any]]) -> str:
-    if not snapshots:
-        return """
-        <main id="app" tabindex="-1">
-          <p class="eyebrow">Casos</p>
-          <h1>Casos recientes</h1>
-          <section><p>Todavía no hay controles terminados en esta sesión.</p><a href="/">Iniciar un control</a></section>
-        </main>"""
-    rows = "".join(
-        f'''<tr>
-          <td><strong>{_esc(item.get("service_name"))}</strong></td>
-          <td>{_esc(item.get("status"))}</td>
-          <td>{_esc(item.get("updated_at"))}</td>
-          <td><a href="/case?case_ref={_esc(item.get("case_ref"))}">Abrir caso</a></td>
-        </tr>'''
-        for item in snapshots
-    )
-    return f"""
-    <main id="app" tabindex="-1">
-      <p class="eyebrow">Casos</p>
-      <div class="result-head"><div><h1>Casos recientes</h1><p>Volvé a abrir resultados ya ejecutados sin repetir el control.</p></div><a class="secondary" href="/">Nuevo control</a></div>
-      <section aria-label="Listado de casos recientes">
-        <table><thead><tr><th>Servicio</th><th>Estado</th><th>Actualizado</th><th>Acción</th></tr></thead><tbody>{rows}</tbody></table>
-      </section>
-      <p class="notice">Los casos con evidencia owner persistida sobreviven reinicios. Los resultados completos y archivos de entrega sólo se reabren mientras exista su snapshot de ejecución.</p>
-    </main>"""
+    return render_recent_analyses_v1(snapshots)
 
 
 def _persisted_case_page(case: dict[str, Any]) -> str:
-    evidence = case.get("evidence")
-    rows = evidence if isinstance(evidence, list) else []
-    evidence_rows = "".join(
-        f'''<tr>
-          <td>{_esc(item.get("sheet_ref"))}</td>
-          <td>{_esc(item.get("column_ref"))}</td>
-          <td>{_esc(item.get("owner_answer"))}</td>
-          <td>{_esc(item.get("confirmed_at"))}</td>
-        </tr>'''
-        for item in rows
-        if isinstance(item, dict)
-    )
-    return f"""
-    <main id="app" tabindex="-1">
-      <p class="eyebrow">Caso persistido</p>
-      <div class="result-head"><div><h1>Servicio 1 · evidencia confirmada</h1><p>Reingreso durable del caso {_esc(case.get("case_id"))}.</p></div><a class="secondary" href="/cases">Volver a casos</a></div>
-      <section>
-        <dl>
-          <dt>Archivo de origen</dt><dd>{_esc(case.get("workbook_ref"))}</dd>
-          <dt>Tenant</dt><dd>{_esc(case.get("tenant_id"))}</dd>
-          <dt>Actor</dt><dd>{_esc(case.get("owner_actor_id"))}</dd>
-        </dl>
-      </section>
-      <section aria-label="Evidencia confirmada por el dueño">
-        <h2>Evidencia confirmada por el dueño</h2>
-        <table><thead><tr><th>Hoja</th><th>Columna</th><th>Confirmación</th><th>Fecha</th></tr></thead><tbody>{evidence_rows}</tbody></table>
-      </section>
-      <p class="notice">La evidencia semántica es durable y no se reinterpreta al reingresar. El resultado completo y su archivo de entrega requieren un snapshot de ejecución todavía disponible.</p>
-    </main>"""
+    return render_persisted_analysis_v1(case)
 
 
 def _login_page(error: str | None = None) -> str:
-    return f"""
-    <main id="app" tabindex="-1">
-      <header class="page-intro">
-        <div>
-          <div class="page-kicker">Servicio 1 · Acceso</div>
-          <h1>Ingresar a PymIA</h1>
-          <p>Iniciá sesión para trabajar con los controles y la evidencia de tu empresa.</p>
-        </div>
-      </header>
-      {_error(error)}
-      <section aria-labelledby="login-title">
-        <h2 id="login-title">Cuenta</h2>
-        <form action="/login" method="post">
-          <label for="email">Correo electrónico</label>
-          <input id="email" name="email" type="email" autocomplete="username" required>
-          <label for="password">Contraseña</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required>
-          <button type="submit">Ingresar</button>
-        </form>
-      </section>
-    </main>"""
+    return render_login_v1(error)
 
 
 def _home_page(error: str | None = None) -> str:
-    launch_states = {
-        "sold_vs_collected_gap": "",
-        "net_margin_real": "",
-        "working_capital": "",
-    }
-    launch_options = "".join(
-        (
-            f'<label class="choice"><input type="radio" name="launch_review" value="{_esc(ref)}" required>'
-            f'<strong>{_esc(name)}</strong>'
-            f'<span class="choice-question">{_esc(description)}</span>'
-            f'<span class="choice-evidence"><b>Qué debería traer tu Excel:</b> {_esc(_LAUNCH_REVIEW_FILE_GUIDANCE[ref])}</span>'
-            + (f'<span class="service-state">{_esc(launch_states[ref])}</span>' if launch_states.get(ref) else "")
-            + '</label>'
-        )
-        for ref, name, description in _LAUNCH_REVIEW_OPTIONS
+    return render_home_v1(
+        _RECONCILIATION_OPTIONS,
+        error,
     )
-    reconciliation_options = "".join(
-        f'<label class="choice"><input type="radio" name="reconciliation_type" value="{_esc(ref)}" required>'
-        f'<span class="service-code">RECON / {index:02d}</span><strong>{_esc(name)}</strong>'
-        f'<span>{_esc(description)}</span><span class="service-state">DISPONIBLE</span></label>'
-        for index, (ref, name, description) in enumerate(_RECONCILIATION_OPTIONS, start=1)
-    )
-    return f"""
-    <main id="app" tabindex="-1">
-      <header class="page-intro home-intro">
-        <div>
-          <div class="page-kicker">PymIA</div>
-          <h1>¿Qué querés entender de tu Excel?</h1>
-          <p>Elegí una opción, seleccioná el archivo y continuá.</p>
-        </div>
-      </header>
-      {_error(error)}
-
-      <section class="control-workspace home-task" aria-labelledby="launch-controls">
-        <form action="/upload" method="post" enctype="multipart/form-data">
-          <h2 id="launch-controls" class="home-question">Elegí qué querés revisar</h2>
-          <div class="service-grid">{launch_options}</div>
-
-          <div class="upload-band home-upload">
-            <div class="upload-copy"><strong>Elegí tu archivo</strong><span>Excel .xlsx · no modificamos el original</span></div>
-            <label class="file-field" for="file">Seleccionar Excel</label>
-            <input id="file" name="file" type="file" accept=".xlsx" required>
-            <button type="submit">Analizar mi Excel</button>
-          </div>
-
-          <p class="home-assurance">Si un dato importante no está claro, PymIA te lo pregunta antes de calcular.</p>
-
-          <details class="context-details compact-details">
-            <summary>Datos opcionales para administradores de consorcios</summary>
-            <fieldset>
-              <label for="consorcio_id">Código del consorcio</label>
-              <input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
-              <label for="consorcio_name">Nombre del consorcio</label>
-              <input id="consorcio_name" name="consorcio_name" type="text" autocomplete="organization">
-              <label for="period">Período</label>
-              <input id="period" name="period" type="month">
-            </fieldset>
-          </details>
-        </form>
-      </section>
-
-      <details class="secondary-tools compact-details">
-        <summary>Conciliar dos archivos</summary>
-        <section aria-labelledby="bank-reconciliation">
-          <h2 id="bank-reconciliation">Conciliación</h2>
-          <form action="/start-reconciliation" method="post" hx-post="/start-reconciliation" hx-target="#app" hx-swap="outerHTML">
-            <div class="service-grid service-grid--two">{reconciliation_options}</div>
-            <button type="submit">Continuar con conciliación</button>
-          </form>
-        </section>
-      </details>
-
-      <div class="notice" aria-live="polite"></div>
-    </main>"""
 
 
 def _reconciliation_upload_page(
@@ -2799,25 +2708,12 @@ def _reconciliation_upload_page(
     error: str | None = None,
 ) -> str:
     _, title, description = _RECONCILIATION_BY_TYPE[reconciliation_type]
-    file_fields = "".join(
-        f'''<fieldset><legend>{_esc(source_label)}</legend>
-          <label for="source_{_esc(source_kind)}">Elegir Excel</label>
-          <input id="source_{_esc(source_kind)}" name="source_{_esc(source_kind)}" type="file" accept=".xlsx" required>
-        </fieldset>'''
-        for source_kind, source_label, _ in _RECONCILIATION_SOURCES[reconciliation_type]
+    return render_reconciliation_upload_v1(
+        title,
+        description,
+        _RECONCILIATION_SOURCES[reconciliation_type],
+        error,
     )
-    return f"""
-    <main id="app" tabindex="-1">
-      <h1>{_esc(title)}</h1>
-      {_error(error)}
-      <p>{_esc(description)}</p>
-      <p>Necesitamos las dos fuentes. No modificamos ninguno de los archivos.</p>
-      <form action="/upload-reconciliation" method="post" enctype="multipart/form-data" hx-post="/upload-reconciliation" hx-target="#app" hx-swap="outerHTML">
-        {file_fields}
-        <button type="submit">Revisar archivos</button>
-      </form>
-      <div class="notice" aria-live="polite"></div>
-    </main>"""
 
 
 def _reconciliation_column_confirmation_page(
@@ -2826,37 +2722,12 @@ def _reconciliation_column_confirmation_page(
     error: str | None = None,
 ) -> str:
     _, title, _ = _RECONCILIATION_BY_TYPE[reconciliation_type]
-    source_blocks: list[str] = []
-    for source_kind, source_label, field_specs in _RECONCILIATION_SOURCES[reconciliation_type]:
-        intake = intakes[source_kind]
-        columns = [str(item) for item in intake.get("columns") or []]
-        selectors: list[str] = []
-        for canonical_field, field_label in field_specs:
-            options = '<option value="">Elegí una columna</option>' + "".join(
-                f'<option value="{_esc(column)}">{_esc(column)}</option>'
-                for column in columns
-            )
-            selectors.append(
-                f'''<label for="bind_{_esc(source_kind)}_{_esc(canonical_field)}">{_esc(field_label)}</label>
-                <select id="bind_{_esc(source_kind)}_{_esc(canonical_field)}" name="bind_{_esc(source_kind)}_{_esc(canonical_field)}" required>{options}</select>'''
-            )
-        source_blocks.append(
-            f'''<fieldset><legend>{_esc(source_label)}</legend>
-              <p>Archivo: <strong>{_esc(intake.get("filename"))}</strong></p>
-              <p>Decinos qué columna representa cada dato. PymIA no lo va a adivinar.</p>
-              {''.join(selectors)}
-            </fieldset>'''
-        )
-    return f"""
-    <main id="app" tabindex="-1">
-      <h1>Confirmar columnas para { _esc(title.lower()) }</h1>
-      {_error(error)}
-      <form action="/confirm-reconciliation-columns" method="post" hx-post="/confirm-reconciliation-columns" hx-target="#app" hx-swap="outerHTML">
-        {''.join(source_blocks)}
-        <button type="submit">Cruzar movimientos</button>
-      </form>
-      <div class="notice" aria-live="polite"></div>
-    </main>"""
+    return render_reconciliation_confirmation_v1(
+        title,
+        _RECONCILIATION_SOURCES[reconciliation_type],
+        intakes,
+        error,
+    )
 
 
 def _normalized_reconciliation_bindings(
@@ -3020,19 +2891,16 @@ def _reconciliation_result_page(
     )
     decision_count = len(decision_history)
     radar_panel = _radar_event_panel(radar_events or [])
-    return f"""
-    <main id="app" tabindex="-1">
-      <div class="result-head"><div><p class="eyebrow">Resultado del control</p><h1>{_esc(title)}</h1></div><span class="status-chip status-review">REQUIERE REVISIÓN</span></div>
-      {_error(error)}
-      {f'<p class="notice">{_esc(notice)}</p>' if notice else ''}
-      <section aria-labelledby="recon-summary"><h2 id="recon-summary">Qué encontramos</h2><p><strong>Revisión humana requerida.</strong> {_esc(status_note)}</p><p>Decisiones registradas en esta revisión: <strong>{decision_count}</strong>.</p><table><tbody>{rows}</tbody></table></section>
-      {radar_panel}
-      <section aria-labelledby="recon-review"><h2 id="recon-review">Qué necesita revisión</h2>{details}</section>
-      <section aria-labelledby="recon-limits"><h2 id="recon-limits">Qué puede y qué no puede concluir PymIA</h2><p>PymIA no marcó ningún movimiento como conciliado, no modificó los archivos y no realizó ningún cierre contable.</p></section>
-      <div class="result-actions"><a href="/download-reconciliation-workpaper">Descargar papel de trabajo (.xlsx)</a><a class="secondary" href="/">Volver a controles</a></div>
-      <p>El archivo incluye resultados, decisiones humanas y casos todavía pendientes.</p>
-      <div aria-live="polite">Resultado de conciliación listo para revisar.</div>
-    </main>"""
+    return render_reconciliation_result_v1(
+        title=title,
+        status_note=status_note,
+        decision_count=decision_count,
+        summary_rows=rows,
+        details_html=details,
+        radar_html=radar_panel,
+        notice=notice,
+        error=error,
+    )
 
 
 def _radar_event_panel(events: list[dict[str, object]]) -> str:
@@ -3309,111 +3177,16 @@ def _derived_unit_questions_page(
     selected_units: dict[str, str] | None = None,
     ingestion_output: Mapping[str, Any] | None = None,
 ) -> str:
-    selected_units = selected_units or {}
-    cards: list[str] = []
-    for question in questions:
-        if not isinstance(question, Mapping) or question.get("question_kind") != "UNIT_MEANING":
-            continue
-        question_id = str(question.get("question_id") or "").strip()
-        sheet_ref = str(question.get("sheet_ref") or "").strip()
-        column_ref = str(question.get("column_ref") or "").strip()
-        selected = selected_units.get(question_id, "")
-        samples, _ = _unit_column_evidence_preview(
-            ingestion_output,
-            sheet_ref=sheet_ref,
-            column_ref=column_ref,
-        )
-        if samples:
-            sample_items = "".join(f"<li><code>{_esc(value)}</code></li>" for value in samples)
-            sample_block = (
-                '<div class="semantic-evidence-values"><small>Valores observados en esta columna</small>'
-                f'<ul>{sample_items}</ul><p>Muestra visible: {len(samples)} valores distintos de la evidencia disponible.</p></div>'
-            )
-        else:
-            sample_block = (
-                '<div class="semantic-evidence-values"><small>Valores observados en esta columna</small>'
-                '<p>No hay valores no vacíos disponibles para mostrar.</p></div>'
-            )
-        unit_copy = {
-            "DISCOUNT_FRACTION_0_1": ("Es un porcentaje escrito como decimal", "0,10 significa 10%"),
-            "DISCOUNT_PERCENT_0_100": ("Es un porcentaje escrito como número", "10 significa 10%"),
-            "DISCOUNT_LINE_AMOUNT": ("Es un importe de dinero", "10 significa $10 descontados"),
-        }
-        option_rows: list[str] = []
-        for option in (question.get("options") or []):
-            if not isinstance(option, Mapping):
-                continue
-            unit_kind = str(option.get("unit_kind") or "").strip()
-            label, example = unit_copy.get(
-                unit_kind,
-                (str(option.get("label") or "").strip(), str(option.get("example") or "").strip()),
-            )
-            option_rows.append(
-                f'<label><input type="radio" name="unit_{_esc(question_id)}" value="{_esc(unit_kind)}" required'
-                f'{" checked" if unit_kind == selected else ""}> '
-                f'<strong>{_esc(label)}</strong><span class="choice-help">{_esc(example)}</span></label>'
-            )
-        options = "".join(option_rows)
-        options += (
-            f'<label><input type="radio" name="unit_{_esc(question_id)}" value="not_sure" required'
-            f'{" checked" if selected == "not_sure" else ""}> '
-            '<strong>No lo puedo confirmar ahora</strong><span class="choice-help">Lo dejamos pendiente. PymIA no supone una respuesta ni calcula con una unidad inventada.</span></label>'
-        )
-        cards.append(
-            f'<fieldset class="semantic-card"><legend>Descuento en tu Excel</legend>'
-            f'<div class="semantic-grid"><div class="semantic-detected">'
-            f'<small>Columna encontrada</small><strong>{_esc(column_ref)} · hoja {_esc(sheet_ref)}</strong>'
-            f'{sample_block}<p>Esta respuesta cambia la forma de calcular el importe final de cada venta.</p></div>'
-            f'<div class="semantic-owner"><small>Elegí la opción que corresponde</small>'
-            f'<p>¿Cómo están guardados estos descuentos en tu archivo?</p>{options}</div></div></fieldset>'
-        )
-    return f"""
-    <main id="app" tabindex="-1">
-      <header class="page-intro">
-        <div><div class="page-kicker">Revisión del archivo</div>
-        <h1>Esto encontré en tu Excel</h1>
-        <p>Encontré una columna de descuento y necesito confirmar cómo están expresados sus valores antes de calcular.</p></div>
-        <span class="env-badge">1 dato por confirmar</span>
-      </header>
-      <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
-        <div class="flow-step is-current"><strong>Revisar</strong>Confirmá este dato.</div>
-        <div class="flow-step"><strong>Resultado</strong>Después de esta revisión.</div>
-      </div>
-      {_error(error)}
-      <form action="/confirm-meanings" method="post">
-        {''.join(cards)}
-        <div class="semantic-review-actions"><span>Solo una respuesta que confirmes se usa para calcular.</span><button type="submit">Continuar</button></div>
-      </form>
-      <div class="notice" aria-live="polite"></div>
-    </main>"""
+    return render_unit_questions_v1(
+        questions,
+        error,
+        selected_units=selected_units,
+        ingestion_output=ingestion_output,
+    )
 
 
 def _unit_confirmation_deferred_page(questions: list[dict[str, Any]]) -> str:
-    refs = [
-        f"{str(question.get('sheet_ref') or '').strip()}.{str(question.get('column_ref') or '').strip()}"
-        for question in questions
-        if isinstance(question, Mapping) and question.get("question_kind") == "UNIT_MEANING"
-    ]
-    evidence = " · ".join(ref for ref in refs if ref and ref != ".")
-    return f"""
-    <main id="app" tabindex="-1">
-      <header class="page-intro">
-        <div><div class="page-kicker">Caso abierto · Confirmación pendiente</div>
-        <h1>No calculamos sin esa confirmación</h1>
-        <p>Elegiste no confirmar ahora cómo está expresado el descuento. PymIA conserva el caso abierto y no supone una unidad.</p></div>
-        <span class="env-badge">FALTA INFORMACIÓN</span>
-      </header>
-      <section>
-        <h2>Evidencia pendiente</h2>
-        <p><strong>{_esc(evidence or "Unidad del descuento")}</strong></p>
-        <p>Cuando puedas verificarlo en tu sistema o con la persona responsable, volvé a ejecutar el control con esa evidencia.</p>
-      </section>
-      <section>
-        <p><a href="/">Volver a Operaciones</a> · <a href="/cases">Ver casos</a></p>
-      </section>
-      <div class="notice" aria-live="polite">No se generó ningún cálculo ni confirmación de unidad.</div>
-    </main>"""
+    return render_unit_deferred_v1(questions)
 
 
 def _friendly_semantic_ref(value: object) -> str:
@@ -3435,61 +3208,9 @@ def _assisted_semantic_dialogue_page(
     *,
     selected_actions: dict[str, str] | None = None,
 ) -> str:
-    selected_actions = selected_actions or {}
-    rows: list[str] = []
-    for decision in decisions:
-        if not isinstance(decision, Mapping):
-            continue
-        decision_id = str(decision.get("decision_id") or "").strip()
-        if not decision_id:
-            continue
-        kind = str(decision.get("decision_kind") or "DECISION").strip()
-        presentation = str(decision.get("presentation_text") or "").strip()
-        materiality = str(decision.get("materiality_reason") or "").strip()
-        refs = [
-            _friendly_semantic_ref(ref)
-            for ref in (
-                list(decision.get("column_refs") or [])
-                + list(decision.get("relationship_refs") or [])
-            )
-            if str(ref).strip()
-        ]
-        selected = selected_actions.get(decision_id, "")
-        rows.append(
-            f'<fieldset class="semantic-card"><legend>Quiero confirmar una cosa</legend>'
-            f'<div class="semantic-grid"><div class="semantic-detected">'
-            f'<small>Esto encontré en tu Excel</small><strong>{_esc(" · ".join(refs) or decision_id)}</strong>'
-            f'<p>Esta definición puede cambiar el resultado, por eso prefiero confirmarla con vos.</p></div><div class="semantic-owner">'
-            f'<small>¿Es correcto?</small><p>{_esc(presentation)}</p>'
-            f'<label><input type="radio" name="action_{_esc(decision_id)}" value="ACCEPT" required'
-            f'{" checked" if selected == "ACCEPT" else ""}> Sí, es correcto</label>'
-            f'<label><input type="radio" name="action_{_esc(decision_id)}" value="REJECT"'
-            f'{" checked" if selected == "REJECT" else ""}> No, no es correcto</label>'
-            f'<label><input type="radio" name="action_{_esc(decision_id)}" value="CORRECT"'
-            f'{" checked" if selected == "CORRECT" else ""}> Quiero corregirlo</label>'
-            f'<input type="text" name="correction_{_esc(decision_id)}" placeholder="Contanos cómo debería interpretarse, si corresponde">'
-            f'</div></div></fieldset>'
-        )
-    return f"""
-    <main id="app" tabindex="-1">
-      <header class="page-intro">
-        <div><div class="page-kicker">Revisión del archivo</div>
-        <h1>Esto encontré en tu Excel</h1>
-        <p>PymIA ya leyó el archivo. Antes de calcular, necesito confirmar {len(rows)} {"dato" if len(rows) == 1 else "datos"} que pueden cambiar el resultado.</p></div>
-        <span class="env-badge">{len(rows)} por confirmar</span>
-      </header>
-      <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
-        <div class="flow-step is-current"><strong>Revisar</strong>Confirmá lo que entendí.</div>
-        <div class="flow-step"><strong>Resultado</strong>Después de esta revisión.</div>
-      </div>
-      {_error(error)}
-      <form action="/confirm-meanings" method="post">
-        {''.join(rows)}
-        <div class="semantic-review-actions"><span>Si algo no coincide, corregilo antes de seguir.</span><button type="submit">Continuar</button></div>
-      </form>
-      <div class="notice" aria-live="polite"></div>
-    </main>"""
+    return render_semantic_dialogue_v1(
+        decisions, error, selected_actions=selected_actions
+    )
 
 
 def _semantic_questions_page(
@@ -3498,80 +3219,19 @@ def _semantic_questions_page(
     *,
     selected_answers: dict[str, Any] | None = None,
 ) -> str:
-    rows = []
-    selected_answers = selected_answers or {}
-    for question in questions:
-        raw_question_id = str(question.get("question_id") or "")
-        question_id = _esc(raw_question_id)
-        previous = selected_answers.get(raw_question_id)
-        previous_option = str(previous.get("option_id") if isinstance(previous, dict) else previous or "").strip()
-        previous_other = str(previous.get("free_text") if isinstance(previous, dict) else "").strip()
-        raw_options = [
-            option
-            for option in (question.get("options") or [])
-            if isinstance(option, dict)
-        ]
-        option_items = "".join(
-            f'<option name="answer_{question_id}" value="{_esc(option.get("option_id"))}"{" selected" if str(option.get("option_id") or "").strip() == previous_option else ""}>{_esc(option.get("label"))}</option>'
-            for option in raw_options
-        )
-        proposed_option = next(
-            (
-                option
-                for option in raw_options
-                if str(option.get("option_id") or "").strip() not in {"OTHER", "IGNORE"}
-            ),
-            None,
-        )
-        proposal = (
-            f'<p class="semantic-proposal">PymIA interpreta: <strong>{_esc(proposed_option.get("label"))}</strong>. ¿Es correcto?</p>'
-            if proposed_option is not None
-            else ""
-        )
-        memory_hint = str(question.get("tenant_memory_hint") or "").strip()
-        memory_note = (
-            f'<details class="semantic-memory-detail"><summary>Memoria previa</summary>{_tenant_memory_note(memory_hint)}</details>'
-            if memory_hint
-            else ""
-        )
-        sheet_name = _esc(question.get("sheet_name") or "Hoja")
-        column_name = _esc(question.get("column_name") or "Columna")
-        rows.append(f"""
-        <div class="semantic-review-row">
-          <div class="semantic-review-datum">
-            <span class="semantic-sheet">{sheet_name}</span>
-            <strong>{column_name}</strong>
-            <p>{_esc(question.get('context'))}</p>
-            {memory_note}
-          </div>
-          <div class="semantic-review-decision">
-            <small>Lo que PymIA propone</small>
-            {proposal}
-            <label for="answer_{question_id}" class="semantic-owner-label">Elegí qué significa este dato</label>
-            <select id="answer_{question_id}" name="answer_{question_id}" required>
-              <option value="" disabled{" selected" if not previous_option else ""}>Seleccionar significado…</option>
-              {option_items}
-              <option value="not_sure"{" selected" if previous_option == "not_sure" else ""}>No estoy seguro</option>
-            </select>
-            <input id="other_{question_id}" name="other_{question_id}" type="text" value="{_esc(previous_other)}" placeholder="Otra interpretación, sólo si corresponde">
-          </div>
-        </div>""")
-    return f"""
-    <main id="app" tabindex="-1">
-      <header class="page-intro"><div><div class="page-kicker">Revisión del archivo</div><h1>Esto encontré en tu Excel</h1><p>Reconocí los datos que necesito para este análisis. Sólo te muestro {len(questions)} {"dato" if len(questions) == 1 else "datos"} cuyo significado necesito confirmar antes de calcular.</p></div><span class="env-badge">{len(questions)} por confirmar</span></header>
-      <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
-        <div class="flow-step is-current"><strong>Revisar</strong>Confirmá lo que entendí.</div>
-        <div class="flow-step"><strong>Resultado</strong>Después de esta revisión.</div>
-      </div>
-      {_error(error)}
-      <form class="semantic-review-form" action="/confirm-meanings" method="post">
-        <div class="semantic-review-head"><span>Dato del Excel</span><span>Qué significa</span></div>
-        <div class="semantic-review-list">{''.join(rows)}</div>
-        <div class="semantic-review-actions"><span>Podés dejar una columna como “No estoy seguro” y retomarla después.</span><button type="submit">Continuar</button></div>
-      </form>
-      <div class="notice" aria-live="polite"></div>
-    </main>"""
+    return render_semantic_questions_v1(
+        questions, error, selected_answers=selected_answers
+    )
+
+
+def _analysis_menu_page(state: AssistedWebSessionV1, error: str | None = None) -> str:
+    ingestion = state.ingestion_output if isinstance(state.ingestion_output, dict) else {}
+    filename = str(ingestion.get("filename") or ingestion.get("source_file_ref") or "").strip()
+    return render_analysis_menu_v1(
+        _LAUNCH_REVIEW_OPTIONS,
+        filename=filename,
+        error=error,
+    )
 
 
 def _review_selection_page(error: str | None = None) -> str:
@@ -3586,6 +3246,128 @@ def _review_selection_page(error: str | None = None) -> str:
       <div class="notice" aria-live="polite"></div></main>"""
 
 
+def _analysis_bundle_page(
+    results: Mapping[str, dict[str, Any]],
+    *,
+    ingestion_output: Mapping[str, Any] | None = None,
+) -> str:
+    ingestion = ingestion_output if isinstance(ingestion_output, Mapping) else {}
+    items: list[dict[str, Any]] = []
+    for capability_ref in _LAUNCH_REVIEW_BY_REF:
+        packet = results.get(capability_ref)
+        if not isinstance(packet, dict):
+            continue
+        title = _LAUNCH_REVIEW_BY_REF[capability_ref][1]
+        if capability_ref == "sold_vs_collected_gap":
+            computation = packet.get("computation_result") if isinstance(packet.get("computation_result"), dict) else {}
+            inputs = computation.get("inputs") if isinstance(computation.get("inputs"), dict) else {}
+            computed = computation.get("computed") if isinstance(computation.get("computed"), dict) else {}
+            ready = computation.get("status") == "EVALUATED"
+            sold = float(inputs.get("sold_amount", 0.0) or 0.0)
+            collected = float(inputs.get("collected_amount", 0.0) or 0.0)
+            gap = float(computed.get("gap_amount", sold - collected) or 0.0)
+            ratio = computed.get("collection_ratio")
+            ratio_text = f"{float(ratio) * 100:.2f}%" if sold > 0 and isinstance(ratio, (int, float)) else "No calculable"
+            aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}
+            sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
+            filename = str(ingestion.get("filename") or ingestion.get("source_file_ref") or "archivo recibido").strip()
+            explicit_period = ingestion.get("period")
+            if explicit_period is None and isinstance(ingestion.get("provenance"), Mapping):
+                explicit_period = ingestion["provenance"].get("period")
+            period_text = str(explicit_period).strip() if explicit_period is not None and str(explicit_period).strip() else "no identificado explícitamente en los archivos recibidos"
+            details = [f"Archivo: {filename}"]
+            for variable, source in sources.items():
+                if isinstance(source, Mapping):
+                    details.append(
+                        f"{variable}: hoja {source.get('sheet_name') or ''}, columna {source.get('column_name') or ''}"
+                    )
+            details.append(f"Período: {period_text}")
+            outcome = packet.get("bounded_outcome") if isinstance(packet.get("bounded_outcome"), dict) else {}
+            limitations = outcome.get("limitations") if isinstance(outcome.get("limitations"), (list, tuple)) else []
+            details.extend(f"Límite: {item}" for item in limitations)
+            if gap > 0:
+                summary = f"Las ventas registradas superan las cobranzas registradas por {_format_amount(gap)}. Diferencia todavía no compensada por cobranzas."
+            elif gap < 0:
+                summary = f"Las cobranzas registradas superan las ventas registradas por {_format_amount(abs(gap))}. Cobranzas superiores a las ventas registradas."
+            else:
+                summary = "Las ventas y cobranzas registradas coinciden para la información analizada."
+            items.append({
+                "title": title,
+                "status": "READY" if ready else "PENDING",
+                "headline": "Ventas y cobranzas" if ready else "Faltan datos para comparar ventas y cobranzas",
+                "metrics": (
+                    [
+                        {"label": "Total vendido", "value": _format_amount(sold)},
+                        {"label": "Total cobrado", "value": _format_amount(collected)},
+                        {"label": "Diferencia", "value": _format_amount(gap)},
+                        {"label": "Porcentaje cobrado", "value": ratio_text},
+                    ]
+                    if ready else []
+                ),
+                "summary": (
+                    summary
+                    if ready else
+                    "PymIA no encontró evidencia suficiente para completar este análisis sin suponer datos."
+                ),
+                "details": details if ready else [],
+                "actions": ([{"href": "/download-sales-collections", "label": "Descargar resultado (.xlsx)"}] if ready and packet.get("delivery_generated") is True else []),
+            })
+            continue
+        if capability_ref == "net_margin_real":
+            computation = packet.get("computation_result") if isinstance(packet.get("computation_result"), dict) else {}
+            computed = computation.get("computed") if isinstance(computation.get("computed"), dict) else {}
+            ready = computation.get("status") == "EVALUATED"
+            amount = computed.get("net_margin_amount")
+            percentage = computed.get("net_margin_percentage")
+            metrics: list[dict[str, str]] = []
+            if ready and isinstance(amount, (int, float)):
+                metrics.append({"label": "Margen", "value": _format_amount(float(amount))})
+            if ready and isinstance(percentage, (int, float)):
+                metrics.append({"label": "Margen sobre ventas", "value": f"{float(percentage):.2f}%"})
+            items.append({
+                "title": title,
+                "status": "READY" if ready else "PENDING",
+                "headline": "Margen real" if ready else "Faltan datos para completar el margen",
+                "metrics": metrics,
+                "summary": (
+                    "Resultado calculado con ventas, costos y demás evidencia material confirmada."
+                    if ready else
+                    "PymIA conserva lo confirmado y no completa costos, impuestos o relaciones faltantes por suposición."
+                ),
+                "actions": ([{"href": "/download-net-margin", "label": "Descargar resultado (.xlsx)"}] if ready and packet.get("delivery_generated") is True else []),
+            })
+            continue
+        if capability_ref == "working_capital":
+            components = packet.get("computed_components") if isinstance(packet.get("computed_components"), dict) else {}
+            cash = components.get("projected_closing_cash_balance") if isinstance(components.get("projected_closing_cash_balance"), dict) else {}
+            dso = components.get("dso") if isinstance(components.get("dso"), dict) else {}
+            ratio = components.get("current_ratio") if isinstance(components.get("current_ratio"), dict) else {}
+            cash_value = (cash.get("computed") or {}).get("projected_closing_balance") if isinstance(cash.get("computed"), dict) else None
+            dso_value = (dso.get("computed") or {}).get("dso_days") if isinstance(dso.get("computed"), dict) else None
+            ratio_value = (ratio.get("computed") or {}).get("current_ratio_value") if isinstance(ratio.get("computed"), dict) else None
+            ready = isinstance(cash_value, (int, float))
+            metrics = []
+            if ready:
+                metrics.append({"label": "Saldo de caja proyectado", "value": _format_amount(float(cash_value))})
+            if isinstance(dso_value, (int, float)):
+                metrics.append({"label": "Tiempo promedio de cobro", "value": f"{dso_value} días"})
+            if isinstance(ratio_value, (int, float)):
+                metrics.append({"label": "Cobertura de corto plazo", "value": str(ratio_value)})
+            items.append({
+                "title": title,
+                "status": "READY" if ready else "PENDING",
+                "headline": "Flujo de caja" if ready else "Faltan datos para proyectar la caja",
+                "metrics": metrics,
+                "summary": (
+                    "El saldo proyectado usa únicamente saldo inicial, cobros previstos y pagos previstos confirmados."
+                    if ready else
+                    "Para proyectar caja hacen falta saldo inicial, cobros previstos y pagos previstos del período."
+                ),
+                "actions": [],
+            })
+    return render_analysis_bundle_v1(items)
+
+
 def _evaluated_result_page(
     packet: dict[str, Any],
     requested_capability: str,
@@ -3593,10 +3375,7 @@ def _evaluated_result_page(
     ingestion_output: dict[str, Any] | None = None,
 ) -> str:
     if requested_capability == "sold_vs_collected_gap":
-        return _sales_collections_result_page(
-            packet,
-            ingestion_output=ingestion_output or {},
-        )
+        return _sales_collections_result_page(packet, ingestion_output=ingestion_output or {})
     _, title, _ = _REVIEW_BY_REF[requested_capability]
     computation = packet.get("computation_result") if isinstance(packet.get("computation_result"), dict) else {}
     typed = computation.get("typed_result") if isinstance(computation.get("typed_result"), dict) else {}
@@ -3607,84 +3386,19 @@ def _evaluated_result_page(
     limitations = outcome.get("limitations") if isinstance(outcome.get("limitations"), (list, tuple)) else []
     finding = outcome.get("finding") or "El cálculo se completó con los datos confirmados."
     download = (
-        '<p><a href="/download-net-margin">Descargar resultado de margen neto real (.xlsx)</a></p>'
+        '<a href="/download-net-margin">Descargar resultado (.xlsx)</a>'
         if requested_capability == "net_margin_real" and packet.get("delivery_generated") is True
-        else '<p class="notice">La descarga no está habilitada para esta revisión.</p>'
+        else ""
     )
-    return f"""
-    <main id="app" tabindex="-1">
-      <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
-        <div class="flow-step is-done"><strong>Revisión</strong>Datos confirmados.</div>
-        <div class="flow-step is-current"><strong>Resultado</strong>Listo para revisar.</div>
-      </div>
-      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>{_esc('Margen real' if requested_capability == 'net_margin_real' else title)}</h1><p>Calculado con los datos que encontré y confirmaste en tu Excel.</p></div><span class="status-chip status-ready">RESULTADO LISTO</span></div>
-      <section class="result-summary" aria-labelledby="summary-title"><h2 id="summary-title">Tu resultado</h2><p class="result"><strong>{_esc(value)} {_esc(unit)}</strong></p><p class="result-finding">{_esc(finding)}</p></section>
-      <details class="result-detail"><summary>Datos utilizados</summary><div class="detail-body">{data}</div></details>
-      <details class="result-detail"><summary>Qué conviene tener en cuenta</summary><div class="detail-body">
-        <p>Este resultado surge de una relación matemática sobre los datos confirmados. No atribuye automáticamente causas ni decisiones de negocio.</p>
-        <ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul>
-        <p><strong>Cómo se calculó:</strong> se aplicó el cálculo definido para esta revisión sobre los datos confirmados.</p>
-      </div></details>
-      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Revisar otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div>
-      <div class="notice" aria-live="polite">Resultado listo. Podés descargarlo o volver a revisar otro archivo.</div>
-    </main>"""
+    return render_margin_result_v1(
+        title="Margen real" if requested_capability == "net_margin_real" else title,
+        value=value, unit=unit, finding=finding, data_html=data,
+        limitations=limitations, download_html=download,
+    )
 
 
 def _working_capital_result_page(packet: dict[str, Any]) -> str:
-    components = packet.get("computed_components") if isinstance(packet.get("computed_components"), dict) else {}
-    cash = components.get("projected_closing_cash_balance") if isinstance(components.get("projected_closing_cash_balance"), dict) else {}
-    dso = components.get("dso") if isinstance(components.get("dso"), dict) else {}
-    ratio = components.get("current_ratio") if isinstance(components.get("current_ratio"), dict) else {}
-
-    cash_value = (cash.get("computed") or {}).get("projected_closing_balance") if isinstance(cash.get("computed"), dict) else None
-    dso_value = (dso.get("computed") or {}).get("dso_days") if isinstance(dso.get("computed"), dict) else None
-    ratio_value = (ratio.get("computed") or {}).get("current_ratio_value") if isinstance(ratio.get("computed"), dict) else None
-    ready_count = sum(value is not None for value in (cash_value, dso_value, ratio_value))
-    complete = packet.get("status") == "READY"
-    if complete:
-        status_label = "RESULTADO LISTO"
-        status_class = "status-ready"
-    elif ready_count > 0:
-        status_label = "RESULTADO PARCIAL"
-        status_class = "status-review"
-    else:
-        status_label = "NECESITO UN DATO MÁS"
-        status_class = "status-missing"
-
-    def metric(label: str, value: object, suffix: str = "") -> str:
-        rendered = "No disponible" if value is None else f"{value}{suffix}"
-        return f'<div class="metric"><small>{_esc(label)}</small><strong>{_esc(rendered)}</strong></div>'
-
-    missing = []
-    if cash_value is None:
-        missing.append("saldo inicial, cobros esperados y pagos esperados")
-    if dso_value is None:
-        missing.append("cuentas por cobrar, ventas del período y días")
-    if ratio_value is None:
-        missing.append("activo corriente y pasivo corriente")
-
-    return f"""
-    <main id="app" tabindex="-1">
-      <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
-        <div class="flow-step is-done"><strong>Revisión</strong>Datos confirmados.</div>
-        <div class="flow-step is-current"><strong>Resultado</strong>Listo para revisar.</div>
-      </div>
-      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Flujo de caja</h1><p>Esto es lo que pude calcular con la información que encontré en tu Excel.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
-      <div class="metric-grid">
-        {metric('Flujo de caja proyectado', cash_value)}
-        {metric('Tiempo promedio de cobro', dso_value, ' días')}
-        {metric('Capacidad para cubrir obligaciones de corto plazo', ratio_value)}
-      </div>
-      <section class="result-summary"><h2>Qué encontré</h2><p>{'Pude calcular los tres indicadores con los datos recibidos.' if ready_count == 3 else f'Pude calcular <strong>{ready_count} de 3</strong> indicadores. Lo que sí pude calcular es válido; los demás necesitan información adicional.'}</p></section>
-      <details class="result-detail" {'open' if missing else ''}><summary>{'Qué datos ayudarían a ampliar el análisis' if missing else 'Datos utilizados y alcance'}</summary><div class="detail-body">
-        {'<p>No faltan datos para estos tres indicadores.</p>' if not missing else '<ul>' + ''.join(f'<li>Para calcular también este indicador necesito { _esc(item) }.</li>' for item in missing) + '</ul>'}
-        <p>Estos indicadores describen la situación financiera a partir de los datos confirmados del Excel. No explican por sí solos la causa de un problema ni reemplazan una decisión profesional.</p>
-      </div></details>
-      <div class="result-actions"><a class="secondary" href="/">Revisar otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div>
-      <div class="notice" aria-live="polite">Resultado de flujo de caja listo para revisar.</div>
-    </main>"""
+    return render_cash_flow_result_v1(packet)
 
 
 def _sales_collections_result_page(
@@ -3696,72 +3410,22 @@ def _sales_collections_result_page(
     outcome = packet.get("bounded_outcome") if isinstance(packet.get("bounded_outcome"), dict) else {}
     inputs = computation.get("inputs") if isinstance(computation.get("inputs"), dict) else {}
     computed = computation.get("computed") if isinstance(computation.get("computed"), dict) else {}
-    sold = float(inputs.get("sold_amount", 0.0))
-    collected = float(inputs.get("collected_amount", 0.0))
-    gap = float(computed.get("gap_amount", sold - collected))
-    ratio = computed.get("collection_ratio")
-    classification = str(computation.get("classification") or "")
+    sold = float(inputs.get("sold_amount", 0.0)); collected = float(inputs.get("collected_amount", 0.0)); gap = float(computed.get("gap_amount", sold - collected)); ratio = computed.get("collection_ratio")
     if gap > 0:
-        commercial_finding = f"Las ventas registradas superan las cobranzas registradas por {_format_amount(gap)}."
-        classification_label = "Diferencia todavía no compensada por cobranzas"
+        finding = f"Las ventas registradas superan las cobranzas registradas por {_format_amount(gap)}."; classification_label = "Diferencia todavía no compensada por cobranzas"
     elif gap < 0:
-        commercial_finding = (
-            f"Las cobranzas registradas superan las ventas registradas por {_format_amount(abs(gap))}. "
-            "Revisá si existen cobranzas de otro período, anticipos o ventas faltantes."
-        )
-        classification_label = "Cobranzas superiores a las ventas registradas"
+        finding = f"Las cobranzas registradas superan las ventas registradas por {_format_amount(abs(gap))}. Revisá si existen cobranzas de otro período, anticipos o ventas faltantes."; classification_label = "Cobranzas superiores a las ventas registradas"
     else:
-        commercial_finding = "Las ventas y cobranzas registradas coinciden para la información analizada."
-        classification_label = "Ventas y cobranzas coincidentes"
-    rate_text = (
-        f"{float(ratio) * 100:.2f}%"
-        if sold > 0 and isinstance(ratio, (int, float))
-        else "no calculable porque no hay ventas registradas."
-    )
-    aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}
-    sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
-    source_rows = "".join(
-        f"<li>{_esc(variable)}: hoja <strong>{_esc(details.get('sheet_name'))}</strong>, "
-        f"columna <strong>{_esc(details.get('column_name'))}</strong></li>"
-        for variable, details in sources.items()
-        if isinstance(details, dict)
-    )
-    filename = str(ingestion_output.get("filename") or ingestion_output.get("source_file_ref") or "").strip()
-    explicit_period = ingestion_output.get("period")
-    if explicit_period is None and isinstance(ingestion_output.get("provenance"), dict):
-        explicit_period = ingestion_output["provenance"].get("period")
-    period_text = (
-        str(explicit_period).strip()
-        if explicit_period is not None and str(explicit_period).strip()
-        else "no identificado explícitamente en los archivos recibidos."
-    )
+        finding = "Las ventas y cobranzas registradas coinciden para la información analizada."; classification_label = "Ventas y cobranzas coincidentes"
+    ratio_text = f"{float(ratio) * 100:.2f}%" if sold > 0 and isinstance(ratio, (int, float)) else "no calculable porque no hay ventas registradas."
+    aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}; sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
+    source_rows = "".join(f"<li>{_esc(variable)}: hoja <strong>{_esc(details.get('sheet_name'))}</strong>, columna <strong>{_esc(details.get('column_name'))}</strong></li>" for variable, details in sources.items() if isinstance(details, dict))
+    filename = str(ingestion_output.get("filename") or ingestion_output.get("source_file_ref") or "").strip(); explicit_period = ingestion_output.get("period")
+    if explicit_period is None and isinstance(ingestion_output.get("provenance"), dict): explicit_period = ingestion_output["provenance"].get("period")
+    period_text = str(explicit_period).strip() if explicit_period is not None and str(explicit_period).strip() else "no identificado explícitamente en los archivos recibidos."
     limitations = outcome.get("limitations") if isinstance(outcome.get("limitations"), (list, tuple)) else []
-    download = (
-        '<p><a href="/download-sales-collections">Descargar resultado de ventas y cobranzas (.xlsx)</a></p>'
-        if packet.get("delivery_generated") is True
-        else '<p class="notice">La descarga no está disponible para este resultado.</p>'
-    )
-    status_class = "status-review" if gap != 0 else "status-ready"
-    status_label = "HAY UNA DIFERENCIA" if gap != 0 else "SIN DIFERENCIAS"
-    return f"""
-    <main id="app" tabindex="-1">
-      <div class="flow-steps" aria-label="Progreso">
-        <div class="flow-step is-done"><strong>Archivo</strong>Excel recibido.</div>
-        <div class="flow-step is-done"><strong>Revisión</strong>Datos confirmados.</div>
-        <div class="flow-step is-current"><strong>Resultado</strong>Listo para revisar.</div>
-      </div>
-      <div class="result-head"><div><p class="eyebrow">Resultado</p><h1>Ventas y cobranzas</h1><p>Cuánto vendiste, cuánto cobraste y qué diferencia aparece en los registros analizados.</p></div><span class="status-chip {status_class}">{status_label}</span></div>
-      <div class="metric-grid">
-        <div class="metric"><small>Total vendido</small><strong>{_esc(_format_amount(sold))}</strong></div>
-        <div class="metric"><small>Total cobrado</small><strong>{_esc(_format_amount(collected))}</strong></div>
-        <div class="metric metric--focus"><small>Diferencia</small><strong>{_esc(_format_amount(gap))}</strong></div>
-      </div>
-      <section class="result-summary" aria-labelledby="finding-title"><h2 id="finding-title">Qué significa</h2><p class="result-finding"><strong>{_esc(commercial_finding)}</strong></p><p>Porcentaje cobrado: <strong>{_esc(rate_text)}</strong>. {_esc(classification_label)}.</p></section>
-      <details class="result-detail"><summary>Datos utilizados</summary><div class="detail-body"><p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p><ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul><p>Período: {_esc(period_text)}</p></div></details>
-      <details class="result-detail"><summary>Qué conviene tener en cuenta</summary><div class="detail-body"><ul>{''.join(f'<li>{_esc(item)}</li>' for item in limitations)}</ul><p>La diferencia muestra lo que surge de los registros recibidos; no determina por sí sola la causa.</p></div></details>
-      <div class="result-actions">{download.replace('<p>', '').replace('</p>', '')}<a class="secondary" href="/">Revisar otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div>
-      <div class="notice" aria-live="polite">Resultado listo para revisar.</div>
-    </main>"""
+    download = '<a href="/download-sales-collections">Descargar resultado (.xlsx)</a>' if packet.get("delivery_generated") is True else ""
+    return render_sales_collections_result_v1(sold=sold, collected=collected, gap=gap, ratio_text=ratio_text, finding=finding, classification_label=classification_label, source_rows=source_rows, filename=filename, period_text=period_text, limitations=limitations, download_html=download)
 
 
 def _format_amount(value: float) -> str:
@@ -3852,7 +3516,7 @@ def _blocked_result_page(packet: dict[str, Any], requested_capability: str | Non
         evidence = "<ul>" + "".join(f"<li>{_esc(item)}</li>" for item in missing) + "</ul>" if missing else "<p>El control necesita evidencia adicional antes de poder calcularse.</p>"
         next_step = "Subí evidencia complementaria o elegí otro control compatible con este archivo."
 
-    return f'<main id="app" tabindex="-1"><div class="flow-steps" aria-label="Progreso"><div class="flow-step is-done"><strong>1 · Subir</strong>Excel recibido.</div><div class="flow-step is-done"><strong>2 · Confirmar</strong>Revisión realizada.</div><div class="flow-step is-current"><strong>3 · Resultado</strong>Falta un dato para completarlo.</div></div><header class="page-intro"><div><div class="page-kicker">Resultado pendiente</div><h1>Todavía no podemos cerrar {_esc(title)}</h1><p>No completamos valores por suposición. Lo que ya confirmaste queda asociado al caso para poder retomarlo.</p></div><span class="env-badge">FALTA INFORMACIÓN</span></header><section class="result-summary"><h2>Qué falta</h2>{evidence}</section><section><h2>Cómo seguir</h2><p><strong>{_esc(next_step)}</strong></p><p>Cuando esté ese dato, PymIA puede volver a ejecutar el control.</p><div class="result-actions"><a href="/">Revisar o subir otro Excel</a><a class="secondary" href="/cases">Ver mis casos</a></div></section><div class="notice" aria-live="polite">Caso guardado. No se generó un resultado incompleto. La descarga no está habilitada hasta completar la información necesaria.</div></main>'
+    return render_blocked_result_v1(title=title, evidence_html=evidence, next_step=next_step)
 
 
 def _canonical_tables_for_consorcios(ingestion_output: dict[str, Any]) -> list[dict[str, Any]]:
