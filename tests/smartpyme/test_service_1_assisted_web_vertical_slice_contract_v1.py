@@ -29,9 +29,9 @@ def test_visible_interface_uses_plain_spanish() -> None:
 
     required_text = (
         "Revisar información de mi negocio",
-        "¿Qué querés controlar hoy?",
-        "Subí tu Excel",
-        "PymIA no modifica el archivo original",
+        "Subí tu Excel. PymIA te ayuda a entender qué dicen tus números.",
+        "¿Qué querés saber?",
+        "PymIA no modifica tu archivo original",
         "No estoy seguro",
         "¿Qué querés revisar?",
         "Qué conviene tener en cuenta",
@@ -64,6 +64,14 @@ def test_htmx_is_used_without_frontend_framework() -> None:
     assert "react" not in surface
     assert "vue" not in surface
     assert "angular" not in surface
+
+
+def test_primary_excel_journey_does_not_depend_on_htmx() -> None:
+    module = _read(WEB_MODULE)
+
+    assert '<form action="/upload" method="post" enctype="multipart/form-data">' in module
+    assert '<form action="/confirm-meanings" method="post">' in module
+    assert '<form action="/upload" method="post" enctype="multipart/form-data" hx-post=' not in module
 
 
 def test_accessibility_contract_is_present() -> None:

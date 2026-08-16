@@ -165,7 +165,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
             },
         )
         assert status == 200
-        assert "¿Qué querés controlar hoy?" in page
+        assert "Subí tu Excel. PymIA te ayuda a entender qué dicen tus números." in page
         cookies = "; ".join(
             value.split(";", 1)[0]
             for key, value in login_headers
@@ -267,7 +267,7 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
 def test_launch_service_first_flow_runs_selected_control_after_confirmation(assisted_server, tmp_path: Path) -> None:
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
-    assert "¿Qué querés controlar hoy?" in home
+    assert "Subí tu Excel. PymIA te ayuda a entender qué dicen tus números." in home
     assert "Ventas vs. cobros" in home
     assert "Margen real" in home
     assert "Saldo de caja proyectado" not in home

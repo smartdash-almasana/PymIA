@@ -2611,7 +2611,6 @@ def _document(content: str) -> str:
         '<span class="brand-word">PYMIA</span>'
         '</a>'
         '<nav class="simple-nav" aria-label="Navegación principal">'
-        '<a href="/">Inicio</a>'
         '<a href="/cases">Mis casos</a>'
         '</nav>'
         '</header>'
@@ -2730,31 +2729,31 @@ def _home_page(error: str | None = None) -> str:
     <main id="app" tabindex="-1">
       <header class="page-intro">
         <div>
-          <div class="page-kicker">PymIA · Revisá tus números</div>
-          <h1>¿Qué querés controlar hoy?</h1>
-          <p>Elegí qué querés entender y subí el Excel que ya usás. PymIA ordena la información, te consulta sólo cuando una duda puede cambiar el resultado y te muestra de dónde sale cada número.</p>
+          <div class="page-kicker">PymIA · Control de Excel</div>
+          <h1>Subí tu Excel. PymIA te ayuda a entender qué dicen tus números.</h1>
+          <p>Primero elegís qué querés revisar. Después subís el archivo. Antes de calcular, PymIA te muestra qué entendió y te pregunta sólo lo que realmente necesita confirmar.</p>
         </div>
         <span class="env-badge">Operativo</span>
       </header>
       {_error(error)}
 
       <div class="flow-steps" aria-label="Cómo funciona">
-        <div class="flow-step is-current"><strong>1 · Subir</strong>Elegís el control y el archivo.</div>
-        <div class="flow-step"><strong>2 · Confirmar</strong>Revisás únicamente las dudas importantes.</div>
-        <div class="flow-step"><strong>3 · Resultado</strong>Ves el cálculo, sus datos y sus límites.</div>
+        <div class="flow-step is-current"><strong>1 · Elegir y subir</strong>Decís qué querés revisar y seleccionás tu Excel.</div>
+        <div class="flow-step"><strong>2 · Revisar</strong>Ves qué entendió PymIA y confirmás sólo lo necesario.</div>
+        <div class="flow-step"><strong>3 · Ver resultado</strong>Recibís el cálculo, los datos usados y lo que quedó pendiente.</div>
       </div>
 
       <section class="control-workspace" aria-labelledby="launch-controls">
         <div class="workspace-heading">
-          <div><h2 id="launch-controls">Elegí qué querés revisar</h2><p>No hace falta preparar una planilla especial.</p></div>
+          <div><h2 id="launch-controls">1. ¿Qué querés saber?</h2><p>Elegí una sola opción. No hace falta conocer términos contables ni preparar una planilla especial.</p></div>
         </div>
-        <form action="/upload" method="post" enctype="multipart/form-data" hx-post="/upload" hx-target="#app" hx-swap="outerHTML">
+        <form action="/upload" method="post" enctype="multipart/form-data">
           <div class="service-grid">{launch_options}</div>
           <div class="upload-band">
-            <div class="upload-copy"><strong>Subí tu Excel</strong><span>.xlsx · PymIA no modifica el archivo original</span></div>
+            <div class="upload-copy"><strong>2. Elegí el Excel que querés revisar</strong><span>.xlsx · PymIA no modifica tu archivo original</span></div>
             <label class="file-field" for="file">Seleccionar archivo</label>
             <input id="file" name="file" type="file" accept=".xlsx" required>
-            <button type="submit">Revisar este Excel</button>
+            <button type="submit">Continuar</button>
           </div>
           <details class="context-details">
             <summary>Agregar contexto de consorcio, sólo si corresponde</summary>
@@ -3377,7 +3376,7 @@ def _derived_unit_questions_page(
         <div class="flow-step"><strong>3 · Resultado</strong>Se calcula si alcanza la evidencia.</div>
       </div>
       {_error(error)}
-      <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
+      <form action="/confirm-meanings" method="post">
         {''.join(cards)}
         <div class="semantic-review-actions"><span>Solo una respuesta que confirmes se usa para calcular.</span><button type="submit">Continuar</button></div>
       </form>
@@ -3480,7 +3479,7 @@ def _assisted_semantic_dialogue_page(
         <div class="flow-step"><strong>3 · Resultado</strong>Se calcula después.</div>
       </div>
       {_error(error)}
-      <form action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
+      <form action="/confirm-meanings" method="post">
         {''.join(rows)}
         <div class="semantic-review-actions"><span>Si algo no coincide, corregilo antes de seguir.</span><button type="submit">Continuar</button></div>
       </form>
@@ -3543,7 +3542,7 @@ def _semantic_questions_page(
           <div class="semantic-review-decision">
             <small>Lo que PymIA propone</small>
             {proposal}
-            <label for="answer_{question_id}" class="semantic-owner-label">Lo que owner confirma</label>
+            <label for="answer_{question_id}" class="semantic-owner-label">Elegí qué significa este dato</label>
             <select id="answer_{question_id}" name="answer_{question_id}" required>
               <option value="" disabled{" selected" if not previous_option else ""}>Seleccionar significado…</option>
               {option_items}
@@ -3561,7 +3560,7 @@ def _semantic_questions_page(
         <div class="flow-step"><strong>3 · Resultado</strong>Se calcula después.</div>
       </div>
       {_error(error)}
-      <form class="semantic-review-form" action="/confirm-meanings" method="post" hx-post="/confirm-meanings" hx-target="#app" hx-swap="outerHTML">
+      <form class="semantic-review-form" action="/confirm-meanings" method="post">
         <div class="semantic-review-head"><span>Dato del Excel</span><span>Qué significa</span></div>
         <div class="semantic-review-list">{''.join(rows)}</div>
         <div class="semantic-review-actions"><span>Podés dejar una columna como “No estoy seguro” y retomarla después.</span><button type="submit">Continuar</button></div>
