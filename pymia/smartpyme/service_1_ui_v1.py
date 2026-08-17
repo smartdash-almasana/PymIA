@@ -231,6 +231,7 @@ def _friendly_ref(value: object) -> str:
 def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | None = None, *, selected_actions: dict[str, str] | None = None) -> str:
     selected_actions = selected_actions or {}
     cards = []
+    progress_html = ""
     for decision in decisions:
         if not isinstance(decision, Mapping):
             continue
@@ -239,11 +240,40 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
             continue
         refs = [_friendly_ref(ref) for ref in list(decision.get("column_refs") or []) + list(decision.get("relationship_refs") or []) if str(ref).strip()]
         selected = selected_actions.get(did, "")
-        cards.append(f'''<section class="understanding-card"><div class="found-data"><small>Encontré</small><strong>{_esc(" · ".join(refs) or did)}</strong><p>Esta relación puede cambiar el resultado y por eso necesita tu confirmación.</p></div>
-          <div class="confirm-data"><small>Necesito confirmar</small><p class="question-text">{_esc(decision.get("presentation_text") or "")}</p>
-          <div class="radio-stack"><label><input type="radio" name="action_{_esc(did)}" value="ACCEPT" required{" checked" if selected == "ACCEPT" else ""}>Sí, es correcto</label><label><input type="radio" name="action_{_esc(did)}" value="REJECT"{" checked" if selected == "REJECT" else ""}>No, no es correcto</label><label><input type="radio" name="action_{_esc(did)}" value="CORRECT"{" checked" if selected == "CORRECT" else ""}>Quiero corregirlo</label></div>
-          <input type="text" name="correction_{_esc(did)}" placeholder="Cómo debería interpretarse, si corresponde"></div></section>''')
-    return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}<header class="journey-intro"><p class="kicker">Esto entendí de tu Excel</p><h1>Confirmemos {len(cards)} {"dato" if len(cards) == 1 else "datos"}</h1><p>PymIA ya leyó el archivo. Sólo te consulta lo que puede modificar el resultado.</p></header>{_error(error)}<form action="/confirm-meanings" method="post" class="understanding-form">{''.join(cards)}<div class="sticky-action"><span>Si algo no coincide, corregilo antes de seguir.</span><button type="submit">Continuar al resultado</button></div></form></main>'''
+        reason = str(decision.get("assistant_rationale") or decision.get("materiality_reason") or "").strip()
+        current = int(decision.get("progress_current") or 1)
+        total = max(int(decision.get("progress_total") or 1), 1)
+        completed = max(int(decision.get("progress_completed") or 0), 0)
+        pct = min(100, max(0, round((completed / total) * 100)))
+        progress_html = f'''<section aria-label="Progreso de comprensión" style="margin:0 0 1.25rem"><div style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:.45rem"><strong>Columna {current} de {total}</strong><span>{pct}% confirmado</span></div><div style="height:8px;border-radius:999px;background:#e7edf4;overflow:hidden"><div style="height:100%;width:{pct}%;background:currentColor;opacity:.65"></div></div></section>'''
+        samples = list(decision.get("sample_values") or [])[:5]
+        sample_html = "".join(f'<code>{_esc(value)}</code>' for value in samples) or '<span class="empty-sample">Sin ejemplos visibles</span>'
+        sheet = str(decision.get("sheet_name") or "").strip()
+        column = str(decision.get("column_name") or "").strip()
+        role = str(decision.get("proposed_semantic_role") or "").strip().replace("_", " ")
+        variable = str(decision.get("proposed_variable_name") or "").strip()
+        proposal_meta = ""
+        if role or variable:
+            proposal_meta = f'<p><small>Interpretación técnica</small><br><strong>{_esc(role or "sin rol")}</strong>{f" · {_esc(variable)}" if variable else ""}</p>'
+        chat_rows = []
+        for message in decision.get("chat_messages") or []:
+            if not isinstance(message, Mapping):
+                continue
+            who = "Vos" if str(message.get("role") or "") == "owner" else "PymIA"
+            chat_rows.append(f'<div class="chat-row"><strong>{_esc(who)}:</strong> {_esc(message.get("text") or "")}</div>')
+        chat_history = "".join(chat_rows)
+        suggestion = decision.get("chat_suggestion") if isinstance(decision.get("chat_suggestion"), Mapping) else {}
+        suggested_role = str(suggestion.get("semantic_role") or "").strip()
+        suggested_variable = str(suggestion.get("variable_name") or "").strip()
+        suggestion_html = ""
+        if suggested_role and suggested_variable:
+            suggestion_html = f'''<div class="semantic-suggestion"><small>Propuesta revisada</small><p>PymIA entendió tu explicación como <strong>{_esc(suggested_role.replace("_", " "))}</strong> · <code>{_esc(suggested_variable)}</code>.</p><p>Esto todavía no está confirmado.</p><button type="submit" formaction="/semantic-revise" formmethod="post" formnovalidate>Usar esta propuesta y revisarla</button></div>'''
+        cards.append(f'''<section class="understanding-card semantic-transaction"><div class="found-data"><small>Columna actual</small><strong>{_esc(column or " · ".join(refs) or did)}</strong>{f'<span>Hoja {_esc(sheet)}</span>' if sheet else ''}<p class="sample-label">Ejemplos del archivo</p><div class="sample-values">{sample_html}</div><p>La resolvemos ahora y después seguimos con la siguiente.</p></div>
+          <div class="confirm-data"><small>Propuesta de PymIA</small><p class="question-text">{_esc(decision.get("presentation_text") or "")}</p>{proposal_meta}
+          <div class="radio-stack"><label><input type="radio" name="action_{_esc(did)}" value="ACCEPT" required{" checked" if selected == "ACCEPT" else ""}>Sí, es correcto: eso significa</label><label><input type="radio" name="action_{_esc(did)}" value="REJECT"{" checked" if selected == "REJECT" else ""}>No, no significa eso</label><label><input type="radio" name="action_{_esc(did)}" value="CORRECT"{" checked" if selected == "CORRECT" else ""}>Quiero explicarlo con mis palabras</label></div>
+          <label for="correction_{_esc(did)}">Corrección, si hace falta</label><input id="correction_{_esc(did)}" type="text" name="correction_{_esc(did)}" placeholder="Ej.: es el precio de lista antes del descuento">
+          <details class="semantic-assistant"{" open" if chat_history or suggestion_html else ""}><summary>💬 Preguntarle a PymIA sobre esta columna</summary><div class="details-body"><p>{_esc(reason or "PymIA usa nombre, tipo, ejemplos y contexto de la hoja. Puede explicarte la propuesta, pero no confirmarla por vos.")}</p>{chat_history}{suggestion_html}<input type="hidden" name="decision_id" value="{_esc(did)}"><label for="assistant_message_{_esc(did)}">Escribí una duda o explicá qué representa</label><textarea id="assistant_message_{_esc(did)}" name="assistant_message" rows="3" placeholder="Ej.: esto no es precio final, es la lista antes del descuento"></textarea><button type="submit" formaction="/semantic-assist" formmethod="post" formnovalidate>Enviar al asistente</button></div></details></div></section>''')
+    return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}<header class="journey-intro"><p class="kicker">Esto entendí de tu Excel</p><h1>Una columna por vez</h1><p>PymIA propone. Vos confirmás, corregís o preguntás. El significado recién se vuelve evidencia cuando vos lo confirmás.</p></header>{progress_html}{_error(error)}<form action="/confirm-meanings" method="post" class="understanding-form">{''.join(cards)}<div class="sticky-action"><span>Tu respuesta queda guardada en esta sesión y avanzamos a la siguiente columna.</span><button type="submit">Guardar y seguir</button></div></form></main>'''
 
 
 def render_unit_questions_v1(questions: list[dict[str, Any]], error: str | None = None, *, selected_units: dict[str, str] | None = None, ingestion_output: Mapping[str, Any] | None = None) -> str:

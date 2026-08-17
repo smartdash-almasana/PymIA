@@ -6,6 +6,7 @@ from pymia.smartpyme.service_1_owner_semantic_dialogue_v1 import (
     ACTION_REJECT,
     DECISION_KIND_RELATIONSHIP,
     DECISION_KIND_SEMANTIC_GROUP,
+    DECISION_KIND_UNIT_MEANING,
     RESPONSE_GROUP_CONFIRMED,
     RESPONSE_GROUP_REJECTED_REQUIRES_DECOMPOSITION,
     RESPONSE_NEEDS_GRANULAR_CONFIRMATION,
@@ -320,3 +321,28 @@ def test_sem4_deduplicates_confident_mirror_relationships_and_absorbs_concepts_o
     assert proposals.count("p-sales-id") == 1
     assert proposals.count("p-product-id") == 1
     assert plan["zero_duplicate_questions"] is True
+
+
+def test_sem4_atomic_confirmation_surfaces_confident_concepts_one_by_one() -> None:
+    plan = build_service_1_owner_dialogue_plan_v1(
+        validated_packet=_validated_packet(),
+        atomic_confirmation=True,
+    )
+
+    assert plan["status"] == STATUS_READY
+    atomic = [
+        item for item in plan["decisions"]
+        if item["decision_kind"] == DECISION_KIND_UNIT_MEANING
+        and item["proposal_refs"][0] in {"p-qty", "p-price", "p-cost"}
+    ]
+    assert len(atomic) == 3
+    assert [item["proposal_refs"] for item in atomic] == [
+        ["p-qty"],
+        ["p-price"],
+        ["p-cost"],
+    ]
+    assert all(len(item["column_refs"]) == 1 for item in atomic)
+    assert not any(
+        item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP
+        for item in plan["decisions"]
+    )

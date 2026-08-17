@@ -101,8 +101,19 @@ class Service1OwnerDialogueDecisionV1:
         }
 
 
-def build_service_1_owner_dialogue_plan_v1(*, validated_packet: Any) -> dict[str, Any]:
-    """Build the minimal owner dialogue plan from a SEM-3 ready packet."""
+def build_service_1_owner_dialogue_plan_v1(
+    *,
+    validated_packet: Any,
+    atomic_confirmation: bool = False,
+) -> dict[str, Any]:
+    """Build the owner dialogue plan from a SEM-3 ready packet.
+
+    ``atomic_confirmation=True`` preserves one owner transaction per semantic
+    concept instead of grouping confident concepts. This is the interactive
+    Servicio 1 mode: one column, one confirmation/correction, then the next.
+    The default remains grouped for backwards compatibility with existing
+    consumers and tests.
+    """
     if not _valid_validated_packet(validated_packet):
         return _blocked(BLOCK_VALIDATED_PACKET_INVALID)
     if any(bool(validated_packet.get(flag)) for flag in _AUTHORITY_FLAGS):
@@ -202,28 +213,52 @@ def build_service_1_owner_dialogue_plan_v1(*, validated_packet: Any) -> dict[str
         and not set(str(ref) for ref in item.get("target_refs") or ()).intersection(ambiguous_refs)
     ]
     if confident_concepts:
-        proposal_refs = tuple(str(item["decision_id"]) for item in confident_concepts)
-        column_refs = _ordered_unique(
-            str(ref)
-            for item in confident_concepts
-            for ref in item.get("target_refs") or []
-        )
-        planned.append(
-            Service1OwnerDialogueDecisionV1(
-                decision_id="dialogue:semantic-group:" + "+".join(proposal_refs),
-                decision_kind=DECISION_KIND_SEMANTIC_GROUP,
-                proposal_refs=proposal_refs,
-                column_refs=column_refs,
-                relationship_refs=(),
-                presentation_text=_semantic_group_text(column_refs),
-                materiality_reason="Estas interpretaciones son materiales para el control solicitado y pueden confirmarse juntas.",
-                accept_action=ACTION_ACCEPT,
-                reject_action=ACTION_REJECT,
-                correction_action=ACTION_CORRECT,
-                fallback_strategy=FALLBACK_DECOMPOSE_TO_ATOMIC,
-                atomic_children=tuple(_atomic_child(item) for item in confident_concepts),
+        if atomic_confirmation:
+            for item in confident_concepts:
+                refs = tuple(str(ref) for ref in item.get("target_refs") or ())
+                planned.append(
+                    Service1OwnerDialogueDecisionV1(
+                        decision_id=f"dialogue:atomic:{item['decision_id']}",
+                        decision_kind=DECISION_KIND_UNIT_MEANING,
+                        proposal_refs=(str(item["decision_id"]),),
+                        column_refs=refs,
+                        relationship_refs=(),
+                        presentation_text=_atomic_semantic_text(item, refs),
+                        materiality_reason=str(
+                            item.get("reason")
+                            or item.get("rationale")
+                            or "PymIA propone este significado a partir del nombre, tipo y contexto de la columna."
+                        ),
+                        accept_action=ACTION_ACCEPT,
+                        reject_action=ACTION_REJECT,
+                        correction_action=ACTION_CORRECT,
+                        fallback_strategy=FALLBACK_REQUIRE_TARGETED_CORRECTION,
+                        atomic_children=(),
+                    )
+                )
+        else:
+            proposal_refs = tuple(str(item["decision_id"]) for item in confident_concepts)
+            column_refs = _ordered_unique(
+                str(ref)
+                for item in confident_concepts
+                for ref in item.get("target_refs") or []
             )
-        )
+            planned.append(
+                Service1OwnerDialogueDecisionV1(
+                    decision_id="dialogue:semantic-group:" + "+".join(proposal_refs),
+                    decision_kind=DECISION_KIND_SEMANTIC_GROUP,
+                    proposal_refs=proposal_refs,
+                    column_refs=column_refs,
+                    relationship_refs=(),
+                    presentation_text=_semantic_group_text(column_refs),
+                    materiality_reason="Estas interpretaciones son materiales para el control solicitado y pueden confirmarse juntas.",
+                    accept_action=ACTION_ACCEPT,
+                    reject_action=ACTION_REJECT,
+                    correction_action=ACTION_CORRECT,
+                    fallback_strategy=FALLBACK_DECOMPOSE_TO_ATOMIC,
+                    atomic_children=tuple(_atomic_child(item) for item in confident_concepts),
+                )
+            )
 
     seen_ambiguity_ids: set[str] = set()
     for item in ambiguity_items:
@@ -392,6 +427,16 @@ def _display_ref(ref: str) -> str:
 def _semantic_group_text(column_refs: tuple[str, ...]) -> str:
     labels = ", ".join(f"`{_display_ref(ref)}`" for ref in column_refs)
     return f"Interpreto {labels} como un conjunto coherente de datos para el control solicitado. ¿Es correcto?"
+
+
+def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
+    label = _display_ref(refs[0]) if refs else "este dato"
+    role = str(item.get("semantic_role") or item.get("proposed_meaning") or "").strip()
+    variable = str(item.get("variable_name") or "").strip()
+    meaning = role.replace("_", " ") if role else "un significado empresarial específico"
+    if variable and variable != role:
+        return f"PymIA interpreta `{label}` como {meaning} ({variable}). ¿Es correcto?"
+    return f"PymIA interpreta `{label}` como {meaning}. ¿Es correcto?"
 
 
 def _relationship_text(endpoints: tuple[str, ...]) -> str:

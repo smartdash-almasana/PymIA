@@ -44,6 +44,17 @@ class ColumnSemanticBatchV1(BaseModel):
     decisions: list[ColumnSemanticDecisionV1]
 
 
+class ColumnSemanticAssistanceReplyV1(BaseModel):
+    """Conversational help only; never owner evidence or semantic authority."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    response_text: str
+    suggested_semantic_role: str | None = None
+    suggested_variable_name: str | None = None
+    suggestion_reason: str | None = None
+
+
 _SYSTEM_PROMPT = """You are the column-meaning interpreter for PymIA Servicio 1.
 
 Your only job is to interpret the semantic meaning of Excel columns from the
@@ -65,6 +76,30 @@ Hard limits:
   authorization signal.
 
 Return one decision for every column_ref supplied in columns_to_interpret.
+"""
+
+_ASSISTANT_SYSTEM_PROMPT = """You are the bounded semantic help drawer for PymIA Servicio 1.
+
+You are helping a business owner understand one currently visible Excel column.
+You may explain the existing proposal, point to the supplied sample values and
+business context, and help the owner phrase a correction in plain language.
+
+Hard limits:
+- Never confirm a meaning on behalf of the owner.
+- Never persist evidence or claim that anything was saved.
+- Never calculate totals, margins, balances, ratios or business results.
+- Never authorize tools, runtime, product execution or delivery.
+- Never invent workbook values or column references.
+- If the owner says the proposal is wrong, acknowledge that and help them state
+  what the column means; do not silently convert their statement into truth.
+- You may suggest a semantic_role + variable_name only when that exact pair is
+  present in allowed_role_variable_pairs supplied in the request.
+- If no allowed pair clearly matches the owner's explanation, return both
+  suggested fields as null instead of guessing.
+- A suggestion is only a proposal for the owner to review; it is not confirmation.
+- Keep the answer concise and in the owner's language.
+
+The owner remains the only source of confirmation.
 """
 
 
@@ -227,8 +262,9 @@ def _decision_payload(
 class Service1PydanticAIColumnSemanticProviderV1:
     """Callable semantic provider with no tools and no calculation authority."""
 
-    def __init__(self, *, agent: Any) -> None:
+    def __init__(self, *, agent: Any, assistant_agent: Any | None = None) -> None:
         self._agent = agent
+        self._assistant_agent = assistant_agent
 
     def __call__(self, payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(payload, Mapping):
@@ -239,6 +275,28 @@ class Service1PydanticAIColumnSemanticProviderV1:
         batch = output if isinstance(output, ColumnSemanticBatchV1) else ColumnSemanticBatchV1.model_validate(output)
         return _decision_payload(payload=payload, batch=batch)
 
+    def assist(self, payload: Mapping[str, Any]) -> dict[str, str]:
+        """Explain one semantic transaction without mutating or confirming it."""
+        if self._assistant_agent is None:
+            raise RuntimeError("semantic assistance agent is not configured")
+        if not isinstance(payload, Mapping):
+            raise ValueError("semantic assistance payload must be a mapping")
+        result = self._assistant_agent.run_sync(
+            json.dumps(dict(payload), ensure_ascii=False, default=str)
+        )
+        output = getattr(result, "output", None)
+        reply = (
+            output
+            if isinstance(output, ColumnSemanticAssistanceReplyV1)
+            else ColumnSemanticAssistanceReplyV1.model_validate(output)
+        )
+        return {
+            "response_text": reply.response_text.strip(),
+            "suggested_semantic_role": reply.suggested_semantic_role,
+            "suggested_variable_name": reply.suggested_variable_name,
+            "suggestion_reason": reply.suggestion_reason,
+        }
+
 
 def build_service_1_pydantic_ai_column_semantic_provider_v1(
     *,
@@ -248,18 +306,39 @@ def build_service_1_pydantic_ai_column_semantic_provider_v1(
     model_name = str(model or "").strip()
     if not model_name:
         raise ValueError("semantic LLM model is required")
+    resolved_model: Any = model_name
     if agent_factory is None:
         try:
             from pydantic_ai import Agent
         except ImportError as exc:  # pragma: no cover - environment contract
             raise RuntimeError("pydantic-ai is required for semantic LLM mode") from exc
+        project = os.getenv("GOOGLE_CLOUD_PROJECT", "").strip()
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "").strip()
+        if project and location and model_name.startswith("gemini"):
+            try:
+                from pydantic_ai.models.google import GoogleModel
+                from pydantic_ai.providers.google_cloud import GoogleCloudProvider
+            except ImportError as exc:  # pragma: no cover - environment contract
+                raise RuntimeError("pydantic-ai google extra is required for Vertex semantic mode") from exc
+            resolved_model = GoogleModel(
+                model_name,
+                provider=GoogleCloudProvider(project=project, location=location),
+            )
         agent_factory = Agent
     agent = agent_factory(
-        model_name,
+        resolved_model,
         output_type=ColumnSemanticBatchV1,
         instructions=_SYSTEM_PROMPT,
     )
-    return Service1PydanticAIColumnSemanticProviderV1(agent=agent)
+    assistant_agent = agent_factory(
+        resolved_model,
+        output_type=ColumnSemanticAssistanceReplyV1,
+        instructions=_ASSISTANT_SYSTEM_PROMPT,
+    )
+    return Service1PydanticAIColumnSemanticProviderV1(
+        agent=agent,
+        assistant_agent=assistant_agent,
+    )
 
 
 def semantic_provider_from_environment_v1() -> Callable[[dict[str, Any]], dict[str, Any]]:
@@ -272,6 +351,7 @@ def semantic_provider_from_environment_v1() -> Callable[[dict[str, Any]], dict[s
 
 
 __all__ = [
+    "ColumnSemanticAssistanceReplyV1",
     "ColumnSemanticBatchV1",
     "ColumnSemanticDecisionV1",
     "Service1PydanticAIColumnSemanticProviderV1",

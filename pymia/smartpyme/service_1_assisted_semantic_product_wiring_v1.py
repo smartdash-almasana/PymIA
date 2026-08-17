@@ -35,7 +35,10 @@ from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
 )
 from pymia.smartpyme.service_1_llm_semantic_contract_v1 import (
+    Service1LLMConceptProposalV1,
+    Service1LLMSemanticContextV1,
     Service1LLMSemanticContractErrorV1,
+    Service1LLMSemanticProposalV1,
     build_service_1_llm_semantic_context_v1,
 )
 from pymia.smartpyme.service_1_llm_semantic_interpreter_v1 import (
@@ -95,6 +98,7 @@ BLOCK_OWNER_RESPONSE_UNKNOWN_DECISION: Final[str] = "BLOCK_SEM8_OWNER_RESPONSE_U
 BLOCK_OWNER_RESPONSE_MISSING: Final[str] = "BLOCK_SEM8_OWNER_RESPONSE_MISSING"
 BLOCK_OWNER_PROJECTION_FAILED: Final[str] = "BLOCK_SEM8_OWNER_PROJECTION_FAILED"
 BLOCK_REENTRY_FAILED: Final[str] = "BLOCK_SEM8_REENTRY_FAILED"
+BLOCK_OWNER_CORRECTION_INVALID: Final[str] = "BLOCK_SEM8_OWNER_CORRECTION_INVALID"
 
 _AUTHORITY_FLAGS: Final[tuple[str, ...]] = (
     "runtime_authorized",
@@ -123,6 +127,7 @@ def run_service_1_assisted_semantic_initial_v1(
     sheet_name: str = "sheet1",
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
     semantic_scope_capabilities: Sequence[str] = (),
+    atomic_confirmation: bool = False,
 ) -> dict[str, Any]:
     """Create one exact assisted semantic state and its minimal owner dialogue."""
     if not isinstance(ingestion_output, dict) or not ingestion_output:
@@ -217,7 +222,10 @@ def run_service_1_assisted_semantic_initial_v1(
             validated_packet=validated,
         )
 
-    dialogue = build_service_1_owner_dialogue_plan_v1(validated_packet=validated)
+    dialogue = build_service_1_owner_dialogue_plan_v1(
+        validated_packet=validated,
+        atomic_confirmation=atomic_confirmation,
+    )
     if dialogue.get("status") != DIALOGUE_READY:
         return _blocked(
             BLOCK_DIALOGUE_FAILED,
@@ -243,6 +251,192 @@ def run_service_1_assisted_semantic_initial_v1(
         dialogue_plan=dialogue,
         owner_questions=list(dialogue.get("decisions") or []),
         semantic_scope_capabilities=semantic_scope_capabilities,
+    )
+
+
+def revise_service_1_assisted_semantic_decision_v1(
+    *,
+    previous_state: Any,
+    decision_id: str,
+    semantic_role: str,
+    variable_name: str,
+    owner_correction_text: str,
+) -> dict[str, Any]:
+    """Create a validated replacement proposal for one owner-corrected column.
+
+    This is still proposal state: it creates no owner evidence and grants no
+    authority. The revised meaning must pass the existing SEM-3 deterministic
+    validator and is returned as a new one-question dialogue for explicit owner
+    acceptance.
+    """
+    if not _valid_previous_state(previous_state):
+        return _blocked(BLOCK_STATE_INVALID)
+    target_decision_id = str(decision_id or "").strip()
+    role = str(semantic_role or "").strip()
+    variable = str(variable_name or "").strip()
+    correction = str(owner_correction_text or "").strip()
+    if not target_decision_id or not role or not variable or not correction:
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail="missing correction decision, role, variable or owner text",
+        )
+
+    context = previous_state.get("context")
+    if not isinstance(context, Service1LLMSemanticContextV1):
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail="semantic context is unavailable",
+        )
+    dialogue_plan = previous_state.get("dialogue_plan") or {}
+    decision = next(
+        (
+            item
+            for item in (dialogue_plan.get("decisions") or [])
+            if isinstance(item, Mapping)
+            and str(item.get("decision_id") or "").strip() == target_decision_id
+        ),
+        None,
+    )
+    if not isinstance(decision, Mapping):
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail="dialogue decision not found",
+        )
+    column_refs = [
+        str(ref).strip()
+        for ref in (decision.get("column_refs") or [])
+        if str(ref).strip()
+    ]
+    relationship_refs = [
+        str(ref).strip()
+        for ref in (decision.get("relationship_refs") or [])
+        if str(ref).strip()
+    ]
+    proposal_refs = [
+        str(ref).strip()
+        for ref in (decision.get("proposal_refs") or [])
+        if str(ref).strip()
+    ]
+    if len(column_refs) != 1 or relationship_refs or len(proposal_refs) != 1:
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail="only one-column semantic decisions can be revised here",
+        )
+
+    target_ref = column_refs[0]
+    proposal_ref = proposal_refs[0]
+    interpreter_packet = previous_state.get("interpreter_packet") or {}
+    old_proposal = interpreter_packet.get("proposal")
+    if not isinstance(old_proposal, Service1LLMSemanticProposalV1):
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail="typed semantic proposal is unavailable",
+        )
+
+    evidence_refs: list[str] = []
+    for candidate in (
+        f"ev:column:{target_ref}:type",
+        f"ev:column:{target_ref}:range",
+    ):
+        if candidate in context.evidence_registry:
+            evidence_refs.append(candidate)
+
+    replacement = Service1LLMConceptProposalV1(
+        proposal_id=proposal_ref,
+        target_column_refs=(target_ref,),
+        semantic_role=role,
+        variable_name=variable,
+        confidence=0.95,
+        rationale=(
+            f"Owner described the column as: {correction}. "
+            "LLM-assisted correction is still pending explicit owner confirmation."
+        ),
+        evidence_refs=tuple(evidence_refs),
+    )
+    proposal = Service1LLMSemanticProposalV1(
+        concept_proposals=tuple(
+            [
+                item
+                for item in old_proposal.concept_proposals
+                if item.proposal_id != proposal_ref
+                and target_ref not in item.target_column_refs
+            ]
+            + [replacement]
+        ),
+        relationship_proposals=old_proposal.relationship_proposals,
+        duplicate_semantics=tuple(
+            item
+            for item in old_proposal.duplicate_semantics
+            if target_ref not in item.column_refs
+        ),
+        irrelevant_refs=tuple(
+            ref for ref in old_proposal.irrelevant_refs if ref != target_ref
+        ),
+        material_ambiguities=tuple(
+            item
+            for item in old_proposal.material_ambiguities
+            if item.ambiguity_id != proposal_ref and target_ref not in item.target_refs
+        ),
+    )
+    validated = validate_service_1_semantic_proposal_v1(
+        context=context,
+        proposal=proposal,
+    )
+    if validated.get("status") != VALIDATOR_READY:
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail={
+                "validator_reason": validated.get("blocked_reason"),
+                "validator_detail": validated.get("detail"),
+            },
+        )
+    dialogue = build_service_1_owner_dialogue_plan_v1(
+        validated_packet=validated,
+        atomic_confirmation=True,
+    )
+    if dialogue.get("status") != DIALOGUE_READY:
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail=dialogue.get("blocked_reason"),
+        )
+    revised_question = next(
+        (
+            item
+            for item in (dialogue.get("decisions") or [])
+            if isinstance(item, Mapping)
+            and str(item.get("decision_id") or "").strip() == target_decision_id
+        ),
+        None,
+    )
+    if not isinstance(revised_question, Mapping):
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail="validated correction is not material to the current dialogue",
+        )
+
+    revised_interpreter_packet = dict(interpreter_packet)
+    revised_interpreter_packet["proposal"] = proposal
+    revised_interpreter_packet["proposal_payload"] = proposal.to_dict()
+    return _packet(
+        status=STATUS_OWNER_DIALOGUE_REQUIRED,
+        case_id=str(previous_state.get("case_id") or "").strip(),
+        requested_capability=str(previous_state.get("requested_capability") or "").strip(),
+        bridge_packet=dict(previous_state.get("bridge_packet") or {}),
+        workbook_profile=dict(previous_state.get("workbook_profile") or {}),
+        context=context,
+        interpreter_packet=revised_interpreter_packet,
+        validated_packet=validated,
+        dialogue_plan=dialogue,
+        owner_questions=[dict(revised_question)],
+        semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
     )
 
 
@@ -563,7 +757,7 @@ def _valid_previous_state(value: Any) -> bool:
     return (
         isinstance(value, dict)
         and value.get("schema_version") == SCHEMA_VERSION
-        and value.get("status") == STATUS_OWNER_DIALOGUE_REQUIRED
+        and value.get("status") in {STATUS_OWNER_DIALOGUE_REQUIRED, STATUS_OWNER_DIALOGUE_FOLLOWUP}
         and isinstance(value.get("bridge_packet"), dict)
         and isinstance(value.get("workbook_profile"), dict)
         and value.get("context") is not None
@@ -685,6 +879,8 @@ __all__ = [
     "BLOCK_OWNER_RESPONSE_MISSING",
     "BLOCK_OWNER_PROJECTION_FAILED",
     "BLOCK_REENTRY_FAILED",
+    "BLOCK_OWNER_CORRECTION_INVALID",
     "run_service_1_assisted_semantic_initial_v1",
+    "revise_service_1_assisted_semantic_decision_v1",
     "run_service_1_assisted_semantic_reentry_v1",
 ]

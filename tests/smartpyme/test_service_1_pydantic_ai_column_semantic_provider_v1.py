@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
+    ColumnSemanticAssistanceReplyV1,
     ColumnSemanticBatchV1,
     ColumnSemanticDecisionV1,
     Service1PydanticAIColumnSemanticProviderV1,
@@ -131,3 +132,49 @@ def test_provider_accepts_only_allowed_relevant_semantic_role() -> None:
     assert proposal["semantic_role"] == "operation_time"
     assert proposal["variable_name"] == "operation_time"
     assert result["material_ambiguities"] == []
+
+
+def test_provider_assist_is_explanatory_only() -> None:
+    semantic_agent = _FakeAgent(
+        ColumnSemanticBatchV1(
+            decisions=[
+                ColumnSemanticDecisionV1(
+                    column_ref="Ventas.Hora",
+                    semantic_role=None,
+                    variable_name=None,
+                    confidence=0.5,
+                    needs_owner_confirmation=True,
+                    rationale="Ambiguous.",
+                )
+            ]
+        )
+    )
+    assistant_agent = _FakeAgent(
+        ColumnSemanticAssistanceReplyV1(
+            response_text="Parece una hora de operación por los ejemplos; confirmalo según tu proceso."
+        )
+    )
+    provider = Service1PydanticAIColumnSemanticProviderV1(
+        agent=semantic_agent,
+        assistant_agent=assistant_agent,
+    )
+
+    result = provider.assist(
+        {
+            "decision_id": "d1",
+            "column_refs": ["Ventas.Hora"],
+            "sample_values": ["17:15:44", "07:37:24"],
+            "owner_message": "¿Por qué pensás que es una hora?",
+        }
+    )
+
+    assert result == {
+        "response_text": "Parece una hora de operación por los ejemplos; confirmalo según tu proceso.",
+        "suggested_semantic_role": None,
+        "suggested_variable_name": None,
+        "suggestion_reason": None,
+    }
+    assert assistant_agent.prompts
+    assert "07:37:24" in assistant_agent.prompts[0]
+    assert "runtime_authorized" not in result
+    assert "confirmed_by_owner" not in result

@@ -8,6 +8,14 @@ from openpyxl import Workbook
 from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
     build_service_1_deterministic_semantic_proposal_v1,
 )
+from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
+    STATUS_CONFIRMED as SEM8_CONFIRMED,
+    STATUS_OWNER_DIALOGUE_FOLLOWUP as SEM8_FOLLOWUP,
+    STATUS_OWNER_DIALOGUE_REQUIRED as SEM8_OWNER_REQUIRED,
+    revise_service_1_assisted_semantic_decision_v1,
+    run_service_1_assisted_semantic_initial_v1,
+    run_service_1_assisted_semantic_reentry_v1,
+)
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     build_service_1_unconfirmed_canonical_ingestion_output_v1,
 )
@@ -520,3 +528,124 @@ def test_sem8_cafeteria_with_explicit_period_taxes_executes_ren001_through_deriv
     assert result["computed"]["total_outflows"] == 104.0
     assert confirmed["runtime_authorized"] is False
     assert confirmed["delivery_authorized"] is False
+
+
+def test_sem8_atomic_dialogue_accepts_followup_state_across_multiple_owner_turns() -> None:
+    ingestion = _ingestion(
+        "caja_atomic.xlsx",
+        _xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+    )
+
+    def provider(payload: dict) -> dict:
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability="projected_closing_cash_balance",
+        provider=provider,
+        atomic_confirmation=True,
+    )
+    assert initial["status"] == SEM8_OWNER_REQUIRED
+    assert len(initial["owner_questions"]) == 3
+
+    q1, q2, q3 = initial["owner_questions"]
+    r1 = {"decision_id": q1["decision_id"], "action": "ACCEPT"}
+    r2 = {"decision_id": q2["decision_id"], "action": "ACCEPT"}
+    r3 = {"decision_id": q3["decision_id"], "action": "ACCEPT"}
+
+    follow1 = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=initial,
+        owner_responses=[r1],
+        owner_actor_id="owner-atomic",
+        owner_actor_role="OWNER",
+    )
+    assert follow1["status"] == SEM8_FOLLOWUP
+    assert len(follow1["owner_questions"]) == 2
+
+    follow2 = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=follow1,
+        owner_responses=[r1, r2],
+        owner_actor_id="owner-atomic",
+        owner_actor_role="OWNER",
+    )
+    assert follow2["status"] == SEM8_FOLLOWUP
+    assert len(follow2["owner_questions"]) == 1
+
+    confirmed = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=follow2,
+        owner_responses=[r1, r2, r3],
+        owner_actor_id="owner-atomic",
+        owner_actor_role="OWNER",
+    )
+    assert confirmed["status"] == SEM8_CONFIRMED
+    evidence = confirmed["owner_evidence_packet"]
+    assert evidence["owner_confirmation_event_count"] == 3
+    assert confirmed["runtime_authorized"] is False
+    assert confirmed["delivery_authorized"] is False
+
+
+def test_sem8_owner_correction_revision_stays_proposal_until_owner_accepts() -> None:
+    ingestion = _ingestion(
+        "caja_correction.xlsx",
+        _xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+    )
+
+    def provider(payload: dict) -> dict:
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability="projected_closing_cash_balance",
+        provider=provider,
+        atomic_confirmation=True,
+    )
+    current = initial["owner_questions"][0]
+    proposal_ref = current["proposal_refs"][0]
+    validated = next(
+        item
+        for item in initial["validated_packet"]["decisions"]
+        if item["decision_id"] == proposal_ref
+    )
+
+    revised = revise_service_1_assisted_semantic_decision_v1(
+        previous_state=initial,
+        decision_id=current["decision_id"],
+        semantic_role=validated["semantic_role"],
+        variable_name=validated["variable_name"],
+        owner_correction_text="Este dato es el saldo inicial con el que arrancamos el período.",
+    )
+
+    assert revised["status"] == SEM8_OWNER_REQUIRED
+    assert len(revised["owner_questions"]) == 1
+    assert revised["owner_evidence_packet"] is None
+    assert revised["semantic_run"] is None
+    assert revised["runtime_authorized"] is False
+    assert revised["delivery_authorized"] is False

@@ -284,6 +284,9 @@ class AssistedWebSessionV1:
     semantic_scope_answers: dict[str, Any] = field(default_factory=dict)
     semantic_confirmed_roles: dict[str, str] = field(default_factory=dict)
     semantic_assistance_state: dict[str, Any] | None = None
+    semantic_dialogue_responses: dict[str, dict[str, Any]] = field(default_factory=dict)
+    semantic_chat_messages: dict[str, list[dict[str, str]]] = field(default_factory=dict)
+    semantic_chat_suggestions: dict[str, dict[str, str]] = field(default_factory=dict)
     owner_unit_confirmation_events: list[dict[str, Any]] = field(default_factory=list)
     tenant_id: str | None = None
     cliente_id: str | None = None
@@ -1505,6 +1508,16 @@ class AssistedWebApplicationV1:
                 response["correction_text"] = correction
             responses.append(response)
 
+        # Sequential reception can submit one decision at a time. Keep prior owner
+        # responses in session state and replay the complete bounded response set on
+        # every SEM-8 reentry; canonical evidence is still created only when the
+        # dialogue is complete.
+        for response in responses:
+            decision_id = str(response.get("decision_id") or "").strip()
+            if decision_id:
+                state.semantic_dialogue_responses[decision_id] = dict(response)
+        responses = [dict(item) for item in state.semantic_dialogue_responses.values()]
+
         actor_id = str(state.owner_actor_id or "").strip()
         actor_role = str(state.owner_actor_role or "").strip()
         if not actor_id or not actor_role:
@@ -2549,6 +2562,18 @@ def _handler_for(
                         )
                     elif self.path == "/confirm-meanings":
                         status, content_html = application.confirm_meanings(session_id=session_id, fields=fields)
+                    elif self.path == "/semantic-assist":
+                        semantic_assist = getattr(application, "semantic_assist", None)
+                        if not callable(semantic_assist):
+                            status, content_html = HTTPStatus.NOT_FOUND, _error_page("La asistencia semántica no está disponible en este flujo.")
+                        else:
+                            status, content_html = semantic_assist(session_id=session_id, fields=fields)
+                    elif self.path == "/semantic-revise":
+                        semantic_revise = getattr(application, "semantic_revise", None)
+                        if not callable(semantic_revise):
+                            status, content_html = HTTPStatus.NOT_FOUND, _error_page("La revisión semántica no está disponible en este flujo.")
+                        else:
+                            status, content_html = semantic_revise(session_id=session_id, fields=fields)
                     elif self.path == "/run-review":
                         selected_reviews = [
                             ref
