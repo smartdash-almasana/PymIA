@@ -178,3 +178,53 @@ def test_provider_assist_is_explanatory_only() -> None:
     assert "07:37:24" in assistant_agent.prompts[0]
     assert "runtime_authorized" not in result
     assert "confirmed_by_owner" not in result
+
+
+def test_provider_does_not_turn_understood_but_capability_irrelevant_role_into_owner_ambiguity() -> None:
+    payload = _payload()
+    payload["allowed_semantic_roles"] = ["employee_name", "product_name"]
+    payload["capability_relevant_roles"] = ["product_name"]
+    payload["workbook_profile"]["columns"][0].update(
+        {
+            "column_ref": "Ventas.Empleado",
+            "column_name": "Empleado",
+            "normalized_header": "empleado",
+            "sample_values": ["Carlos Pérez", "Fernanda Ruiz"],
+        }
+    )
+    payload["deterministic_hypotheses"] = [
+        {
+            "sheet_name": "Ventas",
+            "column_name": "Empleado",
+            "primary_hypothesis": {
+                "semantic_role": "employee_name",
+                "variable_name": "employee_name",
+                "score": 1.0,
+            },
+            "candidate_meanings": [],
+            "confidence": 1.0,
+        }
+    ]
+    payload["workbook_profile"]["evidence_registry"] = {}
+    payload["evidence_registry"] = {}
+
+    agent = _FakeAgent(
+        ColumnSemanticBatchV1(
+            decisions=[
+                ColumnSemanticDecisionV1(
+                    column_ref="Ventas.Empleado",
+                    semantic_role="employee_name",
+                    variable_name="employee_name",
+                    confidence=0.99,
+                    needs_owner_confirmation=False,
+                    rationale="Names identify the employee who handled the sale.",
+                )
+            ]
+        )
+    )
+
+    result = Service1PydanticAIColumnSemanticProviderV1(agent=agent)(payload)
+
+    assert result["concept_proposals"] == []
+    assert result["material_ambiguities"] == []
+    assert result["irrelevant_refs"] == ["Ventas.Empleado"]

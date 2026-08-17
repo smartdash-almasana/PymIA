@@ -351,7 +351,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         interaction_mode = (
             "CORRECTION"
             if str(fields.get("correction_mode") or "").strip() == "1"
-            else "QUESTION"
+            else "CONVERSATION"
         )
         allowed_pairs = self._allowed_role_variable_pairs(
             state.semantic_assistance_state,
@@ -371,6 +371,8 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             "rationale": decorated.get("assistant_rationale") or decorated.get("materiality_reason"),
             "owner_message": owner_message,
             "allowed_role_variable_pairs": allowed_pairs,
+            "owner_can_skip": len(current_refs) == 1 and not list(decorated.get("relationship_refs") or []),
+            "requested_capability": state.selected_launch_review,
             "confirmed_so_far": [
                 {
                     "decision_id": item_id,

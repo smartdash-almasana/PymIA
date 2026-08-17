@@ -36,6 +36,8 @@ def test_semantic_corroboration_renders_only_one_pending_question() -> None:
     assert state.semantic_questions[0]["decision_id"] == "d1"
     assert "Hora" in page
     assert "No tomes en cuenta esta columna para el análisis que necesito" in page
+    assert "Asistente semántico con LLM" in page
+    assert "Hablá con PymIA" in page
     assert "MetodoPago" not in page
     assert "Ciudad" not in page
 
@@ -133,13 +135,13 @@ def test_sequential_semantic_reception_accumulates_prior_owner_responses(monkeyp
     ]
 
 
-def test_semantic_assist_question_mode_does_not_require_suggestion() -> None:
+def test_semantic_assist_conversation_mode_does_not_require_suggestion() -> None:
     class _Provider:
         def __call__(self, _payload):
             raise AssertionError("semantic classification should not run in this test")
 
         def assist(self, payload):
-            assert payload["interaction_mode"] == "QUESTION"
+            assert payload["interaction_mode"] == "CONVERSATION"
             assert {ref for ref in payload["column_refs"]} == {"Ventas.Unidades"}
             return {
                 "response_text": "La propuesta actual usa el contexto de stock entrante.",
@@ -205,7 +207,8 @@ def test_semantic_assist_question_mode_does_not_require_suggestion() -> None:
 
     assert status == 200
     assert state.semantic_chat_suggestions == {}
-    assert "Preguntarle a PymIA" in page
+    assert "Asistente semántico con LLM" in page
+    assert "La propuesta actual usa el contexto de stock entrante." in page
 
 
 def test_semantic_assist_correction_mode_accepts_only_current_column_pair() -> None:

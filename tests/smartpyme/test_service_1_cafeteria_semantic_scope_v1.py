@@ -107,7 +107,7 @@ def test_cafeteria_margin_asks_only_relevant_columns_and_keeps_case_actionable(t
     assert status == 200
     assert "Esto entendí de tu Excel" in page
     assert "Sí, es correcto" in page
-    assert 1 <= page.count('class="understanding-card"') < 10
+    assert 1 <= page.count('class="understanding-card semantic-transaction"') < 10
 
     for relevant in ("ProductoID", "Cantidad", "PrecioUnitario", "Descuento", "Costo"):
         assert relevant in page

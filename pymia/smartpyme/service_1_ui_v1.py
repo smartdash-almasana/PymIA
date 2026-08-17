@@ -259,9 +259,26 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
         for message in decision.get("chat_messages") or []:
             if not isinstance(message, Mapping):
                 continue
-            who = "Vos" if str(message.get("role") or "") == "owner" else "PymIA"
-            chat_rows.append(f'<div class="chat-row"><strong>{_esc(who)}:</strong> {_esc(message.get("text") or "")}</div>')
+            is_owner = str(message.get("role") or "") == "owner"
+            who = "Vos" if is_owner else "PymIA"
+            bubble_class = "is-owner" if is_owner else "is-assistant"
+            bubble_style = (
+                "justify-self:end;background:#e9f3ed;border-color:#bfd6c8;"
+                if is_owner
+                else "justify-self:start;background:#fff;"
+            )
+            chat_rows.append(
+                f'<div class="chat-message {bubble_class}" style="max-width:88%;padding:9px 11px;border:1px solid #dbe2dd;border-radius:10px;{bubble_style}"><small style="display:block;margin:0 0 3px;color:#617068;font-size:.62rem;text-transform:uppercase">{_esc(who)}</small><p style="margin:0;white-space:pre-wrap">{_esc(message.get("text") or "")}</p></div>'
+            )
         chat_history = "".join(chat_rows)
+        if not chat_history:
+            initial_chat_text = reason or (
+                "Puedo ayudarte a interpretar esta columna usando el nombre, los ejemplos y el contexto de la hoja. "
+                "Decime con tus palabras qué representa o preguntame lo que no cierre."
+            )
+            chat_history = (
+                f'<div class="chat-message is-assistant" style="max-width:88%;padding:9px 11px;border:1px solid #dbe2dd;border-radius:10px;background:#fff;justify-self:start"><small style="display:block;margin:0 0 3px;color:#617068;font-size:.62rem;text-transform:uppercase">PymIA</small><p style="margin:0;white-space:pre-wrap">{_esc(initial_chat_text)}</p></div>'
+            )
         suggestion = decision.get("chat_suggestion") if isinstance(decision.get("chat_suggestion"), Mapping) else {}
         suggested_role = str(suggestion.get("semantic_role") or "").strip()
         suggested_variable = str(suggestion.get("variable_name") or "").strip()
@@ -277,7 +294,7 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
           <div class="confirm-data"><small>Propuesta de PymIA</small><p class="question-text">{_esc(decision.get("presentation_text") or "")}</p>{proposal_meta}
           <div class="radio-stack"><label><input type="radio" name="action_{_esc(did)}" value="ACCEPT" required{" checked" if selected == "ACCEPT" else ""}>Sí, es correcto: eso significa</label><label><input type="radio" name="action_{_esc(did)}" value="REJECT"{" checked" if selected == "REJECT" else ""}>No, no significa eso</label><label><input type="radio" name="action_{_esc(did)}" value="CORRECT"{" checked" if selected == "CORRECT" else ""}>Quiero explicarlo con mis palabras</label>{skip_option_html}</div>
           <label for="correction_{_esc(did)}">Corrección, si hace falta</label><input id="correction_{_esc(did)}" type="text" name="correction_{_esc(did)}" placeholder="Ej.: es el precio de lista antes del descuento">
-          <details class="semantic-assistant"{" open" if chat_history or suggestion_html else ""}><summary>💬 Preguntarle a PymIA sobre esta columna</summary><div class="details-body"><p>{_esc(reason or "PymIA usa nombre, tipo, ejemplos y contexto de la hoja. Puede explicarte la propuesta, pero no confirmarla por vos.")}</p>{chat_history}{suggestion_html}<input type="hidden" name="decision_id" value="{_esc(did)}"><label for="assistant_message_{_esc(did)}">Escribí una duda o explicá qué representa</label><textarea id="assistant_message_{_esc(did)}" name="assistant_message" rows="3" placeholder="Ej.: esto no es precio final, es la lista antes del descuento"></textarea><button type="submit" formaction="/semantic-assist" formmethod="post" formnovalidate>Enviar al asistente</button></div></details></div></section>''')
+          <section class="semantic-chat" aria-label="Conversación con PymIA" style="margin-top:6px;border:1px solid #dbe2dd;border-radius:10px;background:#f8fbf9;overflow:hidden"><header class="semantic-chat-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-bottom:1px solid #dbe2dd;background:#fff"><div style="display:grid;gap:1px"><strong>PymIA</strong><small style="margin:0;color:#617068;font-size:.68rem;text-transform:none;letter-spacing:0">Asistente semántico con LLM</small></div><span style="padding:4px 7px;border-radius:999px;background:#e9f3ed;color:#104632;font-size:.63rem;font-weight:800">Conversación</span></header><div class="semantic-chat-messages" style="display:grid;gap:9px;max-height:310px;overflow:auto;padding:12px">{chat_history}</div>{suggestion_html}<div class="semantic-chat-composer" style="display:grid;gap:8px;padding:10px;border-top:1px solid #dbe2dd;background:#fff"><input type="hidden" name="decision_id" value="{_esc(did)}"><label style="font-size:.75rem;color:#617068" for="assistant_message_{_esc(did)}">Hablá con PymIA</label><textarea id="assistant_message_{_esc(did)}" name="assistant_message" rows="3" style="width:100%;min-height:74px;resize:vertical;padding:10px 11px;border:1px solid #cbd4ce;border-radius:8px;font:inherit" placeholder="Preguntale algo o decile con tus palabras qué significa esta columna"></textarea><div class="semantic-chat-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span id="semantic-thinking-{_esc(did)}" class="htmx-indicator semantic-thinking" style="margin-right:auto;color:#617068;font-size:.75rem">PymIA está pensando…</span><button type="submit" formaction="/semantic-assist" formmethod="post" formnovalidate hx-post="/semantic-assist" hx-target="#app" hx-swap="outerHTML" hx-include="closest form" hx-indicator="#semantic-thinking-{_esc(did)}">Enviar</button></div></div></section></div></section>''')
     return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}<header class="journey-intro"><p class="kicker">Esto entendí de tu Excel</p><h1>Una columna por vez</h1><p>PymIA propone. Vos confirmás, corregís o preguntás. El significado recién se vuelve evidencia cuando vos lo confirmás.</p></header>{progress_html}{_error(error)}<form action="/confirm-meanings" method="post" class="understanding-form">{''.join(cards)}<div class="sticky-action"><span>Tu respuesta queda guardada en esta sesión y avanzamos a la siguiente columna.</span><button type="submit">Guardar y seguir</button></div></form></main>'''
 
 
