@@ -691,3 +691,25 @@ def test_legacy_period_headers_keep_existing_roles_without_period_total_context(
         assert understanding.primary_hypothesis is not None
         assert understanding.primary_hypothesis.semantic_role == role
         assert understanding.owner_question_needed is False
+
+
+def test_employee_columns_are_understood_as_sales_staff_not_product_or_document() -> None:
+    employee_name = build_column_understanding_v1(
+        column_name="Empleado",
+        sheet_name="Ventas",
+        sample_values=["Carlos Pérez", "Fernanda Ruiz"],
+        co_column_names=["VentaID", "Fecha", "ProductoID", "Cantidad", "PrecioUnitario"],
+    )
+    employee_id = build_column_understanding_v1(
+        column_name="EmpleadoID",
+        sheet_name="Ventas",
+        sample_values=["E001", "E002"],
+        co_column_names=["VentaID", "Fecha", "ProductoID", "Cantidad", "PrecioUnitario"],
+    )
+
+    assert employee_name.primary_hypothesis is not None
+    assert employee_name.primary_hypothesis.semantic_role == "employee_name"
+    assert employee_name.primary_hypothesis.variable_name == "employee_name"
+    assert employee_id.primary_hypothesis is not None
+    assert employee_id.primary_hypothesis.semantic_role == "employee_identifier"
+    assert employee_id.primary_hypothesis.variable_name == "employee_id"

@@ -35,6 +35,7 @@ def test_semantic_corroboration_renders_only_one_pending_question() -> None:
     assert len(state.semantic_questions) == 3
     assert state.semantic_questions[0]["decision_id"] == "d1"
     assert "Hora" in page
+    assert "No tomes en cuenta esta columna para el análisis que necesito" in page
     assert "MetodoPago" not in page
     assert "Ciudad" not in page
 

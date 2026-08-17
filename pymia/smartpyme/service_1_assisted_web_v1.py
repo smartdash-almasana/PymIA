@@ -1486,10 +1486,10 @@ class AssistedWebApplicationV1:
                     "La decisión semántica no tiene identidad trazable."
                 )
             action = str(fields.get(f"action_{decision_id}") or "").strip().upper()
-            if action not in {"ACCEPT", "REJECT", "CORRECT"}:
+            if action not in {"ACCEPT", "REJECT", "CORRECT", "SKIP"}:
                 return HTTPStatus.BAD_REQUEST, _assisted_semantic_dialogue_page(
                     state.semantic_questions,
-                    "Elegí confirmar, rechazar o corregir cada interpretación.",
+                    "Elegí confirmar, rechazar, corregir o no usar cada interpretación.",
                     selected_actions=selected,
                 )
             selected[decision_id] = action

@@ -52,7 +52,9 @@ from pymia.smartpyme.service_1_owner_semantic_answer_projection_v1 import (
 )
 from pymia.smartpyme.service_1_owner_semantic_dialogue_v1 import (
     ACTION_ACCEPT,
+    ACTION_SKIP,
     RESPONSE_DECISION_CONFIRMED,
+    RESPONSE_DECISION_SKIPPED,
     RESPONSE_GROUP_CONFIRMED,
     RESPONSE_GROUP_REJECTED_REQUIRES_DECOMPOSITION,
     RESPONSE_NEEDS_GRANULAR_CONFIRMATION,
@@ -517,6 +519,7 @@ def run_service_1_assisted_semantic_reentry_v1(
 
     column_events: list[dict[str, Any]] = []
     relationship_events: list[dict[str, Any]] = []
+    owner_skipped_refs: list[str] = []
     followup_questions: list[dict[str, Any]] = []
     dialogue_responses: list[dict[str, Any]] = []
 
@@ -538,6 +541,13 @@ def run_service_1_assisted_semantic_reentry_v1(
         if response_status in _FOLLOWUP_DIALOGUE_STATUSES:
             atomic = [dict(item) for item in resolved.get("atomic_decisions") or [] if isinstance(item, dict)]
             followup_questions.extend(atomic or [decisions[decision_id]])
+            continue
+        if response_status == RESPONSE_DECISION_SKIPPED and resolved.get("action") == ACTION_SKIP:
+            owner_skipped_refs.extend(
+                str(ref).strip()
+                for ref in (resolved.get("targeted_refs") or [])
+                if str(ref).strip()
+            )
             continue
         if response_status not in _ACCEPTED_DIALOGUE_STATUSES or resolved.get("action") != ACTION_ACCEPT:
             return _blocked(
@@ -587,6 +597,7 @@ def run_service_1_assisted_semantic_reentry_v1(
             semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
         )
 
+    owner_scope_exclusions = list(dict.fromkeys(owner_skipped_refs))
     evidence_packet = {
         "schema_version": SEM5_SCHEMA_VERSION,
         "status": SEM5_READY,
@@ -597,6 +608,7 @@ def run_service_1_assisted_semantic_reentry_v1(
         "owner_relationship_confirmation_events": relationship_events,
         "owner_confirmation_event_count": len(column_events),
         "owner_relationship_confirmation_event_count": len(relationship_events),
+        "owner_scope_exclusions": owner_scope_exclusions,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -606,10 +618,12 @@ def run_service_1_assisted_semantic_reentry_v1(
     sem6 = build_service_1_owner_semantic_evidence_reentry_v1(
         semantic_bridge_packet=previous_state["bridge_packet"],
         owner_semantic_evidence_packet=evidence_packet,
-        suppressed_irrelevant_refs=previous_state["dialogue_plan"].get(
-            "suppressed_irrelevant_refs"
-        )
-        or [],
+        suppressed_irrelevant_refs=list(
+            dict.fromkeys(
+                list(previous_state["dialogue_plan"].get("suppressed_irrelevant_refs") or [])
+                + owner_scope_exclusions
+            )
+        ),
     )
     if sem6.get("status") != SEM6_READY:
         return _blocked(
@@ -629,6 +643,7 @@ def run_service_1_assisted_semantic_reentry_v1(
         "owner_loop_packet": {
             "owner_confirmation_events": column_events,
             "owner_relationship_confirmation_events": relationship_events,
+            "owner_scope_exclusions": owner_scope_exclusions,
             "system_scope_exclusions": list(sem6.get("system_scope_exclusions") or []),
         },
         "reentry_packet": sem6.get("reentry_packet"),

@@ -787,3 +787,64 @@ def test_web_correction_impuestos_periodo_revises_then_fails_closed_if_capabilit
     assert state.last_review_result["computation_executed"] is False
     assert state.last_review_result["runtime_authorized"] is False
     assert state.last_review_result["delivery_authorized"] is False
+
+
+def test_sem8_owner_can_skip_one_atomic_column_without_fabricating_semantic_evidence() -> None:
+    ingestion = _ingestion(
+        "caja_skip.xlsx",
+        _xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+    )
+
+    def provider(payload: dict) -> dict:
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability="projected_closing_cash_balance",
+        provider=provider,
+        atomic_confirmation=True,
+    )
+    assert initial["status"] == SEM8_OWNER_REQUIRED
+
+    responses = []
+    skipped_ref = None
+    for question in initial["owner_questions"]:
+        refs = list(question.get("column_refs") or [])
+        assert len(refs) == 1
+        action = "SKIP" if refs[0].endswith("PagosEsperados") else "ACCEPT"
+        if action == "SKIP":
+            skipped_ref = refs[0]
+        responses.append({"decision_id": question["decision_id"], "action": action})
+
+    confirmed = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=initial,
+        owner_responses=responses,
+        owner_actor_id="owner-skip",
+        owner_actor_role="OWNER",
+    )
+
+    assert skipped_ref is not None
+    assert confirmed["status"] == SEM8_CONFIRMED
+    evidence = confirmed["owner_evidence_packet"]
+    assert evidence["owner_confirmation_event_count"] == 2
+    assert evidence["owner_scope_exclusions"] == [skipped_ref]
+    assert all(
+        event.get("column_ref") != "PagosEsperados"
+        for event in evidence["owner_confirmation_events"]
+    )
+    assert confirmed["runtime_authorized"] is False
+    assert confirmed["delivery_authorized"] is False

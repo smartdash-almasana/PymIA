@@ -4,10 +4,12 @@ from pymia.smartpyme.service_1_owner_semantic_dialogue_v1 import (
     ACTION_ACCEPT,
     ACTION_CORRECT,
     ACTION_REJECT,
+    ACTION_SKIP,
     DECISION_KIND_RELATIONSHIP,
     DECISION_KIND_SEMANTIC_GROUP,
     DECISION_KIND_UNIT_MEANING,
     RESPONSE_GROUP_CONFIRMED,
+    RESPONSE_DECISION_SKIPPED,
     RESPONSE_GROUP_REJECTED_REQUIRES_DECOMPOSITION,
     RESPONSE_NEEDS_GRANULAR_CONFIRMATION,
     RESPONSE_RELATIONSHIP_CONFIRMED,
@@ -346,3 +348,28 @@ def test_sem4_atomic_confirmation_surfaces_confident_concepts_one_by_one() -> No
         item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP
         for item in plan["decisions"]
     )
+
+
+def test_sem4_atomic_column_can_be_explicitly_skipped_by_owner() -> None:
+    plan = build_service_1_owner_dialogue_plan_v1(
+        validated_packet=_validated_packet(),
+        atomic_confirmation=True,
+    )
+    atomic = next(
+        item
+        for item in plan["decisions"]
+        if item["decision_kind"] == DECISION_KIND_UNIT_MEANING
+        and len(item.get("column_refs") or []) == 1
+    )
+
+    response = apply_service_1_owner_dialogue_response_v1(
+        dialogue_plan=plan,
+        decision_id=atomic["decision_id"],
+        action=ACTION_SKIP,
+    )
+
+    assert response["status"] == RESPONSE_DECISION_SKIPPED
+    assert response["action"] == ACTION_SKIP
+    assert response["targeted_refs"] == atomic["column_refs"]
+    assert response["confirmed_by_owner"] is False
+    assert response["runtime_authorized"] is False

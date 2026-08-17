@@ -44,10 +44,12 @@ FALLBACK_BLOCK_IF_UNRESOLVABLE: Final[str] = "BLOCK_IF_UNRESOLVABLE"
 ACTION_ACCEPT: Final[str] = "ACCEPT"
 ACTION_REJECT: Final[str] = "REJECT"
 ACTION_CORRECT: Final[str] = "CORRECT"
+ACTION_SKIP: Final[str] = "SKIP"
 
 RESPONSE_GROUP_CONFIRMED: Final[str] = "GROUP_CONFIRMED"
 RESPONSE_RELATIONSHIP_CONFIRMED: Final[str] = "RELATIONSHIP_CONFIRMED"
 RESPONSE_DECISION_CONFIRMED: Final[str] = "DECISION_CONFIRMED"
+RESPONSE_DECISION_SKIPPED: Final[str] = "DECISION_SKIPPED"
 RESPONSE_GROUP_REJECTED_REQUIRES_DECOMPOSITION: Final[str] = "GROUP_REJECTED_REQUIRES_DECOMPOSITION"
 RESPONSE_NEEDS_GRANULAR_CONFIRMATION: Final[str] = "NEEDS_GRANULAR_CONFIRMATION"
 RESPONSE_TARGETED_CORRECTION_PROPOSED: Final[str] = "TARGETED_CORRECTION_PROPOSED"
@@ -331,8 +333,21 @@ def apply_service_1_owner_dialogue_response_v1(
     if not isinstance(decision, dict):
         return _response_blocked(BLOCK_DIALOGUE_DECISION_NOT_FOUND)
     normalized_action = str(action or "").strip().upper()
-    if normalized_action not in {ACTION_ACCEPT, ACTION_REJECT, ACTION_CORRECT}:
+    if normalized_action not in {ACTION_ACCEPT, ACTION_REJECT, ACTION_CORRECT, ACTION_SKIP}:
         return _response_blocked(BLOCK_DIALOGUE_ACTION_INVALID)
+
+    if normalized_action == ACTION_SKIP:
+        column_refs = tuple(str(ref).strip() for ref in (decision.get("column_refs") or ()) if str(ref).strip())
+        relationship_refs = tuple(str(ref).strip() for ref in (decision.get("relationship_refs") or ()) if str(ref).strip())
+        if len(column_refs) != 1 or relationship_refs:
+            return _response_blocked(BLOCK_DIALOGUE_ACTION_INVALID)
+        return _response_ready(
+            status=RESPONSE_DECISION_SKIPPED,
+            decision=decision,
+            action=normalized_action,
+            atomic_decisions=[],
+            targeted_refs=column_refs,
+        )
 
     if normalized_action == ACTION_ACCEPT:
         if decision.get("decision_kind") == DECISION_KIND_SEMANTIC_GROUP:
@@ -590,9 +605,11 @@ __all__ = [
     "ACTION_ACCEPT",
     "ACTION_REJECT",
     "ACTION_CORRECT",
+    "ACTION_SKIP",
     "RESPONSE_GROUP_CONFIRMED",
     "RESPONSE_RELATIONSHIP_CONFIRMED",
     "RESPONSE_DECISION_CONFIRMED",
+    "RESPONSE_DECISION_SKIPPED",
     "RESPONSE_GROUP_REJECTED_REQUIRES_DECOMPOSITION",
     "RESPONSE_NEEDS_GRANULAR_CONFIRMATION",
     "RESPONSE_TARGETED_CORRECTION_PROPOSED",
