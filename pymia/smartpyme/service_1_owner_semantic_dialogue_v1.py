@@ -447,10 +447,31 @@ def _semantic_group_text(column_refs: tuple[str, ...]) -> str:
 def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
     label = _display_ref(refs[0]) if refs else "este dato"
     role = str(item.get("semantic_role") or item.get("proposed_meaning") or "").strip()
-    variable = str(item.get("variable_name") or "").strip()
-    meaning = role.replace("_", " ") if role else "un significado empresarial específico"
-    if variable and variable != role:
-        return f"PymIA interpreta `{label}` como {meaning} ({variable}). ¿Es correcto?"
+    owner_labels = {
+        "operation_date": "la fecha de la operación",
+        "quantity": "la cantidad vendida o movida",
+        "unit_sale_price": "el precio de venta por unidad",
+        "unit_cost_candidate": "el costo por unidad",
+        "sales_amount": "el importe de la venta",
+        "period_sales_total": "las ventas totales del período",
+        "period_costs_total": "los costos totales del período",
+        "period_taxes_total": "los impuestos y comisiones totales del período",
+        "tax_amount": "el importe de impuestos",
+        "product_name": "el nombre del producto",
+        "product_identifier": "el identificador del producto",
+        "employee_name": "el empleado o vendedor asociado a la operación",
+        "employee_identifier": "el identificador del empleado o vendedor",
+        "discount_candidate": "el descuento o bonificación",
+        "collected_amount": "el importe efectivamente cobrado",
+        "initial_balance": "el saldo inicial",
+        "expected_collections": "los cobros esperados",
+        "expected_payments": "los pagos esperados",
+        "sales_channel": "el canal de venta",
+        "commercial_category": "la categoría o rubro",
+        "supplier_name": "el proveedor",
+        "document_reference": "el comprobante o referencia de la operación",
+    }
+    meaning = owner_labels.get(role, "un dato del negocio que necesito confirmar")
     return f"PymIA interpreta `{label}` como {meaning}. ¿Es correcto?"
 
 

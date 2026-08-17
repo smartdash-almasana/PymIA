@@ -116,6 +116,7 @@ Hard limits (both modes):
 - Never invent workbook values or column references.
 - A suggestion is only a proposal for the owner to review; it is not confirmation.
 - Keep the answer concise and in the owner's language.
+- When the owner writes in Spanish, answer entirely in plain Spanish. Do not expose internal semantic-role names, variable names, schema terms or English implementation jargon.
 
 The owner remains the only source of confirmation.
 """

@@ -20,6 +20,10 @@ from typing import Any, Callable, Mapping, Sequence
 from urllib.parse import parse_qs, urlsplit
 
 from pymia.smartpyme.service_1_column_understanding_engine_v1 import normalize_service_1_column_understanding_header_v1
+from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
+    STATUS_READY as SEMANTIC_BRIDGE_READY,
+    build_service_1_semantic_bridge_from_canonical_ingestion_output_v1,
+)
 from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
     build_service_1_deterministic_semantic_proposal_v1,
 )
@@ -154,7 +158,7 @@ _LAUNCH_REVIEW_FILE_GUIDANCE: dict[str, str] = {
         "El Excel debería incluir ventas y cobranzas del mismo período, con sus importes y, si existen, fechas o referencias."
     ),
     "net_margin_real": (
-        "El Excel debería incluir ventas y costos. Si vende por producto, ayudan cantidad, precio, costo y descuentos cuando existan."
+        "El Excel debe incluir evidencia suficiente de ventas, costos e impuestos/comisiones. Si opera por producto, pueden usarse cantidad, precio, costo y una identificación común del producto."
     ),
     "working_capital": (
         "El Excel debería incluir saldo inicial, ingresos o cobros previstos y egresos o pagos previstos del período."
@@ -1898,10 +1902,13 @@ class AssistedWebApplicationV1:
         requested: list[str] = []
         for capability_ref in requested_capabilities:
             ref = str(capability_ref or "").strip()
-            if ref not in _LAUNCH_REVIEW_BY_REF:
+            if ref not in _LAUNCH_REVIEW_BY_REF or not _launch_review_preflight_available_v1(
+                ingestion_output=state.ingestion_output,
+                capability_ref=ref,
+            ):
                 return HTTPStatus.BAD_REQUEST, _analysis_menu_page(
                     state,
-                    "Elegí únicamente análisis disponibles en este menú.",
+                    "Ese análisis no está disponible para este Excel porque no puedo garantizar todavía que llegue a un resultado.",
                 )
             if ref not in requested:
                 requested.append(ref)
@@ -3249,13 +3256,80 @@ def _semantic_questions_page(
     )
 
 
+def _preflight_primary_roles_v1(ingestion_output: Mapping[str, Any]) -> frozenset[str]:
+    """Return only deterministic primary roles strong enough for launch preflight.
+
+    This is availability evidence, never owner confirmation or computation authority.
+    """
+    if not isinstance(ingestion_output, Mapping) or not ingestion_output:
+        return frozenset()
+    bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
+        ingestion_output=dict(ingestion_output),
+    )
+    if bridge.get("status") != SEMANTIC_BRIDGE_READY:
+        return frozenset()
+    roles: set[str] = set()
+    for raw in bridge.get("column_understandings") or ():
+        item = raw.to_dict() if hasattr(raw, "to_dict") else dict(raw) if isinstance(raw, Mapping) else {}
+        primary = item.get("primary_hypothesis") if isinstance(item, Mapping) else None
+        if not isinstance(primary, Mapping):
+            continue
+        confidence = float(item.get("confidence") or 0.0)
+        role = str(primary.get("semantic_role") or "").strip()
+        if confidence >= 0.60 and role and role != "unknown":
+            roles.add(role)
+    return frozenset(roles)
+
+
+def _launch_review_preflight_available_v1(
+    *,
+    ingestion_output: Mapping[str, Any],
+    capability_ref: str,
+) -> bool:
+    roles = _preflight_primary_roles_v1(ingestion_output)
+    capability = str(capability_ref or "").strip()
+    if capability == "sold_vs_collected_gap":
+        return {"sales_amount", "collected_amount"}.issubset(roles)
+    if capability == "net_margin_real":
+        has_sales = "period_sales_total" in roles or {"quantity", "unit_sale_price"}.issubset(roles)
+        has_costs = "period_costs_total" in roles or "unit_cost_candidate" in roles
+        has_product_key = bool({"product_identifier", "product_name"}.intersection(roles))
+        if "period_sales_total" in roles and "period_costs_total" in roles:
+            has_product_key = True
+        has_taxes = bool({"period_taxes_total", "tax_amount"}.intersection(roles))
+        return has_sales and has_costs and has_product_key and has_taxes
+    if capability == "working_capital":
+        return {"initial_balance", "expected_collections", "expected_payments"}.issubset(roles)
+    return False
+
+
+def _available_launch_review_options_v1(
+    ingestion_output: Mapping[str, Any],
+) -> tuple[tuple[str, str, str], ...]:
+    return tuple(
+        item
+        for item in _LAUNCH_REVIEW_OPTIONS
+        if _launch_review_preflight_available_v1(
+            ingestion_output=ingestion_output,
+            capability_ref=item[0],
+        )
+    )
+
+
 def _analysis_menu_page(state: AssistedWebSessionV1, error: str | None = None) -> str:
     ingestion = state.ingestion_output if isinstance(state.ingestion_output, dict) else {}
     filename = str(ingestion.get("filename") or ingestion.get("source_file_ref") or "").strip()
+    available = _available_launch_review_options_v1(ingestion)
+    availability_error = error
+    if not available and availability_error is None:
+        availability_error = (
+            "Leí el Excel, pero todavía no puedo prometer ninguno de estos análisis con los datos presentes. "
+            "No voy a ofrecerte un resultado que después quede bloqueado."
+        )
     return render_analysis_menu_v1(
-        _LAUNCH_REVIEW_OPTIONS,
+        available,
         filename=filename,
-        error=error,
+        error=availability_error,
     )
 
 

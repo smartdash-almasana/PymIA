@@ -296,9 +296,11 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
     assert status == 200
     assert "¿Qué querés que PymIA te devuelva?" in page
     assert "Ventas y cobranzas" in page
-    assert "Margen real" in page
-    assert "Flujo de caja" in page
+    assert "Margen real" not in page
+    assert "Flujo de caja" not in page
     assert 'type="checkbox" name="review_sold_vs_collected_gap"' in page
+    assert 'name="review_net_margin_real"' not in page
+    assert 'name="review_working_capital"' not in page
 
     status, _, page = _form(
         assisted_server,
@@ -613,3 +615,25 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
     assert "Análisis pendiente" in page
     assert "Todavía no puedo completar" in page
     assert "No completo valores por suposición" in page
+
+
+def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assisted_server, tmp_path: Path) -> None:
+    body, headers = _multipart("margen.xlsx", _margin_xlsx(tmp_path))
+    status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
+    assert status == 200
+    cookie = _cookie(response_headers)
+
+    if "Esto entendí de tu Excel" in page:
+        status, _, page = _form(
+            assisted_server,
+            "/confirm-meanings",
+            _semantic_confirmation_answers(page),
+            cookie,
+        )
+        assert status == 200
+
+    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Margen real" in page
+    assert 'name="review_net_margin_real"' in page
+    assert "Ventas y cobranzas" not in page
+    assert "Flujo de caja" not in page

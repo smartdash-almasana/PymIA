@@ -482,5 +482,7 @@ def test_semantic_assist_surfaces_bounded_revision_without_confirming() -> None:
         "owner_text": "Son las unidades que vendimos en esa operación.",
     }
     assert "Propuesta revisada" in page
-    assert "Usar esta propuesta y revisarla" in page
+    assert "Revisar esta interpretación" in page
+    assert "Owner described sold units." not in page
+    assert "Interpretación técnica" not in page
     assert "confirmado" in page.lower()

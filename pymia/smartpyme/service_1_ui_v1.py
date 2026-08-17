@@ -240,7 +240,6 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
             continue
         refs = [_friendly_ref(ref) for ref in list(decision.get("column_refs") or []) + list(decision.get("relationship_refs") or []) if str(ref).strip()]
         selected = selected_actions.get(did, "")
-        reason = str(decision.get("assistant_rationale") or decision.get("materiality_reason") or "").strip()
         current = int(decision.get("progress_current") or 1)
         total = max(int(decision.get("progress_total") or 1), 1)
         completed = max(int(decision.get("progress_completed") or 0), 0)
@@ -250,11 +249,6 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
         sample_html = "".join(f'<code>{_esc(value)}</code>' for value in samples) or '<span class="empty-sample">Sin ejemplos visibles</span>'
         sheet = str(decision.get("sheet_name") or "").strip()
         column = str(decision.get("column_name") or "").strip()
-        role = str(decision.get("proposed_semantic_role") or "").strip().replace("_", " ")
-        variable = str(decision.get("proposed_variable_name") or "").strip()
-        proposal_meta = ""
-        if role or variable:
-            proposal_meta = f'<p><small>Interpretación técnica</small><br><strong>{_esc(role or "sin rol")}</strong>{f" · {_esc(variable)}" if variable else ""}</p>'
         chat_rows = []
         for message in decision.get("chat_messages") or []:
             if not isinstance(message, Mapping):
@@ -272,9 +266,9 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
             )
         chat_history = "".join(chat_rows)
         if not chat_history:
-            initial_chat_text = reason or (
-                "Puedo ayudarte a interpretar esta columna usando el nombre, los ejemplos y el contexto de la hoja. "
-                "Decime con tus palabras qué representa o preguntame lo que no cierre."
+            initial_chat_text = (
+                "Estoy mirando esta columna junto con sus ejemplos y el resto de la hoja. "
+                "Si la propuesta no coincide con tu negocio, decime qué representa con tus palabras."
             )
             chat_history = (
                 f'<div class="chat-message is-assistant" style="max-width:88%;padding:9px 11px;border:1px solid #dbe2dd;border-radius:10px;background:#fff;justify-self:start"><small style="display:block;margin:0 0 3px;color:#617068;font-size:.62rem;text-transform:uppercase">PymIA</small><p style="margin:0;white-space:pre-wrap">{_esc(initial_chat_text)}</p></div>'
@@ -284,14 +278,14 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
         suggested_variable = str(suggestion.get("variable_name") or "").strip()
         suggestion_html = ""
         if suggested_role and suggested_variable:
-            suggestion_html = f'''<div class="semantic-suggestion"><small>Propuesta revisada</small><p>PymIA entendió tu explicación como <strong>{_esc(suggested_role.replace("_", " "))}</strong> · <code>{_esc(suggested_variable)}</code>.</p><p>Esto todavía no está confirmado.</p><button type="submit" formaction="/semantic-revise" formmethod="post" formnovalidate>Usar esta propuesta y revisarla</button></div>'''
+            suggestion_html = '''<div class="semantic-suggestion"><small>Propuesta revisada</small><p>PymIA encontró una interpretación compatible con lo que explicaste.</p><p>Esto todavía no está confirmado.</p><button type="submit" formaction="/semantic-revise" formmethod="post" formnovalidate>Revisar esta interpretación</button></div>'''
         raw_column_refs = [str(ref).strip() for ref in (decision.get("column_refs") or []) if str(ref).strip()]
         raw_relationship_refs = [str(ref).strip() for ref in (decision.get("relationship_refs") or []) if str(ref).strip()]
         skip_option_html = ""
         if len(raw_column_refs) == 1 and not raw_relationship_refs:
             skip_option_html = f'<label><input type="radio" name="action_{_esc(did)}" value="SKIP"{" checked" if selected == "SKIP" else ""}>No tomes en cuenta esta columna para el análisis que necesito</label>'
         cards.append(f'''<section class="understanding-card semantic-transaction"><div class="found-data"><small>Columna actual</small><strong>{_esc(column or " · ".join(refs) or did)}</strong>{f'<span>Hoja {_esc(sheet)}</span>' if sheet else ''}<p class="sample-label">Ejemplos del archivo</p><div class="sample-values">{sample_html}</div><p>La resolvemos ahora y después seguimos con la siguiente.</p></div>
-          <div class="confirm-data"><small>Propuesta de PymIA</small><p class="question-text">{_esc(decision.get("presentation_text") or "")}</p>{proposal_meta}
+          <div class="confirm-data"><small>Propuesta de PymIA</small><p class="question-text">{_esc(decision.get("presentation_text") or "")}</p>
           <div class="radio-stack"><label><input type="radio" name="action_{_esc(did)}" value="ACCEPT" required{" checked" if selected == "ACCEPT" else ""}>Sí, es correcto: eso significa</label><label><input type="radio" name="action_{_esc(did)}" value="REJECT"{" checked" if selected == "REJECT" else ""}>No, no significa eso</label><label><input type="radio" name="action_{_esc(did)}" value="CORRECT"{" checked" if selected == "CORRECT" else ""}>Quiero explicarlo con mis palabras</label>{skip_option_html}</div>
           <label for="correction_{_esc(did)}">Corrección, si hace falta</label><input id="correction_{_esc(did)}" type="text" name="correction_{_esc(did)}" placeholder="Ej.: es el precio de lista antes del descuento">
           <section class="semantic-chat" aria-label="Conversación con PymIA" style="margin-top:6px;border:1px solid #dbe2dd;border-radius:10px;background:#f8fbf9;overflow:hidden"><header class="semantic-chat-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-bottom:1px solid #dbe2dd;background:#fff"><div style="display:grid;gap:1px"><strong>PymIA</strong><small style="margin:0;color:#617068;font-size:.68rem;text-transform:none;letter-spacing:0">Asistente semántico con LLM</small></div><span style="padding:4px 7px;border-radius:999px;background:#e9f3ed;color:#104632;font-size:.63rem;font-weight:800">Conversación</span></header><div class="semantic-chat-messages" style="display:grid;gap:9px;max-height:310px;overflow:auto;padding:12px">{chat_history}</div>{suggestion_html}<div class="semantic-chat-composer" style="display:grid;gap:8px;padding:10px;border-top:1px solid #dbe2dd;background:#fff"><input type="hidden" name="decision_id" value="{_esc(did)}"><label style="font-size:.75rem;color:#617068" for="assistant_message_{_esc(did)}">Hablá con PymIA</label><textarea id="assistant_message_{_esc(did)}" name="assistant_message" rows="3" style="width:100%;min-height:74px;resize:vertical;padding:10px 11px;border:1px solid #cbd4ce;border-radius:8px;font:inherit" placeholder="Preguntale algo o decile con tus palabras qué significa esta columna"></textarea><div class="semantic-chat-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span id="semantic-thinking-{_esc(did)}" class="htmx-indicator semantic-thinking" style="margin-right:auto;color:#617068;font-size:.75rem">PymIA está pensando…</span><button type="submit" formaction="/semantic-assist" formmethod="post" formnovalidate hx-post="/semantic-assist" hx-target="#app" hx-swap="outerHTML" hx-include="closest form" hx-indicator="#semantic-thinking-{_esc(did)}">Enviar</button></div></div></section></div></section>''')
