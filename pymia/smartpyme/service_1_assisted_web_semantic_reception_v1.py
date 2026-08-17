@@ -219,14 +219,29 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         )
 
     @staticmethod
-    def _allowed_role_variable_pairs(assistance: Mapping[str, Any]) -> list[dict[str, str]]:
+    def _allowed_role_variable_pairs(
+        assistance: Mapping[str, Any],
+        *,
+        column_refs: Sequence[str] | None = None,
+    ) -> list[dict[str, str]]:
         context = assistance.get("context")
         hypotheses = getattr(context, "deterministic_hypotheses", ())
+        target_refs = {
+            str(ref).strip()
+            for ref in (column_refs or [])
+            if str(ref).strip()
+        }
         pairs: list[dict[str, str]] = []
         seen: set[tuple[str, str]] = set()
         for raw in hypotheses:
             if not isinstance(raw, Mapping):
                 continue
+            sheet = str(raw.get("sheet_name") or "").strip()
+            column = str(raw.get("column_name") or "").strip()
+            if target_refs and sheet and column:
+                ref = f"{sheet}.{column}"
+                if ref not in target_refs:
+                    continue
             candidates: list[Mapping[str, Any]] = [raw]
             candidates.extend(
                 item
@@ -328,10 +343,24 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             ) or (HTTPStatus.BAD_REQUEST, base._error_page("Falta la consulta."))
 
         decorated = self._decorate_dialogue_decision(session_id=session_id, question=current)
-        allowed_pairs = self._allowed_role_variable_pairs(state.semantic_assistance_state)
+        current_refs = [
+            str(ref).strip()
+            for ref in (decorated.get("column_refs") or [])
+            if str(ref).strip()
+        ]
+        interaction_mode = (
+            "CORRECTION"
+            if str(fields.get("correction_mode") or "").strip() == "1"
+            else "QUESTION"
+        )
+        allowed_pairs = self._allowed_role_variable_pairs(
+            state.semantic_assistance_state,
+            column_refs=current_refs,
+        )
         bounded_context = {
             "decision_id": decision_id,
-            "column_refs": list(decorated.get("column_refs") or []),
+            "interaction_mode": interaction_mode,
+            "column_refs": current_refs,
             "sheet_name": decorated.get("sheet_name"),
             "column_name": decorated.get("column_name"),
             "inferred_type": decorated.get("inferred_type"),

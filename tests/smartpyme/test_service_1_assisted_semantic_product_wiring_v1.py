@@ -19,6 +19,9 @@ from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     build_service_1_unconfirmed_canonical_ingestion_output_v1,
 )
+from pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 import (
+    Service1SemanticReceptionWebApplicationV1,
+)
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
     STATUS_COMPUTATION_PLAN_READY,
@@ -649,3 +652,138 @@ def test_sem8_owner_correction_revision_stays_proposal_until_owner_accepts() -> 
     assert revised["semantic_run"] is None
     assert revised["runtime_authorized"] is False
     assert revised["delivery_authorized"] is False
+
+
+def test_web_correction_impuestos_periodo_revises_then_fails_closed_if_capability_semantics_no_longer_match(tmp_path: Path) -> None:
+    """Regression for semantic-revise plus downstream fail-closed capability semantics."""
+    ingestion = _ingestion(
+        "impuestos_periodo_correction.xlsx",
+        _xlsx_bytes(
+            {
+                "Resumen": (
+                    ["ventas_periodo", "costos_periodo", "impuestos_periodo"],
+                    [[180, 84, 20]],
+                )
+            }
+        ),
+    )
+
+    def initial_provider(payload: dict) -> dict:
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Resumen.ventas_periodo": "sale_price",
+                "Resumen.costos_periodo": "costs",
+                "Resumen.impuestos_periodo": "taxes",
+            },
+        )
+
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability="net_margin_real",
+        provider=initial_provider,
+        atomic_confirmation=True,
+    )
+    assert initial["status"] == SEM8_OWNER_REQUIRED
+
+    tax_question = next(
+        item
+        for item in initial["owner_questions"]
+        if item.get("column_refs") == ["Resumen.impuestos_periodo"]
+    )
+    tax_decision_id = str(tax_question["decision_id"])
+
+    class _AssistProvider:
+        def __call__(self, _payload):
+            raise AssertionError("semantic classification must not rerun during correction")
+
+        def assist(self, payload):
+            assert payload["interaction_mode"] == "CORRECTION"
+            assert payload["column_refs"] == ["Resumen.impuestos_periodo"]
+            allowed = {
+                (item["semantic_role"], item["variable_name"])
+                for item in payload["allowed_role_variable_pairs"]
+            }
+            assert allowed == {
+                ("period_taxes_total", "taxes"),
+                ("tax_amount", "taxes"),
+                ("period_sales_total", "sale_price"),
+            }
+            return {
+                "response_text": "Entiendo que es el impuesto de este registro, no el total del período.",
+                "suggested_semantic_role": "tax_amount",
+                "suggested_variable_name": "taxes",
+                "suggestion_reason": "Owner described a row-level tax amount.",
+            }
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=_AssistProvider(),
+    )
+    state = app.session("tax-revise")
+    state.ingestion_output = ingestion
+    state.selected_launch_review = "net_margin_real"
+    state.semantic_assistance_state = initial
+    state.semantic_questions = [tax_question]
+    state.semantic_dialogue_responses = {
+        str(item["decision_id"]): {
+            "decision_id": str(item["decision_id"]),
+            "action": "ACCEPT",
+        }
+        for item in initial["owner_questions"]
+        if str(item["decision_id"]) != tax_decision_id
+    }
+    actual_allowed = {
+        (item["semantic_role"], item["variable_name"])
+        for item in app._allowed_role_variable_pairs(
+            initial,
+            column_refs=["Resumen.impuestos_periodo"],
+        )
+    }
+    assert actual_allowed == {
+        ("period_taxes_total", "taxes"),
+        ("tax_amount", "taxes"),
+        ("period_sales_total", "sale_price"),
+    }
+
+    status, page = app.semantic_assist(
+        session_id="tax-revise",
+        fields={
+            "decision_id": tax_decision_id,
+            "assistant_message": "Esta columna representa el importe de impuestos de cada registro, no el total de impuestos del período.",
+            "correction_mode": "1",
+        },
+    )
+    assert status == 200
+    assert state.semantic_chat_suggestions[tax_decision_id] == {
+        "semantic_role": "tax_amount",
+        "variable_name": "taxes",
+        "reason": "Owner described a row-level tax amount.",
+        "owner_text": "Esta columna representa el importe de impuestos de cada registro, no el total de impuestos del período.",
+    }
+    assert "Propuesta revisada" in page
+
+    status, page = app.semantic_revise(
+        session_id="tax-revise",
+        fields={"decision_id": tax_decision_id},
+    )
+    assert status == 200
+    assert state.semantic_assistance_state["status"] == SEM8_OWNER_REQUIRED
+    assert state.semantic_assistance_state["owner_evidence_packet"] is None
+    assert state.semantic_assistance_state["runtime_authorized"] is False
+    assert state.semantic_questions[0]["decision_id"] == tax_decision_id
+    assert tax_decision_id not in state.semantic_chat_suggestions
+    assert "Confirmala" in page
+
+    status, page = app.confirm_meanings(
+        session_id="tax-revise",
+        fields={f"action_{tax_decision_id}": "ACCEPT"},
+    )
+    assert status == 200
+    assert state.last_review_result is not None
+    assert state.last_review_result["status"] == STATUS_BLOCKED
+    assert state.last_review_result["blocked_reason"] == "COMPONENT_SEMANTICS_REQUIRED"
+    assert state.last_review_result["semantic_bindings_confirmed"] is True
+    assert state.last_review_result["computation_executed"] is False
+    assert state.last_review_result["runtime_authorized"] is False
+    assert state.last_review_result["delivery_authorized"] is False

@@ -12,8 +12,10 @@ to column concept interpretation and material ambiguity detection.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
+import threading
 from collections.abc import Mapping
 from typing import Any, Callable
 
@@ -81,21 +83,29 @@ Return one decision for every column_ref supplied in columns_to_interpret.
 _ASSISTANT_SYSTEM_PROMPT = """You are the bounded semantic help drawer for PymIA Servicio 1.
 
 You are helping a business owner understand one currently visible Excel column.
-You may explain the existing proposal, point to the supplied sample values and
-business context, and help the owner phrase a correction in plain language.
+The request supplies interaction_mode, which is either "QUESTION" or "CORRECTION".
 
-Hard limits:
+For interaction_mode="QUESTION":
+- The owner is asking to understand the current proposal.
+- Explain the existing proposal, point to the supplied sample values and business
+  context, and help the owner phrase a correction in plain language.
+- suggestion may be null; you are not required to propose a pair.
+
+For interaction_mode="CORRECTION":
+- The owner is explaining that the current proposal is wrong and stating what the
+  column actually means.
+- Interpret their text against allowed_role_variable_pairs supplied in the request.
+- If their explanation clearly matches exactly one allowed pair, return that exact
+  suggested_semantic_role and suggested_variable_name.
+- If no allowed pair clearly matches, return both suggested fields as null.
+- Never invent pairs. Never return a pair that is not in allowed_role_variable_pairs.
+
+Hard limits (both modes):
 - Never confirm a meaning on behalf of the owner.
 - Never persist evidence or claim that anything was saved.
 - Never calculate totals, margins, balances, ratios or business results.
 - Never authorize tools, runtime, product execution or delivery.
 - Never invent workbook values or column references.
-- If the owner says the proposal is wrong, acknowledge that and help them state
-  what the column means; do not silently convert their statement into truth.
-- You may suggest a semantic_role + variable_name only when that exact pair is
-  present in allowed_role_variable_pairs supplied in the request.
-- If no allowed pair clearly matches the owner's explanation, return both
-  suggested fields as null instead of guessing.
 - A suggestion is only a proposal for the owner to review; it is not confirmation.
 - Keep the answer concise and in the owner's language.
 
@@ -260,17 +270,34 @@ def _decision_payload(
 
 
 class Service1PydanticAIColumnSemanticProviderV1:
-    """Callable semantic provider with no tools and no calculation authority."""
+    """Callable semantic provider with no tools and no calculation authority.
+
+    Runs pydantic-ai agents on a single persistent event loop so concurrent
+    threaded web requests never rebind the shared httpx/anyio resources to a
+    second loop (which raises "Event bound to a different event loop").
+    """
 
     def __init__(self, *, agent: Any, assistant_agent: Any | None = None) -> None:
         self._agent = agent
         self._assistant_agent = assistant_agent
+        self._loop = asyncio.new_event_loop()
+        self._lock = threading.Lock()
+
+    def _run_sync(self, callable_agent: Any, prompt: str) -> Any:
+        run = getattr(callable_agent, "run", None)
+        if callable(run):
+            with self._lock:
+                return self._loop.run_until_complete(run(prompt))
+        run_sync = getattr(callable_agent, "run_sync", None)
+        if callable(run_sync):
+            return run_sync(prompt)
+        raise RuntimeError("semantic agent exposes no run/run_sync callable")
 
     def __call__(self, payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(payload, Mapping):
             raise ValueError("semantic provider payload must be a mapping")
         context = _compact_column_context(payload)
-        result = self._agent.run_sync(json.dumps(context, ensure_ascii=False, default=str))
+        result = self._run_sync(self._agent, json.dumps(context, ensure_ascii=False, default=str))
         output = getattr(result, "output", None)
         batch = output if isinstance(output, ColumnSemanticBatchV1) else ColumnSemanticBatchV1.model_validate(output)
         return _decision_payload(payload=payload, batch=batch)
@@ -281,8 +308,9 @@ class Service1PydanticAIColumnSemanticProviderV1:
             raise RuntimeError("semantic assistance agent is not configured")
         if not isinstance(payload, Mapping):
             raise ValueError("semantic assistance payload must be a mapping")
-        result = self._assistant_agent.run_sync(
-            json.dumps(dict(payload), ensure_ascii=False, default=str)
+        result = self._run_sync(
+            self._assistant_agent,
+            json.dumps(dict(payload), ensure_ascii=False, default=str),
         )
         output = getattr(result, "output", None)
         reply = (
