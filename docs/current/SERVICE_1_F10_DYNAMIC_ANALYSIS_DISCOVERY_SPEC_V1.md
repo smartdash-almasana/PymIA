@@ -50,18 +50,36 @@ F10 nunca considera una opción disponible sólo porque exista una tarjeta o un 
 
 ## Catálogo F10 actual
 
-La primera versión contiene únicamente shapes ya soportados por F3–F9:
+F10 conserva la autoridad de discovery y F12 amplía sistemáticamente sus templates declarativos. El catálogo técnico actual incluye:
 
 ```text
 sales_total
 sales_by_product
 gross_margin_by_product
 sales_by_branch
+sales_by_category
+sales_by_employee
+sales_by_channel
+sales_by_payment_method
+units_by_product
+rows_by_product
+top_products_by_sales
+top_products_by_units
+product_sales_concentration
+discounted_rows
+discounted_rows_by_product
+catalog_price_variance_by_product
+transaction_id_multiplicity
+sales_by_product_branch
+sales_by_category_branch
 sales_series_day
+sales_series_hour
 sales_series_month
 dso
 projected_cash_balance
 ```
+
+La política comercial F12 es una capa separada; presencia en catálogo no implica exposición ni computabilidad.
 
 Cada entrada declara sólo:
 
@@ -73,6 +91,7 @@ kind
 measures
 dimensions
 requested grain
+filters declarativos cuando corresponda
 order_by / limit cuando corresponda
 preferred_roles cuando el análisis requiere una fuente de dimensión específica
 commercially_exposed_by_default

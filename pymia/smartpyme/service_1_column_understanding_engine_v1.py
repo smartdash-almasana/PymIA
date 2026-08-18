@@ -679,7 +679,10 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
     _RoleRule(
         semantic_role="payment_method",
         variable_name="payment_method",
-        header_keywords=("medio_pago", "medio_de_pago", "medio_cobro", "medio_de_cobro", "forma_pago", "payment_method"),
+        header_keywords=(
+            "medio_pago", "medio_de_pago", "medio_cobro", "medio_de_cobro",
+            "forma_pago", "metodo_pago", "metodopago", "payment_method",
+        ),
         expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
         contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_NUMBER}),
         co_column_boosts=frozenset({"cobrado", "factura", "cliente", "importe_total"}),

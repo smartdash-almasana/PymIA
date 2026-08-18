@@ -209,20 +209,16 @@ def test_commercial_exposure_is_separate_from_technical_availability() -> None:
     technical_only = build_service_1_dynamic_analysis_discovery_v1(
         confirmed_bindings=confirmed
     )
-    assert {item.analysis_id for item in technical_only.technically_available} == {
-        "sales_total",
-        "sales_by_product",
-    }
+    technical_ids = {item.analysis_id for item in technical_only.technically_available}
+    assert {"sales_total", "sales_by_product"}.issubset(technical_ids)
     assert technical_only.commercially_exposed == ()
 
     exposed = build_service_1_dynamic_analysis_discovery_v1(
         confirmed_bindings=confirmed,
         commercially_exposed_analysis_ids=("sales_by_product",),
     )
-    assert {item.analysis_id for item in exposed.technically_available} == {
-        "sales_total",
-        "sales_by_product",
-    }
+    exposed_technical_ids = {item.analysis_id for item in exposed.technically_available}
+    assert {"sales_total", "sales_by_product"}.issubset(exposed_technical_ids)
     assert [item.analysis_id for item in exposed.commercially_exposed] == ["sales_by_product"]
     assert _by_id(exposed)["sales_total"].commercially_exposed is False
 

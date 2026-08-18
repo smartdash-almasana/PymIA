@@ -756,6 +756,9 @@ def _analysis_formula_refs(analysis_plan: Service1AnalysisPlanV1) -> tuple[tuple
         "sales": None,
         "gross_margin": "margen_bruto",
         "sales_concentration": "PYME_033_concentracion_sku",
+        "units": None,
+        "row_count": None,
+        "catalog_price_variance_pct": "precio_catalogo_variacion_pct",
         "dso": "PYME_011_dso",
         "projected_cash_balance": "LIQ_002_saldo_final_proyectado",
     }

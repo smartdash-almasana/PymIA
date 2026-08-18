@@ -119,6 +119,18 @@ formula_refs: margen_bruto
 required evidence mode: sales_amount OR (quantity + unit_sale_price)
 formula_refs: PYME_033_concentracion_sku
 
+ units
+required roles: quantity
+formula_refs: none
+
+ row_count
+required roles: transaction_identifier
+formula_refs: none
+
+ catalog_price_variance_pct
+required roles: quantity + unit_sale_price + list_price
+formula_refs: precio_catalogo_variacion_pct
+
  dso
 required evidence mode: accounts_receivable_amount + [sales_amount OR (quantity + unit_sale_price)] + (period_days OR days)
 formula_refs: PYME_011_dso

@@ -595,6 +595,12 @@ def _analysis_required_role_groups(
             groups.extend((("quantity",), ("unit_cost_candidate",)))
         elif measure == "sales_concentration":
             groups.extend(sales_basis_groups())
+        elif measure == "units":
+            groups.append(("quantity",))
+        elif measure == "row_count":
+            groups.append(("transaction_identifier",))
+        elif measure == "catalog_price_variance_pct":
+            groups.extend((("quantity",), ("unit_sale_price",), ("list_price",)))
         elif measure == "dso":
             groups.extend((("accounts_receivable_amount",), *sales_basis_groups(), ("period_days", "days")))
         elif measure == "projected_cash_balance":
@@ -606,6 +612,16 @@ def _analysis_required_role_groups(
             groups.append(("product_identifier", "product_name"))
         elif dimension == "branch":
             groups.append(("branch_identifier", "branch_name"))
+        elif dimension == "category":
+            groups.append(("commercial_category",))
+        elif dimension == "employee":
+            groups.append(("employee_identifier", "employee_name"))
+        elif dimension == "channel":
+            groups.append(("sales_channel",))
+        elif dimension == "payment_method":
+            groups.append(("payment_method",))
+        elif dimension == "transaction":
+            groups.append(("transaction_identifier",))
         elif dimension == "time":
             temporal = analysis_plan.requested_grain.temporal_grain
             if temporal in {"DAY", "WEEK", "MONTH"}:
@@ -616,6 +632,11 @@ def _analysis_required_role_groups(
                 return tuple(groups), f"UNSUPPORTED_ANALYSIS_TEMPORAL_GRAIN:{temporal}"
         else:
             return tuple(groups), f"UNSUPPORTED_ANALYSIS_DIMENSION:{dimension}"
+
+    for analysis_filter in analysis_plan.filters:
+        field_ref = str(analysis_filter.field_ref or "").strip()
+        if field_ref == "discount_candidate":
+            groups.append(("discount_candidate",))
     unique_groups: list[tuple[str, ...]] = []
     for group in groups:
         if group not in unique_groups:
@@ -626,7 +647,15 @@ def _analysis_required_role_groups(
 def _analysis_expected_business_grain(
     analysis_plan: Service1AnalysisPlanV1,
 ) -> tuple[str, str | None]:
-    mapping = {"product": "PRODUCT", "branch": "BRANCH"}
+    mapping = {
+        "product": "PRODUCT",
+        "branch": "BRANCH",
+        "category": "CATEGORY",
+        "employee": "EMPLOYEE",
+        "channel": "CHANNEL",
+        "payment_method": "PAYMENT_METHOD",
+        "transaction": "TRANSACTION",
+    }
     parts: list[str] = []
     for dimension in analysis_plan.dimensions:
         if dimension == "time":

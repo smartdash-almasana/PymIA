@@ -90,6 +90,20 @@ sales_concentration
   per-group formula_ref = PYME_033_concentracion_sku
   output = percentage
 
+units
+  units = SUM(quantity)
+  formula_ref = NONE
+
+row_count
+  row_count = COUNT(governed rows with transaction_identifier evidence)
+  formula_ref = NONE
+
+catalog_price_variance_pct
+  observed_sales = SUM_PRODUCT(quantity, unit_sale_price)
+  observed_units = SUM(quantity)
+  catalog_price = SINGLE_VALUE(list_price)
+  formula_ref = precio_catalogo_variacion_pct
+
 dso
   accounts_receivable = SUM(accounts_receivable_amount)
   sales = direct-or-atomic sales evidence

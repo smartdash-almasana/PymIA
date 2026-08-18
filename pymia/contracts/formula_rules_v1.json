@@ -466,6 +466,42 @@
         "family_id": "N"
       }
     },
+    "precio_catalogo_variacion_pct": {
+      "formula_id": "precio_catalogo_variacion_pct",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "observed_sales",
+        "observed_units",
+        "catalog_price"
+      ],
+      "expression": "((observed_sales / observed_units) - catalog_price) / catalog_price * 100",
+      "output_unit": "percentage",
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [
+        {
+          "field": "observed_units",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: observed_units"
+        },
+        {
+          "field": "catalog_price",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: catalog_price"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": "media",
+        "priority_robustez": "media",
+        "category": "pricing",
+        "family_id": null
+      }
+    },
     "REN_002_coeficiente_reposicion": {
       "formula_id": "REN_002_coeficiente_reposicion",
       "formula_version": "1.0",

@@ -2597,9 +2597,9 @@ def _handler_for(
                             status, content_html = semantic_revise(session_id=session_id, fields=fields)
                     elif self.path == "/run-review":
                         selected_reviews = [
-                            ref
-                            for ref, _name, _question in _LAUNCH_REVIEW_OPTIONS
-                            if fields.get(f"review_{ref}", "") == "1"
+                            key.removeprefix("review_")
+                            for key, value in fields.items()
+                            if key.startswith("review_") and value == "1" and key.removeprefix("review_")
                         ]
                         if selected_reviews or "review" not in fields:
                             status, content_html = application.run_selected_reviews(

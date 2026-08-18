@@ -26,15 +26,30 @@ from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     run_service_1_assisted_semantic_initial_v1,
     run_service_1_assisted_semantic_reentry_v1,
 )
+from pymia.smartpyme.service_1_analysis_evidence_preparation_v1 import (
+    STATUS_PREPARED,
+    build_service_1_analysis_evidence_preparation_v1,
+)
+from pymia.smartpyme.service_1_analysis_math_execution_v1 import (
+    STATUS_EVALUATED,
+    execute_service_1_analysis_math_v1,
+)
+from pymia.smartpyme.service_1_analysis_result_projection_v1 import (
+    STATUS_READY as F9_STATUS_READY,
+    build_service_1_analysis_result_projection_v1,
+)
 from pymia.smartpyme.service_1_computability_v1 import STATUS_COMPUTABLE
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
     build_computability_decision_from_confirmed_bindings_v1,
 )
 from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
+    F12_COMMERCIAL_ANALYSIS_IDS,
     STATUS_READY as F10_STATUS_READY,
     build_service_1_dynamic_analysis_discovery_v1,
+    project_service_1_dynamic_discovery_menu_v1,
 )
+from pymia.smartpyme.service_1_ui_v1 import render_analysis_result_sets_v1
 
 
 _DISCOVERY_SCHEMA_VERSION = "SERVICE_1_POST_SEMANTIC_ANALYSIS_DISCOVERY_V1"
@@ -102,6 +117,7 @@ def build_service_1_post_semantic_analysis_discovery_v1(
 
     analysis_discovery = build_service_1_dynamic_analysis_discovery_v1(
         confirmed_bindings=confirmed_bindings,
+        commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
     )
     if analysis_discovery.status != F10_STATUS_READY:
         return {
@@ -113,6 +129,25 @@ def build_service_1_post_semantic_analysis_discovery_v1(
             "analysis_plans": [],
             "technically_available_analysis_ids": [],
             "commercially_exposed_analysis_ids": [],
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    analysis_menu = project_service_1_dynamic_discovery_menu_v1(analysis_discovery)
+    if analysis_menu.get("status") != "READY":
+        return {
+            "schema_version": _DISCOVERY_SCHEMA_VERSION,
+            "status": "BLOCKED",
+            "blocked_reason": analysis_menu.get("blocked_reason") or "F12_MENU_PROJECTION_BLOCKED",
+            "available": [],
+            "blocked": [],
+            "analysis_menu_available": [],
+            "analysis_menu_blocked": [],
+            "analysis_plans": [item.to_dict() for item in analysis_discovery.analyses],
+            "technically_available_analysis_ids": [item.analysis_id for item in analysis_discovery.technically_available],
+            "commercially_exposed_analysis_ids": [item.analysis_id for item in analysis_discovery.commercially_exposed],
             "runtime_authorized": False,
             "tool_execution_authorized": False,
             "delivery_authorized": False,
@@ -160,6 +195,8 @@ def build_service_1_post_semantic_analysis_discovery_v1(
         "blocked_reason": None,
         "available": available,
         "blocked": blocked,
+        "analysis_menu_available": [list(item) for item in (analysis_menu.get("available") or [])],
+        "analysis_menu_blocked": [dict(item) for item in (analysis_menu.get("blocked") or []) if isinstance(item, Mapping)],
         "analysis_plans": [item.to_dict() for item in analysis_discovery.analyses],
         "technically_available_analysis_ids": [
             item.analysis_id for item in analysis_discovery.technically_available
@@ -302,15 +339,29 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         ingestion = state.ingestion_output if isinstance(state.ingestion_output, Mapping) else {}
         filename = str(ingestion.get("filename") or ingestion.get("source_file_ref") or "").strip()
         available = [
-            (str(item["launch_ref"]), str(item["name"]), str(item["question"]))
-            for item in discovery.get("available") or []
-            if isinstance(item, Mapping)
+            (str(item[0]), str(item[1]), str(item[2]))
+            for item in discovery.get("analysis_menu_available") or []
+            if isinstance(item, (list, tuple)) and len(item) == 3
         ]
+        available.extend(
+            (
+                str(item.get("launch_ref") or ""),
+                str(item.get("name") or ""),
+                str(item.get("question") or ""),
+            )
+            for item in (discovery.get("available") or [])
+            if isinstance(item, Mapping) and str(item.get("launch_ref") or "").strip()
+        )
         blocked = [
             dict(item)
-            for item in discovery.get("blocked") or []
+            for item in discovery.get("analysis_menu_blocked") or []
             if isinstance(item, Mapping)
         ]
+        blocked.extend(
+            dict(item)
+            for item in (discovery.get("blocked") or [])
+            if isinstance(item, Mapping)
+        )
         return HTTPStatus.OK, base.render_analysis_menu_v1(
             available,
             filename=filename,
@@ -373,6 +424,202 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         sequential = self._render_one_pending_question(session_id=session_id)
         return sequential if sequential is not None else (status, page)
 
+    def _f12_discovery(self, *, session_id: str):
+        state = self.session(session_id)
+        assistance = (
+            state.semantic_assistance_state
+            if isinstance(state.semantic_assistance_state, Mapping)
+            else {}
+        )
+        confirmed_run = assistance.get("semantic_run")
+        if (
+            not isinstance(confirmed_run, Mapping)
+            or confirmed_run.get("status") != STATUS_CONFIRMED_BINDINGS
+        ):
+            return None, None
+        discovery = build_service_1_dynamic_analysis_discovery_v1(
+            confirmed_bindings=confirmed_run,
+            commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
+        )
+        if discovery.status != F10_STATUS_READY:
+            return confirmed_run, None
+        return confirmed_run, discovery
+
+    def _execute_f12_analysis(self, *, session_id: str, analysis_id: str) -> dict[str, Any]:
+        state = self.session(session_id)
+        _confirmed_run, discovery = self._f12_discovery(session_id=session_id)
+        if discovery is None:
+            return {
+                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+                "status": "BLOCKED",
+                "analysis_id": analysis_id,
+                "blocked_reason": "F12_DISCOVERY_NOT_READY",
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+        item = next((value for value in discovery.analyses if value.analysis_id == analysis_id), None)
+        if item is None or not item.commercially_requested:
+            return {
+                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+                "status": "BLOCKED",
+                "analysis_id": analysis_id,
+                "blocked_reason": "ANALYSIS_NOT_COMMERCIALLY_REQUESTED",
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+        if not item.commercially_exposed or item.governed_analysis_input is None:
+            return {
+                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+                "status": "BLOCKED",
+                "analysis_id": analysis_id,
+                "title": item.title,
+                "question": item.question,
+                "blocked_reason": item.p8_reason or item.p7_reason or "ANALYSIS_NOT_COMPUTABLE",
+                "missing_role_groups": [list(group) for group in item.missing_role_groups],
+                "missing_relationship_evidence": list(item.missing_relationship_evidence),
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+        ingestion = state.ingestion_output if isinstance(state.ingestion_output, Mapping) else None
+        if ingestion is None:
+            return {
+                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+                "status": "BLOCKED",
+                "analysis_id": analysis_id,
+                "blocked_reason": "CANONICAL_INGESTION_REQUIRED",
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+
+        governed = item.governed_analysis_input
+        prepared = build_service_1_analysis_evidence_preparation_v1(
+            case_id=governed.case_id,
+            governed_analysis_input=governed,
+            ingestion_output=dict(ingestion),
+        )
+        if prepared.status != STATUS_PREPARED or prepared.prepared_evidence is None:
+            return {
+                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+                "status": "BLOCKED",
+                "analysis_id": analysis_id,
+                "title": item.title,
+                "question": item.question,
+                "blocked_reason": prepared.reason or "F7_PREPARATION_BLOCKED",
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+
+        math = execute_service_1_analysis_math_v1(
+            case_id=governed.case_id,
+            governed_analysis_input=governed,
+            prepared_evidence=prepared.prepared_evidence,
+        )
+        if math.status != STATUS_EVALUATED or math.result is None:
+            return {
+                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+                "status": "BLOCKED",
+                "analysis_id": analysis_id,
+                "title": item.title,
+                "question": item.question,
+                "blocked_reason": math.reason or "F8_EXECUTION_BLOCKED",
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+
+        projection = build_service_1_analysis_result_projection_v1(
+            math_result=math.result,
+            prepared_evidence=prepared.prepared_evidence,
+            currency_code=None,
+        )
+        if projection.status != F9_STATUS_READY or projection.projection is None:
+            return {
+                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+                "status": "BLOCKED",
+                "analysis_id": analysis_id,
+                "title": item.title,
+                "question": item.question,
+                "blocked_reason": projection.reason or "F9_PROJECTION_BLOCKED",
+                "runtime_authorized": False,
+                "tool_execution_authorized": False,
+                "delivery_authorized": False,
+                "diagnosis_generated": False,
+            }
+
+        result_projection = projection.projection
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "READY",
+            "analysis_id": analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "result_set": result_projection.result_set.to_dict(),
+            "findings": [finding.to_dict() for finding in result_projection.findings],
+            "outcome": result_projection.outcome.to_dict(),
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "product_ready": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    def run_selected_reviews(
+        self,
+        *,
+        session_id: str,
+        requested_capabilities: Sequence[str],
+    ) -> tuple[int, str]:
+        requested = tuple(
+            dict.fromkeys(
+                str(value or "").strip()
+                for value in requested_capabilities
+                if str(value or "").strip()
+            )
+        )
+        if not requested:
+            return HTTPStatus.BAD_REQUEST, self._post_semantic_analysis_menu_page(session_id=session_id)[1]
+        if not any(value in F12_COMMERCIAL_ANALYSIS_IDS for value in requested):
+            return super().run_selected_reviews(
+                session_id=session_id,
+                requested_capabilities=requested,
+            )
+        if any(value not in F12_COMMERCIAL_ANALYSIS_IDS for value in requested):
+            return HTTPStatus.BAD_REQUEST, base._error_page(
+                "No se pueden mezclar análisis workbook-first con revisiones legacy en la misma ejecución."
+            )
+
+        packets = [
+            self._execute_f12_analysis(session_id=session_id, analysis_id=analysis_id)
+            for analysis_id in requested
+        ]
+        blocked = [packet for packet in packets if packet.get("status") != "READY"]
+        if blocked:
+            return self._post_semantic_analysis_menu_page(session_id=session_id)
+        state = self.session(session_id)
+        state.last_review_result = {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_BUNDLE_V1",
+            "status": "READY",
+            "analysis_ids": list(requested),
+            "results": packets,
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "product_ready": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+        return HTTPStatus.OK, render_analysis_result_sets_v1(packets)
+
     def run_review(
         self,
         *,
@@ -384,6 +631,16 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             return HTTPStatus.BAD_REQUEST, base._error_page(
                 "Primero subí un archivo de Excel."
             )
+
+        if requested_capability in F12_COMMERCIAL_ANALYSIS_IDS:
+            packet = self._execute_f12_analysis(
+                session_id=session_id,
+                analysis_id=requested_capability,
+            )
+            if packet.get("status") != "READY":
+                return self._post_semantic_analysis_menu_page(session_id=session_id)
+            state.last_review_result = packet
+            return HTTPStatus.OK, render_analysis_result_sets_v1((packet,))
 
         assistance = (
             state.semantic_assistance_state

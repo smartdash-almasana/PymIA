@@ -129,6 +129,56 @@ _MEASURE_SPECS: Final[dict[str, _MeasureExecutionSpec]] = {
         direct_input_name=None,
         output_unit="ratio",
     ),
+    "units": _MeasureExecutionSpec(
+        measure_ref="units",
+        inputs=(
+            _MeasureInputSpec(
+                input_name="units",
+                operation=MathPrimitiveOperation.SUM,
+                role_alternatives=("quantity",),
+            ),
+        ),
+        formula_ref=None,
+        direct_input_name="units",
+        output_unit="units",
+    ),
+    "row_count": _MeasureExecutionSpec(
+        measure_ref="row_count",
+        inputs=(
+            _MeasureInputSpec(
+                input_name="row_count",
+                operation=MathPrimitiveOperation.COUNT,
+                role_alternatives=("transaction_identifier",),
+            ),
+        ),
+        formula_ref=None,
+        direct_input_name="row_count",
+        output_unit="count",
+    ),
+    "catalog_price_variance_pct": _MeasureExecutionSpec(
+        measure_ref="catalog_price_variance_pct",
+        inputs=(
+            _MeasureInputSpec(
+                input_name="observed_sales",
+                operation=MathPrimitiveOperation.SUM_PRODUCT,
+                role_alternatives=("quantity",),
+                paired_role_alternatives=("unit_sale_price",),
+            ),
+            _MeasureInputSpec(
+                input_name="observed_units",
+                operation=MathPrimitiveOperation.SUM,
+                role_alternatives=("quantity",),
+            ),
+            _MeasureInputSpec(
+                input_name="catalog_price",
+                operation=MathPrimitiveOperation.SINGLE_VALUE,
+                role_alternatives=("list_price",),
+            ),
+        ),
+        formula_ref="precio_catalogo_variacion_pct",
+        direct_input_name=None,
+        output_unit="percentage",
+    ),
     "dso": _MeasureExecutionSpec(
         measure_ref="dso",
         inputs=(
@@ -507,9 +557,15 @@ def _execute_measure(
                 role_errors.append(role_error)
                 continue
             assert primary_role is not None
-            values, refs, numeric_error = _numeric_values(rows, primary_role)
-            if numeric_error is not None:
-                return None, (STATUS_NEEDS_EVIDENCE, numeric_error)
+            if option.operation is MathPrimitiveOperation.COUNT:
+                refs, evidence_error = _role_source_refs(rows, primary_role)
+                if evidence_error is not None:
+                    return None, (STATUS_NEEDS_EVIDENCE, evidence_error)
+                values = [1.0] * len(rows)
+            else:
+                values, refs, numeric_error = _numeric_values(rows, primary_role)
+                if numeric_error is not None:
+                    return None, (STATUS_NEEDS_EVIDENCE, numeric_error)
             paired_values: list[float] = []
             paired_refs: list[str] = []
             paired_role: str | None = None
@@ -708,6 +764,20 @@ def _resolve_role(
             return None, f"REQUIRED_NUMERIC_ROLE_MISSING:{token}"
         return None, f"AMBIGUOUS_NUMERIC_ROLE:{token}"
     return available[0], None
+
+
+def _role_source_refs(
+    rows: list[Service1PreparedRowV1], role: str
+) -> tuple[list[str], str | None]:
+    refs: list[str] = []
+    for row in rows:
+        if role not in row.role_values:
+            return [], f"REQUIRED_ROLE_MISSING:{role}:{row.row_ref}"
+        source_ref = str(row.role_source_refs.get(role) or "").strip()
+        if not source_ref:
+            return [], f"SOURCE_REF_MISSING:{role}:{row.row_ref}"
+        refs.append(f"{source_ref}@{row.row_ref}")
+    return refs, None
 
 
 def _numeric_values(

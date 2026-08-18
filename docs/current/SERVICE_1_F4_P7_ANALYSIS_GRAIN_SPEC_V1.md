@@ -93,6 +93,21 @@ dimension product
 dimension branch
 → branch_identifier OR branch_name
 
+dimension category
+→ commercial_category
+
+dimension employee
+→ employee_identifier OR employee_name
+
+dimension channel
+→ sales_channel
+
+dimension payment_method
+→ payment_method
+
+dimension transaction
+→ transaction_identifier
+
 dimension time + DAY/WEEK/MONTH
 → operation_date
 

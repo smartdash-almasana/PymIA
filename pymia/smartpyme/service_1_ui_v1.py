@@ -147,6 +147,90 @@ def render_analysis_bundle_v1(results: Sequence[Mapping[str, Any]]) -> str:
     return f'''<main id="app" tabindex="-1" class="journey">{_progress("resultado")}<header class="journey-intro"><p class="kicker">Devolución del Excel</p><h1>Tus análisis</h1><p>Resultados obtenidos únicamente con la evidencia confirmada del archivo.</p></header>{''.join(cards)}<div class="result-actions"><a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Mis análisis</a></div></main>'''
 
 
+def render_analysis_result_sets_v1(results: Sequence[Mapping[str, Any]]) -> str:
+    """Render governed F9 ResultSets without business calculations or inference."""
+    sections: list[str] = []
+    for item in results:
+        result_set = item.get("result_set") if isinstance(item.get("result_set"), Mapping) else {}
+        groups = [group for group in (result_set.get("groups") or []) if isinstance(group, Mapping)]
+        title = str(item.get("title") or result_set.get("analysis_id") or "Análisis")
+        question = str(item.get("question") or "")
+        if not groups:
+            sections.append(
+                f'<section class="analysis-result-card"><header><div><p class="kicker">{_esc(title)}</p>'
+                f'<h2>Sin filas de resultado</h2></div><span class="result-state is-missing">Sin resultado</span></header>'
+                f'<p>{_esc(question)}</p></section>'
+            )
+            continue
+
+        dimension_keys: list[str] = []
+        measure_keys: list[str] = []
+        has_rank = any(group.get("rank") is not None for group in groups)
+        for group in groups:
+            key = group.get("key") if isinstance(group.get("key"), Mapping) else {}
+            for dimension in key:
+                if str(dimension) not in dimension_keys:
+                    dimension_keys.append(str(dimension))
+            measures = group.get("measures") if isinstance(group.get("measures"), Mapping) else {}
+            for measure in measures:
+                if str(measure) not in measure_keys:
+                    measure_keys.append(str(measure))
+
+        columns = (["rank"] if has_rank else []) + dimension_keys + measure_keys
+        header_html = "".join(f"<th>{_esc(column.replace('_', ' ').title())}</th>" for column in columns)
+        row_html: list[str] = []
+        for group in groups[:250]:
+            key = group.get("key") if isinstance(group.get("key"), Mapping) else {}
+            measures = group.get("measures") if isinstance(group.get("measures"), Mapping) else {}
+            cells: list[str] = []
+            if has_rank:
+                cells.append(f"<td>{_esc(group.get('rank') or '')}</td>")
+            for dimension in dimension_keys:
+                cells.append(f"<td>{_esc(key.get(dimension, ''))}</td>")
+            for measure_ref in measure_keys:
+                measure = measures.get(measure_ref) if isinstance(measures.get(measure_ref), Mapping) else {}
+                value = measure.get("value")
+                unit = str(measure.get("unit") or "")
+                currency = str(measure.get("currency_code") or "")
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    if unit == "percentage":
+                        rendered_value = f"{float(value):.2f}%"
+                    elif unit in {"count", "units"} and float(value).is_integer():
+                        rendered_value = str(int(value))
+                    else:
+                        rendered_value = _format_amount(float(value))
+                else:
+                    rendered_value = str(value if value is not None else "")
+                suffix = f" {currency}" if currency else ""
+                cells.append(f"<td>{_esc(rendered_value + suffix)}</td>")
+            row_html.append(f"<tr>{''.join(cells)}</tr>")
+
+        source_sheets = ", ".join(str(value) for value in (result_set.get("source_sheet_refs") or []))
+        relationships = ", ".join(str(value) for value in (result_set.get("relationship_refs") or []))
+        details: list[str] = []
+        if source_sheets:
+            details.append(f"Hojas: {source_sheets}")
+        if relationships:
+            details.append(f"Relaciones confirmadas: {relationships}")
+        if len(groups) > 250:
+            details.append(f"Se muestran 250 de {len(groups)} filas del ResultSet.")
+        details_html = "".join(f"<li>{_esc(value)}</li>" for value in details)
+        sections.append(
+            f'<section class="analysis-result-card"><header><div><p class="kicker">{_esc(title)}</p>'
+            f'<h2>{_esc(question or title)}</h2></div><span class="result-state is-ready">Resultado listo</span></header>'
+            f'<div class="details-body"><table><thead><tr>{header_html}</tr></thead><tbody>{"".join(row_html)}</tbody></table></div>'
+            f'{f"<details><summary>Trazabilidad</summary><div class=\"details-body\"><ul>{details_html}</ul></div></details>" if details_html else ""}'
+            f'</section>'
+        )
+    return (
+        f'<main id="app" tabindex="-1" class="journey">{_progress("resultado")}'
+        '<header class="journey-intro"><p class="kicker">Devolución del Excel</p><h1>Tus análisis</h1>'
+        '<p>Resultados proyectados desde ResultSet gobernados. La interfaz no calcula ni infiere conclusiones.</p></header>'
+        f'{"".join(sections)}<div class="result-actions"><a class="secondary" href="/">Analizar otro Excel</a>'
+        '<a class="secondary" href="/cases">Mis análisis</a></div></main>'
+    )
+
+
 def _progress(current: str) -> str:
     steps = (("archivo", "Archivo"), ("comprension", "Comprensión y elección"), ("resultado", "Resultado"))
     current_index = [key for key, _ in steps].index(current)

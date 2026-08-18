@@ -52,6 +52,7 @@ _DIMENSION_ROLE_CANDIDATES: Final[dict[str, tuple[str, ...]]] = {
     "employee": ("employee_identifier", "employee_name"),
     "channel": ("sales_channel",),
     "payment_method": ("payment_method",),
+    "transaction": ("transaction_identifier",),
     "city": ("city",),
     "time": ("operation_date", "operation_time"),
 }

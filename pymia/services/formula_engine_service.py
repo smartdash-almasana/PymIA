@@ -207,6 +207,36 @@ class FormulaEngineService:
         if formula_id == "PYME_024_liquidez_corriente":
             return self._calculate_pyme_024_liquidez_corriente(values, source_refs)
 
+        if formula_id == "precio_catalogo_variacion_pct":
+            observed_sales = values["observed_sales"]
+            observed_units = values["observed_units"]
+            catalog_price = values["catalog_price"]
+            if observed_units == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: observed_units",
+                )
+            if catalog_price == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: catalog_price",
+                )
+            observed_price = observed_sales / observed_units
+            return self._ok(
+                formula_id,
+                ((observed_price - catalog_price) / catalog_price) * 100,
+                values,
+                source_refs,
+            )
+
         if formula_id == "PYME_017_pricing_drift":
             return self._calculate_pyme_017_pricing_drift(values, source_refs)
 
