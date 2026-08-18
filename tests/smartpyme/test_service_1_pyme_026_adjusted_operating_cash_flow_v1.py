@@ -22,7 +22,7 @@ def _plan() -> dict[str, object]:
         "status": "READY_FOR_COMPUTATION",
         "requested_capability": "adjusted_operating_cash_flow",
         "pathology_code": "PYME_026",
-        "formula_id": "PYME_026_adjusted_operating_cash_flow",
+        "formula_id": "PYME_026_flujo_operativo",
         "required_variables": [
             "net_income",
             "depreciation",
@@ -110,7 +110,7 @@ def test_pyme_026_registry_contract_is_atomic_and_explicit() -> None:
     assert definition is not None
     assert definition.kind == "ATOMIC"
     assert definition.pathology_code == "PYME_026"
-    assert definition.formula_ref == "PYME_026_adjusted_operating_cash_flow"
+    assert definition.formula_ref == "PYME_026_flujo_operativo"
     assert definition.result_key == "adjusted_operating_cash_flow_value"
     assert definition.result_unit == "currency"
     assert tuple(variable.name for variable in definition.variables) == (

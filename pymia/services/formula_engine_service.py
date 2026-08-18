@@ -58,6 +58,21 @@ class FormulaEngineService:
             collected_amount = values["collected_amount"]
             return self._ok(formula_id, sold_amount - collected_amount, values, source_refs)
 
+        if formula_id == "PYME_013_PREREQUISITE_dpo":
+            accounts_payable = values["accounts_payable"]
+            purchases = values["purchases"]
+            days = values["days"]
+            if purchases == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: purchases",
+                )
+            return self._ok(formula_id, (accounts_payable / purchases) * days, values, source_refs)
+
         if formula_id == "INV_002_rotacion_stock":
             return self._calculate_inv_002_rotacion_stock(values, source_refs)
 

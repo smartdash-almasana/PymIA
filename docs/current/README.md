@@ -63,6 +63,8 @@ Estos documentos forman la superficie de continuidad de Servicio 1:
 - `docs/current/SERVICE_1_STATUS.md` — inventario técnico resumido y verificable.
 - `docs/current/SERVICE_1_CANONICAL_AXIS.md` — eje canónico e invariantes permanentes.
 - `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — prohibiciones y límites de autoridad.
+- `docs/current/SERVICE_1_F1_MATHEMATICAL_AUTHORITY_SPEC_V1.md` — autoridad matemática F1 congelada, deuda de agregación explícitamente diferida a F8.
+- `docs/current/SERVICE_1_F2_CANONICAL_FORMULA_SOURCE_SPEC_V1.md` — fuente canónica F2 de reglas de fórmula, proyección de catálogo y deuda de agregación.
 - `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
 - `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
 - `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.
@@ -144,7 +146,7 @@ FAIL_CLOSED
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
 SEMANTIC_ASSISTANCE_IS_NOT_AUTHORITY
 DERIVED_EVIDENCE_IS_NOT_FORMULA_AUTHORITY
-KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
+FORMULA_ENGINE_IS_FORMULA_EXECUTION_AUTHORITY
 P8_REMAINS_COMPUTABILITY_AUTHORITY
 ```
 

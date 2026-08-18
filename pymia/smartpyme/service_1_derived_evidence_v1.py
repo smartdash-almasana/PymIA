@@ -580,6 +580,12 @@ def _apply_discount(
     discount: float,
     unit_kind: str | None,
 ) -> tuple[float, str | None]:
+    """Apply a confirmed discount unit while preparing row-level evidence.
+
+    This is a governed evidence transformation for the derived sales total,
+    not an independent productive business-formula authority. Final formulas
+    remain delegated to ``FormulaEngineService``.
+    """
     if discount == 0:
         return gross_sale, None
     if unit_kind == UNIT_DISCOUNT_FRACTION:

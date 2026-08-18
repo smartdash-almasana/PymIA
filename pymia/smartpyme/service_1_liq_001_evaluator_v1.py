@@ -10,6 +10,8 @@ import math
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final
 
+from pymia.contracts.formula_contract import FormulaInput, FormulaStatus, calculate_formula
+
 SCHEMA_VERSION: Final[str] = "SERVICE_1_LIQ_001_EVALUATION_V1"
 PATHOLOGY_CODE: Final[str] = "LIQ_001"
 FORMULA_REF: Final[str] = "LIQ_001_vendido_cobrado"
@@ -244,7 +246,21 @@ def evaluate_liq_001_v1(*, sold_amount: object, collected_amount: object) -> dic
 
     sold = normalized["sold_amount"]
     collected = normalized["collected_amount"]
-    gap = sold - collected
+    kernel_result = calculate_formula(
+        FORMULA_REF,
+        [
+            FormulaInput(name="sold_amount", value=sold, source_refs=["LIQ_001:sold_amount"]),
+            FormulaInput(name="collected_amount", value=collected, source_refs=["LIQ_001:collected_amount"]),
+        ],
+    )
+    if kernel_result.status != FormulaStatus.OK or kernel_result.value is None:
+        return _packet(
+            status=STATUS_INVALID_INPUT,
+            classification=None,
+            inputs=normalized,
+            errors=[kernel_result.blocking_reason or "LIQ_001 formula calculation blocked."],
+        )
+    gap = kernel_result.value
 
     if sold == 0:
         if collected == 0:

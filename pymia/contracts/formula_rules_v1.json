@@ -1,5 +1,6 @@
 {
   "schema_version": "1.0",
+  "authority": "CANONICAL_PRODUCTIVE_FORMULA_SPEC",
   "source": {
     "runtime_engine": "pymia/services/formula_engine_service.py",
     "catalog": "docs/formula_catalog.v1.json",
@@ -8,7 +9,11 @@
   "rules_by_formula": {
     "margen_bruto": {
       "formula_id": "margen_bruto",
-      "required_inputs": ["ventas", "costos"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "ventas",
+        "costos"
+      ],
       "expression": "(ventas - costos) / ventas",
       "output_unit": "ratio",
       "pathology_code": null,
@@ -33,7 +38,11 @@
     },
     "ganancia_bruta": {
       "formula_id": "ganancia_bruta",
-      "required_inputs": ["ventas", "costos"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "ventas",
+        "costos"
+      ],
       "expression": "ventas - costos",
       "output_unit": null,
       "pathology_code": null,
@@ -51,7 +60,12 @@
     },
     "REN_001_margen_neto_real": {
       "formula_id": "REN_001_margen_neto_real",
-      "required_inputs": ["sale_price", "costs", "taxes"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "sale_price",
+        "costs",
+        "taxes"
+      ],
       "expression": "((sale_price - costs - taxes) / sale_price) * 100",
       "output_unit": "percentage",
       "pathology_code": "REN_001",
@@ -76,7 +90,11 @@
     },
     "LIQ_001_vendido_cobrado": {
       "formula_id": "LIQ_001_vendido_cobrado",
-      "required_inputs": ["sold_amount", "collected_amount"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "sold_amount",
+        "collected_amount"
+      ],
       "expression": "sold_amount - collected_amount",
       "output_unit": "currency",
       "pathology_code": "LIQ_001",
@@ -94,7 +112,11 @@
     },
     "INV_002_rotacion_stock": {
       "formula_id": "INV_002_rotacion_stock",
-      "required_inputs": ["cost_of_goods_sold", "average_stock"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "cost_of_goods_sold",
+        "average_stock"
+      ],
       "expression": "cost_of_goods_sold / average_stock",
       "output_unit": "ratio",
       "pathology_code": "INV_002",
@@ -119,7 +141,12 @@
     },
     "INV_001_punto_reposicion": {
       "formula_id": "INV_001_punto_reposicion",
-      "required_inputs": ["average_sales", "lead_time", "safety_stock"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "average_sales",
+        "lead_time",
+        "safety_stock"
+      ],
       "expression": "(average_sales * lead_time) + safety_stock",
       "output_unit": "units",
       "pathology_code": "INV_001",
@@ -137,8 +164,13 @@
     },
     "PYME_011_dso": {
       "formula_id": "PYME_011_dso",
-      "required_inputs": ["accounts_receivable", "sales", "days"],
-      "expression": "(accounts_receivable / sales) * days",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "accounts_receivable",
+        "sales",
+        "days"
+      ],
+      "expression": "accounts_receivable / sales * days",
       "output_unit": "days",
       "pathology_code": "PYME_011",
       "source_catalog_ref": "PYME_011_dso",
@@ -162,7 +194,11 @@
     },
     "PYME_013_dso_dpo_gap": {
       "formula_id": "PYME_013_dso_dpo_gap",
-      "required_inputs": ["dso", "dpo"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "dso",
+        "dpo"
+      ],
       "expression": "dso - dpo",
       "output_unit": "days",
       "pathology_code": "PYME_013",
@@ -178,9 +214,44 @@
         "family_id": "E"
       }
     },
+    "PYME_013_PREREQUISITE_dpo": {
+      "formula_id": "PYME_013_PREREQUISITE_dpo",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "accounts_payable",
+        "purchases",
+        "days"
+      ],
+      "expression": "(accounts_payable / purchases) * days",
+      "output_unit": "days",
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [
+        {
+          "field": "purchases",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: purchases"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": null,
+        "priority_mvp": null,
+        "priority_robustez": null,
+        "category": null,
+        "family_id": null
+      }
+    },
     "LIQ_002_saldo_final_proyectado": {
       "formula_id": "LIQ_002_saldo_final_proyectado",
-      "required_inputs": ["initial_balance", "expected_collections", "expected_payments"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "initial_balance",
+        "expected_collections",
+        "expected_payments"
+      ],
       "expression": "initial_balance + expected_collections - expected_payments",
       "output_unit": "currency",
       "pathology_code": "LIQ_002",
@@ -198,7 +269,11 @@
     },
     "PYME_024_liquidez_corriente": {
       "formula_id": "PYME_024_liquidez_corriente",
-      "required_inputs": ["current_assets", "current_liabilities"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "current_assets",
+        "current_liabilities"
+      ],
       "expression": "current_assets / current_liabilities",
       "output_unit": "ratio",
       "pathology_code": "PYME_024",
@@ -223,8 +298,12 @@
     },
     "PYME_017_pricing_drift": {
       "formula_id": "PYME_017_pricing_drift",
-      "required_inputs": ["own_price", "market_price"],
-      "expression": "((own_price - market_price) / market_price) * 100",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "own_price",
+        "market_price"
+      ],
+      "expression": "(own_price - market_price) / market_price * 100",
       "output_unit": "percentage",
       "pathology_code": "PYME_017",
       "source_catalog_ref": "PYME_017_pricing_drift",
@@ -248,7 +327,11 @@
     },
     "punto_equilibrio_ventas": {
       "formula_id": "punto_equilibrio_ventas",
-      "required_inputs": ["fixed_costs", "contribution_margin_rate"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "fixed_costs",
+        "contribution_margin_rate"
+      ],
       "expression": "fixed_costs / contribution_margin_rate",
       "output_unit": "currency",
       "pathology_code": null,
@@ -280,7 +363,13 @@
     },
     "PYME_026_flujo_operativo": {
       "formula_id": "PYME_026_flujo_operativo",
-      "required_inputs": ["net_income", "depreciation", "amortization", "working_capital_change"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "net_income",
+        "depreciation",
+        "amortization",
+        "working_capital_change"
+      ],
       "expression": "net_income + depreciation + amortization - working_capital_change",
       "output_unit": "currency",
       "pathology_code": "PYME_026",
@@ -298,7 +387,11 @@
     },
     "PYME_027_intereses_ebitda": {
       "formula_id": "PYME_027_intereses_ebitda",
-      "required_inputs": ["interest_expense", "ebitda"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "interest_expense",
+        "ebitda"
+      ],
       "expression": "interest_expense / ebitda",
       "output_unit": "ratio",
       "pathology_code": "PYME_027",
@@ -323,7 +416,12 @@
     },
     "PYME_044_margen_cliente": {
       "formula_id": "PYME_044_margen_cliente",
-      "required_inputs": ["client_revenue", "client_direct_costs", "client_service_costs"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "client_revenue",
+        "client_direct_costs",
+        "client_service_costs"
+      ],
       "expression": "client_revenue - client_direct_costs - client_service_costs",
       "output_unit": "currency",
       "pathology_code": "PYME_044",
@@ -341,8 +439,12 @@
     },
     "PYME_033_concentracion_sku": {
       "formula_id": "PYME_033_concentracion_sku",
-      "required_inputs": ["main_sku_sales", "total_sales"],
-      "expression": "(main_sku_sales / total_sales) * 100",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "main_sku_sales",
+        "total_sales"
+      ],
+      "expression": "main_sku_sales / total_sales * 100",
       "output_unit": "percentage",
       "pathology_code": "PYME_033",
       "source_catalog_ref": "PYME_033_concentracion_sku",
@@ -366,7 +468,11 @@
     },
     "REN_002_coeficiente_reposicion": {
       "formula_id": "REN_002_coeficiente_reposicion",
-      "required_inputs": ["closing_index", "origin_index"],
+      "formula_version": "1.0",
+      "required_inputs": [
+        "closing_index",
+        "origin_index"
+      ],
       "expression": "closing_index / origin_index",
       "output_unit": "ratio",
       "pathology_code": "REN_002",

@@ -9,17 +9,7 @@ SCHEMA_VERSION: Final[str] = "SERVICE_1_GENERIC_CAPABILITY_CONTRACTS_V1"
 
 CapabilityKind = Literal["ATOMIC", "COMPOSITE"]
 AggregationMode = Literal["SUM", "SINGLE_VALUE"]
-Operation = Literal["VALUE", "VARIABLE", "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE"]
 Comparison = Literal["LT", "LE", "EQ", "GE", "GT"]
-
-
-@dataclass(frozen=True)
-class FormulaNodeV1:
-    operation: Operation
-    variable_name: str | None = None
-    value: Decimal | None = None
-    left: "FormulaNodeV1 | None" = None
-    right: "FormulaNodeV1 | None" = None
 
 
 @dataclass(frozen=True)
@@ -58,7 +48,6 @@ class CapabilityDefinitionV1:
     formula_ref: str
     kind: CapabilityKind
     variables: tuple[VariableRequirementV1, ...]
-    formula: FormulaNodeV1
     result_key: str
     result_unit: str
     classifications: tuple[ClassificationRuleV1, ...]
@@ -68,7 +57,6 @@ class CapabilityDefinitionV1:
 
 __all__ = [
     "SCHEMA_VERSION",
-    "FormulaNodeV1",
     "VariableRequirementV1",
     "ClassificationRuleV1",
     "OutcomePolicyV1",

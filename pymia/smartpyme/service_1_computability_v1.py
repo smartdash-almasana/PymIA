@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
+from pymia.contracts.formula_rules_v1 import load_formula_rules
 from pymia.smartpyme.service_1_derived_evidence_v1 import (
     SCHEMA_VERSION as DERIVED_EVIDENCE_SCHEMA_VERSION,
     STATUS_BLOCKED as DERIVED_EVIDENCE_BLOCKED,
@@ -194,6 +195,9 @@ def build_service_1_computability_decision_v1(
         return _decision(case, capability, STATUS_BLOCKED, f"EVIDENCE_MATRIX_INVALID:{exc}", family_id=family_id)
     if matrix.get("computation_candidate_planning_allowed") is not True:
         return _decision(case, capability, STATUS_BLOCKED, "MATRIX_COMPUTATION_PLANNING_NOT_ALLOWED", family_id=family_id)
+    matrix_rule_error = _validate_matrix_against_formula_rules(matrix)
+    if matrix_rule_error:
+        return _decision(case, capability, STATUS_BLOCKED, matrix_rule_error, family_id=family_id)
     entries = [e for e in matrix.get("entries", []) if isinstance(e, dict) and capability in tuple(e.get("capability_refs") or ())]
     if len(entries) != 1:
         reason = "CAPABILITY_HAS_NO_GOVERNED_FORMULA_MAPPING" if not entries else "AMBIGUOUS_CAPABILITY_FORMULA_MAPPING"
@@ -206,6 +210,11 @@ def build_service_1_computability_decision_v1(
     pathology_code = str(entry.get("pathology_code") or "").strip()
     if len(formula_refs) != 1 or not pathology_code:
         return _decision(case, capability, STATUS_BLOCKED, "MATRIX_MAPPING_MUST_RESOLVE_ONE_FORMULA", family_id=family_id)
+    canonical_rule = _formula_rule(formula_refs[0])
+    if canonical_rule is None:
+        return _decision(case, capability, STATUS_BLOCKED, "FORMULA_RULE_NOT_FOUND", family_id=family_id)
+    if canonical_rule.get("pathology_code") not in (None, pathology_code):
+        return _decision(case, capability, STATUS_BLOCKED, "FORMULA_RULE_PATHOLOGY_DRIFT", family_id=family_id)
 
     catalog = build_service_1_semantic_catalog_load_result_v1(
         formula_catalog_path=paths["formula_catalog"],
@@ -218,9 +227,10 @@ def build_service_1_computability_decision_v1(
     if len(formulas) != 1:
         return _decision(case, capability, STATUS_BLOCKED, "GOVERNED_FORMULA_OR_PATHOLOGY_MISSING", family_id=family_id)
     formula = formulas[0]
-    required = tuple(formula.required_variables)
-    if tuple(str(v).strip() for v in entry.get("required_variables", []) if str(v).strip()) != required:
-        return _decision(case, capability, STATUS_BLOCKED, "MATRIX_FORMULA_VARIABLE_DRIFT", family_id=family_id)
+    catalog_drift = _catalog_formula_drift(canonical_rule, formula)
+    if catalog_drift:
+        return _decision(case, capability, STATUS_BLOCKED, catalog_drift, family_id=family_id)
+    required = tuple(str(value) for value in canonical_rule.get("required_inputs") or ())
     if formula.calculation_state != "CALCULABLE":
         return _decision(case, capability, STATUS_NEEDS_EVIDENCE, "FORMULA_REQUIRES_ADDITIONAL_ASSUMPTIONS", family_id=family_id)
     missing_variables = tuple(v for v in required if v not in source_by_variable)
@@ -250,8 +260,8 @@ def build_service_1_computability_decision_v1(
         requested_capability=capability,
         family_id=family_id or "",
         pathology_code=pathology_code,
-        formula_id=formula.formula_id,
-        formula_expression=formula.expression,
+        formula_id=str(canonical_rule["formula_id"]),
+        formula_expression=str(canonical_rule["expression"]),
         required_variables=required,
         required_evidence=tuple(formula.required_evidence),
         source_bindings={v: source_by_variable[v] for v in required},
@@ -367,6 +377,14 @@ def build_service_1_composite_governed_computation_input_v1(*, case_id: str, cap
     if len(formulas) != 1:
         raise ValueError("GOVERNED_COMPOSITE_FORMULA_MISSING")
     formula = formulas[0]
+    canonical_rule = _formula_rule(definition.formula_ref)
+    if canonical_rule is None:
+        raise ValueError("FORMULA_RULE_NOT_FOUND")
+    if canonical_rule.get("pathology_code") not in (None, definition.pathology_code):
+        raise ValueError("FORMULA_RULE_PATHOLOGY_DRIFT")
+    catalog_drift = _catalog_formula_drift(canonical_rule, formula)
+    if catalog_drift:
+        raise ValueError(catalog_drift)
     bindings: dict[str, Any] = {}
     for variable in definition.variables:
         if not variable.source_capability_ref or not variable.source_result_key:
@@ -381,8 +399,8 @@ def build_service_1_composite_governed_computation_input_v1(*, case_id: str, cap
         family_id="COMPOSITE_GOVERNED_RESULTS",
         pathology_code=definition.pathology_code,
         formula_id=definition.formula_ref,
-        formula_expression=formula.expression,
-        required_variables=tuple(variable.name for variable in definition.variables),
+        formula_expression=str(canonical_rule["expression"]),
+        required_variables=tuple(str(value) for value in canonical_rule.get("required_inputs") or ()),
         required_evidence=tuple(formula.required_evidence),
         source_bindings=bindings,
         grain={"structural_scope": "RESULT_SET", "business_entity_grain": "NONE", "temporal_grain": "PERIOD", "aggregation_grain": "AGGREGATED"},
@@ -411,6 +429,58 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"json_root_not_object:{path}")
     return payload
+
+
+def _formula_rules_by_id() -> dict[str, dict[str, Any]]:
+    payload = load_formula_rules()
+    rules = payload.get("rules_by_formula")
+    if not isinstance(rules, dict):
+        raise ValueError("FORMULA_RULES_INVALID")
+    return {str(key): value for key, value in rules.items() if isinstance(value, dict)}
+
+
+def _formula_rule(formula_id: str) -> dict[str, Any] | None:
+    return _formula_rules_by_id().get(str(formula_id).strip())
+
+
+def _validate_matrix_against_formula_rules(matrix: Mapping[str, Any]) -> str | None:
+    try:
+        rules = _formula_rules_by_id()
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return f"FORMULA_RULES_INVALID:{exc}"
+    for entry in matrix.get("entries", ()):
+        if not isinstance(entry, Mapping):
+            continue
+        required = tuple(str(value).strip() for value in entry.get("required_variables", ()) if str(value).strip())
+        for formula_ref in tuple(str(value).strip() for value in entry.get("formula_refs", ()) if str(value).strip()):
+            rule = rules.get(formula_ref)
+            if rule is None:
+                return f"FORMULA_RULES_MATRIX_DRIFT:{formula_ref}:missing_rule"
+            rule_required = tuple(str(value) for value in rule.get("required_inputs") or ())
+            if required != rule_required:
+                return f"FORMULA_RULES_MATRIX_DRIFT:{formula_ref}:required_variables"
+            pathology = str(entry.get("pathology_code") or "").strip()
+            rule_pathology = rule.get("pathology_code")
+            if rule_pathology is not None and str(rule_pathology).strip() != pathology:
+                return f"FORMULA_RULES_MATRIX_DRIFT:{formula_ref}:pathology_code"
+    return None
+
+
+def _catalog_formula_drift(rule: Mapping[str, Any], formula: Any) -> str | None:
+    comparisons = {
+        "formula_id": (str(rule.get("formula_id") or ""), str(formula.formula_id or "")),
+        "pathology_code": (str(rule.get("pathology_code") or ""), str(formula.pathology_code or "")),
+        "expression": (str(rule.get("expression") or ""), str(formula.expression or "")),
+        "required_variables": (
+            tuple(str(value) for value in rule.get("required_inputs") or ()),
+            tuple(str(value) for value in formula.required_variables),
+        ),
+        "output_unit": (rule.get("output_unit"), formula.metadata.get("output_unit")),
+    }
+    for field_name, (expected, actual) in comparisons.items():
+        if expected != actual:
+            return f"FORMULA_RULES_CATALOG_DRIFT:{formula.formula_id}:{field_name}"
+    return None
 
 
 def _catalog_versions(paths: dict[str, Path], matrix: dict[str, Any]) -> dict[str, str | None]:

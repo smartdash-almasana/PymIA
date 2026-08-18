@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from pymia.smartpyme.service_1_capability_registry_v1 import DPO, list_capability_refs_v1
-from pymia.smartpyme.service_1_capability_contracts_v1 import ClassificationRuleV1, FormulaNodeV1, OutcomePolicyV1, VariableRequirementV1
+from pymia.smartpyme.service_1_capability_contracts_v1 import ClassificationRuleV1, OutcomePolicyV1, VariableRequirementV1
 from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_BLOCKED,
     STATUS_EVALUATED,
