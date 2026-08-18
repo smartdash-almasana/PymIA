@@ -65,6 +65,8 @@ Estos documentos forman la superficie de continuidad de Servicio 1:
 - `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — prohibiciones y límites de autoridad.
 - `docs/current/SERVICE_1_F1_MATHEMATICAL_AUTHORITY_SPEC_V1.md` — autoridad matemática F1 congelada, deuda de agregación explícitamente diferida a F8.
 - `docs/current/SERVICE_1_F2_CANONICAL_FORMULA_SOURCE_SPEC_V1.md` — fuente canónica F2 de reglas de fórmula, proyección de catálogo y deuda de agregación.
+- `docs/current/SERVICE_1_F3_ANALYSIS_PLAN_SPEC_V1.md` — contrato declarativo F3 de intención analítica, sin autoridad de ejecución.
+- `docs/current/SERVICE_1_F4_P7_ANALYSIS_GRAIN_SPEC_V1.md` — extensión F4 del P7 canónico para requisitos analíticos y grain resuelto, sin computabilidad ni ejecución.
 - `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
 - `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
 - `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.
@@ -148,6 +150,7 @@ SEMANTIC_ASSISTANCE_IS_NOT_AUTHORITY
 DERIVED_EVIDENCE_IS_NOT_FORMULA_AUTHORITY
 FORMULA_ENGINE_IS_FORMULA_EXECUTION_AUTHORITY
 P8_REMAINS_COMPUTABILITY_AUTHORITY
+ANALYSIS_PLAN_EXECUTION_AUTHORITY_NONE
 ```
 
 ## Frente vigente

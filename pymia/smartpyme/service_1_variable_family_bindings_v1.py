@@ -10,6 +10,10 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Final
 
+from pymia.smartpyme.service_1_analysis_plan_v1 import (
+    Service1AnalysisPlanV1,
+    Service1RequestedAnalysisGrainV1,
+)
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
@@ -71,15 +75,21 @@ class Service1GrainV1:
         allowed_structural = {"ROW", "REGION", "SHEET"}
         allowed_entity = {
             "TRANSACTION", "LINE_ITEM", "INVOICE", "CUSTOMER", "SUPPLIER",
-            "PRODUCT", "ACCOUNT", "NONE",
+            "PRODUCT", "CATEGORY", "BRANCH", "EMPLOYEE", "CHANNEL",
+            "PAYMENT_METHOD", "ACCOUNT", "NONE",
         }
         allowed_temporal = {
-            "EVENT", "DAY", "WEEK", "MONTH", "QUARTER", "YEAR", "PERIOD", "NONE",
+            "EVENT", "DAY", "WEEK", "MONTH", "QUARTER", "YEAR", "HOUR", "PERIOD", "NONE",
         }
         allowed_aggregation = {"ATOMIC", "GROUPED", "AGGREGATED"}
         if self.structural_scope not in allowed_structural:
             raise ValueError("invalid structural_scope")
-        if self.business_entity_grain not in allowed_entity:
+        entity_parts = tuple(part.strip() for part in self.business_entity_grain.split("+") if part.strip())
+        if not entity_parts or len(entity_parts) != len(self.business_entity_grain.split("+")):
+            raise ValueError("invalid business_entity_grain")
+        if len(set(entity_parts)) != len(entity_parts):
+            raise ValueError("business_entity_grain must not contain duplicate components")
+        if any(part not in allowed_entity or part == "NONE" and len(entity_parts) > 1 for part in entity_parts):
             raise ValueError("invalid business_entity_grain")
         if self.temporal_grain not in allowed_temporal:
             raise ValueError("invalid temporal_grain")
@@ -164,6 +174,61 @@ class Service1RequirementMatchV1:
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["grain"] = self.grain.to_dict()
+        return payload
+
+
+ANALYSIS_REQUIREMENT_MATCH_SCHEMA_VERSION: Final[str] = "SERVICE_1_ANALYSIS_REQUIREMENT_MATCH_V1"
+
+
+@dataclass(frozen=True)
+class Service1AnalysisRequirementMatchV1:
+    analysis_id: str
+    status: str
+    reason: str | None
+    required_role_groups: tuple[tuple[str, ...], ...]
+    satisfied_role_groups: tuple[tuple[str, ...], ...]
+    missing_role_groups: tuple[tuple[str, ...], ...]
+    approved_roles: tuple[str, ...]
+    source_columns: tuple[str, ...]
+    requested_grain: Service1RequestedAnalysisGrainV1
+    resolved_grain: Service1GrainV1 | None
+    required_relationship_refs: tuple[str, ...]
+    provenance: dict[str, Any] = field(default_factory=dict)
+    runtime_authorized: bool = False
+    tool_execution_authorized: bool = False
+    delivery_authorized: bool = False
+    diagnosis_generated: bool = False
+    schema_version: str = ANALYSIS_REQUIREMENT_MATCH_SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        if not self.analysis_id.strip():
+            raise ValueError("analysis_id is required")
+        if self.status not in P7_ALLOWED_STATUSES:
+            raise ValueError(f"unsupported P7 status: {self.status}")
+        if not isinstance(self.requested_grain, Service1RequestedAnalysisGrainV1):
+            raise TypeError("requested_grain must be Service1RequestedAnalysisGrainV1")
+        if self.status == P7_STATUS_MATCHED and self.resolved_grain is None:
+            raise ValueError("REQUIREMENT_MATCHED requires resolved_grain")
+        if self.status != P7_STATUS_MATCHED and self.resolved_grain is not None:
+            raise ValueError("non-matched analysis requirement cannot carry resolved_grain")
+        if self.status == P7_STATUS_MATCHED and self.reason is not None:
+            raise ValueError("REQUIREMENT_MATCHED cannot carry a blocking reason")
+        if self.status != P7_STATUS_MATCHED and not str(self.reason or "").strip():
+            raise ValueError("non-matched analysis requirement requires reason")
+        for field_name in (
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "delivery_authorized",
+            "diagnosis_generated",
+        ):
+            if getattr(self, field_name) is not False:
+                raise ValueError(f"{field_name} must remain False")
+        object.__setattr__(self, "provenance", dict(self.provenance or {}))
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["requested_grain"] = self.requested_grain.to_dict()
+        payload["resolved_grain"] = self.resolved_grain.to_dict() if self.resolved_grain else None
         return payload
 
 
@@ -376,6 +441,202 @@ def build_service_1_requirement_matches_v1(
             grain=definition.grain,
         )
         for definition in VARIABLE_FAMILY_DEFINITIONS
+    )
+
+
+def build_service_1_analysis_requirement_match_v1(
+    analysis_plan: Service1AnalysisPlanV1,
+    p6_decisions: tuple[Service1P6ApprovalDecisionV1, ...] | list[Service1P6ApprovalDecisionV1],
+) -> Service1AnalysisRequirementMatchV1:
+    """Resolve analysis requirements and resolved grain from P6-approved evidence only."""
+    if not isinstance(analysis_plan, Service1AnalysisPlanV1):
+        raise TypeError("analysis_plan must be Service1AnalysisPlanV1")
+    decisions = tuple(p6_decisions or ())
+    for decision in decisions:
+        if not isinstance(decision, Service1P6ApprovalDecisionV1):
+            raise TypeError("p6_decisions must contain Service1P6ApprovalDecisionV1")
+        if decision.status != P6_STATUS_APPROVED:
+            raise ValueError("P7 requires only APPROVED P6 decisions")
+
+    role_columns: dict[str, list[str]] = {}
+    for decision in decisions:
+        role = str(decision.approved_role or "").strip()
+        column = str(decision.column_ref or "").strip()
+        if role and column:
+            _append_unique(role_columns, role, column)
+
+    required_role_groups, requirement_error = _analysis_required_role_groups(analysis_plan)
+    expected_business_grain, grain_error = _analysis_expected_business_grain(analysis_plan)
+    requested = analysis_plan.requested_grain
+    try:
+        Service1GrainV1(
+            structural_scope="REGION",
+            business_entity_grain=requested.business_entity_grain,
+            temporal_grain=requested.temporal_grain,
+            aggregation_grain=requested.aggregation_grain,
+        )
+    except ValueError as exc:
+        return _analysis_requirement_decision(
+            analysis_plan=analysis_plan,
+            status=P7_STATUS_BLOCKED,
+            reason=f"INVALID_REQUESTED_GRAIN:{exc}",
+            required_role_groups=required_role_groups,
+            role_columns=role_columns,
+        )
+    if requirement_error or grain_error:
+        return _analysis_requirement_decision(
+            analysis_plan=analysis_plan,
+            status=P7_STATUS_BLOCKED,
+            reason=requirement_error or grain_error,
+            required_role_groups=required_role_groups,
+            role_columns=role_columns,
+        )
+    if requested.business_entity_grain != expected_business_grain:
+        return _analysis_requirement_decision(
+            analysis_plan=analysis_plan,
+            status=P7_STATUS_BLOCKED,
+            reason="REQUESTED_BUSINESS_GRAIN_DIMENSION_MISMATCH",
+            required_role_groups=required_role_groups,
+            role_columns=role_columns,
+        )
+
+    satisfied: list[tuple[str, ...]] = []
+    missing: list[tuple[str, ...]] = []
+    for group in required_role_groups:
+        if any(role in role_columns for role in group):
+            satisfied.append(group)
+        else:
+            missing.append(group)
+    required_roles = {role for group in required_role_groups for role in group}
+    observed = any(role in role_columns for role in required_roles)
+    if not missing:
+        status = P7_STATUS_MATCHED
+        reason = None
+    elif observed:
+        status = P7_STATUS_MISSING_REQUIREMENTS
+        reason = "ANALYSIS_REQUIREMENTS_MISSING"
+    else:
+        status = P7_STATUS_NOT_OBSERVED
+        reason = "ANALYSIS_REQUIREMENTS_NOT_OBSERVED"
+
+    approved_roles = tuple(role for role in sorted(required_roles) if role in role_columns)
+    source_columns: list[str] = []
+    for role in approved_roles:
+        for column in role_columns.get(role, []):
+            if column not in source_columns:
+                source_columns.append(column)
+    resolved_grain = None
+    if status == P7_STATUS_MATCHED:
+        resolved_grain = Service1GrainV1(
+            structural_scope="REGION",
+            business_entity_grain=requested.business_entity_grain,
+            temporal_grain=requested.temporal_grain,
+            aggregation_grain=requested.aggregation_grain,
+        )
+    return Service1AnalysisRequirementMatchV1(
+        analysis_id=analysis_plan.analysis_id,
+        status=status,
+        reason=reason,
+        required_role_groups=required_role_groups,
+        satisfied_role_groups=tuple(satisfied),
+        missing_role_groups=tuple(missing),
+        approved_roles=approved_roles,
+        source_columns=tuple(source_columns),
+        requested_grain=requested,
+        resolved_grain=resolved_grain,
+        required_relationship_refs=analysis_plan.relationship_refs,
+        provenance={
+            "source": "ANALYSIS_PLAN_PLUS_P6_APPROVAL_DECISIONS",
+            "p7_analysis_requirement_match_only": True,
+            "relationship_resolution_authorized": False,
+            "computability_authorized": False,
+        },
+        runtime_authorized=False,
+        tool_execution_authorized=False,
+        delivery_authorized=False,
+        diagnosis_generated=False,
+    )
+
+
+def _analysis_required_role_groups(
+    analysis_plan: Service1AnalysisPlanV1,
+) -> tuple[tuple[tuple[str, ...], ...], str | None]:
+    groups: list[tuple[str, ...]] = []
+    for measure in analysis_plan.measures:
+        if measure == "sales":
+            groups.append(("sales_amount",))
+        else:
+            return tuple(groups), f"UNSUPPORTED_ANALYSIS_MEASURE:{measure}"
+    for dimension in analysis_plan.dimensions:
+        if dimension == "product":
+            groups.append(("product_identifier", "product_name"))
+        elif dimension == "branch":
+            groups.append(("branch_identifier", "branch_name"))
+        elif dimension == "time":
+            temporal = analysis_plan.requested_grain.temporal_grain
+            if temporal in {"DAY", "WEEK", "MONTH"}:
+                groups.append(("operation_date",))
+            elif temporal == "HOUR":
+                groups.append(("operation_time",))
+            else:
+                return tuple(groups), f"UNSUPPORTED_ANALYSIS_TEMPORAL_GRAIN:{temporal}"
+        else:
+            return tuple(groups), f"UNSUPPORTED_ANALYSIS_DIMENSION:{dimension}"
+    unique_groups: list[tuple[str, ...]] = []
+    for group in groups:
+        if group not in unique_groups:
+            unique_groups.append(group)
+    return tuple(unique_groups), None
+
+
+def _analysis_expected_business_grain(
+    analysis_plan: Service1AnalysisPlanV1,
+) -> tuple[str, str | None]:
+    mapping = {"product": "PRODUCT", "branch": "BRANCH"}
+    parts: list[str] = []
+    for dimension in analysis_plan.dimensions:
+        if dimension == "time":
+            continue
+        mapped = mapping.get(dimension)
+        if mapped is None:
+            return "", f"UNSUPPORTED_ANALYSIS_DIMENSION:{dimension}"
+        parts.append(mapped)
+    return "+".join(parts) if parts else "NONE", None
+
+
+def _analysis_requirement_decision(
+    *,
+    analysis_plan: Service1AnalysisPlanV1,
+    status: str,
+    reason: str,
+    required_role_groups: tuple[tuple[str, ...], ...],
+    role_columns: dict[str, list[str]],
+) -> Service1AnalysisRequirementMatchV1:
+    required_roles = {role for group in required_role_groups for role in group}
+    approved_roles = tuple(role for role in sorted(required_roles) if role in role_columns)
+    source_columns = tuple(dict.fromkeys(
+        column
+        for role in approved_roles
+        for column in role_columns.get(role, [])
+    ))
+    return Service1AnalysisRequirementMatchV1(
+        analysis_id=analysis_plan.analysis_id,
+        status=status,
+        reason=reason,
+        required_role_groups=required_role_groups,
+        satisfied_role_groups=(),
+        missing_role_groups=required_role_groups,
+        approved_roles=approved_roles,
+        source_columns=source_columns,
+        requested_grain=analysis_plan.requested_grain,
+        resolved_grain=None,
+        required_relationship_refs=analysis_plan.relationship_refs,
+        provenance={
+            "source": "ANALYSIS_PLAN_PLUS_P6_APPROVAL_DECISIONS",
+            "p7_analysis_requirement_match_only": True,
+            "relationship_resolution_authorized": False,
+            "computability_authorized": False,
+        },
     )
 
 
@@ -641,13 +902,16 @@ __all__ = [
     "Service1VariableFamilyDefinitionV1",
     "Service1GrainV1",
     "Service1RequirementMatchV1",
+    "Service1AnalysisRequirementMatchV1",
     "Service1VariableFamilyBindingV1",
     "VARIABLE_FAMILY_DEFINITIONS",
     "P7_STATUS_MATCHED",
     "P7_STATUS_MISSING_REQUIREMENTS",
     "P7_STATUS_NOT_OBSERVED",
     "P7_STATUS_BLOCKED",
+    "ANALYSIS_REQUIREMENT_MATCH_SCHEMA_VERSION",
     "build_service_1_requirement_matches_v1",
+    "build_service_1_analysis_requirement_match_v1",
     "project_service_1_requirement_matches_to_variable_family_bindings_v1",
     "ready_service_1_requirement_family_ids_v1",
     "build_service_1_variable_family_bindings_v1",
