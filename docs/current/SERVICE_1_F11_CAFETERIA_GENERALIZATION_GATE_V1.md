@@ -1,6 +1,6 @@
 # Servicio 1 — F11 Cafeteria Generalization Gate V1
 
-**Estado:** FROZEN — pendiente sólo de commit Git  
+**Estado:** FROZEN + COMMITTED  
 **Fixture físico:** `prueba_excels/cafeteria_abc.xlsx`  
 **Objetivo:** demostrar que un Excel PyME real con detalle transaccional, dimensiones y tablas maestras atraviesa la misma arquitectura general F3→F10→F7→F8→F9 sin ramas especiales por cafetería ni por análisis.
 

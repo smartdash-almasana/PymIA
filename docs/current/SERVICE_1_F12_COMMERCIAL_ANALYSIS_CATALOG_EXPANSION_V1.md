@@ -1,6 +1,6 @@
 # Servicio 1 — F12 Commercial Analysis Catalog Expansion V1
 
-**Estado:** IMPLEMENTED — pendiente de freeze Git  
+**Estado:** FROZEN + COMMITTED  
 **Base:** F11 Cafeteria Generalization Gate = PASS  
 **Objetivo:** ampliar sistemáticamente el catálogo comercial de análisis sobre la arquitectura general F3→F10→F7→F8→F9, sin crear mini-engines, parsers, evaluators por rubro ni matemática en UI.
 
