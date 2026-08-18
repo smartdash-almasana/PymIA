@@ -282,8 +282,15 @@ VARIABLE_FAMILY_DEFINITIONS: Final[tuple[Service1VariableFamilyDefinitionV1, ...
         owner_label="Operación comercial básica",
         priority=1,
         required_role_groups=(("operation_date",), ("product_identifier", "product_name"), ("quantity",), ("sales_amount",)),
-        optional_roles=("document_reference", "sales_channel", "commercial_category"),
-        target_variable_names=("operation_date", "document_ref", "product_id_or_name", "quantity", "sold_amount", "customer", "sales_channel"),
+        optional_roles=(
+            "document_reference", "transaction_identifier", "operation_time",
+            "branch_identifier", "branch_name", "city", "sales_channel", "commercial_category",
+        ),
+        target_variable_names=(
+            "operation_date", "operation_time", "transaction_id", "document_ref",
+            "product_id_or_name", "quantity", "sold_amount", "customer",
+            "branch_id", "branch_name", "city", "sales_channel",
+        ),
         target_capabilities=("reconstruct_transactions", "group_sales_by_product_and_period", "detect_duplicate_or_untraceable_operations"),
     ),
     Service1VariableFamilyDefinitionV1(

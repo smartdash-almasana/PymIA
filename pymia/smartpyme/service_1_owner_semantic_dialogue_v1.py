@@ -449,6 +449,8 @@ def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
     role = str(item.get("semantic_role") or item.get("proposed_meaning") or "").strip()
     owner_labels = {
         "operation_date": "la fecha de la operación",
+        "operation_time": "la hora de la operación",
+        "transaction_identifier": "el identificador de la operación",
         "quantity": "la cantidad vendida o movida",
         "unit_sale_price": "el precio de venta por unidad",
         "unit_cost_candidate": "el costo por unidad",
@@ -466,6 +468,9 @@ def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
         "initial_balance": "el saldo inicial",
         "expected_collections": "los cobros esperados",
         "expected_payments": "los pagos esperados",
+        "branch_identifier": "el identificador de la sucursal o local",
+        "branch_name": "la sucursal, local o tienda",
+        "city": "la ciudad o localidad",
         "sales_channel": "el canal de venta",
         "commercial_category": "la categoría o rubro",
         "supplier_name": "el proveedor",
