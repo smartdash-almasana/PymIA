@@ -82,6 +82,7 @@ def render_analysis_menu_v1(
     *,
     filename: str = "",
     error: str | None = None,
+    blocked_options: Sequence[Mapping[str, Any]] = (),
 ) -> str:
     choices = "".join(
         f'''<label class="analysis-option">
@@ -90,13 +91,36 @@ def render_analysis_menu_v1(
         </label>'''
         for ref, name, question in launch_options
     )
+    blocked = "".join(
+        f'''<div class="analysis-option analysis-option--blocked">
+          <span class="analysis-copy"><strong>{_esc(item.get("name"))}</strong><span class="analysis-question">{_esc(item.get("question"))}</span>
+          <span><strong>Falta información:</strong> {_esc(", ".join(item.get("missing_evidence") or []) or "evidencia adicional requerida por el análisis")}</span>
+          <span>{_esc(item.get("why_needed"))}</span></span>
+        </div>'''
+        for item in blocked_options
+        if isinstance(item, Mapping)
+    )
     file_note = f'<p class="file-read">Archivo leído: <strong>{_esc(filename)}</strong></p>' if filename else ""
+    available_section = (
+        f'<section class="analysis-list" aria-labelledby="analysis-menu-title"><h2 id="analysis-menu-title">Podés analizar ahora</h2>{choices}</section>'
+        if choices
+        else '<section class="analysis-list"><h2>Todavía no hay análisis computables</h2><p>PymIA conserva lo confirmado y muestra abajo qué evidencia falta para cada análisis.</p></section>'
+    )
+    blocked_section = (
+        f'<section class="analysis-list" aria-labelledby="analysis-blocked-title"><h2 id="analysis-blocked-title">Análisis que necesitan más datos</h2>{blocked}</section>'
+        if blocked
+        else ""
+    )
+    action = (
+        '<div class="sticky-action"><span>La selección define qué capacidades puede ejecutar PymIA sobre este archivo.</span><button type="submit">Preparar análisis seleccionados</button></div>'
+        if choices
+        else ""
+    )
     return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}
-      <header class="journey-intro"><p class="kicker">Excel entendido</p><h1>¿Qué querés que PymIA te devuelva?</h1><p>Podés elegir uno, varios o todos. Cada análisis usa la misma evidencia confirmada; si para alguno falta un dato material, PymIA lo deja pendiente sin completar nada por suposición.</p>{file_note}</header>
+      <header class="journey-intro"><p class="kicker">Excel entendido</p><h1>¿Qué querés que PymIA te devuelva?</h1><p>Las opciones disponibles provienen de la evidencia semántica confirmada y del gate de computabilidad. Lo que no puede calcularse queda bloqueado con el dato faltante, sin completar nada por suposición.</p>{file_note}</header>
       {_error(error)}
       <form action="/run-review" method="post" class="analysis-start">
-        <section class="analysis-list" aria-labelledby="analysis-menu-title"><h2 id="analysis-menu-title">Elegí tus análisis</h2>{choices}</section>
-        <div class="sticky-action"><span>La selección define qué capacidades puede ejecutar PymIA sobre este archivo.</span><button type="submit">Preparar análisis seleccionados</button></div>
+        {available_section}{blocked_section}{action}
       </form>
     </main>'''
 

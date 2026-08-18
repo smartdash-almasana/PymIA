@@ -1961,7 +1961,12 @@ class AssistedWebApplicationV1:
             )
         return HTTPStatus.OK, rendered_page
 
-    def run_working_capital(self, *, session_id: str) -> tuple[int, str]:
+    def run_working_capital(
+        self,
+        *,
+        session_id: str,
+        semantic_run_override: Mapping[str, Any] | None = None,
+    ) -> tuple[int, str]:
         state = self.session(session_id)
         if not state.ingestion_output:
             return HTTPStatus.BAD_REQUEST, _error_page("Primero subí y confirmá un archivo de Excel.")
@@ -1974,7 +1979,8 @@ class AssistedWebApplicationV1:
         for capability_ref in capability_refs:
             packets[capability_ref] = _run_product_root(
                 ingestion_output=state.ingestion_output,
-                owner_answers=state.semantic_answers,
+                owner_answers=(None if semantic_run_override is not None else state.semantic_answers),
+                semantic_run_override=semantic_run_override,
                 requested_capability=capability_ref,
                 output_dir=self._review_output_dir(session_id=session_id),
                 deliver_result=False,
@@ -2001,6 +2007,7 @@ class AssistedWebApplicationV1:
             "delivery_authorized": False,
             "diagnosis_generated": False,
         }
+        state.last_review_result = service_packet
         case_id = str(state.ingestion_output.get("case_id") or "").strip()
         self._remember_case(
             session_id=session_id,
@@ -2134,6 +2141,13 @@ class AssistedWebApplicationV1:
         semantic = semantic_run if isinstance(semantic_run, dict) else {}
         events = semantic.get("owner_confirmation_events") or []
         if not events:
+            owner_loop = semantic.get("owner_loop_packet")
+            if isinstance(owner_loop, Mapping):
+                events = owner_loop.get("owner_confirmation_events") or []
+                if events:
+                    semantic = dict(semantic)
+                    semantic["owner_confirmation_events"] = list(events)
+        if not events:
             return
 
         if self._persist_tenant_confirmation is None or state.tenant_identity_contract is None:
@@ -2236,6 +2250,7 @@ def _run_product_root(
     requested_capability: str | None = None,
     output_dir: str | Path | None = None,
     deliver_result: bool = False,
+    semantic_run_override: Mapping[str, Any] | None = None,
     semantic_provider: Any = None,
     semantic_assistance_state: Mapping[str, Any] | None = None,
     semantic_dialogue_responses: Sequence[Mapping[str, Any]] | None = None,
@@ -2247,8 +2262,7 @@ def _run_product_root(
     use_assisted_semantics: bool = False,
 ) -> dict[str, Any]:
     sheet_name = str(ingestion_output.get("sheet_name") or "sheet1")
-    semantic_run_override = None
-    if owner_answers is not None and not use_assisted_semantics:
+    if semantic_run_override is None and owner_answers is not None and not use_assisted_semantics:
         semantic_run_override = resolve_service_1_legacy_semantic_run_v1(
             ingestion_output=ingestion_output,
             sheet_name=sheet_name,

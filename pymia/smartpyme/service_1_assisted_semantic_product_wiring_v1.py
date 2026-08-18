@@ -124,7 +124,7 @@ _FOLLOWUP_DIALOGUE_STATUSES: Final[frozenset[str]] = frozenset(
 def run_service_1_assisted_semantic_initial_v1(
     *,
     ingestion_output: Any,
-    requested_capability: str,
+    requested_capability: str | None,
     provider: Any,
     sheet_name: str = "sheet1",
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
@@ -134,8 +134,8 @@ def run_service_1_assisted_semantic_initial_v1(
     """Create one exact assisted semantic state and its minimal owner dialogue."""
     if not isinstance(ingestion_output, dict) or not ingestion_output:
         return _blocked(BLOCK_INGESTION_INVALID)
-    capability = str(requested_capability or "").strip()
-    if not capability:
+    capability = None if requested_capability is None else str(requested_capability).strip()
+    if capability == "":
         return _blocked(BLOCK_CAPABILITY_REQUIRED, case_id=ingestion_output.get("case_id"))
     if any(bool(ingestion_output.get(flag)) for flag in _AUTHORITY_FLAGS):
         return _blocked(BLOCK_INGESTION_INVALID, case_id=ingestion_output.get("case_id"))
@@ -171,11 +171,15 @@ def run_service_1_assisted_semantic_initial_v1(
             bridge_packet=bridge,
             workbook_profile=profile,
         )
-    relevant_roles = _capability_relevant_roles(
-        requested_capability=capability,
-        deterministic_hypotheses=deterministic_hypotheses,
-        allowed_roles=allowed_roles,
-        semantic_scope_capabilities=semantic_scope_capabilities,
+    relevant_roles = (
+        tuple(allowed_roles)
+        if capability is None
+        else _capability_relevant_roles(
+            requested_capability=capability,
+            deterministic_hypotheses=deterministic_hypotheses,
+            allowed_roles=allowed_roles,
+            semantic_scope_capabilities=semantic_scope_capabilities,
+        )
     )
     try:
         context = build_service_1_llm_semantic_context_v1(
@@ -226,13 +230,31 @@ def run_service_1_assisted_semantic_initial_v1(
 
     dialogue = build_service_1_owner_dialogue_plan_v1(
         validated_packet=validated,
-        atomic_confirmation=atomic_confirmation,
+        # Workbook-first still preserves first-contact owner evidence, but
+        # confident concepts are grouped so the owner is not turned into a
+        # column-by-column parser. Capability-scoped callers keep their
+        # existing confirmation mode.
+        atomic_confirmation=(False if capability is None else atomic_confirmation),
     )
     if dialogue.get("status") != DIALOGUE_READY:
         return _blocked(
             BLOCK_DIALOGUE_FAILED,
             case_id=bridge.get("case_id"),
             detail=dialogue.get("blocked_reason"),
+            bridge_packet=bridge,
+            workbook_profile=profile,
+            context=context,
+            interpreter_packet=interpreted,
+            validated_packet=validated,
+            dialogue_plan=dialogue,
+        )
+
+    owner_questions = list(dialogue.get("decisions") or [])
+    if capability is None and not owner_questions:
+        return _blocked(
+            BLOCK_DIALOGUE_FAILED,
+            case_id=bridge.get("case_id"),
+            detail="workbook-first semantic pass produced no owner-confirmable decisions",
             bridge_packet=bridge,
             workbook_profile=profile,
             context=context,
@@ -251,7 +273,7 @@ def run_service_1_assisted_semantic_initial_v1(
         interpreter_packet=interpreted,
         validated_packet=validated,
         dialogue_plan=dialogue,
-        owner_questions=list(dialogue.get("decisions") or []),
+        owner_questions=owner_questions,
         semantic_scope_capabilities=semantic_scope_capabilities,
     )
 
@@ -430,7 +452,7 @@ def revise_service_1_assisted_semantic_decision_v1(
     return _packet(
         status=STATUS_OWNER_DIALOGUE_REQUIRED,
         case_id=str(previous_state.get("case_id") or "").strip(),
-        requested_capability=str(previous_state.get("requested_capability") or "").strip(),
+        requested_capability=previous_state.get("requested_capability"),
         bridge_packet=dict(previous_state.get("bridge_packet") or {}),
         workbook_profile=dict(previous_state.get("workbook_profile") or {}),
         context=context,
@@ -786,7 +808,7 @@ def _packet(
     *,
     status: str,
     case_id: str,
-    requested_capability: str,
+    requested_capability: str | None,
     bridge_packet: dict[str, Any],
     workbook_profile: dict[str, Any],
     context: Any,

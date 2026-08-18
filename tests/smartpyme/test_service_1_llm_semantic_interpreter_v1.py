@@ -172,6 +172,42 @@ def test_sem2_provider_neutral_adapter_accepts_closed_structured_proposal() -> N
     ))
 
 
+def test_sem2_context_supports_workbook_first_without_fake_capability() -> None:
+    context = build_service_1_llm_semantic_context_v1(
+        case_id="case-sem2",
+        requested_capability=None,
+        workbook_profile=_profile(),
+        deterministic_hypotheses=(
+            {
+                "column_ref": "Ventas.Cantidad",
+                "candidate_roles": ["quantity"],
+                "confidence": 0.95,
+            },
+        ),
+        allowed_semantic_roles=("quantity", "product_id", "unit_sale_price"),
+        capability_relevant_roles=("quantity", "product_id", "unit_sale_price"),
+        compatible_tenant_memory_hints=(),
+    )
+
+    result = interpret_service_1_semantics_v1(
+        context=context,
+        provider=lambda payload: _valid_payload(),
+    )
+
+    assert context.requested_capability is None
+    assert context.to_provider_payload()["requested_capability"] is None
+    assert all(
+        result[flag] is False
+        for flag in (
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+        )
+    )
+
+
 def test_sem2_contract_rejects_forbidden_authority_field_anywhere() -> None:
     payload = _valid_payload()
     payload["concept_proposals"][0]["runtime_authorized"] = True

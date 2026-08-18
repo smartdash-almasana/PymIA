@@ -210,7 +210,7 @@ def _reject_true_authority_fields(value: Any, *, field_name: str) -> None:
 @dataclass(frozen=True)
 class Service1LLMSemanticContextV1:
     case_id: str
-    requested_capability: str
+    requested_capability: str | None
     workbook_profile: Mapping[str, Any]
     deterministic_hypotheses: tuple[Mapping[str, Any], ...]
     allowed_semantic_roles: tuple[str, ...]
@@ -229,7 +229,14 @@ class Service1LLMSemanticContextV1:
         object.__setattr__(
             self,
             "requested_capability",
-            _required_text(self.requested_capability, field_name="requested_capability"),
+            (
+                None
+                if self.requested_capability is None
+                else _required_text(
+                    self.requested_capability,
+                    field_name="requested_capability",
+                )
+            ),
         )
         if not isinstance(self.workbook_profile, Mapping):
             raise _error("INVALID_WORKBOOK_PROFILE", "workbook_profile must be a mapping")
@@ -371,7 +378,7 @@ class Service1LLMSemanticProposalV1:
 def build_service_1_llm_semantic_context_v1(
     *,
     case_id: str,
-    requested_capability: str,
+    requested_capability: str | None,
     workbook_profile: Mapping[str, Any],
     deterministic_hypotheses: Sequence[Mapping[str, Any]],
     allowed_semantic_roles: Sequence[str],

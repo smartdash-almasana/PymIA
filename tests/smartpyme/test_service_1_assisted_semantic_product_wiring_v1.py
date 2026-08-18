@@ -21,6 +21,7 @@ from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_
 )
 from pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 import (
     Service1SemanticReceptionWebApplicationV1,
+    build_service_1_post_semantic_analysis_discovery_v1,
 )
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
@@ -134,6 +135,449 @@ def _accept_all(initial_packet: dict) -> list[dict[str, str]]:
         {"decision_id": str(item["decision_id"]), "action": "ACCEPT"}
         for item in initial_packet["owner_questions"]
     ]
+
+
+def test_sem8_workbook_first_calls_existing_provider_with_full_allowed_roles() -> None:
+    ingestion = _ingestion(
+        "caja_workbook_first.xlsx",
+        _xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+    )
+    provider_calls: list[dict] = []
+
+    def provider(payload: dict) -> dict:
+        provider_calls.append(payload)
+        assert payload["requested_capability"] is None
+        assert payload["capability_relevant_roles"] == payload["allowed_semantic_roles"]
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability=None,
+        provider=provider,
+        atomic_confirmation=True,
+    )
+
+    assert initial["status"] == SEM8_OWNER_REQUIRED
+    assert initial["requested_capability"] is None
+    assert len(provider_calls) == 1
+    assert initial["interpreter_packet"]["proposal"].concept_proposals
+    assert len(initial["owner_questions"]) == 1
+    assert set(initial["owner_questions"][0]["column_refs"]) == {
+        "Caja.SaldoInicial",
+        "Caja.CobrosEsperados",
+        "Caja.PagosEsperados",
+    }
+    assert all(
+        initial[flag] is False
+        for flag in (
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+        )
+    )
+
+
+def test_web_upload_without_capability_starts_workbook_first_semantic_reception(tmp_path: Path) -> None:
+    provider_calls: list[dict] = []
+
+    def provider(payload: dict) -> dict:
+        provider_calls.append(payload)
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Ventas.Descuento": "discount",
+                "Ventas.PrecioUnitario": "sale_price",
+            },
+        )
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=provider,
+    )
+    status, page = app.receive_xlsx(
+        session_id="workbook-first-web",
+        filename="ventas_workbook_first.xlsx",
+        content=_xlsx_bytes(
+            {
+                "Ventas": (
+                    ["Descuento", "PrecioUnitario"],
+                    [[0.1, 100]],
+                )
+            }
+        ),
+        selected_launch_review=None,
+    )
+    state = app.session("workbook-first-web")
+
+    assert status == 200
+    assert state.ingestion_output is not None
+    assert len(provider_calls) == 1
+    assert provider_calls[0]["requested_capability"] is None
+    assert state.semantic_assistance_state["status"] == SEM8_OWNER_REQUIRED
+    assert len(state.semantic_questions) == 1
+    assert set(state.semantic_questions[0]["column_refs"]) == {
+        "Ventas.Descuento",
+        "Ventas.PrecioUnitario",
+    }
+    assert "Descuento" in page
+    assert "PrecioUnitario" in page
+    assert "¿Qué querés que PymIA te devuelva?" not in page
+
+
+def test_web_workbook_first_owner_accept_reenters_and_opens_menu(tmp_path: Path) -> None:
+    def provider(payload: dict) -> dict:
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Ventas.Descuento": "discount",
+                "Promos.Descuento": "discount",
+            },
+        )
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=provider,
+    )
+    status, _page = app.receive_xlsx(
+        session_id="workbook-first-owner-reentry",
+        filename="discount_workbook_first.xlsx",
+        content=_xlsx_bytes(
+            {
+                "Ventas": (["Descuento"], [[0.1]]),
+                "Promos": (["Descuento"], [[5]]),
+            }
+        ),
+        selected_launch_review=None,
+    )
+    state = app.session("workbook-first-owner-reentry")
+    assert status == 200
+    assert len(state.semantic_questions) == 1
+    decision_id = state.semantic_questions[0]["decision_id"]
+    assert set(state.semantic_questions[0]["column_refs"]) == {
+        "Ventas.Descuento",
+        "Promos.Descuento",
+    }
+
+    status, page = app.confirm_meanings(
+        session_id="workbook-first-owner-reentry",
+        fields={f"action_{decision_id}": "ACCEPT"},
+    )
+
+    assert status == 200
+    assert state.semantic_dialogue_responses[decision_id] == {
+        "decision_id": decision_id,
+        "action": "ACCEPT",
+    }
+    assert len(state.semantic_dialogue_responses) == 1
+    assert state.semantic_questions == []
+    assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
+    assert "¿Qué querés que PymIA te devuelva?" in page
+
+
+def test_web_workbook_first_owner_confirmation_is_durable_before_analysis_menu(tmp_path: Path) -> None:
+    recorded = []
+
+    def persist(event, contract):
+        recorded.append((event, contract))
+        return True
+
+    def provider(payload: dict) -> dict:
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Ventas.Descuento": "discount",
+                "Ventas.PrecioUnitario": "sale_price",
+            },
+        )
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=provider,
+        persist_tenant_confirmation=persist,
+        require_tenant_persistence=True,
+    )
+    app.bind_tenant_identity(
+        session_id="workbook-first-durable",
+        tenant_id="tenant-f0",
+        cliente_id="client-f0",
+        owner_actor_id="owner-f0",
+        owner_actor_role="OWNER",
+    )
+    status, _page = app.receive_xlsx(
+        session_id="workbook-first-durable",
+        filename="ventas_workbook_first_durable.xlsx",
+        content=_xlsx_bytes(
+            {
+                "Ventas": (
+                    ["Descuento", "PrecioUnitario"],
+                    [[0.1, 100]],
+                )
+            }
+        ),
+        selected_launch_review=None,
+    )
+    state = app.session("workbook-first-durable")
+    assert status == 200
+    assert recorded == []
+    decision_id = state.semantic_questions[0]["decision_id"]
+
+    status, page = app.confirm_meanings(
+        session_id="workbook-first-durable",
+        fields={f"action_{decision_id}": "ACCEPT"},
+    )
+
+    assert status == 200
+    assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
+    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert recorded
+    for event, contract in recorded:
+        assert event.case_id == contract.case_id
+        assert event.file_ref == "ventas_workbook_first_durable.xlsx"
+        assert contract.tenant_id == "tenant-f0"
+        assert contract.cliente_id == "client-f0"
+        assert contract.owner_actor_id == "owner-f0"
+        assert contract.owner_actor_role == "OWNER"
+        assert contract.workbook_ref == "ventas_workbook_first_durable.xlsx"
+        assert contract.confirmation_event_ref
+
+
+def test_web_workbook_first_clear_semantics_require_one_grouped_owner_confirmation_before_menu(tmp_path: Path) -> None:
+    provider_calls: list[dict] = []
+
+    def provider(payload: dict) -> dict:
+        provider_calls.append(payload)
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=provider,
+    )
+    status, page = app.receive_xlsx(
+        session_id="workbook-first-zero-questions",
+        filename="caja_workbook_first.xlsx",
+        content=_xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+        selected_launch_review=None,
+    )
+    state = app.session("workbook-first-zero-questions")
+
+    assert status == 200
+    assert len(provider_calls) == 1
+    assert state.semantic_assistance_state is not None
+    assert state.semantic_assistance_state["status"] == SEM8_OWNER_REQUIRED
+    assert len(state.semantic_questions) == 1
+    assert set(state.semantic_questions[0]["column_refs"]) == {
+        "Caja.SaldoInicial",
+        "Caja.CobrosEsperados",
+        "Caja.PagosEsperados",
+    }
+    assert "¿Qué querés que PymIA te devuelva?" not in page
+
+    decision_id = state.semantic_questions[0]["decision_id"]
+    status, page = app.confirm_meanings(
+        session_id="workbook-first-zero-questions",
+        fields={f"action_{decision_id}": "ACCEPT"},
+    )
+    assert status == 200
+    assert state.semantic_questions == []
+    assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
+    assert state.semantic_assistance_state["semantic_run"]["status"] == "CONFIRMED_BINDINGS"
+    discovery = build_service_1_post_semantic_analysis_discovery_v1(
+        confirmed_bindings=state.semantic_assistance_state["semantic_run"]
+    )
+    assert discovery["status"] == "READY"
+    assert [item["launch_ref"] for item in discovery["available"]] == ["working_capital"]
+    assert {item["launch_ref"] for item in discovery["blocked"]} == {
+        "sold_vs_collected_gap",
+        "net_margin_real",
+    }
+    assert 'name="review_working_capital"' in page
+    assert 'name="review_sold_vs_collected_gap"' not in page
+    assert 'name="review_net_margin_real"' not in page
+    assert "Análisis que necesitan más datos" in page
+    assert "¿Qué querés que PymIA te devuelva?" in page
+
+    confirmed_run = state.semantic_assistance_state["semantic_run"]
+    original_events = list(
+        (confirmed_run.get("owner_loop_packet") or {}).get("owner_confirmation_events") or []
+    )
+    status, result_page = app.run_review(
+        session_id="workbook-first-zero-questions",
+        requested_capability="working_capital",
+    )
+    assert status == 200
+    assert len(provider_calls) == 1
+    assert state.semantic_questions == []
+    assert "Esto entendí de tu Excel" not in result_page
+    service_packet = state.last_review_result
+    assert service_packet["service_ref"] == "working_capital"
+    assert "projected_closing_cash_balance" in service_packet["computed_components"]
+    assert service_packet["component_packets"]
+    for component in service_packet["component_packets"].values():
+        semantic_run = component.get("semantic_run") or {}
+        assert semantic_run.get("status") == "CONFIRMED_BINDINGS"
+        assert list(semantic_run.get("owner_confirmation_events") or []) == original_events
+
+
+def test_post_discovery_blocked_selection_does_not_reopen_semantics_or_execute(tmp_path: Path) -> None:
+    provider_calls: list[dict] = []
+
+    def provider(payload: dict) -> dict:
+        provider_calls.append(payload)
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=provider,
+    )
+    status, _page = app.receive_xlsx(
+        session_id="post-discovery-blocked",
+        filename="caja_only.xlsx",
+        content=_xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+        selected_launch_review=None,
+    )
+    state = app.session("post-discovery-blocked")
+    assert status == 200
+    decision_id = state.semantic_questions[0]["decision_id"]
+    status, menu = app.confirm_meanings(
+        session_id="post-discovery-blocked",
+        fields={f"action_{decision_id}": "ACCEPT"},
+    )
+    assert status == 200
+    assert len(provider_calls) == 1
+    assert 'name="review_sold_vs_collected_gap"' not in menu
+
+    confirmed_before = state.semantic_assistance_state["semantic_run"]
+    status, blocked_page = app.run_review(
+        session_id="post-discovery-blocked",
+        requested_capability="sold_vs_collected_gap",
+    )
+    assert status == 200
+    assert len(provider_calls) == 1
+    assert state.semantic_assistance_state["semantic_run"] is confirmed_before
+    assert state.semantic_questions == []
+    assert 'name="review_sold_vs_collected_gap"' not in blocked_page
+    assert "Falta información" in blocked_page
+
+
+def test_real_cafeteria_upload_reaches_deterministic_semantic_provider_without_capability(tmp_path: Path) -> None:
+    workbook_path = Path(__file__).resolve().parents[2] / "prueba_excels" / "cafeteria_abc.xlsx"
+    assert workbook_path.is_file()
+    provider_calls: list[dict] = []
+
+    def deterministic_fallback(payload: dict) -> dict:
+        provider_calls.append(payload)
+        return build_service_1_deterministic_semantic_proposal_v1(payload)
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=deterministic_fallback,
+    )
+    status, page = app.receive_xlsx(
+        session_id="real-cafeteria-workbook-first",
+        filename=workbook_path.name,
+        content=workbook_path.read_bytes(),
+        selected_launch_review=None,
+    )
+    state = app.session("real-cafeteria-workbook-first")
+
+    assert status == 200
+    assert state.ingestion_output is not None
+    assert len(provider_calls) == 1
+    assert provider_calls[0]["requested_capability"] is None
+    assert provider_calls[0]["capability_relevant_roles"] == provider_calls[0]["allowed_semantic_roles"]
+    proposal = state.semantic_assistance_state["interpreter_packet"]["proposal"]
+    assert proposal.concept_proposals
+    assert state.semantic_questions
+    assert "¿Qué querés que PymIA te devuelva?" not in page
+
+    steps = 0
+    while state.semantic_questions:
+        steps += 1
+        assert steps <= 20
+        decision_id = state.semantic_questions[0]["decision_id"]
+        status, page = app.confirm_meanings(
+            session_id="real-cafeteria-workbook-first",
+            fields={f"action_{decision_id}": "ACCEPT"},
+        )
+        assert status == 200
+
+    assert steps < len(proposal.concept_proposals)
+    assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
+    assert state.semantic_assistance_state["semantic_run"]["status"] == "CONFIRMED_BINDINGS"
+    discovery = build_service_1_post_semantic_analysis_discovery_v1(
+        confirmed_bindings=state.semantic_assistance_state["semantic_run"]
+    )
+    assert discovery["status"] == "READY"
+    assert discovery["available"] == []
+    assert {item["launch_ref"] for item in discovery["blocked"]} == {
+        "sold_vs_collected_gap",
+        "net_margin_real",
+        "working_capital",
+    }
+    assert all(item["missing_evidence"] for item in discovery["blocked"])
+    assert all(item["why_needed"] for item in discovery["blocked"])
+    for item in discovery["available"]:
+        assert f'name="review_{item["launch_ref"]}"' in page
+    for item in discovery["blocked"]:
+        assert f'name="review_{item["launch_ref"]}"' not in page
+        assert item["name"] in page
+    assert "¿Qué querés que PymIA te devuelva?" in page
+
+
+def test_post_semantic_discovery_fails_closed_without_confirmed_bindings() -> None:
+    discovery = build_service_1_post_semantic_analysis_discovery_v1(
+        confirmed_bindings={}
+    )
+    assert discovery["status"] == "BLOCKED"
+    assert discovery["blocked_reason"] == "CONFIRMED_BINDINGS_REQUIRED"
+    assert discovery["available"] == []
+    assert discovery["runtime_authorized"] is False
+    assert discovery["tool_execution_authorized"] is False
+    assert discovery["delivery_authorized"] is False
 
 
 def test_sem8_explicit_assisted_route_without_provider_fails_closed(tmp_path: Path) -> None:
