@@ -13,6 +13,35 @@ class FormulaStatus(StrEnum):
     BLOCKED = "BLOCKED"
 
 
+class MathPrimitiveOperation(StrEnum):
+    SINGLE_VALUE = "SINGLE_VALUE"
+    SUM = "SUM"
+    COUNT = "COUNT"
+    AVG = "AVG"
+    MIN = "MIN"
+    MAX = "MAX"
+    SUM_PRODUCT = "SUM_PRODUCT"
+    MULTIPLY = "MULTIPLY"
+    SUBTRACT = "SUBTRACT"
+    PERCENT_OF = "PERCENT_OF"
+
+
+class MathPrimitiveInput(BaseModel):
+    operation: MathPrimitiveOperation
+    values: list[float | int] = Field(default_factory=list)
+    paired_values: list[float | int] = Field(default_factory=list)
+    source_refs: list[str] = Field(default_factory=list)
+
+
+class MathPrimitiveResult(BaseModel):
+    operation: MathPrimitiveOperation
+    status: FormulaStatus
+    value: float | None
+    source_refs: list[str] = Field(default_factory=list)
+    blocking_reason: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class FormulaInput(BaseModel):
     name: str
     value: float | int | None

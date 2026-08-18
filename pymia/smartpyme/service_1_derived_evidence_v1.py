@@ -17,6 +17,12 @@ from __future__ import annotations
 from math import isfinite
 from typing import Any, Final, Mapping
 
+from pymia.contracts.formula_contract import (
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
 from pymia.smartpyme.service_1_owner_unit_confirmation_event_v1 import (
     ALLOWED_UNIT_KINDS,
     SCHEMA_VERSION as OWNER_UNIT_EVENT_SCHEMA_VERSION,
@@ -302,8 +308,9 @@ def build_service_1_derived_evidence_v1(
     if not cost_lookup:
         return _blocked(BLOCK_INVALID_NUMERIC_EVIDENCE, case_id=case_id, detail=["empty cost lookup"])
 
-    sales_total = 0.0
-    costs_total = 0.0
+    math_engine = FormulaEngineService()
+    net_sales_values: list[float] = []
+    line_cost_values: list[float] = []
     matched_rows = 0
     unmatched_keys: list[str] = []
     for row_index, row in enumerate(sales_rows, start=1):
@@ -325,11 +332,25 @@ def build_service_1_derived_evidence_v1(
             if parsed_discount is None:
                 return _blocked(BLOCK_INVALID_NUMERIC_EVIDENCE, case_id=case_id, detail=[f"{sales_sheet}.{discount_col}:{row_index}"])
             discount = parsed_discount
-        gross_sale = qty * unit_price
+        gross_sale_result = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.MULTIPLY,
+                values=[qty, unit_price],
+                source_refs=[_qualified(quantity), _qualified(price)],
+            )
+        )
+        if gross_sale_result.status != FormulaStatus.OK or gross_sale_result.value is None:
+            return _blocked(
+                BLOCK_INVALID_NUMERIC_EVIDENCE,
+                case_id=case_id,
+                detail=[f"{sales_sheet}:{row_index}:{gross_sale_result.blocking_reason or 'gross sale math blocked'}"],
+            )
         net_sale, discount_error = _apply_discount(
-            gross_sale=gross_sale,
+            math_engine=math_engine,
+            gross_sale=float(gross_sale_result.value),
             discount=discount,
             unit_kind=discount_unit_kind,
+            source_refs=[_qualified(quantity), _qualified(price), *([_qualified(discount_decision)] if discount_decision else [])],
         )
         if discount_error:
             return _blocked(
@@ -337,8 +358,21 @@ def build_service_1_derived_evidence_v1(
                 case_id=case_id,
                 detail=[f"{sales_sheet}.{discount_col or 'discount'}:{row_index}:{discount_error}"],
             )
-        sales_total += net_sale
-        costs_total += qty * unit_cost_value
+        cost_result = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.MULTIPLY,
+                values=[qty, unit_cost_value],
+                source_refs=[_qualified(quantity), _qualified(unit_cost)],
+            )
+        )
+        if cost_result.status != FormulaStatus.OK or cost_result.value is None:
+            return _blocked(
+                BLOCK_INVALID_NUMERIC_EVIDENCE,
+                case_id=case_id,
+                detail=[f"{cost_sheet}:{row_index}:{cost_result.blocking_reason or 'cost math blocked'}"],
+            )
+        net_sales_values.append(net_sale)
+        line_cost_values.append(float(cost_result.value))
         matched_rows += 1
 
     if unmatched_keys:
@@ -350,6 +384,27 @@ def build_service_1_derived_evidence_v1(
         )
     if matched_rows != len(sales_rows) or matched_rows == 0:
         return _needs(case_id=case_id, capability=capability, requirements=[NEED_JOIN_COVERAGE])
+
+    sales_total_result = math_engine.calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.SUM,
+            values=net_sales_values,
+            source_refs=[_qualified(quantity), _qualified(price), *([_qualified(discount_decision)] if discount_decision else [])],
+        )
+    )
+    costs_total_result = math_engine.calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.SUM,
+            values=line_cost_values,
+            source_refs=[_qualified(quantity), _qualified(unit_cost)],
+        )
+    )
+    if sales_total_result.status != FormulaStatus.OK or sales_total_result.value is None:
+        return _blocked(BLOCK_INVALID_NUMERIC_EVIDENCE, case_id=case_id, detail=[sales_total_result.blocking_reason or "sales sum blocked"])
+    if costs_total_result.status != FormulaStatus.OK or costs_total_result.value is None:
+        return _blocked(BLOCK_INVALID_NUMERIC_EVIDENCE, case_id=case_id, detail=[costs_total_result.blocking_reason or "cost sum blocked"])
+    sales_total = float(sales_total_result.value)
+    costs_total = float(costs_total_result.value)
 
     sales_source_refs = [
         _qualified(quantity),
@@ -576,31 +631,68 @@ def _discount_unit_question(*, case_id: str, sheet_ref: str, column_ref: str) ->
 
 def _apply_discount(
     *,
+    math_engine: FormulaEngineService,
     gross_sale: float,
     discount: float,
     unit_kind: str | None,
+    source_refs: list[str],
 ) -> tuple[float, str | None]:
-    """Apply a confirmed discount unit while preparing row-level evidence.
-
-    This is a governed evidence transformation for the derived sales total,
-    not an independent productive business-formula authority. Final formulas
-    remain delegated to ``FormulaEngineService``.
-    """
+    """Select the governed discount convention and delegate all arithmetic to the Math Brain."""
     if discount == 0:
         return gross_sale, None
     if unit_kind == UNIT_DISCOUNT_FRACTION:
         if discount > 1:
             return 0.0, "fraction discount must be between 0 and 1"
-        return gross_sale * (1.0 - discount), None
-    if unit_kind == UNIT_DISCOUNT_PERCENT:
+        remaining = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.SUBTRACT,
+                values=[1.0, discount],
+                source_refs=source_refs,
+            )
+        )
+        if remaining.status != FormulaStatus.OK or remaining.value is None:
+            return 0.0, remaining.blocking_reason or "discount fraction math blocked"
+        net = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.MULTIPLY,
+                values=[gross_sale, float(remaining.value)],
+                source_refs=source_refs,
+            )
+        )
+    elif unit_kind == UNIT_DISCOUNT_PERCENT:
         if discount > 100:
             return 0.0, "percent discount must be between 0 and 100"
-        return gross_sale * (1.0 - discount / 100.0), None
-    if unit_kind == UNIT_DISCOUNT_LINE_AMOUNT:
+        discount_amount = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.PERCENT_OF,
+                values=[gross_sale, discount],
+                source_refs=source_refs,
+            )
+        )
+        if discount_amount.status != FormulaStatus.OK or discount_amount.value is None:
+            return 0.0, discount_amount.blocking_reason or "discount percent math blocked"
+        net = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.SUBTRACT,
+                values=[gross_sale, float(discount_amount.value)],
+                source_refs=source_refs,
+            )
+        )
+    elif unit_kind == UNIT_DISCOUNT_LINE_AMOUNT:
         if discount > gross_sale:
             return 0.0, "line discount amount cannot exceed gross sale"
-        return gross_sale - discount, None
-    return 0.0, "discount unit confirmation is required"
+        net = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.SUBTRACT,
+                values=[gross_sale, discount],
+                source_refs=source_refs,
+            )
+        )
+    else:
+        return 0.0, "discount unit confirmation is required"
+    if net.status != FormulaStatus.OK or net.value is None:
+        return 0.0, net.blocking_reason or "discount math blocked"
+    return float(net.value), None
 
 
 def _packet(*, case_id: str, capability: str, derived_variables: Mapping[str, Any]) -> dict[str, Any]:

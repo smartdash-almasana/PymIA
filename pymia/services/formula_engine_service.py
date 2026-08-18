@@ -1,18 +1,116 @@
 from __future__ import annotations
 
+import math
+
 from pymia.contracts.formula_contract import (
     SUPPORTED_FORMULAS,
     FormulaInput,
     FormulaResult,
     FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    MathPrimitiveResult,
 )
 
 
 class FormulaEngineService:
-    """Motor determinístico mínimo de fórmulas.
+    """Motor determinístico mínimo de fórmulas y primitivas matemáticas.
 
     No interpreta. No conversa. Solo calcula o bloquea con causa explícita.
     """
+
+    def calculate_math_primitive(self, item: MathPrimitiveInput) -> MathPrimitiveResult:
+        """Execute a generic mathematical primitive without business semantics."""
+        if not isinstance(item, MathPrimitiveInput):
+            raise TypeError("item must be MathPrimitiveInput")
+        values = [float(value) for value in item.values]
+        paired = [float(value) for value in item.paired_values]
+        refs = list(dict.fromkeys(str(ref).strip() for ref in item.source_refs if str(ref).strip()))
+        if any(not math.isfinite(value) for value in (*values, *paired)):
+            return MathPrimitiveResult(
+                operation=item.operation,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                source_refs=refs,
+                blocking_reason="NON_FINITE_INPUT",
+            )
+
+        operation = item.operation
+        if operation is not MathPrimitiveOperation.SUM_PRODUCT and paired:
+            return self._math_blocked(item, refs, "UNEXPECTED_PAIRED_VALUES")
+        if operation is MathPrimitiveOperation.SINGLE_VALUE:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            unique = set(values)
+            if len(unique) != 1:
+                return self._math_blocked(item, refs, "MULTIPLE_DISTINCT_VALUES")
+            return self._math_ok(item, values[0], refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.SUM:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, sum(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.COUNT:
+            return self._math_ok(item, len(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.AVG:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, sum(values) / len(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.MIN:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, min(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.MAX:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, max(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.SUM_PRODUCT:
+            if not values or len(values) != len(paired):
+                return self._math_blocked(item, refs, "PAIRED_INPUT_LENGTH_MISMATCH")
+            total = sum(left * right for left, right in zip(values, paired))
+            return self._math_ok(item, total, refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.MULTIPLY:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "MULTIPLY_REQUIRES_TWO_VALUES")
+            return self._math_ok(item, values[0] * values[1], refs, value_count=2)
+        if operation is MathPrimitiveOperation.SUBTRACT:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "SUBTRACT_REQUIRES_TWO_VALUES")
+            return self._math_ok(item, values[0] - values[1], refs, value_count=2)
+        if operation is MathPrimitiveOperation.PERCENT_OF:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "PERCENT_OF_REQUIRES_BASE_AND_PERCENT")
+            return self._math_ok(item, (values[0] * values[1]) / 100.0, refs, value_count=2)
+        return self._math_blocked(item, refs, "MATH_PRIMITIVE_NOT_SUPPORTED")
+
+    def _math_ok(
+        self,
+        item: MathPrimitiveInput,
+        value: float | int,
+        source_refs: list[str],
+        *,
+        value_count: int,
+    ) -> MathPrimitiveResult:
+        return MathPrimitiveResult(
+            operation=item.operation,
+            status=FormulaStatus.OK,
+            value=float(value),
+            source_refs=source_refs,
+            metadata={"value_count": value_count},
+        )
+
+    def _math_blocked(
+        self,
+        item: MathPrimitiveInput,
+        source_refs: list[str],
+        reason: str,
+    ) -> MathPrimitiveResult:
+        return MathPrimitiveResult(
+            operation=item.operation,
+            status=FormulaStatus.BLOCKED,
+            value=None,
+            source_refs=source_refs,
+            blocking_reason=reason,
+        )
 
     def calculate(self, formula_id: str, inputs: list[FormulaInput]) -> FormulaResult:
         values = {input_item.name: input_item.value for input_item in inputs}

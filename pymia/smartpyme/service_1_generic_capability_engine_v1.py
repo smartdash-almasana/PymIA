@@ -4,7 +4,14 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final, Mapping
 
-from pymia.contracts.formula_contract import FormulaInput, FormulaStatus, calculate_formula
+from pymia.contracts.formula_contract import (
+    FormulaInput,
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    calculate_formula,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
 from pymia.smartpyme.service_1_capability_contracts_v1 import CapabilityDefinitionV1
 from pymia.smartpyme.service_1_computability_v1 import Service1GovernedComputationInputV1
 from pymia.smartpyme.service_1_capability_registry_v1 import get_capability_definition_v1
@@ -25,12 +32,14 @@ def execute_generic_capability_v1(
     input_errors = _validate_execution_input(definition, execution_input)
     if input_errors:
         return _blocked(input_errors, definition=definition)
+    math_engine = FormulaEngineService()
     inputs, sources, evidence_errors = _resolve_inputs(
         definition=definition,
         computation_plan=execution_input,
         normalized_tables=normalized_tables,
         column_refs=column_refs,
         governed_results=governed_results,
+        math_engine=math_engine,
     )
     if evidence_errors:
         return _blocked(evidence_errors, definition=definition, aggregation={"sources": sources, "sample_based": False})
@@ -132,7 +141,13 @@ def _validate_execution_input(definition: CapabilityDefinitionV1, payload: objec
 
 
 def _resolve_inputs(
-    *, definition: CapabilityDefinitionV1, computation_plan: object, normalized_tables: object, column_refs: object, governed_results: object
+    *,
+    definition: CapabilityDefinitionV1,
+    computation_plan: object,
+    normalized_tables: object,
+    column_refs: object,
+    governed_results: object,
+    math_engine: FormulaEngineService,
 ) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
     if definition.kind == "COMPOSITE":
         return _resolve_composite_inputs(
@@ -145,11 +160,17 @@ def _resolve_inputs(
         computation_plan=computation_plan,
         normalized_tables=normalized_tables,
         column_refs=column_refs,
+        math_engine=math_engine,
     )
 
 
 def _resolve_atomic_inputs(
-    *, definition: CapabilityDefinitionV1, computation_plan: object, normalized_tables: object, column_refs: object
+    *,
+    definition: CapabilityDefinitionV1,
+    computation_plan: object,
+    normalized_tables: object,
+    column_refs: object,
+    math_engine: FormulaEngineService,
 ) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
     if not isinstance(computation_plan, dict):
         return {}, {}, ["computation_plan must be an object."]
@@ -202,14 +223,26 @@ def _resolve_atomic_inputs(
         if not values:
             errors.append(f"{requirement.name} requires at least one confirmed numeric value.")
             continue
-        if requirement.aggregation == "SINGLE_VALUE":
-            unique = set(values)
-            if len(unique) != 1:
+        operation = (
+            MathPrimitiveOperation.SINGLE_VALUE
+            if requirement.aggregation == "SINGLE_VALUE"
+            else MathPrimitiveOperation.SUM
+        )
+        primitive = math_engine.calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=operation,
+                values=[float(value) for value in values],
+                source_refs=[f"{sheet}.{source_column}"],
+            )
+        )
+        if primitive.status != FormulaStatus.OK or primitive.value is None:
+            reason = primitive.blocking_reason or "math primitive blocked"
+            if operation is MathPrimitiveOperation.SINGLE_VALUE:
                 errors.append(f"{requirement.name} must resolve to one consistent confirmed value.")
-                continue
-            aggregated = values[0]
-        else:
-            aggregated = sum(values, Decimal("0"))
+            else:
+                errors.append(f"{requirement.name} aggregation blocked: {reason}.")
+            continue
+        aggregated = Decimal(str(primitive.value))
         inputs[requirement.name] = aggregated
         sources[requirement.name] = {
             "sheet_name": sheet,
