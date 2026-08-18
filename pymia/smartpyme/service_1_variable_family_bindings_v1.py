@@ -472,7 +472,10 @@ def build_service_1_analysis_requirement_match_v1(
         if role and column:
             _append_unique(role_columns, role, column)
 
-    required_role_groups, requirement_error = _analysis_required_role_groups(analysis_plan)
+    required_role_groups, requirement_error = _analysis_required_role_groups(
+        analysis_plan,
+        role_columns=role_columns,
+    )
     expected_business_grain, grain_error = _analysis_expected_business_grain(analysis_plan)
     requested = analysis_plan.requested_grain
     try:
@@ -567,15 +570,33 @@ def build_service_1_analysis_requirement_match_v1(
 
 def _analysis_required_role_groups(
     analysis_plan: Service1AnalysisPlanV1,
+    *,
+    role_columns: dict[str, list[str]] | None = None,
 ) -> tuple[tuple[tuple[str, ...], ...], str | None]:
+    available_roles = set((role_columns or {}).keys())
+
+    def sales_basis_groups() -> tuple[tuple[str, ...], ...]:
+        # Prefer an explicitly observed sales amount. When it does not exist,
+        # accept atomic line evidence and let F8 derive sales through the Math Brain.
+        if "sales_amount" in available_roles:
+            return (("sales_amount",),)
+        if {"quantity", "unit_sale_price"}.intersection(available_roles):
+            return (("quantity",), ("unit_sale_price",))
+        # With no sales evidence yet, expose both admissible modes without
+        # pretending one is the only possible source of truth.
+        return (("sales_amount", "quantity"), ("sales_amount", "unit_sale_price"))
+
     groups: list[tuple[str, ...]] = []
     for measure in analysis_plan.measures:
         if measure == "sales":
-            groups.append(("sales_amount",))
+            groups.extend(sales_basis_groups())
         elif measure == "gross_margin":
-            groups.extend((("sales_amount",), ("quantity",), ("unit_cost_candidate",)))
+            groups.extend(sales_basis_groups())
+            groups.extend((("quantity",), ("unit_cost_candidate",)))
+        elif measure == "sales_concentration":
+            groups.extend(sales_basis_groups())
         elif measure == "dso":
-            groups.extend((("accounts_receivable_amount",), ("sales_amount",), ("period_days", "days")))
+            groups.extend((("accounts_receivable_amount",), *sales_basis_groups(), ("period_days", "days")))
         elif measure == "projected_cash_balance":
             groups.extend((("initial_balance",), ("expected_collections",), ("expected_payments",)))
         else:

@@ -108,15 +108,19 @@ F5 no calcula ninguna medida. Sólo declara requisitos y `formula_refs` cuando c
 
 ```text
 sales
-required roles: sales_amount
+required evidence mode: sales_amount OR (quantity + unit_sale_price)
 formula_refs: none
 
  gross_margin
-required roles: sales_amount + quantity + unit_cost_candidate
+required evidence mode: [sales_amount OR (quantity + unit_sale_price)] + quantity + unit_cost_candidate
 formula_refs: margen_bruto
 
+ sales_concentration
+required evidence mode: sales_amount OR (quantity + unit_sale_price)
+formula_refs: PYME_033_concentracion_sku
+
  dso
-required roles: accounts_receivable_amount + sales_amount + (period_days OR days)
+required evidence mode: accounts_receivable_amount + [sales_amount OR (quantity + unit_sale_price)] + (period_days OR days)
 formula_refs: PYME_011_dso
 
  projected_cash_balance
@@ -132,15 +136,15 @@ Los `formula_refs` existentes se validan contra la fuente canónica F2 `pymia/co
 
 ```text
 ventas por producto
-P7 MATCH + sales_amount + product
+P7 MATCH + sales evidence mode + product
 → COMPUTABLE
 
 ventas por sucursal
-P7 MATCH + sales_amount + branch
+P7 MATCH + sales evidence mode + branch
 → COMPUTABLE
 
 serie ventas por día
-P7 MATCH + sales_amount + operation_date
+P7 MATCH + sales evidence mode + operation_date
 → COMPUTABLE
 
 ranking ventas por producto
@@ -148,7 +152,7 @@ P7 MATCH
 → COMPUTABLE
 
 margen bruto por producto
-sales_amount + unit_cost_candidate + product + relación confirmada cuando el plan la exige
+sales evidence mode + quantity + unit_cost_candidate + product + relación confirmada cuando el plan la exige
 → COMPUTABLE
 
 DSO sin cuentas por cobrar/período

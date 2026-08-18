@@ -48,11 +48,19 @@ _AUTHORITY_FLAGS: Final[tuple[str, ...]] = (
 
 
 @dataclass(frozen=True)
+class _MeasureInputOption:
+    operation: MathPrimitiveOperation
+    role_alternatives: tuple[str, ...]
+    paired_role_alternatives: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class _MeasureInputSpec:
     input_name: str
     operation: MathPrimitiveOperation
     role_alternatives: tuple[str, ...]
     paired_role_alternatives: tuple[str, ...] = ()
+    fallback_options: tuple[_MeasureInputOption, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -64,6 +72,16 @@ class _MeasureExecutionSpec:
     output_unit: str
 
 
+@dataclass(frozen=True)
+class _CrossGroupMeasureExecutionSpec:
+    measure_ref: str
+    basis_input: _MeasureInputSpec
+    formula_ref: str
+    numerator_input_name: str
+    denominator_input_name: str
+    output_unit: str
+
+
 _MEASURE_SPECS: Final[dict[str, _MeasureExecutionSpec]] = {
     "sales": _MeasureExecutionSpec(
         measure_ref="sales",
@@ -72,6 +90,13 @@ _MEASURE_SPECS: Final[dict[str, _MeasureExecutionSpec]] = {
                 input_name="sales",
                 operation=MathPrimitiveOperation.SUM,
                 role_alternatives=("sales_amount",),
+                fallback_options=(
+                    _MeasureInputOption(
+                        operation=MathPrimitiveOperation.SUM_PRODUCT,
+                        role_alternatives=("quantity",),
+                        paired_role_alternatives=("unit_sale_price",),
+                    ),
+                ),
             ),
         ),
         formula_ref=None,
@@ -85,6 +110,13 @@ _MEASURE_SPECS: Final[dict[str, _MeasureExecutionSpec]] = {
                 input_name="ventas",
                 operation=MathPrimitiveOperation.SUM,
                 role_alternatives=("sales_amount",),
+                fallback_options=(
+                    _MeasureInputOption(
+                        operation=MathPrimitiveOperation.SUM_PRODUCT,
+                        role_alternatives=("quantity",),
+                        paired_role_alternatives=("unit_sale_price",),
+                    ),
+                ),
             ),
             _MeasureInputSpec(
                 input_name="costos",
@@ -109,6 +141,13 @@ _MEASURE_SPECS: Final[dict[str, _MeasureExecutionSpec]] = {
                 input_name="sales",
                 operation=MathPrimitiveOperation.SUM,
                 role_alternatives=("sales_amount",),
+                fallback_options=(
+                    _MeasureInputOption(
+                        operation=MathPrimitiveOperation.SUM_PRODUCT,
+                        role_alternatives=("quantity",),
+                        paired_role_alternatives=("unit_sale_price",),
+                    ),
+                ),
             ),
             _MeasureInputSpec(
                 input_name="days",
@@ -142,6 +181,29 @@ _MEASURE_SPECS: Final[dict[str, _MeasureExecutionSpec]] = {
         formula_ref="LIQ_002_saldo_final_proyectado",
         direct_input_name=None,
         output_unit="currency",
+    ),
+}
+
+
+_CROSS_GROUP_MEASURE_SPECS: Final[dict[str, _CrossGroupMeasureExecutionSpec]] = {
+    "sales_concentration": _CrossGroupMeasureExecutionSpec(
+        measure_ref="sales_concentration",
+        basis_input=_MeasureInputSpec(
+            input_name="group_sales",
+            operation=MathPrimitiveOperation.SUM,
+            role_alternatives=("sales_amount",),
+            fallback_options=(
+                _MeasureInputOption(
+                    operation=MathPrimitiveOperation.SUM_PRODUCT,
+                    role_alternatives=("quantity",),
+                    paired_role_alternatives=("unit_sale_price",),
+                ),
+            ),
+        ),
+        formula_ref="PYME_033_concentracion_sku",
+        numerator_input_name="main_sku_sales",
+        denominator_input_name="total_sales",
+        output_unit="percentage",
     ),
 }
 
@@ -329,14 +391,21 @@ def execute_service_1_analysis_math_v1(
         return _decision(case, plan.analysis_id, STATUS_BLOCKED, "RESOLVED_GRAIN_DRIFT")
 
     specs: list[_MeasureExecutionSpec] = []
+    cross_group_specs: list[_CrossGroupMeasureExecutionSpec] = []
     expected_formula_refs: list[str] = []
     for measure in plan.measures:
         spec = _MEASURE_SPECS.get(measure)
-        if spec is None:
+        cross_spec = _CROSS_GROUP_MEASURE_SPECS.get(measure)
+        if spec is None and cross_spec is None:
             return _decision(case, plan.analysis_id, STATUS_UNSUPPORTED, f"UNSUPPORTED_ANALYSIS_MEASURE:{measure}")
-        specs.append(spec)
-        if spec.formula_ref and spec.formula_ref not in expected_formula_refs:
-            expected_formula_refs.append(spec.formula_ref)
+        if spec is not None:
+            specs.append(spec)
+            if spec.formula_ref and spec.formula_ref not in expected_formula_refs:
+                expected_formula_refs.append(spec.formula_ref)
+        if cross_spec is not None:
+            cross_group_specs.append(cross_spec)
+            if cross_spec.formula_ref not in expected_formula_refs:
+                expected_formula_refs.append(cross_spec.formula_ref)
     if tuple(expected_formula_refs) != tuple(governed_analysis_input.formula_refs):
         return _decision(case, plan.analysis_id, STATUS_BLOCKED, "P8_FORMULA_REF_DRIFT")
 
@@ -344,7 +413,9 @@ def execute_service_1_analysis_math_v1(
     if len(rows_by_ref) != len(prepared_evidence.prepared_rows):
         return _decision(case, plan.analysis_id, STATUS_BLOCKED, "DUPLICATE_PREPARED_ROW_REF")
     engine = formula_engine or FormulaEngineService()
-    executed_groups: list[Service1ExecutedGroupV1] = []
+    group_contexts: list[
+        tuple[Service1PreparedGroupV1, list[Service1PreparedRowV1], dict[str, Service1ExecutedMeasureV1]]
+    ] = []
     for group in prepared_evidence.groups:
         group_rows: list[Service1PreparedRowV1] = []
         for row_ref in group.member_row_refs:
@@ -364,15 +435,27 @@ def execute_service_1_analysis_math_v1(
                 return _decision(case, plan.analysis_id, status, f"{group.group_ref}:{spec.measure_ref}:{reason}")
             assert measure is not None
             measures[spec.measure_ref] = measure
-        executed_groups.append(
-            Service1ExecutedGroupV1(
-                group_ref=group.group_ref,
-                key=group.key,
-                measures=measures,
-                member_row_refs=group.member_row_refs,
-            )
-        )
+        group_contexts.append((group, group_rows, measures))
 
+    for cross_spec in cross_group_specs:
+        cross_error = _execute_cross_group_measure(
+            spec=cross_spec,
+            group_contexts=group_contexts,
+            engine=engine,
+        )
+        if cross_error is not None:
+            status, reason = cross_error
+            return _decision(case, plan.analysis_id, status, reason)
+
+    executed_groups = [
+        Service1ExecutedGroupV1(
+            group_ref=group.group_ref,
+            key=group.key,
+            measures=measures,
+            member_row_refs=group.member_row_refs,
+        )
+        for group, _rows, measures in group_contexts
+    ]
     ordered, order_error = _apply_order_and_limit(plan=plan, groups=executed_groups)
     if order_error is not None:
         return _decision(case, plan.analysis_id, STATUS_UNSUPPORTED, order_error)
@@ -408,47 +491,70 @@ def _execute_measure(
     all_refs: list[str] = []
     trace: list[dict[str, Any]] = []
     for input_spec in spec.inputs:
-        primary_role, role_error = _resolve_role(rows, input_spec.role_alternatives)
-        if role_error is not None:
-            return None, (STATUS_NEEDS_EVIDENCE, role_error)
-        assert primary_role is not None
-        values, refs, numeric_error = _numeric_values(rows, primary_role)
-        if numeric_error is not None:
-            return None, (STATUS_NEEDS_EVIDENCE, numeric_error)
-        paired_values: list[float] = []
-        paired_refs: list[str] = []
-        paired_role: str | None = None
-        if input_spec.paired_role_alternatives:
-            paired_role, role_error = _resolve_role(rows, input_spec.paired_role_alternatives)
+        options = (
+            _MeasureInputOption(
+                operation=input_spec.operation,
+                role_alternatives=input_spec.role_alternatives,
+                paired_role_alternatives=input_spec.paired_role_alternatives,
+            ),
+            *input_spec.fallback_options,
+        )
+        selected: tuple[float, tuple[str, ...], dict[str, Any]] | None = None
+        role_errors: list[str] = []
+        for option in options:
+            primary_role, role_error = _resolve_role(rows, option.role_alternatives)
             if role_error is not None:
-                return None, (STATUS_NEEDS_EVIDENCE, role_error)
-            assert paired_role is not None
-            paired_values, paired_refs, numeric_error = _numeric_values(rows, paired_role)
+                role_errors.append(role_error)
+                continue
+            assert primary_role is not None
+            values, refs, numeric_error = _numeric_values(rows, primary_role)
             if numeric_error is not None:
                 return None, (STATUS_NEEDS_EVIDENCE, numeric_error)
-        primitive_refs = tuple(dict.fromkeys((*refs, *paired_refs)))
-        primitive = engine.calculate_math_primitive(
-            MathPrimitiveInput(
-                operation=input_spec.operation,
-                values=values,
-                paired_values=paired_values,
-                source_refs=list(primitive_refs),
+            paired_values: list[float] = []
+            paired_refs: list[str] = []
+            paired_role: str | None = None
+            if option.paired_role_alternatives:
+                paired_role, paired_error = _resolve_role(rows, option.paired_role_alternatives)
+                if paired_error is not None:
+                    role_errors.append(paired_error)
+                    continue
+                assert paired_role is not None
+                paired_values, paired_refs, numeric_error = _numeric_values(rows, paired_role)
+                if numeric_error is not None:
+                    return None, (STATUS_NEEDS_EVIDENCE, numeric_error)
+            primitive_refs = tuple(dict.fromkeys((*refs, *paired_refs)))
+            primitive = engine.calculate_math_primitive(
+                MathPrimitiveInput(
+                    operation=option.operation,
+                    values=values,
+                    paired_values=paired_values,
+                    source_refs=list(primitive_refs),
+                )
             )
-        )
-        if primitive.status != FormulaStatus.OK or primitive.value is None:
-            return None, (STATUS_BLOCKED, primitive.blocking_reason or "MATH_PRIMITIVE_BLOCKED")
-        formula_inputs[input_spec.input_name] = float(primitive.value)
-        all_refs.extend(primitive.source_refs)
-        trace.append(
-            {
-                "input_name": input_spec.input_name,
-                "operation": input_spec.operation.value,
-                "primary_role": primary_role,
-                "paired_role": paired_role,
-                "value": float(primitive.value),
-                "source_refs": list(primitive.source_refs),
-            }
-        )
+            if primitive.status != FormulaStatus.OK or primitive.value is None:
+                return None, (STATUS_BLOCKED, primitive.blocking_reason or "MATH_PRIMITIVE_BLOCKED")
+            selected = (
+                float(primitive.value),
+                tuple(primitive.source_refs),
+                {
+                    "input_name": input_spec.input_name,
+                    "operation": option.operation.value,
+                    "primary_role": primary_role,
+                    "paired_role": paired_role,
+                    "value": float(primitive.value),
+                    "source_refs": list(primitive.source_refs),
+                },
+            )
+            break
+        if selected is None:
+            return None, (
+                STATUS_NEEDS_EVIDENCE,
+                role_errors[0] if role_errors else f"REQUIRED_INPUT_MISSING:{input_spec.input_name}",
+            )
+        value, source_refs, trace_item = selected
+        formula_inputs[input_spec.input_name] = value
+        all_refs.extend(source_refs)
+        trace.append(trace_item)
 
     unique_refs = tuple(dict.fromkeys(all_refs))
     if spec.formula_ref is None:
@@ -491,6 +597,101 @@ def _execute_measure(
         source_refs=tuple(dict.fromkeys(formula_result.source_refs or unique_refs)),
         math_trace=tuple(trace),
     ), None
+
+
+def _execute_cross_group_measure(
+    *,
+    spec: _CrossGroupMeasureExecutionSpec,
+    group_contexts: list[
+        tuple[Service1PreparedGroupV1, list[Service1PreparedRowV1], dict[str, Service1ExecutedMeasureV1]]
+    ],
+    engine: FormulaEngineService,
+) -> tuple[str, str] | None:
+    if not group_contexts:
+        return STATUS_NEEDS_EVIDENCE, f"{spec.measure_ref}:GROUP_EVIDENCE_MISSING"
+
+    basis_spec = _MeasureExecutionSpec(
+        measure_ref=f"{spec.measure_ref}__basis",
+        inputs=(spec.basis_input,),
+        formula_ref=None,
+        direct_input_name=spec.basis_input.input_name,
+        output_unit="currency",
+    )
+    basis_by_group: list[tuple[float, Service1ExecutedMeasureV1]] = []
+    all_basis_refs: list[str] = []
+    for group, rows, _measures in group_contexts:
+        basis, error = _execute_measure(spec=basis_spec, rows=rows, engine=engine)
+        if error is not None:
+            status, reason = error
+            return status, f"{group.group_ref}:{spec.measure_ref}:{reason}"
+        assert basis is not None
+        basis_by_group.append((basis.value, basis))
+        all_basis_refs.extend(basis.source_refs)
+
+    denominator = engine.calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.SUM,
+            values=[value for value, _basis in basis_by_group],
+            source_refs=list(dict.fromkeys(all_basis_refs)),
+        )
+    )
+    if denominator.status != FormulaStatus.OK or denominator.value is None:
+        return STATUS_BLOCKED, denominator.blocking_reason or "CROSS_GROUP_DENOMINATOR_BLOCKED"
+    total_value = float(denominator.value)
+    denominator_refs = tuple(dict.fromkeys(denominator.source_refs))
+
+    for (group, _rows, measures), (basis_value, basis) in zip(group_contexts, basis_by_group, strict=True):
+        formula_inputs = {
+            spec.numerator_input_name: float(basis_value),
+            spec.denominator_input_name: total_value,
+        }
+        formula_result = engine.calculate(
+            spec.formula_ref,
+            [
+                FormulaInput(
+                    name=spec.numerator_input_name,
+                    value=float(basis_value),
+                    source_refs=list(basis.source_refs),
+                ),
+                FormulaInput(
+                    name=spec.denominator_input_name,
+                    value=total_value,
+                    source_refs=list(denominator_refs),
+                ),
+            ],
+        )
+        if formula_result.status != FormulaStatus.OK or formula_result.value is None:
+            return STATUS_BLOCKED, formula_result.blocking_reason or "CROSS_GROUP_FORMULA_BLOCKED"
+        source_refs = tuple(dict.fromkeys(formula_result.source_refs or (*basis.source_refs, *denominator_refs)))
+        trace = [dict(item) for item in basis.math_trace]
+        trace.append(
+            {
+                "operation": "SUM",
+                "scope": "ALL_GROUPS",
+                "input_name": spec.denominator_input_name,
+                "value": total_value,
+                "source_refs": list(denominator_refs),
+            }
+        )
+        trace.append(
+            {
+                "operation": "FORMULA",
+                "formula_ref": spec.formula_ref,
+                "numerator_group_ref": group.group_ref,
+                "value": float(formula_result.value),
+                "source_refs": list(source_refs),
+            }
+        )
+        measures[spec.measure_ref] = Service1ExecutedMeasureV1(
+            measure_ref=spec.measure_ref,
+            value=float(formula_result.value),
+            unit=spec.output_unit,
+            formula_ref=spec.formula_ref,
+            formula_inputs=formula_inputs,
+            source_refs=source_refs,
+            math_trace=tuple(trace),
+        )
+    return None
 
 
 def _resolve_role(

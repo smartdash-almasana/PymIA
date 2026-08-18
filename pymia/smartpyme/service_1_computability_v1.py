@@ -755,6 +755,7 @@ def _analysis_formula_refs(analysis_plan: Service1AnalysisPlanV1) -> tuple[tuple
     formula_by_measure = {
         "sales": None,
         "gross_margin": "margen_bruto",
+        "sales_concentration": "PYME_033_concentracion_sku",
         "dso": "PYME_011_dso",
         "projected_cash_balance": "LIQ_002_saldo_final_proyectado",
     }

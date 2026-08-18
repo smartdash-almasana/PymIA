@@ -74,17 +74,25 @@ Ejemplos:
 
 ```text
 sales
-  sales = SUM(sales_amount)
+  direct: sales = SUM(sales_amount)
+  atomic fallback: sales = SUM_PRODUCT(quantity, unit_sale_price)
   formula_ref = NONE
 
 gross_margin
-  ventas = SUM(sales_amount)
+  direct ventas: SUM(sales_amount)
+  atomic ventas fallback: SUM_PRODUCT(quantity, unit_sale_price)
   costos = SUM_PRODUCT(quantity, unit_cost_candidate)
   formula_ref = margen_bruto
 
+sales_concentration
+  group sales = direct-or-atomic sales evidence
+  total_sales = SUM(group sales)
+  per-group formula_ref = PYME_033_concentracion_sku
+  output = percentage
+
 dso
   accounts_receivable = SUM(accounts_receivable_amount)
-  sales = SUM(sales_amount)
+  sales = direct-or-atomic sales evidence
   days = SINGLE_VALUE(period_days | days)
   formula_ref = PYME_011_dso
 

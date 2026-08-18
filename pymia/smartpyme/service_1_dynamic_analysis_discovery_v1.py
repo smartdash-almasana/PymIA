@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import Counter, deque
 from dataclasses import dataclass, field
+from itertools import product
 from typing import Any, Final, Iterable, Mapping
 
 from pymia.smartpyme.service_1_analysis_plan_v1 import (
@@ -22,6 +23,7 @@ from pymia.smartpyme.service_1_computability_v1 import (
     STATUS_COMPUTABLE as P8_STATUS_COMPUTABLE,
     STATUS_NEEDS_EVIDENCE as P8_STATUS_NEEDS_EVIDENCE,
     STATUS_UNSUPPORTED_ANALYSIS as P8_STATUS_UNSUPPORTED,
+    Service1GovernedAnalysisInputV1,
     build_service_1_analysis_computability_decision_v1,
 )
 from pymia.smartpyme.service_1_p6_approval_decision_v1 import (
@@ -72,6 +74,7 @@ class Service1AnalysisDiscoveryTemplateV1:
     aggregation_grain: str
     order_by: tuple[Service1AnalysisOrderByV1, ...] = ()
     limit: int | None = None
+    preferred_roles: tuple[str, ...] = ()
     commercially_exposed_by_default: bool = False
     schema_version: str = CATALOG_SCHEMA_VERSION
 
@@ -94,9 +97,14 @@ class Service1AnalysisDiscoveryTemplateV1:
             raise ValueError("dimensions must contain non-empty refs")
         if len(set(self.measures)) != len(self.measures) or len(set(self.dimensions)) != len(self.dimensions):
             raise ValueError("measures and dimensions cannot contain duplicates")
+        if any(not str(value).strip() for value in self.preferred_roles):
+            raise ValueError("preferred_roles must contain non-empty refs")
+        if len(set(self.preferred_roles)) != len(self.preferred_roles):
+            raise ValueError("preferred_roles cannot contain duplicates")
         object.__setattr__(self, "measures", tuple(self.measures))
         object.__setattr__(self, "dimensions", tuple(self.dimensions))
         object.__setattr__(self, "order_by", tuple(self.order_by))
+        object.__setattr__(self, "preferred_roles", tuple(self.preferred_roles))
 
     def build_plan(self, *, relationship_refs: tuple[str, ...] = ()) -> Service1AnalysisPlanV1:
         return Service1AnalysisPlanV1(
@@ -129,6 +137,7 @@ class Service1AnalysisDiscoveryTemplateV1:
             "aggregation_grain": self.aggregation_grain,
             "order_by": [item.to_dict() for item in self.order_by],
             "limit": self.limit,
+            "preferred_roles": list(self.preferred_roles),
             "commercially_exposed_by_default": self.commercially_exposed_by_default,
         }
 
@@ -155,6 +164,7 @@ ANALYSIS_DISCOVERY_CATALOG_V1: Final[tuple[Service1AnalysisDiscoveryTemplateV1, 
         business_entity_grain="PRODUCT",
         temporal_grain="PERIOD",
         aggregation_grain="GROUPED",
+        preferred_roles=("product_identifier",),
     ),
     Service1AnalysisDiscoveryTemplateV1(
         analysis_id="gross_margin_by_product",
@@ -166,6 +176,7 @@ ANALYSIS_DISCOVERY_CATALOG_V1: Final[tuple[Service1AnalysisDiscoveryTemplateV1, 
         business_entity_grain="PRODUCT",
         temporal_grain="PERIOD",
         aggregation_grain="GROUPED",
+        preferred_roles=("product_identifier",),
     ),
     Service1AnalysisDiscoveryTemplateV1(
         analysis_id="sales_by_branch",
@@ -177,6 +188,7 @@ ANALYSIS_DISCOVERY_CATALOG_V1: Final[tuple[Service1AnalysisDiscoveryTemplateV1, 
         business_entity_grain="BRANCH",
         temporal_grain="PERIOD",
         aggregation_grain="GROUPED",
+        preferred_roles=("branch_name",),
     ),
     Service1AnalysisDiscoveryTemplateV1(
         analysis_id="sales_series_day",
@@ -241,6 +253,7 @@ class Service1DiscoveredAnalysisV1:
     p7_reason: str | None
     p8_status: str
     p8_reason: str | None
+    governed_analysis_input: Service1GovernedAnalysisInputV1 | None = None
     missing_role_groups: tuple[tuple[str, ...], ...] = ()
     required_relationship_refs: tuple[str, ...] = ()
     missing_relationship_evidence: tuple[str, ...] = ()
@@ -260,6 +273,10 @@ class Service1DiscoveredAnalysisV1:
             raise ValueError("commercial exposure requires commercial request")
         if self.commercially_exposed and not self.technically_available:
             raise ValueError("commercial exposure requires technical availability")
+        if self.technically_available and not isinstance(self.governed_analysis_input, Service1GovernedAnalysisInputV1):
+            raise ValueError("technical availability requires canonical P8 governed analysis input")
+        if not self.technically_available and self.governed_analysis_input is not None:
+            raise ValueError("non-available discovery cannot carry governed analysis input")
         if not isinstance(self.plan, Service1AnalysisPlanV1) or self.plan.analysis_id != self.analysis_id:
             raise ValueError("plan identity mismatch")
         object.__setattr__(self, "missing_role_groups", tuple(tuple(group) for group in self.missing_role_groups))
@@ -281,6 +298,11 @@ class Service1DiscoveredAnalysisV1:
             "p7_reason": self.p7_reason,
             "p8_status": self.p8_status,
             "p8_reason": self.p8_reason,
+            "governed_analysis_input": (
+                self.governed_analysis_input.to_dict()
+                if self.governed_analysis_input is not None
+                else None
+            ),
             "missing_role_groups": [list(group) for group in self.missing_role_groups],
             "required_relationship_refs": list(self.required_relationship_refs),
             "missing_relationship_evidence": list(self.missing_relationship_evidence),
@@ -427,9 +449,16 @@ def _discover_one(
     required_relationship_refs: tuple[str, ...] = ()
     missing_relationship_evidence: tuple[str, ...] = ()
     relationship_error: str | None = None
+    effective_p6 = p6_decisions
     if preliminary_match.status == P7_STATUS_MATCHED:
-        source_decisions, source_error = _selected_source_decisions(preliminary_match, p6_decisions)
+        source_decisions, source_error = _selected_source_decisions(
+            preliminary_match,
+            p6_decisions,
+            relationship_bindings=relationship_bindings,
+            preferred_roles=template.preferred_roles,
+        )
         if source_error is None:
+            effective_p6 = source_decisions
             (
                 required_relationship_refs,
                 missing_relationship_evidence,
@@ -442,7 +471,7 @@ def _discover_one(
             relationship_error = source_error
 
     plan = template.build_plan(relationship_refs=required_relationship_refs)
-    p7 = build_service_1_analysis_requirement_match_v1(plan, p6_decisions)
+    p7 = build_service_1_analysis_requirement_match_v1(plan, effective_p6)
     selected_bindings = {
         ref: dict(relationship_bindings[ref])
         for ref in required_relationship_refs
@@ -451,7 +480,7 @@ def _discover_one(
     p8 = build_service_1_analysis_computability_decision_v1(
         case_id=case_id,
         analysis_plan=plan,
-        p6_decisions=list(p6_decisions),
+        p6_decisions=list(effective_p6),
         analysis_requirement_match=p7,
         relationship_bindings=selected_bindings,
     )
@@ -495,6 +524,7 @@ def _discover_one(
         p7_reason=p7.reason,
         p8_status=p8_status,
         p8_reason=p8_reason,
+        governed_analysis_input=(p8.governed_analysis_input if available else None),
         missing_role_groups=p7.missing_role_groups,
         required_relationship_refs=required_relationship_refs,
         missing_relationship_evidence=missing_relationship_evidence,
@@ -597,22 +627,87 @@ def _relationship_bindings(confirmed_bindings: Mapping[str, Any]) -> dict[str, d
 def _selected_source_decisions(
     match: Service1AnalysisRequirementMatchV1,
     decisions: tuple[Service1P6ApprovalDecisionV1, ...],
+    *,
+    relationship_bindings: Mapping[str, Mapping[str, Any]],
+    preferred_roles: tuple[str, ...] = (),
 ) -> tuple[tuple[Service1P6ApprovalDecisionV1, ...], str | None]:
-    by_role: dict[str, list[Service1P6ApprovalDecisionV1]] = {}
-    for decision in decisions:
-        role = str(decision.approved_role or "").strip()
-        if role:
-            by_role.setdefault(role, []).append(decision)
-    selected: list[Service1P6ApprovalDecisionV1] = []
+    """Choose one coherent P6 evidence set for the requested AnalysisPlan.
+
+    P7 role-groups express admissible evidence, not source preference. F10 may
+    therefore project the approved evidence down to one unambiguous source set
+    before invoking P8. Selection is structural: explicit template role
+    preferences first, then fact-side relationship sources, then minimal sheet
+    span. It never changes semantic meaning or invents a relationship.
+    """
+    candidate_groups: list[tuple[Service1P6ApprovalDecisionV1, ...]] = []
     for group in match.required_role_groups:
-        matched_roles = [role for role in group if by_role.get(role)]
-        if len(matched_roles) != 1:
-            return (), "DISCOVERY_AMBIGUOUS_REQUIRED_ROLE_GROUP"
-        matches = by_role[matched_roles[0]]
-        if len(matches) != 1:
-            return (), "DISCOVERY_AMBIGUOUS_SOURCE_COLUMN"
-        selected.append(matches[0])
-    return tuple(selected), None
+        candidates = tuple(
+            decision
+            for decision in decisions
+            if str(decision.approved_role or "").strip() in group
+        )
+        if not candidates:
+            return (), "DISCOVERY_REQUIRED_SOURCE_MISSING"
+        candidate_groups.append(candidates)
+
+    fact_sheets = {
+        str(binding.get("left_sheet_ref") or "").strip()
+        for binding in relationship_bindings.values()
+        if binding.get("confirmed_by_owner") is True
+        and str(binding.get("relationship_kind") or "").strip() in {"MANY_TO_ONE", "ONE_TO_ONE"}
+        and str(binding.get("left_sheet_ref") or "").strip()
+    }
+    preferred = set(preferred_roles)
+    ranked: list[tuple[tuple[int, int, int, int], tuple[Service1P6ApprovalDecisionV1, ...]]] = []
+    for raw_combo in product(*candidate_groups):
+        unique: list[Service1P6ApprovalDecisionV1] = []
+        seen_identity: set[tuple[str, str, str]] = set()
+        for decision in raw_combo:
+            identity = (
+                decision.sheet_ref,
+                decision.column_ref,
+                str(decision.approved_role or "").strip(),
+            )
+            if identity not in seen_identity:
+                seen_identity.add(identity)
+                unique.append(decision)
+
+        valid = True
+        by_role: dict[str, set[tuple[str, str]]] = {}
+        selected_roles = {str(item.approved_role or "").strip() for item in unique}
+        for group in match.required_role_groups:
+            matched_roles = {role for role in group if role in selected_roles}
+            if len(matched_roles) != 1:
+                valid = False
+                break
+        if not valid:
+            continue
+        for decision in unique:
+            role = str(decision.approved_role or "").strip()
+            by_role.setdefault(role, set()).add((decision.sheet_ref, decision.column_ref))
+        if any(len(columns) != 1 for columns in by_role.values()):
+            continue
+
+        sheets = {item.sheet_ref for item in unique}
+        score = (
+            sum(1 for item in unique if str(item.approved_role or "").strip() in preferred),
+            sum(1 for item in unique if item.sheet_ref in fact_sheets),
+            -len(sheets),
+            -len(unique),
+        )
+        ranked.append((score, tuple(unique)))
+
+    if not ranked:
+        return (), "DISCOVERY_AMBIGUOUS_REQUIRED_ROLE_GROUP"
+    best_score = max(score for score, _items in ranked)
+    best = [items for score, items in ranked if score == best_score]
+    identities = {
+        tuple(sorted((item.sheet_ref, item.column_ref, str(item.approved_role or "")) for item in items))
+        for items in best
+    }
+    if len(identities) != 1:
+        return (), "DISCOVERY_AMBIGUOUS_SOURCE_COLUMN"
+    return best[0], None
 
 
 def _required_relationship_path(

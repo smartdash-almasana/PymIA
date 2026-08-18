@@ -82,6 +82,10 @@ Los grains empresariales compuestos son genéricos mediante `+`, por ejemplo `PR
 ```text
 measure sales
 → sales_amount
+OR
+→ quantity + unit_sale_price
+
+F11 refinement: P7 selects the direct mode when `sales_amount` exists; otherwise it accepts atomic line evidence `quantity + unit_sale_price`. P7 still does not calculate the derived amount.
 
 dimension product
 → product_identifier OR product_name

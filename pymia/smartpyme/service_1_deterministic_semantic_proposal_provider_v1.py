@@ -8,15 +8,12 @@ no authority. A real LLM provider may be injected at the same boundary later.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Final
+from typing import Any
 
 from pymia.smartpyme.service_1_derived_evidence_v1 import (
     service_1_derived_evidence_relevant_column_refs_v1,
 )
 from pymia.smartpyme.service_1_llm_semantic_contract_v1 import PROPOSAL_SCHEMA_VERSION
-
-_PRODUCT_KEY_ROLES: Final[frozenset[str]] = frozenset({"product_identifier", "product_name"})
-
 
 def build_service_1_deterministic_semantic_proposal_v1(payload: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, Mapping):
@@ -113,8 +110,10 @@ def build_service_1_deterministic_semantic_proposal_v1(payload: Mapping[str, Any
             not left
             or not right
             or not kind
-            or left_role not in _PRODUCT_KEY_ROLES
-            or right_role not in _PRODUCT_KEY_ROLES
+            or not left_role
+            or not right_role
+            or left_role != right_role
+            or not left_role.endswith("_identifier")
         ):
             continue
         evidence_ref = f"ev:relationship:{left}->{right}:overlap"

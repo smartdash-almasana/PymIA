@@ -142,6 +142,8 @@ AnalysisPlan + P6
 
 P8 puede declarar el análisis computable con relación confirmada, pero F6 no hace el join ni prepara filas.
 
+F11 corrigió el fallback semántico determinístico para mantener este contrato: una relación estructural se proyecta a confirmación cuando ambos extremos comparten el mismo rol `*_identifier`; ya no existe un whitelist exclusivo de producto. Así `ProductoID` y `SucursalID` usan exactamente el mismo mecanismo general.
+
 ## Frontera con F7
 
 F7 será responsable de materializar evidencia gobernada:

@@ -74,6 +74,7 @@ measures
 dimensions
 requested grain
 order_by / limit cuando corresponda
+preferred_roles cuando el análisis requiere una fuente de dimensión específica
 commercially_exposed_by_default
 ```
 
@@ -89,6 +90,10 @@ Un análisis queda `TECHNICALLY_AVAILABLE` sólo si:
 4. si los roles viven en más de una hoja, existe un camino de relaciones owner-confirmadas y join-safe;
 5. el `AnalysisPlan` final contiene esas `relationship_refs`;
 6. P8 devuelve `COMPUTABLE`.
+
+F11 refinó la selección de fuente: cuando múltiples columnas P6 aprobadas pueden satisfacer el mismo role-group, F10 proyecta un subconjunto coherente antes de P8. La selección prioriza `preferred_roles` declarados por el template y, a igualdad semántica, la fuente del lado fact de relaciones confirmadas. No rebindea roles ni crea semántica nueva. Si la mejor selección sigue siendo ambigua, bloquea.
+
+Cuando P8 devuelve `COMPUTABLE`, F10 conserva el `Service1GovernedAnalysisInputV1` exacto dentro del item descubierto como pass-through no ejecutable para que F11/F7 consuman la misma decisión de computabilidad; F10 no obtiene por ello autoridad de ejecución.
 
 Por tanto:
 

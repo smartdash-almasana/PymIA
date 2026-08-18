@@ -73,6 +73,7 @@ Estos documentos forman la superficie de continuidad de Servicio 1:
 - `docs/current/SERVICE_1_F8_MATHEMATICAL_AGGREGATION_RUNTIME_SPEC_V1.md` — runtime matemático F8 bajo `FormulaEngineService`, con agregación, fórmulas y ranking gobernados, sin findings ni delivery.
 - `docs/current/SERVICE_1_F9_RESULT_SET_OUTCOMES_FINDINGS_SPEC_V1.md` — ResultSet, findings factuales, evidence chain e integridad F9, sin causalidad, severidad, recomendaciones ni impacto financiero inferido.
 - `docs/current/SERVICE_1_F10_DYNAMIC_ANALYSIS_DISCOVERY_SPEC_V1.md` — discovery dinámico F10 de `AnalysisPlan` mediante P7/P8, con separación entre disponibilidad técnica y exposición comercial.
+- `docs/current/SERVICE_1_F11_CAFETERIA_GENERALIZATION_GATE_V1.md` — gate físico F11 sobre `cafeteria_abc.xlsx`: seis análisis distintos recorren la misma arquitectura sin branches por cafetería.
 - `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
 - `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
 - `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.
