@@ -67,6 +67,7 @@ Estos documentos forman la superficie de continuidad de Servicio 1:
 - `docs/current/SERVICE_1_F2_CANONICAL_FORMULA_SOURCE_SPEC_V1.md` — fuente canónica F2 de reglas de fórmula, proyección de catálogo y deuda de agregación.
 - `docs/current/SERVICE_1_F3_ANALYSIS_PLAN_SPEC_V1.md` — contrato declarativo F3 de intención analítica, sin autoridad de ejecución.
 - `docs/current/SERVICE_1_F4_P7_ANALYSIS_GRAIN_SPEC_V1.md` — extensión F4 del P7 canónico para requisitos analíticos y grain resuelto, sin computabilidad ni ejecución.
+- `docs/current/SERVICE_1_F5_P8_ANALYSIS_COMPUTABILITY_SPEC_V1.md` — extensión F5 del P8 canónico para computabilidad de `AnalysisPlan`, sin ejecución analítica.
 - `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
 - `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
 - `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.

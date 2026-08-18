@@ -13,6 +13,19 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from pymia.contracts.formula_rules_v1 import load_formula_rules
+from pymia.smartpyme.service_1_analysis_plan_v1 import Service1AnalysisPlanV1
+from pymia.smartpyme.service_1_p6_approval_decision_v1 import (
+    STATUS_APPROVED as P6_STATUS_APPROVED,
+    Service1P6ApprovalDecisionV1,
+)
+from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
+    P7_STATUS_BLOCKED,
+    P7_STATUS_MATCHED,
+    P7_STATUS_MISSING_REQUIREMENTS,
+    P7_STATUS_NOT_OBSERVED,
+    Service1AnalysisRequirementMatchV1,
+    Service1GrainV1,
+)
 from pymia.smartpyme.service_1_derived_evidence_v1 import (
     SCHEMA_VERSION as DERIVED_EVIDENCE_SCHEMA_VERSION,
     STATUS_BLOCKED as DERIVED_EVIDENCE_BLOCKED,
@@ -29,8 +42,10 @@ SCHEMA_VERSION = "SERVICE_1_COMPUTABILITY_V1"
 STATUS_COMPUTABLE = "COMPUTABLE"
 STATUS_NEEDS_EVIDENCE = "NEEDS_EVIDENCE"
 STATUS_UNSUPPORTED_CAPABILITY = "UNSUPPORTED_CAPABILITY"
+STATUS_UNSUPPORTED_ANALYSIS = "UNSUPPORTED"
 STATUS_BLOCKED = "BLOCKED"
 ALLOWED_STATUSES = frozenset({STATUS_COMPUTABLE, STATUS_NEEDS_EVIDENCE, STATUS_UNSUPPORTED_CAPABILITY, STATUS_BLOCKED})
+ANALYSIS_ALLOWED_STATUSES = frozenset({STATUS_COMPUTABLE, STATUS_NEEDS_EVIDENCE, STATUS_UNSUPPORTED_ANALYSIS, STATUS_BLOCKED})
 _ALLOWED_CATALOG_LOAD_STATUSES = {STATUS_CATALOGS_LOADED, STATUS_CATALOGS_PARTIALLY_LOADED}
 
 
@@ -117,6 +132,333 @@ class Service1ComputabilityDecisionV1:
             "delivery_authorized": False,
             "diagnosis_generated": False,
         }
+
+
+@dataclass(frozen=True)
+class Service1GovernedAnalysisInputV1:
+    case_id: str
+    analysis_plan: Service1AnalysisPlanV1
+    source_bindings: Mapping[str, str]
+    relationship_bindings: Mapping[str, Mapping[str, Any]]
+    grain: Service1GrainV1
+    formula_refs: tuple[str, ...] = ()
+    safety_flags: tuple[str, ...] = (
+        "P8_COMPUTABILITY_ONLY",
+        "ANALYSIS_EXECUTION_NOT_AUTHORIZED",
+        "AGGREGATION_RUNTIME_DEFERRED_TO_F8",
+    )
+    provenance: Mapping[str, Any] = field(default_factory=dict)
+    schema_version: str = "SERVICE_1_GOVERNED_ANALYSIS_INPUT_V1"
+
+    def __post_init__(self) -> None:
+        if not str(self.case_id or "").strip():
+            raise ValueError("case_id is required")
+        if not isinstance(self.analysis_plan, Service1AnalysisPlanV1):
+            raise TypeError("analysis_plan must be Service1AnalysisPlanV1")
+        if not isinstance(self.grain, Service1GrainV1):
+            raise TypeError("grain must be Service1GrainV1")
+        if not isinstance(self.source_bindings, Mapping) or not self.source_bindings:
+            raise ValueError("source_bindings must be a non-empty mapping")
+        normalized_sources: dict[str, str] = {}
+        for raw_role, raw_column in self.source_bindings.items():
+            role = str(raw_role or "").strip()
+            column = str(raw_column or "").strip()
+            if not role or not column:
+                raise ValueError("source_bindings require non-empty role and column refs")
+            if role in normalized_sources:
+                raise ValueError("source_bindings contain duplicate roles")
+            normalized_sources[role] = column
+        if len(set(normalized_sources.values())) != len(normalized_sources):
+            raise ValueError("one source column cannot satisfy multiple analysis roles")
+        object.__setattr__(self, "source_bindings", dict(normalized_sources))
+
+        if not isinstance(self.relationship_bindings, Mapping):
+            raise ValueError("relationship_bindings must be a mapping")
+        normalized_relationships: dict[str, Mapping[str, Any]] = {}
+        for raw_ref, raw_binding in self.relationship_bindings.items():
+            ref = str(raw_ref or "").strip()
+            if not ref or not isinstance(raw_binding, Mapping):
+                raise ValueError("relationship_bindings require relationship refs and mapping values")
+            normalized_relationships[ref] = dict(raw_binding)
+        object.__setattr__(self, "relationship_bindings", normalized_relationships)
+
+        formula_refs = tuple(str(value or "").strip() for value in self.formula_refs)
+        if any(not value for value in formula_refs) or len(set(formula_refs)) != len(formula_refs):
+            raise ValueError("formula_refs must contain unique non-empty refs")
+        object.__setattr__(self, "formula_refs", formula_refs)
+        safety_flags = tuple(str(value or "").strip() for value in self.safety_flags)
+        if any(not value for value in safety_flags) or len(set(safety_flags)) != len(safety_flags):
+            raise ValueError("safety_flags must contain unique non-empty flags")
+        object.__setattr__(self, "safety_flags", safety_flags)
+        if not isinstance(self.provenance, Mapping):
+            raise ValueError("provenance must be a mapping")
+        forbidden = {
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+            "analysis_execution_authorized",
+        }
+        if forbidden.intersection(self.provenance):
+            raise ValueError("analysis provenance cannot carry execution authority")
+        object.__setattr__(self, "provenance", dict(self.provenance))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "case_id": self.case_id,
+            "analysis_plan": self.analysis_plan.to_dict(),
+            "source_bindings": dict(self.source_bindings),
+            "relationship_bindings": {key: dict(value) for key, value in self.relationship_bindings.items()},
+            "grain": self.grain.to_dict(),
+            "formula_refs": list(self.formula_refs),
+            "safety_flags": list(self.safety_flags),
+            "provenance": dict(self.provenance),
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "product_ready": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+            "analysis_execution_authorized": False,
+        }
+
+
+@dataclass(frozen=True)
+class Service1AnalysisComputabilityDecisionV1:
+    case_id: str
+    analysis_id: str
+    status: str
+    reason: str | None
+    missing_role_groups: tuple[tuple[str, ...], ...] = ()
+    missing_relationship_refs: tuple[str, ...] = ()
+    governed_analysis_input: Service1GovernedAnalysisInputV1 | None = None
+    provenance: Mapping[str, Any] = field(default_factory=dict)
+    schema_version: str = "SERVICE_1_ANALYSIS_COMPUTABILITY_DECISION_V1"
+
+    def __post_init__(self) -> None:
+        if not str(self.case_id or "").strip() or not str(self.analysis_id or "").strip():
+            raise ValueError("case_id and analysis_id are required")
+        if self.status not in ANALYSIS_ALLOWED_STATUSES:
+            raise ValueError("invalid analysis computability status")
+        if self.status == STATUS_COMPUTABLE and self.governed_analysis_input is None:
+            raise ValueError("COMPUTABLE requires governed_analysis_input")
+        if self.status != STATUS_COMPUTABLE and self.governed_analysis_input is not None:
+            raise ValueError("non-computable analysis cannot carry governed input")
+        if self.status == STATUS_COMPUTABLE and self.reason is not None:
+            raise ValueError("COMPUTABLE cannot carry reason")
+        if self.status != STATUS_COMPUTABLE and not str(self.reason or "").strip():
+            raise ValueError("non-computable analysis requires reason")
+        if not isinstance(self.provenance, Mapping):
+            raise ValueError("provenance must be a mapping")
+        forbidden = {
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+            "analysis_execution_authorized",
+        }
+        if forbidden.intersection(self.provenance):
+            raise ValueError("analysis decision provenance cannot carry execution authority")
+        object.__setattr__(self, "provenance", dict(self.provenance))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "case_id": self.case_id,
+            "analysis_id": self.analysis_id,
+            "status": self.status,
+            "reason": self.reason,
+            "missing_role_groups": [list(group) for group in self.missing_role_groups],
+            "missing_relationship_refs": list(self.missing_relationship_refs),
+            "governed_analysis_input": self.governed_analysis_input.to_dict() if self.governed_analysis_input else None,
+            "provenance": dict(self.provenance),
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "product_ready": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+            "analysis_execution_authorized": False,
+        }
+
+
+def build_service_1_analysis_computability_decision_v1(
+    *,
+    case_id: str,
+    analysis_plan: Service1AnalysisPlanV1,
+    p6_decisions: tuple[Service1P6ApprovalDecisionV1, ...] | list[Service1P6ApprovalDecisionV1],
+    analysis_requirement_match: Service1AnalysisRequirementMatchV1,
+    relationship_bindings: Mapping[str, Mapping[str, Any]] | None = None,
+) -> Service1AnalysisComputabilityDecisionV1:
+    """P8 computability decision for declarative AnalysisPlan; never executes analysis."""
+    case = str(case_id or "").strip()
+    if not case:
+        raise ValueError("case_id is required")
+    if not isinstance(analysis_plan, Service1AnalysisPlanV1):
+        raise TypeError("analysis_plan must be Service1AnalysisPlanV1")
+    if not isinstance(analysis_requirement_match, Service1AnalysisRequirementMatchV1):
+        raise TypeError("analysis_requirement_match must be Service1AnalysisRequirementMatchV1")
+    match = analysis_requirement_match
+    if match.analysis_id != analysis_plan.analysis_id:
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P7_ANALYSIS_ID_MISMATCH")
+    if match.requested_grain.to_dict() != analysis_plan.requested_grain.to_dict():
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P7_REQUESTED_GRAIN_DRIFT")
+    if tuple(match.required_relationship_refs) != tuple(analysis_plan.relationship_refs):
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P7_RELATIONSHIP_REQUIREMENT_DRIFT")
+
+    decisions = tuple(p6_decisions or ())
+    if not decisions:
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P6_APPROVAL_REQUIRED")
+    for decision in decisions:
+        if not isinstance(decision, Service1P6ApprovalDecisionV1):
+            raise TypeError("p6_decisions must contain Service1P6ApprovalDecisionV1")
+        if decision.status != P6_STATUS_APPROVED:
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P6_APPROVAL_REQUIRED")
+        if decision.case_id != case:
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P6_CASE_MISMATCH")
+
+    if match.status == P7_STATUS_BLOCKED:
+        reason = str(match.reason or "P7_ANALYSIS_MATCH_BLOCKED")
+        if reason.startswith("UNSUPPORTED_ANALYSIS_"):
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_UNSUPPORTED_ANALYSIS, reason)
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, reason)
+    if match.status in {P7_STATUS_MISSING_REQUIREMENTS, P7_STATUS_NOT_OBSERVED}:
+        return _analysis_decision(
+            case,
+            analysis_plan.analysis_id,
+            STATUS_NEEDS_EVIDENCE,
+            str(match.reason or "ANALYSIS_REQUIREMENTS_NOT_MATCHED"),
+            missing_roles=match.missing_role_groups,
+        )
+    if match.status != P7_STATUS_MATCHED or match.resolved_grain is None:
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P7_ANALYSIS_MATCH_INVALID")
+    if match.missing_role_groups or set(match.satisfied_role_groups) != set(match.required_role_groups):
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P7_REQUIREMENT_STATUS_DRIFT")
+
+    requested = analysis_plan.requested_grain
+    resolved = match.resolved_grain
+    if (
+        resolved.structural_scope != "REGION"
+        or resolved.business_entity_grain != requested.business_entity_grain
+        or resolved.temporal_grain != requested.temporal_grain
+        or resolved.aggregation_grain != requested.aggregation_grain
+    ):
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P7_RESOLVED_GRAIN_DRIFT")
+
+    role_columns: dict[str, list[str]] = {}
+    for decision in decisions:
+        role = str(decision.approved_role or "").strip()
+        column = str(decision.column_ref or "").strip()
+        if role and column:
+            role_columns.setdefault(role, [])
+            if column not in role_columns[role]:
+                role_columns[role].append(column)
+
+    expected_p7_columns: list[str] = []
+    for role in match.approved_roles:
+        for column in role_columns.get(role, []):
+            if column not in expected_p7_columns:
+                expected_p7_columns.append(column)
+    if set(expected_p7_columns) != set(match.source_columns) or len(expected_p7_columns) != len(match.source_columns):
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "P7_SOURCE_BINDING_DRIFT")
+
+    source_bindings: dict[str, str] = {}
+    used_columns: set[str] = set()
+    for group in match.required_role_groups:
+        matched_roles = [role for role in group if role_columns.get(role)]
+        if not matched_roles:
+            return _analysis_decision(
+                case,
+                analysis_plan.analysis_id,
+                STATUS_NEEDS_EVIDENCE,
+                "ANALYSIS_SOURCE_EVIDENCE_MISSING",
+                missing_roles=(tuple(group),),
+            )
+        if len(matched_roles) != 1:
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "AMBIGUOUS_ANALYSIS_ROLE_GROUP")
+        role = matched_roles[0]
+        columns = role_columns[role]
+        if len(columns) != 1:
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "AMBIGUOUS_ANALYSIS_SOURCE_COLUMN")
+        column = columns[0]
+        if column in used_columns:
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "DUPLICATE_ANALYSIS_SOURCE_COLUMN")
+        source_bindings[role] = column
+        used_columns.add(column)
+
+    provided_relationships = dict(relationship_bindings or {})
+    required_relationships = tuple(match.required_relationship_refs)
+    undeclared = tuple(ref for ref in provided_relationships if ref not in required_relationships)
+    if undeclared:
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "UNDECLARED_RELATIONSHIP_BINDING")
+    missing_relationships = tuple(ref for ref in required_relationships if ref not in provided_relationships)
+    if missing_relationships:
+        return _analysis_decision(
+            case,
+            analysis_plan.analysis_id,
+            STATUS_NEEDS_EVIDENCE,
+            "REQUIRED_RELATIONSHIP_EVIDENCE_MISSING",
+            missing_relationships=missing_relationships,
+        )
+    normalized_relationships: dict[str, Mapping[str, Any]] = {}
+    for ref in required_relationships:
+        binding = provided_relationships[ref]
+        if not isinstance(binding, Mapping):
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "RELATIONSHIP_BINDING_INVALID")
+        if str(binding.get("relationship_ref") or ref).strip() != ref:
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "RELATIONSHIP_BINDING_REF_MISMATCH")
+        if any(
+            bool(binding.get(flag))
+            for flag in (
+                "runtime_authorized",
+                "tool_execution_authorized",
+                "product_ready",
+                "delivery_authorized",
+                "diagnosis_generated",
+                "analysis_execution_authorized",
+            )
+        ):
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, "RELATIONSHIP_BINDING_AUTHORITY_FORBIDDEN")
+        if binding.get("confirmed_by_owner") is not True:
+            return _analysis_decision(
+                case,
+                analysis_plan.analysis_id,
+                STATUS_NEEDS_EVIDENCE,
+                "RELATIONSHIP_OWNER_CONFIRMATION_REQUIRED",
+                missing_relationships=(ref,),
+            )
+        normalized_relationships[ref] = dict(binding)
+
+    formula_refs, formula_ref_error = _analysis_formula_refs(analysis_plan)
+    if formula_ref_error is not None:
+        return _analysis_decision(case, analysis_plan.analysis_id, STATUS_UNSUPPORTED_ANALYSIS, formula_ref_error)
+    for formula_ref in formula_refs:
+        if _formula_rule(formula_ref) is None:
+            return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, f"FORMULA_RULE_NOT_FOUND:{formula_ref}")
+    governed = Service1GovernedAnalysisInputV1(
+        case_id=case,
+        analysis_plan=analysis_plan,
+        source_bindings=source_bindings,
+        relationship_bindings=normalized_relationships,
+        grain=resolved,
+        formula_refs=formula_refs,
+        provenance={
+            "source": "ANALYSIS_PLAN_PLUS_P6_PLUS_P7",
+            "p7_source": "Service1AnalysisRequirementMatchV1",
+            "p8_computability_only": True,
+            "relationship_resolution_performed": False,
+            "analysis_execution_performed": False,
+        },
+    )
+    return Service1AnalysisComputabilityDecisionV1(
+        case_id=case,
+        analysis_id=analysis_plan.analysis_id,
+        status=STATUS_COMPUTABLE,
+        reason=None,
+        governed_analysis_input=governed,
+        provenance={"source": "P8_ANALYSIS_COMPUTABILITY"},
+    )
 
 
 def build_service_1_computability_decision_v1(
@@ -409,6 +751,43 @@ def build_service_1_composite_governed_computation_input_v1(*, case_id: str, cap
     )
 
 
+def _analysis_formula_refs(analysis_plan: Service1AnalysisPlanV1) -> tuple[tuple[str, ...], str | None]:
+    formula_by_measure = {
+        "sales": None,
+        "gross_margin": "margen_bruto",
+        "dso": "PYME_011_dso",
+        "projected_cash_balance": "LIQ_002_saldo_final_proyectado",
+    }
+    refs: list[str] = []
+    for measure in analysis_plan.measures:
+        if measure not in formula_by_measure:
+            return (), f"UNSUPPORTED_ANALYSIS_MEASURE:{measure}"
+        formula_ref = formula_by_measure[measure]
+        if formula_ref and formula_ref not in refs:
+            refs.append(formula_ref)
+    return tuple(refs), None
+
+
+def _analysis_decision(
+    case_id: str,
+    analysis_id: str,
+    status: str,
+    reason: str,
+    *,
+    missing_roles: tuple[tuple[str, ...], ...] = (),
+    missing_relationships: tuple[str, ...] = (),
+) -> Service1AnalysisComputabilityDecisionV1:
+    return Service1AnalysisComputabilityDecisionV1(
+        case_id=case_id,
+        analysis_id=analysis_id,
+        status=status,
+        reason=reason,
+        missing_role_groups=missing_roles,
+        missing_relationship_refs=missing_relationships,
+        provenance={"source": "P8_ANALYSIS_COMPUTABILITY"},
+    )
+
+
 def _decision(case: str, capability: str, status: str, reason: str, *, family_id: str | None = None, missing: tuple[tuple[str, ...], ...] = ()) -> Service1ComputabilityDecisionV1:
     return Service1ComputabilityDecisionV1(case_id=case, requested_capability=capability, status=status, reason=reason, family_id=family_id, missing_role_groups=missing, provenance={"source": "P8_COMPUTABILITY"})
 
@@ -494,7 +873,8 @@ def _catalog_versions(paths: dict[str, Path], matrix: dict[str, Any]) -> dict[st
 
 
 __all__ = [
-    "SCHEMA_VERSION", "STATUS_COMPUTABLE", "STATUS_NEEDS_EVIDENCE", "STATUS_UNSUPPORTED_CAPABILITY", "STATUS_BLOCKED",
+    "SCHEMA_VERSION", "STATUS_COMPUTABLE", "STATUS_NEEDS_EVIDENCE", "STATUS_UNSUPPORTED_CAPABILITY", "STATUS_UNSUPPORTED_ANALYSIS", "STATUS_BLOCKED",
     "Service1ComputabilityDecisionV1", "Service1GovernedComputationInputV1", "build_service_1_computability_decision_v1",
+    "Service1AnalysisComputabilityDecisionV1", "Service1GovernedAnalysisInputV1", "build_service_1_analysis_computability_decision_v1",
     "build_service_1_composite_governed_computation_input_v1",
 ]

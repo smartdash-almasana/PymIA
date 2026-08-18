@@ -565,6 +565,12 @@ def _analysis_required_role_groups(
     for measure in analysis_plan.measures:
         if measure == "sales":
             groups.append(("sales_amount",))
+        elif measure == "gross_margin":
+            groups.extend((("sales_amount",), ("quantity",), ("unit_cost_candidate",)))
+        elif measure == "dso":
+            groups.extend((("accounts_receivable_amount",), ("sales_amount",), ("period_days", "days")))
+        elif measure == "projected_cash_balance":
+            groups.extend((("initial_balance",), ("expected_collections",), ("expected_payments",)))
         else:
             return tuple(groups), f"UNSUPPORTED_ANALYSIS_MEASURE:{measure}"
     for dimension in analysis_plan.dimensions:
