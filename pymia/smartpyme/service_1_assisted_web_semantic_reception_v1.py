@@ -31,6 +31,10 @@ from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
     STATUS_CONFIRMED_BINDINGS,
     build_computability_decision_from_confirmed_bindings_v1,
 )
+from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
+    STATUS_READY as F10_STATUS_READY,
+    build_service_1_dynamic_analysis_discovery_v1,
+)
 
 
 _DISCOVERY_SCHEMA_VERSION = "SERVICE_1_POST_SEMANTIC_ANALYSIS_DISCOVERY_V1"
@@ -74,7 +78,12 @@ def build_service_1_post_semantic_analysis_discovery_v1(
     *,
     confirmed_bindings: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Project canonical P8 decisions into the existing launch menu; no new authority."""
+    """Expose F10 AnalysisPlan discovery plus legacy launch compatibility.
+
+    The F10 result is the technical source of truth for the new AnalysisPlan
+    path. ``available`` / ``blocked`` remain a compatibility projection for the
+    pre-F10 launch routes until F11 product wiring replaces them.
+    """
     if (
         not isinstance(confirmed_bindings, Mapping)
         or confirmed_bindings.get("status") != STATUS_CONFIRMED_BINDINGS
@@ -85,6 +94,25 @@ def build_service_1_post_semantic_analysis_discovery_v1(
             "blocked_reason": "CONFIRMED_BINDINGS_REQUIRED",
             "available": [],
             "blocked": [],
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    analysis_discovery = build_service_1_dynamic_analysis_discovery_v1(
+        confirmed_bindings=confirmed_bindings,
+    )
+    if analysis_discovery.status != F10_STATUS_READY:
+        return {
+            "schema_version": _DISCOVERY_SCHEMA_VERSION,
+            "status": "BLOCKED",
+            "blocked_reason": analysis_discovery.blocked_reason or "F10_DISCOVERY_BLOCKED",
+            "available": [],
+            "blocked": [],
+            "analysis_plans": [],
+            "technically_available_analysis_ids": [],
+            "commercially_exposed_analysis_ids": [],
             "runtime_authorized": False,
             "tool_execution_authorized": False,
             "delivery_authorized": False,
@@ -132,6 +160,14 @@ def build_service_1_post_semantic_analysis_discovery_v1(
         "blocked_reason": None,
         "available": available,
         "blocked": blocked,
+        "analysis_plans": [item.to_dict() for item in analysis_discovery.analyses],
+        "technically_available_analysis_ids": [
+            item.analysis_id for item in analysis_discovery.technically_available
+        ],
+        "commercially_exposed_analysis_ids": [
+            item.analysis_id for item in analysis_discovery.commercially_exposed
+        ],
+        "legacy_launch_compatibility": True,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "delivery_authorized": False,

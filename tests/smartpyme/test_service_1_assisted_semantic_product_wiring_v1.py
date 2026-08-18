@@ -415,6 +415,8 @@ def test_web_workbook_first_clear_semantics_require_one_grouped_owner_confirmati
         confirmed_bindings=state.semantic_assistance_state["semantic_run"]
     )
     assert discovery["status"] == "READY"
+    assert "projected_cash_balance" in discovery["technically_available_analysis_ids"]
+    assert discovery["commercially_exposed_analysis_ids"] == []
     assert [item["launch_ref"] for item in discovery["available"]] == ["working_capital"]
     assert {item["launch_ref"] for item in discovery["blocked"]} == {
         "sold_vs_collected_gap",
