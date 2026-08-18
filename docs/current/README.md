@@ -69,6 +69,7 @@ Estos documentos forman la superficie de continuidad de Servicio 1:
 - `docs/current/SERVICE_1_F4_P7_ANALYSIS_GRAIN_SPEC_V1.md` — extensión F4 del P7 canónico para requisitos analíticos y grain resuelto, sin computabilidad ni ejecución.
 - `docs/current/SERVICE_1_F5_P8_ANALYSIS_COMPUTABILITY_SPEC_V1.md` — extensión F5 del P8 canónico para computabilidad de `AnalysisPlan`, sin ejecución analítica.
 - `docs/current/SERVICE_1_F6_SEMANTIC_DIMENSIONS_AND_RELATIONSHIPS_SPEC_V1.md` — semántica dimensional F6 y relaciones owner-confirmables generales, sin joins ni ejecución.
+- `docs/current/SERVICE_1_F7_GOVERNED_EVIDENCE_PREPARATION_SPEC_V1.md` — preparación gobernada F7 de filas, filtros, joins confirmados y membership de grupos, sin agregación ni fórmulas.
 - `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
 - `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
 - `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.
