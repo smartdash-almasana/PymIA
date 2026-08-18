@@ -75,6 +75,7 @@ Estos documentos forman la superficie de continuidad de Servicio 1:
 - `docs/current/SERVICE_1_F10_DYNAMIC_ANALYSIS_DISCOVERY_SPEC_V1.md` — discovery dinámico F10 de `AnalysisPlan` mediante P7/P8, con separación entre disponibilidad técnica y exposición comercial.
 - `docs/current/SERVICE_1_F11_CAFETERIA_GENERALIZATION_GATE_V1.md` — gate físico F11 sobre `cafeteria_abc.xlsx`: seis análisis distintos recorren la misma arquitectura sin branches por cafetería.
 - `docs/current/SERVICE_1_F12_COMMERCIAL_ANALYSIS_CATALOG_EXPANSION_V1.md` — expansión comercial F12 de AnalysisPlans, dimensiones, rankings, demanda observada, descuentos factuales, pricing gobernado y wiring web genérico F7→F8→F9.
+- `docs/current/SERVICE_1_F13_LONGITUDINAL_RESULT_MEMORY_V1.md` — memoria longitudinal F13 de ResultSets gobernados por tenant/período, content-addressed, append-only y sin autoridad de cálculo; gate remoto Supabase explícito.
 - `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
 - `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
 - `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.

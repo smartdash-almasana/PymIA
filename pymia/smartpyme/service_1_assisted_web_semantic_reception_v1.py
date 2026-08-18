@@ -18,6 +18,10 @@ import pymia.smartpyme.service_1_assisted_web_v1 as base
 from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
     semantic_provider_from_environment_v1,
 )
+from pymia.smartpyme.service_1_result_memory_v1 import Service1ResultMemoryErrorV1
+from pymia.smartpyme.service_1_result_memory_wiring_v1 import (
+    build_service_1_result_memory_from_execution_v1,
+)
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     STATUS_CONFIRMED,
     STATUS_OWNER_DIALOGUE_FOLLOWUP,
@@ -214,6 +218,19 @@ def build_service_1_post_semantic_analysis_discovery_v1(
 
 class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
     """Existing web application with bounded LLM semantics and sequential HITL."""
+
+    def __init__(
+        self,
+        *,
+        persist_result_memory: Any = None,
+        load_result_memory: Any = None,
+        load_result_memory_record: Any = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._persist_result_memory = persist_result_memory
+        self._load_result_memory = load_result_memory
+        self._load_result_memory_record = load_result_memory_record
 
     @staticmethod
     def _normalize_dialogue_decision(question: Mapping[str, Any]) -> dict[str, Any]:
@@ -445,9 +462,90 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             return confirmed_run, None
         return confirmed_run, discovery
 
+    def _persist_f13_result_memory(
+        self,
+        *,
+        session_id: str,
+        governed_analysis_input: Any,
+        result_projection: Any,
+        semantic_run: Mapping[str, Any],
+        ingestion_output: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        state = self.session(session_id)
+        identity = state.tenant_identity_contract
+        if identity is None:
+            return {
+                "status": "NOT_PERSISTED",
+                "reason": "TENANT_IDENTITY_REQUIRED",
+                "persisted": False,
+            }
+        if self._persist_result_memory is None:
+            return {
+                "status": "NOT_PERSISTED",
+                "reason": "RESULT_MEMORY_ADAPTER_UNAVAILABLE",
+                "persisted": False,
+            }
+        try:
+            record = build_service_1_result_memory_from_execution_v1(
+                identity_contract=identity,
+                governed_analysis_input=governed_analysis_input,
+                result_projection=result_projection,
+                semantic_run=semantic_run,
+                ingestion_output=ingestion_output,
+            )
+        except (Service1ResultMemoryErrorV1, TypeError, ValueError) as exc:
+            return {
+                "status": "NEEDS_EVIDENCE",
+                "reason": getattr(exc, "code", None) or "RESULT_MEMORY_CONTRACT_BLOCKED",
+                "detail": getattr(exc, "detail", None) or str(exc),
+                "persisted": False,
+            }
+        try:
+            persisted = bool(self._persist_result_memory(record))
+        except Exception:
+            return {
+                "status": "PERSISTENCE_ERROR",
+                "reason": "RESULT_MEMORY_PERSISTENCE_FAILED",
+                "persisted": False,
+                "memory_record_id": record.memory_record_id,
+            }
+        if not persisted:
+            return {
+                "status": "PERSISTENCE_ERROR",
+                "reason": "RESULT_MEMORY_PERSISTENCE_UNCONFIRMED",
+                "persisted": False,
+                "memory_record_id": record.memory_record_id,
+            }
+        return {
+            "status": "PERSISTED",
+            "reason": None,
+            "persisted": True,
+            "memory_record_id": record.memory_record_id,
+            "period": record.period.to_dict(),
+            "artifact_ref": record.artifact_ref,
+            "result_set_integrity_digest": record.result_set_integrity_digest,
+            "executed_at": record.executed_at,
+        }
+
+    def result_memory_history(
+        self,
+        *,
+        session_id: str,
+        analysis_id: str,
+        limit: int = 100,
+    ) -> tuple[dict[str, Any], ...]:
+        state = self.session(session_id)
+        tenant = str(state.tenant_id or "").strip()
+        if not tenant and state.tenant_identity_contract is not None:
+            tenant = str(getattr(state.tenant_identity_contract, "tenant_id", "") or "").strip()
+        if not tenant or self._load_result_memory is None:
+            return ()
+        records = self._load_result_memory(tenant, analysis_id, limit=limit)
+        return tuple(record.to_dict() for record in records)
+
     def _execute_f12_analysis(self, *, session_id: str, analysis_id: str) -> dict[str, Any]:
         state = self.session(session_id)
-        _confirmed_run, discovery = self._f12_discovery(session_id=session_id)
+        confirmed_run, discovery = self._f12_discovery(session_id=session_id)
         if discovery is None:
             return {
                 "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
@@ -558,6 +656,13 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             }
 
         result_projection = projection.projection
+        memory = self._persist_f13_result_memory(
+            session_id=session_id,
+            governed_analysis_input=governed,
+            result_projection=result_projection,
+            semantic_run=(confirmed_run if isinstance(confirmed_run, Mapping) else {}),
+            ingestion_output=ingestion,
+        )
         return {
             "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
             "status": "READY",
@@ -567,6 +672,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             "result_set": result_projection.result_set.to_dict(),
             "findings": [finding.to_dict() for finding in result_projection.findings],
             "outcome": result_projection.outcome.to_dict(),
+            "result_memory": memory,
             "runtime_authorized": False,
             "tool_execution_authorized": False,
             "product_ready": False,
@@ -1126,6 +1232,9 @@ def create_semantic_reception_server_v1(
     load_prior_semantic_contract: Any = None,
     load_persisted_cases: Any = None,
     load_persisted_case: Any = None,
+    persist_result_memory: Any = None,
+    load_result_memory: Any = None,
+    load_result_memory_record: Any = None,
     require_tenant_persistence: bool = False,
     tenant_identity_resolver: Any = None,
     radar_policy_store: Any = None,
@@ -1138,6 +1247,9 @@ def create_semantic_reception_server_v1(
         load_prior_semantic_contract=load_prior_semantic_contract,
         load_persisted_cases=load_persisted_cases,
         load_persisted_case=load_persisted_case,
+        persist_result_memory=persist_result_memory,
+        load_result_memory=load_result_memory,
+        load_result_memory_record=load_result_memory_record,
         require_tenant_persistence=require_tenant_persistence,
         radar_policy_store=radar_policy_store,
         semantic_provider=semantic_provider or semantic_provider_from_environment_v1(),

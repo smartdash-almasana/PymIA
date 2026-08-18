@@ -12,6 +12,10 @@ from typing import Any, Mapping
 from pymia.smartpyme.service_1_owner_confirmation_event_v1 import (
     Service1OwnerConfirmationEventV1,
 )
+from pymia.smartpyme.service_1_result_memory_v1 import (
+    Service1ResultMemoryRecordV1,
+    service_1_result_memory_record_from_mapping_v1,
+)
 from pymia.smartpyme.service_1_tenant_semantic_contract_v1 import (
     Service1TenantSemanticContractV1,
     service_1_tenant_semantic_contract_from_mapping_v1,
@@ -21,6 +25,7 @@ SUPABASE_URL_ENV = "PYMIA_SUPABASE_URL"
 SUPABASE_SERVICE_ROLE_KEY_ENV = "PYMIA_SUPABASE_SERVICE_ROLE_KEY"
 OWNER_CONFIRMATIONS_TABLE = "service1_owner_confirmations"
 SEMANTIC_CONTRACTS_TABLE = "service1_tenant_semantic_contracts"
+ANALYSIS_RESULT_MEMORY_TABLE = "service1_analysis_result_memory"
 
 
 class Service1SupabasePersistenceErrorV1(RuntimeError):
@@ -118,6 +123,29 @@ def _semantic_contract_row(contract: Service1TenantSemanticContractV1) -> dict[s
         "revision": contract.revision,
         "supersedes_contract_id": contract.supersedes_contract_id,
         "contract_payload": contract.to_dict(),
+    }
+
+
+def _analysis_result_memory_row(record: Service1ResultMemoryRecordV1) -> dict[str, object]:
+    payload = record.to_dict()
+    return {
+        "memory_record_id": record.memory_record_id,
+        "identity_contract_id": record.identity_contract_id,
+        "tenant_id": record.tenant_id,
+        "cliente_id": record.cliente_id,
+        "case_id": record.case_id,
+        "analysis_id": record.analysis_id,
+        "period_ref": record.period.period_ref,
+        "period_start": record.period.start_date,
+        "period_end": record.period.end_date,
+        "grain_payload": dict(payload["grain"]),
+        "formula_versions": dict(payload["formula_versions"]),
+        "result_set_integrity_digest": record.result_set_integrity_digest,
+        "evidence_refs": list(record.evidence_refs),
+        "owner_evidence_refs": list(record.owner_evidence_refs),
+        "executed_at": record.executed_at,
+        "artifact_ref": record.artifact_ref,
+        "record_payload": payload,
     }
 
 
@@ -368,6 +396,153 @@ class Service1SupabasePersistenceAdapterV1:
             )
         return latest[0]
 
+    def persist_result_memory(self, record: Service1ResultMemoryRecordV1) -> bool:
+        if not isinstance(record, Service1ResultMemoryRecordV1):
+            raise TypeError("record must be Service1ResultMemoryRecordV1")
+        row = _analysis_result_memory_row(record)
+        try:
+            response = (
+                self._client.table(ANALYSIS_RESULT_MEMORY_TABLE)
+                .upsert(
+                    row,
+                    on_conflict="memory_record_id",
+                    ignore_duplicates=True,
+                )
+                .select("memory_record_id")
+                .execute()
+            )
+            if _confirmed_insert(
+                response,
+                expected_key="memory_record_id",
+                expected_value=record.memory_record_id,
+            ):
+                return True
+            existing = (
+                self._client.table(ANALYSIS_RESULT_MEMORY_TABLE)
+                .select("memory_record_id")
+                .eq("memory_record_id", record.memory_record_id)
+                .eq("tenant_id", record.tenant_id)
+                .limit(1)
+                .execute()
+            )
+            return _confirmed_insert(
+                existing,
+                expected_key="memory_record_id",
+                expected_value=record.memory_record_id,
+            )
+        except Exception as exc:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory persistence failed"
+            ) from exc
+
+    def list_result_memory(
+        self,
+        tenant_id: str,
+        analysis_id: str | None = None,
+        *,
+        limit: int = 100,
+    ) -> tuple[Service1ResultMemoryRecordV1, ...]:
+        tenant = str(tenant_id or "").strip()
+        analysis = str(analysis_id or "").strip()
+        if not tenant:
+            raise Service1SupabasePersistenceErrorV1("tenant_id is required for result memory lookup")
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0 or limit > 1000:
+            raise Service1SupabasePersistenceErrorV1("result memory limit must be between 1 and 1000")
+        try:
+            query = (
+                self._client.table(ANALYSIS_RESULT_MEMORY_TABLE)
+                .select("tenant_id,analysis_id,period_start,executed_at,memory_record_id,record_payload")
+                .eq("tenant_id", tenant)
+            )
+            if analysis:
+                query = query.eq("analysis_id", analysis)
+            response = query.order("period_start", desc=False).order("executed_at", desc=False).limit(limit).execute()
+        except Exception as exc:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory lookup failed"
+            ) from exc
+        data = _response_data(response)
+        if data is None:
+            return ()
+        if not isinstance(data, list):
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory lookup returned invalid data"
+            )
+        records: list[Service1ResultMemoryRecordV1] = []
+        for raw in data:
+            if not isinstance(raw, Mapping) or str(raw.get("tenant_id") or "") != tenant:
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase result memory lookup crossed tenant boundary"
+                )
+            if analysis and str(raw.get("analysis_id") or "") != analysis:
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase result memory lookup crossed analysis boundary"
+                )
+            payload = raw.get("record_payload")
+            if not isinstance(payload, Mapping):
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase result memory payload is invalid"
+                )
+            record = service_1_result_memory_record_from_mapping_v1(payload)
+            if record.tenant_id != tenant or (analysis and record.analysis_id != analysis):
+                raise Service1SupabasePersistenceErrorV1(
+                    "Supabase result memory payload crossed requested boundary"
+                )
+            records.append(record)
+        return tuple(records)
+
+    def load_result_memory_record(
+        self,
+        tenant_id: str,
+        memory_record_id: str,
+    ) -> Service1ResultMemoryRecordV1 | None:
+        tenant = str(tenant_id or "").strip()
+        record_id = str(memory_record_id or "").strip()
+        if not tenant or not record_id:
+            raise Service1SupabasePersistenceErrorV1(
+                "tenant_id and memory_record_id are required for result memory load"
+            )
+        try:
+            response = (
+                self._client.table(ANALYSIS_RESULT_MEMORY_TABLE)
+                .select("tenant_id,memory_record_id,record_payload")
+                .eq("tenant_id", tenant)
+                .eq("memory_record_id", record_id)
+                .limit(2)
+                .execute()
+            )
+        except Exception as exc:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory record load failed"
+            ) from exc
+        data = _response_data(response)
+        if data is None or data == []:
+            return None
+        if not isinstance(data, list) or len(data) != 1:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory record identity is ambiguous"
+            )
+        raw = data[0]
+        if (
+            not isinstance(raw, Mapping)
+            or str(raw.get("tenant_id") or "") != tenant
+            or str(raw.get("memory_record_id") or "") != record_id
+        ):
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory record crossed tenant/record boundary"
+            )
+        payload = raw.get("record_payload")
+        if not isinstance(payload, Mapping):
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory record payload is invalid"
+            )
+        record = service_1_result_memory_record_from_mapping_v1(payload)
+        if record.tenant_id != tenant or record.memory_record_id != record_id:
+            raise Service1SupabasePersistenceErrorV1(
+                "Supabase result memory record payload identity mismatch"
+            )
+        return record
+
     def __call__(
         self,
         event: Service1OwnerConfirmationEventV1,
@@ -448,6 +623,7 @@ __all__ = [
     "SUPABASE_SERVICE_ROLE_KEY_ENV",
     "OWNER_CONFIRMATIONS_TABLE",
     "SEMANTIC_CONTRACTS_TABLE",
+    "ANALYSIS_RESULT_MEMORY_TABLE",
     "Service1SupabaseConfigV1",
     "Service1SupabasePersistenceErrorV1",
     "Service1SupabasePersistenceAdapterV1",
