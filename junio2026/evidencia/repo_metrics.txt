@@ -1,0 +1,30 @@
+Repo metrics generated 2026-07-01
+
+Files:
+1874
+Dirs:
+167
+
+Extensions:
+.py: 922
+.md: 792
+.pyc: 50
+.json: 32
+.yaml: 26
+.astro: 19
+.xlsx: 10
+<none>: 5
+.css: 3
+.toml: 2
+.sh: 2
+.html: 2
+.yml: 2
+.ini: 1
+.js: 1
+.mjs: 1
+.ps1: 1
+.tsx: 1
+.rar: 1
+.ts: 1
+zero_files: 166
+service_1_py: 195
