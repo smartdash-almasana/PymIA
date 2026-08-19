@@ -18,9 +18,8 @@ import pymia.smartpyme.service_1_assisted_web_v1 as base
 from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
     semantic_provider_from_environment_v1,
 )
-from pymia.smartpyme.service_1_result_memory_v1 import Service1ResultMemoryErrorV1
-from pymia.smartpyme.service_1_result_memory_wiring_v1 import (
-    build_service_1_result_memory_from_execution_v1,
+from pymia.smartpyme.service_1_product_pipeline_v1 import (
+    run_service_1_governed_analysis_v1,
 )
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     STATUS_CONFIRMED,
@@ -29,18 +28,6 @@ from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     revise_service_1_assisted_semantic_decision_v1,
     run_service_1_assisted_semantic_initial_v1,
     run_service_1_assisted_semantic_reentry_v1,
-)
-from pymia.smartpyme.service_1_analysis_evidence_preparation_v1 import (
-    STATUS_PREPARED,
-    build_service_1_analysis_evidence_preparation_v1,
-)
-from pymia.smartpyme.service_1_analysis_math_execution_v1 import (
-    STATUS_EVALUATED,
-    execute_service_1_analysis_math_v1,
-)
-from pymia.smartpyme.service_1_analysis_result_projection_v1 import (
-    STATUS_READY as F9_STATUS_READY,
-    build_service_1_analysis_result_projection_v1,
 )
 from pymia.smartpyme.service_1_computability_v1 import STATUS_COMPUTABLE
 from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
@@ -441,92 +428,6 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         sequential = self._render_one_pending_question(session_id=session_id)
         return sequential if sequential is not None else (status, page)
 
-    def _f12_discovery(self, *, session_id: str):
-        state = self.session(session_id)
-        assistance = (
-            state.semantic_assistance_state
-            if isinstance(state.semantic_assistance_state, Mapping)
-            else {}
-        )
-        confirmed_run = assistance.get("semantic_run")
-        if (
-            not isinstance(confirmed_run, Mapping)
-            or confirmed_run.get("status") != STATUS_CONFIRMED_BINDINGS
-        ):
-            return None, None
-        discovery = build_service_1_dynamic_analysis_discovery_v1(
-            confirmed_bindings=confirmed_run,
-            commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
-        )
-        if discovery.status != F10_STATUS_READY:
-            return confirmed_run, None
-        return confirmed_run, discovery
-
-    def _persist_f13_result_memory(
-        self,
-        *,
-        session_id: str,
-        governed_analysis_input: Any,
-        result_projection: Any,
-        semantic_run: Mapping[str, Any],
-        ingestion_output: Mapping[str, Any],
-    ) -> dict[str, Any]:
-        state = self.session(session_id)
-        identity = state.tenant_identity_contract
-        if identity is None:
-            return {
-                "status": "NOT_PERSISTED",
-                "reason": "TENANT_IDENTITY_REQUIRED",
-                "persisted": False,
-            }
-        if self._persist_result_memory is None:
-            return {
-                "status": "NOT_PERSISTED",
-                "reason": "RESULT_MEMORY_ADAPTER_UNAVAILABLE",
-                "persisted": False,
-            }
-        try:
-            record = build_service_1_result_memory_from_execution_v1(
-                identity_contract=identity,
-                governed_analysis_input=governed_analysis_input,
-                result_projection=result_projection,
-                semantic_run=semantic_run,
-                ingestion_output=ingestion_output,
-            )
-        except (Service1ResultMemoryErrorV1, TypeError, ValueError) as exc:
-            return {
-                "status": "NEEDS_EVIDENCE",
-                "reason": getattr(exc, "code", None) or "RESULT_MEMORY_CONTRACT_BLOCKED",
-                "detail": getattr(exc, "detail", None) or str(exc),
-                "persisted": False,
-            }
-        try:
-            persisted = bool(self._persist_result_memory(record))
-        except Exception:
-            return {
-                "status": "PERSISTENCE_ERROR",
-                "reason": "RESULT_MEMORY_PERSISTENCE_FAILED",
-                "persisted": False,
-                "memory_record_id": record.memory_record_id,
-            }
-        if not persisted:
-            return {
-                "status": "PERSISTENCE_ERROR",
-                "reason": "RESULT_MEMORY_PERSISTENCE_UNCONFIRMED",
-                "persisted": False,
-                "memory_record_id": record.memory_record_id,
-            }
-        return {
-            "status": "PERSISTED",
-            "reason": None,
-            "persisted": True,
-            "memory_record_id": record.memory_record_id,
-            "period": record.period.to_dict(),
-            "artifact_ref": record.artifact_ref,
-            "result_set_integrity_digest": record.result_set_integrity_digest,
-            "executed_at": record.executed_at,
-        }
-
     def result_memory_history(
         self,
         *,
@@ -544,141 +445,22 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         return tuple(record.to_dict() for record in records)
 
     def _execute_f12_analysis(self, *, session_id: str, analysis_id: str) -> dict[str, Any]:
+        """Web adapter: request one analysis from the canonical product root."""
         state = self.session(session_id)
-        confirmed_run, discovery = self._f12_discovery(session_id=session_id)
-        if discovery is None:
-            return {
-                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-                "status": "BLOCKED",
-                "analysis_id": analysis_id,
-                "blocked_reason": "F12_DISCOVERY_NOT_READY",
-                "runtime_authorized": False,
-                "tool_execution_authorized": False,
-                "delivery_authorized": False,
-                "diagnosis_generated": False,
-            }
-        item = next((value for value in discovery.analyses if value.analysis_id == analysis_id), None)
-        if item is None or not item.commercially_requested:
-            return {
-                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-                "status": "BLOCKED",
-                "analysis_id": analysis_id,
-                "blocked_reason": "ANALYSIS_NOT_COMMERCIALLY_REQUESTED",
-                "runtime_authorized": False,
-                "tool_execution_authorized": False,
-                "delivery_authorized": False,
-                "diagnosis_generated": False,
-            }
-        if not item.commercially_exposed or item.governed_analysis_input is None:
-            return {
-                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-                "status": "BLOCKED",
-                "analysis_id": analysis_id,
-                "title": item.title,
-                "question": item.question,
-                "blocked_reason": item.p8_reason or item.p7_reason or "ANALYSIS_NOT_COMPUTABLE",
-                "missing_role_groups": [list(group) for group in item.missing_role_groups],
-                "missing_relationship_evidence": list(item.missing_relationship_evidence),
-                "runtime_authorized": False,
-                "tool_execution_authorized": False,
-                "delivery_authorized": False,
-                "diagnosis_generated": False,
-            }
-        ingestion = state.ingestion_output if isinstance(state.ingestion_output, Mapping) else None
-        if ingestion is None:
-            return {
-                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-                "status": "BLOCKED",
-                "analysis_id": analysis_id,
-                "blocked_reason": "CANONICAL_INGESTION_REQUIRED",
-                "runtime_authorized": False,
-                "tool_execution_authorized": False,
-                "delivery_authorized": False,
-                "diagnosis_generated": False,
-            }
-
-        governed = item.governed_analysis_input
-        prepared = build_service_1_analysis_evidence_preparation_v1(
-            case_id=governed.case_id,
-            governed_analysis_input=governed,
-            ingestion_output=dict(ingestion),
+        assistance = (
+            state.semantic_assistance_state
+            if isinstance(state.semantic_assistance_state, Mapping)
+            else {}
         )
-        if prepared.status != STATUS_PREPARED or prepared.prepared_evidence is None:
-            return {
-                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-                "status": "BLOCKED",
-                "analysis_id": analysis_id,
-                "title": item.title,
-                "question": item.question,
-                "blocked_reason": prepared.reason or "F7_PREPARATION_BLOCKED",
-                "runtime_authorized": False,
-                "tool_execution_authorized": False,
-                "delivery_authorized": False,
-                "diagnosis_generated": False,
-            }
-
-        math = execute_service_1_analysis_math_v1(
-            case_id=governed.case_id,
-            governed_analysis_input=governed,
-            prepared_evidence=prepared.prepared_evidence,
+        confirmed_run = assistance.get("semantic_run")
+        ingestion = state.ingestion_output
+        return run_service_1_governed_analysis_v1(
+            ingestion_output=(ingestion if isinstance(ingestion, Mapping) else {}),
+            confirmed_bindings=(confirmed_run if isinstance(confirmed_run, Mapping) else {}),
+            analysis_id=analysis_id,
+            tenant_identity_contract=state.tenant_identity_contract,
+            persist_result_memory=self._persist_result_memory,
         )
-        if math.status != STATUS_EVALUATED or math.result is None:
-            return {
-                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-                "status": "BLOCKED",
-                "analysis_id": analysis_id,
-                "title": item.title,
-                "question": item.question,
-                "blocked_reason": math.reason or "F8_EXECUTION_BLOCKED",
-                "runtime_authorized": False,
-                "tool_execution_authorized": False,
-                "delivery_authorized": False,
-                "diagnosis_generated": False,
-            }
-
-        projection = build_service_1_analysis_result_projection_v1(
-            math_result=math.result,
-            prepared_evidence=prepared.prepared_evidence,
-            currency_code=None,
-        )
-        if projection.status != F9_STATUS_READY or projection.projection is None:
-            return {
-                "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-                "status": "BLOCKED",
-                "analysis_id": analysis_id,
-                "title": item.title,
-                "question": item.question,
-                "blocked_reason": projection.reason or "F9_PROJECTION_BLOCKED",
-                "runtime_authorized": False,
-                "tool_execution_authorized": False,
-                "delivery_authorized": False,
-                "diagnosis_generated": False,
-            }
-
-        result_projection = projection.projection
-        memory = self._persist_f13_result_memory(
-            session_id=session_id,
-            governed_analysis_input=governed,
-            result_projection=result_projection,
-            semantic_run=(confirmed_run if isinstance(confirmed_run, Mapping) else {}),
-            ingestion_output=ingestion,
-        )
-        return {
-            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
-            "status": "READY",
-            "analysis_id": analysis_id,
-            "title": item.title,
-            "question": item.question,
-            "result_set": result_projection.result_set.to_dict(),
-            "findings": [finding.to_dict() for finding in result_projection.findings],
-            "outcome": result_projection.outcome.to_dict(),
-            "result_memory": memory,
-            "runtime_authorized": False,
-            "tool_execution_authorized": False,
-            "product_ready": False,
-            "delivery_authorized": False,
-            "diagnosis_generated": False,
-        }
 
     def run_selected_reviews(
         self,

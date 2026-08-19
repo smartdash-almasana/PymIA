@@ -6,6 +6,7 @@ import inspect
 import pytest
 
 import pymia.smartpyme.service_1_ui_v1 as ui
+import pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 as semantic_web
 
 from pymia.smartpyme.service_1_analysis_evidence_preparation_v1 import (
     STATUS_PREPARED,
@@ -21,6 +22,9 @@ from pymia.smartpyme.service_1_analysis_result_projection_v1 import (
 )
 from pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 import (
     Service1SemanticReceptionWebApplicationV1,
+)
+from pymia.smartpyme.service_1_product_pipeline_v1 import (
+    run_service_1_governed_analysis_v1,
 )
 from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
     build_service_1_deterministic_semantic_proposal_v1,
@@ -423,6 +427,80 @@ def test_f12_direct_request_for_missing_evidence_fails_closed_to_menu(f12_cafete
     assert status == 200
     assert "Precio observado contra precio de catálogo" in page
     assert 'name="review_catalog_price_variance_by_product"' not in page
+
+
+@pytest.mark.parametrize(
+    "analysis_id",
+    (
+        "sales_total",
+        "sales_by_product",
+        "gross_margin_by_product",
+        "sales_by_branch",
+        "product_sales_concentration",
+        "sales_series_day",
+    ),
+)
+def test_f12_canonical_product_root_preserves_f9_resultset(
+    f12_cafeteria: dict,
+    analysis_id: str,
+) -> None:
+    _prepared, _math_result, expected_projection = _run_to_f9(f12_cafeteria, analysis_id)
+    packet = run_service_1_governed_analysis_v1(
+        ingestion_output=f12_cafeteria["ingestion"],
+        confirmed_bindings=f12_cafeteria["semantic_run"],
+        analysis_id=analysis_id,
+    )
+    assert packet["status"] == "READY"
+    assert packet["result_set"] == expected_projection.result_set.to_dict()
+    assert packet["findings"] == [finding.to_dict() for finding in expected_projection.findings]
+    assert packet["outcome"] == expected_projection.outcome.to_dict()
+
+
+def test_f12_web_has_no_direct_productive_f7_f8_f9_imports() -> None:
+    source = inspect.getsource(semantic_web)
+    assert "service_1_analysis_evidence_preparation_v1" not in source
+    assert "build_service_1_analysis_evidence_preparation_v1" not in source
+    assert "service_1_analysis_math_execution_v1" not in source
+    assert "execute_service_1_analysis_math_v1" not in source
+    assert "service_1_analysis_result_projection_v1" not in source
+    assert "build_service_1_analysis_result_projection_v1" not in source
+
+
+def test_f12_web_cannot_execute_when_canonical_product_root_is_blocked(
+    f12_cafeteria: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = f12_cafeteria["app"]
+    session_id = f12_cafeteria["session_id"]
+    calls: list[dict] = []
+
+    def blocked_product_root(**kwargs):
+        calls.append(dict(kwargs))
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": kwargs["analysis_id"],
+            "blocked_reason": "RC1_CANONICAL_ROOT_BLOCKED_TEST",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    monkeypatch.setattr(
+        semantic_web,
+        "run_service_1_governed_analysis_v1",
+        blocked_product_root,
+    )
+    status, page = app.run_review(
+        session_id=session_id,
+        requested_capability="sales_by_category",
+    )
+    assert status == 200
+    assert len(calls) == 1
+    assert calls[0]["analysis_id"] == "sales_by_category"
+    assert "Resultado listo" not in page
+    assert 'name="review_sales_by_category"' in page
 
 
 def test_f12_generic_result_renderer_has_no_analysis_specific_math() -> None:

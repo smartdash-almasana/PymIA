@@ -75,6 +75,27 @@ from pymia.smartpyme.service_1_consorcios_collection_aging_v1 import (
 from pymia.smartpyme.service_1_consorcios_expense_variance_v1 import (
     build_expense_variance_product_request_v1,
 )
+from pymia.smartpyme.service_1_analysis_evidence_preparation_v1 import (
+    STATUS_PREPARED as F7_STATUS_PREPARED,
+    build_service_1_analysis_evidence_preparation_v1,
+)
+from pymia.smartpyme.service_1_analysis_math_execution_v1 import (
+    STATUS_EVALUATED as F8_STATUS_EVALUATED,
+    execute_service_1_analysis_math_v1,
+)
+from pymia.smartpyme.service_1_analysis_result_projection_v1 import (
+    STATUS_READY as F9_STATUS_READY,
+    build_service_1_analysis_result_projection_v1,
+)
+from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
+    F12_COMMERCIAL_ANALYSIS_IDS,
+    STATUS_READY as F10_STATUS_READY,
+    build_service_1_dynamic_analysis_discovery_v1,
+)
+from pymia.smartpyme.service_1_result_memory_v1 import Service1ResultMemoryErrorV1
+from pymia.smartpyme.service_1_result_memory_wiring_v1 import (
+    build_service_1_result_memory_from_execution_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
@@ -84,6 +105,256 @@ STATUS_BLOCKED = "BLOCKED"
 STATUS_RECONCILIATION_REVIEW_READY = RECONCILIATION_STATUS_REVIEW_READY
 STATUS_RECONCILIATION_NEEDS_OWNER = RECONCILIATION_STATUS_NEEDS_OWNER
 STATUS_RECONCILIATION_NEEDS_EVIDENCE = RECONCILIATION_STATUS_NEEDS_EVIDENCE
+
+
+def _persist_governed_analysis_result_memory_v1(
+    *,
+    tenant_identity_contract: Any,
+    persist_result_memory: Any,
+    governed_analysis_input: Any,
+    result_projection: Any,
+    confirmed_bindings: Mapping[str, Any],
+    ingestion_output: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Persist F9 output without making F13 an execution authority."""
+    if tenant_identity_contract is None:
+        return {
+            "status": "NOT_PERSISTED",
+            "reason": "TENANT_IDENTITY_REQUIRED",
+            "persisted": False,
+        }
+    if persist_result_memory is None:
+        return {
+            "status": "NOT_PERSISTED",
+            "reason": "RESULT_MEMORY_ADAPTER_UNAVAILABLE",
+            "persisted": False,
+        }
+    try:
+        record = build_service_1_result_memory_from_execution_v1(
+            identity_contract=tenant_identity_contract,
+            governed_analysis_input=governed_analysis_input,
+            result_projection=result_projection,
+            semantic_run=confirmed_bindings,
+            ingestion_output=ingestion_output,
+        )
+    except (Service1ResultMemoryErrorV1, TypeError, ValueError) as exc:
+        return {
+            "status": "NEEDS_EVIDENCE",
+            "reason": getattr(exc, "code", None) or "RESULT_MEMORY_CONTRACT_BLOCKED",
+            "detail": getattr(exc, "detail", None) or str(exc),
+            "persisted": False,
+        }
+    try:
+        persisted = bool(persist_result_memory(record))
+    except Exception:
+        return {
+            "status": "PERSISTENCE_ERROR",
+            "reason": "RESULT_MEMORY_PERSISTENCE_FAILED",
+            "persisted": False,
+            "memory_record_id": record.memory_record_id,
+        }
+    if not persisted:
+        return {
+            "status": "PERSISTENCE_ERROR",
+            "reason": "RESULT_MEMORY_PERSISTENCE_UNCONFIRMED",
+            "persisted": False,
+            "memory_record_id": record.memory_record_id,
+        }
+    return {
+        "status": "PERSISTED",
+        "reason": None,
+        "persisted": True,
+        "memory_record_id": record.memory_record_id,
+        "period": record.period.to_dict(),
+        "artifact_ref": record.artifact_ref,
+        "result_set_integrity_digest": record.result_set_integrity_digest,
+        "executed_at": record.executed_at,
+    }
+
+
+def run_service_1_governed_analysis_v1(
+    *,
+    ingestion_output: Mapping[str, Any],
+    confirmed_bindings: Mapping[str, Any],
+    analysis_id: str,
+    tenant_identity_contract: Any = None,
+    persist_result_memory: Any = None,
+) -> dict[str, Any]:
+    """Canonical F12 execution entry: F10/P7/P8 -> F7 -> F8 -> F9 -> F13.
+
+    The caller supplies already-governed canonical ingestion and owner-confirmed
+    semantics. This root re-runs discovery/computability and owns all productive
+    analytical orchestration. The web layer may request an ``analysis_id`` and
+    render this packet, but it must not execute F7/F8/F9 itself.
+    """
+    requested_analysis_id = str(analysis_id or "").strip()
+    if not requested_analysis_id:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "ANALYSIS_ID_REQUIRED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+    if (
+        not isinstance(confirmed_bindings, Mapping)
+        or confirmed_bindings.get("status") != STATUS_CONFIRMED_BINDINGS
+    ):
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "CONFIRMED_BINDINGS_REQUIRED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+    if not isinstance(ingestion_output, Mapping):
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "CANONICAL_INGESTION_REQUIRED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    discovery = build_service_1_dynamic_analysis_discovery_v1(
+        confirmed_bindings=confirmed_bindings,
+        commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
+    )
+    if discovery.status != F10_STATUS_READY:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": discovery.blocked_reason or "F12_DISCOVERY_NOT_READY",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    item = next(
+        (value for value in discovery.analyses if value.analysis_id == requested_analysis_id),
+        None,
+    )
+    if item is None or not item.commercially_requested:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "ANALYSIS_NOT_COMMERCIALLY_REQUESTED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+    if not item.commercially_exposed or item.governed_analysis_input is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": item.p8_reason or item.p7_reason or "ANALYSIS_NOT_COMPUTABLE",
+            "missing_role_groups": [list(group) for group in item.missing_role_groups],
+            "missing_relationship_evidence": list(item.missing_relationship_evidence),
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    governed = item.governed_analysis_input
+    prepared = build_service_1_analysis_evidence_preparation_v1(
+        case_id=governed.case_id,
+        governed_analysis_input=governed,
+        ingestion_output=dict(ingestion_output),
+    )
+    if prepared.status != F7_STATUS_PREPARED or prepared.prepared_evidence is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": prepared.reason or "F7_PREPARATION_BLOCKED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    math = execute_service_1_analysis_math_v1(
+        case_id=governed.case_id,
+        governed_analysis_input=governed,
+        prepared_evidence=prepared.prepared_evidence,
+    )
+    if math.status != F8_STATUS_EVALUATED or math.result is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": math.reason or "F8_EXECUTION_BLOCKED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    projection = build_service_1_analysis_result_projection_v1(
+        math_result=math.result,
+        prepared_evidence=prepared.prepared_evidence,
+        currency_code=None,
+    )
+    if projection.status != F9_STATUS_READY or projection.projection is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": projection.reason or "F9_PROJECTION_BLOCKED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    result_projection = projection.projection
+    memory = _persist_governed_analysis_result_memory_v1(
+        tenant_identity_contract=tenant_identity_contract,
+        persist_result_memory=persist_result_memory,
+        governed_analysis_input=governed,
+        result_projection=result_projection,
+        confirmed_bindings=confirmed_bindings,
+        ingestion_output=ingestion_output,
+    )
+    return {
+        "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+        "status": "READY",
+        "analysis_id": requested_analysis_id,
+        "title": item.title,
+        "question": item.question,
+        "result_set": result_projection.result_set.to_dict(),
+        "findings": [finding.to_dict() for finding in result_projection.findings],
+        "outcome": result_projection.outcome.to_dict(),
+        "result_memory": memory,
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
 
 
 def execute_generic_capability_v1(*, capability_ref: str, governed_computation_input: object, normalized_tables: object, column_refs: object, governed_results: object = None) -> dict[str, object]:
@@ -766,5 +1037,6 @@ __all__ = [
     "STATUS_RECONCILIATION_REVIEW_READY",
     "STATUS_RECONCILIATION_NEEDS_OWNER",
     "STATUS_RECONCILIATION_NEEDS_EVIDENCE",
+    "run_service_1_governed_analysis_v1",
     "run_service_1_product_pipeline_v1",
 ]
