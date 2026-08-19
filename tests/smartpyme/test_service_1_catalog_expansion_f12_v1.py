@@ -429,6 +429,55 @@ def test_f12_direct_request_for_missing_evidence_fails_closed_to_menu(f12_cafete
     assert 'name="review_catalog_price_variance_by_product"' not in page
 
 
+def test_f12_blocked_request_clears_previous_ready_result(f12_cafeteria: dict) -> None:
+    app = f12_cafeteria["app"]
+    session_id = f12_cafeteria["session_id"]
+
+    ready_status, ready_page = app.run_review(
+        session_id=session_id,
+        requested_capability="sales_series_hour",
+    )
+    assert ready_status == 200
+    assert "Resultado listo" in ready_page
+    previous = app.session(session_id).last_review_result
+    assert previous is not None
+    assert previous["status"] == "READY"
+    assert previous["analysis_id"] == "sales_series_hour"
+
+    blocked_status, blocked_page = app.run_review(
+        session_id=session_id,
+        requested_capability="catalog_price_variance_by_product",
+    )
+    assert blocked_status == 200
+    assert "Resultado listo" not in blocked_page
+    assert app.session(session_id).last_review_result is None
+
+
+def test_f12_blocked_bundle_clears_previous_ready_result(f12_cafeteria: dict) -> None:
+    app = f12_cafeteria["app"]
+    session_id = f12_cafeteria["session_id"]
+
+    ready_status, _ready_page = app.run_review(
+        session_id=session_id,
+        requested_capability="sales_by_category",
+    )
+    assert ready_status == 200
+    previous = app.session(session_id).last_review_result
+    assert previous is not None
+    assert previous["status"] == "READY"
+
+    blocked_status, blocked_page = app.run_selected_reviews(
+        session_id=session_id,
+        requested_capabilities=(
+            "sales_by_category",
+            "catalog_price_variance_by_product",
+        ),
+    )
+    assert blocked_status == 200
+    assert "Resultado listo" not in blocked_page
+    assert app.session(session_id).last_review_result is None
+
+
 @pytest.mark.parametrize(
     "analysis_id",
     (

@@ -487,6 +487,8 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
                 "No se pueden mezclar análisis workbook-first con revisiones legacy en la misma ejecución."
             )
 
+        state = self.session(session_id)
+        state.last_review_result = None
         packets = [
             self._execute_f12_analysis(session_id=session_id, analysis_id=analysis_id)
             for analysis_id in requested
@@ -494,7 +496,6 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         blocked = [packet for packet in packets if packet.get("status") != "READY"]
         if blocked:
             return self._post_semantic_analysis_menu_page(session_id=session_id)
-        state = self.session(session_id)
         state.last_review_result = {
             "schema_version": "SERVICE_1_F12_ANALYSIS_BUNDLE_V1",
             "status": "READY",
@@ -521,6 +522,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             )
 
         if requested_capability in F12_COMMERCIAL_ANALYSIS_IDS:
+            state.last_review_result = None
             packet = self._execute_f12_analysis(
                 session_id=session_id,
                 analysis_id=requested_capability,
