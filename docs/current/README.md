@@ -1,189 +1,144 @@
-# PymIA — autoridad documental actual
+# PYMIA — autoridad documental actual de Servicio 1
 
-**Fecha de reconciliación:** 2026-08-16
+**Fecha de reconciliación:** 2026-08-19
+**Estado:** `CURRENT_AUTHORITY_INDEX`
 
-Esta carpeta contiene documentación vigente, evidencia histórica y documentos de cortes anteriores. **La presencia física en `docs/current/` no concede autoridad.** Sólo gobiernan los documentos enumerados en este índice, subordinados siempre al código físico y a los tests observados.
+Esta carpeta contiene documentos vigentes y evidencia histórica. La presencia física en `docs/current/` no concede autoridad por sí sola.
 
 ## Jerarquía de verdad
 
-1. Código físico del checkout y evidencia de tests realmente ejecutados.
-2. `AGENTS.md` y `ARCHITECTURE_GUARDRAILS.md`.
-3. Este índice y los documentos rectores enumerados abajo.
-4. ADR/contratos citados explícitamente por un documento rector.
-5. Evidencia técnica histórica, únicamente dentro del alcance que certificó.
+1. código físico del checkout;
+2. tests realmente observados;
+3. `AGENTS.md` y `ARCHITECTURE_GUARDRAILS.md`;
+4. este índice y los documentos rectores enumerados abajo;
+5. evidencia histórica sólo dentro del alcance que certificó.
 
-Landing, conversaciones, pilots, closeouts, roadmaps vencidos, TaskSpecs consumados y auditorías históricas no gobiernan implementación por sí mismos.
-
-## Estado de autoridad actual
+## Estado actual verificable
 
 ```text
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 ONE_CANONICAL_PRODUCT_ROOT: ENFORCED
 NO_SECOND_XLSX_PARSER: ENFORCED
+NO_PARALLEL_PRODUCTIVE_PIPELINE: ENFORCED
+NO_SECOND_MATH_AUTHORITY: ENFORCED
 NO_LLM_RUNTIME_AUTHORITY: ENFORCED
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION: ENFORCED
+P8_IS_COMPUTABILITY_AUTHORITY: ENFORCED
 
-MAIN_HEAD: 26ef6c8c57bb201da1a36a1073147c641d1309f4
-LLM_COLUMN_INTERPRETER_IMPLEMENTATION: MERGED_IN_MAIN
-SEQUENTIAL_OWNER_CORROBORATION: MERGED_IN_MAIN
-PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: PENDING
-EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
-DETERMINISTIC_SEMANTIC_FALLBACK: PRESERVED
-LLM_AUTHORITY: NONE
+RC1_COMMIT: 8a4b6ac21293b5e3803c9d2792d0f5017e2c579c
+RC2_COMMIT: f57d0ab715b4fd3bb923dceb67c93c97115e1cbc
+RC3_COMMIT: 07f1f9b85591f99dc72d94271b117dfcb6ef6582
+TENANT_REENTRY_HARDENING_COMMIT: c9de7497a9e61cfa575975a4c5f5d9815c4855de
+RC1: CLOSED_COMMITTED_FROZEN
+RC2: CLOSED_COMMITTED_FROZEN
+RC3: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
+RC4: CLOSED_BY_DOCUMENTATION_SYNC
+
+F0_F13: CLOSED_COMMITTED
+F12_GENERAL_ANALYTICS: IMPLEMENTED
+F13_DURABLE_RESULT_MEMORY: IMPLEMENTED
+F13_RESULTSET_REENTRY: CLOSED_COMMITTED_FROZEN
+
+SERVICE_1_RELEASE_CANDIDATE_ACCEPTED: NO
+FULL_SUITE_CURRENT_RC: NOT_OBSERVED
+ONLINE_EXTERNAL_LLM_CURRENT_RC: NOT_PROVEN
+ONLINE_CAFETERIA_ACCEPTANCE_CURRENT_RC: NOT_PROVEN
+ONLINE_F13_REENTRY_AFTER_RESTART: NOT_PROVEN
+PRODUCTION_SMOKE_CURRENT_RC: NOT_PROVEN
 
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
 PRODUCTION_APP_SHA: d2c9c24
 PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 PRODUCTION_TRAFFIC: 100%
-PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
-
-LIQ_001: PRODUCTION_CERTIFIED
-REN_001: PRODUCTION_CERTIFIED
-
-WORKING_CAPITAL:
-  TECHNICAL_E2E_READY: YES
-  SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-  PRODUCTION_CERTIFIED: YES
-
-NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
-SERVICE_1_TECHNICAL_CLOSURE: PASS
-
-PYMIARADAR: FUTURE_REFERENCE_ONLY / OUT_OF_CURRENT_SERVICE_1_SCOPE
 ```
 
-El estado de `main` y el estado de producción no deben confundirse: el corte de recepción semántica secuencial con provider PydanticAI está integrado en `main`, pero todavía no está certificado como desplegado en producción. La implementación conserva fallback determinístico y el LLM no adquiere autoridad matemática, de runtime, tools, persistencia ni delivery.
+Los datos de producción anteriores son el último corte certificado documentado. No equivalen a que el release candidate actual esté desplegado.
+
+## Qué está construido
+
+Servicio 1 ya posee:
+
+```text
+XLSX canónico
+→ perfilado de workbook
+→ interpretación semántica acotada
+→ confirmación/corrección del dueño
+→ P6
+→ AnalysisPlan
+→ P7 grain/requisitos
+→ P8 computabilidad
+→ F7 preparación de evidencia
+→ F8 matemática bajo FormulaEngineService
+→ F9 ResultSet gobernado
+→ F10 discovery dinámico
+→ F12 catálogo analítico
+→ F13 memoria durable de ResultSets
+```
+
+RC1 hizo converger la ejecución F12 detrás de la única raíz productiva. RC2 eliminó estado stale entre análisis. RC3 implementa la reentrada de ResultSets persistidos sin recalcular, sin volver a abrir XLSX y sin LLM.
+
+## Frontera comercial
+
+La existencia técnica de AnalysisPlans F12 no autoriza por sí sola ampliar el portfolio vendible. El contrato comercial vigente sigue en `SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md` hasta completar acceptance online y sincronización final de release.
 
 ## Núcleo documental rector
 
-Estos documentos forman la superficie de continuidad de Servicio 1:
-
-- `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md` — estado productivo vigente, journeys certificados y deuda abierta.
-- `docs/current/SERVICE_1_STATUS.md` — inventario técnico resumido y verificable.
-- `docs/current/SERVICE_1_CANONICAL_AXIS.md` — eje canónico e invariantes permanentes.
+- `SERVICE_1_CURRENT_PRODUCT_STATE_V1.md` — estado real del producto y release candidate.
+- `SERVICE_1_STATUS.md` — resumen técnico verificable.
+- `ACTIVE_ROADMAP.md` — secuencia RC vigente.
+- `SERVICE_1_CANONICAL_AXIS.md` — eje canónico e invariantes permanentes.
 - `docs/current/SERVICE_1_ARCHITECTURE_LOCK.md` — prohibiciones y límites de autoridad.
-- `docs/current/SERVICE_1_F1_MATHEMATICAL_AUTHORITY_SPEC_V1.md` — autoridad matemática F1 congelada, deuda de agregación explícitamente diferida a F8.
-- `docs/current/SERVICE_1_F2_CANONICAL_FORMULA_SOURCE_SPEC_V1.md` — fuente canónica F2 de reglas de fórmula, proyección de catálogo y deuda de agregación.
-- `docs/current/SERVICE_1_F3_ANALYSIS_PLAN_SPEC_V1.md` — contrato declarativo F3 de intención analítica, sin autoridad de ejecución.
-- `docs/current/SERVICE_1_F4_P7_ANALYSIS_GRAIN_SPEC_V1.md` — extensión F4 del P7 canónico para requisitos analíticos y grain resuelto, sin computabilidad ni ejecución.
-- `docs/current/SERVICE_1_F5_P8_ANALYSIS_COMPUTABILITY_SPEC_V1.md` — extensión F5 del P8 canónico para computabilidad de `AnalysisPlan`, sin ejecución analítica.
-- `docs/current/SERVICE_1_F6_SEMANTIC_DIMENSIONS_AND_RELATIONSHIPS_SPEC_V1.md` — semántica dimensional F6 y relaciones owner-confirmables generales, sin joins ni ejecución.
-- `docs/current/SERVICE_1_F7_GOVERNED_EVIDENCE_PREPARATION_SPEC_V1.md` — preparación gobernada F7 de filas, filtros, joins confirmados y membership de grupos, sin agregación ni fórmulas.
-- `docs/current/SERVICE_1_F8_MATHEMATICAL_AGGREGATION_RUNTIME_SPEC_V1.md` — runtime matemático F8 bajo `FormulaEngineService`, con agregación, fórmulas y ranking gobernados, sin findings ni delivery.
-- `docs/current/SERVICE_1_F9_RESULT_SET_OUTCOMES_FINDINGS_SPEC_V1.md` — ResultSet, findings factuales, evidence chain e integridad F9, sin causalidad, severidad, recomendaciones ni impacto financiero inferido.
-- `docs/current/SERVICE_1_F10_DYNAMIC_ANALYSIS_DISCOVERY_SPEC_V1.md` — discovery dinámico F10 de `AnalysisPlan` mediante P7/P8, con separación entre disponibilidad técnica y exposición comercial.
-- `docs/current/SERVICE_1_F11_CAFETERIA_GENERALIZATION_GATE_V1.md` — gate físico F11 sobre `cafeteria_abc.xlsx`: seis análisis distintos recorren la misma arquitectura sin branches por cafetería.
-- `docs/current/SERVICE_1_F12_COMMERCIAL_ANALYSIS_CATALOG_EXPANSION_V1.md` — expansión comercial F12 de AnalysisPlans, dimensiones, rankings, demanda observada, descuentos factuales, pricing gobernado y wiring web genérico F7→F8→F9.
-- `docs/current/SERVICE_1_F13_LONGITUDINAL_RESULT_MEMORY_V1.md` — memoria longitudinal F13 de ResultSets gobernados por tenant/período, content-addressed, append-only y sin autoridad de cálculo; gate remoto Supabase explícito.
-- `docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa de componentes y carriles actuales.
-- `docs/current/ACTIVE_ROADMAP.md` — única secuencia de trabajo autorizada.
-- `docs/current/SERVICE_1_OPERABILITY_PACKET.md` — operación local/producción y política de certificación.
-- `docs/current/SERVICE_1_DEPLOYMENT_TARGET_CONTRACT_V1.md` — contrato de despliegue Cloud Run/Supabase.
-- `docs/current/SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md` — contrato del producto vendible vigente.
+- `SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md` — mapa actual de componentes y flujo.
+- `SERVICE_1_F1_MATHEMATICAL_AUTHORITY_SPEC_V1.md` — autoridad matemática.
+- `SERVICE_1_F2_CANONICAL_FORMULA_SOURCE_SPEC_V1.md` — fuente canónica de fórmulas.
+- `SERVICE_1_F3_ANALYSIS_PLAN_SPEC_V1.md` — AnalysisPlan.
+- `SERVICE_1_F4_P7_ANALYSIS_GRAIN_SPEC_V1.md` — P7 grain/requisitos.
+- `SERVICE_1_F5_P8_ANALYSIS_COMPUTABILITY_SPEC_V1.md` — P8 computabilidad.
+- `SERVICE_1_F6_SEMANTIC_DIMENSIONS_AND_RELATIONSHIPS_SPEC_V1.md` — dimensiones y relaciones.
+- `SERVICE_1_F7_GOVERNED_EVIDENCE_PREPARATION_SPEC_V1.md` — evidencia gobernada.
+- `SERVICE_1_F8_MATHEMATICAL_AGGREGATION_RUNTIME_SPEC_V1.md` — agregación matemática.
+- `SERVICE_1_F9_RESULT_SET_OUTCOMES_FINDINGS_SPEC_V1.md` — ResultSet y findings factuales.
+- `SERVICE_1_F10_DYNAMIC_ANALYSIS_DISCOVERY_SPEC_V1.md` — discovery dinámico.
+- `SERVICE_1_F11_CAFETERIA_GENERALIZATION_GATE_V1.md` — generalización física cafetería.
+- `SERVICE_1_F12_COMMERCIAL_ANALYSIS_CATALOG_EXPANSION_V1.md` — catálogo declarativo F12.
+- `SERVICE_1_F13_LONGITUDINAL_RESULT_MEMORY_V1.md` — memoria longitudinal F13.
+- `SERVICE_1_OPERABILITY_PACKET.md` — operación y gates de release.
+- `SERVICE_1_DEPLOYMENT_TARGET_CONTRACT_V1.md` — contrato de despliegue.
+- `SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md` — frontera comercial.
 
-Gobierno de presentación únicamente:
+Modelo conceptual subordinado:
 
-- `SERVICE_1_ENTERPRISE_VISUAL_SYSTEM_V1.md` — UX/presentación; nunca autoridad de cálculo, semántica o ejecución.
+- `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md`.
 
-Modelo arquitectónico conceptual subordinado:
+## Documentación histórica
 
-- `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica.
+Pilots, closeouts, roadmaps consumidos, TaskSpecs terminados, auditorías anteriores y documentos de ciclos pasados son `EVIDENCE_ONLY`, `HISTORICAL_CLOSEOUT`, `CONSUMED_TASKSPEC`, `SUPERSEDED_AUDIT`, `PILOT_RECORD` o `REFERENCE_ONLY`.
 
-Referencia futura fuera del frente vigente:
-
-- `docs/PYMIARADAR_PRODUCT_ARCHITECTURE_V1.md` — definición conceptual futura. `REFERENCE_ONLY`; no gobierna Servicio 1, no autoriza implementación de Radar y queda fuera del camino crítico hasta finalizar Servicio 1.
-
-## Documentos subordinados
-
-Algunas evidencias y decisiones previas siguen indexadas porque tests y operación las usan como referencias acotadas, pero **no gobiernan el próximo paso**:
-
-- `SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md`
-- `SERVICE_1_FIRST_OPERATORLESS_CASE.md`
-- `SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md`
-- `SERVICE_1_PRODUCT_COMPLETION_GATE.md`
-- `SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md`
-- `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md`
-- `SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md`
-- `SERVICE_1_PILOT_006_TALLER_MECANICO.md`
-- `SERVICE_1_PILOT_007_CONSTRUCTORA.md`
-- `SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md`
-
-Todo otro archivo en `docs/current/` se clasifica, hasta su eliminación física, como una de estas categorías:
-
-```text
-EVIDENCE_ONLY
-HISTORICAL_CLOSEOUT
-CONSUMED_TASKSPEC
-SUPERSEDED_AUDIT
-PILOT_RECORD
-REFERENCE_ONLY
-```
-
-No puede definir el próximo paso ni contradecir el núcleo rector anterior.
-
-## Deuda arquitectónica abierta
-
-```text
-SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_PRODUCTION_PASS
-MULTIPLE_REENTRY_MECHANISMS: OPEN
-LEGACY_P8/P6_COMPATIBILITY_PROJECTIONS: OPEN
-UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
-```
-
-La deuda se clasifica con Graphify + búsqueda física + tests en `KEEP / MIGRATE / DELETE_CANDIDATE`. No se elimina código por nombre o antigüedad.
-
-## Política de saneamiento
-
-La política vigente es la de `docs/README.md`:
-
-```text
-NO_MUSEUM_DIRECTORY
-NO_ARCHIVE_DIRECTORY
-GIT_PRESERVES_HISTORY
-CORRECT_EXISTING_CANONICAL_DOCS_BEFORE_CREATING_NEW_ONES
-```
-
-La documentación obsoleta se elimina del árbol activo sólo con prueba de que no es dependencia vigente. No se crea un museo paralelo.
-
-## Fronteras explícitas
-
-```text
-ONE_CANONICAL_PRODUCT_ROOT
-NO_LLM_RUNTIME_AUTHORITY
-NO_SECOND_XLSX_PARSER
-NO_PARALLEL_PRODUCTIVE_PIPELINE
-FAIL_CLOSED
-OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
-SEMANTIC_ASSISTANCE_IS_NOT_AUTHORITY
-DERIVED_EVIDENCE_IS_NOT_FORMULA_AUTHORITY
-FORMULA_ENGINE_IS_FORMULA_EXECUTION_AUTHORITY
-P8_REMAINS_COMPUTABILITY_AUTHORITY
-ANALYSIS_PLAN_EXECUTION_AUTHORITY_NONE
-```
+No pueden definir el próximo paso ni contradecir los documentos rectores actuales.
 
 ## Frente vigente
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
-SERVICE_1_TECHNICAL_CLOSURE: PASS
-SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
-PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: PENDING
-PRODUCTION_SMOKE_OF_SEMANTIC_RECEPTION_CUT: PENDING
-PYMIARADAR: OUT_OF_SCOPE_UNTIL_SERVICE_1_FINALIZED
+RC1 = CLOSED
+RC2 = CLOSED
+RC3 = CLOSED
+TENANT_REENTRY_HARDENING = CLOSED
+RC4 = CLOSED
+RC5 = DEPLOY EXACT RC + REAL LLM
+RC6 = ONLINE CAFETERIA ACCEPTANCE
+RC7 = ONLINE RESULT MEMORY REENTRY
 ```
 
-La prioridad inmediata es desplegar y certificar en producción el corte ya integrado de recepción semántica secuencial. No se autoriza ninguna expansión adicional de producto durante ese cierre.
+No crear F14. No reabrir F0–F13 por inercia.
 
-## Regla operativa de mantenimiento
+## Regla operativa
 
 ```text
 una tarea
 → una verificación
 → un resultado
 → una decisión
-→ documento rector actualizado si cambia la verdad
+→ actualización documental si cambia la verdad
 → commit temático
-→ worktree limpio
 ```

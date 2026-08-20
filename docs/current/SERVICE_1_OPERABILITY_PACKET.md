@@ -7,25 +7,25 @@
 
 ```text
 CLI:  python -m pymia.cli.service_1_product
-WEB:  python -m pymia.smartpyme.service_1_assisted_web_v1
+WEB:  python -m pymia.smartpyme.service_1_semantic_reception_server_v1
 ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
 No crear otra entrada con autoridad productiva equivalente.
 
-## 2. Producción vigente
+## 2. Último corte histórico certificado en producción
 
 ```text
 TARGET: Google Cloud Run
 SERVICE: pymia-service1
-APP_SHA: 225f2c4
-REVISION: pymia-service1-00006-h45
+APP_SHA: d2c9c24
+REVISION: pymia-service1-00008-mtf
 TRAFFIC: 100%
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
 RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 ```
 
-Identidad/persistencia productiva: Supabase.
+Este corte certificado es histórico; no demuestra que el release candidate actual esté desplegado. Identidad/persistencia productiva: Supabase.
 
 ## 3. Variables de producción
 
@@ -65,7 +65,7 @@ Para capability gobernada se usa `--requested-capability`. Las superficies legac
 ## 5. Web local
 
 ```text
-python -m pymia.smartpyme.service_1_assisted_web_v1 --host 127.0.0.1 --port 8766
+python -m pymia.smartpyme.service_1_semantic_reception_server_v1 --host 127.0.0.1 --port 8766
 ```
 
 Health local:
@@ -130,14 +130,13 @@ DELIVERY: PASS
 ## 8. Persistencia y reentry
 
 ```text
-PERSISTED_CASE_LISTING: PASS
-PERSISTED_CASE_REENTRY: PASS
-DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+PERSISTED_OWNER_EVIDENCE_REENTRY: PASS
+F13_DURABLE_RESULT_MEMORY: PASS
+RC3_RESULTSET_REENTRY: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
 ```
 
-No afirmar restauración durable del workbook ni del result snapshot completo después de restart.
-
-La sanidad arquitectónica debe converger las múltiples superficies/mecanismos de reentry detectados sin ampliar claims.
+RC3 reabre el ResultSet persistido sin volver a cargar el workbook ni recalcular. Todavía no declarar reentrada durable de producto como certificada en producción hasta completar el acceptance online después de restart real.
 
 ## 9. Tenant identity y memoria
 
@@ -155,11 +154,13 @@ No hay auto-confirmación ni semantic rebind por memoria.
 ## 10. Provider semántico
 
 ```text
-EXTERNAL_PROVIDER: NOT_CONNECTED
-SAFE_DETERMINISTIC_BASELINE_PROVIDER: ACTIVE
+EXTERNAL_PROVIDER_IMPLEMENTATION: AVAILABLE
+EXTERNAL_PROVIDER_CURRENT_RC_RUNTIME: NOT_PROVEN
+SAFE_DETERMINISTIC_BASELINE_PROVIDER: PRESERVED
+NO_LLM_RUNTIME_AUTHORITY
 ```
 
-La dependencia se inyecta por `semantic_provider`. No importar SDK externo dentro de `pymia/` mientras rija la policy actual.
+La dependencia se inyecta por `semantic_provider`. La activación real sólo se declara después de desplegar el RC exacto y observar el smoke correspondiente.
 
 ## 11. Working Capital
 
@@ -189,32 +190,32 @@ production deployment      → production smoke on exact deployed SHA
 ## 13. Deuda operativa/arquitectónica abierta
 
 ```text
-WORKING_CAPITAL_LEGACY_SEMANTIC_FORK: CLOSED_PRODUCTION_PASS
-MULTIPLE_REENTRY_MECHANISMS: OPEN
-LEGACY_P8/P6_PROJECTIONS: OPEN
-UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
+RC3_COMMIT_FREEZE: CLOSED
+TENANT_REENTRY_HARDENING: CLOSED
+RC4_DOCUMENTATION_SYNC: CLOSED
+FULL_SUITE_CURRENT_RC: PENDING
+DEPLOY_EXACT_RC_SHA: PENDING
+EXTERNAL_LLM_CURRENT_RC_PROOF: PENDING
+ONLINE_CAFETERIA_ACCEPTANCE: PENDING
+ONLINE_F13_REENTRY_AFTER_RESTART: PENDING
 ```
+
+Compatibilidades legacy de P6/reentry permanecen congeladas y no son autoridad productiva ni frente activo.
 
 ## 14. Release gate actual
 
-No hay un release pendiente del corte SEM-1→SEM-9 para LIQ_001/REN_001: ya está certificado.
-
-Frente vigente:
-
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
+RC1: CLOSED
+RC2: CLOSED
+RC3: CLOSED
+TENANT_REENTRY_HARDENING: CLOSED
+RC4: CLOSED
+RC5: DEPLOY + REAL LLM
+RC6: ONLINE CAFETERIA
+RC7: ONLINE RESULTSET REENTRY
 ```
 
-Orden:
-
-```text
-document authority sync
-→ physical journey map
-→ legacy dependency inventory
-→ convergence cuts
-→ full regression
-→ production recertification
-```
+El release candidate sólo se acepta con full suite del corte actual y production smoke sobre el SHA exacto desplegado.
 
 ## 15. Prohibiciones operativas
 
@@ -227,5 +228,5 @@ NO_PARALLEL_MARGIN_CALCULATION
 NO_IMPLICIT_MATERIAL_DEFAULTS
 NO_DELIVERY_WITHOUT_GOVERNED_PATH
 NO_SECRET_PRINTING
-NO_FEATURE_EXPANSION_DURING_SANITATION
+NO_FEATURE_EXPANSION_DURING_RC_CLOSE
 ```

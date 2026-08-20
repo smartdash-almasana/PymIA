@@ -1,6 +1,6 @@
 # PymIA — Arquitectura de cinco cerebros y soberanía por coherencia V1
 
-**Fecha:** 2026-08-16  
+**Fecha:** 2026-08-19
 **Estado:** `ARCHITECTURAL_MODEL_ALIGNED_WITH_CURRENT_RUNTIME`  
 **Autoridad:** conceptual y de diseño. No crea por sí solo una nueva autoridad de runtime ni modifica la cadena productiva vigente de Servicio 1.
 
@@ -144,17 +144,18 @@ UN_RESULTADO_HISTÓRICO_NO_SE_REESCRIBE_SILENCIOSAMENTE
 
 Si una fórmula cambia en el futuro, el resultado histórico conserva la versión con la que fue producido. Una nueva versión genera una nueva ejecución comparable; no modifica la anterior.
 
-**Estado actual:** `PARTIAL / NOT_DURABLE_AS_COMPLETE_RESULT_HISTORY`.
+**Estado actual:** `F13_DURABLE_RESULT_MEMORY_IMPLEMENTED`.
 
-Servicio 1 certifica actualmente:
+Servicio 1 ya conserva ResultSets gobernados como snapshots tenant-scoped, content-addressed y append-only. RC3 implementa la reentrada de esos snapshots desde `Mis análisis` validando identidad e integridad y sin recalcular.
 
 ```text
-PERSISTED_CASE_LISTING: PASS
-PERSISTED_CASE_REENTRY: PASS
-DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+F13_DURABLE_RESULT_MEMORY: PASS
+RC3_RESULTSET_REENTRY: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
+REAL_RESTART_ONLINE_ACCEPTANCE: PENDING
 ```
 
-La restauración durable del XLSX y del snapshot completo del resultado tras reinicio no está declarada como capacidad actual.
+El XLSX no necesita restaurarse para reabrir un ResultSet histórico; la prueba online después de restart real sigue pendiente.
 
 #### C. Memoria longitudinal empresarial
 
@@ -181,12 +182,13 @@ No posee soberanía sobre datos, semántica, computabilidad, cálculo ni deliver
 Frontera actual de Servicio 1:
 
 ```text
-EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
-SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: ACTIVE
+EXTERNAL_LLM_PROVIDER_IMPLEMENTATION: AVAILABLE
+EXTERNAL_LLM_PROVIDER_CURRENT_RC_RUNTIME: NOT_PROVEN
+SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: PRESERVED
 NO_LLM_RUNTIME_AUTHORITY
 ```
 
-La arquitectura ya admite una frontera provider-neutral para asistencia semántica, pero un LLM externo no forma parte hoy de la autoridad productiva certificada.
+La arquitectura admite provider externo para asistencia semántica, pero su activación real sobre el release candidate actual todavía debe demostrarse mediante deploy y smoke. Aun activo, el LLM no forma parte de la autoridad matemática ni de computabilidad.
 
 Principio:
 
@@ -265,8 +267,8 @@ Mapa de correspondencia:
 | Determinístico / gobierno | P6 / P7 / P8, fail-closed, delivery gates, contracts | EXISTENTE |
 | Matemático | FormulaEngineService / kernel | EXISTENTE |
 | Semántico | SEM-1 → SEM-9, owner evidence, TenantSemanticContractV1 | EXISTENTE |
-| Memoria | tenant semantic store + persisted owner evidence | PARCIAL |
-| Cognitivo / IA | provider-neutral semantic boundary + narrative/conversational boundary | FRONTERA EXISTENTE; LLM EXTERNO NO CONECTADO |
+| Memoria | F13 durable ResultSet memory + reentrada RC3 + tenant semantic store + persisted owner evidence | F13 IMPLEMENTADO; RC3 CERRADO/CONGELADO; MEMORIA SEMÁNTICA/LONGITUDINAL MÁS AMPLIA PARCIAL |
+| Cognitivo / IA | provider-neutral semantic boundary + external provider implementation + narrative/conversational boundary | FRONTERA Y PROVIDER EXISTENTES; ACTIVACIÓN LLM EXTERNO EN RC ACTUAL: NOT_PROVEN / PENDING |
 | Soberanía por coherencia | división de autoridad + source-of-truth hierarchy + invariantes | PRINCIPIO IMPLÍCITO, AHORA EXPLICITADO |
 
 ## 6. Compatibilidad con los invariantes actuales
@@ -289,11 +291,11 @@ La soberanía por coherencia no significa crear un `CoherenceEngine` central que
 
 ## 7. Consecuencia arquitectónica principal
 
-La pieza menos desarrollada respecto de este modelo es el **Cerebro Memoria**.
+La memoria durable de resultados gobernados ya no es una pieza ausente del **Cerebro Memoria**.
 
-Hoy PymIA posee memoria semántica durable, pero todavía no una memoria histórica completa de resultados con el mismo nivel de gobierno.
+F13 conserva ResultSets históricos gobernados y RC3 cerró y congeló su reentrada sin recalcular ni restaurar el XLSX.
 
-Por tanto, el siguiente desarrollo de memoria debería partir de este límite:
+La frontera todavía pendiente es completar el alcance longitudinal del Cerebro Memoria y observar la prueba online y de release del RC actual; no implementar de nuevo la base durable F13. Cualquier evolución debe respetar este límite:
 
 ```text
 NO nueva raíz productiva
@@ -315,15 +317,18 @@ Ningún cerebro tiene soberanía aislada.
 La soberanía de PymIA es la coherencia verificable del conjunto.
 ```
 
-## 9. Estado de sincronización al 2026-08-16
+## 9. Estado de sincronización al 2026-08-19
 
 ```text
 CONCEPTUAL_MODEL: DOCUMENTED
 CURRENT_ARCHITECTURE_CONFLICT: NONE FOUND
 CURRENT_RUNTIME_REPLACED: NO
 NEW_AUTHORITY_CREATED: NO
+F13_DURABLE_RESULT_MEMORY: IMPLEMENTED
+RC3_RESULTSET_REENTRY: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
 MEMORY_BRAIN_FULLY_IMPLEMENTED: NO
-COGNITIVE_LLM_RUNTIME_CONNECTED: NO
+COGNITIVE_LLM_RUNTIME_CURRENT_RC_PROVEN: NO
 COHERENCE_PRINCIPLE: ALIGNED_WITH_EXISTING_AUTHORITY_CHAIN
 ```
 

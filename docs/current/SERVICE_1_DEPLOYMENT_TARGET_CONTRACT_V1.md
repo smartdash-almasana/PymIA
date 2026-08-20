@@ -6,12 +6,14 @@
 DEPLOYMENT_TARGET: GOOGLE_CLOUD_RUN
 SERVICE: pymia-service1
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-DEPLOYED_GIT_SHA: d2c9c24
-CLOUD_RUN_REVISION: pymia-service1-00008-mtf
-TRAFFIC: 100%
-PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+LAST_CERTIFIED_DEPLOYED_GIT_SHA: d2c9c24
+LAST_CERTIFIED_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
+LAST_CERTIFIED_TRAFFIC: 100%
+RC3_COMMIT: 07f1f9b85591f99dc72d94271b117dfcb6ef6582
+TENANT_REENTRY_HARDENING_COMMIT: c9de7497a9e61cfa575975a4c5f5d9815c4855de
+CURRENT_RC_DEPLOYED_SHA: NOT_PROVEN
 RUNTIME_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
-WEB_ENTRYPOINT: python -m pymia.smartpyme.service_1_assisted_web_v1
+CURRENT_RC_WEB_ENTRYPOINT: python -m pymia.smartpyme.service_1_semantic_reception_server_v1
 ```
 
 ## PURPOSE
@@ -49,6 +51,16 @@ PYMIA_SUPABASE_SERVICE_ROLE_KEY
 
 Values are secrets/configuration and must not be committed.
 
+For RC5, activating the bounded external semantic provider additionally requires environment configuration equivalent to:
+
+```text
+GOOGLE_CLOUD_PROJECT
+GOOGLE_CLOUD_LOCATION
+PYMIA_SEMANTIC_LLM_MODEL
+```
+
+The model name must not be hardcoded in product code. Absence of this configuration must not grant any new authority to the fallback provider.
+
 The smoke runner additionally reads:
 
 ```text
@@ -73,13 +85,13 @@ or an equivalent deployment-specific package installation that provides the same
 
 ## BOOT CONTRACT
 
-The process must execute the existing canonical assisted-web entrypoint:
+For the current release candidate, the process must execute the semantic-reception entrypoint that wires Supabase identity/persistence and the bounded semantic provider:
 
 ```text
-python -m pymia.smartpyme.service_1_assisted_web_v1 --host <bind-host> --port <port>
+python -m pymia.smartpyme.service_1_semantic_reception_server_v1 --host <bind-host> --port <port>
 ```
 
-No alternative productive pipeline or web business-computation root is authorized.
+This entrypoint still delegates productive analysis to `service_1_product_pipeline_v1.py`. No alternative productive pipeline or web business-computation root is authorized.
 
 ## HEALTH CONTRACT
 
@@ -172,34 +184,43 @@ PERSISTENCE / REENTRY:
 ## DURABLE REENTRY BOUNDARY
 
 ```text
-DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+F13_DURABLE_RESULT_MEMORY: IMPLEMENTED
+RC3_RESULTSET_REENTRY: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
+ONLINE_REENTRY_AFTER_REAL_RESTART: NOT_PROVEN
 ```
 
-The certified reentry path proves persisted owner semantic evidence. It does not prove restoration of the original XLSX or the complete result snapshot after process restart.
+The current RC can reopen an immutable persisted ResultSet without restoring the XLSX or recalculating. The remaining deployment claim is to prove that behavior on the deployed RC after a real restart.
 
 ## NON-CLAIMS
 
-This deployment contract does not claim:
+This deployment contract does not yet claim:
 
 ```text
-durable XLSX/result snapshots across restart
-multi-region or multi-instance result-state replication
+CURRENT_RC_DEPLOYED_SHA = VERIFIED
+EXTERNAL_LLM_CURRENT_RC = PROVEN
+ONLINE_RESULTSET_REENTRY_AFTER_RESTART = PROVEN
+multi-region result-state replication
 zero-downtime deployment
 automatic rollback
-working_capital production certification
 ```
 
-`working_capital` has a local SEM-8 composite-scope migration with focal PASS, but remains outside the current production certification boundary until the new cut is committed, deployed, and production-smoked.
+The last certified production cut already includes `working_capital`; the RC acceptance must not regress it.
 
-## SANITATION FRONT
+## CURRENT RC FRONT
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
-SERVICE_1_TECHNICAL_CLOSURE: PASS
+RC1: CLOSED
+RC2: CLOSED
+RC3: CLOSED
+TENANT_REENTRY_HARDENING: CLOSED
+RC4: CLOSED
+RC5: DEPLOY EXACT SHA + REAL LLM
+RC6: ONLINE CAFETERIA ACCEPTANCE
+RC7: ONLINE RESULTSET REENTRY
 ```
 
-During sanitation closure, new capabilities, provider expansion, DPO/payment_collection_gap and new productive pipelines remain frozen until a new cycle authorization.
+New capabilities and new productive pipelines remain frozen during release-candidate closure.
 
 ## DEPLOYMENT OPERATOR RETURN CONTRACT
 
@@ -216,6 +237,10 @@ HEALTH_STATUS:
 LOG_TARGET:
 ROLLBACK_OR_PREVIOUS_REVISION_MECHANISM:
 REQUIRED_ENV_NAMES_PRESENT: PASS | FAIL
+EXTERNAL_LLM_PROVIDER_ACTIVE: PASS | FAIL
+LLM_MATH: 0 | FAIL
+ONLINE_CAFETERIA_ACCEPTANCE: PASS | FAIL
+ONLINE_F13_REENTRY_AFTER_RESTART: PASS | FAIL
 PRODUCTION_SMOKE: PASS | FAIL
 ```
 
@@ -223,6 +248,14 @@ Never return secret values.
 
 ## NEXT GATE
 
-There is no pending release gate for the current LIQ_001/REN_001 cut; it is production certified.
+The last certified production cut is historical and does not close the pending gates for the current release candidate.
 
-The next production gate occurs only after a sanitation/convergence change requires recertification.
+```text
+FULL_SUITE_CURRENT_RC: PENDING
+RC5_DEPLOY_EXACT_COMMITTED_SHA_AND_REAL_EXTERNAL_LLM: PENDING
+RC6_ONLINE_CAFETERIA_ACCEPTANCE: PENDING
+RC7_ONLINE_RESULTSET_REENTRY_AFTER_RESTART: PENDING
+FINAL_PRODUCTION_SMOKE_CURRENT_RC: PENDING
+```
+
+The next gate is the full suite for the current RC, followed by RC5, RC6, RC7, and the final production smoke. No pending gate is PASS without observed evidence.

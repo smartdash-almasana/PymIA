@@ -1,43 +1,47 @@
 # Servicio 1 — estado técnico actual
 
-**Fecha de corte:** 2026-08-16
+**Fecha de corte:** 2026-08-19
 **Autoridad de continuidad:** `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md`
 
 ## Resumen
 
 ```text
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
-SERVICE_1_PRODUCT_COMPLETION_GATE: PASS
-SERVICIO 1 MVP DETERMINÍSTICO ASISTIDO: COMPLETO
+F0_F13: CLOSED_COMMITTED
+RC3_COMMIT: 07f1f9b85591f99dc72d94271b117dfcb6ef6582
+TENANT_REENTRY_HARDENING_COMMIT: c9de7497a9e61cfa575975a4c5f5d9815c4855de
+RC1: CLOSED_COMMITTED_FROZEN
+RC2: CLOSED_COMMITTED_FROZEN
+RC3: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
+RC4: CLOSED_BY_DOCUMENTATION_SYNC
+SERVICE_1_RELEASE_CANDIDATE_ACCEPTED: NO
+
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-MAIN_HEAD: 26ef6c8c57bb201da1a36a1073147c641d1309f4
 PRODUCTION_APP_SHA: d2c9c24
 PRODUCTION_REVISION: pymia-service1-00008-mtf
 PRODUCTION_TRAFFIC: 100%
-SERVICE_1_PRODUCTION_SMOKE: PASS
 LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
 WORKING_CAPITAL: PRODUCTION_CERTIFIED
-WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-LLM_COLUMN_INTERPRETER_IMPLEMENTATION: MERGED_IN_MAIN
-SEQUENTIAL_OWNER_CORROBORATION: MERGED_IN_MAIN
-PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: PENDING
-EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
+
+EXTERNAL_LLM_RUNTIME_ACTIVATION_CURRENT_RC: NOT_PROVEN
 DETERMINISTIC_SEMANTIC_FALLBACK: PRESERVED
 LLM_AUTHORITY: NONE
-KERNEL GENÉRICO PRODUCTIVO: ACTIVO
+NO_LLM_RUNTIME_AUTHORITY
 SIN DIAGNÓSTICO CAUSAL
 12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS
-NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
+FULL_SUITE_CURRENT_RC: NOT_OBSERVED
 ```
 
-`main` contiene el nuevo corte semántico; producción todavía conserva la revisión certificada anterior. No declarar el provider externo activo en runtime hasta deploy y smoke productivo.
+El corte productivo documentado sigue siendo anterior al release candidate actual. No declarar el provider externo activo ni el RC desplegado hasta verificar el SHA exacto y completar el smoke productivo.
 
 ## Autoridad productiva
 
 ```text
 CLI:  pymia/cli/service_1_product.py
-WEB:  pymia/smartpyme/service_1_assisted_web_v1.py
+WEB:  pymia/smartpyme/service_1_assisted_web_semantic_reception_v1.py
+SERVER: pymia/smartpyme/service_1_semantic_reception_server_v1.py
 ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 ```
 
@@ -47,17 +51,19 @@ La web y la CLI son superficies de entrada; no crean una segunda raíz ni una se
 
 ```text
 canonical XLSX ingestion
-→ physical/workbook evidence
+→ WorkbookProfiler
 → semantic assistance proposal
 → deterministic validation
-→ owner material confirmation
-→ P6 ApprovalDecision
+→ owner confirmation/correction
+→ P6
+→ AnalysisPlan
 → P7 RequirementMatch + Grain
-→ P8 ComputabilityDecision + GovernedComputationInput
-→ Derived Evidence cuando corresponda
-→ deterministic execution/kernel
-→ bounded outcome
-→ controlled delivery
+→ P8 ComputabilityDecision + GovernedAnalysisInput
+→ F7 Governed Evidence Preparation
+→ F8 / FormulaEngineService
+→ F9 Governed ResultSet
+→ F13 durable result memory
+→ UI
 ```
 
 ## SEM-1 → SEM-9
@@ -74,13 +80,13 @@ canonical XLSX ingestion
 | SEM-8 | PASS | wiring a raíz productiva canónica |
 | SEM-9 | PASS | Cobros, Margen y Working Capital usan SEM-8; Working Capital usa scope compuesto |
 
-Corte posterior integrado en `main`:
+Recepción semántica actual:
 
 ```text
-LLM_COLUMN_INTERPRETER_V1: MERGED_IN_MAIN
-SEQUENTIAL_OWNER_CORROBORATION_V1: MERGED_IN_MAIN
-QUESTIONS_VISIBLE_AT_ONCE: 1 (FOCUSED_TEST_AND_LOCAL_SMOKE_PASS)
-PRODUCTION_CERTIFICATION_OF_THIS_CUT: PENDING
+LLM_COLUMN_INTERPRETER_V1: IMPLEMENTED
+SEQUENTIAL_OWNER_CORROBORATION_V1: IMPLEMENTED
+QUESTIONS_VISIBLE_AT_ONCE: 1
+EXTERNAL_LLM_RUNTIME_ACTIVATION_CURRENT_RC: NOT_PROVEN
 ```
 
 ## Producción certificada
@@ -113,12 +119,15 @@ XLSX_DELIVERY: PASS
 ## Persistencia / reentry
 
 ```text
-PERSISTED_CASE_LISTING: PASS
-PERSISTED_CASE_REENTRY: PASS
-DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
+F13_DURABLE_RESULT_MEMORY: PASS
+CONTENT_ADDRESSED: YES
+TENANT_SCOPED: YES
+APPEND_ONLY: YES
+RC3_RESULTSET_REENTRY: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
 ```
 
-No afirmar restauración durable del XLSX/result snapshot después de restart.
+RC3 reabre el ResultSet persistido sin XLSX, sin LLM y sin recalculación. La prueba online después de restart real sigue pendiente.
 
 ## Working Capital
 
@@ -132,14 +141,11 @@ COMPONENTS:
 - current_ratio
 ```
 
-La composición usa capacidades ya gobernadas y está certificada en producción sobre SEM-8. DPO/payment_collection_gap siguen fuera del alcance.
-
 ## Tenant semantics
 
 ```text
 TENANT_SEMANTIC_CONTRACT: IMPLEMENTED
 TENANT_STORE: APPEND_ONLY / TENANT_ISOLATED
-STRUCTURAL_COMPATIBILITY: IMPLEMENTED
 COMPATIBLE_MEMORY: HINT_ONLY
 AUTOMATIC_REUSE: FORBIDDEN
 SEMANTIC_REBIND: FORBIDDEN
@@ -148,67 +154,54 @@ SEMANTIC_REBIND: FORBIDDEN
 ## Provider semántico actual
 
 ```text
-PYDANTIC_AI_COLUMN_PROVIDER: IMPLEMENTED_AND_MERGED_IN_MAIN
-EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
+PYDANTIC_AI_COLUMN_PROVIDER: IMPLEMENTED
+EXTERNAL_LLM_RUNTIME_ACTIVATION_CURRENT_RC: NOT_PROVEN
 DETERMINISTIC_SAFE_BASELINE_PROVIDER: PRESERVED
 LLM_CALCULATION_AUTHORITY: NONE
 LLM_RUNTIME_AUTHORITY: NONE
 LLM_TOOL_AUTHORITY: NONE
-LLM_PERSISTENCE_AUTHORITY: NONE
 LLM_DELIVERY_AUTHORITY: NONE
 ```
 
-## Cierre técnico
+## Estado de pruebas del RC
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
-SERVICE_1_TECHNICAL_CLOSURE: PASS
-FULL_SUITE: PASS (3605 passed / 0 failed / 7 skipped)
-ARCHITECTURE_BASELINE: PASS_ARCHITECTURE_BASELINE_V1 / BLOCKERS NONE
-LIQ_001: PRODUCTION_CERTIFIED
-REN_001: PRODUCTION_CERTIFIED
-WORKING_CAPITAL: PRODUCTION_CERTIFIED
-LEGACY_SUPPORT_RESIDUAL: ACCEPTED_TECHNICAL_DEBT / BOUNDED / NON_AUTHORITATIVE / OUTSIDE_CANONICAL_ROOT / FROZEN
+RC1_POST_COMMIT_FOCAL: 30 passed
+RC2_POST_COMMIT_REGRESSION: 69 passed
+RC3_FOCAL: 4 passed
+RC3_EXTENDED_GATE: 73 passed
+TENANT_REENTRY_HARDENING_FOCAL: 3 passed
+TENANT_F13_HTTP_ARCHITECTURE_GATE: 48 passed
+FULL_SUITE_CURRENT_RC: NOT_OBSERVED
 ```
 
-El cierre técnico previo permanece válido; el nuevo corte semántico integrado requiere su propia actualización de producción antes de declararlo productivo.
+El full suite de cortes anteriores no se usa como evidencia del RC actual.
 
-## Deuda abierta prioritaria
+## Deuda abierta real
 
 ```text
-SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_PRODUCTION_PASS
-RUN_OWNER_REENTRY_COMPATIBILITY: ACCEPTED_TECHNICAL_DEBT / FROZEN / OUTSIDE_CANONICAL_ROOT
-LEGACY_P6_REENTRY_COMPATIBILITY: ACCEPTED_TECHNICAL_DEBT / FROZEN / NON_AUTHORITATIVE
-DOCUMENTATION_HISTORICAL_DRIFT: CLOSED
+RC3_COMMIT_FREEZE: CLOSED
+TENANT_REENTRY_HARDENING: CLOSED
+RC4_DOCUMENTATION_AND_STALE_TEST_SYNC: CLOSED
+FULL_SUITE_CURRENT_RC: PENDING
+DEPLOY_EXACT_RC_SHA: PENDING
+REAL_EXTERNAL_LLM_PROOF: PENDING
+ONLINE_CAFETERIA_ACCEPTANCE: PENDING
+ONLINE_F13_REENTRY_AFTER_RESTART: PENDING
+FINAL_PRODUCTION_SMOKE: PENDING
 ```
-
-Política del residual legacy:
-
-```text
-NEW_CALLERS: FORBIDDEN
-NEW_FEATURE_DEPENDENCY: FORBIDDEN
-AUTHORITY: NONE
-DELETE_TRIGGER:
-- ZERO_CALLERS
-- FULL_SUITE_PASS
-- ARCHITECTURE_BASELINE_PASS
-- PRODUCTION_SMOKE_PASS
-```
-
-Hasta que se cumpla ese trigger, el residual se conserva congelado como compatibilidad técnica aceptada; no constituye frente activo de Servicio 1.
 
 ## Frente actual
 
 ```text
-DOCUMENTATION_RECONCILIATION_AFTER_PR14: CLOSED
-SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
-PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: NEXT
-PRODUCTION_SMOKE_OF_SEMANTIC_RECEPTION_CUT: AFTER_DEPLOY
-PYMIARADAR: FUTURE_REFERENCE_ONLY / OUT_OF_CURRENT_SCOPE
+FULL_SUITE
+→ RC5_DEPLOY_AND_REAL_LLM
+→ RC6_ONLINE_CAFETERIA
+→ RC7_ONLINE_REENTRY
+→ FINAL_PRODUCTION_SMOKE
 ```
 
-No agregar nuevas features/capabilities durante este cierre. El siguiente paso es desplegar y certificar el corte ya integrado. PymiaRadar queda fuera del camino crítico hasta finalizar Servicio 1.
+No crear F14 ni ampliar el producto por inercia.
 
 ## Invariantes
 

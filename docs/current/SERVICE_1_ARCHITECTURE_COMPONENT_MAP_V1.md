@@ -1,228 +1,219 @@
 # Servicio 1 — mapa actual de arquitectura y componentes V1
 
 **Estado:** `ACTIVE_ARCHITECTURE_MAP`
-**Fecha de corte:** 2026-08-14
+**Fecha de corte:** 2026-08-19
 
 ## 1. Autoridad productiva
 
 ```text
-CLI:  pymia/cli/service_1_product.py
-WEB:  pymia/smartpyme/service_1_assisted_web_v1.py
+WEB:  adapter de interacción
 ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
+MATH: pymia/services/formula_engine_service.py
 ```
 
-Sólo `service_1_product_pipeline_v1.py` es raíz productiva. CLI y web son adaptadores.
+Sólo `service_1_product_pipeline_v1.py` es raíz productiva. La Web solicita y presenta; no coordina F7/F8/F9 desde RC1.
 
-## 2. Producción vigente
+## 2. Estado de release
 
 ```text
+RC3_COMMIT: 07f1f9b85591f99dc72d94271b117dfcb6ef6582
+TENANT_REENTRY_HARDENING_COMMIT: c9de7497a9e61cfa575975a4c5f5d9815c4855de
+RC1: CLOSED_COMMITTED_FROZEN
+RC2: CLOSED_COMMITTED_FROZEN
+RC3: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
+RC4: CLOSED_BY_DOCUMENTATION_SYNC
+
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-APP_SHA: d2c9c24
+PRODUCTION_APP_SHA: d2c9c24
 CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 TRAFFIC: 100%
-RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
-LIQ_001: PRODUCTION_CERTIFIED
-REN_001: PRODUCTION_CERTIFIED
-WORKING_CAPITAL: PRODUCTION_CERTIFIED / SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
 ```
 
-## 3. Mapa canónico de alto nivel
+El corte certificado documentado y el RC actual son estados distintos.
+
+## 3. Mapa canónico general
 
 ```text
 XLSX
 ↓
 canonical ingestion / normalized_tables
 ↓
-SEM-1 WorkbookProfiler
+WorkbookProfiler
 ↓
-SEM-2 provider-neutral semantic context
+semantic provider bounded
 ↓
-semantic provider
+deterministic semantic validation
 ↓
-SEM-3 deterministic validator
+DUEÑO PYME confirma/corrige
 ↓
-SEM-4 OwnerDialoguePlan
+P6
 ↓
-DUEÑO PYME
+AnalysisPlan
 ↓
-SEM-5 owner evidence
+P7 RequirementMatch + ResolvedGrain
 ↓
-SEM-6 reentry
+P8 ComputabilityDecision + GovernedAnalysisInput
 ↓
-P6 ApprovalDecision
+F7 Governed Evidence Preparation
 ↓
-P7 RequirementMatch + Grain
+F8 / FormulaEngineService
 ↓
-P8 ComputabilityDecision + GovernedComputationInput
+F9 Governed ResultSet
 ↓
-Derived Evidence cuando la capability lo requiere
+F13 immutable result memory
 ↓
-KERNEL / FormulaEngineService
-↓
-bounded outcome
-↓
-controlled delivery
+UI
 ```
 
-Este es el carril canónico de LIQ_001, REN_001 y `working_capital`. La composición usa un scope SEM-8 compuesto sobre sus tres capabilities existentes y está certificada en producción.
+## 4. División de autoridad
 
-## 4. SEM-1 → SEM-9
+### Provider / LLM
+
+Propone significado y puede formular preguntas. No calcula, no confirma por el dueño y no autoriza runtime, tools ni delivery.
+
+### Dueño
+
+Confirma o corrige significado empresarial material. Esa confirmación es evidencia.
+
+### P6
+
+Cierra la evidencia semántica gobernada.
+
+### P7
+
+Resuelve requisitos, dimensiones y grain.
+
+### P8
+
+Única autoridad de computabilidad.
+
+### F7
+
+Selecciona filas, resuelve joins confirmados, grupos, filtros y provenance. No suma ni aplica fórmulas.
+
+### F8 / FormulaEngineService
+
+Única autoridad matemática. Ejecuta agregaciones y fórmulas gobernadas.
+
+### F9
+
+Construye ResultSet, findings factuales, outcome e integridad. No inventa causalidad.
+
+### F13
+
+Conserva snapshots históricos inmutables y tenant-scoped. No recalcula ni reinterpreta.
+
+### UI
+
+Presenta ResultSets y estados. No hace matemática empresarial.
+
+## 5. F12 — catálogo analítico
+
+F12 declara AnalysisPlans para análisis escalares, agrupados, rankings y series. La incorporación de un análisis no debe crear una nueva raíz, parser o engine.
+
+Sobre `cafeteria_abc.xlsx` se observaron 21 análisis computables y un bloqueo correcto de `catalog_price_variance_by_product` por falta de `list_price` gobernado.
+
+## 6. RC1 — convergencia de ejecución
+
+Antes de RC1 la Web coordinaba F7/F8/F9 directamente. RC1 dejó:
 
 ```text
-SEM-1  WorkbookProfilerV1
-SEM-2  provider-neutral closed semantic contract
-SEM-3  deterministic semantic proposal validator
-SEM-4  minimal owner dialogue planner
-SEM-5  canonical owner evidence projection
-SEM-6  owner evidence reentry to existing semantic gate/P6
-SEM-7  tenant structural compatibility
-SEM-8  assisted semantic wiring into canonical product root
-SEM-9  assisted web wiring for LIQ_001 / REN_001
+WEB
+→ run_service_1_governed_analysis_v1
+→ product root
+→ F10/P7/P8
+→ F7
+→ F8
+→ F9
+→ F13
+→ packet
+→ WEB render
 ```
 
-`working_capital` ya no usa semantic scoping legacy y su scope compuesto SEM-8 está certificado en producción. La deuda abierta se concentra en compatibilidad legacy de reentry/P6 y en superficies muertas probadamente aisladas.
-
-## 5. División de autoridad
-
-### Semantic provider
-
-Puede proponer significado, relaciones e incertidumbre basada en evidencia real. No puede confirmar por el owner, crear owner evidence, autorizar runtime/delivery ni calcular fórmulas.
-
-### Owner
-
-Confirma o corrige significado empresarial material. Su confirmación es evidencia, no permiso.
-
-### P6/P7/P8
+Gate:
 
 ```text
-P6 = aprobación semántica gobernada
-P7 = match de requisitos + grain
-P8 = única autoridad de computabilidad
+WEB_DIRECT_F7_CALLS = 0
+WEB_DIRECT_F8_CALLS = 0
+WEB_DIRECT_F9_CALLS = 0
+ONE_CANONICAL_PRODUCT_ROOT = PASS
+NO_PARALLEL_PRODUCTIVE_PIPELINE = PASS
 ```
 
-### Derived Evidence
+## 7. Memoria y reentrada
 
-Transforma evidencia confirmada en variables canónicas cuando el workbook no trae directamente el agregado requerido. No ejecuta la fórmula final ni inventa inputs materiales ausentes.
-
-### Kernel
+F13 ya posee persistencia durable con:
 
 ```text
-pymia/services/formula_engine_service.py
+persist_result_memory
+list_result_memory
+load_result_memory_record
 ```
 
-Única autoridad matemática ejecutable.
-
-## 6. Journeys
-
-### LIQ_001
+RC3 implementa la superficie de producto:
 
 ```text
-upload
-→ SEM-8
-→ owner confirmation
-→ P6/P7/P8
-→ deterministic execution
-→ bounded outcome
-→ XLSX delivery
-→ persisted owner evidence / durable case reentry
+/cases
+→ tenant
+→ list_result_memory
+→ memory_record_id
+→ load_result_memory_record
+→ validate tenant + identity + digest
+→ render persisted ResultSet
 ```
 
-### REN_001
+RC3 quedó committeado y congelado sin volver a cargar XLSX, sin LLM, sin semantic rebind y sin recalculación. La prueba online tras restart real permanece pendiente para RC7.
+
+## 8. Journeys legacy certificados
+
+El último corte productivo documentado mantiene:
 
 ```text
-upload
-→ SEM-8
-→ owner semantic confirmation
-→ owner-confirmed product relationship
-→ discount unit confirmation cuando corresponde
-→ Derived Evidence
-→ P8
-→ FormulaEngineService/kernel
-→ bounded outcome
-→ XLSX delivery
-→ persisted owner evidence / durable case reentry
+LIQ_001: PRODUCTION_CERTIFIED
+REN_001: PRODUCTION_CERTIFIED
+WORKING_CAPITAL: PRODUCTION_CERTIFIED
+WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
 ```
 
-### working_capital
+Estos journeys coexisten con la arquitectura analítica general F0–F13. La existencia del catálogo F12 no amplía automáticamente el contrato comercial.
 
-```text
-upload
-→ legacy semantic scoping
-→ projected_closing_cash_balance
-→ dso
-→ current_ratio
-→ web composition
-→ result page
-```
-
-Estado:
-
-```text
-TECHNICAL_E2E_READY: YES
-SEM8_CONVERGED: NO
-PRODUCTION_CERTIFIED: NO
-COMPOSITE_XLSX_DELIVERY: NO
-```
-
-## 7. Persistencia y reentry
-
-Producción certificada:
-
-```text
-PERSISTED_CASE_LISTING: PASS
-PERSISTED_CASE_REENTRY: PASS
-DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
-```
-
-La auditoría de sanidad detectó múltiples mecanismos/superficies de reentry. Deben clasificarse y converger sin ampliar claims de durabilidad.
-
-## 8. Memoria tenant
+## 9. Memoria tenant semántica
 
 ```text
 owner evidence
 → TenantSemanticContractV1
 → append-only tenant store
-→ structural signature
-→ SEM-7 compatibility classification
+→ structural compatibility
 → compatible hint only
-→ SEM-2 context
+→ semantic context
 ```
 
-La memoria no autoriza reuse automático ni semantic rebind.
+No hay auto-confirmación ni semantic rebind por memoria.
 
-## 9. Deuda arquitectónica abierta
-
-```text
-SEMANTIC_FORK_WORKING_CAPITAL: CLOSED_PRODUCTION_PASS
-MULTIPLE_REENTRY_MECHANISMS: OPEN
-LEGACY_P8/P6_COMPATIBILITY_PROJECTIONS: OPEN
-UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
-```
-
-Graphify es evidencia primaria para dependency/journey mapping; grep físico y tests verifican decisiones KEEP/MIGRATE/DELETE_CANDIDATE.
-
-## 10. Invariantes arquitectónicos
+## 10. Invariantes
 
 ```text
 ONE_CANONICAL_PRODUCT_ROOT
 NO_SECOND_XLSX_PARSER
 NO_PARALLEL_PRODUCTIVE_PIPELINE
+NO_SECOND_MATH_AUTHORITY
 NO_LLM_RUNTIME_AUTHORITY
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
-NO_SEMANTIC_REBIND_AFTER_P6
-P7_AND_P8_REMAIN_SEPARATE
+P6_P7_P8_REMAIN_SEPARATE
 P8_IS_COMPUTABILITY_AUTHORITY
-DERIVED_EVIDENCE_IS_NOT_FORMULA_AUTHORITY
-KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
+NO_UI_BUSINESS_MATH
 FAIL_CLOSED
+NO_CAFETERIA_HARDCODE
+NO_RUBRO_HARDCODE
 ```
 
 ## 11. Frente actual
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
-SERVICE_1_TECHNICAL_CLOSURE: PASS
+full suite current RC
+→ deploy exact SHA + real external LLM
+→ online cafeteria acceptance
+→ online F13 reentry after restart
+→ final production smoke
 ```
-
-Cierre técnico: PASS (full suite 3602/0/7, baseline BLOCKERS NONE, smoke final PASS, 3 journeys re-certificados). No ampliar producto sin nueva autorización de ciclo.

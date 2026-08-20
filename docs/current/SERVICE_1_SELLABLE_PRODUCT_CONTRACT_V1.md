@@ -30,16 +30,18 @@ No vende un diagnóstico integral de empresa.
 
 ### S1-01 — Control de Cobros y Conciliación
 
-Recorrido probado:
+Recorrido actual de producto:
 
 ```text
-selección de servicio
-→ XLSX
-→ confirmación semántica cuando corresponde
+XLSX
+→ comprensión semántica workbook-first
+→ confirmación/corrección del dueño cuando corresponde
+→ menú de análisis computables
+→ Control de Cobros
 → ejecución determinística
-→ resultado de vendido / cobrado / diferencia
+→ resultado vendido / cobrado / diferencia
 → límites de interpretación
-→ descarga XLSX
+→ descarga XLSX cuando corresponde
 ```
 
 Estado comercial del freeze: `DISPONIBLE`.
@@ -64,19 +66,18 @@ Estado comercial del freeze: `DISPONIBLE`.
 
 ### S1-03 — Margen Real
 
-Recorrido probado:
+Recorrido actual de producto:
 
 ```text
-selección de servicio
-→ XLSX
-→ confirmación semántica del dueño
-→ P6
-→ P7
-→ P8
+XLSX
+→ comprensión semántica workbook-first
+→ confirmación/corrección del dueño
+→ menú de análisis computables
+→ Margen Real
+→ P6/P7/P8
 → ejecución determinística net_margin_real
-→ P10
 → resultado acotado
-→ descarga XLSX
+→ descarga XLSX cuando corresponde
 ```
 
 Estado comercial del freeze: `DISPONIBLE`.
@@ -85,15 +86,21 @@ Estado comercial del freeze: `DISPONIBLE`.
 
 ### S1-04 — Caja y Capital de Trabajo
 
-Estado actual: `TECHNICAL_E2E_READY / PASS_WITH_PRODUCT_GAPS`.
+Estado actual: `PRODUCTION_CERTIFIED_TECHNICALLY / NOT_IN_SELLABLE_PORTFOLIO`.
 
-Existe composición sobre `projected_closing_cash_balance`, `dso` y `current_ratio`, pero no se declara comercialmente cerrada hasta resolver su propio gate de producto. No forma parte del portfolio `DISPONIBLE` de este contrato.
+Existe composición sobre `projected_closing_cash_balance`, `dso` y `current_ratio` y su journey técnico fue certificado. Eso no equivale a incorporarlo automáticamente al portfolio `DISPONIBLE` de este contrato.
 
 ### S1-05 — Stock y Reposición
 
 Estado actual: `GATED`.
 
 Capacidades internas existentes no equivalen a un servicio comercial terminado.
+
+### Analítica general F12
+
+F12 ya implementa un catálogo declarativo de análisis generales sobre Excel y su ejecución pasa por la raíz productiva canónica. Esa disponibilidad técnica no amplía automáticamente este contrato comercial.
+
+Hasta completar el release candidate, el deploy exacto, el LLM real y el acceptance online, los AnalysisPlans F12 fuera del portfolio explícitamente `DISPONIBLE` permanecen `NOT_SELLABLE_YET`.
 
 ### Otras capacidades internas
 
@@ -123,12 +130,14 @@ Para controles de una fuente:
 
 ```text
 HOME
-→ elegir servicio
 → cargar Excel
-→ confirmar significado si hace falta
-→ ejecutar el servicio elegido
+→ PymIA lee hojas y columnas
+→ confirmar/corregir significado cuando haga falta
+→ PymIA muestra qué análisis son computables
+→ elegir análisis
+→ ejecutar por la raíz productiva canónica
 → resultado
-→ descargar
+→ descargar cuando corresponda
 ```
 
 Para conciliación bancaria:
@@ -200,7 +209,7 @@ La existencia de un archivo descargable no autoriza claims fuera del alcance del
 
 Identidad tenant y persistencia semántica durable están activas en el recorrido vigente.
 
-La vista de casos recientes/reentrada disponible en la web permite reabrir snapshots dentro del alcance implementado, pero la persistencia de esos snapshots es in-memory por instancia y no sobrevive un restart. Por lo tanto, este contrato no promete persistencia durable enterprise de casos recientes.
+F13 ya persiste ResultSets gobernados en memoria durable tenant-scoped. RC3 quedó cerrado, committeado y congelado con reentrada desde `Mis análisis` sin recalcular ni volver a abrir el XLSX. La aceptación online después de restart real sigue pendiente antes de convertir esa capacidad en promesa comercial.
 
 ## INTERVENCIÓN HUMANA
 
@@ -286,11 +295,18 @@ P10_CONTROLS_DELIVERY_QUALITY
 
 ## NEXT_GATE
 
+El journey vendible previo ya fue certificado para el portfolio existente. El gate actual para cualquier ampliación comercial es el cierre del release candidate general:
+
 ```text
-PROVE_REAL_SELLABLE_JOURNEY
+FULL_SUITE_CURRENT_RC
+→ DEPLOY_EXACT_SHA
+→ REAL_LLM_PROOF
+→ ONLINE_CAFETERIA_ACCEPTANCE
+→ ONLINE_F13_REENTRY
+→ FINAL_PRODUCTION_SMOKE
 ```
 
-No se autoriza ampliar el portfolio antes de probar ese gate sobre el producto congelado.
+No se autoriza ampliar el portfolio sólo porque una capacidad F12 exista técnicamente.
 
 
 Contract marker for excluded launch items: `NOT_SELLABLE_YET`.

@@ -105,5 +105,5 @@ def test_human_documents_reflect_twelve_productive_pathologies() -> None:
     assert "CYCLE_053_GLOBAL_12_PATHOLOGY_CLOSURE" in roadmap_text or "CYCLE_053" in roadmap_text
     assert "12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS" in status_text
     assert "NO_LLM_RUNTIME_AUTHORITY" in status_text
-    assert "EXTERNAL_LLM_PROVIDER: NOT_CONNECTED" in status_text
+    assert "EXTERNAL_LLM_RUNTIME_ACTIVATION_CURRENT_RC: NOT_PROVEN" in status_text
     assert "SIN DIAGNÓSTICO CAUSAL" in status_text

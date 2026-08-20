@@ -1,197 +1,302 @@
 # SERVICE_1_CURRENT_PRODUCT_STATE_V1
 
-**Fecha de corte:** 2026-08-16
+**Fecha de corte:** 2026-08-19
 **Estado:** `CURRENT_AUTHORITY`
 
-## 1. Estado ejecutivo
+## 1. Veredicto ejecutivo
+
+```text
+SERVICE_1_CORE: IMPLEMENTED
+F0_F13: CLOSED_COMMITTED
+RC1: CLOSED_COMMITTED_FROZEN
+RC2: CLOSED_COMMITTED_FROZEN
+RC3: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
+RC4: CLOSED_BY_DOCUMENTATION_SYNC
+SERVICE_1_RELEASE_CANDIDATE_ACCEPTED: NO
+```
+
+Servicio 1 ya no está limitado a controles escalares ni a un flujo específico de cafetería. El núcleo actual soporta análisis declarativos escalares, agrupados, series y rankings sobre evidencia gobernada.
+
+Lo pendiente no es una nueva arquitectura analítica. Es cerrar el release candidate, sincronizar autoridad documental, desplegarlo y probarlo online de punta a punta.
+
+## 2. Identidad del corte actual
 
 ```text
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
-SERVICE_1_TECHNICAL_BASELINE: CLOSED
+RC3_COMMIT: 07f1f9b85591f99dc72d94271b117dfcb6ef6582
+TENANT_REENTRY_HARDENING_COMMIT: c9de7497a9e61cfa575975a4c5f5d9815c4855de
+RC3_STATE: CLOSED_COMMITTED_FROZEN
+RC4_STATE: CLOSED_BY_DOCUMENTATION_SYNC
+
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-MAIN_HEAD: 26ef6c8c57bb201da1a36a1073147c641d1309f4
 PRODUCTION_APP_SHA: d2c9c24
 PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 PRODUCTION_TRAFFIC: 100%
-SERVICE_1_PRODUCTION_SMOKE: PASS
-LIQ_001: PRODUCTION_CERTIFIED
-REN_001: PRODUCTION_CERTIFIED
-WORKING_CAPITAL: PRODUCTION_CERTIFIED
-WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-LLM_COLUMN_INTERPRETER_IMPLEMENTATION: MERGED_IN_MAIN
-SEQUENTIAL_OWNER_CORROBORATION: MERGED_IN_MAIN
-PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: PENDING
-EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
-DETERMINISTIC_SEMANTIC_FALLBACK: PRESERVED
-LLM_AUTHORITY: NONE
-NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 ```
 
-Servicio 1 mantiene su certificación productiva previa. El corte de recepción semántica secuencial con provider PydanticAI está integrado en `main`, pero todavía no está certificado como desplegado en producción. No debe confundirse `main` con la revisión productiva vigente.
+`PRODUCTION_APP_SHA` representa el último corte productivo certificado documentado. No afirmar que el RC actual esté desplegado hasta comprobar `DEPLOYED_SHA == COMMITTED_SHA`.
 
-## 2. Cadena canónica vigente
+## 3. Cadena canónica actual
 
 ```text
-canonical XLSX ingestion
-→ WorkbookProfiler / physical evidence
-→ semantic assistance proposal
-→ deterministic validation
-→ owner material confirmation
-→ canonical owner evidence
-→ P6 ApprovalDecision
-→ P7 RequirementMatch + Grain
-→ P8 ComputabilityDecision + GovernedComputationInput
-→ Derived Evidence cuando corresponde
-→ deterministic execution / kernel
-→ bounded outcome
-→ controlled delivery
+XLSX
+→ ingesta canónica / normalized_tables
+→ WorkbookProfiler
+→ propuesta semántica acotada
+→ validación determinística
+→ confirmación/corrección del dueño
+→ P6
+→ AnalysisPlan
+→ P7 RequirementMatch + ResolvedGrain
+→ P8 ComputabilityDecision + GovernedAnalysisInput
+→ F7 Governed Evidence Preparation
+→ F8 deterministic math / FormulaEngineService
+→ F9 Governed ResultSet
+→ F13 immutable result memory
+→ UI
 ```
 
-Autoridades:
+La Web solicita el análisis y renderiza la respuesta. Desde RC1 no coordina productivamente F7/F8/F9.
+
+## 4. Autoridades
 
 ```text
-provider/LLM → propone significado de columnas dentro de contrato cerrado
-owner        → confirma significado empresarial
-P6/P7/P8    → gobiernan aprobación/requisitos/computabilidad
-Derived Evidence → transforma evidencia confirmada en inputs canónicos
-kernel       → única autoridad matemática
-P10/delivery → controla salida autorizada
+LLM/provider → propone significado; no calcula ni autoriza
+owner        → confirma/corrige significado; aporta evidencia
+P6           → cierre semántico gobernado
+P7           → requisitos + grain
+P8           → única autoridad de computabilidad
+F7           → prepara evidencia; no calcula
+FormulaEngineService / F8 → única autoridad matemática
+F9           → proyecta ResultSet/findings factuales
+F13          → conserva snapshots; no recalcula
+UI           → presenta; no hace matemática empresarial
 ```
 
-El provider LLM no posee autoridad matemática, de runtime, tools, persistencia ni delivery.
-
-## 3. SEM-1 → SEM-9
-
-```text
-SEM-0 ADR boundary                         CLOSED
-SEM-1 WorkbookProfilerV1                  CLOSED
-SEM-2 provider-neutral semantic contract  CLOSED
-SEM-3 deterministic semantic validator    CLOSED
-SEM-4 OwnerDialoguePlanV1                 CLOSED
-SEM-5 owner semantic evidence             CLOSED
-SEM-6 owner evidence reentry → P6         CLOSED
-SEM-7 tenant structural compatibility     CLOSED
-SEM-8 canonical product-root wiring       CLOSED
-SEM-9 assisted web                        CLOSED_FOR_LIQ_001_AND_REN_001
-```
-
-`working_capital` está desplegado y certificado en producción sobre SEM-8 mediante un scope compuesto que reutiliza una única confirmación owner para `projected_closing_cash_balance`, `dso` y `current_ratio`.
-
-El corte posterior `LLM_COLUMN_INTERPRETER_V1 + SEQUENTIAL_OWNER_CORROBORATION_V1` está `MERGED_IN_MAIN / PRODUCTION_PENDING`.
-
-## 4. Estado productivo por journey
-
-### LIQ_001 — Control de Cobros y Conciliación
-
-```text
-PRODUCTION_CERTIFIED: YES
-AUTH_FAIL_CLOSED: PASS
-AUTHENTICATED_UPLOAD: PASS
-SEM8_OWNER_FLOW: PASS
-OWNER_CONFIRMATION: PASS
-DETERMINISTIC_EXECUTION: PASS
-XLSX_DELIVERY: PASS
-```
-
-### REN_001 — Margen Real
-
-```text
-PRODUCTION_CERTIFIED: YES
-MISSING_TAXES_FAIL_CLOSED: PASS
-SEM8_OWNER_FLOW: PASS
-RELATIONSHIP_DEDUPLICATION: PASS
-DISCOUNT_UNIT_CONFIRMATION: PASS
-DERIVED_EVIDENCE: PASS
-DETERMINISTIC_EXECUTION: PASS
-XLSX_DELIVERY: PASS
-```
-
-La fórmula permanece gobernada por `FormulaEngineService/kernel`. Derived Evidence no inventa impuestos ni interpreta descuentos no confirmados.
-
-### working_capital — Caja y Capital de Trabajo
-
-```text
-TECHNICAL_E2E_READY: YES
-PRODUCTION_CERTIFIED: YES
-SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-COMPONENTS:
-- projected_closing_cash_balance
-- dso
-- current_ratio
-OWN_COMPOSITE_DELIVERY: NO
-```
-
-No incorporar DPO ni `payment_collection_gap` durante el cierre vigente; no forman parte del corte certificado.
-
-## 5. Persistencia y reentry
-
-Producción certificó:
-
-```text
-PERSISTED_CASE_LISTING: PASS
-PERSISTED_CASE_REENTRY: PASS
-DURABLE_REENTRY_SCOPE: OWNER_EVIDENCE_ONLY
-```
-
-La reentrada durable actual prueba evidencia semántica persistida del owner. No implica restauración durable del XLSX ni del snapshot completo de resultado tras reinicio.
-
-## 6. Tenant semantics
-
-```text
-TENANT_SEMANTIC_CONTRACT: IMPLEMENTED
-TENANT_STORE: APPEND_ONLY / TENANT_ISOLATED
-STRUCTURAL_COMPATIBILITY: IMPLEMENTED
-COMPATIBLE_MEMORY: HINT_ONLY
-AUTOMATIC_REUSE: FORBIDDEN
-SEMANTIC_REBIND: FORBIDDEN
-```
-
-## 7. Provider semántico
-
-```text
-PYDANTIC_AI_COLUMN_PROVIDER: IMPLEMENTED_AND_MERGED_IN_MAIN
-EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
-DETERMINISTIC_SAFE_BASELINE_PROVIDER: PRESERVED
-SEQUENTIAL_OWNER_CORROBORATION: IMPLEMENTED_AND_MERGED_IN_MAIN
-QUESTIONS_VISIBLE_AT_ONCE: 1 (FOCUSED_TEST_AND_LOCAL_SMOKE_PASS)
-```
-
-La frontera de provider no posee autoridad semántica final, matemática, de runtime, tools, persistencia ni delivery. Si no existe configuración de modelo externo, el diseño preserva el provider determinístico seguro. La activación real del provider externo en producción sólo puede declararse después de deploy y smoke productivo.
-
-## 8. Deuda arquitectónica abierta
-
-```text
-1. run_owner_reentry ya no es caller del canonical product root; queda aislado en un adapter SUPPORT_NECESSARY para compatibilidad CLI/harness históricos.
-2. persisten compatibilidades P6/reentry que requieren clasificación antes de eliminación.
-3. la documentación histórica debe permanecer fuera de autoridad activa.
-```
-
-Estas deudas no invalidan la certificación productiva de LIQ_001/REN_001/working_capital.
-
-## 9. Invariantes
+Invariantes:
 
 ```text
 ONE_CANONICAL_PRODUCT_ROOT
 NO_SECOND_XLSX_PARSER
 NO_PARALLEL_PRODUCTIVE_PIPELINE
+NO_SECOND_MATH_AUTHORITY
 NO_LLM_RUNTIME_AUTHORITY
-FAIL_CLOSED
-OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
-P7_REQUIREMENT_MATCH_PRECEDES_P8
+NO_UI_BUSINESS_MATH
 P8_IS_COMPUTABILITY_AUTHORITY
-KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
-DERIVED_EVIDENCE_NEVER_INVENTS_MISSING_MATERIAL_INPUTS
+OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
+FAIL_CLOSED
+NO_CAFETERIA_HARDCODE
+NO_RUBRO_HARDCODE
 ```
 
-## 10. Frente actual
+## 5. Analítica general F12
+
+El catálogo declarativo incluye:
 
 ```text
-SERVICE_1_TECHNICAL_CLOSURE: PASS
-SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
-DOCUMENTATION_RECONCILIATION: CLOSED
-PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: NEXT
-PRODUCTION_SMOKE_OF_SEMANTIC_RECEPTION_CUT: AFTER_DEPLOY
-PYMIARADAR: FUTURE_REFERENCE_ONLY / OUT_OF_CURRENT_SCOPE
+sales_total
+sales_by_product
+gross_margin_by_product
+sales_by_branch
+sales_by_category
+sales_by_employee
+sales_by_channel
+sales_by_payment_method
+units_by_product
+rows_by_product
+top_products_by_sales
+top_products_by_units
+product_sales_concentration
+discounted_rows
+discounted_rows_by_product
+catalog_price_variance_by_product
+transaction_id_multiplicity
+sales_by_product_branch
+sales_by_category_branch
+sales_series_day
+sales_series_hour
+sales_series_month
 ```
 
-No agregar nuevas capabilities ni ampliar alcance. El próximo paso autorizado es desplegar el corte semántico ya integrado y certificarlo en producción. PymiaRadar permanece fuera del camino crítico hasta finalizar Servicio 1.
+Sobre `prueba_excels/cafeteria_abc.xlsx` se observaron 21 análisis computables. `catalog_price_variance_by_product` queda correctamente bloqueado porque no existe evidencia gobernada de `list_price`.
+
+La disponibilidad técnica no equivale a autorización comercial automática.
+
+## 6. Matemática
+
+```text
+MATHEMATICAL_AUTHORITY: FormulaEngineService
+CANONICAL_FORMULA_SOURCE: pymia/contracts/formula_rules_v1.json
+SECOND_MATH_ENGINE: 0
+LLM_MATH: 0
+UI_BUSINESS_MATH: 0
+```
+
+F8 soporta agregaciones y fórmulas por grain sin crear engines por rubro o análisis.
+
+## 7. Semántica y LLM
+
+```text
+PYDANTIC_AI_COLUMN_PROVIDER: IMPLEMENTED
+SEQUENTIAL_OWNER_CORROBORATION: IMPLEMENTED
+DETERMINISTIC_SAFE_PROVIDER: PRESERVED
+EXTERNAL_LLM_RUNTIME_ACTIVATION_CURRENT_RC: NOT_PROVEN
+LLM_CALCULATION_AUTHORITY: NONE
+LLM_RUNTIME_AUTHORITY: NONE
+LLM_TOOL_AUTHORITY: NONE
+LLM_DELIVERY_AUTHORITY: NONE
+```
+
+La activación de un proveedor externo real sólo puede declararse después del deploy del RC y su smoke productivo.
+
+## 8. F13 — memoria durable
+
+F13 persiste snapshots content-addressed y append-only con:
+
+```text
+tenant
+case
+analysis
+period
+grain
+formula versions
+result_set
+integrity digest
+evidence refs
+owner evidence refs
+executed_at
+artifact
+```
+
+Gate remoto previamente observado:
+
+```text
+PHYSICAL_INSERT: PASS
+IDEMPOTENT_REPLAY: PASS
+PHYSICAL_LOAD: PASS
+LIST_BY_TENANT_ANALYSIS: PASS
+TENANT_ISOLATION: PASS
+RLS: PASS
+UPDATE_REJECTED: PASS
+DELETE_REJECTED: PASS
+APPEND_ONLY: PASS
+```
+
+## 9. RC1 / RC2 / RC3
+
+### RC1 — raíz productiva única
+
+```text
+WEB_DIRECT_F7_CALLS: 0
+WEB_DIRECT_F8_CALLS: 0
+WEB_DIRECT_F9_CALLS: 0
+PRODUCT_ROOT_GENERIC_ANALYSIS: PASS
+```
+
+Commit:
+
+```text
+8a4b6ac refactor(service1): converge governed analysis behind product root
+```
+
+### RC2 — estado stale
+
+```text
+READY A
+→ BLOCKED B
+→ last_review_result = None
+```
+
+Commit:
+
+```text
+f57d0ab fix(service1): clear stale analysis result state
+```
+
+### RC3 — reentrada de ResultSets
+
+Cerrado, committeado y congelado en `07f1f9b85591f99dc72d94271b117dfcb6ef6582`:
+
+```text
+/cases
+→ list_result_memory(tenant)
+→ memory_record_id
+→ load exact record
+→ revalidate tenant + identity + digest
+→ render persisted ResultSet
+
+XLSX_RELOAD: 0
+LLM_CALLS: 0
+SEMANTIC_REBIND: 0
+RECALCULATION: 0
+PRODUCT_ROOT_EXECUTION_ON_REENTRY: 0
+```
+
+Evidencia observada:
+
+```text
+F13 + RC3: 14 passed
+RC3 broad regression: 90 passed
+```
+
+## 10. Producto comercial vigente
+
+Los journeys previamente certificados siguen documentados como:
+
+```text
+LIQ_001: PRODUCTION_CERTIFIED
+REN_001: PRODUCTION_CERTIFIED
+WORKING_CAPITAL: PRODUCTION_CERTIFIED
+```
+
+La expansión F12 no se declara automáticamente `SELLABLE`. El portfolio comercial sólo cambia mediante `SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md` y acceptance real correspondiente.
+
+## 11. Qué falta para cerrar Servicio 1
+
+```text
+FULL_SUITE_CURRENT_RC
+RC5_DEPLOY_EXACT_COMMITTED_SHA
+RC5_REAL_EXTERNAL_LLM_PROOF
+RC6_ONLINE_CAFETERIA_ACCEPTANCE
+RC7_ONLINE_REENTRY_AFTER_RESTART
+FINAL_PRODUCTION_SMOKE
+```
+
+## 12. Estado de pruebas
+
+No mezclar suites solapadas como un total único.
+
+Evidencia reciente relevante:
+
+```text
+RC1 post-commit focal: 30 passed
+RC2 post-commit regression: 69 passed
+RC3 focal: 4 passed
+RC3 extended gate: 73 passed
+TENANT_REENTRY_HARDENING focal: 3 passed
+TENANT_F13_HTTP_ARCHITECTURE gate: 48 passed
+```
+
+RC4 sincroniza las aserciones documentales/UI históricas con el estado real del release candidate; no modifica matemática ni runtime.
+
+```text
+FULL_SUITE_CURRENT_RC: NOT_OBSERVED
+```
+
+No declarar full suite PASS hasta ejecutar y observar el corte actual completo.
+
+## 13. Decisión vigente
+
+```text
+DO_NOT_CREATE_F14
+DO_NOT_REBUILD_F0_F13
+DO_NOT_EXPAND_PRODUCT_BY_INERTIA
+
+NEXT_SEQUENCE:
+full suite current RC
+→ RC5 deploy + real LLM
+→ RC6 online cafeteria
+→ RC7 online result-memory reentry
+→ final smoke
+```

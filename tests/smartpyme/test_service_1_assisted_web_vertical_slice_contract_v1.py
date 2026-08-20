@@ -34,7 +34,7 @@ def test_visible_interface_uses_plain_spanish() -> None:
         "Subí tu Excel",
         "Leer mi Excel",
         "¿Qué querés que PymIA te devuelva?",
-        "Podés elegir uno, varios o todos",
+        "Podés analizar ahora",
         "No lo puedo confirmar ahora",
         "Datos utilizados",
         "Qué conviene tener en cuenta",

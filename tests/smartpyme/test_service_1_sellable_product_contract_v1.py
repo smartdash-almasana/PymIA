@@ -25,7 +25,13 @@ def test_sellable_product_contract_is_frozen_and_bounded() -> None:
     assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in state
     assert "PRODUCTION_APP_SHA: d2c9c24" in state
     assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf" in state
-    assert "SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1" in state
+    assert "RC3_COMMIT: 07f1f9b85591f99dc72d94271b117dfcb6ef6582" in state
+    assert "TENANT_REENTRY_HARDENING_COMMIT: c9de7497a9e61cfa575975a4c5f5d9815c4855de" in state
+    assert "RC3: CLOSED_COMMITTED_FROZEN" in state
+    assert "RC4: CLOSED_BY_DOCUMENTATION_SYNC" in state
+    assert "SERVICE_1_RELEASE_CANDIDATE_ACCEPTED: NO" in state
     assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in readme
     assert "PRODUCTION_APP_SHA: d2c9c24" in readme
     assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf" in readme
+    assert "F13_RESULTSET_REENTRY: CLOSED_COMMITTED_FROZEN" in readme
+    assert "NOT_SELLABLE_YET" in contract

@@ -1,141 +1,182 @@
 # Active Roadmap — Servicio 1
 
-**Fecha de corte:** 2026-08-15
+**Fecha de corte:** 2026-08-19
 **Autoridad:** `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md`
 
 ## Estado
 
 ```text
-SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-PRODUCTION_APP_SHA: d2c9c24
-PRODUCTION_REVISION: pymia-service1-00008-mtf
-PRODUCTION_TRAFFIC: 100%
-SERVICE_1_PRODUCTION_SMOKE: PASS
-LIQ_001: PRODUCTION_CERTIFIED
-REN_001: PRODUCTION_CERTIFIED
-WORKING_CAPITAL: PRODUCTION_CERTIFIED
-WORKING_CAPITAL_SEMANTICS: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-LOCAL_SANITATION: P8_LEGACY_PROJECTION_REMOVED / 3_DEAD_SANDBOX_SLICES_REMOVED / LEGACY_OWNER_REENTRY_ISOLATED
-LOCAL_SANITATION_DEPLOYED: YES
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
-SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
-SERVICE_1_TECHNICAL_CLOSURE: PASS
+F0_F13: CLOSED_COMMITTED
+RC1: CLOSED_COMMITTED_FROZEN
+RC2: CLOSED_COMMITTED_FROZEN
+RC3: CLOSED_COMMITTED_FROZEN
+TENANT_REENTRY_HARDENING: CLOSED_COMMITTED
+RC4: CLOSED_BY_DOCUMENTATION_SYNC
+SERVICE_1_RELEASE_CANDIDATE_ACCEPTED: NO
 ```
 
-## Frente actual único
+No existe un frente productivo paralelo autorizado.
+
+## Objetivo actual
+
+Cerrar Servicio 1 como release candidate real sin crear nueva arquitectura ni nuevas capacidades por inercia.
+
+La tarea ya no es inventar cómo analizar Excel. La tarea es congelar el runtime actual, sincronizar autoridad documental, desplegar el SHA exacto y demostrar el journey completo online.
+
+## Secuencia obligatoria vigente
 
 ```text
-SERVICE_1_TECHNICAL_CLOSURE: PASS
-CYCLE_053_GLOBAL_12_PATHOLOGY_CLOSURE: COMPLETED
+RC1  raíz productiva única                  CLOSED
+RC2  limpiar estado stale                   CLOSED
+RC3  reentrada durable de ResultSets        CLOSED
+SEC   hardening tenant/session              CLOSED
+RC4  sincronización documental              CLOSED
+RC5  deploy exacto + LLM externo real       PENDING
+RC6  acceptance online cafeteria            PENDING
+RC7  reentry online después de restart      PENDING
+FINAL full suite + production smoke         PENDING
 ```
 
-No hay un frente productivo paralelo autorizado.
+No avanzar declarativamente un gate que no tenga evidencia observada.
 
-## Objetivo
+## RC3 — condición de cierre
 
-Reducir deuda técnica, arquitectónica y documental; converger journeys y eliminar compatibilidades probadamente innecesarias sin ampliar alcance ni introducir nuevas authorities.
+RC3 sólo queda cerrado cuando el commit temático contenga exclusivamente su código/test autorizado y se repita el freeze post-commit.
 
-## Secuencia obligatoria
+Evidencia de implementación observada:
 
 ```text
-1. DOCUMENTATION_AUTHORITY_SYNC — CLOSED
-2. PHYSICAL_JOURNEY_MAP — CLOSED
-3. LEGACY_DEPENDENCY_INVENTORY — CLOSED
-4. CONVERGE_WEB_JOURNEYS — CLOSED_PRODUCTION_PASS
-5. LEGACY_REENTRY_AND_P8_PROJECTION_SANITATION — CLOSED_PRODUCTION_PASS
-6. NORMALIZE_PERSISTENCE_REENTRY_DELIVERY — CLOSED (durable reentry OWNER_EVIDENCE_ONLY certificado)
-7. DELETE_PROVEN_DEAD_PATHS — CLOSED (3 sandbox slices removidos)
-8. FULL_REGRESSION — CLOSED (full suite 3602 passed / 0 failed / 7 skipped)
-9. PRODUCTION_RECERTIFICATION — CLOSED (smoke final PASS, 3 journeys re-certificados)
+TENANT_RESULTSET_LISTING: PASS
+MEMORY_RECORD_SELECTION: PASS
+EXACT_RECORD_LOAD: PASS
+RESULTSET_INTEGRITY_REVALIDATION: PASS
+TENANT_ISOLATION: PASS
+RESTART_REENTRY_SIMULATION: PASS
+DIGEST_EQUIVALENCE: PASS
+NO_RECALCULATION: PASS
+NO_LLM_ON_REENTRY: PASS
 ```
 
-Cierre técnico: SERVICE_1_TECHNICAL_CLOSURE = PASS. El próximo corte queda PENDING_ASSIGNMENT (reducción del adapter legacy de reentry desde CLI/harness históricos requiere nueva autorización).
+## RC4 — alcance
 
-## Estado por journey
-
-### LIQ_001
+Actualizar sólo verdad documental/test contractual obsoleta:
 
 ```text
-SEM-8: YES
-P8: YES
-KERNEL/DETERMINISTIC_EXECUTION: YES
-XLSX_DELIVERY: YES
-PRODUCTION_CERTIFIED: YES
+README.md
+SERVICE_1_CURRENT_PRODUCT_STATE_V1.md
+SERVICE_1_STATUS.md
+ACTIVE_ROADMAP.md
+SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md
+SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md
+SERVICE_1_OPERABILITY_PACKET.md cuando corresponda
+PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md cuando corresponda
+tests que congelen literales históricos ya no vigentes
 ```
 
-### REN_001
+RC4 no cambia matemática, semántica, computabilidad, persistencia ni runtime.
+
+## RC5 — deploy y LLM real
+
+Precondiciones:
 
 ```text
-SEM-8: YES
-OWNER_RELATIONSHIP_CONFIRMATION: YES
-DISCOUNT_UNIT_CONFIRMATION: YES
-DERIVED_EVIDENCE: YES
-P8: YES
-KERNEL: YES
-XLSX_DELIVERY: YES
-PRODUCTION_CERTIFIED: YES
+RC3_COMMITTED_FROZEN
+RC4_COMMITTED_FROZEN
+FULL_SUITE_CURRENT_RC = PASS
 ```
 
-### working_capital
+Gate:
 
 ```text
-TECHNICAL_E2E_READY: YES
-SEM-8: YES
-SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
-COMPONENTS:
-- projected_closing_cash_balance
-- dso
-- current_ratio
-COMPOSITE_DELIVERY: NO
-PRODUCTION_CERTIFIED: YES
+DEPLOYED_SHA == COMMITTED_SHA
+EXTERNAL_LLM_PROVIDER_ACTIVE = PASS
+LLM_COLUMN_INTERPRETATION = PASS
+OWNER_CORROBORATION = PASS
+LLM_MATH = 0
+LLM_RUNTIME_AUTHORITY = 0
 ```
 
-## Deuda abierta confirmada
+## RC6 — cafetería online
+
+Desde navegador y con `prueba_excels/cafeteria_abc.xlsx`:
 
 ```text
-1. run_owner_reentry ya salió del canonical product root; queda aislado en adapter SUPPORT_NECESSARY para compatibilidad CLI/harness históricos.
-2. build_computation_plan/ComputationPlanV1: REMOVED_LOCAL_PASS; cobertura migrada a P8 canónico.
-3. tres completion slices sandbox sin callers productivos: REMOVED_LOCAL_PASS.
-4. compatibilidades P6/reentry restantes: OPEN.
-5. documentación histórica: REFERENCE_ONLY, fuera de autoridad activa.
+login
+→ upload
+→ lectura de todas las hojas
+→ interpretación de columnas
+→ confirmación del dueño
+→ discovery dinámico
+→ análisis seleccionados
+→ product root canónico
+→ ResultSet
+→ F13 persist
+→ resultado web
 ```
 
-Clasificación para cada deuda de código:
+Debe ejecutar los análisis computables y bloquear `catalog_price_variance_by_product` mientras no exista `list_price` gobernado.
+
+## RC7 — memoria online
+
+Después de análisis online:
 
 ```text
-KEEP
-MIGRATE
-DELETE_CANDIDATE
+cerrar sesión / reiniciar servicio cuando corresponda
+→ volver a autenticar
+→ Mis análisis
+→ abrir memory_record_id
+→ mismo ResultSet/digest
 ```
 
-`DELETE_CANDIDATE` requiere cero callers productivos en Graphify, búsqueda física consistente y cobertura del camino canónico.
-
-## Congelamiento durante sanidad
+Gate:
 
 ```text
-NEW_FEATURES: FROZEN
-NEW_CAPABILITIES: FROZEN
-WORKING_CAPITAL_EXPANSION: FROZEN
-DPO_PAYMENT_COLLECTION_GAP: FROZEN
-EXTERNAL_LLM_PROVIDER: FROZEN
-SERVICE_2_EXPANSION: FROZEN
-LANDING_UI: OUT_OF_SCOPE
+F13_PERSISTED = PASS
+REENTRY_AFTER_REAL_RESTART = PASS
+SAME_RESULTSET_DIGEST = PASS
+TENANT_ISOLATION = PASS
+NO_RECALCULATION = PASS
 ```
 
-## Invariantes
+## Gate final
 
 ```text
-ONE_CANONICAL_PRODUCT_ROOT
-NO_SECOND_XLSX_PARSER
-NO_PARALLEL_PRODUCTIVE_PIPELINE
-NO_LLM_RUNTIME_AUTHORITY
-FAIL_CLOSED
-OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
-P8_IS_COMPUTABILITY_AUTHORITY
-KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
+ONE_CANONICAL_PRODUCT_ROOT = PASS
+NO_SECOND_XLSX_PARSER = PASS
+NO_PARALLEL_PRODUCTIVE_PIPELINE = PASS
+NO_SECOND_MATH_AUTHORITY = PASS
+P6/P7/P8 = PASS
+F7/F8/F9/F10/F12/F13 = PASS
+LLM_MATH = 0
+LLM_RUNTIME_AUTHORITY = 0
+CAFETERIA_ONLINE = PASS
+F13_REENTRY_ONLINE = PASS
+FULL_SUITE_CURRENT_RC = PASS
+PRODUCTION_SMOKE_CURRENT_RC = PASS
 ```
 
-## Regla de método
+Sólo entonces:
+
+```text
+SERVICE_1_RELEASE_CANDIDATE_ACCEPTED
+```
+
+## Congelamiento
+
+Hasta ese cierre:
+
+```text
+NO_F14
+NO_SECOND_ENGINE
+NO_SECOND_PARSER
+NO_PARALLEL_PRODUCT_ROOT
+NO_NEW_RUBRO_HARDCODE
+NO_CAFETERIA_HARDCODE
+NO_LLM_MATH
+NO_UNGOVERNED_PRODUCT_EXPANSION
+```
+
+## Regla de trabajo
 
 ```text
 una tarea
@@ -143,5 +184,3 @@ una tarea
 → un resultado
 → una decisión
 ```
-
-El próximo corte es reducir o retirar el adapter legacy de reentry desde CLI/harness históricos; `run_owner_reentry` ya no pertenece a la canonical product root closure.

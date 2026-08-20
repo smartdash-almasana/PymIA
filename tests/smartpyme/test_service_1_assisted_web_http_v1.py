@@ -225,7 +225,7 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     )
     assert status == 200
     assert "¿Qué querés que PymIA te devuelva?" in page
-    assert "Podés elegir uno, varios o todos" in page
+    assert "Podés analizar ahora" in page
     assert 'name="review_sold_vs_collected_gap"' in page
 
     status, _, page = _form(
