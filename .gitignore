@@ -25,6 +25,9 @@ _local_quarantine/
 .opencode/
 graphify-out/
 prueba_excels/*.xlsx
+!prueba_excels/PYMIA_CONSORCIO_RIVADAVIA_2026_07.xlsx
+!prueba_excels/conciliacion_pyme_argentina_corregida.xlsx
+!prueba_excels/ventas_marzo_2026.xlsx
 prueba_excels/*_OUTPUT/
 prueba_excels/*_RUN_OUTPUT/
 prueba_excels/*_AUDITABLE/

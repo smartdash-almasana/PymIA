@@ -59,7 +59,14 @@
     "service_1_workbook_profiler_v1",
     "service_1_xlsx_delivery_v1",
     "service_1_consorcios_collection_aging_v1",
-    "service_1_consorcios_expense_variance_v1"
+    "service_1_consorcios_expense_variance_v1",
+    "service_1_analysis_plan_v1",
+    "service_1_analysis_evidence_preparation_v1",
+    "service_1_analysis_math_execution_v1",
+    "service_1_analysis_result_projection_v1",
+    "service_1_dynamic_analysis_discovery_v1",
+    "service_1_result_memory_v1",
+    "service_1_result_memory_wiring_v1"
   ],
   "retained_support_decisions": [
     {

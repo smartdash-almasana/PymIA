@@ -115,6 +115,21 @@ Modelo conceptual subordinado:
 
 Pilots, closeouts, roadmaps consumidos, TaskSpecs terminados, auditorías anteriores y documentos de ciclos pasados son `EVIDENCE_ONLY`, `HISTORICAL_CLOSEOUT`, `CONSUMED_TASKSPEC`, `SUPERSEDED_AUDIT`, `PILOT_RECORD` o `REFERENCE_ONLY`.
 
+Índice histórico explícito exigido por los contratos de continuidad:
+
+- `SERVICE_1_CONTROLLED_PILOT_SERIES_PLAN.md` — `EVIDENCE_ONLY`.
+- `SERVICE_1_FIRST_OPERATORLESS_CASE.md` — `HISTORICAL_CLOSEOUT`.
+- `SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md` — `REFERENCE_ONLY`.
+- `SERVICE_1_PRODUCT_COMPLETION_GATE.md` — `HISTORICAL_CLOSEOUT`.
+- `SERVICE_1_PILOT_003_TEXTIL_COMPLEJA.md` — `PILOT_RECORD`.
+- `SERVICE_1_PILOT_004_DISTRIBUIDORA_MAYORISTA.md` — `PILOT_RECORD`.
+- `SERVICE_1_PILOT_005_FABRICA_INDUSTRIAL.md` — `PILOT_RECORD`.
+- `SERVICE_1_PILOT_006_TALLER_MECANICO.md` — `PILOT_RECORD`.
+- `SERVICE_1_PILOT_007_CONSTRUCTORA.md` — `PILOT_RECORD`.
+- `SERVICE_1_PILOT_008_TEXTIL_COMPLETA.md` — `PILOT_RECORD`.
+
+Este índice preserva trazabilidad histórica; **ninguno de estos documentos recupera autoridad de implementación sobre el release candidate actual**.
+
 No pueden definir el próximo paso ni contradecir los documentos rectores actuales.
 
 ## Frente vigente

@@ -4,10 +4,16 @@ import json
 from pathlib import Path
 
 
-def test_excel_mcp_qa_is_registered_but_disabled_by_default() -> None:
+def test_excel_mcp_qa_local_config_is_optional_and_safe_when_present() -> None:
     repo = Path(__file__).resolve().parents[2]
-    config = json.loads((repo / ".opencode" / "opencode.json").read_text(encoding="utf-8"))
+    gitignore = (repo / ".gitignore").read_text(encoding="utf-8")
+    assert ".opencode/" in gitignore
 
+    config_path = repo / ".opencode" / "opencode.json"
+    if not config_path.exists():
+        return
+
+    config = json.loads(config_path.read_text(encoding="utf-8"))
     server = config["mcp"]["excel_qa"]
     assert server["type"] == "local"
     assert server["command"] == ["npx", "--yes", "@negokaz/excel-mcp-server"]

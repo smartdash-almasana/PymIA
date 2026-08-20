@@ -70,7 +70,7 @@ def test_identity_change_replaces_tenant_sensitive_session_state(tmp_path: Path)
     assert rebound.last_review_result is None
 
 
-def test_same_identity_revalidation_preserves_current_workflow(tmp_path: Path) -> None:
+def test_same_identity_revalidation_preserves_current_session_state(tmp_path: Path) -> None:
     app = AssistedWebApplicationV1(output_dir=tmp_path)
     session_id = "same-tenant"
     identity = dict(

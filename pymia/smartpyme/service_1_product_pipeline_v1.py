@@ -184,7 +184,7 @@ def run_service_1_governed_analysis_v1(
 
     The caller supplies already-governed canonical ingestion and owner-confirmed
     semantics. This root re-runs discovery/computability and owns all productive
-    analytical orchestration. The web layer may request an ``analysis_id`` and
+    analytical coordination. The web layer may request an ``analysis_id`` and
     render this packet, but it must not execute F7/F8/F9 itself.
     """
     requested_analysis_id = str(analysis_id or "").strip()

@@ -66,7 +66,7 @@ hypotheses and allowed semantic roles.
 
 Hard limits:
 - Do not calculate totals, margins, ratios, balances or any business result.
-- Do not infer or return runtime, tool, product or delivery authorization.
+- Do not infer or return runtime, tool, product or delivery permission.
 - Do not modify evidence.
 - Do not invent column references.
 - Use only semantic_role values listed in allowed_semantic_roles.
@@ -75,7 +75,7 @@ Hard limits:
 - If no allowed role fits, return semantic_role=null and variable_name=null and
   needs_owner_confirmation=true.
 - confidence expresses semantic interpretation confidence only; it is never an
-  authorization signal.
+  permission signal.
 
 Return one decision for every column_ref supplied in columns_to_interpret.
 """

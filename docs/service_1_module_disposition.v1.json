@@ -15,10 +15,10 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "PRODUCTIVE": 42,
-    "SUPPORT_NECESSARY": 48
+    "PRODUCTIVE": 49,
+    "SUPPORT_NECESSARY": 52
   },
-  "total_modules": 90,
+  "total_modules": 101,
   "modules": [
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
@@ -147,6 +147,9 @@
       "module": "service_1_product_pipeline_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
+        "service_1_analysis_evidence_preparation_v1",
+        "service_1_analysis_math_execution_v1",
+        "service_1_analysis_result_projection_v1",
         "service_1_assisted_semantic_product_wiring_v1",
         "service_1_capability_registry_v1",
         "service_1_computability_v1",
@@ -154,11 +157,14 @@
         "service_1_consorcios_expense_variance_v1",
         "service_1_deterministic_semantic_pipeline_v1",
         "service_1_derived_evidence_v1",
+        "service_1_dynamic_analysis_discovery_v1",
         "service_1_generic_capability_engine_v1",
         "service_1_liq_001_evaluator_v1",
         "service_1_liq_001_outcome_v1",
         "service_1_pipeline_v1",
         "service_1_reconciliation_product_request_v1",
+        "service_1_result_memory_v1",
+        "service_1_result_memory_wiring_v1",
         "service_1_ren_001_evaluator_v1",
         "service_1_ren_001_normalized_evidence_v1",
         "service_1_ren_001_outcome_v1"
@@ -719,6 +725,83 @@
       "imports_service_1": [
         "service_1_workbook_profiler_v1"
       ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_analysis_plan_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_analysis_evidence_preparation_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_plan_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_analysis_math_execution_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_analysis_result_projection_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_dynamic_analysis_discovery_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_plan_v1",
+        "service_1_computability_v1",
+        "service_1_p6_approval_decision_v1",
+        "service_1_variable_family_bindings_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_result_memory_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_result_memory_wiring_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_result_memory_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_assisted_web_semantic_reception_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pydantic_ai_column_semantic_provider_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_reception_server_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_ui_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
       "canonical_root_reachable": false
     }
   ]

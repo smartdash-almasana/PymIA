@@ -8,9 +8,6 @@ from pymia.smartpyme import service_1_assisted_web_v1 as web
 
 
 def _ready_state(app: web.AssistedWebApplicationV1, session_id: str) -> None:
-    state = app.session(session_id)
-    state.ingestion_output = {"sheet_name": "Datos", "filename": f"{session_id}.xlsx"}
-    state.semantic_answers = {"q1": "sold_amount", "q2": "collected_amount"}
     app.bind_tenant_identity(
         session_id=session_id,
         tenant_id="tenant_admin",
@@ -18,6 +15,9 @@ def _ready_state(app: web.AssistedWebApplicationV1, session_id: str) -> None:
         owner_actor_id="owner-1",
         owner_actor_role="owner",
     )
+    state = app.session(session_id)
+    state.ingestion_output = {"sheet_name": "Datos", "filename": f"{session_id}.xlsx"}
+    state.semantic_answers = {"q1": "sold_amount", "q2": "collected_amount"}
 
 
 def _packet(output_path: Path) -> dict[str, object]:

@@ -210,19 +210,15 @@ no business-result validation delegated to Excel
 
 ## MCP experiment registration
 
-The negokaz inspector is registered in:
+The negokaz inspector is an optional local operator tool. Local OpenCode configuration lives under:
 
 ```text
 .opencode/opencode.json
 ```
 
-under:
+and `.opencode/` is intentionally ignored by Git. Therefore the repository does not require that local file to exist in a clean checkout.
 
-```text
-excel_qa
-```
-
-with:
+When an operator configures `excel_qa`, the safe contract is:
 
 ```text
 enabled = false
@@ -230,7 +226,7 @@ permission = ask
 EXCEL_MCP_PAGING_CELLS_LIMIT = 4000
 ```
 
-This is deliberate. The repository knows how to launch the inspector, but it does not start automatically and is not a product dependency.
+This is deliberate. The inspector may be configured locally for observability, but it does not start automatically and is not a product dependency.
 
 When explicitly enabled on Windows, evaluate only:
 
