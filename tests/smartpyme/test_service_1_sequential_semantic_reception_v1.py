@@ -42,6 +42,162 @@ def test_semantic_corroboration_renders_only_one_pending_question() -> None:
     assert "Ciudad" not in page
 
 
+def test_unresolved_material_ambiguity_cannot_offer_accept_or_reach_sem5() -> None:
+    import pymia.smartpyme.service_1_assisted_web_v1 as base
+
+    app = Service1SemanticReceptionWebApplicationV1()
+    state = app.session("s-unresolved")
+    state.ingestion_output = {"case_id": "c-unresolved", "filename": "cafeteria_abc.xlsx"}
+    state.selected_launch_review = "net_margin_real"
+    decision = {
+        "decision_id": "dialogue:atomic:amb-discount",
+        "decision_kind": "CONFLICT",
+        "proposal_refs": ["amb-discount"],
+        "column_refs": ["Ventas.Descuento"],
+        "relationship_refs": [],
+        "presentation_text": "Hay evidencia incompatible sobre `Ventas.Descuento`. Necesito que confirmes cómo debe interpretarse.",
+        "materiality_reason": "La interpretación necesita confirmación empresarial explícita.",
+    }
+    assistance = {
+        "status": "OWNER_DIALOGUE_REQUIRED",
+        "case_id": "c-unresolved",
+        "requested_capability": "net_margin_real",
+        "dialogue_plan": {"decisions": [decision]},
+        "workbook_profile": {
+            "columns": [
+                {
+                    "column_ref": "Ventas.Descuento",
+                    "sheet_name": "Ventas",
+                    "column_name": "Descuento",
+                    "sample_values": [0, 0.1, 0.15, 0.05],
+                    "inferred_type": "number",
+                }
+            ]
+        },
+        "validated_packet": {
+            "decisions": [
+                {
+                    "decision_id": "amb-discount",
+                    "source_kind": "MATERIAL_AMBIGUITY",
+                    "status": "MATERIAL_AMBIGUOUS",
+                    "target_refs": ["Ventas.Descuento"],
+                    "semantic_role": None,
+                    "variable_name": None,
+                    "relationship_type": None,
+                }
+            ]
+        },
+    }
+    state.semantic_assistance_state = assistance
+    state.semantic_questions = [decision]
+    state.semantic_dialogue_responses[decision["decision_id"]] = {
+        "decision_id": decision["decision_id"],
+        "action": "ACCEPT",
+    }
+
+    status, page = app._render_one_pending_question(session_id="s-unresolved") or (0, "")
+    assert status == 200
+    assert "Sí, es correcto: eso significa" not in page
+    assert "Todavía no hay una interpretación concreta para confirmar" in page
+    assert 'value="CORRECT" required' in page
+
+    def forbidden_product_root(**_kwargs):
+        raise AssertionError("unresolved ACCEPT must not reach product root or SEM-5")
+
+    monkeypatch = __import__("pytest").MonkeyPatch()
+    monkeypatch.setattr(base, "_run_product_root", forbidden_product_root)
+    try:
+        status, page = app.confirm_meanings(
+            session_id="s-unresolved",
+            fields={f"action_{decision['decision_id']}": "ACCEPT"},
+        )
+    finally:
+        monkeypatch.undo()
+
+    assert status == 200
+    assert "BLOCK_OWNER_SEMANTIC_ACCEPTED_SEMANTICS_UNRESOLVED" not in page
+    assert "Explicame con tus palabras" in page
+    assert decision["decision_id"] not in state.semantic_dialogue_responses
+
+
+def test_stale_unresolved_accept_is_dropped_before_product_reentry(monkeypatch) -> None:
+    import pymia.smartpyme.service_1_assisted_web_v1 as base
+
+    app = Service1SemanticReceptionWebApplicationV1()
+    state = app.session("s-stale")
+    state.ingestion_output = {"case_id": "c-stale", "filename": "cafeteria_abc.xlsx"}
+    state.selected_launch_review = "net_margin_real"
+    unresolved = {
+        "decision_id": "dialogue:atomic:amb-discount",
+        "proposal_refs": ["amb-discount"],
+        "column_refs": ["Ventas.Descuento"],
+        "relationship_refs": [],
+        "presentation_text": "Hay evidencia incompatible sobre `Ventas.Descuento`.",
+    }
+    valid = {
+        "decision_id": "dialogue:atomic:p-qty",
+        "proposal_refs": ["p-qty"],
+        "column_refs": ["Ventas.Cantidad"],
+        "relationship_refs": [],
+        "presentation_text": "PymIA interpreta `Cantidad` como la cantidad vendida o movida. ¿Es correcto?",
+    }
+    assistance = {
+        "status": "OWNER_DIALOGUE_REQUIRED",
+        "case_id": "c-stale",
+        "requested_capability": "net_margin_real",
+        "dialogue_plan": {"decisions": [unresolved, valid]},
+        "workbook_profile": {"columns": []},
+        "validated_packet": {
+            "decisions": [
+                {
+                    "decision_id": "amb-discount",
+                    "source_kind": "MATERIAL_AMBIGUITY",
+                    "status": "MATERIAL_AMBIGUOUS",
+                    "target_refs": ["Ventas.Descuento"],
+                    "semantic_role": None,
+                    "variable_name": None,
+                    "relationship_type": None,
+                },
+                {
+                    "decision_id": "p-qty",
+                    "source_kind": "CONCEPT",
+                    "status": "MATERIAL_CONFIDENT",
+                    "target_refs": ["Ventas.Cantidad"],
+                    "semantic_role": "quantity",
+                    "variable_name": "volume_sold",
+                    "relationship_type": None,
+                },
+            ]
+        },
+    }
+    state.semantic_assistance_state = assistance
+    state.semantic_questions = [valid]
+    state.semantic_dialogue_responses[unresolved["decision_id"]] = {
+        "decision_id": unresolved["decision_id"],
+        "action": "ACCEPT",
+    }
+    captured: list[list[dict]] = []
+
+    def fake_run_product_root(**kwargs):
+        captured.append([dict(item) for item in kwargs.get("semantic_dialogue_responses") or []])
+        return {
+            "status": base.STATUS_NEEDS_OWNER,
+            "owner_questions": [unresolved],
+            "semantic_assistance_state": assistance,
+        }
+
+    monkeypatch.setattr(base, "_run_product_root", fake_run_product_root)
+
+    status, _page = app.confirm_meanings(
+        session_id="s-stale",
+        fields={f"action_{valid['decision_id']}": "ACCEPT"},
+    )
+
+    assert status == 200
+    assert captured == [[{"decision_id": valid["decision_id"], "action": "ACCEPT"}]]
+    assert unresolved["decision_id"] not in state.semantic_dialogue_responses
+
+
 def test_unit_corroboration_renders_only_one_pending_question() -> None:
     app = Service1SemanticReceptionWebApplicationV1()
     state = app.session("s2")

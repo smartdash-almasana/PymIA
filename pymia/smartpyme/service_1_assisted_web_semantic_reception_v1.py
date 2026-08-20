@@ -242,6 +242,83 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
                 )
         return normalized
 
+    @staticmethod
+    def _owner_accept_is_resolved(*, state: Any, question: Mapping[str, Any]) -> bool:
+        """Return True only when SEM-5 can project ACCEPT into concrete owner evidence."""
+        assistance = (
+            state.semantic_assistance_state
+            if isinstance(state.semantic_assistance_state, Mapping)
+            else {}
+        )
+        validated = (
+            assistance.get("validated_packet")
+            if isinstance(assistance.get("validated_packet"), Mapping)
+            else {}
+        )
+        proposal_refs = [
+            str(ref).strip()
+            for ref in (question.get("proposal_refs") or [])
+            if str(ref).strip()
+        ]
+        # Legacy/non-SEM-5 questions keep their existing behavior. Productive SEM-4
+        # decisions always carry proposal_refs and are checked against SEM-5 shape.
+        if not proposal_refs:
+            return True
+        decisions = {
+            str(item.get("decision_id") or "").strip(): item
+            for item in (validated.get("decisions") or [])
+            if isinstance(item, Mapping) and str(item.get("decision_id") or "").strip()
+        }
+        for proposal_ref in proposal_refs:
+            item = decisions.get(proposal_ref)
+            if not isinstance(item, Mapping):
+                return False
+            source_kind = str(item.get("source_kind") or "").strip()
+            targets = [
+                str(ref).strip()
+                for ref in (item.get("target_refs") or [])
+                if str(ref).strip()
+            ]
+            if source_kind in {"CONCEPT", "DUPLICATE_SEMANTICS"}:
+                if not str(item.get("semantic_role") or "").strip() or not targets:
+                    return False
+                continue
+            if source_kind == "RELATIONSHIP":
+                if len(targets) != 2 or not str(item.get("relationship_type") or "").strip():
+                    return False
+                continue
+            # MATERIAL_AMBIGUITY and any unknown source kind contain no concrete
+            # semantic fact that owner ACCEPT can safely turn into canonical evidence.
+            return False
+        return True
+
+    def _drop_unresolved_accept_responses(self, *, state: Any) -> None:
+        """Prevent a stale impossible ACCEPT from contaminating SEM-8 reentry."""
+        assistance = (
+            state.semantic_assistance_state
+            if isinstance(state.semantic_assistance_state, Mapping)
+            else {}
+        )
+        dialogue = (
+            assistance.get("dialogue_plan")
+            if isinstance(assistance.get("dialogue_plan"), Mapping)
+            else {}
+        )
+        decisions = {
+            str(item.get("decision_id") or "").strip(): item
+            for item in (dialogue.get("decisions") or [])
+            if isinstance(item, Mapping) and str(item.get("decision_id") or "").strip()
+        }
+        for decision_id, response in list(state.semantic_dialogue_responses.items()):
+            if str(response.get("action") or "").strip().upper() != "ACCEPT":
+                continue
+            question = decisions.get(str(decision_id).strip())
+            if isinstance(question, Mapping) and not self._owner_accept_is_resolved(
+                state=state,
+                question=question,
+            ):
+                state.semantic_dialogue_responses.pop(decision_id, None)
+
     def _decorate_dialogue_decision(
         self,
         *,
@@ -288,6 +365,10 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             normalized["proposed_variable_name"] = semantic_decision.get("variable_name")
             normalized["assistant_rationale"] = semantic_decision.get("rationale") or semantic_decision.get("reason")
 
+        normalized["accept_enabled"] = self._owner_accept_is_resolved(
+            state=state,
+            question=normalized,
+        )
         decision_id = str(normalized.get("decision_id") or "").strip()
         normalized["chat_messages"] = [dict(item) for item in state.semantic_chat_messages.get(decision_id, [])]
         normalized["chat_suggestion"] = dict(state.semantic_chat_suggestions.get(decision_id, {}))
@@ -859,11 +940,25 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         fields: dict[str, str],
     ) -> tuple[int, str]:
         state = self.session(session_id)
+        self._drop_unresolved_accept_responses(state=state)
         if state.semantic_assistance_state is not None and state.semantic_questions:
             current = state.semantic_questions[0]
             if isinstance(current, Mapping):
                 decision_id = str(current.get("decision_id") or "").strip()
                 action = str(fields.get(f"action_{decision_id}") or "").strip().upper()
+                decorated = self._decorate_dialogue_decision(
+                    session_id=session_id,
+                    question=current,
+                )
+                if action == "ACCEPT" and not bool(decorated.get("accept_enabled", True)):
+                    state.semantic_dialogue_responses.pop(decision_id, None)
+                    return self._render_one_pending_question(
+                        session_id=session_id,
+                        message=(
+                            "Todavía no hay un significado concreto para confirmar. "
+                            "Explicame con tus palabras qué representa esta columna o elegí no usarla."
+                        ),
+                    ) or (HTTPStatus.BAD_REQUEST, base._error_page("Falta resolver la interpretación."))
                 is_atomic_column = (
                     len([ref for ref in (current.get("column_refs") or []) if str(ref).strip()]) == 1
                     and not [ref for ref in (current.get("relationship_refs") or []) if str(ref).strip()]
