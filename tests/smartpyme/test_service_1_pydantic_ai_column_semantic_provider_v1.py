@@ -7,6 +7,9 @@ from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
     ColumnSemanticBatchV1,
     ColumnSemanticDecisionV1,
     Service1PydanticAIColumnSemanticProviderV1,
+    _vertex_open_model_name_v1,
+    _vertex_openai_base_url_v1,
+    build_service_1_pydantic_ai_column_semantic_provider_v1,
 )
 from pymia.smartpyme.service_1_workbook_profiler_v1 import SCHEMA_VERSION as PROFILE_SCHEMA_VERSION
 
@@ -228,3 +231,47 @@ def test_provider_does_not_turn_understood_but_capability_irrelevant_role_into_o
     assert result["concept_proposals"] == []
     assert result["material_ambiguities"] == []
     assert result["irrelevant_refs"] == ["Ventas.Empleado"]
+
+
+def test_vertex_open_model_transport_uses_global_openai_compatible_endpoint() -> None:
+    assert _vertex_open_model_name_v1("gemma-4-26b-a4b-it-maas") == "google/gemma-4-26b-a4b-it-maas"
+    assert _vertex_openai_base_url_v1(project="pymia-503920", location="global") == (
+        "https://aiplatform.googleapis.com/v1/projects/pymia-503920/locations/global/endpoints/openapi"
+    )
+
+
+def test_builder_resolves_gemma_maas_through_vertex_openai_transport(monkeypatch) -> None:
+    import google.auth
+    import pydantic_ai
+
+    captured_models: list[object] = []
+
+    class _Credentials:
+        valid = True
+        token = "test-token"
+
+        def refresh(self, _request) -> None:
+            raise AssertionError("valid fake credentials must not refresh during construction")
+
+    class _CaptureAgent:
+        def __init__(self, model, *, output_type, instructions) -> None:
+            captured_models.append(model)
+            self.output_type = output_type
+            self.instructions = instructions
+
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "pymia-503920")
+    monkeypatch.setenv("GOOGLE_CLOUD_LOCATION", "global")
+    monkeypatch.setattr(google.auth, "default", lambda **_kwargs: (_Credentials(), "pymia-503920"))
+    monkeypatch.setattr(pydantic_ai, "Agent", _CaptureAgent)
+
+    provider = build_service_1_pydantic_ai_column_semantic_provider_v1(
+        model="gemma-4-26b-a4b-it-maas"
+    )
+
+    assert isinstance(provider, Service1PydanticAIColumnSemanticProviderV1)
+    assert len(captured_models) == 2
+    assert type(captured_models[0]).__name__ == "OpenAIChatModel"
+    assert captured_models[0].model_name == "google/gemma-4-26b-a4b-it-maas"
+    assert captured_models[0].profile.supports_json_object_output is True
+    assert captured_models[0].profile.default_structured_output_mode == "prompted"
+    assert captured_models[1] is captured_models[0]

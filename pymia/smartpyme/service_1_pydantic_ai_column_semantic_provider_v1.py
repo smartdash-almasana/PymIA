@@ -343,6 +343,68 @@ class Service1PydanticAIColumnSemanticProviderV1:
         }
 
 
+def _vertex_openai_base_url_v1(*, project: str, location: str) -> str:
+    host = (
+        "https://aiplatform.googleapis.com"
+        if location == "global"
+        else f"https://{location}-aiplatform.googleapis.com"
+    )
+    return f"{host}/v1/projects/{project}/locations/{location}/endpoints/openapi"
+
+
+def _vertex_open_model_name_v1(model_name: str) -> str:
+    if "/" in model_name:
+        return model_name
+    if model_name.startswith("gemma-"):
+        return f"google/{model_name}"
+    return model_name
+
+
+def _build_vertex_open_model_v1(*, model_name: str, project: str, location: str) -> Any:
+    try:
+        import google.auth
+        from google.auth.transport.requests import Request
+        from openai import AsyncOpenAI
+        from pydantic_ai.models.openai import OpenAIChatModel, OpenAIModelProfile
+        from pydantic_ai.providers.openai import OpenAIProvider
+    except ImportError as exc:  # pragma: no cover - environment contract
+        raise RuntimeError("Vertex open-model dependencies are required for semantic LLM mode") from exc
+
+    credentials, _ = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    refresh_request = Request()
+    refresh_lock = threading.Lock()
+
+    async def access_token() -> str:
+        def current_token() -> str:
+            with refresh_lock:
+                if not credentials.valid or not credentials.token:
+                    credentials.refresh(refresh_request)
+                token = str(credentials.token or "").strip()
+                if not token:
+                    raise RuntimeError("Google Cloud ADC returned no access token")
+                return token
+
+        return await asyncio.to_thread(current_token)
+
+    client = AsyncOpenAI(
+        base_url=_vertex_openai_base_url_v1(project=project, location=location),
+        api_key=access_token,
+    )
+    provider = OpenAIProvider(openai_client=client)
+    profile = OpenAIModelProfile(
+        supports_json_object_output=True,
+        default_structured_output_mode="prompted",
+        openai_supports_strict_tool_definition=False,
+    )
+    return OpenAIChatModel(
+        _vertex_open_model_name_v1(model_name),
+        provider=provider,
+        profile=profile,
+    )
+
+
 def build_service_1_pydantic_ai_column_semantic_provider_v1(
     *,
     model: str,
@@ -368,6 +430,17 @@ def build_service_1_pydantic_ai_column_semantic_provider_v1(
             resolved_model = GoogleModel(
                 model_name,
                 provider=GoogleCloudProvider(project=project, location=location),
+            )
+        elif (
+            model_name.startswith("gemma-")
+            or model_name.startswith("google/gemma-")
+        ) and model_name.endswith("-maas"):
+            if not project or not location:
+                raise RuntimeError("GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are required for Vertex semantic mode")
+            resolved_model = _build_vertex_open_model_v1(
+                model_name=model_name,
+                project=project,
+                location=location,
             )
         agent_factory = Agent
     agent = agent_factory(
