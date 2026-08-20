@@ -364,8 +364,8 @@ def _build_vertex_open_model_v1(*, model_name: str, project: str, location: str)
     try:
         import google.auth
         from google.auth.transport.requests import Request
-        from openai import AsyncOpenAI
         from pydantic_ai.models.openai import OpenAIChatModel, OpenAIModelProfile
+        from pydantic_ai.providers import openai as openai_provider_module
         from pydantic_ai.providers.openai import OpenAIProvider
     except ImportError as exc:  # pragma: no cover - environment contract
         raise RuntimeError("Vertex open-model dependencies are required for semantic LLM mode") from exc
@@ -388,7 +388,7 @@ def _build_vertex_open_model_v1(*, model_name: str, project: str, location: str)
 
         return await asyncio.to_thread(current_token)
 
-    client = AsyncOpenAI(
+    client = openai_provider_module.AsyncOpenAI(
         base_url=_vertex_openai_base_url_v1(project=project, location=location),
         api_key=access_token,
     )
