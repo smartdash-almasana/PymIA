@@ -468,20 +468,27 @@ class AssistedWebApplicationV1:
         role = str(owner_actor_role or "").strip()
         if not tenant or not actor or not role:
             raise ValueError("tenant_id, owner_actor_id and owner_actor_role are required")
-        state = self.session(session_id)
         client = str(cliente_id).strip() if cliente_id else None
-        identity_changed = (
-            state.tenant_id != tenant
-            or state.cliente_id != client
-            or state.owner_actor_id != actor
-            or state.owner_actor_role != role
-        )
-        state.tenant_id = tenant
-        state.cliente_id = client
-        state.owner_actor_id = actor
-        state.owner_actor_role = role
-        if identity_changed:
-            state.tenant_identity_contract = None
+        with self._session_locks_guard:
+            state = self._sessions.setdefault(session_id, AssistedWebSessionV1())
+            identity_changed = (
+                state.tenant_id != tenant
+                or state.cliente_id != client
+                or state.owner_actor_id != actor
+                or state.owner_actor_role != role
+            )
+            if identity_changed:
+                self._sessions[session_id] = AssistedWebSessionV1(
+                    tenant_id=tenant,
+                    cliente_id=client,
+                    owner_actor_id=actor,
+                    owner_actor_role=role,
+                )
+                return
+            state.tenant_id = tenant
+            state.cliente_id = client
+            state.owner_actor_id = actor
+            state.owner_actor_role = role
 
     def radar_owner_menu(self, *, session_id: str) -> tuple[int, str]:
         state = self.session(session_id)
@@ -2351,21 +2358,18 @@ def _handler_for(
                         session_id=session_id,
                     )
                     return
-            if (
-                parsed.path in {"/cases", "/case"}
-                and tenant_identity_resolver is not None
-                and not str(application.session(session_id).tenant_id or "").strip()
-            ):
+            if parsed.path in {"/cases", "/case"} and tenant_identity_resolver is not None:
                 try:
                     identity = tenant_identity_resolver(self)
-                    if identity is not None:
-                        application.bind_tenant_identity(
-                            session_id=session_id,
-                            tenant_id=identity.get("tenant_id", ""),
-                            cliente_id=identity.get("cliente_id") or None,
-                            owner_actor_id=identity.get("owner_actor_id", ""),
-                            owner_actor_role=identity.get("owner_actor_role", ""),
-                        )
+                    if identity is None:
+                        raise ValueError("verified tenant identity is required")
+                    application.bind_tenant_identity(
+                        session_id=session_id,
+                        tenant_id=identity.get("tenant_id", ""),
+                        cliente_id=identity.get("cliente_id") or None,
+                        owner_actor_id=identity.get("owner_actor_id", ""),
+                        owner_actor_role=identity.get("owner_actor_role", ""),
+                    )
                 except ValueError as exc:
                     self._send_html(
                         HTTPStatus.BAD_REQUEST,
