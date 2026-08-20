@@ -5,6 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
+import pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 as semantic_web
+
 from pymia.smartpyme.service_1_analysis_evidence_preparation_v1 import (
     STATUS_PREPARED,
     build_service_1_analysis_evidence_preparation_v1,
@@ -238,6 +240,179 @@ def test_f13_web_execution_persists_and_reads_tenant_analysis_history(f13_execut
     assert len(history) == 1
     assert history[0]["memory_record_id"] == persisted[0].memory_record_id
     assert history[0]["result_set_integrity_digest"] == persisted[0].result_set_integrity_digest
+
+
+def test_rc3_restart_lists_and_renders_persisted_resultset_without_xlsx_llm_or_recalculation(
+    f13_execution: dict,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _governed, _projection, record = _record(f13_execution)
+    list_calls: list[tuple[str, str | None, int]] = []
+    load_calls: list[tuple[str, str]] = []
+    semantic_calls: list[dict] = []
+
+    def list_memory(tenant_id: str, analysis_id: str | None = None, *, limit: int = 100):
+        list_calls.append((tenant_id, analysis_id, limit))
+        return (record,)
+
+    def load_memory(tenant_id: str, memory_record_id: str):
+        load_calls.append((tenant_id, memory_record_id))
+        return record
+
+    def forbidden_semantic_provider(**kwargs):
+        semantic_calls.append(dict(kwargs))
+        raise AssertionError("semantic provider must not run during F13 reentry")
+
+    def forbidden_product_root(**_kwargs):
+        raise AssertionError("product root must not run during F13 reentry")
+
+    monkeypatch.setattr(semantic_web, "run_service_1_governed_analysis_v1", forbidden_product_root)
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=forbidden_semantic_provider,
+        load_result_memory=list_memory,
+        load_result_memory_record=load_memory,
+    )
+    session_id = "rc3-restart"
+    app.bind_tenant_identity(
+        session_id=session_id,
+        tenant_id=record.tenant_id,
+        cliente_id=record.cliente_id,
+        owner_actor_id="owner-restart",
+        owner_actor_role="OWNER",
+    )
+    state = app.session(session_id)
+    assert state.ingestion_output is None
+    assert state.semantic_assistance_state is None
+    assert state.last_review_result is None
+
+    status, cases_page = app.recent_cases(session_id=session_id)
+    assert status == 200
+    assert record.memory_record_id in cases_page
+    assert record.analysis_id in cases_page
+    assert "RESULTADO PERSISTIDO" in cases_page
+    assert list_calls == [(record.tenant_id, None, 100)]
+
+    status, result_page = app.open_case(
+        session_id=session_id,
+        case_ref=record.memory_record_id,
+    )
+    assert status == 200
+    assert "Resultado listo" in result_page
+    assert record.analysis_id in result_page
+    assert load_calls == [(record.tenant_id, record.memory_record_id)]
+    assert semantic_calls == []
+    assert state.ingestion_output is None
+    assert state.semantic_assistance_state is None
+    assert state.last_review_result is None
+
+
+def test_rc3_reentry_passes_exact_persisted_f9_resultset_to_renderer(
+    f13_execution: dict,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _governed, _projection, record = _record(f13_execution, "sales_by_product")
+    captured: list[dict] = []
+
+    def capture_renderer(results):
+        captured.extend(dict(item) for item in results)
+        return "RC3_REENTRY_RENDERED"
+
+    monkeypatch.setattr(semantic_web, "render_analysis_result_sets_v1", capture_renderer)
+    monkeypatch.setattr(
+        semantic_web,
+        "run_service_1_governed_analysis_v1",
+        lambda **_kwargs: pytest.fail("RC3 reentry recalculated through product root"),
+    )
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=lambda **_kwargs: pytest.fail("RC3 reentry invoked semantic provider"),
+        load_result_memory_record=lambda tenant_id, memory_record_id: record,
+    )
+    session_id = "rc3-exact-resultset"
+    app.bind_tenant_identity(
+        session_id=session_id,
+        tenant_id=record.tenant_id,
+        cliente_id=record.cliente_id,
+        owner_actor_id="owner-restart",
+        owner_actor_role="OWNER",
+    )
+
+    status, page = app.open_case(session_id=session_id, case_ref=record.memory_record_id)
+    assert status == 200
+    assert page == "RC3_REENTRY_RENDERED"
+    assert len(captured) == 1
+    packet = captured[0]
+    assert packet["schema_version"] == "SERVICE_1_F13_RESULT_MEMORY_REENTRY_V1"
+    assert packet["analysis_id"] == record.analysis_id
+    assert packet["result_set"] == record.to_dict()["result_set"]
+    assert packet["result_set"]["integrity"]["digest"] == record.result_set_integrity_digest
+    assert packet["result_memory"]["result_set_integrity_digest"] == record.result_set_integrity_digest
+    assert packet["runtime_authorized"] is False
+    assert packet["tool_execution_authorized"] is False
+    assert packet["delivery_authorized"] is False
+
+
+def test_rc3_reentry_rejects_cross_tenant_result_memory(
+    f13_execution: dict,
+    tmp_path: Path,
+) -> None:
+    _governed, _projection, record = _record(f13_execution)
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+        load_result_memory=lambda tenant_id, analysis_id=None, limit=100: (record,),
+        load_result_memory_record=lambda tenant_id, memory_record_id: record,
+    )
+    session_id = "rc3-other-tenant"
+    app.bind_tenant_identity(
+        session_id=session_id,
+        tenant_id="tenant-other",
+        cliente_id="cliente-other",
+        owner_actor_id="owner-other",
+        owner_actor_role="OWNER",
+    )
+
+    history_status, history_page = app.recent_cases(session_id=session_id)
+    assert history_status == 400
+    assert record.memory_record_id not in history_page
+
+    open_status, open_page = app.open_case(
+        session_id=session_id,
+        case_ref=record.memory_record_id,
+    )
+    assert open_status == 400
+    assert "Resultado listo" not in open_page
+
+
+def test_rc3_reentry_revalidates_digest_and_blocks_tampered_resultset(
+    f13_execution: dict,
+    tmp_path: Path,
+) -> None:
+    _governed, _projection, record = _record(f13_execution)
+    tampered = record.to_dict()
+    tampered["result_set"]["groups"][0]["measures"]["sales"]["value"] += 1
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+        load_result_memory_record=lambda tenant_id, memory_record_id: tampered,
+    )
+    session_id = "rc3-tampered"
+    app.bind_tenant_identity(
+        session_id=session_id,
+        tenant_id=record.tenant_id,
+        cliente_id=record.cliente_id,
+        owner_actor_id="owner-restart",
+        owner_actor_role="OWNER",
+    )
+
+    status, page = app.open_case(session_id=session_id, case_ref=record.memory_record_id)
+    assert status == 400
+    assert "validación de identidad e integridad" in page
+    assert "Resultado listo" not in page
+    assert app.session(session_id).last_review_result is None
 
 
 class _Query:

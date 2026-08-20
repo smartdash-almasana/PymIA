@@ -21,6 +21,10 @@ from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     run_service_1_governed_analysis_v1,
 )
+from pymia.smartpyme.service_1_result_memory_v1 import (
+    Service1ResultMemoryRecordV1,
+    service_1_result_memory_record_from_mapping_v1,
+)
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     STATUS_CONFIRMED,
     STATUS_OWNER_DIALOGUE_FOLLOWUP,
@@ -428,6 +432,35 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         sequential = self._render_one_pending_question(session_id=session_id)
         return sequential if sequential is not None else (status, page)
 
+    @staticmethod
+    def _tenant_id_for_state(state: Any) -> str:
+        tenant = str(getattr(state, "tenant_id", "") or "").strip()
+        if not tenant and getattr(state, "tenant_identity_contract", None) is not None:
+            tenant = str(
+                getattr(state.tenant_identity_contract, "tenant_id", "") or ""
+            ).strip()
+        return tenant
+
+    @staticmethod
+    def _validated_result_memory_record(
+        raw_record: Any,
+        *,
+        tenant_id: str,
+        memory_record_id: str | None = None,
+    ) -> Service1ResultMemoryRecordV1:
+        if isinstance(raw_record, Service1ResultMemoryRecordV1):
+            record = service_1_result_memory_record_from_mapping_v1(raw_record.to_dict())
+        elif isinstance(raw_record, Mapping):
+            record = service_1_result_memory_record_from_mapping_v1(raw_record)
+        else:
+            raise TypeError("result memory loader returned an invalid record")
+        if record.tenant_id != tenant_id:
+            raise ValueError("result memory crossed tenant boundary")
+        expected_id = str(memory_record_id or "").strip()
+        if expected_id and record.memory_record_id != expected_id:
+            raise ValueError("result memory crossed record boundary")
+        return record
+
     def result_memory_history(
         self,
         *,
@@ -436,13 +469,125 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         limit: int = 100,
     ) -> tuple[dict[str, Any], ...]:
         state = self.session(session_id)
-        tenant = str(state.tenant_id or "").strip()
-        if not tenant and state.tenant_identity_contract is not None:
-            tenant = str(getattr(state.tenant_identity_contract, "tenant_id", "") or "").strip()
+        tenant = self._tenant_id_for_state(state)
         if not tenant or self._load_result_memory is None:
             return ()
         records = self._load_result_memory(tenant, analysis_id, limit=limit)
-        return tuple(record.to_dict() for record in records)
+        return tuple(
+            self._validated_result_memory_record(record, tenant_id=tenant).to_dict()
+            for record in records
+        )
+
+    def recent_cases(self, *, session_id: str) -> tuple[int, str]:
+        """List transient cases plus durable F13 ResultSets for the active tenant."""
+        scope = self._case_scope(session_id=session_id)
+        snapshots = list(self._case_snapshots.get(scope, {}).values())
+        state = self.session(session_id)
+        tenant = self._tenant_id_for_state(state)
+
+        if tenant and self._load_persisted_cases is not None:
+            try:
+                persisted = self._load_persisted_cases(tenant)
+            except Exception:
+                if self._require_tenant_persistence:
+                    return HTTPStatus.BAD_REQUEST, base._error_page(
+                        "No pudimos recuperar los casos persistidos del tenant."
+                    )
+                persisted = ()
+            seen_case_ids = {str(item.get("case_id") or "").strip() for item in snapshots}
+            for item in persisted:
+                row = dict(item)
+                case_id = str(row.get("case_id") or "").strip()
+                if case_id and case_id not in seen_case_ids:
+                    snapshots.append(row)
+                    seen_case_ids.add(case_id)
+
+        if tenant and self._load_result_memory is not None:
+            try:
+                durable_records = self._load_result_memory(tenant, None, limit=100)
+                validated_records = tuple(
+                    self._validated_result_memory_record(record, tenant_id=tenant)
+                    for record in durable_records
+                )
+            except Exception:
+                return HTTPStatus.BAD_REQUEST, base._error_page(
+                    "No pudimos recuperar de forma íntegra los resultados persistidos del tenant."
+                )
+            seen_refs = {str(item.get("case_ref") or "").strip() for item in snapshots}
+            for record in validated_records:
+                if record.memory_record_id in seen_refs:
+                    continue
+                snapshots.append(
+                    {
+                        "case_ref": record.memory_record_id,
+                        "case_id": record.case_id,
+                        "service_ref": record.analysis_id,
+                        "service_name": f"Resultado guardado · {record.analysis_id}",
+                        "status": "RESULTADO PERSISTIDO",
+                        "kind": "persisted_result_memory",
+                        "updated_at": record.executed_at,
+                        "memory_record_id": record.memory_record_id,
+                    }
+                )
+                seen_refs.add(record.memory_record_id)
+
+        snapshots.sort(key=lambda item: str(item.get("updated_at") or ""), reverse=True)
+        return HTTPStatus.OK, base._recent_cases_page(snapshots)
+
+    def open_case(self, *, session_id: str, case_ref: str) -> tuple[int, str]:
+        """Reopen an immutable F13 ResultSet without XLSX, semantics, or recalculation."""
+        memory_record_id = str(case_ref or "").strip()
+        if not memory_record_id.startswith("s1rm_"):
+            return super().open_case(session_id=session_id, case_ref=case_ref)
+
+        state = self.session(session_id)
+        tenant = self._tenant_id_for_state(state)
+        if not tenant:
+            return HTTPStatus.BAD_REQUEST, base._error_page(
+                "No hay un tenant identificado para reabrir este resultado."
+            )
+        if self._load_result_memory_record is None:
+            return HTTPStatus.BAD_REQUEST, base._error_page(
+                "La memoria longitudinal de resultados no está disponible en este entorno."
+            )
+        try:
+            raw_record = self._load_result_memory_record(tenant, memory_record_id)
+            if raw_record is None:
+                return HTTPStatus.NOT_FOUND, base._error_page(
+                    "No encontramos ese resultado persistido para este tenant."
+                )
+            record = self._validated_result_memory_record(
+                raw_record,
+                tenant_id=tenant,
+                memory_record_id=memory_record_id,
+            )
+        except Exception:
+            return HTTPStatus.BAD_REQUEST, base._error_page(
+                "El resultado persistido no superó la validación de identidad e integridad."
+            )
+
+        packet = {
+            "schema_version": "SERVICE_1_F13_RESULT_MEMORY_REENTRY_V1",
+            "status": "READY",
+            "analysis_id": record.analysis_id,
+            "title": record.analysis_id,
+            "question": "Resultado persistido de una ejecución gobernada anterior.",
+            "result_set": record.to_dict()["result_set"],
+            "result_memory": {
+                "status": "REENTERED",
+                "memory_record_id": record.memory_record_id,
+                "period": record.period.to_dict(),
+                "artifact_ref": record.artifact_ref,
+                "result_set_integrity_digest": record.result_set_integrity_digest,
+                "executed_at": record.executed_at,
+            },
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "product_ready": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+        return HTTPStatus.OK, render_analysis_result_sets_v1((packet,))
 
     def _execute_f12_analysis(self, *, session_id: str, analysis_id: str) -> dict[str, Any]:
         """Web adapter: request one analysis from the canonical product root."""
