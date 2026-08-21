@@ -76,7 +76,7 @@ def test_assisted_web_persists_canonical_owner_events_after_successful_review(tm
         fields=_answers(page),
     )
     assert status == 200
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
 
     status, page = app.run_review(
         session_id="session-1",
@@ -230,7 +230,7 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         )
         response = connection.getresponse()
         assert response.status == 200
-        assert "¿Qué querés que PymIA te devuelva?" in response.read().decode("utf-8")
+        assert "Elegí qué querés revisar" in response.read().decode("utf-8")
 
         review_body = urlencode({"review_sold_vs_collected_gap": "1"}).encode("utf-8")
         connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)

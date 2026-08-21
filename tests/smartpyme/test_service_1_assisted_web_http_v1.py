@@ -166,7 +166,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
         )
         assert status == 200
         assert "Subí tu Excel" in page
-        assert "Leer mi Excel" in page
+        assert "Revisar archivo" in page
         cookies = "; ".join(
             value.split(";", 1)[0]
             for key, value in login_headers
@@ -183,7 +183,7 @@ def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tm
         headers["Cookie"] = cookies
         status, _, page = _request(server, "POST", "/upload", body, headers)
         assert status == 200
-        assert "Esto entendí de tu Excel" in page
+        assert "Confirmá que entendimos bien" in page
     finally:
         server.shutdown()
         server.server_close()
@@ -224,8 +224,8 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
         cookie,
     )
     assert status == 200
-    assert "¿Qué querés que PymIA te devuelva?" in page
-    assert "Podés analizar ahora" in page
+    assert "Elegí qué querés revisar" in page
+    assert "Elegí uno o varios análisis" in page
     assert 'name="review_sold_vs_collected_gap"' in page
 
     status, _, page = _form(
@@ -276,7 +276,7 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
     status, _, home = _request(assisted_server, "GET", "/")
     assert status == 200
     assert "Subí tu Excel" in home
-    assert "Leer mi Excel" in home
+    assert "Revisar archivo" in home
     assert "Ventas y cobranzas" not in home
     assert "Margen real" not in home
     assert "Flujo de caja" not in home
@@ -294,7 +294,7 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
         cookie,
     )
     assert status == 200
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
     assert "Ventas y cobranzas" in page
     assert "Margen real" not in page
     assert "Flujo de caja" not in page
@@ -309,7 +309,7 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
         cookie,
     )
     assert status == 200
-    assert "Tus análisis" in page
+    assert "Resumen del archivo" in page
     assert "Ventas y cobranzas" in page
     assert "Total vendido" in page
     assert "Diferencia" in page
@@ -345,7 +345,7 @@ def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_pa
         )
         assert status == 200
 
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
     status, _, page = _form(
         assisted_server,
         "/run-review",
@@ -357,7 +357,7 @@ def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_pa
     )
 
     assert status == 200
-    assert "Tus análisis" in page
+    assert "Resumen del archivo" in page
     assert "Ventas y cobranzas" in page
     assert "Total vendido" in page
     assert "3.000,00" in page
@@ -374,8 +374,8 @@ def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path
     )
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Esto entendí de tu Excel" in page
-    assert "Sí, es correcto" in page
+    assert "Confirmá que entendimos bien" in page
+    assert "Sí, está bien" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -478,8 +478,8 @@ def test_launch_working_capital_composes_three_governed_controls(assisted_server
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Esto entendí de tu Excel" in page:
-        assert "Esto entendí de tu Excel" in page
+    if "Confirmá que entendimos bien" in page:
+        assert "Confirmá que entendimos bien" in page
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
@@ -514,7 +514,7 @@ def test_working_capital_cash_only_is_presented_as_complete_cash_result(assisted
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Esto entendí de tu Excel" in page:
+    if "Confirmá que entendimos bien" in page:
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
@@ -524,7 +524,7 @@ def test_working_capital_cash_only_is_presented_as_complete_cash_result(assisted
         assert status == 200
 
     assert "Flujo de caja" in page
-    assert "Resultado listo" in page
+    assert "Resultados" in page
     assert "Saldo de caja proyectado" in page
     assert "1.700,00" in page or "1700" in page
     assert "Este sería el saldo al cierre" in page
@@ -558,7 +558,7 @@ def test_not_sure_keeps_case_open_and_preserves_confirmed_choices(assisted_serve
 
     status, _, page = _form(assisted_server, "/confirm-meanings", answers, cookie)
     assert status == 200
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
 
 
 def test_htmx_upload_returns_only_needed_semantic_questions_fragment(
@@ -632,7 +632,7 @@ def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assist
         )
         assert status == 200
 
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
     assert "Margen real" in page
     assert 'name="review_net_margin_real"' in page
     assert "Ventas y cobranzas" not in page

@@ -440,8 +440,8 @@ def _display_ref(ref: str) -> str:
 
 
 def _semantic_group_text(column_refs: tuple[str, ...]) -> str:
-    labels = ", ".join(f"`{_display_ref(ref)}`" for ref in column_refs)
-    return f"Interpreto {labels} como un conjunto coherente de datos para el control solicitado. ¿Es correcto?"
+    labels = ", ".join(_display_ref(ref) for ref in column_refs)
+    return f"Entendí estas columnas de tu archivo: {labels}. ¿Está bien?"
 
 
 def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
@@ -477,7 +477,7 @@ def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
         "document_reference": "el comprobante o referencia de la operación",
     }
     meaning = owner_labels.get(role, "un dato del negocio que necesito confirmar")
-    return f"PymIA interpreta `{label}` como {meaning}. ¿Es correcto?"
+    return f"Entendí {label} como {meaning}. ¿Está bien?"
 
 
 def _relationship_text(endpoints: tuple[str, ...]) -> str:
@@ -487,10 +487,10 @@ def _relationship_text(endpoints: tuple[str, ...]) -> str:
 
 
 def _ambiguity_text(refs: tuple[str, ...], *, conflict: bool) -> str:
-    labels = ", ".join(f"`{ref}`" for ref in refs)
+    labels = ", ".join(_display_ref(ref) for ref in refs)
     if conflict:
-        return f"Hay evidencia incompatible sobre {labels}. Necesito que confirmes cómo debe interpretarse."
-    return f"Necesito confirmar el significado empresarial de {labels} antes de usarlo. ¿Cómo debe interpretarse?"
+        return f"No estoy seguro de qué representa {labels}. Decime qué significa en tu negocio."
+    return f"Antes de usar {labels}, necesito saber qué significa en tu negocio."
 
 
 def _atomic_child(item: dict[str, Any]) -> dict[str, Any]:

@@ -35,9 +35,9 @@ def test_semantic_corroboration_renders_only_one_pending_question() -> None:
     assert len(state.semantic_questions) == 3
     assert state.semantic_questions[0]["decision_id"] == "d1"
     assert "Hora" in page
-    assert "No tomes en cuenta esta columna para el análisis que necesito" in page
-    assert "Asistente semántico con LLM" in page
-    assert "Hablá con PymIA" in page
+    assert "No usar esta columna" in page
+    assert "Ayuda para interpretar el archivo" in page
+    assert "Aclarar este dato" in page
     assert "MetodoPago" not in page
     assert "Ciudad" not in page
 
@@ -98,7 +98,7 @@ def test_unresolved_material_ambiguity_cannot_offer_accept_or_reach_sem5() -> No
     status, page = app._render_one_pending_question(session_id="s-unresolved") or (0, "")
     assert status == 200
     assert "Sí, es correcto: eso significa" not in page
-    assert "Todavía no hay una interpretación concreta para confirmar" in page
+    assert "Decime qué significa esta columna en tu negocio" in page
     assert 'value="CORRECT" required' in page
 
     def forbidden_product_root(**_kwargs):
@@ -363,7 +363,7 @@ def test_semantic_assist_conversation_mode_does_not_require_suggestion() -> None
 
     assert status == 200
     assert state.semantic_chat_suggestions == {}
-    assert "Asistente semántico con LLM" in page
+    assert "Ayuda para interpretar el archivo" in page
     assert "La propuesta actual usa el contexto de stock entrante." in page
 
 
@@ -452,7 +452,7 @@ def test_semantic_assist_correction_mode_accepts_only_current_column_pair() -> N
         "reason": "Owner described sold units.",
         "owner_text": "Son las unidades vendidas en esa operación.",
     }
-    assert "Propuesta revisada" in page
+    assert "Interpretación revisada" in page
 
 
 def test_semantic_assist_rejects_suggestion_from_other_column() -> None:
@@ -510,7 +510,7 @@ def test_semantic_assist_rejects_suggestion_from_other_column() -> None:
 
     assert status == 200
     assert state.semantic_chat_suggestions == {}
-    assert "Propuesta revisada" not in page
+    assert "Interpretación revisada" not in page
 
 
 def test_semantic_assist_rejects_suggestion_outside_catalog() -> None:
@@ -567,7 +567,7 @@ def test_semantic_assist_rejects_suggestion_outside_catalog() -> None:
 
     assert status == 200
     assert state.semantic_chat_suggestions == {}
-    assert "Propuesta revisada" not in page
+    assert "Interpretación revisada" not in page
 
 
 def test_semantic_assist_surfaces_bounded_revision_without_confirming() -> None:
@@ -637,8 +637,8 @@ def test_semantic_assist_surfaces_bounded_revision_without_confirming() -> None:
         "reason": "Owner described sold units.",
         "owner_text": "Son las unidades que vendimos en esa operación.",
     }
-    assert "Propuesta revisada" in page
-    assert "Revisar esta interpretación" in page
+    assert "Interpretación revisada" in page
+    assert "Revisar interpretación" in page
     assert "Owner described sold units." not in page
     assert "Interpretación técnica" not in page
     assert "confirmado" in page.lower()

@@ -2379,6 +2379,9 @@ def _handler_for(
                     return
             if parsed.path == "/":
                 self._send_html(HTTPStatus.OK, _home_page())
+            elif parsed.path == "/analysis-menu" and callable(getattr(application, "analysis_menu", None)):
+                status, content_html = application.analysis_menu(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
             elif parsed.path == "/cases":
                 status, content_html = application.recent_cases(session_id=session_id)
                 self._send_html(status, content_html, session_id=session_id)
@@ -4025,7 +4028,14 @@ def _radar_owner_policy_saved_page(policy: object) -> str:
 
 
 def _blocked_message_page(message: str) -> str:
-    return f'<main id="app" tabindex="-1"><h1>No se puede continuar</h1><p role="alert">{_esc(message)}</p><p>La descarga no está habilitada.</p><div aria-live="polite">Necesita revisión.</div></main>'
+    raw = str(message or "").strip()
+    technical_markers = ("BLOCK_", "dialogue:", "pydantic-ai:", "SERVICE_1_", "_SEMANTIC_", "ResultSet")
+    public_message = (
+        "Encontramos un dato que necesita revisión antes de seguir. Volvé al archivo y revisá la interpretación pendiente."
+        if any(marker in raw for marker in technical_markers)
+        else raw or "Encontramos un dato que necesita revisión antes de seguir."
+    )
+    return f'<main id="app" tabindex="-1" class="journey journey--narrow"><header class="journey-intro"><p class="kicker">Revisión necesaria</p><h1>Hay un dato pendiente</h1><p role="alert">{_esc(public_message)}</p></header><div class="result-actions"><a href="/">Volver al archivo</a><a class="secondary" href="/cases">Ver historial</a></div><div aria-live="polite">Revisión pendiente.</div></main>'
 
 
 def _error_page(message: str) -> str:

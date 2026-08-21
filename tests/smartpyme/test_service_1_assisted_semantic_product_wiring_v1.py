@@ -237,7 +237,59 @@ def test_web_upload_without_capability_starts_workbook_first_semantic_reception(
     }
     assert "Descuento" in page
     assert "PrecioUnitario" in page
+    assert "Confirmá que entendimos bien" in page
+    assert "Una columna por vez" not in page
+    assert "Columna 1 de" not in page
     assert "¿Qué querés que PymIA te devuelva?" not in page
+
+
+def test_workbook_first_discards_stale_group_response_before_reentry(tmp_path: Path) -> None:
+    def provider(payload: dict) -> dict:
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    app = Service1SemanticReceptionWebApplicationV1(
+        output_dir=tmp_path,
+        semantic_provider=provider,
+    )
+    status, _page = app.receive_xlsx(
+        session_id="workbook-first-stale-group",
+        filename="caja.xlsx",
+        content=_xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+        selected_launch_review=None,
+    )
+    assert status == 200
+    state = app.session("workbook-first-stale-group")
+    current_id = str(state.semantic_questions[0]["decision_id"])
+    stale_id = "dialogue:semantic-group:pydantic-ai:stale"
+    state.semantic_dialogue_responses[stale_id] = {
+        "decision_id": stale_id,
+        "action": "ACCEPT",
+    }
+
+    status, page = app.confirm_meanings(
+        session_id="workbook-first-stale-group",
+        fields={f"action_{current_id}": "ACCEPT"},
+    )
+
+    assert status == 200
+    assert stale_id not in state.semantic_dialogue_responses
+    assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
+    assert "Elegí qué querés revisar" in page
+    assert "dialogue:semantic-group:" not in page
 
 
 def test_web_workbook_first_owner_accept_reenters_and_opens_menu(tmp_path: Path) -> None:
@@ -287,7 +339,7 @@ def test_web_workbook_first_owner_accept_reenters_and_opens_menu(tmp_path: Path)
     assert len(state.semantic_dialogue_responses) == 1
     assert state.semantic_questions == []
     assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
 
 
 def test_web_workbook_first_owner_confirmation_is_durable_before_analysis_menu(tmp_path: Path) -> None:
@@ -344,7 +396,7 @@ def test_web_workbook_first_owner_confirmation_is_durable_before_analysis_menu(t
 
     assert status == 200
     assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
     assert recorded
     for event, contract in recorded:
         assert event.case_id == contract.case_id
@@ -426,7 +478,7 @@ def test_web_workbook_first_clear_semantics_require_one_grouped_owner_confirmati
     assert 'name="review_sold_vs_collected_gap"' not in page
     assert 'name="review_net_margin_real"' not in page
     assert "Análisis que necesitan más datos" in page
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
 
     confirmed_run = state.semantic_assistance_state["semantic_run"]
     original_events = list(
@@ -567,7 +619,7 @@ def test_real_cafeteria_upload_reaches_deterministic_semantic_provider_without_c
     for item in discovery["blocked"]:
         assert f'name="review_{item["launch_ref"]}"' not in page
         assert item["name"] in page
-    assert "¿Qué querés que PymIA te devuelva?" in page
+    assert "Elegí qué querés revisar" in page
 
 
 def test_post_semantic_discovery_fails_closed_without_confirmed_bindings() -> None:
@@ -1207,7 +1259,7 @@ def test_web_correction_impuestos_periodo_revises_then_fails_closed_if_capabilit
         "reason": "Owner described a row-level tax amount.",
         "owner_text": "Esta columna representa el importe de impuestos de cada registro, no el total de impuestos del período.",
     }
-    assert "Propuesta revisada" in page
+    assert "Interpretación revisada" in page
 
     status, page = app.semantic_revise(
         session_id="tax-revise",

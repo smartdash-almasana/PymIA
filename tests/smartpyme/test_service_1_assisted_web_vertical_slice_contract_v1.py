@@ -32,11 +32,11 @@ def test_visible_interface_uses_plain_spanish() -> None:
     required_text = (
         "PymIA · Servicio 1",
         "Subí tu Excel",
-        "Leer mi Excel",
-        "¿Qué querés que PymIA te devuelva?",
-        "Podés analizar ahora",
+        "Revisar archivo",
+        "Elegí qué querés revisar",
+        "Elegí uno o varios análisis",
         "No lo puedo confirmar ahora",
-        "Datos utilizados",
+        "Origen y detalle del cálculo",
         "Qué conviene tener en cuenta",
     )
     for text in required_text:

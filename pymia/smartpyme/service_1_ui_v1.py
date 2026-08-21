@@ -20,10 +20,120 @@ def _format_amount(value: float) -> str:
     return f"{value:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def _format_money(value: float) -> str:
+    return f"$ {_format_amount(value)}"
+
+
+_LABELS_ES: dict[str, str] = {
+    "rank": "Posición",
+    "product": "Producto",
+    "product_name": "Producto",
+    "product_identifier": "Producto",
+    "branch": "Sucursal",
+    "branch_name": "Sucursal",
+    "branch_identifier": "Sucursal",
+    "category": "Categoría",
+    "commercial_category": "Categoría",
+    "employee": "Empleado",
+    "employee_name": "Empleado",
+    "sales_channel": "Canal",
+    "channel": "Canal",
+    "payment_method": "Medio de pago",
+    "operation_date": "Fecha",
+    "operation_time": "Hora",
+    "month": "Mes",
+    "day": "Día",
+    "hour": "Hora",
+    "time": "Período",
+    "transaction": "Operación",
+    "transaction_identifier": "Operación",
+    "sales": "Ventas",
+    "sales_amount": "Ventas",
+    "sales_total": "Ventas totales",
+    "row_count": "Operaciones",
+    "sales_concentration": "Concentración de ventas",
+    "catalog_price_variance_pct": "Diferencia contra precio de lista",
+    "dso": "Días promedio de cobro",
+    "projected_cash_balance": "Saldo de caja proyectado",
+    "gross_margin": "Margen bruto",
+    "gross_margin_amount": "Margen bruto",
+    "gross_margin_percentage": "Margen bruto %",
+    "margin": "Margen",
+    "units": "Unidades",
+    "quantity": "Unidades",
+    "rows": "Operaciones",
+    "count": "Operaciones",
+    "transaction_count": "Operaciones",
+    "discounted_rows": "Operaciones con descuento",
+    "discount": "Descuento",
+    "discount_amount": "Descuento",
+    "catalog_price": "Precio de lista",
+    "sale_price": "Precio de venta",
+    "price_variance": "Diferencia de precio",
+    "concentration": "Concentración",
+}
+
+
+def _human_label(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "Dato"
+    return _LABELS_ES.get(raw, raw.replace("_", " ").strip().capitalize())
+
+
+def _render_measure_value(measure: Mapping[str, Any]) -> str:
+    value = measure.get("value")
+    unit = str(measure.get("unit") or "")
+    currency = str(measure.get("currency_code") or "")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if unit == "currency":
+            rendered = _format_money(float(value))
+        elif unit == "percentage":
+            rendered = f"{float(value):.2f}%"
+        elif unit in {"count", "units"} and float(value).is_integer():
+            rendered = str(int(value))
+        else:
+            rendered = _format_amount(float(value))
+    else:
+        rendered = str(value if value is not None else "")
+    return f"{rendered} {currency}".strip()
+
+
+def _analysis_category(analysis_id: str, title: str) -> str:
+    ref = f"{analysis_id} {title}".lower()
+    if analysis_id == "sales_total":
+        return "Resumen"
+    if "margin" in ref or "margen" in ref or "discount" in ref or "precio" in ref or "price" in ref:
+        return "Rentabilidad"
+    if "product" in ref or "producto" in ref:
+        return "Productos"
+    if "branch" in ref or "sucursal" in ref:
+        return "Sucursales"
+    if "employee" in ref or "empleado" in ref:
+        return "Equipo"
+    if "channel" in ref or "payment" in ref or "canal" in ref or "pago" in ref:
+        return "Canales y cobros"
+    if "series" in ref or "fecha" in ref or "hora" in ref or "month" in ref:
+        return "Evolución"
+    if "transaction" in ref or "multiplicity" in ref:
+        return "Control"
+    return "Ventas"
+
+
+def _continue_analysis_panel_v1() -> str:
+    return '''<section class="continue-analysis"><div><p class="kicker">Seguí trabajando con este archivo</p><h2>¿Querés seguir analizando tu planilla Excel?</h2><p>No hace falta volver a subirla. Podés elegir otro análisis sobre la misma información.</p></div><a href="/analysis-menu">Seguir analizando este Excel</a></section>'''
+
+
+_WORKSPACE_CSS = """
+.enterprise-results{max-width:1220px;margin:0 auto}.results-header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;margin:0 0 24px;padding:26px 28px;border:1px solid var(--rule);border-radius:14px;background:#fff}.results-header h1{margin:0 0 8px;font-size:clamp(2rem,4vw,3rem);line-height:1.02;letter-spacing:-.045em}.results-header p{margin:0;color:var(--muted);max-width:720px}.results-header-actions{display:flex;gap:8px}.results-header-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border:1px solid var(--green-dark);border-radius:7px;background:var(--green);color:#fff;text-decoration:none;font-weight:750}.results-header-actions a.secondary{background:#fff;color:#33433a;border-color:#cbd4ce}.summary-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}.summary-metric{display:grid;gap:4px;min-height:110px;padding:16px 17px;border:1px solid var(--rule);border-radius:12px;background:#fff;color:var(--ink);text-decoration:none}.summary-metric small{color:#66746c;font-size:.68rem;font-weight:750;text-transform:uppercase}.summary-metric strong{font-size:1.55rem;line-height:1.1;font-variant-numeric:tabular-nums}.summary-metric span{color:#647168;font-size:.76rem}.result-section-nav{position:sticky;top:8px;z-index:10;display:flex;gap:7px;overflow:auto;margin:0 0 18px;padding:9px;border:1px solid var(--rule);border-radius:11px;background:rgba(255,255,255,.96);box-shadow:0 6px 18px rgba(20,39,29,.05)}.result-section-nav a{flex:0 0 auto;padding:7px 11px;border-radius:7px;color:#425148;text-decoration:none;font-size:.78rem;font-weight:750}.result-section-nav a:hover{background:var(--green-soft)}.continue-analysis{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:center;margin:22px 0;padding:22px 24px;border:1px solid #b9cfc2;border-radius:13px;background:#f3f8f5}.continue-analysis h2{margin:0 0 5px;font-size:1.25rem}.continue-analysis p{margin:0;color:#5b6a61}.continue-analysis a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border:1px solid var(--green-dark);border-radius:7px;background:var(--green);color:#fff;text-decoration:none;font-weight:800;white-space:nowrap}.results-stack{display:grid;gap:14px}.analysis-result-card{scroll-margin-top:76px;padding:22px;border:1px solid var(--rule);border-radius:13px;background:#fff;box-shadow:0 1px 3px rgba(17,32,24,.035)}.analysis-result-card>header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:start;margin-bottom:16px}.analysis-result-card h2{margin:2px 0 5px;font-size:1.28rem;line-height:1.18}.analysis-result-card header p{margin:0;color:var(--muted)}.analysis-category{color:#3f6b55!important;font-size:.68rem!important;font-weight:800;text-transform:uppercase;letter-spacing:.055em}.analysis-row-count{display:inline-flex;padding:6px 9px;border-radius:999px;background:#f0f4f1;color:#526158;font-size:.69rem;font-weight:750;white-space:nowrap}.result-metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.result-metric{padding:16px;border:1px solid #d7dfda;border-radius:10px;background:#fafcfb}.result-metric small{display:block;color:#66746c;font-size:.68rem;font-weight:750;text-transform:uppercase}.result-metric strong{display:block;margin-top:5px;font-size:1.7rem;font-variant-numeric:tabular-nums}.table-shell{overflow:auto;border:1px solid #dbe2dd;border-radius:9px;background:#fff}.table-shell table{width:100%;min-width:620px;border-collapse:separate;border-spacing:0;font-size:.82rem}.table-shell th{padding:10px 12px;background:#f5f7f5;color:#536159;border-bottom:1px solid #dbe2dd;text-align:left;font-size:.68rem;text-transform:uppercase;white-space:nowrap}.table-shell td{padding:10px 12px;border-bottom:1px solid #edf1ee;color:#2c3932}.cell-number{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.table-detail,.trace-detail{margin-top:10px;border:0;background:transparent}.table-detail>summary,.trace-detail>summary{padding:7px 0;color:var(--green-dark);font-size:.78rem;font-weight:750}.table-shell--full{max-height:620px}.trace-detail .details-body{padding:10px 14px;border:1px solid var(--rule);border-radius:8px;background:#fafcfa;color:#657169;font-size:.78rem}.section-heading{display:flex;align-items:end;justify-content:space-between;gap:12px}.section-count{display:grid;place-items:center;min-width:34px;height:34px;border-radius:999px;background:var(--green-soft);font-size:.78rem;font-weight:800}.blocked-analyses-body{display:grid;gap:8px;padding:0 12px 12px}.file-read{display:inline-flex!important;margin-top:12px!important;padding:6px 9px;border-radius:7px;background:#eef3ef;color:#516058!important;font-size:.78rem!important}.semantic-unresolved-note{margin:0;padding:9px 10px;border-radius:7px;background:#fff8e8;color:#6e531c;font-size:.82rem}.app-main{width:min(1180px,calc(100% - 40px))}@media(max-width:900px){.summary-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.results-header{grid-template-columns:1fr}}@media(max-width:620px){.summary-metric-grid{grid-template-columns:1fr}.analysis-result-card{padding:16px}.analysis-result-card>header{grid-template-columns:1fr}.results-header{padding:19px}.continue-analysis{grid-template-columns:1fr}.continue-analysis a{width:100%}.app-main{width:calc(100% - 22px)}}
+"""
+
+
 def render_document_v1(content: str) -> str:
     template = _TEMPLATE_PATH.read_text(encoding="utf-8")
     shell = (
         '<div class="pymia-app">'
+        f'<style>{_WORKSPACE_CSS}</style>'
         '<header class="app-header">'
         '<a class="app-brand" href="/" aria-label="PymIA inicio">'
         '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>'
@@ -60,13 +170,13 @@ def render_home_v1(
         for ref, name, description in reconciliation_options
     )
     return f'''<main id="app" tabindex="-1" class="journey">
-      <header class="journey-intro"><p class="kicker">Servicio 1</p><h1>Subí tu Excel</h1><p>PymIA primero lee el archivo, después te pide confirmar sólo lo necesario y recién entonces te muestra qué análisis podés pedir sobre esa misma información.</p></header>
+      <header class="journey-intro"><p class="kicker">Análisis de gestión</p><h1>Subí tu Excel de gestión</h1><p>Revisamos qué información contiene y te mostramos qué análisis se pueden calcular. Si falta una definición importante, te la pedimos antes de usarla.</p></header>
       {_error(error)}
       <form action="/upload" method="post" enctype="multipart/form-data" class="analysis-start">
-        <section class="upload-panel upload-panel--first" aria-labelledby="upload-title"><div><h2 id="upload-title">Elegí el archivo</h2><p>.xlsx · PymIA no modifica el original.</p></div>
-          <input id="file" name="file" type="file" accept=".xlsx" required><button type="submit">Leer mi Excel</button>
+        <section class="upload-panel upload-panel--first" aria-labelledby="upload-title"><div><h2 id="upload-title">Elegí el archivo</h2><p>Formato .xlsx · El archivo original no se modifica.</p></div>
+          <input id="file" name="file" type="file" accept=".xlsx" required><button type="submit">Revisar archivo</button>
         </section>
-        <section class="next-step"><h2>Qué pasa después</h2><p><strong>1.</strong> PymIA identifica hojas, columnas y relaciones. <strong>2.</strong> Confirmás las dudas materiales. <strong>3.</strong> Elegís uno, varios o todos los análisis que quieras recibir con esa evidencia.</p></section>
+        <section class="next-step"><h2>Qué vas a obtener</h2><p><strong>1.</strong> Lectura completa del archivo. <strong>2.</strong> Confirmación sólo de los datos que realmente necesiten contexto. <strong>3.</strong> Un menú con los análisis disponibles para ese Excel.</p></section>
         <details class="optional-context"><summary>Datos opcionales para administradores de consorcios</summary><div class="optional-body">
           <label for="consorcio_id">Código del consorcio</label><input id="consorcio_id" name="consorcio_id" type="text" autocomplete="off">
           <label for="consorcio_name">Nombre del consorcio</label><input id="consorcio_name" name="consorcio_name" type="text" autocomplete="organization">
@@ -100,24 +210,25 @@ def render_analysis_menu_v1(
         for item in blocked_options
         if isinstance(item, Mapping)
     )
-    file_note = f'<p class="file-read">Archivo leído: <strong>{_esc(filename)}</strong></p>' if filename else ""
+    file_note = f'<p class="file-read">Archivo: <strong>{_esc(filename)}</strong></p>' if filename else ""
+    available_count = len(tuple(launch_options))
     available_section = (
-        f'<section class="analysis-list" aria-labelledby="analysis-menu-title"><h2 id="analysis-menu-title">Podés analizar ahora</h2>{choices}</section>'
+        f'<section class="analysis-list" aria-labelledby="analysis-menu-title"><div class="section-heading"><div><p class="kicker">Disponibles ahora</p><h2 id="analysis-menu-title">Elegí uno o varios análisis</h2></div><span class="section-count">{available_count}</span></div>{choices}</section>'
         if choices
-        else '<section class="analysis-list"><h2>Todavía no hay análisis computables</h2><p>PymIA conserva lo confirmado y muestra abajo qué evidencia falta para cada análisis.</p></section>'
+        else '<section class="analysis-list"><h2>Este archivo todavía no permite calcular un análisis completo</h2><p>Abajo te mostramos qué información falta para habilitar cada resultado.</p></section>'
     )
     blocked_section = (
-        f'<section class="analysis-list" aria-labelledby="analysis-blocked-title"><h2 id="analysis-blocked-title">Análisis que necesitan más datos</h2>{blocked}</section>'
+        f'<details class="blocked-analyses"><summary>Análisis que necesitan más datos ({len(tuple(blocked_options))})</summary><div class="blocked-analyses-body">{blocked}</div></details>'
         if blocked
         else ""
     )
     action = (
-        '<div class="sticky-action"><span>La selección define qué capacidades puede ejecutar PymIA sobre este archivo.</span><button type="submit">Preparar análisis seleccionados</button></div>'
+        '<div class="sticky-action"><span>Podés elegir uno, varios o todos.</span><button type="submit">Generar resultados</button></div>'
         if choices
         else ""
     )
     return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}
-      <header class="journey-intro"><p class="kicker">Excel entendido</p><h1>¿Qué querés que PymIA te devuelva?</h1><p>Las opciones disponibles provienen de la evidencia semántica confirmada y del gate de computabilidad. Lo que no puede calcularse queda bloqueado con el dato faltante, sin completar nada por suposición.</p>{file_note}</header>
+      <header class="journey-intro"><p class="kicker">Archivo listo</p><h1>Elegí qué querés revisar</h1><p>Con este archivo hay {available_count} análisis disponibles. Elegí los que te sirvan; los demás quedan disponibles para después.</p>{file_note}</header>
       {_error(error)}
       <form action="/run-review" method="post" class="analysis-start">
         {available_section}{blocked_section}{action}
@@ -144,22 +255,31 @@ def render_analysis_bundle_v1(results: Sequence[Mapping[str, Any]]) -> str:
         details = item.get("details") if isinstance(item.get("details"), Sequence) and not isinstance(item.get("details"), (str, bytes)) else []
         details_html = "".join(f'<li>{_esc(detail)}</li>' for detail in details)
         cards.append(f'''<section class="analysis-result-card"><header><div><p class="kicker">{_esc(item.get("title"))}</p><h2>{_esc(item.get("headline"))}</h2></div><span class="result-state {state_class}">{state_label}</span></header>{f'<div class="metric-row">{metric_html}</div>' if metric_html else ''}<p>{_esc(item.get("summary"))}</p>{f'<details><summary>Datos utilizados</summary><div class="details-body"><ul>{details_html}</ul></div></details>' if details_html else ''}{f'<div class="result-actions">{action_html}</div>' if action_html else ''}</section>''')
-    return f'''<main id="app" tabindex="-1" class="journey">{_progress("resultado")}<header class="journey-intro"><p class="kicker">Devolución del Excel</p><h1>Tus análisis</h1><p>Resultados obtenidos únicamente con la evidencia confirmada del archivo.</p></header>{''.join(cards)}<div class="result-actions"><a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Mis análisis</a></div></main>'''
+    result_count = len(tuple(results))
+    return f'''<main id="app" tabindex="-1" class="journey enterprise-results">{_progress("resultado")}<header class="results-header"><div><p class="kicker">Resultados</p><h1>Resumen del archivo</h1><p>{result_count} {"análisis listo" if result_count == 1 else "análisis listos"}. Revisá los indicadores y abrí el detalle cuando lo necesites.</p></div><div class="results-header-actions"><a class="secondary" href="/cases">Historial</a><a href="/">Nuevo archivo</a></div></header><div class="results-stack">{''.join(cards)}</div>{_continue_analysis_panel_v1()}<div class="result-actions result-actions--footer"><a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Ver historial</a></div></main>'''
 
 
 def render_analysis_result_sets_v1(results: Sequence[Mapping[str, Any]]) -> str:
-    """Render governed F9 ResultSets without business calculations or inference."""
+    """Present governed analytical results as a compact management workspace."""
+    packets = [item for item in results if isinstance(item, Mapping)]
     sections: list[str] = []
-    for item in results:
+    highlights: list[str] = []
+    category_anchors: dict[str, str] = {}
+    for index, item in enumerate(packets, start=1):
         result_set = item.get("result_set") if isinstance(item.get("result_set"), Mapping) else {}
         groups = [group for group in (result_set.get("groups") or []) if isinstance(group, Mapping)]
-        title = str(item.get("title") or result_set.get("analysis_id") or "Análisis")
-        question = str(item.get("question") or "")
+        analysis_id = str(item.get("analysis_id") or result_set.get("analysis_id") or f"analysis-{index}")
+        title = str(item.get("title") or analysis_id or "Análisis")
+        question = str(item.get("question") or "").strip()
+        category = _analysis_category(analysis_id, title)
+        anchor = f"analysis-{index}"
+        category_anchors.setdefault(category, anchor)
         if not groups:
             sections.append(
-                f'<section class="analysis-result-card"><header><div><p class="kicker">{_esc(title)}</p>'
-                f'<h2>Sin filas de resultado</h2></div><span class="result-state is-missing">Sin resultado</span></header>'
-                f'<p>{_esc(question)}</p></section>'
+                f'<section id="{anchor}" class="analysis-result-card" data-category="{_esc(category)}"><header><div>'
+                f'<p class="analysis-category">{_esc(category)}</p><h2>{_esc(title)}</h2>'
+                f'{f"<p>{_esc(question)}</p>" if question else ""}</div><span class="result-state is-missing">Sin datos</span></header>'
+                '<div class="empty-analysis"><p>Este análisis no devolvió resultados con la información disponible.</p></div></section>'
             )
             continue
 
@@ -177,7 +297,7 @@ def render_analysis_result_sets_v1(results: Sequence[Mapping[str, Any]]) -> str:
                     measure_keys.append(str(measure))
 
         columns = (["rank"] if has_rank else []) + dimension_keys + measure_keys
-        header_html = "".join(f"<th>{_esc(column.replace('_', ' ').title())}</th>" for column in columns)
+        header_html = "".join(f"<th>{_esc(_human_label(column))}</th>" for column in columns)
         row_html: list[str] = []
         for group in groups[:250]:
             key = group.get("key") if isinstance(group.get("key"), Mapping) else {}
@@ -189,45 +309,74 @@ def render_analysis_result_sets_v1(results: Sequence[Mapping[str, Any]]) -> str:
                 cells.append(f"<td>{_esc(key.get(dimension, ''))}</td>")
             for measure_ref in measure_keys:
                 measure = measures.get(measure_ref) if isinstance(measures.get(measure_ref), Mapping) else {}
-                value = measure.get("value")
-                unit = str(measure.get("unit") or "")
-                currency = str(measure.get("currency_code") or "")
-                if isinstance(value, (int, float)) and not isinstance(value, bool):
-                    if unit == "percentage":
-                        rendered_value = f"{float(value):.2f}%"
-                    elif unit in {"count", "units"} and float(value).is_integer():
-                        rendered_value = str(int(value))
-                    else:
-                        rendered_value = _format_amount(float(value))
-                else:
-                    rendered_value = str(value if value is not None else "")
-                suffix = f" {currency}" if currency else ""
-                cells.append(f"<td>{_esc(rendered_value + suffix)}</td>")
+                cells.append(f'<td class="cell-number">{_esc(_render_measure_value(measure))}</td>')
             row_html.append(f"<tr>{''.join(cells)}</tr>")
 
         source_sheets = ", ".join(str(value) for value in (result_set.get("source_sheet_refs") or []))
         relationships = ", ".join(str(value) for value in (result_set.get("relationship_refs") or []))
         details: list[str] = []
         if source_sheets:
-            details.append(f"Hojas: {source_sheets}")
+            details.append(f"Hojas utilizadas: {source_sheets}")
         if relationships:
-            details.append(f"Relaciones confirmadas: {relationships}")
+            details.append(f"Cruces utilizados: {relationships}")
         if len(groups) > 250:
-            details.append(f"Se muestran 250 de {len(groups)} filas del ResultSet.")
+            details.append(f"La vista detallada muestra las primeras 250 de {len(groups)} filas.")
         details_html = "".join(f"<li>{_esc(value)}</li>" for value in details)
-        sections.append(
-            f'<section class="analysis-result-card"><header><div><p class="kicker">{_esc(title)}</p>'
-            f'<h2>{_esc(question or title)}</h2></div><span class="result-state is-ready">Resultado listo</span></header>'
-            f'<div class="details-body"><table><thead><tr>{header_html}</tr></thead><tbody>{"".join(row_html)}</tbody></table></div>'
-            f'{f"<details><summary>Trazabilidad</summary><div class=\"details-body\"><ul>{details_html}</ul></div></details>" if details_html else ""}'
-            f'</section>'
+
+        single_value = len(groups) == 1 and not dimension_keys
+        if single_value:
+            measures = groups[0].get("measures") if isinstance(groups[0].get("measures"), Mapping) else {}
+            metric_html = "".join(
+                f'<div class="result-metric"><small>{_esc(_human_label(ref))}</small><strong>{_esc(_render_measure_value(measure))}</strong></div>'
+                for ref, measure in measures.items() if isinstance(measure, Mapping)
+            )
+            body_html = f'<div class="result-metric-grid">{metric_html}</div>'
+            if len(highlights) < 4:
+                first_measure = next(((ref, measure) for ref, measure in measures.items() if isinstance(measure, Mapping)), None)
+                if first_measure is not None:
+                    ref, measure = first_measure
+                    highlights.append(
+                        f'<a class="summary-metric" href="#{anchor}"><small>{_esc(title)}</small><strong>{_esc(_render_measure_value(measure))}</strong><span>{_esc(_human_label(ref))}</span></a>'
+                    )
+        else:
+            preview_rows = "".join(row_html[:8])
+            body_html = f'<div class="table-shell"><table><thead><tr>{header_html}</tr></thead><tbody>{preview_rows}</tbody></table></div>'
+            if len(groups) > 8:
+                body_html += (
+                    f'<details class="table-detail"><summary>Ver tabla completa ({len(groups)} filas)</summary>'
+                    f'<div class="table-shell table-shell--full"><table><thead><tr>{header_html}</tr></thead><tbody>{"".join(row_html)}</tbody></table></div></details>'
+                )
+
+        trace_html = (
+            f'<details class="trace-detail"><summary>Origen y detalle del cálculo</summary><div class="details-body"><ul>{details_html}</ul></div></details>'
+            if details_html else ""
         )
+        row_label = "1 resultado" if len(groups) == 1 else f"{len(groups)} resultados"
+        sections.append(
+            f'<section id="{anchor}" class="analysis-result-card" data-category="{_esc(category)}"><header><div>'
+            f'<p class="analysis-category">{_esc(category)}</p><h2>{_esc(title)}</h2>'
+            f'{f"<p>{_esc(question)}</p>" if question and question != title else ""}</div><span class="analysis-row-count">{_esc(row_label)}</span></header>'
+            f'{body_html}{trace_html}</section>'
+        )
+    nav_html = "".join(
+        f'<a href="#{_esc(anchor)}">{_esc(category)}</a>'
+        for category, anchor in category_anchors.items()
+    )
+    overview_html = (
+        f'<section class="results-overview" aria-label="Indicadores principales"><div class="summary-metric-grid">{"".join(highlights)}</div></section>'
+        if highlights else ""
+    )
+    analysis_count = len(packets)
     return (
-        f'<main id="app" tabindex="-1" class="journey">{_progress("resultado")}'
-        '<header class="journey-intro"><p class="kicker">Devolución del Excel</p><h1>Tus análisis</h1>'
-        '<p>Resultados proyectados desde ResultSet gobernados. La interfaz no calcula ni infiere conclusiones.</p></header>'
-        f'{"".join(sections)}<div class="result-actions"><a class="secondary" href="/">Analizar otro Excel</a>'
-        '<a class="secondary" href="/cases">Mis análisis</a></div></main>'
+        f'<main id="app" tabindex="-1" class="journey enterprise-results">{_progress("resultado")}'
+        '<header class="results-header"><div><p class="kicker">Resultados</p><h1>Resumen del archivo</h1>'
+        f'<p>{analysis_count} {"análisis listo" if analysis_count == 1 else "análisis listos"}. Revisá primero lo importante y abrí el detalle cuando lo necesites.</p></div>'
+        '<div class="results-header-actions"><a class="secondary" href="/cases">Historial</a><a href="/">Nuevo análisis</a></div></header>'
+        f'{overview_html}'
+        f'{f"<nav class=\"result-section-nav\" aria-label=\"Secciones de resultados\">{nav_html}</nav>" if nav_html else ""}'
+        f'<div class="results-stack">{"".join(sections)}</div>'
+        f'{_continue_analysis_panel_v1()}'
+        '<div class="result-actions result-actions--footer"><a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Ver historial</a></div></main>'
     )
 
 
@@ -305,7 +454,7 @@ def render_semantic_questions_v1(questions: list[dict[str, Any]], error: str | N
         options = [item for item in (question.get("options") or []) if isinstance(item, dict)]
         proposed = next((item for item in options if str(item.get("option_id") or "").strip() not in {"OTHER", "IGNORE"}), None)
         option_html = "".join(f'<option name="answer_{qid}" value="{_esc(item.get("option_id"))}"{" selected" if str(item.get("option_id") or "").strip() == previous_option else ""}>{_esc(item.get("label"))}</option>' for item in options)
-        proposal = f'<p class="proposal">PymIA entiende que es <strong>{_esc(proposed.get("label"))}</strong>.</p>' if proposed else ""
+        proposal = f'<p class="proposal">Lo interpretamos como <strong>{_esc(proposed.get("label"))}</strong>.</p>' if proposed else ""
         memory_hint = str(question.get("tenant_memory_hint") or "").strip()
         memory_note = (
             f'<p class="memory-note">La vez anterior confirmaste: <strong>{_esc(memory_hint)}</strong>. Lo muestro como antecedente; no completo la respuesta por vos.</p>'
@@ -319,7 +468,7 @@ def render_semantic_questions_v1(questions: list[dict[str, Any]], error: str | N
           </div></section>''')
     return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}
       <header class="journey-intro"><p class="kicker">Esto entendí de tu Excel</p><h1>Antes de calcular, confirmemos {len(cards)} {"dato" if len(cards) == 1 else "datos"}</h1><p>Te muestro únicamente lo que puede cambiar el resultado. Si algo no es claro, podés dejarlo pendiente.</p></header>
-      {_error(error)}<form class="understanding-form" action="/confirm-meanings" method="post">{''.join(cards)}<div class="sticky-action"><span>Con tus confirmaciones PymIA vuelve al cálculo determinístico.</span><button type="submit">Continuar al resultado</button></div></form>
+      {_error(error)}<form class="understanding-form" action="/confirm-meanings" method="post">{''.join(cards)}<div class="sticky-action"><span>Con estas confirmaciones seguimos con el análisis.</span><button type="submit">Continuar</button></div></form>
     </main>'''
 
 
@@ -352,7 +501,7 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
         total = max(int(decision.get("progress_total") or 1), 1)
         completed = max(int(decision.get("progress_completed") or 0), 0)
         pct = min(100, max(0, round((completed / total) * 100)))
-        progress_html = f'''<section aria-label="Progreso de comprensión" style="margin:0 0 1.25rem"><div style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:.45rem"><strong>Columna {current} de {total}</strong><span>{pct}% confirmado</span></div><div style="height:8px;border-radius:999px;background:#e7edf4;overflow:hidden"><div style="height:100%;width:{pct}%;background:currentColor;opacity:.65"></div></div></section>'''
+        progress_html = f'''<section aria-label="Progreso de comprensión" style="margin:0 0 1.25rem"><div style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:.45rem"><strong>Revisión {current} de {total}</strong><span>{pct}% confirmado</span></div><div style="height:8px;border-radius:999px;background:#e7edf4;overflow:hidden"><div style="height:100%;width:{pct}%;background:currentColor;opacity:.65"></div></div></section>'''
         samples = list(decision.get("sample_values") or [])[:5]
         sample_html = "".join(f'<code>{_esc(value)}</code>' for value in samples) or '<span class="empty-sample">Sin ejemplos visibles</span>'
         sheet = str(decision.get("sheet_name") or "").strip()
@@ -386,33 +535,39 @@ def render_semantic_dialogue_v1(decisions: list[dict[str, Any]], error: str | No
         suggested_variable = str(suggestion.get("variable_name") or "").strip()
         suggestion_html = ""
         if suggested_role and suggested_variable:
-            suggestion_html = '''<div class="semantic-suggestion"><small>Propuesta revisada</small><p>PymIA encontró una interpretación compatible con lo que explicaste.</p><p>Esto todavía no está confirmado.</p><button type="submit" formaction="/semantic-revise" formmethod="post" formnovalidate>Revisar esta interpretación</button></div>'''
+            suggestion_html = '''<div class="semantic-suggestion"><small>Interpretación revisada</small><p>Con tu explicación encontramos una interpretación compatible.</p><p>Revisala antes de continuar.</p><button type="submit" formaction="/semantic-revise" formmethod="post" formnovalidate>Revisar interpretación</button></div>'''
         raw_column_refs = [str(ref).strip() for ref in (decision.get("column_refs") or []) if str(ref).strip()]
         raw_relationship_refs = [str(ref).strip() for ref in (decision.get("relationship_refs") or []) if str(ref).strip()]
         skip_option_html = ""
         if len(raw_column_refs) == 1 and not raw_relationship_refs:
-            skip_option_html = f'<label><input type="radio" name="action_{_esc(did)}" value="SKIP"{" checked" if selected == "SKIP" else ""}>No tomes en cuenta esta columna para el análisis que necesito</label>'
+            skip_option_html = f'<label><input type="radio" name="action_{_esc(did)}" value="SKIP"{" checked" if selected == "SKIP" else ""}>No usar esta columna</label>'
         accept_enabled = bool(decision.get("accept_enabled", True))
         if accept_enabled:
             decision_options_html = (
-                f'<label><input type="radio" name="action_{_esc(did)}" value="ACCEPT" required{" checked" if selected == "ACCEPT" else ""}>Sí, es correcto: eso significa</label>'
-                f'<label><input type="radio" name="action_{_esc(did)}" value="REJECT"{" checked" if selected == "REJECT" else ""}>No, no significa eso</label>'
-                f'<label><input type="radio" name="action_{_esc(did)}" value="CORRECT"{" checked" if selected == "CORRECT" else ""}>Quiero explicarlo con mis palabras</label>'
+                f'<label><input type="radio" name="action_{_esc(did)}" value="ACCEPT" required{" checked" if selected == "ACCEPT" else ""}>Sí, está bien</label>'
+                f'<label><input type="radio" name="action_{_esc(did)}" value="CORRECT"{" checked" if selected == "CORRECT" else ""}>No, quiero corregirlo</label>'
                 f'{skip_option_html}'
             )
             unresolved_note = ""
         else:
             decision_options_html = (
-                f'<label><input type="radio" name="action_{_esc(did)}" value="CORRECT" required{" checked" if selected == "CORRECT" else ""}>Quiero explicarlo con mis palabras</label>'
+                f'<label><input type="radio" name="action_{_esc(did)}" value="CORRECT" required{" checked" if selected == "CORRECT" else ""}>Explicar qué significa</label>'
                 f'{skip_option_html}'
             )
-            unresolved_note = '<p class="semantic-unresolved-note">Todavía no hay una interpretación concreta para confirmar. Explicá qué representa esta columna o dejala fuera de este análisis.</p>'
-        cards.append(f'''<section class="understanding-card semantic-transaction"><div class="found-data"><small>Columna actual</small><strong>{_esc(column or " · ".join(refs) or did)}</strong>{f'<span>Hoja {_esc(sheet)}</span>' if sheet else ''}<p class="sample-label">Ejemplos del archivo</p><div class="sample-values">{sample_html}</div><p>La resolvemos ahora y después seguimos con la siguiente.</p></div>
-          <div class="confirm-data"><small>Propuesta de PymIA</small><p class="question-text">{_esc(decision.get("presentation_text") or "")}</p>{unresolved_note}
+            unresolved_note = '<p class="semantic-unresolved-note">Decime qué significa esta columna en tu negocio. Si no la necesitás para este análisis, podés dejarla afuera.</p>'
+        is_grouped_reading = len(raw_column_refs) + len(raw_relationship_refs) > 1
+        display_name = " · ".join(refs) if is_grouped_reading else (column or " · ".join(refs) or did)
+        scope_label = "Lectura general del Excel" if is_grouped_reading else "Dato que necesita revisión"
+        sample_section = "" if is_grouped_reading else f'<p class="sample-label">Ejemplos del archivo</p><div class="sample-values">{sample_html}</div>'
+        context_note = "Leímos estas columnas en conjunto." if is_grouped_reading else "Sólo necesitamos resolver este punto para continuar."
+        review_label = "Cómo lo entendimos" if accept_enabled else "Necesito que me aclares esto"
+        correction_label = "Corrección, si hace falta" if accept_enabled else "Qué significa, en tus palabras"
+        cards.append(f'''<section class="understanding-card semantic-transaction"><div class="found-data"><small>{scope_label}</small><strong>{_esc(display_name)}</strong>{f'<span>Hoja {_esc(sheet)}</span>' if sheet and not is_grouped_reading else ''}{sample_section}<p>{context_note}</p></div>
+          <div class="confirm-data"><small>{review_label}</small><p class="question-text">{_esc(decision.get("presentation_text") or "")}</p>{unresolved_note}
           <div class="radio-stack">{decision_options_html}</div>
-          <label for="correction_{_esc(did)}">Corrección, si hace falta</label><input id="correction_{_esc(did)}" type="text" name="correction_{_esc(did)}" placeholder="Ej.: es el precio de lista antes del descuento">
-          <section class="semantic-chat" aria-label="Conversación con PymIA" style="margin-top:6px;border:1px solid #dbe2dd;border-radius:10px;background:#f8fbf9;overflow:hidden"><header class="semantic-chat-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-bottom:1px solid #dbe2dd;background:#fff"><div style="display:grid;gap:1px"><strong>PymIA</strong><small style="margin:0;color:#617068;font-size:.68rem;text-transform:none;letter-spacing:0">Asistente semántico con LLM</small></div><span style="padding:4px 7px;border-radius:999px;background:#e9f3ed;color:#104632;font-size:.63rem;font-weight:800">Conversación</span></header><div class="semantic-chat-messages" style="display:grid;gap:9px;max-height:310px;overflow:auto;padding:12px">{chat_history}</div>{suggestion_html}<div class="semantic-chat-composer" style="display:grid;gap:8px;padding:10px;border-top:1px solid #dbe2dd;background:#fff"><input type="hidden" name="decision_id" value="{_esc(did)}"><label style="font-size:.75rem;color:#617068" for="assistant_message_{_esc(did)}">Hablá con PymIA</label><textarea id="assistant_message_{_esc(did)}" name="assistant_message" rows="3" style="width:100%;min-height:74px;resize:vertical;padding:10px 11px;border:1px solid #cbd4ce;border-radius:8px;font:inherit" placeholder="Preguntale algo o decile con tus palabras qué significa esta columna"></textarea><div class="semantic-chat-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span id="semantic-thinking-{_esc(did)}" class="htmx-indicator semantic-thinking" style="margin-right:auto;color:#617068;font-size:.75rem">PymIA está pensando…</span><button type="submit" formaction="/semantic-assist" formmethod="post" formnovalidate hx-post="/semantic-assist" hx-target="#app" hx-swap="outerHTML" hx-include="closest form" hx-indicator="#semantic-thinking-{_esc(did)}">Enviar</button></div></div></section></div></section>''')
-    return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}<header class="journey-intro"><p class="kicker">Esto entendí de tu Excel</p><h1>Una columna por vez</h1><p>PymIA propone. Vos confirmás, corregís o preguntás. El significado recién se vuelve evidencia cuando vos lo confirmás.</p></header>{progress_html}{_error(error)}<form action="/confirm-meanings" method="post" class="understanding-form">{''.join(cards)}<div class="sticky-action"><span>Tu respuesta queda guardada en esta sesión y avanzamos a la siguiente columna.</span><button type="submit">Guardar y seguir</button></div></form></main>'''
+          <label for="correction_{_esc(did)}">{correction_label}</label><input id="correction_{_esc(did)}" type="text" name="correction_{_esc(did)}" placeholder="Ej.: es el precio de lista antes del descuento">
+          <section class="semantic-chat" aria-label="Conversación con PymIA" style="margin-top:6px;border:1px solid #dbe2dd;border-radius:10px;background:#f8fbf9;overflow:hidden"><header class="semantic-chat-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-bottom:1px solid #dbe2dd;background:#fff"><div style="display:grid;gap:1px"><strong>PymIA</strong><small style="margin:0;color:#617068;font-size:.68rem;text-transform:none;letter-spacing:0">Ayuda para interpretar el archivo</small></div><span style="padding:4px 7px;border-radius:999px;background:#e9f3ed;color:#104632;font-size:.63rem;font-weight:800">Aclaración</span></header><div class="semantic-chat-messages" style="display:grid;gap:9px;max-height:310px;overflow:auto;padding:12px">{chat_history}</div>{suggestion_html}<div class="semantic-chat-composer" style="display:grid;gap:8px;padding:10px;border-top:1px solid #dbe2dd;background:#fff"><input type="hidden" name="decision_id" value="{_esc(did)}"><label style="font-size:.75rem;color:#617068" for="assistant_message_{_esc(did)}">Aclarar este dato</label><textarea id="assistant_message_{_esc(did)}" name="assistant_message" rows="3" style="width:100%;min-height:74px;resize:vertical;padding:10px 11px;border:1px solid #cbd4ce;border-radius:8px;font:inherit" placeholder="Preguntale algo o decile con tus palabras qué significa esta columna"></textarea><div class="semantic-chat-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><span id="semantic-thinking-{_esc(did)}" class="htmx-indicator semantic-thinking" style="margin-right:auto;color:#617068;font-size:.75rem">Revisando…</span><button type="submit" formaction="/semantic-assist" formmethod="post" formnovalidate hx-post="/semantic-assist" hx-target="#app" hx-swap="outerHTML" hx-include="closest form" hx-indicator="#semantic-thinking-{_esc(did)}">Enviar</button></div></div></section></div></section>''')
+    return f'''<main id="app" tabindex="-1" class="journey">{_progress("comprension")}<header class="journey-intro"><p class="kicker">Revisión del archivo</p><h1>Confirmá que entendimos bien</h1><p>Leímos la planilla completa. Sólo te pedimos revisar los puntos que pueden cambiar el resultado.</p></header>{progress_html}{_error(error)}<form action="/confirm-meanings" method="post" class="understanding-form">{''.join(cards)}<div class="sticky-action"><span>Con esta revisión terminada, pasás al menú de análisis.</span><button type="submit">Continuar</button></div></form></main>'''
 
 
 def render_unit_questions_v1(questions: list[dict[str, Any]], error: str | None = None, *, selected_units: dict[str, str] | None = None, ingestion_output: Mapping[str, Any] | None = None) -> str:
@@ -447,14 +602,19 @@ def render_unit_deferred_v1(questions: list[dict[str, Any]]) -> str:
 
 def render_margin_result_v1(*, title: str, value: object, unit: object, finding: object, data_html: str, limitations: Sequence[object], download_html: str) -> str:
     limits = ''.join(f'<li>{_esc(item)}</li>' for item in limitations)
-    return f'''<main id="app" tabindex="-1" class="journey">{_progress("resultado")}<header class="result-header"><div><p class="kicker">Resultado</p><h1>{_esc(title)}</h1><p>Calculado con los datos que PymIA encontró y vos confirmaste.</p></div><span class="result-state is-ready">Resultado listo</span></header><section class="primary-result"><h2>Tu resultado</h2><p class="primary-value">{_esc(value)} {_esc(unit)}</p><p>{_esc(finding)}</p></section><details><summary>Datos utilizados</summary><div class="details-body">{data_html}</div></details><details><summary>Qué conviene tener en cuenta</summary><div class="details-body"><p>Este resultado surge de los datos confirmados y no atribuye automáticamente causas.</p><ul>{limits}</ul></div></details><div class="result-actions">{download_html}<a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Mis análisis</a></div></main>'''
+    unit_text = str(unit or "").strip()
+    if unit_text == "currency" and isinstance(value, (int, float)) and not isinstance(value, bool):
+        display_value = _format_money(float(value))
+    else:
+        display_value = f"{value} {unit_text}".strip()
+    return f'''<main id="app" tabindex="-1" class="journey enterprise-results">{_progress("resultado")}<header class="results-header"><div><p class="kicker">Resultados</p><h1>{_esc(title)}</h1><p>Resultado calculado con la información confirmada de tu archivo.</p></div><div class="results-header-actions"><a class="secondary" href="/cases">Historial</a><a href="/">Nuevo archivo</a></div></header><section class="primary-result"><h2>Resultado principal</h2><p class="primary-value">{_esc(display_value)}</p><p>{_esc(finding)}</p></section><details><summary>Origen y detalle del cálculo</summary><div class="details-body">{data_html}</div></details><details><summary>Qué conviene tener en cuenta</summary><div class="details-body"><p>Este resultado surge de los datos confirmados y no atribuye automáticamente causas.</p><ul>{limits}</ul></div></details>{_continue_analysis_panel_v1()}<div class="result-actions">{download_html}<a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Ver historial</a></div></main>'''
 
 
 def render_sales_collections_result_v1(*, sold: float, collected: float, gap: float, ratio_text: str, finding: str, classification_label: str, source_rows: str, filename: str, period_text: str, limitations: Sequence[object], download_html: str) -> str:
     state = "Hay una diferencia" if gap != 0 else "Sin diferencias"
     cls = "is-review" if gap != 0 else "is-ready"
     limits = ''.join(f'<li>{_esc(item)}</li>' for item in limitations)
-    return f'''<main id="app" tabindex="-1" class="journey">{_progress("resultado")}<header class="result-header"><div><p class="kicker">Resultado</p><h1>Ventas y cobranzas</h1><p>Comparación entre lo vendido y lo cobrado en los registros analizados.</p></div><span class="result-state {cls}">{state}</span></header><section class="metric-row"><div><small>Total vendido</small><strong>{_esc(_format_amount(sold))}</strong></div><div><small>Total cobrado</small><strong>{_esc(_format_amount(collected))}</strong></div><div class="metric-focus"><small>Diferencia</small><strong>{_esc(_format_amount(gap))}</strong></div></section><section class="primary-result"><h2>Qué significa</h2><p><strong>{_esc(finding)}</strong></p><p>Porcentaje cobrado: <strong>{_esc(ratio_text)}</strong>. {_esc(classification_label)}.</p></section><details><summary>Datos utilizados</summary><div class="details-body"><p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p><ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul><p>Período: {_esc(period_text)}</p></div></details><details><summary>Qué conviene tener en cuenta</summary><div class="details-body"><ul>{limits}</ul><p>La diferencia surge de los registros recibidos y no determina por sí sola la causa.</p></div></details><div class="result-actions">{download_html}<a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Mis análisis</a></div></main>'''
+    return f'''<main id="app" tabindex="-1" class="journey enterprise-results">{_progress("resultado")}<header class="results-header"><div><p class="kicker">Resultados</p><h1>Ventas y cobranzas</h1><p>Comparación entre lo vendido y lo cobrado en los registros analizados.</p></div><div class="results-header-actions"><a class="secondary" href="/cases">Historial</a><a href="/">Nuevo archivo</a></div></header><section class="metric-row"><div><small>Total vendido</small><strong>{_esc(_format_money(sold))}</strong></div><div><small>Total cobrado</small><strong>{_esc(_format_money(collected))}</strong></div><div class="metric-focus"><small>Diferencia</small><strong>{_esc(_format_money(gap))}</strong></div></section><section class="primary-result"><h2>{_esc(state)}</h2><p><strong>{_esc(finding)}</strong></p><p>Porcentaje cobrado: <strong>{_esc(ratio_text)}</strong>. {_esc(classification_label)}.</p></section><details><summary>Origen y detalle del cálculo</summary><div class="details-body"><p>Archivo: <strong>{_esc(filename or 'archivo recibido')}</strong></p><ul>{source_rows or '<li>Columnas confirmadas del archivo recibido.</li>'}</ul><p>Período: {_esc(period_text)}</p></div></details><details><summary>Qué conviene tener en cuenta</summary><div class="details-body"><ul>{limits}</ul><p>La diferencia surge de los registros recibidos y no determina por sí sola la causa.</p></div></details>{_continue_analysis_panel_v1()}<div class="result-actions">{download_html}<a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Ver historial</a></div></main>'''
 
 
 def render_cash_flow_result_v1(packet: dict[str, Any]) -> str:
@@ -479,7 +639,7 @@ def render_cash_flow_result_v1(packet: dict[str, Any]) -> str:
         expansion.append('<li><strong>Cobertura de corto plazo:</strong> activo corriente y pasivo corriente.</li>')
     optional_html = f'<section class="metric-row metric-row--optional">{"".join(optional)}</section>' if optional else ''
     expansion_html = f'<details open><summary>Podés ampliar este análisis</summary><div class="details-body"><p>Estos datos no son necesarios para proyectar tu saldo de caja.</p><ul>{"".join(expansion)}</ul></div></details>' if expansion else ''
-    return f'''<main id="app" tabindex="-1" class="journey">{_progress("resultado")}<header class="result-header"><div><p class="kicker">Resultado</p><h1>Flujo de caja</h1><p>Proyección realizada con el saldo inicial, los cobros previstos y los pagos previstos de tu Excel.</p></div><span class="result-state is-ready">Resultado listo</span></header><section class="primary-result"><h2>Saldo de caja proyectado</h2><p class="primary-value">{_esc(_format_amount(float(cash_value)))}</p><p>Este sería el saldo al cierre del período analizado según los importes informados.</p></section>{optional_html}{expansion_html}<details><summary>Qué conviene tener en cuenta</summary><div class="details-body"><p>El saldo proyectado no explica por sí solo la causa de un faltante o excedente de caja ni reemplaza una decisión profesional.</p></div></details><div class="result-actions"><a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Mis análisis</a></div></main>'''
+    return f'''<main id="app" tabindex="-1" class="journey enterprise-results">{_progress("resultado")}<header class="results-header"><div><p class="kicker">Resultados</p><h1>Flujo de caja</h1><p>Proyección realizada con el saldo inicial, los cobros previstos y los pagos previstos de tu Excel.</p></div><div class="results-header-actions"><a class="secondary" href="/cases">Historial</a><a href="/">Nuevo archivo</a></div></header><section class="primary-result"><h2>Saldo de caja proyectado</h2><p class="primary-value">{_esc(_format_money(float(cash_value)))}</p><p>Este sería el saldo al cierre del período analizado según los importes informados.</p></section>{optional_html}{expansion_html}<details><summary>Qué conviene tener en cuenta</summary><div class="details-body"><p>El saldo proyectado no explica por sí solo la causa de un faltante o excedente de caja ni reemplaza una decisión profesional.</p></div></details>{_continue_analysis_panel_v1()}<div class="result-actions"><a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Ver historial</a></div></main>'''
 
 
 def render_blocked_result_v1(*, title: str, evidence_html: str, next_step: str) -> str:

@@ -391,7 +391,14 @@ def test_f12_web_executes_single_analysis_id_through_f7_f8_f9(f12_cafeteria: dic
     )
     assert status == 200
     assert "Ventas por categoría" in page
-    assert "Resultado listo" in page
+    assert "Resumen del archivo" in page
+    assert ">Ventas<" in page
+    assert ">Sales<" not in page
+    assert "$" in page
+    assert "¿Querés seguir analizando tu planilla Excel?" in page
+    menu_status, menu_page = app.analysis_menu(session_id=session_id)
+    assert menu_status == 200
+    assert "Elegí qué querés revisar" in menu_page
     state = app.session(session_id)
     packet = state.last_review_result
     assert packet["status"] == "READY"
@@ -438,7 +445,7 @@ def test_f12_blocked_request_clears_previous_ready_result(f12_cafeteria: dict) -
         requested_capability="sales_series_hour",
     )
     assert ready_status == 200
-    assert "Resultado listo" in ready_page
+    assert "Resumen del archivo" in ready_page
     previous = app.session(session_id).last_review_result
     assert previous is not None
     assert previous["status"] == "READY"

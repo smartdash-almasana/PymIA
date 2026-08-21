@@ -2,8 +2,8 @@
 
 This module narrows the existing assisted web application to the reception layer:
 Excel is parsed by the existing canonical intake, semantic interpretation is
-performed through the injected bounded provider, and owner corroboration is
-presented one question at a time.
+performed through the injected bounded provider, and workbook-first owner
+corroboration is limited to the grouped reading and material unresolved points.
 
 It does not create a second XLSX parser and does not modify the productive
 Servicio 1 calculation root.
@@ -238,7 +238,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             if proposed:
                 subject = column_name or str(normalized.get("column_ref") or "").strip() or "este dato"
                 normalized["presentation_text"] = (
-                    f"PymIA interpreta que {subject} se refiere a {proposed}. ¿Es correcto?"
+                    f"Entendí {subject} como {proposed}. ¿Está bien?"
                 )
         return normalized
 
@@ -293,7 +293,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         return True
 
     def _drop_unresolved_accept_responses(self, *, state: Any) -> None:
-        """Prevent a stale impossible ACCEPT from contaminating SEM-8 reentry."""
+        """Keep replayed owner responses aligned with the currently active dialogue plan."""
         assistance = (
             state.semantic_assistance_state
             if isinstance(state.semantic_assistance_state, Mapping)
@@ -310,10 +310,14 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             if isinstance(item, Mapping) and str(item.get("decision_id") or "").strip()
         }
         for decision_id, response in list(state.semantic_dialogue_responses.items()):
-            if str(response.get("action") or "").strip().upper() != "ACCEPT":
+            current_id = str(decision_id).strip()
+            question = decisions.get(current_id)
+            # A previous semantic pass may have produced a different grouped decision
+            # id. Never replay that stale response into the current SEM-8 plan.
+            if not isinstance(question, Mapping):
+                state.semantic_dialogue_responses.pop(decision_id, None)
                 continue
-            question = decisions.get(str(decision_id).strip())
-            if isinstance(question, Mapping) and not self._owner_accept_is_resolved(
+            if str(response.get("action") or "").strip().upper() == "ACCEPT" and not self._owner_accept_is_resolved(
                 state=state,
                 question=question,
             ):
@@ -457,6 +461,17 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             blocked_options=blocked,
         )
 
+    def analysis_menu(self, *, session_id: str) -> tuple[int, str]:
+        """Return to the analysis menu for the workbook already confirmed in-session."""
+        state = self.session(session_id)
+        assistance = state.semantic_assistance_state if isinstance(state.semantic_assistance_state, Mapping) else {}
+        semantic_run = assistance.get("semantic_run") if isinstance(assistance, Mapping) else None
+        if not isinstance(semantic_run, Mapping) or semantic_run.get("status") != STATUS_CONFIRMED_BINDINGS:
+            return HTTPStatus.BAD_REQUEST, base._error_page(
+                "Primero terminá de revisar el archivo para elegir otro análisis."
+            )
+        return self._post_semantic_analysis_menu_page(session_id=session_id)
+
     def receive_xlsx(
         self,
         *,
@@ -486,7 +501,6 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
                 requested_capability=None,
                 provider=self._semantic_provider,
                 compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
-                atomic_confirmation=True,
             )
             state.last_review_result = assistance_state
             if assistance_state.get("status") == STATUS_OWNER_DIALOGUE_REQUIRED:
@@ -1011,6 +1025,34 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
                 "La decisión semántica no tiene identidad trazable."
             )
         decision_id = str(current.get("decision_id") or "").strip()
+        dialogue = (
+            state.semantic_assistance_state.get("dialogue_plan")
+            if isinstance(state.semantic_assistance_state.get("dialogue_plan"), Mapping)
+            else {}
+        )
+        active_decision_ids = {
+            str(item.get("decision_id") or "").strip()
+            for item in (dialogue.get("decisions") or [])
+            if isinstance(item, Mapping) and str(item.get("decision_id") or "").strip()
+        }
+        if decision_id not in active_decision_ids:
+            state.semantic_dialogue_responses.pop(decision_id, None)
+            fresh_questions = [
+                dict(item)
+                for item in (state.semantic_assistance_state.get("owner_questions") or [])
+                if isinstance(item, Mapping)
+                and str(item.get("decision_id") or "").strip() in active_decision_ids
+            ]
+            state.semantic_questions = fresh_questions
+            refreshed = self._render_one_pending_question(
+                session_id=session_id,
+                message="Actualicé la lectura del archivo. Revisá esta versión para continuar.",
+            )
+            if refreshed is not None:
+                return refreshed
+            return HTTPStatus.BAD_REQUEST, base._error_page(
+                "La revisión del archivo cambió. Volvé a revisar los datos antes de continuar."
+            )
         action = str(fields.get(f"action_{decision_id}") or "").strip().upper()
         if not decision_id or action not in {"ACCEPT", "SKIP"}:
             return self._render_one_pending_question(
@@ -1038,7 +1080,8 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             previous_state=state.semantic_assistance_state,
             owner_responses=[
                 dict(item)
-                for item in state.semantic_dialogue_responses.values()
+                for key, item in state.semantic_dialogue_responses.items()
+                if str(key).strip() in active_decision_ids
             ],
             owner_actor_id=actor_id,
             owner_actor_role=actor_role,
