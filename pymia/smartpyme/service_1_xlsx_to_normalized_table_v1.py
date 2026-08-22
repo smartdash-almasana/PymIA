@@ -97,10 +97,30 @@ def read_xlsx_to_normalized_tables_v1(
 def _normalize_worksheet(*, source_path: str, worksheet: Any) -> NormalizedTableV1:
     selected_sheet_name = worksheet.title
     materialized_rows = [list(row) for row in worksheet.iter_rows(values_only=True)]
+    physical_rows = [
+        {
+            "row_number": row_number,
+            "cells": [_clean(value) for value in raw_row],
+            "physical_width": len(raw_row),
+        }
+        for row_number, raw_row in enumerate(materialized_rows, start=1)
+    ]
+    physical_max_column = max((item["physical_width"] for item in physical_rows), default=0)
+    physical_max_row = len(physical_rows)
     header_index = _first_non_empty_row_index(materialized_rows)
 
     if header_index is None:
-        return _blocked(source_path, selected_sheet_name, _EMPTY_SHEET_ERROR)
+        return build_normalized_table_v1(
+            source_kind="xlsx",
+            source_path=source_path,
+            sheet_name=selected_sheet_name,
+            headers=[],
+            rows=[],
+            blocking_errors=[_EMPTY_SHEET_ERROR],
+            physical_rows=physical_rows,
+            physical_max_column=physical_max_column,
+            physical_max_row=physical_max_row,
+        )
 
     raw_headers = _trim_trailing_empty(materialized_rows[header_index])
     headers = [_clean(value) for value in raw_headers]
@@ -112,6 +132,9 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any) -> NormalizedTable
             headers=headers,
             rows=[],
             blocking_errors=["XLSX headers are missing or incomplete."],
+            physical_rows=physical_rows,
+            physical_max_column=physical_max_column,
+            physical_max_row=physical_max_row,
         )
 
     rows: list[dict[str, Any]] = []
@@ -143,6 +166,9 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any) -> NormalizedTable
         warnings=warnings,
         header_row_number=header_index + 1,
         source_row_numbers=source_row_numbers,
+        physical_rows=physical_rows,
+        physical_max_column=physical_max_column,
+        physical_max_row=physical_max_row,
     )
 
 

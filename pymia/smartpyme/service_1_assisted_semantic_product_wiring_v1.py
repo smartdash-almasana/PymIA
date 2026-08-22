@@ -72,6 +72,11 @@ from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
     STATUS_READY as VALIDATOR_READY,
     validate_service_1_semantic_proposal_v1,
 )
+from pymia.smartpyme.service_1_table_scoped_semantic_context_v1 import (
+    STATUS_BLOCKED as TABLE_SCOPE_BLOCKED,
+    build_service_1_table_scoped_semantic_context_v1,
+    enrich_service_1_deterministic_hypotheses_with_table_scope_v1,
+)
 from pymia.smartpyme.service_1_workbook_profiler_v1 import (
     STATUS_READY as PROFILE_READY,
     build_service_1_workbook_profile_v1,
@@ -126,10 +131,11 @@ def run_service_1_assisted_semantic_initial_v1(
     ingestion_output: Any,
     requested_capability: str | None,
     provider: Any,
-    sheet_name: str = "sheet1",
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
     semantic_scope_capabilities: Sequence[str] = (),
     atomic_confirmation: bool = False,
+    logical_table_candidates: Sequence[Mapping[str, Any]] | Mapping[str, Any] | None = None,
+    logical_relationship_graph: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create one exact assisted semantic state and its minimal owner dialogue."""
     if not isinstance(ingestion_output, dict) or not ingestion_output:
@@ -142,7 +148,6 @@ def run_service_1_assisted_semantic_initial_v1(
 
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=ingestion_output,
-        sheet_name=sheet_name,
     )
     if bridge.get("status") != BRIDGE_READY:
         return _blocked(
@@ -163,6 +168,36 @@ def run_service_1_assisted_semantic_initial_v1(
         )
 
     deterministic_hypotheses = _deterministic_hypotheses(bridge)
+    semantic_scope_packet: dict[str, Any] | None = None
+    if logical_table_candidates is not None:
+        semantic_scope_packet = build_service_1_table_scoped_semantic_context_v1(
+            column_refs=tuple(
+                item for item in (bridge.get("column_refs") or ()) if isinstance(item, Mapping)
+            ),
+            logical_table_candidates=logical_table_candidates,
+            logical_relationship_graph=logical_relationship_graph,
+        )
+        if semantic_scope_packet.get("status") == TABLE_SCOPE_BLOCKED:
+            return _blocked(
+                BLOCK_CONTEXT_FAILED,
+                case_id=bridge.get("case_id"),
+                detail=semantic_scope_packet.get("blocked_reason"),
+                bridge_packet=bridge,
+                workbook_profile=profile,
+            )
+        deterministic_hypotheses = enrich_service_1_deterministic_hypotheses_with_table_scope_v1(
+            deterministic_hypotheses=deterministic_hypotheses,
+            column_refs=tuple(
+                item for item in (bridge.get("column_refs") or ()) if isinstance(item, Mapping)
+            ),
+            semantic_scope_packet=semantic_scope_packet,
+        )
+        profile = dict(profile)
+        profile["logical_table_scopes"] = list(semantic_scope_packet.get("column_scopes") or ())
+        profile["logical_relationship_graph_ref"] = (
+            str((logical_relationship_graph or {}).get("graph_ref") or "").strip() or None
+        )
+
     allowed_roles = _allowed_roles(deterministic_hypotheses)
     if not allowed_roles:
         return _blocked(

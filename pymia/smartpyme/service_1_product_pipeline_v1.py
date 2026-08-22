@@ -93,6 +93,10 @@ from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
     build_service_1_dynamic_analysis_discovery_v1,
 )
 from pymia.smartpyme.service_1_result_memory_v1 import Service1ResultMemoryErrorV1
+from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
+    STATUS_READY as WORKBOOK_LOGICAL_MODEL_READY,
+    build_service_1_workbook_logical_model_v1,
+)
 from pymia.smartpyme.service_1_result_memory_wiring_v1 import (
     build_service_1_result_memory_from_execution_v1,
 )
@@ -392,7 +396,15 @@ def run_service_1_product_pipeline_v1(
     owner_unit_confirmation_events: Sequence[Mapping[str, Any]] = (),
     semantic_scope_capabilities: Sequence[str] = (),
     use_assisted_semantics: bool = False,
+    tenant_id: str | None = None,
+    source_system_ref: str | None = None,
+    source_context_ref: str | None = None,
+    schema_family_memory_records: Sequence[Mapping[str, Any] | Any] = (),
 ) -> dict[str, Any]:
+    # Legacy callers may still pass ``sheet_name``. D7 never uses that value to
+    # manufacture semantic identity; canonical sheet-qualified column_refs are
+    # the only semantic source identity. Keep the argument only for API compatibility.
+    _ = sheet_name
     if expense_variance_request is not None:
         if (
             collection_aging_request is not None
@@ -488,6 +500,31 @@ def run_service_1_product_pipeline_v1(
             reconciliation_run=reconciliation_run,
         )
 
+    workbook_logical_model = None
+    if (
+        isinstance(ingestion_output, Mapping)
+        and isinstance(ingestion_output.get("normalized_tables"), list)
+        and bool(ingestion_output.get("normalized_tables"))
+        and isinstance(ingestion_output.get("column_refs"), list)
+        and bool(ingestion_output.get("column_refs"))
+    ):
+        workbook_logical_model = build_service_1_workbook_logical_model_v1(
+            ingestion_output=ingestion_output,
+            tenant_id=tenant_id,
+            source_system_ref=source_system_ref,
+            source_context_ref=source_context_ref,
+            schema_family_memory_records=schema_family_memory_records,
+        )
+        if workbook_logical_model.get("status") != WORKBOOK_LOGICAL_MODEL_READY:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason=str(
+                    workbook_logical_model.get("blocked_reason")
+                    or "WORKBOOK_LOGICAL_MODEL_UNRESOLVED"
+                ),
+                workbook_logical_model=workbook_logical_model,
+            )
+
     assisted_semantic_requested = any(
         (
             use_assisted_semantics,
@@ -498,6 +535,11 @@ def run_service_1_product_pipeline_v1(
     )
     assisted_state = None
     if assisted_semantic_requested:
+        if workbook_logical_model is None:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="WORKBOOK_LOGICAL_MODEL_REQUIRED_FOR_ASSISTED_SEMANTICS",
+            )
         if owner_answers is not None or semantic_run_override is not None:
             return _packet(
                 status=STATUS_BLOCKED,
@@ -518,15 +560,28 @@ def run_service_1_product_pipeline_v1(
                 ingestion_output=ingestion_output,
                 requested_capability=requested_capability,
                 provider=semantic_provider,
-                sheet_name=sheet_name,
                 compatible_tenant_memory_hints=compatible_tenant_memory_hints,
                 semantic_scope_capabilities=semantic_scope_capabilities,
+                logical_table_candidates=workbook_logical_model.get("logical_tables"),
+                logical_relationship_graph=workbook_logical_model.get("relationship_graph"),
+            )
+            assisted_state = dict(assisted_state or {})
+            assisted_state["workbook_logical_model_ref"] = str(
+                (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+                or ""
             )
         else:
             current_case_id = str(
                 ingestion_output.get("case_id") if isinstance(ingestion_output, dict) else ""
             ).strip()
             state_case_id = str(semantic_assistance_state.get("case_id") or "").strip()
+            state_model_ref = str(
+                semantic_assistance_state.get("workbook_logical_model_ref") or ""
+            ).strip()
+            current_model_ref = str(
+                (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+                or ""
+            ).strip()
             state_capability = str(
                 semantic_assistance_state.get("requested_capability") or ""
             ).strip()
@@ -542,6 +597,7 @@ def run_service_1_product_pipeline_v1(
             if (
                 not current_case_id
                 or current_case_id != state_case_id
+                or (state_model_ref and state_model_ref != current_model_ref)
                 or not capability_matches_state
             ):
                 return _packet(
@@ -565,6 +621,11 @@ def run_service_1_product_pipeline_v1(
                     or None,
                 )
 
+        assisted_state = dict(assisted_state or {})
+        assisted_state["workbook_logical_model_ref"] = str(
+            (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+            or ""
+        )
         assisted_status = str((assisted_state or {}).get("status") or "")
         if assisted_status in {
             ASSISTED_SEMANTIC_OWNER_REQUIRED,
@@ -574,6 +635,7 @@ def run_service_1_product_pipeline_v1(
                 status=STATUS_NEEDS_OWNER,
                 owner_questions=list((assisted_state or {}).get("owner_questions") or []),
                 semantic_assistance_state=assisted_state,
+                workbook_logical_model=workbook_logical_model,
             )
         if assisted_status == ASSISTED_SEMANTIC_BLOCKED:
             return _packet(
@@ -598,7 +660,6 @@ def run_service_1_product_pipeline_v1(
         if semantic_run_override is None:
             semantic_run = run_initial_pass(
                 ingestion_output=ingestion_output,
-                sheet_name=sheet_name,
             )
         else:
             semantic_run = dict(semantic_run_override)
@@ -636,6 +697,13 @@ def run_service_1_product_pipeline_v1(
             status=STATUS_BLOCKED,
             blocked_reason=semantic_run.get("blocked_reason") or "SEMANTIC_BINDINGS_NOT_CONFIRMED",
             semantic_run=semantic_run,
+            workbook_logical_model=workbook_logical_model,
+        )
+
+    if workbook_logical_model is not None:
+        semantic_run = dict(semantic_run)
+        semantic_run["workbook_logical_model_evidence"] = dict(
+            workbook_logical_model.get("p7_p8_evidence_projection") or {}
         )
 
     evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
@@ -935,6 +1003,7 @@ def _packet(
     owner_followup: list[dict[str, Any]] | None = None,
     semantic_assistance_state: Any = None,
     owner_unit_confirmation_events: Sequence[Mapping[str, Any]] | None = None,
+    workbook_logical_model: Any = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -960,6 +1029,7 @@ def _packet(
             for item in (owner_unit_confirmation_events or [])
             if isinstance(item, Mapping)
         ],
+        "workbook_logical_model": workbook_logical_model,
         "semantic_bindings_confirmed": bool(
             isinstance(semantic_run, dict) and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
         ),
@@ -1013,6 +1083,9 @@ def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
         "delivery_authorized": False,
         "diagnosis_generated": False,
     }
+    logical_model_evidence = semantic_run.get("workbook_logical_model_evidence")
+    if isinstance(logical_model_evidence, Mapping):
+        payload["workbook_logical_model_evidence"] = dict(logical_model_evidence)
     owner_loop = semantic_run.get("owner_loop_packet")
     if isinstance(owner_loop, dict):
         events = owner_loop.get("owner_confirmation_events")

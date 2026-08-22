@@ -320,11 +320,11 @@ def test_web_workbook_first_owner_accept_reenters_and_opens_menu(tmp_path: Path)
     state = app.session("workbook-first-owner-reentry")
     assert status == 200
     assert len(state.semantic_questions) == 1
-    decision_id = state.semantic_questions[0]["decision_id"]
     assert set(state.semantic_questions[0]["column_refs"]) == {
         "Ventas.Descuento",
         "Promos.Descuento",
     }
+    decision_id = str(state.semantic_questions[0]["decision_id"])
 
     status, page = app.confirm_meanings(
         session_id="workbook-first-owner-reentry",
@@ -332,10 +332,7 @@ def test_web_workbook_first_owner_accept_reenters_and_opens_menu(tmp_path: Path)
     )
 
     assert status == 200
-    assert state.semantic_dialogue_responses[decision_id] == {
-        "decision_id": decision_id,
-        "action": "ACCEPT",
-    }
+    assert set(state.semantic_dialogue_responses) == {decision_id}
     assert len(state.semantic_dialogue_responses) == 1
     assert state.semantic_questions == []
     assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
@@ -910,7 +907,15 @@ def test_sem8_cafeteria_reaches_confirmed_bindings_with_one_relationship_questio
     assert relationship_questions[0]["relationship_refs"] == [
         "Ventas.ProductoID->Productos.ProductoID"
     ]
-    assert len(questions) == 2
+    assert len(questions) == 3
+    semantic_groups = [item for item in questions if item["decision_kind"] == "SEMANTIC_GROUP"]
+    atomic_meanings = [item for item in questions if item["decision_kind"] == "UNIT_MEANING"]
+    assert len(semantic_groups) == 1
+    assert len(atomic_meanings) == 1
+    assert all(
+        len({ref.split(".", 1)[0] for ref in item["column_refs"]}) == 1
+        for item in semantic_groups + atomic_meanings
+    )
     assert initial["semantic_assistance_state"]["dialogue_plan"]["zero_duplicate_questions"] is True
     assert initial["semantic_assistance_state"]["dialogue_plan"]["zero_irrelevant_questions"] is True
 

@@ -22,6 +22,9 @@ class NormalizedTableV1(TypedDict):
     column_count: int
     warnings: list[str]
     blocking_errors: list[str]
+    physical_rows: list[dict[str, Any]]
+    physical_max_column: int
+    physical_max_row: int
     runtime_authorized: Literal[False]
 
 
@@ -36,6 +39,9 @@ def build_normalized_table_v1(
     blocking_errors: list[str] | None = None,
     header_row_number: int | None = 1,
     source_row_numbers: list[int] | None = None,
+    physical_rows: list[dict[str, Any]] | None = None,
+    physical_max_column: int | None = None,
+    physical_max_row: int | None = None,
 ) -> NormalizedTableV1:
     clean_headers = [_clean(value) for value in headers]
     normalized_headers = [_normalize_header(value) for value in clean_headers]
@@ -55,6 +61,33 @@ def build_normalized_table_v1(
         errors.append("invalid_source_row_numbers")
     if header_row_number is not None and int(header_row_number) < 1:
         errors.append("invalid_header_row_number")
+    resolved_physical_rows = [
+        {
+            "row_number": int(item.get("row_number")),
+            "cells": [_clean(value) for value in item.get("cells") or []],
+            "physical_width": int(item.get("physical_width") or len(item.get("cells") or [])),
+        }
+        for item in (physical_rows or [])
+        if isinstance(item, dict) and item.get("row_number") is not None
+    ]
+    resolved_physical_rows.sort(key=lambda item: item["row_number"])
+    if resolved_physical_rows:
+        if len({item["row_number"] for item in resolved_physical_rows}) != len(resolved_physical_rows):
+            errors.append("invalid_physical_row_numbers")
+        if any(item["row_number"] < 1 or item["physical_width"] < 0 for item in resolved_physical_rows):
+            errors.append("invalid_physical_rows")
+    resolved_physical_max_column = int(
+        physical_max_column
+        if physical_max_column is not None
+        else max((item["physical_width"] for item in resolved_physical_rows), default=len(clean_headers))
+    )
+    resolved_physical_max_row = int(
+        physical_max_row
+        if physical_max_row is not None
+        else max((item["row_number"] for item in resolved_physical_rows), default=(header_row_number or 1) + len(rows))
+    )
+    if resolved_physical_max_column < 0 or resolved_physical_max_row < 0:
+        errors.append("invalid_physical_dimensions")
     if not errors:
         for row in rows:
             normalized_rows.append(
@@ -80,6 +113,9 @@ def build_normalized_table_v1(
         "column_count": len(clean_headers),
         "warnings": list(dict.fromkeys(notes)),
         "blocking_errors": list(dict.fromkeys(errors)),
+        "physical_rows": resolved_physical_rows,
+        "physical_max_column": resolved_physical_max_column,
+        "physical_max_row": resolved_physical_max_row,
         "runtime_authorized": False,
     }
 

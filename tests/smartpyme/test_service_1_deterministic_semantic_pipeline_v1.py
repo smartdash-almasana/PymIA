@@ -19,12 +19,26 @@ def _first_semantic_option_id(question: dict) -> str:
     )
 
 
+def _column_refs(*columns: str, sheet: str = "Ventas") -> list[dict]:
+    return [
+        {
+            "field_id": column,
+            "question_id": column,
+            "sheet_name": sheet,
+            "column_name": column,
+            "normalized_column_name": column,
+        }
+        for column in columns
+    ]
+
+
 def _ingestion_output() -> dict:
     return {
         "case_id": "case_pipeline_v1",
         "source_kind": "xlsx",
         "filename": "ventas.xlsx",
         "columns": ["fecha", "monto"],
+        "column_refs": _column_refs("fecha", "monto"),
         "input_values": {
             "fecha": "fecha de la operación",
             "monto": "importe total de la operación",
@@ -87,6 +101,7 @@ def test_reentry_requires_answers() -> None:
             "source_kind": "xlsx",
             "filename": "ambiguous.xlsx",
             "columns": ["valor"],
+            "column_refs": _column_refs("valor"),
             "input_values": {"valor": "dato del negocio"},
         }
     )
@@ -103,6 +118,7 @@ def test_other_owner_answer_never_creates_semantic_truth() -> None:
             "source_kind": "xlsx",
             "filename": "ambiguous.xlsx",
             "columns": ["valor"],
+            "column_refs": _column_refs("valor"),
             "input_values": {"valor": "dato del negocio"},
             "column_evidence": {
                 "valor": {"sample_values": [100, 200], "inferred_type": "number"}

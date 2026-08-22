@@ -26,6 +26,10 @@ from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
     SCHEMA_VERSION as VALIDATOR_SCHEMA_VERSION,
     STATUS_READY as VALIDATED_READY,
 )
+from pymia.smartpyme.service_1_table_scoped_semantic_context_v1 import (
+    service_1_has_table_scoped_semantic_evidence_v1,
+    service_1_table_scoped_semantic_group_key_v1,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_OWNER_SEMANTIC_DIALOGUE_V1"
 STATUS_READY: Final[str] = "OWNER_DIALOGUE_PLAN_READY"
@@ -239,28 +243,102 @@ def build_service_1_owner_dialogue_plan_v1(
                     )
                 )
         else:
-            proposal_refs = tuple(str(item["decision_id"]) for item in confident_concepts)
-            column_refs = _ordered_unique(
-                str(ref)
-                for item in confident_concepts
-                for ref in item.get("target_refs") or []
-            )
-            planned.append(
-                Service1OwnerDialogueDecisionV1(
-                    decision_id="dialogue:semantic-group:" + "+".join(proposal_refs),
-                    decision_kind=DECISION_KIND_SEMANTIC_GROUP,
-                    proposal_refs=proposal_refs,
-                    column_refs=column_refs,
-                    relationship_refs=(),
-                    presentation_text=_semantic_group_text(column_refs),
-                    materiality_reason="Estas interpretaciones son materiales para el control solicitado y pueden confirmarse juntas.",
-                    accept_action=ACTION_ACCEPT,
-                    reject_action=ACTION_REJECT,
-                    correction_action=ACTION_CORRECT,
-                    fallback_strategy=FALLBACK_DECOMPOSE_TO_ATOMIC,
-                    atomic_children=tuple(_atomic_child(item) for item in confident_concepts),
+            # D5: when logical-table/grain context exists, it is the semantic
+            # grouping boundary.  Sheet grouping remains only as a legacy
+            # containment for packets produced before D5 is supplied by D7.
+            grouped: dict[str, list[dict[str, Any]]] = {}
+            group_order: list[str] = []
+            isolated: list[dict[str, Any]] = []
+            for item in confident_concepts:
+                if service_1_has_table_scoped_semantic_evidence_v1(item):
+                    group_key = service_1_table_scoped_semantic_group_key_v1(item)
+                    if group_key is None:
+                        isolated.append(item)
+                        continue
+                else:
+                    refs = tuple(str(ref) for ref in item.get("target_refs") or ())
+                    sheets = _ordered_unique(ref.split(".", 1)[0] for ref in refs if "." in ref)
+                    group_key = f"legacy-sheet:{sheets[0]}" if len(sheets) == 1 else None
+                    if group_key is None:
+                        isolated.append(item)
+                        continue
+                if group_key not in grouped:
+                    grouped[group_key] = []
+                    group_order.append(group_key)
+                grouped[group_key].append(item)
+
+            for item in isolated:
+                refs = tuple(str(ref) for ref in item.get("target_refs") or ())
+                planned.append(
+                    Service1OwnerDialogueDecisionV1(
+                        decision_id=f"dialogue:atomic:{item['decision_id']}",
+                        decision_kind=DECISION_KIND_UNIT_MEANING,
+                        proposal_refs=(str(item["decision_id"]),),
+                        column_refs=refs,
+                        relationship_refs=(),
+                        presentation_text=_atomic_semantic_text(item, refs),
+                        materiality_reason=str(
+                            item.get("scope_conflict_reason")
+                            or item.get("reason")
+                            or item.get("rationale")
+                            or "Esta interpretación necesita revisarse por separado."
+                        ),
+                        accept_action=ACTION_ACCEPT,
+                        reject_action=ACTION_REJECT,
+                        correction_action=ACTION_CORRECT,
+                        fallback_strategy=FALLBACK_REQUIRE_TARGETED_CORRECTION,
+                        atomic_children=(),
+                    )
                 )
-            )
+
+            for group_key in group_order:
+                group_items = grouped[group_key]
+                if group_key.startswith("logical-table:") and len(group_items) == 1:
+                    item = group_items[0]
+                    refs = tuple(str(ref) for ref in item.get("target_refs") or ())
+                    planned.append(
+                        Service1OwnerDialogueDecisionV1(
+                            decision_id=f"dialogue:atomic:{item['decision_id']}",
+                            decision_kind=DECISION_KIND_UNIT_MEANING,
+                            proposal_refs=(str(item["decision_id"]),),
+                            column_refs=refs,
+                            relationship_refs=(),
+                            presentation_text=_atomic_semantic_text(item, refs),
+                            materiality_reason=str(
+                                item.get("reason")
+                                or item.get("rationale")
+                                or "Esta interpretación se revisa de forma puntual."
+                            ),
+                            accept_action=ACTION_ACCEPT,
+                            reject_action=ACTION_REJECT,
+                            correction_action=ACTION_CORRECT,
+                            fallback_strategy=FALLBACK_REQUIRE_TARGETED_CORRECTION,
+                            atomic_children=(),
+                        )
+                    )
+                    continue
+                proposal_refs = tuple(str(item["decision_id"]) for item in group_items)
+                column_refs = _ordered_unique(
+                    str(ref)
+                    for item in group_items
+                    for ref in item.get("target_refs") or []
+                )
+                planned.append(
+                    Service1OwnerDialogueDecisionV1(
+                        decision_id="dialogue:semantic-group:" + "+".join(proposal_refs),
+                        decision_kind=DECISION_KIND_SEMANTIC_GROUP,
+                        proposal_refs=proposal_refs,
+                        column_refs=column_refs,
+                        relationship_refs=(),
+                        presentation_text=_semantic_group_text(group_items, column_refs),
+                        materiality_reason="Estas interpretaciones pertenecen a la misma tabla y al mismo nivel de detalle.",
+                        accept_action=ACTION_ACCEPT,
+                        reject_action=ACTION_REJECT,
+                        correction_action=ACTION_CORRECT,
+                        fallback_strategy=FALLBACK_DECOMPOSE_TO_ATOMIC,
+                        atomic_children=tuple(_atomic_child(item) for item in group_items),
+                    )
+                )
 
     seen_ambiguity_ids: set[str] = set()
     for item in ambiguity_items:
@@ -439,13 +517,7 @@ def _display_ref(ref: str) -> str:
     return ref.split(".", 1)[1] if "." in ref else ref
 
 
-def _semantic_group_text(column_refs: tuple[str, ...]) -> str:
-    labels = ", ".join(_display_ref(ref) for ref in column_refs)
-    return f"Entendí estas columnas de tu archivo: {labels}. ¿Está bien?"
-
-
-def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
-    label = _display_ref(refs[0]) if refs else "este dato"
+def _owner_meaning_text(item: Mapping[str, Any]) -> str:
     role = str(item.get("semantic_role") or item.get("proposed_meaning") or "").strip()
     owner_labels = {
         "operation_date": "la fecha de la operación",
@@ -476,8 +548,27 @@ def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
         "supplier_name": "el proveedor",
         "document_reference": "el comprobante o referencia de la operación",
     }
-    meaning = owner_labels.get(role, "un dato del negocio que necesito confirmar")
-    return f"Entendí {label} como {meaning}. ¿Está bien?"
+    return owner_labels.get(role, "un dato del negocio que necesito confirmar")
+
+
+def _semantic_group_text(items: list[dict[str, Any]], column_refs: tuple[str, ...]) -> str:
+    if items and all(service_1_has_table_scoped_semantic_evidence_v1(item) for item in items):
+        prefix = "En este conjunto de datos, "
+    else:
+        sheets = _ordered_unique(ref.split(".", 1)[0] for ref in column_refs if "." in ref)
+        prefix = f"En la hoja {sheets[0]}, " if len(sheets) == 1 else ""
+    interpretations: list[str] = []
+    for item in items:
+        refs = tuple(str(ref) for ref in item.get("target_refs") or ())
+        label = _display_ref(refs[0]) if refs else "este dato"
+        interpretations.append(f"{label}: {_owner_meaning_text(item)}")
+    summary = "; ".join(interpretations)
+    return f"{prefix}entendí estos datos así: {summary}. ¿Está bien?"
+
+
+def _atomic_semantic_text(item: dict[str, Any], refs: tuple[str, ...]) -> str:
+    label = _display_ref(refs[0]) if refs else "este dato"
+    return f"Entendí {label} como {_owner_meaning_text(item)}. ¿Está bien?"
 
 
 def _relationship_text(endpoints: tuple[str, ...]) -> str:

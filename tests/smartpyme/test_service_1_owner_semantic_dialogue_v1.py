@@ -133,19 +133,18 @@ def _validated_packet() -> dict:
     }
 
 
-def test_sem4_groups_material_concepts_and_asks_relationship_once() -> None:
+def test_sem4_groups_material_concepts_by_sheet_and_asks_relationship_once() -> None:
     plan = build_service_1_owner_dialogue_plan_v1(validated_packet=_validated_packet())
 
     assert plan["status"] == STATUS_READY
-    assert plan["question_count"] == 2
+    assert plan["question_count"] == 3
     assert plan["zero_duplicate_questions"] is True
     assert plan["zero_irrelevant_questions"] is True
     assert plan["all_material_ambiguities_surfaced"] is True
     assert plan["suppressed_irrelevant_refs"] == ["Ventas.CanalVenta"]
 
-    by_kind = {item["decision_kind"]: item for item in plan["decisions"]}
-    relationship = by_kind[DECISION_KIND_RELATIONSHIP]
-    group = by_kind[DECISION_KIND_SEMANTIC_GROUP]
+    relationship = next(item for item in plan["decisions"] if item["decision_kind"] == DECISION_KIND_RELATIONSHIP)
+    groups = [item for item in plan["decisions"] if item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP]
 
     assert relationship["relationship_refs"] == [
         "Ventas.ProductoID->Productos.ProductoID"
@@ -155,8 +154,15 @@ def test_sem4_groups_material_concepts_and_asks_relationship_once() -> None:
         "p-sales-id",
         "p-product-id",
     }
-    assert set(group["proposal_refs"]) == {"p-qty", "p-price", "p-cost"}
-    assert "Ventas.CanalVenta" not in group["column_refs"]
+    assert len(groups) == 2
+    assert {tuple(item["proposal_refs"]) for item in groups} == {
+        ("p-qty", "p-price"),
+        ("p-cost",),
+    }
+    assert all(len({ref.split(".", 1)[0] for ref in item["column_refs"]}) == 1 for item in groups)
+    assert all("Ventas.CanalVenta" not in item["column_refs"] for item in groups)
+    assert any("En la hoja Ventas" in item["presentation_text"] for item in groups)
+    assert any("En la hoja Productos" in item["presentation_text"] for item in groups)
 
 
 def test_sem4_group_rejection_decomposes_to_atomic_without_fabricating_rejections() -> None:
@@ -173,7 +179,6 @@ def test_sem4_group_rejection_decomposes_to_atomic_without_fabricating_rejection
     assert {item["proposal_ref"] for item in response["atomic_decisions"]} == {
         "p-qty",
         "p-price",
-        "p-cost",
     }
     assert response["confirmed_by_owner"] is False
 
@@ -239,7 +244,7 @@ def test_sem4_ambiguous_correction_degrades_to_granular() -> None:
     )
 
     assert response["status"] == RESPONSE_NEEDS_GRANULAR_CONFIRMATION
-    assert len(response["atomic_decisions"]) == 3
+    assert len(response["atomic_decisions"]) == 2
 
 
 def test_sem4_surfaces_material_ambiguity_exactly_once() -> None:

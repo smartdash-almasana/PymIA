@@ -39,11 +39,14 @@ STATUS_BLOCKED_PIPELINE = "BLOCKED"
 
 
 def run_initial_pass(
-    *, ingestion_output: Any, sheet_name: str = "sheet1"
+    *, ingestion_output: Any, sheet_name: str | None = None
 ) -> dict[str, Any]:
+    # ``sheet_name`` is retained only as a compatibility argument for legacy
+    # callers. D7 semantic identity is derived exclusively from canonical
+    # sheet-qualified ``column_refs``; this value is intentionally ignored.
+    _ = sheet_name
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=ingestion_output,
-        sheet_name=sheet_name,
     )
     if bridge.get("status") != BRIDGE_READY:
         return _packet(

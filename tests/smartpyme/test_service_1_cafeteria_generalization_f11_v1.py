@@ -184,7 +184,9 @@ def test_real_cafeteria_semantics_and_relationships_are_general(cafeteria_case: 
         "Ventas.ProductoID->Productos.ProductoID",
         "Ventas.SucursalID->Sucursales.SucursalID",
     }
-    assert cafeteria_case["owner_steps"] == 3
+    # D7 keeps semantic corroboration table-scoped and confirms each cross-table
+    # relationship explicitly: three semantic decisions + two relationships.
+    assert cafeteria_case["owner_steps"] == 5
 
 
 def test_f11_sales_total_atomic_evidence_reaches_f9(cafeteria_case: dict) -> None:

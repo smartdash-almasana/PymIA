@@ -1,4 +1,10 @@
-"""Append-only tenant store for Servicio 1 semantic contracts."""
+"""Append-only tenant store for Servicio 1 semantic contracts.
+
+This store owns owner-confirmed semantic contract persistence only.  The shared
+physical tenant-memory artifact may also contain schema-family records; those
+records are validated and skipped here, while their persistence API lives in
+``service_1_tenant_schema_family_memory_store_v1``.
+"""
 from __future__ import annotations
 
 import json
@@ -7,14 +13,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
 
+from pymia.smartpyme.service_1_tenant_memory_artifact_v1 import (
+    service_1_tenant_memory_artifact_path_v1,
+)
+from pymia.smartpyme.service_1_tenant_schema_family_memory_v1 import (
+    RECORD_KIND as SCHEMA_FAMILY_MEMORY_RECORD_KIND,
+    service_1_tenant_schema_family_memory_from_mapping_v1,
+)
 from pymia.smartpyme.service_1_tenant_semantic_contract_v1 import (
     Service1TenantSemanticContractErrorV1,
     Service1TenantSemanticContractV1,
     service_1_tenant_semantic_contract_from_mapping_v1,
 )
-from pymia.smartpyme.storage import resolve_tenant_storage_root
-
-_ARTIFACT_NAME = "tenant_semantic_contracts.jsonl"
 
 
 @dataclass(frozen=True)
@@ -24,11 +34,9 @@ class Service1TenantSemanticContractAppendResultV1:
     path: Path
 
 
-def _artifact_path(base_dir: str | Path, tenant_id: str) -> Path:
-    return resolve_tenant_storage_root(base_dir, tenant_id) / _ARTIFACT_NAME
-
-
-def _payload(contract: Service1TenantSemanticContractV1 | Mapping[str, object]) -> dict[str, object]:
+def _payload(
+    contract: Service1TenantSemanticContractV1 | Mapping[str, object],
+) -> dict[str, object]:
     if isinstance(contract, Service1TenantSemanticContractV1):
         return contract.to_dict()
     if isinstance(contract, Mapping):
@@ -39,12 +47,17 @@ def _payload(contract: Service1TenantSemanticContractV1 | Mapping[str, object]) 
     )
 
 
-def _read_contracts(path: Path, tenant_id: str) -> tuple[Service1TenantSemanticContractV1, ...]:
+def _read_contracts(
+    path: Path,
+    tenant_id: str,
+) -> tuple[Service1TenantSemanticContractV1, ...]:
     if not path.exists():
         return ()
     contracts: list[Service1TenantSemanticContractV1] = []
     seen_by_id: dict[str, Service1TenantSemanticContractV1] = {}
-    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for line_number, raw_line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         if not raw_line.strip():
             continue
         try:
@@ -59,6 +72,22 @@ def _read_contracts(path: Path, tenant_id: str) -> tuple[Service1TenantSemanticC
                 "BLOCKED_INVALID_OWNER_CONFIRMATION_EVENT",
                 f"tenant semantic contract line {line_number} is not an object",
             )
+
+        record_kind = str(raw.get("record_kind") or "").strip()
+        if record_kind:
+            if record_kind != SCHEMA_FAMILY_MEMORY_RECORD_KIND:
+                raise Service1TenantSemanticContractErrorV1(
+                    "BLOCKED_INVALID_OWNER_CONFIRMATION_EVENT",
+                    f"unknown tenant memory record kind at line {line_number}",
+                )
+            memory = service_1_tenant_schema_family_memory_from_mapping_v1(raw)
+            if memory.tenant_id != tenant_id:
+                raise Service1TenantSemanticContractErrorV1(
+                    "BLOCKED_CROSS_TENANT_ACCESS",
+                    "stored schema-family memory does not belong to requested tenant",
+                )
+            continue
+
         contract = service_1_tenant_semantic_contract_from_mapping_v1(raw)
         if contract.tenant_id != tenant_id:
             raise Service1TenantSemanticContractErrorV1(
@@ -96,7 +125,10 @@ def append_service_1_tenant_semantic_contract_v1(
     tenant_id: str,
     contract: Service1TenantSemanticContractV1 | Mapping[str, object],
 ) -> Service1TenantSemanticContractAppendResultV1:
-    path = _artifact_path(base_dir, tenant_id)
+    path = service_1_tenant_memory_artifact_path_v1(
+        base_dir=base_dir,
+        tenant_id=tenant_id,
+    )
     raw_payload = _payload(contract)
     requested_contract_id = str(raw_payload.get("contract_id") or "")
     existing = _read_contracts(path, tenant_id)
@@ -163,7 +195,10 @@ def list_service_1_tenant_semantic_contracts_v1(
     base_dir: str | Path,
     tenant_id: str,
 ) -> tuple[Service1TenantSemanticContractV1, ...]:
-    path = _artifact_path(base_dir, tenant_id)
+    path = service_1_tenant_memory_artifact_path_v1(
+        base_dir=base_dir,
+        tenant_id=tenant_id,
+    )
     return _read_contracts(path, tenant_id)
 
 

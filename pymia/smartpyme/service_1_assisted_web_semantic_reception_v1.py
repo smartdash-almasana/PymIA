@@ -45,6 +45,10 @@ from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
     project_service_1_dynamic_discovery_menu_v1,
 )
 from pymia.smartpyme.service_1_ui_v1 import render_analysis_result_sets_v1
+from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
+    STATUS_READY as WORKBOOK_LOGICAL_MODEL_READY,
+    build_service_1_workbook_logical_model_v1,
+)
 
 
 _DISCOVERY_SCHEMA_VERSION = "SERVICE_1_POST_SEMANTIC_ANALYSIS_DISCOVERY_V1"
@@ -496,11 +500,26 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             state.semantic_dialogue_responses = {}
             state.semantic_chat_messages = {}
             state.semantic_chat_suggestions = {}
+            workbook_logical_model = self._workbook_logical_model_for_semantics(state)
+            if workbook_logical_model.get("status") != WORKBOOK_LOGICAL_MODEL_READY:
+                return HTTPStatus.OK, base._blocked_message_page(
+                    str(
+                        workbook_logical_model.get("blocked_reason")
+                        or "No pudimos construir el modelo lógico del archivo de forma segura."
+                    )
+                )
             assistance_state = run_service_1_assisted_semantic_initial_v1(
                 ingestion_output=state.ingestion_output,
                 requested_capability=None,
                 provider=self._semantic_provider,
                 compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
+                logical_table_candidates=workbook_logical_model.get("logical_tables"),
+                logical_relationship_graph=workbook_logical_model.get("relationship_graph"),
+            )
+            assistance_state = dict(assistance_state or {})
+            assistance_state["workbook_logical_model_ref"] = str(
+                (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+                or ""
             )
             state.last_review_result = assistance_state
             if assistance_state.get("status") == STATUS_OWNER_DIALOGUE_REQUIRED:
@@ -526,6 +545,13 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
 
         sequential = self._render_one_pending_question(session_id=session_id)
         return sequential if sequential is not None else (status, page)
+
+    def _workbook_logical_model_for_semantics(self, state: Any) -> dict[str, Any]:
+        model = build_service_1_workbook_logical_model_v1(
+            ingestion_output=state.ingestion_output,
+            tenant_id=self._tenant_id_for_state(state) or None,
+        )
+        return dict(model or {})
 
     @staticmethod
     def _tenant_id_for_state(state: Any) -> str:
@@ -874,6 +900,14 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             if requested_capability == "working_capital"
             else ()
         )
+        workbook_logical_model = self._workbook_logical_model_for_semantics(state)
+        if workbook_logical_model.get("status") != WORKBOOK_LOGICAL_MODEL_READY:
+            return HTTPStatus.OK, base._blocked_message_page(
+                str(
+                    workbook_logical_model.get("blocked_reason")
+                    or "No pudimos construir el modelo lógico del archivo de forma segura."
+                )
+            )
         assistance_state = run_service_1_assisted_semantic_initial_v1(
             ingestion_output=state.ingestion_output,
             requested_capability=requested_capability,
@@ -881,6 +915,13 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
             semantic_scope_capabilities=semantic_scope,
             atomic_confirmation=True,
+            logical_table_candidates=workbook_logical_model.get("logical_tables"),
+            logical_relationship_graph=workbook_logical_model.get("relationship_graph"),
+        )
+        assistance_state = dict(assistance_state or {})
+        assistance_state["workbook_logical_model_ref"] = str(
+            (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+            or ""
         )
         state.last_review_result = assistance_state
 

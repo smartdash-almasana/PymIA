@@ -53,6 +53,16 @@ def _cash_ingestion(*, include_collected: bool = True) -> dict:
         "source_kind": "xlsx",
         "filename": "ventas_cobros.xlsx",
         "columns": columns,
+        "column_refs": [
+            {
+                "field_id": column,
+                "question_id": column,
+                "sheet_name": "Ventas",
+                "column_name": column,
+                "normalized_column_name": column,
+            }
+            for column in columns
+        ],
         "input_values": input_values,
         "column_evidence": evidence,
         "runtime_authorized": False,

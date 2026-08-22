@@ -470,6 +470,31 @@ def _signature_id(
     return "scs_" + hashlib.sha256(encoded).hexdigest()
 
 
+def build_service_1_structural_digest_v1(
+    *,
+    payload: Mapping[str, Any],
+    prefix: str = "stf_",
+) -> str:
+    """Build a deterministic SHA-256 digest for higher-level structure.
+
+    This is the same canonical JSON/SHA-256 mechanism used by the existing
+    column compatibility signature, exposed additively for table candidates.
+    Callers must omit volatile values such as filenames and row counts.
+    """
+    if not isinstance(payload, Mapping):
+        raise ValueError(BLOCK_SIGNATURE_INVALID)
+    clean_prefix = str(prefix or "").strip()
+    if not clean_prefix:
+        raise ValueError(BLOCK_SIGNATURE_INVALID)
+    encoded = json.dumps(
+        dict(payload),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return clean_prefix + hashlib.sha256(encoded).hexdigest()
+
+
 def _coerce_signature(
     value: Mapping[str, Any] | Service1StructuralCompatibilitySignatureV1,
 ) -> Service1StructuralCompatibilitySignatureV1:
@@ -538,6 +563,7 @@ __all__ = [
     "STATUS_READY",
     "STATUS_BLOCKED",
     "Service1StructuralCompatibilitySignatureV1",
+    "build_service_1_structural_digest_v1",
     "build_service_1_structural_signature_v1",
     "service_1_structural_signature_from_mapping_v1",
     "classify_service_1_structural_compatibility_v1",

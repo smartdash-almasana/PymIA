@@ -35,12 +35,26 @@ def _option_id_for_label(question: dict, expected_text: str) -> str:
     return _first_semantic_option_id(question)
 
 
+def _column_refs(*columns: str, sheet: str = "Ventas") -> list[dict]:
+    return [
+        {
+            "field_id": column,
+            "question_id": column,
+            "sheet_name": sheet,
+            "column_name": column,
+            "normalized_column_name": column,
+        }
+        for column in columns
+    ]
+
+
 def _clear_ingestion() -> dict:
     return {
         "case_id": "case_product_pipeline",
         "source_kind": "xlsx",
         "filename": "ventas.xlsx",
         "columns": ["fecha", "monto"],
+        "column_refs": _column_refs("fecha", "monto"),
         "input_values": {
             "fecha": "fecha de la operación",
             "monto": "importe total de la operación",
@@ -55,6 +69,7 @@ def _ambiguous_ingestion() -> dict:
         "source_kind": "xlsx",
         "filename": "ambiguous.xlsx",
         "columns": ["valor"],
+        "column_refs": _column_refs("valor"),
         "input_values": {"valor": "dato del negocio"},
         "column_evidence": {
             "valor": {"sample_values": [100, 200], "inferred_type": "number"}
@@ -207,6 +222,7 @@ def _cash_collection_ingestion() -> dict:
         "source_kind": "xlsx",
         "filename": "ventas_cobros.xlsx",
         "columns": ["fecha", "venta_total", "cobrado"],
+        "column_refs": _column_refs("fecha", "venta_total", "cobrado"),
         "input_values": {
             "fecha": "fecha de la operación",
             "venta_total": "importe total vendido",

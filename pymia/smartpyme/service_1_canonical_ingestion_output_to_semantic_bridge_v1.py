@@ -64,6 +64,7 @@ BLOCK_REQUEST_FLAGS_FORBIDDEN = "REQUEST_SAFETY_FLAGS_FORBIDDEN"
 BLOCK_INGESTION_NOT_DICT = "INGESTION_OUTPUT_NOT_DICT"
 BLOCK_INGESTION_FLAGS_FORBIDDEN = "INGESTION_SAFETY_FLAGS_FORBIDDEN"
 BLOCK_NO_COLUMNS = "NO_COLUMNS"
+BLOCK_COLUMN_REFS_REQUIRED = "COLUMN_REFS_REQUIRED"
 BLOCK_NO_INPUT_VALUES = "NO_INPUT_VALUES"
 BLOCK_COLUMNS_VALUES_MISMATCH = "COLUMNS_VALUES_MISMATCH"
 BLOCK_DUPLICATE_COLUMNS = "DUPLICATE_COLUMNS"
@@ -72,7 +73,6 @@ BLOCK_DUPLICATE_COLUMNS = "DUPLICATE_COLUMNS"
 def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
     *,
     ingestion_output: Any,
-    sheet_name: str = "sheet1",
     runtime_authorized: bool = False,
     product_ready: bool = False,
     delivery_authorized: bool = False,
@@ -82,9 +82,6 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
     Args:
         ingestion_output: The ``ingestion_output`` dict produced by
             ``service_1_owner_confirmation_to_canonical_ingestion_output_v1``.
-        sheet_name: Legacy fallback used only when ingestion_output does not
-            carry sheet-qualified ``column_refs``. Canonical multisheet intake
-            supplies the real worksheet identity for every column.
         runtime_authorized / product_ready / delivery_authorized: Must remain
             False. Passing any as True is itself a blocking condition.
 
@@ -111,30 +108,22 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
 
     columns = _extract_columns(ingestion_output)
     input_values = _extract_input_values(ingestion_output)
-    column_refs = _extract_column_refs(
-        ingestion_output,
-        columns=columns,
-        fallback_sheet_name=sheet_name,
-    )
-
-    if not columns or not column_refs:
+    if not columns:
         return _blocked(
             BLOCK_NO_COLUMNS,
             case_id=case_id,
             source_kind=source_kind,
             filename=filename,
         )
+
     duplicates = _duplicates(columns)
-    duplicate_identities = _duplicates(
-        [f"{ref['sheet_name']}\x00{ref['column_name']}" for ref in column_refs]
-    )
-    if duplicates or duplicate_identities:
+    if duplicates:
         return _blocked(
             BLOCK_DUPLICATE_COLUMNS,
             case_id=case_id,
             source_kind=source_kind,
             filename=filename,
-            detail=duplicates or duplicate_identities,
+            detail=duplicates,
         )
 
     # Confirmed ingestion remains all-or-nothing. An empty mapping is the
@@ -147,6 +136,30 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
             case_id=case_id,
             source_kind=source_kind,
             filename=filename,
+        )
+
+    column_refs = _extract_column_refs(
+        ingestion_output,
+        columns=columns,
+    )
+    if not column_refs:
+        return _blocked(
+            BLOCK_COLUMN_REFS_REQUIRED,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
+
+    duplicate_identities = _duplicates(
+        [f"{ref['sheet_name']}\x00{ref['column_name']}" for ref in column_refs]
+    )
+    if duplicate_identities:
+        return _blocked(
+            BLOCK_DUPLICATE_COLUMNS,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+            detail=duplicate_identities,
         )
 
     matrix_owner_values = dict(input_values)
@@ -290,7 +303,6 @@ def _extract_column_refs(
     ingestion_output: dict[str, Any],
     *,
     columns: list[str],
-    fallback_sheet_name: str,
 ) -> list[dict[str, str]]:
     raw_refs = ingestion_output.get("column_refs")
     if isinstance(raw_refs, list) and raw_refs:
@@ -314,17 +326,7 @@ def _extract_column_refs(
             return []
         return refs
 
-    sheet = str(ingestion_output.get("sheet_name") or fallback_sheet_name).strip()
-    return [
-        {
-            "field_id": column,
-            "question_id": column,
-            "sheet_name": sheet,
-            "column_name": column,
-            "normalized_column_name": column,
-        }
-        for column in columns
-    ]
+    return []
 
 
 def _extract_input_values(ingestion_output: dict[str, Any]) -> dict[str, Any]:

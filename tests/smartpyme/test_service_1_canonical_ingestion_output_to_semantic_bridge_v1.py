@@ -20,6 +20,7 @@ from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1 as build_conn,
 )
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
+    BLOCK_COLUMN_REFS_REQUIRED,
     BLOCK_COLUMNS_VALUES_MISMATCH,
     BLOCK_DUPLICATE_COLUMNS,
     BLOCK_INGESTION_FLAGS_FORBIDDEN,
@@ -192,18 +193,11 @@ def test_block_no_columns() -> None:
     _assert_safety_flags_false(out)
 
 
-def test_empty_input_values_build_unconfirmed_confirmation_matrix() -> None:
+def test_missing_column_refs_fails_closed_without_sheet_fallback() -> None:
     out = build_bridge(ingestion_output={"columns": ["a", "b"]})
 
-    assert out["status"] == STATUS_READY
-    assert all(
-        entry.owner_confirmed_role is None
-        for entry in out["confirmation_matrix"].entries
-    )
-    assert all(
-        entry.confirmation_status.value == "PENDING_OWNER_CONFIRMATION"
-        for entry in out["confirmation_matrix"].entries
-    )
+    assert out["status"] == "BLOCKED"
+    assert out["blocked_reason"] == BLOCK_COLUMN_REFS_REQUIRED
     _assert_safety_flags_false(out)
 
 
