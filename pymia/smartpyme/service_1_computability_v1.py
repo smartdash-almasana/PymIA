@@ -37,8 +37,13 @@ from pymia.smartpyme.service_1_semantic_catalog_loader_v1 import (
     STATUS_CATALOGS_PARTIALLY_LOADED,
     build_service_1_semantic_catalog_load_result_v1,
 )
+from pymia.smartpyme.service_1_structural_compatibility_v1 import (
+    build_service_1_structural_digest_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_COMPUTABILITY_V1"
+CONFIRMED_BINDINGS_SCHEMA_VERSION = "SERVICE_1_CONFIRMED_SEMANTIC_BINDINGS_V1"
+CONFIRMED_BINDINGS_STATUS = "CONFIRMED_BINDINGS"
 STATUS_COMPUTABLE = "COMPUTABLE"
 STATUS_NEEDS_EVIDENCE = "NEEDS_EVIDENCE"
 STATUS_UNSUPPORTED_CAPABILITY = "UNSUPPORTED_CAPABILITY"
@@ -47,6 +52,17 @@ STATUS_BLOCKED = "BLOCKED"
 ALLOWED_STATUSES = frozenset({STATUS_COMPUTABLE, STATUS_NEEDS_EVIDENCE, STATUS_UNSUPPORTED_CAPABILITY, STATUS_BLOCKED})
 ANALYSIS_ALLOWED_STATUSES = frozenset({STATUS_COMPUTABLE, STATUS_NEEDS_EVIDENCE, STATUS_UNSUPPORTED_ANALYSIS, STATUS_BLOCKED})
 _ALLOWED_CATALOG_LOAD_STATUSES = {STATUS_CATALOGS_LOADED, STATUS_CATALOGS_PARTIALLY_LOADED}
+FANOUT_SAFE_LOOKUP = "SAFE_LOOKUP"
+RELATIONSHIP_STATE_RESOLVED = "RESOLVED"
+_RELATIONSHIP_AUTHORITY_FLAGS = (
+    "runtime_authorized",
+    "tool_execution_authorized",
+    "product_ready",
+    "delivery_authorized",
+    "diagnosis_generated",
+    "join_execution_authorized",
+    "computability_authorized",
+)
 
 
 @dataclass(frozen=True)
@@ -73,7 +89,17 @@ class Service1GovernedComputationInputV1:
             raise ValueError("required_variables must not be empty")
         if set(self.required_variables) != set(self.source_bindings):
             raise ValueError("source_bindings must cover exactly required_variables")
-        forbidden = {"runtime_authorized", "tool_execution_authorized", "product_ready", "delivery_authorized", "diagnosis_generated"}
+        forbidden = {
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+            "computability_authorized",
+            "join_execution_authorized",
+            "automatic_reuse_authorized",
+            "semantic_rebind_authorized",
+        }
         if forbidden.intersection(self.provenance):
             raise ValueError("provenance cannot carry authorization fields")
 
@@ -199,6 +225,10 @@ class Service1GovernedAnalysisInputV1:
             "delivery_authorized",
             "diagnosis_generated",
             "analysis_execution_authorized",
+            "join_execution_authorized",
+            "computability_authorized",
+            "automatic_reuse_authorized",
+            "semantic_rebind_authorized",
         }
         if forbidden.intersection(self.provenance):
             raise ValueError("analysis provenance cannot carry execution authority")
@@ -221,6 +251,110 @@ class Service1GovernedAnalysisInputV1:
             "delivery_authorized": False,
             "diagnosis_generated": False,
             "analysis_execution_authorized": False,
+        }
+
+
+@dataclass(frozen=True)
+class Service1GovernedRelationshipBindingV1:
+    """P8-governed reference to one D4 relationship, never a copied graph."""
+
+    source_artifact_ref: str
+    workbook_ref: str
+    schema_fingerprint: str
+    d4_graph_ref: str
+    relationship_ref: str
+    left_logical_table_ref: str
+    right_logical_table_ref: str
+    left_sheet_ref: str
+    left_column_ref: str
+    right_sheet_ref: str
+    right_column_ref: str
+    relationship_kind: str
+    cardinality: str
+    fanout_evidence: Mapping[str, Any]
+    owner_confirmation_event_ref: str
+    confirmed_by_owner: bool
+    integrity_digest: str | None = None
+    provenance: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        required = (
+            "source_artifact_ref",
+            "workbook_ref",
+            "schema_fingerprint",
+            "d4_graph_ref",
+            "relationship_ref",
+            "left_logical_table_ref",
+            "right_logical_table_ref",
+            "left_sheet_ref",
+            "left_column_ref",
+            "right_sheet_ref",
+            "right_column_ref",
+            "relationship_kind",
+            "cardinality",
+            "owner_confirmation_event_ref",
+        )
+        for name in required:
+            if not str(getattr(self, name) or "").strip():
+                raise ValueError(f"{name} is required")
+        if self.left_logical_table_ref == self.right_logical_table_ref:
+            raise ValueError("relationship endpoints must be different logical tables")
+        if self.relationship_kind != self.cardinality:
+            raise ValueError("relationship_kind and cardinality must match")
+        if self.confirmed_by_owner is not True:
+            raise ValueError("relationship must be confirmed_by_owner")
+        if not isinstance(self.fanout_evidence, Mapping):
+            raise ValueError("fanout_evidence must be a mapping")
+        if not isinstance(self.provenance, Mapping):
+            raise ValueError("provenance must be a mapping")
+        if str(self.owner_confirmation_event_ref).strip() in {
+            str(self.relationship_ref).strip(),
+            str(self.provenance.get("question_ref") or "").strip(),
+        }:
+            raise ValueError("owner_confirmation_event_ref must be distinct")
+        if any(bool(self.provenance.get(flag)) for flag in _RELATIONSHIP_AUTHORITY_FLAGS):
+            raise ValueError("relationship provenance cannot carry authority")
+        payload = self._integrity_payload()
+        expected = build_service_1_structural_digest_v1(payload=payload, prefix="grb_")
+        if self.integrity_digest not in (None, expected):
+            raise ValueError("relationship binding integrity digest mismatch")
+        object.__setattr__(self, "integrity_digest", expected)
+        object.__setattr__(self, "fanout_evidence", dict(self.fanout_evidence))
+        object.__setattr__(self, "provenance", dict(self.provenance))
+
+    def _integrity_payload(self) -> dict[str, Any]:
+        return {
+            "source_artifact_ref": self.source_artifact_ref,
+            "workbook_ref": self.workbook_ref,
+            "schema_fingerprint": self.schema_fingerprint,
+            "d4_graph_ref": self.d4_graph_ref,
+            "relationship_ref": self.relationship_ref,
+            "left_logical_table_ref": self.left_logical_table_ref,
+            "right_logical_table_ref": self.right_logical_table_ref,
+            "left_sheet_ref": self.left_sheet_ref,
+            "left_column_ref": self.left_column_ref,
+            "right_sheet_ref": self.right_sheet_ref,
+            "right_column_ref": self.right_column_ref,
+            "relationship_kind": self.relationship_kind,
+            "cardinality": self.cardinality,
+            "fanout_evidence": dict(self.fanout_evidence),
+            "owner_confirmation_event_ref": self.owner_confirmation_event_ref,
+            "confirmed_by_owner": True,
+            "provenance": dict(self.provenance),
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            **self._integrity_payload(),
+            "integrity_digest": self.integrity_digest,
+            "p8_governed": True,
+            "join_execution_authorized": False,
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "product_ready": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+            "computability_authorized": False,
         }
 
 
@@ -283,6 +417,184 @@ class Service1AnalysisComputabilityDecisionV1:
         }
 
 
+def build_service_1_governed_relationship_binding_v1(
+    *,
+    d4_graph: Mapping[str, Any] | None = None,
+    d7_workbook_logical_model: Mapping[str, Any] | None = None,
+    owner_confirmation_event: Any,
+    relationship_ref: str | None = None,
+    source_artifact_ref: str | None = None,
+    workbook_ref: str | None = None,
+    schema_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Validate D4/D3/owner evidence and emit one immutable P8 binding."""
+    model = d7_workbook_logical_model if isinstance(d7_workbook_logical_model, Mapping) else None
+    graph = d4_graph if isinstance(d4_graph, Mapping) else None
+    if graph is None and model is not None:
+        graph = model.get("relationship_graph") if isinstance(model.get("relationship_graph"), Mapping) else None
+    if not isinstance(graph, Mapping):
+        raise ValueError("D4_RELATIONSHIP_PROVENANCE_REQUIRED")
+
+    graph_ref = str(graph.get("graph_ref") or graph.get("graph_fingerprint") or "").strip()
+    graph_provenance = graph.get("provenance") if isinstance(graph.get("provenance"), Mapping) else {}
+    graph_schema = str(
+        graph.get("schema_fingerprint")
+        or graph_provenance.get("schema_fingerprint")
+        or ""
+    ).strip()
+    if not graph_ref or not graph_schema:
+        raise ValueError("D4_RELATIONSHIP_PROVENANCE_REQUIRED")
+    expected_schema = str(
+        schema_fingerprint
+        or ((model or {}).get("schema_identity") or {}).get("schema_fingerprint")
+        or ""
+    ).strip()
+    if expected_schema and expected_schema != graph_schema:
+        raise ValueError("D4_SCHEMA_FINGERPRINT_MISMATCH")
+    expected_workbook = str(
+        workbook_ref
+        or (model or {}).get("workbook_ref")
+        or graph.get("workbook_ref")
+        or graph_provenance.get("workbook_ref")
+        or ""
+    ).strip()
+    expected_artifact = str(
+        source_artifact_ref
+        or (model or {}).get("source_artifact_ref")
+        or graph.get("source_artifact_ref")
+        or graph_provenance.get("source_artifact_ref")
+        or ""
+    ).strip()
+    if not expected_workbook or not expected_artifact:
+        raise ValueError("D4_RELATIONSHIP_PROVENANCE_REQUIRED")
+
+    event = _event_mapping(owner_confirmation_event)
+    event_ref = str(event.get("owner_confirmation_event_ref") or "").strip()
+    ref = str(relationship_ref or event.get("relationship_ref") or "").strip()
+    if not ref or not event_ref:
+        raise ValueError("OWNER_RELATIONSHIP_CONFIRMATION_REQUIRED")
+    if event_ref in {ref, str(event.get("question_ref") or "").strip()}:
+        raise ValueError("OWNER_RELATIONSHIP_CONFIRMATION_REQUIRED")
+    if event.get("confirmed_by_owner") is not True:
+        raise ValueError("OWNER_RELATIONSHIP_CONFIRMATION_REQUIRED")
+
+    relation = next(
+        (
+            item
+            for item in graph.get("relationships") or ()
+            if isinstance(item, Mapping)
+            and str(item.get("relationship_ref") or "").strip() == ref
+        ),
+        None,
+    )
+    if relation is None:
+        raise ValueError("D4_RELATIONSHIP_REF_NOT_FOUND")
+    if str(relation.get("state") or "").strip() != RELATIONSHIP_STATE_RESOLVED:
+        raise ValueError("D4_RELATIONSHIP_UNRESOLVED")
+    relation_graph_ref = str(relation.get("d4_graph_ref") or relation.get("graph_ref") or graph_ref).strip()
+    if relation_graph_ref != graph_ref:
+        raise ValueError("D4_GRAPH_REF_MISMATCH")
+    relation_schema = str(relation.get("schema_fingerprint") or graph_schema).strip()
+    if relation_schema != graph_schema:
+        raise ValueError("D4_SCHEMA_FINGERPRINT_MISMATCH")
+    fanout = str(
+        relation.get("fanout_risk")
+        or ((relation.get("fanout_evidence") or {}).get("fanout_risk") if isinstance(relation.get("fanout_evidence"), Mapping) else "")
+        or ""
+    ).strip()
+    if fanout != FANOUT_SAFE_LOOKUP:
+        raise ValueError("D4_FANOUT_NOT_SAFE")
+
+    left_sheet, left_column = _split_endpoint(
+        relation.get("provenance", {}).get("physical_left_endpoint")
+        if isinstance(relation.get("provenance"), Mapping)
+        else None
+    )
+    right_sheet, right_column = _split_endpoint(
+        relation.get("provenance", {}).get("physical_right_endpoint")
+        if isinstance(relation.get("provenance"), Mapping)
+        else None
+    )
+    expected_endpoints = (
+        str(event.get("left_sheet_ref") or "").strip(),
+        str(event.get("left_column_ref") or "").strip(),
+        str(event.get("right_sheet_ref") or "").strip(),
+        str(event.get("right_column_ref") or "").strip(),
+    )
+    if not all(expected_endpoints) or (left_sheet, left_column, right_sheet, right_column) != expected_endpoints:
+        raise ValueError("D4_RELATIONSHIP_ENDPOINT_MISMATCH")
+    cardinality = str(relation.get("cardinality") or relation.get("relationship_kind") or "").strip()
+    event_kind = str(event.get("relationship_kind") or "").strip()
+    if not cardinality or event_kind != cardinality:
+        raise ValueError("D4_RELATIONSHIP_CARDINALITY_MISMATCH")
+    relation_event_ref = str(relation.get("owner_confirmation_event_ref") or "").strip()
+    if relation_event_ref and relation_event_ref != event_ref:
+        raise ValueError("OWNER_RELATIONSHIP_CONFIRMATION_REQUIRED")
+
+    logical_left = str(relation.get("left_logical_table_ref") or "").strip()
+    logical_right = str(relation.get("right_logical_table_ref") or "").strip()
+    binding = Service1GovernedRelationshipBindingV1(
+        source_artifact_ref=expected_artifact,
+        workbook_ref=expected_workbook,
+        schema_fingerprint=graph_schema,
+        d4_graph_ref=graph_ref,
+        relationship_ref=ref,
+        left_logical_table_ref=logical_left,
+        right_logical_table_ref=logical_right,
+        left_sheet_ref=left_sheet,
+        left_column_ref=left_column,
+        right_sheet_ref=right_sheet,
+        right_column_ref=right_column,
+        relationship_kind=cardinality,
+        cardinality=cardinality,
+        fanout_evidence={
+            "fanout_risk": fanout,
+            "d4_state": str(relation.get("state") or "").strip(),
+            "certificate_ref": str((graph.get("fanout_certificate") or {}).get("certificate_ref") or "").strip() or None,
+        },
+        owner_confirmation_event_ref=event_ref,
+        confirmed_by_owner=True,
+        provenance={
+            "source": "D4_RELATIONSHIP_GRAPH_VIA_D7_PLUS_OWNER_EVENT",
+            "question_ref": str(event.get("question_ref") or "").strip(),
+            "case_id": str(event.get("case_id") or "").strip(),
+            "p8_governed": True,
+            "relationship_resolution_performed": False,
+            "join_execution_authorized": False,
+        },
+    )
+    return binding.to_dict()
+
+
+def _event_mapping(event: Any) -> dict[str, Any]:
+    if hasattr(event, "to_dict") and callable(event.to_dict):
+        payload = event.to_dict()
+        return dict(payload) if isinstance(payload, Mapping) else {}
+    if isinstance(event, Mapping):
+        payload = dict(event)
+        provenance = payload.get("provenance")
+        if isinstance(provenance, Mapping):
+            for key in (
+                "owner_confirmation_event_ref",
+                "d4_graph_ref",
+                "schema_fingerprint",
+                "source_artifact_ref",
+                "workbook_ref",
+            ):
+                if not str(payload.get(key) or "").strip() and str(provenance.get(key) or "").strip():
+                    payload[key] = provenance[key]
+        return payload
+    raise ValueError("OWNER_RELATIONSHIP_CONFIRMATION_REQUIRED")
+
+
+def _split_endpoint(value: Any) -> tuple[str, str]:
+    text = str(value or "").strip()
+    if "." not in text:
+        return "", ""
+    sheet, column = text.rsplit(".", 1)
+    return sheet.strip(), column.strip()
+
+
 def build_service_1_analysis_computability_decision_v1(
     *,
     case_id: str,
@@ -290,6 +602,11 @@ def build_service_1_analysis_computability_decision_v1(
     p6_decisions: tuple[Service1P6ApprovalDecisionV1, ...] | list[Service1P6ApprovalDecisionV1],
     analysis_requirement_match: Service1AnalysisRequirementMatchV1,
     relationship_bindings: Mapping[str, Mapping[str, Any]] | None = None,
+    d4_graph: Mapping[str, Any] | None = None,
+    d7_workbook_logical_model: Mapping[str, Any] | None = None,
+    source_artifact_ref: str | None = None,
+    workbook_ref: str | None = None,
+    schema_fingerprint: str | None = None,
 ) -> Service1AnalysisComputabilityDecisionV1:
     """P8 computability decision for declarative AnalysisPlan; never executes analysis."""
     case = str(case_id or "").strip()
@@ -402,6 +719,7 @@ def build_service_1_analysis_computability_decision_v1(
             missing_relationships=missing_relationships,
         )
     normalized_relationships: dict[str, Mapping[str, Any]] = {}
+    provenance_graph = d4_graph if isinstance(d4_graph, Mapping) else d7_workbook_logical_model
     for ref in required_relationships:
         binding = provided_relationships[ref]
         if not isinstance(binding, Mapping):
@@ -428,7 +746,21 @@ def build_service_1_analysis_computability_decision_v1(
                 "RELATIONSHIP_OWNER_CONFIRMATION_REQUIRED",
                 missing_relationships=(ref,),
             )
-        normalized_relationships[ref] = dict(binding)
+        if provenance_graph is not None:
+            try:
+                normalized_relationships[ref] = build_service_1_governed_relationship_binding_v1(
+                    d4_graph=d4_graph,
+                    d7_workbook_logical_model=d7_workbook_logical_model,
+                    owner_confirmation_event=binding,
+                    relationship_ref=ref,
+                    source_artifact_ref=source_artifact_ref,
+                    workbook_ref=workbook_ref,
+                    schema_fingerprint=schema_fingerprint,
+                )
+            except ValueError as exc:
+                return _analysis_decision(case, analysis_plan.analysis_id, STATUS_BLOCKED, str(exc))
+        else:
+            normalized_relationships[ref] = dict(binding)
 
     formula_refs, formula_ref_error = _analysis_formula_refs(analysis_plan)
     if formula_ref_error is not None:
@@ -449,6 +781,17 @@ def build_service_1_analysis_computability_decision_v1(
             "p8_computability_only": True,
             "relationship_resolution_performed": False,
             "analysis_execution_performed": False,
+            "p8_relationship_governance": bool(provenance_graph is not None),
+            "d4_graph_ref": (
+                str((provenance_graph or {}).get("graph_ref") or "").strip() or None
+                if isinstance(provenance_graph, Mapping)
+                else None
+            ),
+            "schema_fingerprint": (
+                str(schema_fingerprint or ((provenance_graph or {}).get("schema_fingerprint") or ((provenance_graph or {}).get("provenance") or {}).get("schema_fingerprint") or "")).strip() or None
+                if isinstance(provenance_graph, Mapping)
+                else None
+            ),
         },
     )
     return Service1AnalysisComputabilityDecisionV1(
@@ -751,6 +1094,72 @@ def build_service_1_composite_governed_computation_input_v1(*, case_id: str, cap
     )
 
 
+def build_computability_decision_from_confirmed_bindings_v1(
+    *,
+    confirmed_bindings: Any,
+    requested_capability: str,
+    derived_evidence_packet: Mapping[str, Any] | None = None,
+    formula_catalog_path: str | Path | None = None,
+    pathology_catalog_path: str | Path | None = None,
+    evidence_matrix_path: str | Path | None = None,
+) -> Any:
+    """Build the canonical P8 decision from SEM-8 confirmed bindings.
+
+    This adapter belongs to P8.  It does not compose semantic stages or
+    provide a second semantic state machine.
+    """
+    if not isinstance(confirmed_bindings, Mapping):
+        raise ValueError("confirmed_bindings must be a mapping")
+    if (
+        str(confirmed_bindings.get("schema_version") or "").strip()
+        != CONFIRMED_BINDINGS_SCHEMA_VERSION
+        or confirmed_bindings.get("status") != CONFIRMED_BINDINGS_STATUS
+    ):
+        raise ValueError("confirmed bindings are required")
+    capability = str(requested_capability or "").strip()
+    if not capability:
+        raise ValueError("requested_capability is required")
+    evidence = _confirmed_evidence_packet(confirmed_bindings)
+    if evidence is None:
+        raise ValueError("confirmed evidence packet is missing")
+    bridge = confirmed_bindings.get("bridge_packet")
+    case_id = str(
+        evidence.get("case_id")
+        or (bridge.get("case_id") if isinstance(bridge, Mapping) else "")
+        or ""
+    ).strip()
+    if not case_id:
+        raise ValueError("case_id is required")
+    return build_service_1_computability_decision_v1(
+        case_id=case_id,
+        requested_capability=capability,
+        p6_decisions=list(evidence.get("p6_decisions") or []),
+        requirement_matches=list(evidence.get("requirement_matches") or []),
+        derived_evidence_packet=derived_evidence_packet,
+        formula_catalog_path=formula_catalog_path,
+        pathology_catalog_path=pathology_catalog_path,
+        evidence_matrix_path=evidence_matrix_path,
+    )
+
+
+def _confirmed_evidence_packet(
+    confirmed_bindings: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    reentry = confirmed_bindings.get("reentry_packet")
+    if isinstance(reentry, Mapping) and reentry.get("column_candidates"):
+        return dict(reentry)
+    bridge = confirmed_bindings.get("bridge_packet")
+    gate = confirmed_bindings.get("gate_packet")
+    if isinstance(bridge, Mapping) and isinstance(gate, Mapping):
+        merged = dict(bridge)
+        merged["variable_family_bindings"] = gate.get("variable_family_bindings", ())
+        merged["ready_variable_family_ids"] = gate.get("ready_variable_family_ids", [])
+        merged["p6_decisions"] = gate.get("p6_decisions", [])
+        merged["requirement_matches"] = gate.get("requirement_matches", [])
+        return merged
+    return None
+
+
 def _analysis_formula_refs(analysis_plan: Service1AnalysisPlanV1) -> tuple[tuple[str, ...], str | None]:
     formula_by_measure = {
         "sales": None,
@@ -877,8 +1286,8 @@ def _catalog_versions(paths: dict[str, Path], matrix: dict[str, Any]) -> dict[st
 
 
 __all__ = [
-    "SCHEMA_VERSION", "STATUS_COMPUTABLE", "STATUS_NEEDS_EVIDENCE", "STATUS_UNSUPPORTED_CAPABILITY", "STATUS_UNSUPPORTED_ANALYSIS", "STATUS_BLOCKED",
-    "Service1ComputabilityDecisionV1", "Service1GovernedComputationInputV1", "build_service_1_computability_decision_v1",
+    "SCHEMA_VERSION", "CONFIRMED_BINDINGS_SCHEMA_VERSION", "CONFIRMED_BINDINGS_STATUS", "STATUS_COMPUTABLE", "STATUS_NEEDS_EVIDENCE", "STATUS_UNSUPPORTED_CAPABILITY", "STATUS_UNSUPPORTED_ANALYSIS", "STATUS_BLOCKED",
+    "Service1ComputabilityDecisionV1", "Service1GovernedComputationInputV1", "Service1GovernedRelationshipBindingV1", "build_service_1_computability_decision_v1", "build_service_1_governed_relationship_binding_v1",
     "Service1AnalysisComputabilityDecisionV1", "Service1GovernedAnalysisInputV1", "build_service_1_analysis_computability_decision_v1",
-    "build_service_1_composite_governed_computation_input_v1",
+    "build_service_1_composite_governed_computation_input_v1", "build_computability_decision_from_confirmed_bindings_v1",
 ]

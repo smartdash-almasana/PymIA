@@ -1,7 +1,7 @@
 # Servicio 1 — architecture lock
 
 **Status:** `ACTIVE`  
-**Reconciled on:** `2026-07-29`  
+**Reconciled on:** `2026-08-23`  
 **Scope:** product authority, execution boundaries, support-layer boundaries and promotion rules.
 
 ## 1. Software objetivo
@@ -16,21 +16,25 @@ El dueño confirma significado.
 La evidencia manda.
 ```
 
-## 2. Entrada oficial y raíz productiva
+## 2. Superficies productivas y raíz de ejecución
 
-Entrada oficial:
+Superficies productivas autorizadas:
 
 ```text
-pymia/cli/service_1_product.py
+CLI / adapters de entrada
+Web / HTTP semantic reception
 ```
 
-Raíz productiva canónica:
+Estas superficies sólo construyen requests, transportan evidencia y proyectan respuestas. No coordinan D1–D7, semántica, P7/P8, joins ni matemática por fuera de los contracts canónicos.
+
+Raíz canónica única de **ejecución**:
 
 ```text
 pymia/smartpyme/service_1_product_pipeline_v1.py
+→ target role: ProductExecutionRoot thin dispatcher
 ```
 
-No se autoriza una segunda raíz productiva.
+No se autoriza una segunda raíz de ejecución. `ResultReadBoundary` es una superficie de lectura sobre F13 y no constituye una segunda raíz productiva de ejecución.
 
 ## 3. Clasificación física obligatoria
 
@@ -40,12 +44,13 @@ Fuente:
 docs/service_1_module_disposition.v1.json
 ```
 
-Estado observado al reconciliar este lock:
+Estado observado al reconciliar este lock contra el registry físico:
 
 ```text
-TOTAL_SERVICE_1_MODULES = 60
-PRODUCTIVE = 30
-SUPPORT_NECESSARY = 30
+TOTAL_SERVICE_1_MODULES = 111
+PRODUCTIVE = 63
+SUPPORT_NECESSARY = 47
+EXPERIMENTAL_FROZEN = 1
 ```
 
 Sólo los módulos `PRODUCTIVE` pueden integrar el closure ejecutable de la raíz canónica.
@@ -80,18 +85,9 @@ EXECUTION ≠ DELIVERY
 
 ## 5. Ejecución productiva
 
-### Especializados
+### Workbook analysis
 
-Los evaluadores especializados sólo se justifican cuando el comportamiento no encaja en el kernel genérico sin pérdida semántica o contractual.
-
-Actualmente la raíz conserva las excepciones especializadas históricamente justificadas para:
-
-```text
-LIQ_001
-REN_001
-```
-
-### Kernel genérico
+LIQ_001 y REN_001 son **governed workbook capabilities**, no `SPECIALIZED_REQUEST`. Su matemática debe converger al kernel canónico y su clasificación al contrato declarativo común.
 
 Las capacidades registry-governed siguen:
 
@@ -99,11 +95,28 @@ Las capacidades registry-governed siguen:
 CapabilityDefinitionV1
 → CapabilityRegistry
 → P8 governed input
-→ GenericCapabilityEngine
-→ bounded outcome
+→ evidence preparation / execution coordination
+→ FormulaEngineService + MathPrimitiveOperation + formula catalog
+→ declarative classification policy
+→ governed outcome
 ```
 
-Agregar una capacidad genérica no autoriza agregar una nueva rama identitaria en la raíz.
+Agregar una capacidad de workbook no autoriza agregar una rama identitaria nueva en la raíz.
+
+### SpecializedDomainExecuteRequest
+
+Un workflow especializado sólo se admite cuando cumple simultáneamente el criterio anti-basurero normativo: input no representable sin pérdida como workbook analysis, workflow/output materialmente distinto, subtype explícito, sin bypass D1–D7 para workbook encubierto, sin semántica legacy, matemática/policy bajo autoridades canónicas y gate que impida usar `SPECIALIZED` como escape hatch.
+
+Estado normativo actual:
+
+```text
+expense_variance = specialized candidato legítimo
+collection_aging = specialized candidato legítimo
+reconciliation   = specialized candidato legítimo
+LIQ_001          = NO specialized
+REN_001          = NO specialized
+legacy semantic compat = DELETE
+```
 
 ## 6. Fundaciones de plataforma integradas
 
@@ -239,8 +252,9 @@ OUTCOME_READY ≠ DELIVERY_AUTHORIZED
 
 ## 9. Prohibiciones de arquitectura
 
-- No nueva raíz productiva fuera de `service_1_product_pipeline_v1`.
-- No nueva entrada oficial equivalente fuera de `pymia/cli/service_1_product.py`.
+- No nueva raíz de ejecución fuera de `service_1_product_pipeline_v1`.
+- Web/CLI pueden existir como superficies productivas, pero no pueden coordinar ejecución por fuera de `ProductExecutionRoot` ni crear una ruta analítica paralela.
+- `ResultReadBoundary` sólo lee F13 y no es una segunda raíz de ejecución.
 - No segundo parser XLSX productivo.
 - No cadena productiva paralela a P0–P10.
 - No selección soberana de capacidad desde texto libre.
@@ -290,3 +304,346 @@ docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md
 Servicio 1 puede ampliar su plataforma sin ampliar su soberanía.
 La autoridad productiva sólo cambia por contrato, integración explícita y evidencia.
 ```
+
+
+## 13. Convergence lock — 2026-08-23
+
+Esta sección prevalece sobre cualquier regla anterior incompatible respecto de la convergencia actual de Servicio 1.
+
+### 13.1 Prohibición de decisiones sólo conversacionales
+
+Ninguna decisión de arquitectura se considera aceptada si sólo existe en chat, prompt, `_audit/`, comentario temporal o memoria de sesión. Antes de implementar una decisión normativa deben estar actualizados los documentos rectores correspondientes.
+
+### 13.2 Prohibición de parche arquitectónico
+
+Queda prohibido resolver una incompatibilidad local mediante un nuevo wrapper, fallback, alias, branch o flag si esa pieza no pertenece a la arquitectura final definida.
+
+En particular, un test legacy no justifica introducir runtime legacy.
+
+### 13.3 Prohibición de deuda transitoria indefinida
+
+Toda pieza marcada `transitional`, `legacy compatibility`, `temporary`, `shim` o equivalente debe tener destino explícito:
+
+```text
+ABSORB
+DELETE
+OFFLINE
+```
+
+No existe como destino válido `KEEP_TEMPORARILY_WITHOUT_RETIREMENT_GATE`.
+
+### 13.4 ProductExecutionRoot lock
+
+La raíz de ejecución debe converger a un dispatcher/coordinador delgado sobre un `ProductExecutionRequest` discriminado explícitamente:
+
+```text
+WorkbookSemanticStartRequest
+WorkbookSemanticContinueRequest
+WorkbookAnalysisExecuteRequest
+SpecializedDomainExecuteRequest
+```
+
+No se acepta como diseño final una firma amplia de kwargs combinables ni switches procedurales para seleccionar workflow.
+
+Destino normativo de mecanismos actuales:
+
+```text
+analysis_execution_request   → ABSORB en WorkbookAnalysisExecuteRequest
+semantic_reception_only      → DELETE como switch top-level
+semantic_atomic_confirmation → ABSORB en contrato semántico explícito
+semantic_run_override        → DELETE productivo
+owner_answers legacy         → DELETE tras migración
+use_assisted_semantics       → DELETE como selector top-level
+```
+
+La lectura de ResultSets persistidos no entra por este root.
+
+### 13.5 Workbook lock
+
+Para `WORKBOOK`:
+
+```text
+CanonicalIngestionOutput
+→ D1 → D2 → D3 → D4 → D5 → D6 → D7
+→ SEM/owner
+→ P7
+→ P8
+→ F7
+→ F8
+→ F9
+→ F13
+```
+
+No se permite:
+
+- inferir workbook por shape;
+- completar el envelope en CLI/UI después de su construcción canónica;
+- usar filename como identidad del workbook;
+- fabricar `sheet1` cuando falta evidencia de sheet;
+- construir D7 desde web/UI/CLI;
+- saltar D1–D7 para un workbook productivo.
+
+### 13.6 Authority lock
+
+```text
+D7     = evidence only
+SEM    = semantic interpretation coordinator; provider-neutral
+OWNER  = human semantic/relationship evidence
+P7     = grain/requirement authority
+P8     = computability/use + governed provenance validation
+F7     = sole physical join materialization + runtime safety
+MATH   = formula_contract + FormulaEngineService + MathPrimitiveOperation + formula catalog
+F8     = F12 math coordinator; NOT sole physical caller of MATH
+POLICY = declarative boolean classification over kernel-computed values; no arithmetic
+F9     = result projection authority
+F13    = persistence/load authority; no recalculation
+```
+
+Ninguna capa de compatibilidad, UI, CLI, LLM o memoria puede adquirir esas autoridades indirectamente.
+
+### 13.7 Integral-health gate
+
+No se declara Servicio 1 arquitectónicamente sano por acumulación de PASS locales. La certificación integral requiere, sobre el mismo worktree/SHA:
+
+```text
+single productive execution root
+four explicit execution command contracts
+result read separated from execution
+single canonical workbook ingestion
+single productive XLSX reader
+WORKBOOK mandatory D1-D7
+D7 evidence-only
+single productive semantic state machine
+table-scoped evidence built once in D6/D7
+P7/P8 authority separation
+F7-only join materialization + runtime safety
+single common math kernel via FormulaEngineService / formula_contract
+no inline business math after migration
+declarative classification with no arithmetic
+no LLM math/runtime authority
+no memory auto-rebind
+F13 result read without recalculation
+content-addressed source artifact identity
+no filename workbook identity
+no sheet1 fallback
+no productive legacy semantic shim
+complete module registry
+full suite with 0 FAIL / 0 ERROR
+real workbook E2E PASS
+```
+
+Hasta entonces, los PASS parciales son evidencia local y no equivalen a certificación del sistema.
+
+
+## 14. Final architecture lock — dialectical closure 2026-08-23
+
+Esta sección cierra normativamente la deliberación arquitectónica final de Servicio 1.
+
+```text
+OPEN_ARCHITECTURAL_DECISIONS = 0
+DIALECTICAL_REVIEW_COMPLETE = PASS
+TARGET_ARCHITECTURE_CLOSED = YES
+```
+
+La implementación sigue separada de este cierre documental: el worktree actual no queda certificado por actualizar estos documentos.
+
+### 14.1 Identity lock
+
+```text
+case_id = opaque workflow/case identity; never structural identity
+source_artifact_ref = xlsx:sha256:<hash of actual XLSX bytes>
+workbook_ref = digest(source_artifact_ref + ingestion_scope + canonical reader/schema version)
+sheet_ref = digest(workbook_ref + exact sheet_name)
+filename = provenance/display only
+sheet_name = physical label only
+```
+
+Para `local_path`, el SHA-256 se calcula sobre los bytes reales del archivo mediante lectura streaming. Quedan prohibidos como identidad soberana:
+
+```text
+basename
+absolute path
+mtime + size
+filename
+sheet1 fabricated fallback
+```
+
+### 14.2 Canonical ingestion immutability lock
+
+`CanonicalIngestionOutput V2` es self-contained. CLI, web, UI y adapters no pueden completar o mutar su contenido post-construction.
+
+La reinyección CLI de `normalized_tables` debe desaparecer. Los aliases legacy/transitorios sólo sobreviven hasta que todos sus consumers migren; el gate de retiro es `ZERO_PRODUCTIVE_CONSUMERS`.
+
+### 14.3 Semantic FSM lock
+
+Existe una sola FSM semántica productiva:
+
+```text
+SemanticStart(det | bounded LLM)
+→ deterministic validation
+→ explicit owner dialogue
+→ SemanticContinue(owner evidence)
+→ shared reinjector/P6
+→ CONFIRMED_BINDINGS | follow-up
+```
+
+El provider determinístico es un provider de la misma frontera, no una segunda FSM. El pipeline determinístico histórico se retira después de un gate de paridad. El legacy semantic compatibility wrapper se elimina después de migrar callers.
+
+Primera interacción semántica requiere evidencia explícita del dueño; no se autoriza auto-confirmación por confidence.
+
+### 14.4 Table-scoped evidence lock
+
+`table_scoped_semantics` se construye una sola vez como evidencia estructural D6/D7:
+
+```text
+D1 → D2 → D3 → D4 → D5
+→ D6 table-scoped structural evidence
+→ D7 Workbook Logical Model
+→ SemanticStart consumes D7.table_scoped_semantics
+```
+
+SEM no reconstruye table scope. Deterministic provider y bounded LLM consumen el mismo packet estructural.
+
+### 14.5 Math kernel lock
+
+La única soberanía matemática es el kernel existente:
+
+```text
+formula_contract.py
+FormulaEngineService
+MathPrimitiveOperation
+formula_rules_v1 / canonical formula catalog
+```
+
+Toda matemática empresarial productiva, incluida la de workflows especializados, debe pasar por ese kernel. No se autorizan nuevas fórmulas o reducciones inline como segunda autoridad.
+
+No se crean:
+
+```text
+second math engine
+PrimitiveEngine paralelo
+PolicyRegistry matemático
+```
+
+### 14.6 Classification policy lock
+
+La clasificación empresarial es declarativa y no hace aritmética.
+
+Contrato objetivo mínimo:
+
+```text
+ClassificationPredicate:
+  left_ref = result | named_input | named_derived_value
+  comparison = LT | LE | EQ | GE | GT
+  right_ref XOR literal
+
+ClassificationRule:
+  code
+  match = ALL | ANY
+  predicates[]
+```
+
+Cualquier SUM, MAX, ratio, percentage, difference, average u otro valor derivado debe calcularse previamente por MATH. Quedan prohibidos, después de migración, los `if/else` de policy empresarial distribuidos por evaluadores.
+
+### 14.7 Specialized lock
+
+`SpecializedDomainExecuteRequest` sólo se admite si cumple los siete criterios normativos definidos en `SERVICE_1_CANONICAL_AXIS.md`.
+
+Estado target:
+
+```text
+expense_variance = specialized legitimate after math/policy convergence
+collection_aging = specialized legitimate after math/policy convergence
+reconciliation   = specialized legitimate
+LIQ_001          = governed workbook capability
+REN_001          = governed workbook capability
+legacy semantic compat = delete
+```
+
+Specialized nunca puede usarse para saltar D1–D7 de un workbook encubierto ni para preservar semántica legacy.
+
+### 14.8 Relationship provenance and join lock
+
+```text
+D4 = structural relationship evidence authority
+Owner = explicit human confirmation evidence
+P8 = computability/use + provenance validation authority
+F7 = sole physical join materializer + runtime safety
+```
+
+El governed relationship binding debe quedar ligado a:
+
+```text
+current source_artifact_ref
+current workbook_ref
+current schema_fingerprint
+current D4 graph_ref / graph_fingerprint
+relationship_ref
+endpoints
+relationship_kind
+fanout/cardinality evidence
+owner event reference
+integrity digest over binding fields
+```
+
+`schema_fingerprint` prueba estructura y excluye business values. No puede sustituir artifact/workbook identity.
+
+F7 conserva obligatoriamente safety checks sobre los datos reales de materialización:
+
+```text
+duplicate right lookup keys → BLOCK
+ONE_TO_ONE duplicate left keys → BLOCK
+missing match → BLOCK
+join conflict → BLOCK
+runtime cardinality violation → BLOCK
+```
+
+Estos checks no redescubren relaciones ni deciden computability; validan que la ejecución física no contradiga el binding gobernado.
+
+### 14.9 Result read lock
+
+La lectura de resultados persistidos usa una frontera separada de la ejecución:
+
+```text
+Web / CLI
+→ Service1ResultQueryV1
+→ ResultReadBoundary
+→ tenant/case/result/integrity validation
+→ F13 load
+→ persisted projection/presentation
+```
+
+Esta ruta no puede ejecutar o reejecutar:
+
+```text
+ProductExecutionRoot
+SEM
+P7
+P8
+F7
+F8
+F9
+LLM
+XLSX ingestion
+calculation
+```
+
+### 14.10 Entropy lock
+
+Cada ciclo de reconstrucción debe reducir o mantener en cero:
+
+```text
+productive_paths
+compatibility_shims
+transitional_aliases
+procedural root switches
+sheet1 fallbacks
+legacy productive callers
+inline business math
+inline business classification
+authority collisions
+parallel semantic FSMs
+post-construction envelope mutations
+```
+
+Un PASS funcional que aumente cualquiera de estas deudas sin justificación normativa es `FAIL_ARCHITECTURE`.

@@ -597,6 +597,7 @@ def build_service_1_dynamic_analysis_discovery_v1(
     confirmed_bindings: Mapping[str, Any],
     commercially_exposed_analysis_ids: Iterable[str] | None = None,
     templates: Iterable[Service1AnalysisDiscoveryTemplateV1] | None = None,
+    d7_workbook_logical_model: Mapping[str, Any] | None = None,
 ) -> Service1DynamicAnalysisDiscoveryV1:
     """Discover candidate AnalysisPlans from confirmed semantics through P7/P8."""
     if not isinstance(confirmed_bindings, Mapping) or confirmed_bindings.get("status") != "CONFIRMED_BINDINGS":
@@ -660,6 +661,7 @@ def build_service_1_dynamic_analysis_discovery_v1(
             p6_decisions=p6_decisions,
             relationship_bindings=relationship_bindings,
             commercially_requested=template.analysis_id in exposure,
+            d7_workbook_logical_model=d7_workbook_logical_model,
         )
         for template in candidate_templates
     )
@@ -673,6 +675,7 @@ def _discover_one(
     p6_decisions: tuple[Service1P6ApprovalDecisionV1, ...],
     relationship_bindings: Mapping[str, Mapping[str, Any]],
     commercially_requested: bool,
+    d7_workbook_logical_model: Mapping[str, Any] | None = None,
 ) -> Service1DiscoveredAnalysisV1:
     provisional_plan = template.build_plan()
     preliminary_match = build_service_1_analysis_requirement_match_v1(provisional_plan, p6_decisions)
@@ -708,12 +711,39 @@ def _discover_one(
         for ref in required_relationship_refs
         if ref in relationship_bindings
     }
+    d4_graph = (
+        d7_workbook_logical_model.get("relationship_graph")
+        if isinstance(d7_workbook_logical_model, Mapping)
+        and isinstance(d7_workbook_logical_model.get("relationship_graph"), Mapping)
+        else None
+    )
+    schema_identity = (
+        d7_workbook_logical_model.get("schema_identity")
+        if isinstance(d7_workbook_logical_model, Mapping)
+        and isinstance(d7_workbook_logical_model.get("schema_identity"), Mapping)
+        else {}
+    )
     p8 = build_service_1_analysis_computability_decision_v1(
         case_id=case_id,
         analysis_plan=plan,
         p6_decisions=list(effective_p6),
         analysis_requirement_match=p7,
         relationship_bindings=selected_bindings,
+        d4_graph=d4_graph,
+        d7_workbook_logical_model=d7_workbook_logical_model,
+        source_artifact_ref=(
+            str(d7_workbook_logical_model.get("source_artifact_ref") or "").strip()
+            if isinstance(d7_workbook_logical_model, Mapping)
+            else None
+        ),
+        workbook_ref=(
+            str(d7_workbook_logical_model.get("workbook_ref") or "").strip()
+            if isinstance(d7_workbook_logical_model, Mapping)
+            else None
+        ),
+        schema_fingerprint=(
+            str(schema_identity.get("schema_fingerprint") or "").strip() or None
+        ),
     )
 
     if relationship_error is not None:
@@ -842,6 +872,9 @@ def _relationship_bindings(confirmed_bindings: Mapping[str, Any]) -> dict[str, d
             "right_column_ref": right_column,
             "relationship_kind": kind,
             "confirmed_by_owner": True,
+            "owner_confirmation_event_ref": str(
+                raw.get("owner_confirmation_event_ref") or ""
+            ).strip(),
             "question_ref": str(raw.get("question_ref") or "").strip(),
             "provenance": dict(raw.get("provenance") or {}),
             "relationship_resolution_authorized": False,

@@ -62,49 +62,46 @@ def test_operatorless_case_replays_from_cli_without_internal_runtime(tmp_path: P
         "Descuento": "descuento aplicado a la venta",
         "Empleado": "empleado que registró o realizó la venta",
     }
-    tool_requests = [
-        {
-            "tool_ref": "precio_margen_basico",
-            "inputs": {"precio_venta": 1200, "costo_unitario": 800},
-        }
-    ]
-
     first = cli.run_service_1_product_entrypoint_v1(
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=None,
-        tool_requests=tool_requests,
         output_dir=output_dir,
         sheet_name="Ventas",
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     assert first["status"] == "NEEDS_OWNER_CONFIRMATION"
     assert first["product_pipeline"]["tools_executed"] is False
     assert not list(output_dir.glob("*.xlsx"))
 
-    semantic_answers = {}
-    for question in first["product_pipeline"]["owner_questions"]:
-        allowed = question["allowed_option_ids"]
-        semantic_answers[question["column_name"]] = next(
-            option_id
-            for option_id in allowed
-            if option_id not in {"OTHER", "IGNORE", "IGNORED_NOT_RELEVANT"}
-        )
+    semantic_answers = {
+        question["decision_id"]: {"action": "ACCEPT"}
+        for question in first["product_pipeline"]["owner_questions"]
+    }
 
     final = cli.run_service_1_product_entrypoint_v1(
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=semantic_answers,
-        tool_requests=tool_requests,
         output_dir=output_dir,
         sheet_name="Ventas",
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     product = final["product_pipeline"]
 
-    assert final["status"] == "PRODUCT_PIPELINE_READY"
+    # sales_total is a discovery analysis, not a P8-governed capability yet.
+    # The canonical Product Root therefore fails closed after SEM-8 confirmation.
+    assert final["status"] == "BLOCKED"
+    assert final["blocked_reason"] == "CAPABILITY_NOT_GOVERNED"
     assert product["semantic_bindings_confirmed"] is True
-    assert product["tools_executed"] is True
-    assert product["physical_run"]["executed_tool_refs"] == ["precio_margen_basico"]
-    assert list(output_dir.glob("*.xlsx"))
+    assert product["computation_executed"] is False
+    assert product["tools_executed"] is False
+    assert product["physical_run"] is None
+    assert not list(output_dir.glob("*.xlsx"))
 
 
 def test_operatorless_case_record_matches_replay_contract() -> None:

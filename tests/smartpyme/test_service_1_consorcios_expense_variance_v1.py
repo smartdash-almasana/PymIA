@@ -3,6 +3,11 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 from pymia.smartpyme.service_1_product_pipeline_v1 import run_service_1_product_pipeline_v1
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
+    Service1ProductExecutionDependenciesV1,
+    SpecializedDomainExecuteRequestV1,
+)
 
 
 def _rows(path: Path, sheet: str) -> list[dict[str, object]]:
@@ -68,10 +73,13 @@ def _request(path: Path, case_id: str) -> dict[str, object]:
 
 def _run(path: Path, case_id: str) -> dict[str, object]:
     return run_service_1_product_pipeline_v1(
-        ingestion_output=None,
-        tool_requests=[],
-        output_dir=Path(".tmp_consorcios_expense_variance"),
-        expense_variance_request=_request(path, case_id),
+        SpecializedDomainExecuteRequestV1(
+            subtype=SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
+            payload=_request(path, case_id),
+        ),
+        dependencies=Service1ProductExecutionDependenciesV1(
+            output_dir=Path(".tmp_consorcios_expense_variance")
+        ),
     )
 
 
@@ -98,10 +106,13 @@ def test_expense_variance_fails_closed_without_owner_confirmation() -> None:
     request = _request(path, "consorcio-cabildo-2026-07")
     request["governance"]["p5_status"] = "NEEDS_OWNER_CONFIRMATION"
     packet = run_service_1_product_pipeline_v1(
-        ingestion_output=None,
-        tool_requests=[],
-        output_dir=Path(".tmp_consorcios_expense_variance"),
-        expense_variance_request=request,
+        SpecializedDomainExecuteRequestV1(
+            subtype=SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
+            payload=request,
+        ),
+        dependencies=Service1ProductExecutionDependenciesV1(
+            output_dir=Path(".tmp_consorcios_expense_variance")
+        ),
     )
     assert packet["status"] == "BLOCKED"
     assert packet["blocked_reason"] == "P5_CONFIRMATION_REQUIRED"

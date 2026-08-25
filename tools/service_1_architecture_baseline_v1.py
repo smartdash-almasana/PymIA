@@ -57,8 +57,24 @@ def structural_checks(root: Path) -> list[Check]:
     productive = [item for item in modules if item.get("disposition") == "PRODUCTIVE"]
     roots = [item for item in productive if item.get("module") == registry.get("canonical_product_root")]
 
-    deterministic_source = (root / "pymia" / "smartpyme" / "service_1_deterministic_semantic_pipeline_v1.py").read_text(encoding="utf-8")
+    retired_semantic_pipeline_path = (
+        root
+        / "pymia"
+        / "smartpyme"
+        / "service_1_deterministic_semantic_pipeline_v1.py"
+    )
+    retired_semantic_pipeline_source = (
+        retired_semantic_pipeline_path.read_text(encoding="utf-8")
+        if retired_semantic_pipeline_path.exists()
+        else ""
+    )
     product_source = (root / "pymia" / "smartpyme" / "service_1_product_pipeline_v1.py").read_text(encoding="utf-8")
+    assisted_semantic_source = (
+        root
+        / "pymia"
+        / "smartpyme"
+        / "service_1_assisted_semantic_product_wiring_v1.py"
+    ).read_text(encoding="utf-8")
     gate_source = (root / "pymia" / "smartpyme" / "service_1_semantic_bridge_to_controlled_execution_gate_v1.py").read_text(encoding="utf-8")
     owner_loop_source = (root / "pymia" / "smartpyme" / "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1.py").read_text(encoding="utf-8")
     reinjection_source = (root / "pymia" / "smartpyme" / "service_1_owner_confirmation_reinjection_to_semantic_gate_v1.py").read_text(encoding="utf-8")
@@ -69,13 +85,35 @@ def structural_checks(root: Path) -> list[Check]:
     p8_source = p8_path.read_text(encoding="utf-8") if p8_path.exists() else ""
     canonical_bridge_source = (root / "pymia" / "smartpyme" / "service_1_canonical_ingestion_output_to_semantic_bridge_v1.py").read_text(encoding="utf-8")
     generic_engine_source = (root / "pymia" / "smartpyme" / "service_1_generic_capability_engine_v1.py").read_text(encoding="utf-8")
+    active_semantic_sources = (
+        product_source,
+        assisted_semantic_source,
+        canonical_bridge_source,
+    )
 
     legacy_computation_plan_projection_removed = (
-        "def build_computation_plan(" not in deterministic_source
-        and "SERVICE_1_COMPUTATION_PLAN_V1" not in deterministic_source
+        all(
+            marker not in source
+            for source in (retired_semantic_pipeline_source, *active_semantic_sources)
+            for marker in (
+                "def build_computation_plan(",
+                "SERVICE_1_COMPUTATION_PLAN_V1",
+            )
+        )
     )
-    post_p6_rebinding = "build_service_1_semantic_evidence_binding_result_v1(" in deterministic_source
-    fused_p7_p8 = "P7/P8" in deterministic_source
+    post_p6_rebinding = any(
+        "build_service_1_semantic_evidence_binding_result_v1(" in source
+        for source in (product_source, assisted_semantic_source)
+    )
+    fused_p7_p8 = any(
+        marker in source
+        for source in (retired_semantic_pipeline_source, *active_semantic_sources)
+        for marker in (
+            "P7/P8 computation plan",
+            "def build_computation_plan(",
+            "SERVICE_1_COMPUTATION_PLAN_V1",
+        )
+    )
     gate_owns_questions = "owner_questions" in gate_source and "_owner_questions(" in gate_source
     gate_owns_family_matching = "build_service_1_variable_family_bindings_v1(" in gate_source
     capability_branch_count = product_source.count("requested_capability ==")
@@ -101,12 +139,18 @@ def structural_checks(root: Path) -> list[Check]:
         p8_path.exists()
         and "class Service1ComputabilityDecisionV1" in p8_source
         and "class Service1GovernedComputationInputV1" in p8_source
-        and "build_service_1_computability_decision_v1(" in deterministic_source
-        and "build_service_1_semantic_evidence_binding_result_v1(" not in deterministic_source
+        and (
+            "build_service_1_computability_decision_v1(" in product_source
+            or "build_computability_decision_from_confirmed_bindings_v1(" in product_source
+        )
+        and "build_service_1_semantic_evidence_binding_result_v1(" not in product_source
         and legacy_computation_plan_projection_removed
     )
     pre_p6_p7_removed = "build_service_1_variable_family_bindings_v1(" not in canonical_bridge_source
-    semantic_binding_projection_removed = "semantic_binding_result" not in deterministic_source
+    semantic_binding_projection_removed = all(
+        "semantic_binding_result" not in source
+        for source in (retired_semantic_pipeline_source, *active_semantic_sources)
+    )
     generic_execution_consumes_governed_input = (
         "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1" in generic_engine_source
         and "governed_computation_input" in generic_engine_source
@@ -119,7 +163,7 @@ def structural_checks(root: Path) -> list[Check]:
     legacy_owner_reentry_outside_product_root = (
         "run_owner_reentry" not in product_source
         and "resolve_service_1_legacy_semantic_run_v1(" not in product_source
-        and "semantic_run_override" in product_source
+        and "semantic_run_override" not in product_source
     )
     product_root_executes_p8_directly = (
         "build_computability_decision_from_confirmed_bindings_v1(" in product_source
@@ -197,16 +241,16 @@ def structural_checks(root: Path) -> list[Check]:
         Check(
             "LEGACY_COMPUTATION_PLAN_PROJECTION_REMOVED",
             legacy_computation_plan_projection_removed,
-            "deterministic semantic pipeline no longer exposes ComputationPlanV1 compatibility projection"
+            "retired semantic composition root is absent and active R5-R10 orchestration exposes no ComputationPlanV1 projection"
             if legacy_computation_plan_projection_removed
-            else "legacy build_computation_plan/ComputationPlanV1 projection remains in deterministic semantic pipeline",
+            else "legacy build_computation_plan/ComputationPlanV1 projection remains in active semantic orchestration",
         ),
         Check(
             "LEGACY_OWNER_REENTRY_OUTSIDE_PRODUCT_ROOT",
             legacy_owner_reentry_outside_product_root,
-            "canonical product root no longer imports/calls run_owner_reentry directly; compatibility is explicit"
+            "canonical product root has no legacy owner reentry or semantic_run_override path"
             if legacy_owner_reentry_outside_product_root
-            else "canonical product root still owns direct legacy owner reentry",
+            else "canonical product root still owns a legacy owner reentry or semantic_run_override path",
         ),
         Check(
             "NO_P7_MATCHING_BEFORE_P6",
@@ -244,7 +288,7 @@ def structural_checks(root: Path) -> list[Check]:
         Check(
             "NO_SEMANTIC_BINDING_COMPATIBILITY_PROJECTION",
             semantic_binding_projection_removed,
-            "legacy semantic_binding_result projection removed from computation plan"
+            "legacy semantic_binding_result projection is absent from retired and active orchestration"
             if semantic_binding_projection_removed
             else "semantic_binding_result compatibility projection remains active",
         ),

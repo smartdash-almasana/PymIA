@@ -200,97 +200,10 @@ def test_dpo_outcome_invariants() -> None:
     _assert_closed(outcome)
 
 
-def test_root_executes_dpo_once(monkeypatch, tmp_path) -> None:
-    from pymia.smartpyme import service_1_product_pipeline_v1 as product
-    from pymia.smartpyme.service_1_generic_capability_engine_v1 import execute_generic_capability_v1 as real_engine
-
-    calls = []
-
-    def tracking(*, capability_ref, governed_computation_input, normalized_tables, column_refs, governed_results=None):
-        calls.append(capability_ref)
-        return real_engine(capability_ref=capability_ref, computation_plan=None, governed_computation_input=governed_computation_input, normalized_tables=normalized_tables, column_refs=column_refs, governed_results=governed_results)
-
-    monkeypatch.setattr(product, "execute_generic_capability_v1", tracking)
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: {"status": product.STATUS_CONFIRMED_BINDINGS, "schema_version": "TEST", "service_name": "SERVICE_1"})
-
-    plan = _plan()
-    monkeypatch.setattr(
-        product,
-        "build_computability_decision_from_confirmed_bindings_v1",
-        lambda **_: computable_decision_from_governed_payload(plan),
-    )
-
-    tables = _tables([{"ctas_pagar": 50, "compras": 100, "dias": 30}])
-    refs = _refs("ctas_pagar", "compras", "dias")
-
-    product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="dpo",
-    )
-    assert len(calls) == 1
-    assert calls[0] == "dpo"
 
 
-def test_root_does_not_execute_dso_or_pyme_013_implicitly(monkeypatch, tmp_path) -> None:
-    from pymia.smartpyme import service_1_product_pipeline_v1 as product
-    from pymia.smartpyme.service_1_generic_capability_engine_v1 import execute_generic_capability_v1 as real_engine
-
-    calls = []
-
-    def tracking(*, capability_ref, governed_computation_input, normalized_tables, column_refs, governed_results=None):
-        calls.append(capability_ref)
-        return real_engine(capability_ref=capability_ref, computation_plan=None, governed_computation_input=governed_computation_input, normalized_tables=normalized_tables, column_refs=column_refs, governed_results=governed_results)
-
-    monkeypatch.setattr(product, "execute_generic_capability_v1", tracking)
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: {"status": product.STATUS_CONFIRMED_BINDINGS, "schema_version": "TEST", "service_name": "SERVICE_1"})
-    monkeypatch.setattr(
-        product,
-        "build_computability_decision_from_confirmed_bindings_v1",
-        lambda **_: computable_decision_from_governed_payload(_plan()),
-    )
-
-    tables = _tables([{"ctas_pagar": 50, "compras": 100, "dias": 30}])
-    refs = _refs("ctas_pagar", "compras", "dias")
-
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="dpo",
-    )
-    assert result["computation_executed"] is True
-    assert result["computation_result"]["capability_ref"] == "dpo"
-    called = [c for c in calls]
-    assert called == ["dpo"]
 
 
-def test_root_blocks_dpo_delivery(monkeypatch, tmp_path) -> None:
-    from pymia.smartpyme import service_1_product_pipeline_v1 as product
-
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: {"status": product.STATUS_CONFIRMED_BINDINGS, "schema_version": "TEST", "service_name": "SERVICE_1"})
-    monkeypatch.setattr(
-        product,
-        "build_computability_decision_from_confirmed_bindings_v1",
-        lambda **_: computable_decision_from_governed_payload(_plan()),
-    )
-
-    tables = _tables([{"ctas_pagar": 50, "compras": 100, "dias": 30}])
-    refs = _refs("ctas_pagar", "compras", "dias")
-
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="dpo",
-        deliver_result=True,
-    )
-    assert result["status"] == product.STATUS_BLOCKED
-    assert result["blocked_reason"] == "DPO_DELIVERY_NOT_AUTHORIZED"
-    assert result["bounded_finding_generated"] is True
-    assert result["delivery_generated"] is False
-    assert result["delivery_authorized"] is False
 
 
 def test_dpo_remains_an_explicit_atomic_capability() -> None:

@@ -26,6 +26,22 @@ def _ingestion_output() -> dict:
         "case_id": "case-cafeteria",
         "filename": "cafeteria.xlsx",
         "source_file_ref": "cafeteria.xlsx",
+        "workbook_context": {
+            "case_id": "case-cafeteria",
+            "source_artifact_ref": "artifact:cafeteria",
+            "workbook_ref": "workbook:cafeteria",
+            "ingestion_scope": "all_sheets",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+        },
+        "provenance": {
+            "source_kind": "xlsx",
+            "source_artifact_ref": "artifact:cafeteria",
+            "source_file_ref": "workbook:cafeteria",
+            "workbook_ref": "workbook:cafeteria",
+            "filename": "cafeteria.xlsx",
+            "sheet_names": ["Ventas", "Productos", "Sucursales"],
+            "sheet_refs": [],
+        },
         "column_refs": [
             {
                 "question_id": "col_confirm_001",

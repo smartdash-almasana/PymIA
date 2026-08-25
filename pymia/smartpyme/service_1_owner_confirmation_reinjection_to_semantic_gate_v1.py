@@ -344,10 +344,12 @@ def _event_answers_by_candidate_ref(
     candidate_refs = {_candidate_ref_id(candidate) for candidate in candidate_list}
     identity_to_ref = {
         (
-            str(candidate.sheet_name or "sheet1").strip(),
+            str(candidate.sheet_name or "").strip(),
             str(candidate.source_column_name or "").strip(),
         ): _candidate_ref_id(candidate)
         for candidate in candidate_list
+        if str(candidate.sheet_name or "").strip()
+        and str(candidate.source_column_name or "").strip()
     }
     answers: dict[str, str] = {}
     for event in raw_events:

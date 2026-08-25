@@ -21,17 +21,66 @@ from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_
 )
 from pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 import (
     Service1SemanticReceptionWebApplicationV1,
-    build_service_1_post_semantic_analysis_discovery_v1,
+)
+from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
+    F12_COMMERCIAL_ANALYSIS_IDS,
+    STATUS_READY as F10_STATUS_READY,
+    build_service_1_dynamic_analysis_discovery_v1,
+    project_service_1_dynamic_discovery_menu_v1,
 )
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
     STATUS_COMPUTATION_PLAN_READY,
     STATUS_NEEDS_OWNER,
-    run_service_1_product_pipeline_v1,
+    run_service_1_product_pipeline_v1 as _run_product_pipeline,
+)
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    Service1ProductExecutionDependenciesV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
+)
+from pymia.smartpyme.service_1_table_scoped_semantic_context_v1 import (
+    SCHEMA_VERSION as TABLE_SCOPE_SCHEMA_VERSION,
+    STATUS_READY as TABLE_SCOPE_READY,
+)
+from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
+    build_service_1_workbook_logical_model_v1,
 )
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
 )
+
+
+def run_service_1_product_pipeline_v1(**kwargs):
+    """Test command factory mirroring the explicit R4 surface."""
+    ingestion_output = kwargs["ingestion_output"]
+    assistance_state = kwargs.get("semantic_assistance_state")
+    if assistance_state is None:
+        request = WorkbookSemanticStartRequestV1(
+            ingestion_output=ingestion_output,
+            requested_capability=kwargs.get("requested_capability"),
+            deliver_result=bool(kwargs.get("deliver_result", False)),
+            semantic_atomic_confirmation=bool(kwargs.get("semantic_atomic_confirmation", False)),
+        )
+    else:
+        request = WorkbookSemanticContinueRequestV1(
+            ingestion_output=ingestion_output,
+            requested_capability=kwargs.get("requested_capability"),
+            semantic_assistance_state=assistance_state,
+            semantic_dialogue_responses=kwargs.get("semantic_dialogue_responses") or (),
+            deliver_result=bool(kwargs.get("deliver_result", False)),
+        )
+    dependencies = Service1ProductExecutionDependenciesV1(
+        output_dir=kwargs["output_dir"],
+        semantic_provider=kwargs.get("semantic_provider"),
+        semantic_owner_actor_id=kwargs.get("semantic_owner_actor_id"),
+        semantic_owner_actor_role=kwargs.get("semantic_owner_actor_role"),
+        semantic_scope_capabilities=kwargs.get("semantic_scope_capabilities") or (),
+        compatible_tenant_memory_hints=kwargs.get("compatible_tenant_memory_hints") or (),
+        owner_unit_confirmation_events=kwargs.get("owner_unit_confirmation_events") or (),
+        tenant_id=kwargs.get("tenant_id"),
+    )
+    return _run_product_pipeline(request, dependencies=dependencies)
 
 
 def _xlsx_bytes(sheets: dict[str, tuple[list[str], list[list[object]]]]) -> bytes:
@@ -135,6 +184,148 @@ def _accept_all(initial_packet: dict) -> list[dict[str, str]]:
         {"decision_id": str(item["decision_id"]), "action": "ACCEPT"}
         for item in initial_packet["owner_questions"]
     ]
+
+
+def _d7_table_scope_packet(ingestion: dict) -> dict:
+    scopes = []
+    for raw in ingestion["column_refs"]:
+        column_ref = str(raw["field_id"])
+        sheet_name = str(raw["sheet_name"])
+        normalized_header = str(raw["normalized_column_name"]).strip().casefold()
+        scopes.append(
+            {
+                "column_ref": column_ref,
+                "sheet_ref": sheet_name,
+                "normalized_header": normalized_header,
+                "logical_table_ref": "logical:caja",
+                "region_refs": ["region:caja"],
+                "grain_state": "UNRESOLVED",
+                "grain_ref": None,
+                "relationship_context_refs": [],
+                "scope_state": "RESOLVED",
+                "unresolved_reason": None,
+                "provenance": {"evidence_only": True},
+            }
+        )
+    return {
+        "schema_version": TABLE_SCOPE_SCHEMA_VERSION,
+        "status": TABLE_SCOPE_READY,
+        "blocked_reason": None,
+        "column_scopes": scopes,
+        "resolved_count": len(scopes),
+        "unresolved_count": 0,
+        "runtime_authorized": False,
+        "join_execution_authorized": False,
+        "computability_authorized": False,
+        "semantic_rebind_authorized": False,
+    }
+
+
+def _approved_binding_projection(packet: dict) -> tuple[tuple[str, str, str], ...]:
+    decisions = packet.get("p6_decisions") or ()
+    return tuple(
+        sorted(
+            (
+                str(item.get("sheet_ref") or ""),
+                str(item.get("column_ref") or ""),
+                str(item.get("approved_role") or ""),
+            )
+            for item in decisions
+            if isinstance(item, dict) and item.get("status") == "APPROVED"
+        )
+    )
+
+
+def test_sem8_deterministic_provider_emits_confirmed_bindings() -> None:
+    """The deterministic provider drives SEM-8 as the sole semantic FSM."""
+    ingestion = _ingestion(
+        "r3_semantic_parity.xlsx",
+        _xlsx_bytes(
+            {
+                "Ventas": (
+                    ["fecha", "venta_total", "cobrado"],
+                    [["2026-01-01", 1000, 800], ["2026-01-02", 2000, 1500]],
+                )
+            }
+        ),
+    )
+    logical_model = build_service_1_workbook_logical_model_v1(
+        ingestion_output=ingestion,
+    )
+    assert logical_model["status"] == "WORKBOOK_LOGICAL_MODEL_READY"
+
+    sem8_initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability="sold_vs_collected_gap",
+        provider=build_service_1_deterministic_semantic_proposal_v1,
+        table_scoped_semantics=logical_model["table_scoped_semantics"],
+    )
+    assert sem8_initial["status"] == SEM8_OWNER_REQUIRED
+    sem8_confirmed = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=sem8_initial,
+        owner_responses=[
+            {"decision_id": question["decision_id"], "action": "ACCEPT"}
+            for question in sem8_initial["owner_questions"]
+        ],
+        owner_actor_id="owner-r3-parity",
+        owner_actor_role="OWNER",
+        file_ref=ingestion["provenance"]["source_file_ref"],
+    )
+    assert sem8_confirmed["status"] == SEM8_CONFIRMED
+    assert sem8_confirmed["semantic_run"]["status"] == "CONFIRMED_BINDINGS"
+    approved = _approved_binding_projection(sem8_confirmed["sem6_packet"])
+    assert approved
+    assert {item[0] for item in approved} == {"Ventas"}
+
+
+def test_sem8_consumes_d7_table_scope_without_rebuilding(monkeypatch) -> None:
+    ingestion = _ingestion(
+        "caja_d7_scope.xlsx",
+        _xlsx_bytes(
+            {
+                "Caja": (
+                    ["SaldoInicial", "CobrosEsperados", "PagosEsperados"],
+                    [[1000, 400, 250]],
+                )
+            }
+        ),
+    )
+    scope_packet = _d7_table_scope_packet(ingestion)
+    seen: dict[str, object] = {}
+
+    import pymia.smartpyme.service_1_table_scoped_semantic_context_v1 as table_scope_module
+
+    def unexpected_builder_call(**_: object) -> dict:
+        raise AssertionError("SEM-8 must not rebuild D7 table scope")
+
+    monkeypatch.setattr(
+        table_scope_module,
+        "build_service_1_table_scoped_semantic_context_v1",
+        unexpected_builder_call,
+    )
+
+    def provider(payload: dict) -> dict:
+        seen["table_scoped_semantics"] = payload["workbook_profile"]["table_scoped_semantics"]
+        return _proposal_from_assignments(
+            payload,
+            {
+                "Caja.SaldoInicial": "initial_balance",
+                "Caja.CobrosEsperados": "expected_collections",
+                "Caja.PagosEsperados": "expected_payments",
+            },
+        )
+
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability="projected_closing_cash_balance",
+        provider=provider,
+        atomic_confirmation=True,
+        table_scoped_semantics=scope_packet,
+    )
+
+    assert initial["status"] == SEM8_OWNER_REQUIRED
+    assert seen["table_scoped_semantics"] == scope_packet
+    assert initial["table_scoped_semantics"] == scope_packet
 
 
 def test_sem8_workbook_first_calls_existing_provider_with_full_allowed_roles() -> None:
@@ -395,14 +586,17 @@ def test_web_workbook_first_owner_confirmation_is_durable_before_analysis_menu(t
     assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
     assert "Elegí qué querés revisar" in page
     assert recorded
+    canonical_workbook_ref = state.ingestion_output["workbook_context"]["workbook_ref"]
+    assert canonical_workbook_ref
+    assert canonical_workbook_ref != "ventas_workbook_first_durable.xlsx"
     for event, contract in recorded:
         assert event.case_id == contract.case_id
-        assert event.file_ref == "ventas_workbook_first_durable.xlsx"
+        assert event.file_ref == canonical_workbook_ref
         assert contract.tenant_id == "tenant-f0"
         assert contract.cliente_id == "client-f0"
         assert contract.owner_actor_id == "owner-f0"
         assert contract.owner_actor_role == "OWNER"
-        assert contract.workbook_ref == "ventas_workbook_first_durable.xlsx"
+        assert contract.workbook_ref == canonical_workbook_ref
         assert contract.confirmation_event_ref
 
 
@@ -460,18 +654,20 @@ def test_web_workbook_first_clear_semantics_require_one_grouped_owner_confirmati
     assert state.semantic_questions == []
     assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
     assert state.semantic_assistance_state["semantic_run"]["status"] == "CONFIRMED_BINDINGS"
-    discovery = build_service_1_post_semantic_analysis_discovery_v1(
-        confirmed_bindings=state.semantic_assistance_state["semantic_run"]
+    discovery = build_service_1_dynamic_analysis_discovery_v1(
+        confirmed_bindings=state.semantic_assistance_state["semantic_run"],
+        commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
     )
-    assert discovery["status"] == "READY"
-    assert "projected_cash_balance" in discovery["technically_available_analysis_ids"]
-    assert discovery["commercially_exposed_analysis_ids"] == []
-    assert [item["launch_ref"] for item in discovery["available"]] == ["working_capital"]
-    assert {item["launch_ref"] for item in discovery["blocked"]} == {
-        "sold_vs_collected_gap",
-        "net_margin_real",
+    assert discovery.status == F10_STATUS_READY
+    assert "projected_cash_balance" in {
+        item.analysis_id for item in discovery.technically_available
     }
-    assert 'name="review_working_capital"' in page
+    assert discovery.commercially_exposed == ()
+    menu = project_service_1_dynamic_discovery_menu_v1(discovery)
+    assert menu["available"] == []
+    assert menu["blocked"]
+    assert all("analysis_id" in item for item in menu["blocked"])
+    assert 'name="review_working_capital"' not in page
     assert 'name="review_sold_vs_collected_gap"' not in page
     assert 'name="review_net_margin_real"' not in page
     assert "Análisis que necesitan más datos" in page
@@ -599,36 +795,30 @@ def test_real_cafeteria_upload_reaches_deterministic_semantic_provider_without_c
     assert steps < len(proposal.concept_proposals)
     assert state.semantic_assistance_state["status"] == SEM8_CONFIRMED
     assert state.semantic_assistance_state["semantic_run"]["status"] == "CONFIRMED_BINDINGS"
-    discovery = build_service_1_post_semantic_analysis_discovery_v1(
-        confirmed_bindings=state.semantic_assistance_state["semantic_run"]
+    discovery = build_service_1_dynamic_analysis_discovery_v1(
+        confirmed_bindings=state.semantic_assistance_state["semantic_run"],
+        commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
     )
-    assert discovery["status"] == "READY"
-    assert discovery["available"] == []
-    assert {item["launch_ref"] for item in discovery["blocked"]} == {
-        "sold_vs_collected_gap",
-        "net_margin_real",
-        "working_capital",
-    }
-    assert all(item["missing_evidence"] for item in discovery["blocked"])
-    assert all(item["why_needed"] for item in discovery["blocked"])
-    for item in discovery["available"]:
-        assert f'name="review_{item["launch_ref"]}"' in page
-    for item in discovery["blocked"]:
-        assert f'name="review_{item["launch_ref"]}"' not in page
-        assert item["name"] in page
+    assert discovery.status == F10_STATUS_READY
+    menu = project_service_1_dynamic_discovery_menu_v1(discovery)
+    assert menu["available"]
+    assert all(len(item) == 3 for item in menu["available"])
+    assert menu["blocked"]
+    assert all("analysis_id" in item for item in menu["blocked"])
+    assert all(item["missing_evidence"] for item in menu["blocked"])
+    assert all(item["why_needed"] for item in menu["blocked"])
+    assert all("launch_ref" not in item for item in menu["blocked"])
     assert "Elegí qué querés revisar" in page
 
 
 def test_post_semantic_discovery_fails_closed_without_confirmed_bindings() -> None:
-    discovery = build_service_1_post_semantic_analysis_discovery_v1(
-        confirmed_bindings={}
-    )
-    assert discovery["status"] == "BLOCKED"
-    assert discovery["blocked_reason"] == "CONFIRMED_BINDINGS_REQUIRED"
-    assert discovery["available"] == []
-    assert discovery["runtime_authorized"] is False
-    assert discovery["tool_execution_authorized"] is False
-    assert discovery["delivery_authorized"] is False
+    discovery = build_service_1_dynamic_analysis_discovery_v1(confirmed_bindings={})
+    assert discovery.status == "BLOCKED"
+    assert discovery.blocked_reason == "CONFIRMED_BINDINGS_REQUIRED"
+    payload = discovery.to_dict()
+    assert payload["runtime_authorized"] is False
+    assert payload["tool_execution_authorized"] is False
+    assert payload["delivery_authorized"] is False
 
 
 def test_sem8_explicit_assisted_route_without_provider_fails_closed(tmp_path: Path) -> None:

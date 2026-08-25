@@ -51,7 +51,7 @@
     }
   ],
   "required_guards": {
-    "experimental_frozen_count": 0,
+    "experimental_frozen_count": 1,
     "legacy_operator_cli_absent": "pymia/cli/service_1_operator.py",
     "runtime_bridge_cli_absent": "pymia/cli/service_1_xlsx_runtime_bridge.py",
     "legacy_runtime_bridge_absent": "pymia/smartpyme/service_1_xlsx_runtime_bridge_v1.py",
@@ -60,10 +60,10 @@
     "no_auto_tool_selection_claim": true
   },
   "registry_expected_counts": {
-    "total_modules": 90,
-    "PRODUCTIVE": 42,
-    "SUPPORT_NECESSARY": 48,
-    "EXPERIMENTAL_FROZEN": 0
+    "total_modules": 111,
+    "PRODUCTIVE": 63,
+    "SUPPORT_NECESSARY": 47,
+    "EXPERIMENTAL_FROZEN": 1
   },
   "acceptance_tests": [
     "tests/cli/test_service_1_product_cli_v1.py::test_real_cafeteria_xlsx_cli_blocks_then_executes_after_canonical_reentry",

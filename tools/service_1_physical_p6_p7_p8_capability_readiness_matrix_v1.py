@@ -170,7 +170,6 @@ def _physical_semantic_state(repo: Path, case):
     ingestion_output["normalized_tables"] = boundary.get("normalized_tables")
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=ingestion_output,
-        sheet_name=case.sheet_name,
     )
     if bridge.get("status") != "SEMANTIC_CANDIDATES_READY":
         raise AssertionError(f"{case.case_id}: semantic bridge blocked: {bridge.get('blocked_reason')}")

@@ -10,7 +10,14 @@ from pymia.smartpyme.service_1_analysis_plan_v1 import (
     Service1AnalysisPlanV1,
     Service1RequestedAnalysisGrainV1,
 )
-from pymia.smartpyme.service_1_computability_v1 import Service1GovernedAnalysisInputV1
+from pymia.smartpyme.service_1_computability_v1 import (
+    Service1GovernedAnalysisInputV1,
+    build_service_1_governed_relationship_binding_v1,
+)
+from pymia.smartpyme.service_1_logical_relationship_graph_v1 import (
+    CARDINALITY_MANY_TO_ONE,
+    build_service_1_logical_relationship_graph_v1,
+)
 from pymia.smartpyme.service_1_owner_relationship_confirmation_event_v1 import (
     build_service_1_confirmed_relationship_bindings_v1,
     build_service_1_owner_relationship_confirmation_event_v1,
@@ -150,6 +157,86 @@ def _product_relationship_bindings() -> dict[str, dict]:
         timestamp="2026-08-18T13:00:00-03:00",
     )
     return build_service_1_confirmed_relationship_bindings_v1((event,), case_id="case-f7")
+
+
+def _d4_d7_relationship_context() -> tuple[dict, dict, object]:
+    event = build_service_1_owner_relationship_confirmation_event_v1(
+        case_id="case-f7",
+        file_ref="workbook:f7",
+        left_sheet_ref="Ventas",
+        left_column_ref="ProductoID",
+        right_sheet_ref="Productos",
+        right_column_ref="ProductoID",
+        relationship_kind=CARDINALITY_MANY_TO_ONE,
+        owner_answer="Sí",
+        question_ref="rel-product-f7",
+        timestamp="2026-08-18T13:00:00-03:00",
+        provenance={"owner_actor_ref": "owner:f7"},
+    )
+    candidates = [
+        {
+            "candidate_id": "table:ventas",
+            "logical_table_id": "table:ventas",
+            "workbook_ref": "workbook:f7",
+            "source_sheet_refs": ["Ventas"],
+            "source_region_refs": ["Ventas:region:1"],
+            "structural_signature": "sig:ventas",
+            "provenance": {
+                "sheet_ref": "Ventas",
+                "region_ref": "Ventas:region:1",
+                "structural_payload": {"columns": [{"normalized_header": "productoid"}, {"normalized_header": "cantidad"}, {"normalized_header": "ventatotal"}]},
+            },
+        },
+        {
+            "candidate_id": "table:productos",
+            "logical_table_id": "table:productos",
+            "workbook_ref": "workbook:f7",
+            "source_sheet_refs": ["Productos"],
+            "source_region_refs": ["Productos:region:1"],
+            "structural_signature": "sig:productos",
+            "provenance": {
+                "sheet_ref": "Productos",
+                "region_ref": "Productos:region:1",
+                "structural_payload": {"columns": [{"normalized_header": "productoid"}, {"normalized_header": "costounitario"}]},
+            },
+        },
+    ]
+    evidence = [{
+        "relationship_ref": event.relationship_ref,
+        "left_column_ref": "Ventas.ProductoID",
+        "right_column_ref": "Productos.ProductoID",
+        "relationship_kind": CARDINALITY_MANY_TO_ONE,
+        "evidence_refs": ["ev:f7:relationship"],
+        "left_value_coverage": 1.0,
+        "right_value_coverage": 1.0,
+        "intersection_cardinality": 2,
+        "candidate_foreign_key": True,
+        "candidate_primary_key_ref": "Productos.ProductoID",
+    }]
+    schema_identity = {
+        "schema_fingerprint": "schema:f7",
+        "provenance": {
+            "source_artifact_ref": "xlsx:sha256:f7",
+            "workbook_ref": "workbook:f7",
+        },
+    }
+    graph = build_service_1_logical_relationship_graph_v1(
+        logical_table_candidates=candidates,
+        relationship_evidence=evidence,
+        owner_confirmation_events=(event,),
+        schema_identity=schema_identity,
+    )
+    model = {
+        "source_artifact_ref": "xlsx:sha256:f7",
+        "workbook_ref": "workbook:f7",
+        "schema_identity": schema_identity,
+        "relationship_graph": graph,
+    }
+    binding = build_service_1_governed_relationship_binding_v1(
+        d7_workbook_logical_model=model,
+        owner_confirmation_event=event,
+    )
+    return model, binding, event
 
 
 def test_grouped_sales_by_product_prepares_membership_without_aggregation() -> None:
@@ -356,6 +443,77 @@ def test_confirmed_many_to_one_relationship_materializes_row_evidence_without_fo
     assert first.role_source_refs["unit_cost_candidate"] == "Productos.CostoUnitario"
     assert first.to_dict()["relationship_refs"] == [relationship_ref]
     assert prepared.provenance["formula_execution_performed"] is False
+
+
+def test_r6_d4_d7_p8_f7_provenance_chain_is_required_before_materialization() -> None:
+    model, binding, _event = _d4_d7_relationship_context()
+    relationship_ref = str(binding["relationship_ref"])
+    plan = _plan(
+        analysis_id="gross_margin_by_product_r6",
+        kind=AnalysisKind.GROUPED,
+        dimensions=("product",),
+        business="PRODUCT",
+        temporal="PERIOD",
+        aggregation="GROUPED",
+        relationship_refs=(relationship_ref,),
+        measures=("gross_margin",),
+    )
+    governed = _governed(
+        plan,
+        source_bindings={
+            "sales_amount": "VentaTotal",
+            "quantity": "Cantidad",
+            "unit_cost_candidate": "CostoUnitario",
+            "product_identifier": "ProductoID",
+        },
+        relationship_bindings={relationship_ref: binding},
+        formula_refs=("margen_bruto",),
+    )
+    ingestion = _margin_ingestion()
+    ingestion["workbook_context"] = {
+        "source_artifact_ref": "xlsx:sha256:f7",
+        "workbook_ref": "workbook:f7",
+        "schema_fingerprint": "schema:f7",
+    }
+    decision = build_service_1_analysis_evidence_preparation_v1(
+        case_id="case-f7",
+        governed_analysis_input=governed,
+        ingestion_output=ingestion,
+        d7_workbook_logical_model=model,
+    )
+    assert decision.status == STATUS_PREPARED
+    assert decision.prepared_evidence is not None
+    assert decision.prepared_evidence.provenance["d4_provenance_validated"] is True
+    assert decision.prepared_evidence.materialized_relationships[0].materialized_pairs
+
+
+def test_r6_f7_rejects_binding_without_d4_graph_reference() -> None:
+    model, binding, _event = _d4_d7_relationship_context()
+    binding = dict(binding)
+    binding.pop("d4_graph_ref")
+    plan = _plan(
+        analysis_id="gross_margin_by_product_r6_missing_graph",
+        kind=AnalysisKind.GROUPED,
+        dimensions=("product",),
+        business="PRODUCT",
+        temporal="PERIOD",
+        aggregation="GROUPED",
+        relationship_refs=(str(binding["relationship_ref"]),),
+        measures=("gross_margin",),
+    )
+    governed = _governed(
+        plan,
+        source_bindings={"sales_amount": "VentaTotal", "quantity": "Cantidad", "unit_cost_candidate": "CostoUnitario", "product_identifier": "ProductoID"},
+        relationship_bindings={str(binding["relationship_ref"]): binding},
+        formula_refs=("margen_bruto",),
+    )
+    ingestion = _margin_ingestion()
+    ingestion["workbook_context"] = {"source_artifact_ref": "xlsx:sha256:f7", "workbook_ref": "workbook:f7", "schema_fingerprint": "schema:f7"}
+    decision = build_service_1_analysis_evidence_preparation_v1(
+        case_id="case-f7", governed_analysis_input=governed, ingestion_output=ingestion, d7_workbook_logical_model=model
+    )
+    assert decision.status == STATUS_BLOCKED
+    assert decision.reason == "D4_RELATIONSHIP_PROVENANCE_REQUIRED"
 
 
 def test_many_to_one_duplicate_lookup_key_blocks_cardinality_drift() -> None:

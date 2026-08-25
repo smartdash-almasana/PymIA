@@ -103,6 +103,22 @@ def _fixture(*, with_discount: bool = False, relationship: bool = True) -> tuple
 
     ingestion = {
         "case_id": "case-derived-ren001",
+        "workbook_context": {
+            "case_id": "case-derived-ren001",
+            "source_artifact_ref": "artifact:derived-ren001",
+            "workbook_ref": "workbook:derived-ren001",
+            "ingestion_scope": "all_sheets",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+        },
+        "provenance": {
+            "source_kind": "XLSX",
+            "source_artifact_ref": "artifact:derived-ren001",
+            "source_file_ref": "workbook:derived-ren001",
+            "workbook_ref": "workbook:derived-ren001",
+            "filename": "cafeteria.xlsx",
+            "sheet_names": ["Ventas", "Productos", "Resumen"],
+            "sheet_refs": [],
+        },
         "source_kind": "XLSX",
         "filename": "cafeteria.xlsx",
         "column_refs": [

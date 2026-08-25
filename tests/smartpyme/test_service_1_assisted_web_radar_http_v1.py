@@ -109,7 +109,7 @@ def test_authenticated_assisted_web_owner_can_open_radar_menu_and_persist_policy
             headers=upload_headers,
         )
         assert status == 200
-        assert "Esto entendí de tu Excel" in page or "¿Qué querés revisar?" in page
+        assert "Necesito un dato más" in page
         cookie = _cookie(headers)
 
         status, _, radar_page = _request(

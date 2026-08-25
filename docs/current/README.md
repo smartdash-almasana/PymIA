@@ -1,6 +1,6 @@
 # PYMIA — autoridad documental actual de Servicio 1
 
-**Fecha de reconciliación:** 2026-08-19
+**Fecha de reconciliación:** 2026-08-23
 **Estado:** `CURRENT_AUTHORITY_INDEX`
 
 Esta carpeta contiene documentos vigentes y evidencia histórica. La presencia física en `docs/current/` no concede autoridad por sí sola.
@@ -13,7 +13,99 @@ Esta carpeta contiene documentos vigentes y evidencia histórica. La presencia f
 4. este índice y los documentos rectores enumerados abajo;
 5. evidencia histórica sólo dentro del alcance que certificó.
 
-## Estado actual verificable
+## Convergencia integral vigente — 2026-08-23
+
+La **arquitectura objetivo de Servicio 1 quedó cerrada dialécticamente** después de cuatro rondas adversariales y una micro-ronda final. Esto cierra decisiones de diseño; **no certifica el código actual** ni autoriza por sí solo commit/push/deploy.
+
+Documentos de evidencia y método:
+
+- `SERVICE_1_INTEGRAL_HEALTH_AUDIT_PLAN_V1.md` — método de auditoría y reconstrucción; no crea autoridad.
+- `SERVICE_1_FINAL_ARCHITECTURE_DIALECTIC_V1.md` — dossier no normativo de la deliberación ChatGPT ↔ Qwen; la deliberación quedó cerrada con `OPEN_ARCHITECTURAL_DECISIONS = 0`.
+- `SERVICE_1_INTEGRAL_HEALTH_AUDIT_REPORT_V1.md` — evidencia de auditoría física; no sustituye los documentos rectores.
+
+Autoridad normativa final:
+
+```text
+ONE_PRODUCTIVE_EXECUTION_ROOT
+FOUR_EXPLICIT_EXECUTION_COMMANDS
+RESULT_READ_SEPARATE_FROM_EXECUTION
+ONE_CANONICAL_WORKBOOK_ENVELOPE
+CANONICAL_ENVELOPE_POST_CONSTRUCTION_IMMUTABILITY
+WORKBOOK_D1_D7_MANDATORY
+D7_EVIDENCE_ONLY
+ONE_PRODUCTIVE_SEMANTIC_FSM
+TABLE_SCOPED_SEMANTICS_BUILT_ONCE_IN_D6_D7
+P7_GRAIN_REQUIREMENT_AUTHORITY
+P8_COMPUTABILITY_AND_PROVENANCE_AUTHORITY
+F7_ONLY_JOIN_MATERIALIZATION_WITH_RUNTIME_SAFETY
+ONE_COMMON_MATH_KERNEL_FORMULA_ENGINE_SERVICE
+DECLARATIVE_CLASSIFICATION_WITHOUT_ARITHMETIC
+CONTENT_ADDRESSED_SOURCE_ARTIFACT_IDENTITY
+NO_FILENAME_AS_WORKBOOK_IDENTITY
+NO_SHEET1_FALLBACK
+SPECIALIZED_REQUEST_ANTI_DUMP_CRITERIA
+F13_RESULT_READ_NO_RECALCULATION
+NO_LLM_MATH_OR_RUNTIME_AUTHORITY
+NO_IMPLICIT_SHAPE_DISPATCH
+NO_INDEFINITE_COMPATIBILITY_SHIMS
+```
+
+Regla documental obligatoria: una decisión arquitectónica no es autoridad si sólo vive en chat, prompt o `_audit/`. Las decisiones finales ya fueron incorporadas a `SERVICE_1_CANONICAL_AXIS.md` y `SERVICE_1_ARCHITECTURE_LOCK.md`.
+
+Estado actual:
+
+```text
+DIALECTICAL_REVIEW_COMPLETE: PASS
+OPEN_ARCHITECTURAL_DECISIONS: 0
+TARGET_ARCHITECTURE_CLOSED: YES
+ARCHITECTURE_NORMATIVE_DOCUMENTATION: UPDATED
+RECONSTRUCTION_IMPLEMENTATION: IN_PROGRESS
+R0_R1: CLOSED_PASS
+R2: CLOSED_PASS
+R3: CLOSED_PASS
+NEXT_ALLOWED_NODE: R4
+CURRENT_WORKTREE_INTEGRAL_CERTIFICATION: NO
+FULL_SUITE_AFTER_RECONSTRUCTION: NOT_YET_RUN
+REAL_WORKBOOK_E2E_AFTER_RECONSTRUCTION: NOT_YET_RUN
+LAST_AUDIT_FULL_SUITE: 3806 passed / 77 failed / 7 skipped / 3 errors
+MODULE_REGISTRY_CURRENT_WORKTREE: NOT_RECONCILED
+COMMIT_PUSH_DEPLOY: NOT_AUTHORIZED
+```
+
+This checkpoint distinguishes the closed target architecture from the in-progress reconstruction, integral certification, and release authorization. R0/R1, R2, and R3 are closed PASS; R4 is the only next authorized node.
+
+Los antiguos Phase 1–4 quedan como historia de la convergencia que motivó la auditoría; **no gobiernan el próximo plan de implementación**. El plan nuevo se deriva del delta entre código actual y arquitectura final, ordenado por dependencias.
+
+## Paquete de handoff ejecutable — lectura obligatoria para cualquier LLM
+
+El handoff de implementación queda cerrado en este conjunto:
+
+```text
+SERVICE_1_IMPLEMENTATION_HANDOFF_V1.md
+SERVICE_1_ARCHITECTURE_TO_CODE_DELTA_V1.md
+SERVICE_1_CODE_DISPOSITION_FINAL_V1.md
+SERVICE_1_RECONSTRUCTION_PLAN_V1.md
+SERVICE_1_COMPLETION_AND_CERTIFICATION_CONTRACT_V1.md
+```
+
+Función de cada archivo:
+
+- `SERVICE_1_IMPLEMENTATION_HANDOFF_V1.md` — punto de entrada, orden de lectura, reglas de continuidad y estado recibido.
+- `SERVICE_1_AGENT_OPERATING_INSTRUCTIONS_V1.md` — instrucciones operativas permanentes para ejecutores y verificadores.
+- `prompts/SERVICE_1_EXECUTOR_PROMPT_R0_R1_V1.md` — prompt ejecutor vigente del próximo nodo autorizado.
+- `prompts/SERVICE_1_VERIFIER_PROMPT_R0_R1_V1.md` — prompt read-only de verificación independiente correspondiente.
+- `SERVICE_1_ARCHITECTURE_TO_CODE_DELTA_V1.md` — diferencia física entre código actual y target final, con archivos y acciones concretas.
+- `SERVICE_1_CODE_DISPOSITION_FINAL_V1.md` — destino de los 112 módulos Service 1 mediante registry heredado + overrides + los 11 faltantes reconciliados; `UNKNOWN_TARGET_DISPOSITION = 0`.
+- `SERVICE_1_RECONSTRUCTION_PLAN_V1.md` — orden de implementación por dependencias R0–R14, tests por ciclo, gates y stop conditions.
+- `SERVICE_1_COMPLETION_AND_CERTIFICATION_CONTRACT_V1.md` — Definition of Done objetiva; ningún agente puede declarar Servicio 1 terminado fuera de esos gates.
+
+Un agente nuevo **no necesita reconstruir el historial de este chat**. Debe leer el paquete en el orden indicado por el handoff, verificar el estado físico y continuar desde el primer nodo de reconstrucción cuyo exit gate no pase.
+
+Cualquier certificación o despliegue de SHA anteriores permanece como evidencia histórica de ese corte y no certifica el worktree actual.
+
+## Último corte técnico documentado — evidencia histórica, no certificación del worktree actual
+
+Los estados siguientes pertenecen al último corte que los documentó. Se conservan por trazabilidad y **no prevalecen sobre el bloque de convergencia integral 2026-08-23**.
 
 ```text
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
@@ -84,6 +176,7 @@ La existencia técnica de AnalysisPlans F12 no autoriza por sí sola ampliar el 
 
 ## Núcleo documental rector
 
+- `docs/adr/ADR-007-documentation-governance.md` — gobierno documental: ninguna decisión arquitectónica existe como autoridad si sólo vive en chat/prompt/audit.
 - `SERVICE_1_CURRENT_PRODUCT_STATE_V1.md` — estado real del producto y release candidate.
 - `SERVICE_1_STATUS.md` — resumen técnico verificable.
 - `ACTIVE_ROADMAP.md` — secuencia RC vigente.

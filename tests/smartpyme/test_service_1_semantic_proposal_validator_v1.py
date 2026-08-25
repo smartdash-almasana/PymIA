@@ -26,6 +26,22 @@ def _profile() -> dict:
         "case_id": "case-sem3",
         "filename": "cafeteria.xlsx",
         "source_file_ref": "cafeteria.xlsx",
+        "workbook_context": {
+            "case_id": "case-sem3",
+            "source_artifact_ref": "artifact:case-sem3",
+            "workbook_ref": "workbook:case-sem3",
+            "ingestion_scope": "all_sheets",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+        },
+        "provenance": {
+            "source_kind": "xlsx",
+            "source_artifact_ref": "artifact:case-sem3",
+            "source_file_ref": "workbook:case-sem3",
+            "workbook_ref": "workbook:case-sem3",
+            "filename": "cafeteria.xlsx",
+            "sheet_names": ["Ventas", "Productos"],
+            "sheet_refs": [],
+        },
         "column_refs": [
             {
                 "question_id": "q1",

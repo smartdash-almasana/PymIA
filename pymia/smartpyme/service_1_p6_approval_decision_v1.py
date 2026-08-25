@@ -104,7 +104,9 @@ def build_service_1_p6_approval_decision_v1(
     case = str(case_id or "").strip()
     if not case:
         raise ValueError("case_id is required")
-    sheet = str(candidate.sheet_name or "sheet1").strip()
+    sheet = str(candidate.sheet_name or "").strip()
+    if not sheet:
+        raise ValueError("candidate.sheet_name is required")
     column = candidate.source_column_name
     ref_id = _candidate_ref_id(candidate)
 
@@ -243,7 +245,7 @@ def _decision(
 ) -> Service1P6ApprovalDecisionV1:
     return Service1P6ApprovalDecisionV1(
         case_id=case_id,
-        sheet_ref=str(candidate.sheet_name or "sheet1").strip(),
+        sheet_ref=str(candidate.sheet_name or "").strip(),
         column_ref=candidate.source_column_name,
         status=status,
         approved_role=approved_role,

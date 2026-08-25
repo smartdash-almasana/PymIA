@@ -154,4 +154,4 @@ def test_decision_counts_sum_to_frozen_module_count_without_manual_review() -> N
     matrix = _read_json("docs/service_1_frozen_dependency_evidence_matrix.v1.json")
 
     assert sum(matrix["decision_counts"].values()) == matrix["frozen_module_count"]
-    assert matrix["decision_counts"] == {}
+    assert matrix["decision_counts"] == {"FROZEN_LABORATORY": 1}

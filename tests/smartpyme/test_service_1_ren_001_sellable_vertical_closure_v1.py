@@ -76,7 +76,7 @@ def test_ren_001_page_does_not_offer_download_without_delivery(monkeypatch, tmp_
 
     assert status == 200
     assert 'href="/download-net-margin"' not in page
-    assert "Resultado listo" in page
+    assert "Resultado principal" in page
 
 
 def test_read_net_margin_delivery_reads_only_current_session_delivery(tmp_path: Path) -> None:

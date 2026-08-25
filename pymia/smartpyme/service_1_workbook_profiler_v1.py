@@ -25,6 +25,8 @@ BLOCK_COLUMN_REFS_MISSING: Final[str] = "BLOCK_PROFILE_COLUMN_REFS_MISSING"
 BLOCK_COLUMN_REF_INVALID: Final[str] = "BLOCK_PROFILE_COLUMN_REF_INVALID"
 BLOCK_COLUMN_REF_NOT_FOUND: Final[str] = "BLOCK_PROFILE_COLUMN_REF_NOT_FOUND"
 BLOCK_DUPLICATE_COLUMN_REF: Final[str] = "BLOCK_PROFILE_DUPLICATE_COLUMN_REF"
+BLOCK_WORKBOOK_CONTEXT_REQUIRED: Final[str] = "BLOCK_PROFILE_WORKBOOK_CONTEXT_REQUIRED"
+BLOCK_PROVENANCE_REQUIRED: Final[str] = "BLOCK_PROFILE_PROVENANCE_REQUIRED"
 
 MAX_SAMPLE_VALUES: Final[int] = 5
 RELATIONSHIP_OVERLAP_THRESHOLD: Final[float] = 0.80
@@ -66,6 +68,13 @@ def build_service_1_workbook_profile_v1(*, ingestion_output: Any) -> dict[str, A
     raw_refs = ingestion_output.get("column_refs")
     if not isinstance(raw_refs, list) or not raw_refs:
         return _blocked(BLOCK_COLUMN_REFS_MISSING, ingestion_output=ingestion_output)
+
+    workbook_context = ingestion_output.get("workbook_context")
+    if not isinstance(workbook_context, dict):
+        return _blocked(BLOCK_WORKBOOK_CONTEXT_REQUIRED, ingestion_output=ingestion_output)
+    provenance = ingestion_output.get("provenance")
+    if not isinstance(provenance, dict):
+        return _blocked(BLOCK_PROVENANCE_REQUIRED, ingestion_output=ingestion_output)
 
     refs: list[dict[str, str]] = []
     seen_refs: set[str] = set()
@@ -123,8 +132,8 @@ def build_service_1_workbook_profile_v1(*, ingestion_output: Any) -> dict[str, A
         "service_name": SERVICE_NAME,
         "status": STATUS_READY,
         "blocked_reason": None,
-        "case_id": ingestion_output.get("case_id"),
-        "source_file_ref": ingestion_output.get("source_file_ref") or ingestion_output.get("filename"),
+        "case_id": ((ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(ingestion_output.get("workbook_context"), dict) else None),
+        "source_file_ref": ((ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion_output.get("provenance"), dict) else None),
         "sheet_names": list(tables),
         "column_count": len(column_profiles),
         "relationship_count": len(relationships),

@@ -22,8 +22,9 @@ STATUS_BLOCKED: Final[str] = "BLOCKED"
 
 _AUTHORITY_FLAGS: Final[tuple[str, ...]] = (
     "runtime_authorized", "tool_execution_authorized", "product_ready",
-    "delivery_authorized", "diagnosis_generated", "join_execution_authorized",
-    "computability_authorized", "automatic_reuse_authorized", "semantic_rebind_authorized",
+    "delivery_authorized", "diagnosis_generated", "grain_authorized",
+    "join_execution_authorized", "computability_authorized",
+    "automatic_reuse_authorized", "semantic_rebind_authorized",
 )
 
 
@@ -40,10 +41,15 @@ def build_service_1_workbook_logical_model_v1(
         return _blocked("INGESTION_OUTPUT_REQUIRED")
     if any(bool(ingestion_output.get(flag)) for flag in _AUTHORITY_FLAGS):
         return _blocked("INGESTION_OUTPUT_AUTHORITY_FORBIDDEN")
-    case_id = str(ingestion_output.get("case_id") or "").strip()
-    workbook_ref = str(ingestion_output.get("source_file_ref") or ingestion_output.get("filename") or "").strip()
-    if not case_id or not workbook_ref:
-        return _blocked("CASE_AND_WORKBOOK_REF_REQUIRED")
+    workbook_context = ingestion_output.get("workbook_context")
+    if not isinstance(workbook_context, Mapping):
+        return _blocked("WORKBOOK_CONTEXT_REQUIRED")
+    case_id = str(workbook_context.get("case_id") or "").strip()
+    source_artifact_ref = str(workbook_context.get("source_artifact_ref") or "").strip()
+    workbook_ref = str(workbook_context.get("workbook_ref") or "").strip()
+    ingestion_scope = str(workbook_context.get("ingestion_scope") or "").strip()
+    if not case_id or not source_artifact_ref or not workbook_ref or not ingestion_scope:
+        return _blocked("WORKBOOK_IDENTITY_REQUIRED")
     if not isinstance(ingestion_output.get("normalized_tables"), list) or not ingestion_output.get("normalized_tables"):
         return _blocked("NORMALIZED_TABLES_REQUIRED")
     if not isinstance(ingestion_output.get("column_refs"), list) or not ingestion_output.get("column_refs"):
@@ -79,6 +85,13 @@ def build_service_1_workbook_logical_model_v1(
         logical_table_candidates=logical_tables,
         workbook_profile=workbook_profile,
         workbook_ref=workbook_ref,
+        provenance={
+            "source_artifact_ref": source_artifact_ref,
+            "ingestion_scope": ingestion_scope,
+            "canonical_reader_schema_version": workbook_context.get(
+                "canonical_reader_schema_version"
+            ),
+        },
     )
     if schema_identity.get("status") != SCHEMA_IDENTITY_READY:
         return _unresolved(
@@ -145,7 +158,9 @@ def build_service_1_workbook_logical_model_v1(
         "status": STATUS_READY,
         "blocked_reason": None,
         "case_id": case_id,
+        "source_artifact_ref": source_artifact_ref,
         "workbook_ref": workbook_ref,
+        "ingestion_scope": ingestion_scope,
         "workbook_profile": workbook_profile,
         "region_evidence": region_evidence,
         "logical_tables": logical_tables,
@@ -162,8 +177,31 @@ def _canonical_packet(ingestion_output: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "INGESTION_OUTPUT_READY",
-        "case_id": ingestion_output.get("case_id"),
-        "filename": ingestion_output.get("filename"),
+        "case_id": (
+            (ingestion_output.get("workbook_context") or {}).get("case_id")
+            if isinstance(ingestion_output.get("workbook_context"), Mapping)
+            else None
+        ),
+        "source_artifact_ref": (
+            (ingestion_output.get("workbook_context") or {}).get("source_artifact_ref")
+            if isinstance(ingestion_output.get("workbook_context"), Mapping)
+            else None
+        ),
+        "workbook_ref": (
+            (ingestion_output.get("workbook_context") or {}).get("workbook_ref")
+            if isinstance(ingestion_output.get("workbook_context"), Mapping)
+            else None
+        ),
+        "ingestion_scope": (
+            (ingestion_output.get("workbook_context") or {}).get("ingestion_scope")
+            if isinstance(ingestion_output.get("workbook_context"), Mapping)
+            else None
+        ),
+        "filename": (
+            (ingestion_output.get("provenance") or {}).get("filename")
+            if isinstance(ingestion_output.get("provenance"), Mapping)
+            else None
+        ),
         "ingestion_output": dict(ingestion_output),
         "runtime_authorized": False,
         "tool_execution_authorized": False,

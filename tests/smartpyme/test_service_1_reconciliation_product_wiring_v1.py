@@ -9,6 +9,11 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_RECONCILIATION_REVIEW_READY,
     run_service_1_product_pipeline_v1,
 )
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    SPECIALIZED_DOMAIN_RECONCILIATION,
+    Service1ProductExecutionDependenciesV1,
+    SpecializedDomainExecuteRequestV1,
+)
 from pymia.smartpyme.service_1_reconciliation_product_request_v1 import (
     STATUS_NEEDS_EVIDENCE,
     STATUS_NEEDS_OWNER,
@@ -175,9 +180,19 @@ def _assert_closed(packet: dict[str, object]) -> None:
     assert packet["diagnosis_generated"] is False
 
 
+def _run_product_root(request: dict[str, object], tmp_path: Path) -> dict[str, object]:
+    return run_service_1_product_pipeline_v1(
+        SpecializedDomainExecuteRequestV1(
+            subtype=SPECIALIZED_DOMAIN_RECONCILIATION,
+            payload=request,
+        ),
+        dependencies=Service1ProductExecutionDependenciesV1(output_dir=tmp_path),
+    )
+
+
 def test_product_request_prepares_bank_review() -> None:
     result = build_service_1_reconciliation_product_request_v1(
-        reconciliation_request=_bank_request()
+        request=_bank_request()
     )
 
     assert result["status"] == STATUS_REVIEW_READY
@@ -191,7 +206,7 @@ def test_product_request_prepares_bank_review() -> None:
 
 def test_product_request_prepares_mercado_pago_review() -> None:
     result = build_service_1_reconciliation_product_request_v1(
-        reconciliation_request=_mp_request()
+        request=_mp_request()
     )
 
     assert result["status"] == STATUS_REVIEW_READY
@@ -207,7 +222,7 @@ def test_product_request_maps_missing_source_to_evidence_request() -> None:
     request["source_packets"] = [_bank_source()]
 
     result = build_service_1_reconciliation_product_request_v1(
-        reconciliation_request=request
+        request=request
     )
 
     assert result["status"] == STATUS_NEEDS_EVIDENCE
@@ -224,7 +239,7 @@ def test_product_request_preserves_owner_confirmation_boundary() -> None:
     request["source_packets"] = [bank, _internal_source()]
 
     result = build_service_1_reconciliation_product_request_v1(
-        reconciliation_request=request
+        request=request
     )
 
     assert result["status"] == STATUS_NEEDS_OWNER
@@ -237,12 +252,7 @@ def test_product_request_preserves_owner_confirmation_boundary() -> None:
 def test_product_root_accepts_bank_reconciliation_without_semantic_shortcut(
     tmp_path: Path,
 ) -> None:
-    result = run_service_1_product_pipeline_v1(
-        ingestion_output=None,
-        tool_requests=[],
-        output_dir=tmp_path,
-        reconciliation_request=_bank_request(),
-    )
+    result = _run_product_root(_bank_request(), tmp_path)
 
     assert result["status"] == STATUS_RECONCILIATION_REVIEW_READY
     assert result["semantic_run"] is None
@@ -258,12 +268,7 @@ def test_product_root_accepts_bank_reconciliation_without_semantic_shortcut(
 def test_product_root_accepts_mercado_pago_reconciliation(
     tmp_path: Path,
 ) -> None:
-    result = run_service_1_product_pipeline_v1(
-        ingestion_output=None,
-        tool_requests=[],
-        output_dir=tmp_path,
-        reconciliation_request=_mp_request(),
-    )
+    result = _run_product_root(_mp_request(), tmp_path)
 
     assert result["status"] == STATUS_RECONCILIATION_REVIEW_READY
     reconciliation_run = result["reconciliation_run"]
@@ -282,12 +287,7 @@ def test_product_root_maps_missing_source_without_running_other_paths(
     request = _bank_request()
     request["source_packets"] = [_bank_source()]
 
-    result = run_service_1_product_pipeline_v1(
-        ingestion_output=None,
-        tool_requests=[],
-        output_dir=tmp_path,
-        reconciliation_request=request,
-    )
+    result = _run_product_root(request, tmp_path)
 
     assert result["status"] == STATUS_RECONCILIATION_NEEDS_EVIDENCE
     assert result["semantic_run"] is None
@@ -296,22 +296,13 @@ def test_product_root_maps_missing_source_without_running_other_paths(
     _assert_closed(result)
 
 
-def test_product_root_rejects_mixed_reconciliation_and_analysis(
+def test_product_root_specialized_command_is_exclusive(
     tmp_path: Path,
 ) -> None:
-    result = run_service_1_product_pipeline_v1(
-        ingestion_output=None,
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="sold_vs_collected_gap",
-        reconciliation_request=_bank_request(),
-    )
-
-    assert result["status"] == STATUS_BLOCKED
-    assert result["blocked_reason"] == (
-        "RECONCILIATION_REQUEST_MUST_BE_EXCLUSIVE"
-    )
-    assert result["reconciliation_run"] is None
+    result = _run_product_root(_bank_request(), tmp_path)
+    assert result["status"] == STATUS_RECONCILIATION_REVIEW_READY
+    assert result["semantic_run"] is None
+    assert result["reconciliation_review_prepared"] is True
     assert list(tmp_path.iterdir()) == []
     _assert_closed(result)
 

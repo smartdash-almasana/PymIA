@@ -8,11 +8,14 @@ is granted here.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any, Literal, Optional
 
+from pymia.smartpyme.pipeline_registration import calculate_sha256
 from pymia.smartpyme.service_1_xlsx_to_normalized_table_v1 import (
     read_xlsx_to_normalized_table_v1,
     read_xlsx_to_normalized_tables_v1,
@@ -22,6 +25,7 @@ SCHEMA_VERSION = "SERVICE_1_WEB_COLUMN_CONFIRMATION_INTAKE_BOUNDARY_V1"
 SERVICE_NAME = "SERVICE_1"
 PACKET_TYPE = "WEB_COLUMN_CONFIRMATION_INTAKE"
 MAX_QUESTIONS = 50
+CANONICAL_READER_SCHEMA_VERSION = "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1"
 
 SourceKind = Literal["local_path", "uploaded_bytes"]
 
@@ -34,6 +38,7 @@ BLOCK_RUNTIME_FLAG_FORBIDDEN = "RUNTIME_OR_DELIVERY_FLAG_FORBIDDEN"
 BLOCK_SHEET_SELECTION_CONFLICT = "SHEET_SELECTION_CONFLICT"
 BLOCK_INVALID_SHEET_SELECTION = "INVALID_SHEET_SELECTION"
 BLOCK_TOO_MANY_COLUMNS = "TOO_MANY_COLUMNS"
+BLOCK_SOURCE_ARTIFACT_FAILED = "SOURCE_ARTIFACT_HASH_FAILED"
 
 
 def build_service_1_web_column_confirmation_intake_boundary_v1(
@@ -72,19 +77,26 @@ def build_service_1_web_column_confirmation_intake_boundary_v1(
     if has_local and has_uploaded:
         return _blocked(BLOCK_DUAL_SOURCE, source_kind=None, filename=None)
 
+    ingestion_scope = _ingestion_scope(
+        selected_sheets=selected_sheets,
+        include_all_sheets=include_all_sheets,
+    )
+    case_id = _case_id()
     if has_local:
         source_kind: SourceKind = "local_path"
         filename = os.path.basename(str(local_xlsx_path))
         if not _has_xlsx_extension(filename):
             return _blocked(BLOCK_INVALID_EXTENSION, source_kind=source_kind, filename=filename)
+        try:
+            source_artifact_ref = _source_artifact_ref_from_local_path(local_xlsx_path)
+        except (OSError, TypeError, ValueError):
+            return _blocked(
+                BLOCK_SOURCE_ARTIFACT_FAILED,
+                source_kind=source_kind,
+                filename=filename,
+            )
         normalized_tables = _read_local_source(
             local_xlsx_path,
-            selected_sheets=selected_sheets,
-            include_all_sheets=include_all_sheets,
-        )
-        case_id = _case_id(
-            source_kind,
-            filename,
             selected_sheets=selected_sheets,
             include_all_sheets=include_all_sheets,
         )
@@ -95,16 +107,16 @@ def build_service_1_web_column_confirmation_intake_boundary_v1(
         filename = os.path.basename(str(uploaded_filename).strip())
         if not _has_xlsx_extension(filename):
             return _blocked(BLOCK_INVALID_EXTENSION, source_kind=source_kind, filename=filename)
+        if not isinstance(uploaded_xlsx_bytes, (bytes, bytearray)):
+            return _blocked(
+                BLOCK_SOURCE_ARTIFACT_FAILED,
+                source_kind=source_kind,
+                filename=filename,
+            )
+        source_artifact_ref = _source_artifact_ref_from_bytes(bytes(uploaded_xlsx_bytes))
         normalized_tables = _read_uploaded_bytes_via_canonical_reader(
-            uploaded_xlsx_bytes,
+            bytes(uploaded_xlsx_bytes),
             sheet_names=selected_sheets,
-            include_all_sheets=include_all_sheets,
-        )
-        case_id = _case_id(
-            source_kind,
-            filename,
-            uploaded_xlsx_bytes,
-            selected_sheets=selected_sheets,
             include_all_sheets=include_all_sheets,
         )
 
@@ -123,7 +135,11 @@ def build_service_1_web_column_confirmation_intake_boundary_v1(
             reader_blocking_errors=errors,
         )
 
-    column_refs, owner_questions = _build_owner_questions(normalized_tables)
+    workbook_ref = _workbook_ref(source_artifact_ref, ingestion_scope)
+    column_refs, owner_questions = _build_owner_questions(
+        normalized_tables,
+        workbook_ref=workbook_ref,
+    )
     if len(column_refs) > MAX_QUESTIONS:
         return _blocked(
             BLOCK_TOO_MANY_COLUMNS,
@@ -137,6 +153,7 @@ def build_service_1_web_column_confirmation_intake_boundary_v1(
 
     workbook_sheet_names = [str(table.get("sheet_name") or "").strip() for table in normalized_tables]
     columns = [ref["column_name"] for ref in column_refs]
+    sheet_refs = _sheet_identity_records(workbook_ref, workbook_sheet_names)
     return {
         "schema_version": SCHEMA_VERSION,
         "service_name": SERVICE_NAME,
@@ -144,6 +161,14 @@ def build_service_1_web_column_confirmation_intake_boundary_v1(
         "status": "NEEDS_OWNER_CONFIRMATION",
         "blocked_reason": None,
         "case_id": case_id,
+        "source_artifact_ref": source_artifact_ref,
+        "workbook_ref": workbook_ref,
+        "ingestion_scope": ingestion_scope,
+        "canonical_reader_schema_version": CANONICAL_READER_SCHEMA_VERSION,
+        "sheet_refs": sheet_refs,
+        "sheet_ref": sheet_refs[0]["sheet_ref"] if len(sheet_refs) == 1 else None,
+        "source_system_ref": source_kind,
+        "source_context_ref": None,
         "source_kind": source_kind,
         "filename": filename,
         "sheet_names": workbook_sheet_names,
@@ -228,6 +253,8 @@ def _read_uploaded_bytes_via_canonical_reader(
 
 def _build_owner_questions(
     normalized_tables: list[dict[str, Any]],
+    *,
+    workbook_ref: str,
 ) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
     raw_refs: list[dict[str, str]] = []
     counter = 0
@@ -241,6 +268,7 @@ def _build_owner_questions(
                 continue
             counter += 1
             question_id = f"col_confirm_{counter:03d}"
+            sheet_ref = _sheet_ref(workbook_ref, sheet)
             normalized_column = (
                 str(normalized_headers[index]).strip()
                 if index < len(normalized_headers)
@@ -250,6 +278,7 @@ def _build_owner_questions(
                 {
                     "question_id": question_id,
                     "sheet_name": sheet,
+                    "sheet_ref": sheet_ref,
                     "column_name": column,
                     "normalized_column_name": normalized_column,
                 }
@@ -280,29 +309,74 @@ def _has_xlsx_extension(filename: str) -> bool:
     return filename.lower().endswith(".xlsx")
 
 
-def _case_id(
-    source_kind: str,
-    filename: str,
-    content: Optional[bytes] = None,
+def _ingestion_scope(
     *,
-    selected_sheets: tuple[str, ...] | None = None,
-    include_all_sheets: bool = False,
+    selected_sheets: tuple[str, ...] | None,
+    include_all_sheets: bool,
 ) -> str:
-    hasher = hashlib.sha256()
-    hasher.update(source_kind.encode("utf-8"))
-    hasher.update(b"\x00")
-    hasher.update(filename.encode("utf-8"))
-    hasher.update(b"\x00")
     if include_all_sheets:
-        hasher.update(b"ALL_SHEETS")
-    elif selected_sheets:
-        hasher.update("\x1f".join(selected_sheets).encode("utf-8"))
-    else:
-        hasher.update(b"DEFAULT_SHEET")
-    if content is not None:
-        hasher.update(b"\x00")
-        hasher.update(content)
-    return "case_" + hasher.hexdigest()[:16]
+        return "all_non_empty_sheets"
+    if selected_sheets is not None:
+        return "selected_sheets:" + json.dumps(
+            list(selected_sheets),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    return "first_non_empty_sheet"
+
+
+def _source_artifact_ref_from_local_path(xlsx_path: str | Path) -> str:
+    digest = calculate_sha256(Path(xlsx_path))
+    return f"xlsx:sha256:{digest}"
+
+
+def _source_artifact_ref_from_bytes(content: bytes) -> str:
+    return f"xlsx:sha256:{hashlib.sha256(content).hexdigest()}"
+
+
+def _workbook_ref(source_artifact_ref: str, ingestion_scope: str) -> str:
+    source_ref = str(source_artifact_ref or "").strip()
+    scope = str(ingestion_scope or "").strip()
+    if not source_ref or not scope:
+        raise ValueError("source_artifact_ref and ingestion_scope are required")
+    payload = json.dumps(
+        {
+            "canonical_reader_schema_version": CANONICAL_READER_SCHEMA_VERSION,
+            "ingestion_scope": scope,
+            "source_artifact_ref": source_ref,
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return f"workbook:sha256:{hashlib.sha256(payload).hexdigest()}"
+
+
+def _sheet_ref(workbook_ref: str, sheet_name: str) -> str:
+    workbook = str(workbook_ref or "").strip()
+    sheet = str(sheet_name or "").strip()
+    if not workbook or not sheet:
+        raise ValueError("workbook_ref and sheet_name are required")
+    payload = f"{workbook}\x00{sheet}".encode("utf-8")
+    return f"sheet:sha256:{hashlib.sha256(payload).hexdigest()}"
+
+
+def _sheet_identity_records(
+    workbook_ref: str,
+    sheet_names: list[str],
+) -> list[dict[str, str]]:
+    return [
+        {"sheet_name": sheet, "sheet_ref": _sheet_ref(workbook_ref, sheet)}
+        for sheet in dict.fromkeys(str(name).strip() for name in sheet_names if str(name).strip())
+    ]
+
+
+def _case_id(
+    *_args: Any,
+    **_kwargs: Any,
+) -> str:
+    """Create an opaque workflow identity, independent of source identity."""
+    return "case_" + uuid.uuid4().hex
 
 
 def _blocked(
@@ -341,6 +415,7 @@ __all__ = [
     "SERVICE_NAME",
     "PACKET_TYPE",
     "MAX_QUESTIONS",
+    "CANONICAL_READER_SCHEMA_VERSION",
     "BLOCK_NO_SOURCE",
     "BLOCK_DUAL_SOURCE",
     "BLOCK_INVALID_EXTENSION",
@@ -350,5 +425,6 @@ __all__ = [
     "BLOCK_SHEET_SELECTION_CONFLICT",
     "BLOCK_INVALID_SHEET_SELECTION",
     "BLOCK_TOO_MANY_COLUMNS",
+    "BLOCK_SOURCE_ARTIFACT_FAILED",
     "build_service_1_web_column_confirmation_intake_boundary_v1",
 ]

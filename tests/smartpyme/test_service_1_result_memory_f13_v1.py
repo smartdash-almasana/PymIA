@@ -38,6 +38,13 @@ from pymia.smartpyme.service_1_result_memory_wiring_v1 import (
     build_service_1_result_memory_from_execution_v1,
     derive_service_1_result_memory_period_v1,
 )
+from pymia.smartpyme.service_1_result_read_boundary_v1 import (
+    ResultReadBoundary,
+    Service1ResultQueryV1,
+)
+from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
+    build_service_1_workbook_logical_model_v1,
+)
 from pymia.smartpyme.service_1_supabase_persistence_v1 import (
     ANALYSIS_RESULT_MEMORY_TABLE,
     Service1SupabasePersistenceAdapterV1,
@@ -79,6 +86,10 @@ def f13_execution(tmp_path_factory: pytest.TempPathFactory) -> dict:
     assert semantic_run["status"] == "CONFIRMED_BINDINGS"
     discovery = build_service_1_dynamic_analysis_discovery_v1(confirmed_bindings=semantic_run)
     by_id = {item.analysis_id: item for item in discovery.analyses}
+    workbook_logical_model = build_service_1_workbook_logical_model_v1(
+        ingestion_output=state.ingestion_output,
+    )
+    assert workbook_logical_model["status"] == "WORKBOOK_LOGICAL_MODEL_READY"
 
     def execute(analysis_id: str):
         item = by_id[analysis_id]
@@ -88,6 +99,7 @@ def f13_execution(tmp_path_factory: pytest.TempPathFactory) -> dict:
             case_id=governed.case_id,
             governed_analysis_input=governed,
             ingestion_output=state.ingestion_output,
+            d7_workbook_logical_model=workbook_logical_model,
         )
         assert prepared.status == STATUS_PREPARED, prepared.to_dict()
         assert prepared.prepared_evidence is not None
@@ -106,7 +118,7 @@ def f13_execution(tmp_path_factory: pytest.TempPathFactory) -> dict:
         assert projection.projection is not None
         return governed, projection.projection
 
-    case_id = str(state.ingestion_output["case_id"])
+    case_id = str(state.ingestion_output["workbook_context"]["case_id"])
     identity = build_service_1_tenant_identity_contract_v1(
         tenant_id="tenant-f13",
         cliente_id="cliente-f13",
@@ -173,6 +185,87 @@ def test_f13_snapshot_identity_is_idempotent_across_reexecution_time(f13_executi
     assert first.executed_at != second.executed_at
 
 
+def test_r9_result_read_boundary_returns_ready_for_same_tenant_case_and_digest(
+    f13_execution: dict,
+) -> None:
+    _governed, _projection, record = _record(f13_execution)
+    boundary = ResultReadBoundary(
+        lambda tenant_id, result_id: record
+        if tenant_id == record.tenant_id and result_id == record.memory_record_id
+        else None
+    )
+    packet = boundary.read(
+        Service1ResultQueryV1(
+            tenant_id=record.tenant_id,
+            case_id=record.case_id,
+            result_id=record.memory_record_id,
+            expected_integrity_digest=record.result_set_integrity_digest,
+        )
+    )
+    assert packet["status"] == "READY"
+    assert packet["result_set"]["integrity"]["digest"] == (
+        record.result_set_integrity_digest
+    )
+
+
+def test_r9_result_read_boundary_blocks_tenant_case_and_integrity_mismatch(
+    f13_execution: dict,
+) -> None:
+    _governed, _projection, record = _record(f13_execution)
+    boundary = ResultReadBoundary(lambda _tenant_id, _result_id: record)
+
+    other_tenant = boundary.read(
+        Service1ResultQueryV1(
+            tenant_id="tenant-other",
+            case_id=record.case_id,
+            result_id=record.memory_record_id,
+            expected_integrity_digest=record.result_set_integrity_digest,
+        )
+    )
+    wrong_case = boundary.read(
+        Service1ResultQueryV1(
+            tenant_id=record.tenant_id,
+            case_id="case-other",
+            result_id=record.memory_record_id,
+            expected_integrity_digest=record.result_set_integrity_digest,
+        )
+    )
+    wrong_digest = boundary.read(
+        Service1ResultQueryV1(
+            tenant_id=record.tenant_id,
+            case_id=record.case_id,
+            result_id=record.memory_record_id,
+            expected_integrity_digest="sha256:wrong",
+        )
+    )
+
+    assert other_tenant["status"] == "BLOCKED"
+    assert wrong_case["status"] == "BLOCKED"
+    assert wrong_digest["status"] == "BLOCKED"
+    assert other_tenant["blocked_reason"] == "TENANT_BOUNDARY_MISMATCH"
+    assert wrong_case["blocked_reason"] == "CASE_BOUNDARY_MISMATCH"
+    assert wrong_digest["blocked_reason"] == "RESULT_INTEGRITY_MISMATCH"
+
+
+def test_r9_read_boundary_has_no_execution_dependencies() -> None:
+    import inspect
+
+    from pymia.smartpyme import service_1_result_read_boundary_v1 as module
+
+    source = inspect.getsource(module)
+    for forbidden in (
+        "openpyxl",
+        "run_service_1_product_pipeline_v1",
+        "run_service_1_governed_analysis_v1",
+        "build_service_1_dynamic_analysis_discovery_v1",
+        "execute_service_1_analysis_math_v1",
+        "build_service_1_analysis_result_projection_v1",
+        "semantic_provider",
+        "FormulaEngineService",
+    ):
+        assert forbidden not in source
+
+
 def test_f13_loader_detects_resultset_tampering(f13_execution: dict) -> None:
     _governed, _projection, record = _record(f13_execution)
     payload = record.to_dict()
@@ -224,7 +317,7 @@ def test_f13_web_execution_persists_and_reads_tenant_analysis_history(f13_execut
         requested_capability="sales_total",
     )
     assert status == 200
-    assert "Resultado listo" in page
+    assert "Resumen del archivo" in page
     packet = state.last_review_result
     assert packet["status"] == "READY"
     assert packet["result_memory"]["status"] == "PERSISTED"
@@ -267,7 +360,7 @@ def test_rc3_restart_lists_and_renders_persisted_resultset_without_xlsx_llm_or_r
     def forbidden_product_root(**_kwargs):
         raise AssertionError("product root must not run during F13 reentry")
 
-    monkeypatch.setattr(semantic_web, "run_service_1_governed_analysis_v1", forbidden_product_root)
+    monkeypatch.setattr(semantic_web, "run_service_1_product_pipeline_v1", forbidden_product_root)
     app = Service1SemanticReceptionWebApplicationV1(
         output_dir=tmp_path,
         semantic_provider=forbidden_semantic_provider,
@@ -299,7 +392,7 @@ def test_rc3_restart_lists_and_renders_persisted_resultset_without_xlsx_llm_or_r
         case_ref=record.memory_record_id,
     )
     assert status == 200
-    assert "Resultado listo" in result_page
+    assert "Resumen del archivo" in result_page
     assert record.analysis_id in result_page
     assert load_calls == [(record.tenant_id, record.memory_record_id)]
     assert semantic_calls == []
@@ -323,7 +416,7 @@ def test_rc3_reentry_passes_exact_persisted_f9_resultset_to_renderer(
     monkeypatch.setattr(semantic_web, "render_analysis_result_sets_v1", capture_renderer)
     monkeypatch.setattr(
         semantic_web,
-        "run_service_1_governed_analysis_v1",
+        "run_service_1_product_pipeline_v1",
         lambda **_kwargs: pytest.fail("RC3 reentry recalculated through product root"),
     )
     app = Service1SemanticReceptionWebApplicationV1(

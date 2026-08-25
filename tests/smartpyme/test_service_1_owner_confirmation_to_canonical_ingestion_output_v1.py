@@ -17,6 +17,8 @@ from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import
     build_service_1_web_column_confirmation_intake_boundary_v1 as build_intake,
 )
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
+    CANONICAL_INGESTION_SCHEMA_VERSION,
+    REQUEST_KIND_WORKBOOK,
     BLOCK_ANSWERS_NOT_DICT,
     BLOCK_DUPLICATE_COLUMNS,
     BLOCK_MISSING_ANSWERS,
@@ -29,6 +31,10 @@ from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_
     BLOCK_UNKNOWN_COLUMNS,
     STATUS_READY,
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1 as build_conn,
+)
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    Service1ProductExecutionDependenciesV1,
+    WorkbookSemanticStartRequestV1,
 )
 # --- Fixture resolution ---------------------------------------------------
 
@@ -71,8 +77,14 @@ def test_ok_produces_ingestion_output_ready(case_001_packet: dict, full_answers:
     assert out["case_id"] == case_001_packet["case_id"]
     assert out["source_kind"] == case_001_packet["source_kind"]
     assert out["filename"] == case_001_packet["filename"]
+    assert out["source_artifact_ref"] == case_001_packet["source_artifact_ref"]
+    assert out["workbook_ref"] == case_001_packet["workbook_ref"]
     assert out["confirmed_columns"] == case_001_packet["columns"]
-    assert out["owner_answers"] == full_answers
+    assert all(
+        ref["owner_meaning"] == full_answers[ref["field_id"]]
+        for ref in out["ingestion_output"]["column_refs"]
+    )
+    assert "owner_answers" not in out
     assert out["ingestion_output"] is not None
 
 
@@ -81,8 +93,7 @@ def test_case_001_lock_is_10(case_001_packet: dict, full_answers: dict) -> None:
     assert (
         len(out["columns"])
         == len(out["confirmed_columns"])
-        == len(out["owner_answers"])
-        == len(out["ingestion_output"]["available_data_fields"])
+        == len(out["ingestion_output"]["column_refs"])
         == 10
     )
 
@@ -93,9 +104,148 @@ def test_ingestion_output_is_canonical_and_runtime_independent(case_001_packet: 
     out = build_conn(owner_question_packet=case_001_packet, owner_answers=full_answers)
 
     ingestion_output = out["ingestion_output"]
-    assert len(ingestion_output["available_data_fields"]) == 10
-    assert len(ingestion_output["input_values"]) == 10
+    assert ingestion_output["schema_version"] == CANONICAL_INGESTION_SCHEMA_VERSION
+    assert ingestion_output["request_kind"] == REQUEST_KIND_WORKBOOK
+    for removed_alias in (
+        "case_id",
+        "source_artifact_ref",
+        "workbook_ref",
+        "source_file_ref",
+        "source_kind",
+        "filename",
+        "ingestion_scope",
+        "sheet_name",
+        "sheet_names",
+        "sheet_ref",
+        "sheet_refs",
+    ):
+        assert removed_alias not in ingestion_output
+    assert ingestion_output["workbook_context"]["case_id"] == case_001_packet["case_id"]
+    assert ingestion_output["provenance"]["filename"] == case_001_packet["filename"]
+    assert ingestion_output["provenance"]["sheet_names"]
+    for removed_alias in (
+        "available_data_fields",
+        "columns",
+        "input_values",
+        "normalized_values",
+        "column_meaning_confirmations",
+        "column_evidence",
+        "declared_data_sources",
+    ):
+        assert removed_alias not in ingestion_output
+    assert len(ingestion_output["column_refs"]) == 10
+    assert all(ref["owner_meaning"] for ref in ingestion_output["column_refs"])
+    assert ingestion_output["normalized_tables"]
     assert ingestion_output["runtime_authorized"] is False
+    assert ingestion_output["safety_flags"] == {
+        "runtime_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+    }
+
+
+def test_workbook_context_is_identity_only_and_matches_intake(case_001_packet: dict, full_answers: dict) -> None:
+    out = build_conn(owner_question_packet=case_001_packet, owner_answers=full_answers)
+    ingestion_output = out["ingestion_output"]
+    context = ingestion_output["workbook_context"]
+
+    assert context == {
+        "case_id": case_001_packet["case_id"],
+        "source_artifact_ref": case_001_packet["source_artifact_ref"],
+        "workbook_ref": case_001_packet["workbook_ref"],
+        "ingestion_scope": case_001_packet["ingestion_scope"],
+        "canonical_reader_schema_version": case_001_packet[
+            "canonical_reader_schema_version"
+        ],
+        "source_system_ref": case_001_packet["source_system_ref"],
+        "source_context_ref": case_001_packet["source_context_ref"],
+    }
+    assert context["workbook_ref"] != case_001_packet["filename"]
+    for forbidden in (
+        "normalized_tables",
+        "column_refs",
+        "physical_lineage",
+        "input_values",
+        "normalized_values",
+        "semantic_evidence",
+        "p7_p8_evidence_projection",
+    ):
+        assert forbidden not in context
+
+
+def test_physical_lineage_projects_reader_coordinates_without_copying_cells(case_001_packet: dict, full_answers: dict) -> None:
+    out = build_conn(owner_question_packet=case_001_packet, owner_answers=full_answers)
+    ingestion_output = out["ingestion_output"]
+    lineage = ingestion_output["physical_lineage"]
+    tables = ingestion_output["normalized_tables"]
+
+    assert len(lineage) == len(tables)
+    assert lineage
+    for record, table in zip(lineage, tables):
+        assert record["sheet_name"] == table["sheet_name"]
+        assert record["sheet_ref"].startswith("sheet:sha256:")
+        assert record["header_row_number"] == table["header_row_number"]
+        assert record["source_row_numbers"] == table["source_row_numbers"]
+        assert record["physical_max_column"] == table["physical_max_column"]
+        assert record["physical_max_row"] == table["physical_max_row"]
+        assert "physical_rows" not in record
+        assert "cells" not in record
+
+
+def test_cli_does_not_mutate_canonical_envelope_after_build(
+    case_001_packet: dict,
+    full_answers: dict,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pymia.cli.service_1_product as cli
+
+    real = build_conn(owner_question_packet=case_001_packet, owner_answers=full_answers)
+    sentinel_output = dict(real["ingestion_output"])
+    sentinel_output["normalized_tables"] = [{"sentinel": True}]
+    sentinel_connector = dict(real)
+    sentinel_connector["ingestion_output"] = sentinel_output
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        cli,
+        "build_service_1_canonical_ingestion_output_from_owner_confirmation_v1",
+        lambda **_: sentinel_connector,
+    )
+
+    def _capture_product_root(
+        request: WorkbookSemanticStartRequestV1,
+        *,
+        dependencies: Service1ProductExecutionDependenciesV1,
+    ) -> dict[str, str]:
+        captured["request"] = request
+        captured["dependencies"] = dependencies
+        return {"status": "BLOCKED"}
+
+    monkeypatch.setattr(
+        cli,
+        "run_service_1_product_pipeline_v1",
+        _capture_product_root,
+    )
+
+    result = cli.run_service_1_product_entrypoint_v1(
+        xlsx_path=next(
+            candidate
+            for candidate in _CASE_001_CANDIDATES
+            if candidate.exists()
+        ),
+        owner_column_answers=full_answers,
+        semantic_owner_answers=None,
+        output_dir=tmp_path,
+    )
+
+    assert result["status"] == "BLOCKED"
+    request = captured["request"]
+    dependencies = captured["dependencies"]
+    assert isinstance(request, WorkbookSemanticStartRequestV1)
+    assert isinstance(dependencies, Service1ProductExecutionDependenciesV1)
+    assert request.ingestion_output is sentinel_output
+    assert request.ingestion_output["normalized_tables"] == [{"sentinel": True}]
 
 
 # --- safety flags always False --------------------------------------------

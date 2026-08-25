@@ -6,14 +6,61 @@ It does not claim certified days past due or legal delinquency age.
 """
 from __future__ import annotations
 
-import math
+from collections.abc import Mapping
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final
+
+from pymia.contracts.formula_contract import (
+    FormulaInput,
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    calculate_formula,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    ClassificationPredicate,
+    ClassificationRule,
+    classify_classification_rules,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_CONSORCIOS_COLLECTION_AGING_V1"
 CAPABILITY_REF: Final[str] = "collection_aging"
 STATUS_EVALUATED: Final[str] = "EVALUATED"
 STATUS_EVIDENCE_BLOCKED: Final[str] = "EVIDENCE_BLOCKED"
+FORMULA_AGING_PERIODS: Final[str] = "CONSORCIOS_collection_aging_periods"
+CLASS_CURRENT: Final[str] = "CURRENT"
+CLASS_ONE_PERIOD: Final[str] = "ONE_PERIOD_EQUIVALENT"
+CLASS_TWO_PERIODS: Final[str] = "TWO_PERIODS_EQUIVALENT"
+CLASS_THREE_PLUS: Final[str] = "THREE_PLUS_PERIODS_EQUIVALENT"
+AGING_ONE_PERIOD_MAX_EXCLUSIVE: Final[Decimal] = Decimal("1.4")
+AGING_TWO_PERIOD_MAX_EXCLUSIVE: Final[Decimal] = Decimal("2.4")
+_AGING_CLASSIFICATION_RULES: Final[tuple[ClassificationRule, ...]] = (
+    ClassificationRule(
+        CLASS_CURRENT,
+        predicates=(ClassificationPredicate("result", "LE", literal=Decimal("0")),),
+    ),
+    ClassificationRule(
+        CLASS_ONE_PERIOD,
+        match="ALL",
+        predicates=(
+            ClassificationPredicate("result", "GT", literal=Decimal("0")),
+            ClassificationPredicate("result", "LT", literal=AGING_ONE_PERIOD_MAX_EXCLUSIVE),
+        ),
+    ),
+    ClassificationRule(
+        CLASS_TWO_PERIODS,
+        match="ALL",
+        predicates=(
+            ClassificationPredicate("result", "GE", literal=AGING_ONE_PERIOD_MAX_EXCLUSIVE),
+            ClassificationPredicate("result", "LT", literal=AGING_TWO_PERIOD_MAX_EXCLUSIVE),
+        ),
+    ),
+    ClassificationRule(
+        CLASS_THREE_PLUS,
+        predicates=(ClassificationPredicate("result", "GE", literal=AGING_TWO_PERIOD_MAX_EXCLUSIVE),),
+    ),
+)
 
 REQUIRED_COLUMNS: Final[tuple[str, str, str]] = (
     "unidad_funcional",
@@ -73,8 +120,34 @@ def evaluate_collection_aging_from_normalized_tables_v1(*, normalized_tables: ob
             errors.append(f"row {index} {unit}: expensa_mes must be > 0")
             continue
 
-        equivalent_periods = float(prior / charge)
-        bucket = _bucket(equivalent_periods)
+        formula_result = calculate_formula(
+            FORMULA_AGING_PERIODS,
+            [
+                FormulaInput(
+                    name="prior_balance",
+                    value=float(prior),
+                    source_refs=[f"aging:{unit}:prior_balance"],
+                ),
+                FormulaInput(
+                    name="monthly_charge",
+                    value=float(charge),
+                    source_refs=[f"aging:{unit}:monthly_charge"],
+                ),
+            ],
+        )
+        if formula_result.status != FormulaStatus.OK or formula_result.value is None:
+            errors.append(
+                f"row {index} {unit}: {formula_result.blocking_reason or 'aging formula blocked'}"
+            )
+            continue
+        equivalent_periods = formula_result.value
+        bucket = classify_classification_rules(
+            _AGING_CLASSIFICATION_RULES,
+            result=equivalent_periods,
+        )
+        if bucket is None:
+            errors.append(f"row {index} {unit}: aging classification policy did not match")
+            continue
         results.append(
             {
                 "unidad_funcional": unit,
@@ -82,7 +155,7 @@ def evaluate_collection_aging_from_normalized_tables_v1(*, normalized_tables: ob
                 "expensa_mes": float(charge),
                 "periodos_equivalentes": equivalent_periods,
                 "aging_bucket": bucket,
-                "requires_human_review": prior > 0,
+                "requires_human_review": bucket != CLASS_CURRENT,
             }
         )
 
@@ -91,10 +164,10 @@ def evaluate_collection_aging_from_normalized_tables_v1(*, normalized_tables: ob
 
     summary = {
         "total_units": len(results),
-        "current": sum(1 for item in results if item["aging_bucket"] == "CURRENT"),
-        "one_period": sum(1 for item in results if item["aging_bucket"] == "ONE_PERIOD_EQUIVALENT"),
-        "two_periods": sum(1 for item in results if item["aging_bucket"] == "TWO_PERIODS_EQUIVALENT"),
-        "three_plus_periods": sum(1 for item in results if item["aging_bucket"] == "THREE_PLUS_PERIODS_EQUIVALENT"),
+        "current": _count_bucket(results, CLASS_CURRENT),
+        "one_period": _count_bucket(results, CLASS_ONE_PERIOD),
+        "two_periods": _count_bucket(results, CLASS_TWO_PERIODS),
+        "three_plus_periods": _count_bucket(results, CLASS_THREE_PLUS),
     }
     return {
         "schema_version": SCHEMA_VERSION,
@@ -105,8 +178,8 @@ def evaluate_collection_aging_from_normalized_tables_v1(*, normalized_tables: ob
         "summary": summary,
         "method": "prior_balance_divided_by_current_month_charge",
         "bucket_thresholds": {
-            "one_period_max_exclusive": 1.4,
-            "two_periods_max_exclusive": 2.4,
+            "one_period_max_exclusive": float(AGING_ONE_PERIOD_MAX_EXCLUSIVE),
+            "two_periods_max_exclusive": float(AGING_TWO_PERIOD_MAX_EXCLUSIVE),
         },
         "limitations": [
             "Los períodos equivalentes son una estimación matemática, no antigüedad contable certificada.",
@@ -125,7 +198,12 @@ def build_collection_aging_outcome_v1(*, computation_result: object) -> dict[str
     if not isinstance(computation_result, dict) or computation_result.get("status") != STATUS_EVALUATED:
         return {"status": "BLOCKED", "capability_ref": CAPABILITY_REF}
     summary = dict(computation_result.get("summary") or {})
-    flagged = int(summary.get("one_period", 0)) + int(summary.get("two_periods", 0)) + int(summary.get("three_plus_periods", 0))
+    rows = [
+        row
+        for row in computation_result.get("rows", [])
+        if isinstance(row, dict)
+    ]
+    flagged = _count_flagged_rows(rows)
     return {
         "status": "OUTCOME_READY",
         "capability_ref": CAPABILITY_REF,
@@ -143,14 +221,30 @@ def build_collection_aging_outcome_v1(*, computation_result: object) -> dict[str
     }
 
 
-def _bucket(periods: float) -> str:
-    if periods <= 0:
-        return "CURRENT"
-    if periods < 1.4:
-        return "ONE_PERIOD_EQUIVALENT"
-    if periods < 2.4:
-        return "TWO_PERIODS_EQUIVALENT"
-    return "THREE_PLUS_PERIODS_EQUIVALENT"
+def _count_bucket(results: list[dict[str, Any]], bucket: str) -> int:
+    count = FormulaEngineService().calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.COUNT,
+            values=[1 for item in results if item.get("aging_bucket") == bucket],
+            source_refs=[f"aging:bucket:{bucket}"],
+        )
+    )
+    if count.status != FormulaStatus.OK or count.value is None:
+        raise ValueError(count.blocking_reason or "aging bucket count blocked")
+    return int(count.value)
+
+
+def _count_flagged_rows(results: list[dict[str, Any]]) -> int:
+    count = FormulaEngineService().calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.COUNT,
+            values=[1 for item in results if item.get("aging_bucket") != CLASS_CURRENT],
+            source_refs=["aging:non_current"],
+        )
+    )
+    if count.status != FormulaStatus.OK or count.value is None:
+        raise ValueError(count.blocking_reason or "aging flagged count blocked")
+    return int(count.value)
 
 
 def _number(value: object) -> tuple[Decimal, str | None]:
@@ -162,7 +256,7 @@ def _number(value: object) -> tuple[Decimal, str | None]:
         number = Decimal(str(value).strip())
     except (InvalidOperation, ValueError):
         return Decimal("0"), "must be numeric"
-    if not number.is_finite() or not math.isfinite(float(number)):
+    if not number.is_finite():
         return Decimal("0"), "must be finite"
     return number, None
 
@@ -183,7 +277,7 @@ def _blocked(reason: str) -> dict[str, Any]:
 
 def build_collection_aging_product_request_v1(*, request: object) -> dict[str, Any]:
     """Validate one owner-confirmed aging request and evaluate it deterministically."""
-    if not isinstance(request, dict) or not request:
+    if not isinstance(request, Mapping) or not request:
         return _request_blocked("AGING_REQUEST_REQUIRED")
     if request.get("owner_requested") is not True:
         return _request_blocked("EXPLICIT_OWNER_REQUEST_REQUIRED")

@@ -4,6 +4,20 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Final
 
+from pymia.contracts.formula_contract import (
+    FormulaInput,
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    calculate_formula,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    ClassificationPredicate,
+    ClassificationRule,
+    classify_classification_rules,
+)
+
 SCHEMA_VERSION: Final[str] = "SERVICE_1_LIQ_002_EVALUATION_V1"
 COMPUTATION_PLAN_SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPUTATION_PLAN_V1"
 PATHOLOGY_CODE: Final[str] = "LIQ_002"
@@ -23,6 +37,20 @@ _REQUIRED_VARIABLES: Final[tuple[str, str, str]] = (
     "initial_balance",
     "expected_collections",
     "expected_payments",
+)
+_CLASSIFICATION_RULES: Final[tuple[ClassificationRule, ...]] = (
+    ClassificationRule(
+        CLASS_POSITIVE_BALANCE,
+        predicates=(ClassificationPredicate("result", "GT", literal=Decimal("0")),),
+    ),
+    ClassificationRule(
+        CLASS_ZERO_BALANCE,
+        predicates=(ClassificationPredicate("result", "EQ", literal=Decimal("0")),),
+    ),
+    ClassificationRule(
+        CLASS_NEGATIVE_BALANCE,
+        predicates=(ClassificationPredicate("result", "LT", literal=Decimal("0")),),
+    ),
 )
 
 
@@ -83,17 +111,44 @@ def evaluate_liq_002_v1(
             errors=errors,
         )
 
-    opening = normalized["initial_balance"]
-    collections = normalized["expected_collections"]
-    payments = normalized["expected_payments"]
-    closing = opening + collections - payments
-
-    if closing > 0:
-        classification = CLASS_POSITIVE_BALANCE
-    elif closing == 0:
-        classification = CLASS_ZERO_BALANCE
-    else:
-        classification = CLASS_NEGATIVE_BALANCE
+    kernel_result = calculate_formula(
+        FORMULA_REF,
+        [
+            FormulaInput(name="initial_balance", value=normalized["initial_balance"], source_refs=["LIQ_002:initial_balance"]),
+            FormulaInput(name="expected_collections", value=normalized["expected_collections"], source_refs=["LIQ_002:expected_collections"]),
+            FormulaInput(name="expected_payments", value=normalized["expected_payments"], source_refs=["LIQ_002:expected_payments"]),
+        ],
+    )
+    if kernel_result.status != FormulaStatus.OK or kernel_result.value is None:
+        return _packet(
+            status=STATUS_INVALID_INPUT,
+            classification=None,
+            inputs=normalized,
+            errors=[kernel_result.blocking_reason or "LIQ_002 formula calculation blocked."],
+        )
+    closing = kernel_result.value
+    net_cash_change = FormulaEngineService().calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.SUBTRACT,
+            values=[normalized["expected_collections"], normalized["expected_payments"]],
+            source_refs=["LIQ_002:expected_collections", "LIQ_002:expected_payments"],
+        )
+    )
+    if net_cash_change.status != FormulaStatus.OK or net_cash_change.value is None:
+        return _packet(
+            status=STATUS_INVALID_INPUT,
+            classification=None,
+            inputs=normalized,
+            errors=[net_cash_change.blocking_reason or "LIQ_002 net cash change calculation blocked."],
+        )
+    classification = classify_classification_rules(_CLASSIFICATION_RULES, result=closing)
+    if classification is None:
+        return _packet(
+            status=STATUS_INVALID_INPUT,
+            classification=None,
+            inputs=normalized,
+            errors=["LIQ_002 classification policy did not match."],
+        )
 
     return _packet(
         status=STATUS_EVALUATED,
@@ -102,9 +157,9 @@ def evaluate_liq_002_v1(
         errors=[],
         computed={
             "projected_closing_balance": closing,
-            "projected_net_cash_change": collections - payments,
-            "total_expected_inflows": collections,
-            "total_expected_outflows": payments,
+            "projected_net_cash_change": net_cash_change.value,
+            "total_expected_inflows": normalized["expected_collections"],
+            "total_expected_outflows": normalized["expected_payments"],
         },
         mathematical_limits={
             "initial_balance_min_inclusive": 0.0,

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pymia.smartpyme.service_1_computability_v1 import STATUS_COMPUTABLE
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    STATUS_CONFIRMED_BINDINGS,
+from pymia.smartpyme.service_1_computability_v1 import (
+    CONFIRMED_BINDINGS_SCHEMA_VERSION,
+    CONFIRMED_BINDINGS_STATUS,
+    STATUS_COMPUTABLE,
     build_computability_decision_from_confirmed_bindings_v1,
 )
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
@@ -62,9 +63,9 @@ def _confirmed_packet() -> dict[str, object]:
     )
     families = build_service_1_variable_family_bindings_v1(candidates)
     return {
-        "schema_version": "SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_V1",
+        "schema_version": CONFIRMED_BINDINGS_SCHEMA_VERSION,
         "service_name": "SERVICE_1",
-        "status": STATUS_CONFIRMED_BINDINGS,
+        "status": CONFIRMED_BINDINGS_STATUS,
         "bridge_packet": {
             "case_id": "case_liq_002_real_semantic_governance",
             "column_candidates": candidates,

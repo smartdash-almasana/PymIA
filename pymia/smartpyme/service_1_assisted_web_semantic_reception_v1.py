@@ -19,23 +19,34 @@ from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
     semantic_provider_from_environment_v1,
 )
 from pymia.smartpyme.service_1_product_pipeline_v1 import (
-    run_service_1_governed_analysis_v1,
+    STATUS_BLOCKED as PRODUCT_STATUS_BLOCKED,
+    STATUS_NEEDS_OWNER as PRODUCT_STATUS_NEEDS_OWNER,
+    STATUS_READY as PRODUCT_STATUS_READY,
+    run_service_1_product_pipeline_v1,
+)
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    Service1ProductExecutionDependenciesV1,
+    WorkbookAnalysisExecuteRequestV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
 )
 from pymia.smartpyme.service_1_result_memory_v1 import (
     Service1ResultMemoryRecordV1,
     service_1_result_memory_record_from_mapping_v1,
+)
+from pymia.smartpyme.service_1_result_read_boundary_v1 import (
+    ResultReadBoundary,
 )
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     STATUS_CONFIRMED,
     STATUS_OWNER_DIALOGUE_FOLLOWUP,
     STATUS_OWNER_DIALOGUE_REQUIRED,
     revise_service_1_assisted_semantic_decision_v1,
-    run_service_1_assisted_semantic_initial_v1,
     run_service_1_assisted_semantic_reentry_v1,
 )
-from pymia.smartpyme.service_1_computability_v1 import STATUS_COMPUTABLE
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    STATUS_CONFIRMED_BINDINGS,
+from pymia.smartpyme.service_1_computability_v1 import (
+    CONFIRMED_BINDINGS_STATUS,
+    STATUS_COMPUTABLE,
     build_computability_decision_from_confirmed_bindings_v1,
 )
 from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
@@ -45,170 +56,9 @@ from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
     project_service_1_dynamic_discovery_menu_v1,
 )
 from pymia.smartpyme.service_1_ui_v1 import render_analysis_result_sets_v1
-from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
-    STATUS_READY as WORKBOOK_LOGICAL_MODEL_READY,
-    build_service_1_workbook_logical_model_v1,
-)
 
 
-_DISCOVERY_SCHEMA_VERSION = "SERVICE_1_POST_SEMANTIC_ANALYSIS_DISCOVERY_V1"
-_ROLE_LABELS_ES: dict[str, str] = {
-    "operation_date": "fecha de operación",
-    "sales_amount": "importe de ventas",
-    "collected_amount": "importe cobrado",
-    "accounts_receivable_amount": "cuentas por cobrar",
-    "period_sales_total": "ventas del período",
-    "period_costs_total": "costos del período",
-    "period_taxes_total": "impuestos y comisiones del período",
-    "initial_balance": "saldo inicial",
-    "expected_collections": "cobros previstos",
-    "expected_payments": "pagos previstos",
-    "period_days": "días del período",
-    "days": "días del período",
-    "current_assets": "activo corriente",
-    "current_liabilities": "pasivo corriente",
-}
-
-
-def _discovery_capability_ref_v1(launch_ref: str) -> str:
-    ref = str(launch_ref or "").strip()
-    if ref in base._REVIEW_BY_REF:
-        return ref
-    if ref in base._LAUNCH_REVIEW_BY_REF and base._WORKING_CAPITAL_COMPONENT_CAPABILITIES:
-        return base._WORKING_CAPITAL_COMPONENT_CAPABILITIES[0]
-    return ref
-
-
-def _friendly_missing_group_v1(group: Sequence[str]) -> str:
-    labels = [
-        _ROLE_LABELS_ES.get(str(role).strip(), str(role).strip().replace("_", " "))
-        for role in group
-        if str(role).strip()
-    ]
-    return " o ".join(labels)
-
-
-def build_service_1_post_semantic_analysis_discovery_v1(
-    *,
-    confirmed_bindings: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Expose F10 AnalysisPlan discovery plus legacy launch compatibility.
-
-    The F10 result is the technical source of truth for the new AnalysisPlan
-    path. ``available`` / ``blocked`` remain a compatibility projection for the
-    pre-F10 launch routes until F11 product wiring replaces them.
-    """
-    if (
-        not isinstance(confirmed_bindings, Mapping)
-        or confirmed_bindings.get("status") != STATUS_CONFIRMED_BINDINGS
-    ):
-        return {
-            "schema_version": _DISCOVERY_SCHEMA_VERSION,
-            "status": "BLOCKED",
-            "blocked_reason": "CONFIRMED_BINDINGS_REQUIRED",
-            "available": [],
-            "blocked": [],
-            "runtime_authorized": False,
-            "tool_execution_authorized": False,
-            "delivery_authorized": False,
-            "diagnosis_generated": False,
-        }
-
-    analysis_discovery = build_service_1_dynamic_analysis_discovery_v1(
-        confirmed_bindings=confirmed_bindings,
-        commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
-    )
-    if analysis_discovery.status != F10_STATUS_READY:
-        return {
-            "schema_version": _DISCOVERY_SCHEMA_VERSION,
-            "status": "BLOCKED",
-            "blocked_reason": analysis_discovery.blocked_reason or "F10_DISCOVERY_BLOCKED",
-            "available": [],
-            "blocked": [],
-            "analysis_plans": [],
-            "technically_available_analysis_ids": [],
-            "commercially_exposed_analysis_ids": [],
-            "runtime_authorized": False,
-            "tool_execution_authorized": False,
-            "delivery_authorized": False,
-            "diagnosis_generated": False,
-        }
-
-    analysis_menu = project_service_1_dynamic_discovery_menu_v1(analysis_discovery)
-    if analysis_menu.get("status") != "READY":
-        return {
-            "schema_version": _DISCOVERY_SCHEMA_VERSION,
-            "status": "BLOCKED",
-            "blocked_reason": analysis_menu.get("blocked_reason") or "F12_MENU_PROJECTION_BLOCKED",
-            "available": [],
-            "blocked": [],
-            "analysis_menu_available": [],
-            "analysis_menu_blocked": [],
-            "analysis_plans": [item.to_dict() for item in analysis_discovery.analyses],
-            "technically_available_analysis_ids": [item.analysis_id for item in analysis_discovery.technically_available],
-            "commercially_exposed_analysis_ids": [item.analysis_id for item in analysis_discovery.commercially_exposed],
-            "runtime_authorized": False,
-            "tool_execution_authorized": False,
-            "delivery_authorized": False,
-            "diagnosis_generated": False,
-        }
-
-    available: list[dict[str, Any]] = []
-    blocked: list[dict[str, Any]] = []
-    for launch_ref, name, question in base._LAUNCH_REVIEW_OPTIONS:
-        capability_ref = _discovery_capability_ref_v1(launch_ref)
-        decision = build_computability_decision_from_confirmed_bindings_v1(
-            confirmed_bindings=dict(confirmed_bindings),
-            requested_capability=capability_ref,
-        )
-        decision_payload = decision.to_dict()
-        governed = decision_payload.get("governed_computation_input")
-        source_bindings = (
-            dict(governed.get("source_bindings") or {})
-            if isinstance(governed, Mapping)
-            else {}
-        )
-        item = {
-            "launch_ref": launch_ref,
-            "name": name,
-            "question": question,
-            "canonical_capability_ref": capability_ref,
-            "p8_status": decision.status,
-            "p8_reason": decision.reason,
-            "evidence_used": source_bindings,
-            "missing_evidence": [
-                _friendly_missing_group_v1(group)
-                for group in decision.missing_role_groups
-                if _friendly_missing_group_v1(group)
-            ],
-            "why_needed": f"Hace falta para responder de forma trazable: {question}",
-        }
-        if decision.status == STATUS_COMPUTABLE:
-            available.append(item)
-        else:
-            blocked.append(item)
-
-    return {
-        "schema_version": _DISCOVERY_SCHEMA_VERSION,
-        "status": "READY",
-        "blocked_reason": None,
-        "available": available,
-        "blocked": blocked,
-        "analysis_menu_available": [list(item) for item in (analysis_menu.get("available") or [])],
-        "analysis_menu_blocked": [dict(item) for item in (analysis_menu.get("blocked") or []) if isinstance(item, Mapping)],
-        "analysis_plans": [item.to_dict() for item in analysis_discovery.analyses],
-        "technically_available_analysis_ids": [
-            item.analysis_id for item in analysis_discovery.technically_available
-        ],
-        "commercially_exposed_analysis_ids": [
-            item.analysis_id for item in analysis_discovery.commercially_exposed
-        ],
-        "legacy_launch_compatibility": True,
-        "runtime_authorized": False,
-        "tool_execution_authorized": False,
-        "delivery_authorized": False,
-        "diagnosis_generated": False,
-    }
+STATUS_CONFIRMED_BINDINGS = CONFIRMED_BINDINGS_STATUS
 
 
 class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
@@ -220,12 +70,16 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         persist_result_memory: Any = None,
         load_result_memory: Any = None,
         load_result_memory_record: Any = None,
+        result_read_boundary: ResultReadBoundary | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self._persist_result_memory = persist_result_memory
         self._load_result_memory = load_result_memory
         self._load_result_memory_record = load_result_memory_record
+        self._result_read_boundary = result_read_boundary or ResultReadBoundary(
+            load_result_memory_record
+        )
 
     @staticmethod
     def _normalize_dialogue_decision(question: Mapping[str, Any]) -> dict[str, Any]:
@@ -426,39 +280,36 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             else {}
         )
         semantic_run = assistance.get("semantic_run")
-        discovery = build_service_1_post_semantic_analysis_discovery_v1(
-            confirmed_bindings=(semantic_run if isinstance(semantic_run, Mapping) else {})
+        confirmed_bindings = semantic_run if isinstance(semantic_run, Mapping) else {}
+        if confirmed_bindings.get("status") != STATUS_CONFIRMED_BINDINGS:
+            return HTTPStatus.OK, base._blocked_message_page(
+                "La semántica quedó cerrada, pero PymIA no pudo proyectar de forma segura qué análisis son computables."
+            )
+        analysis_discovery = build_service_1_dynamic_analysis_discovery_v1(
+            confirmed_bindings=confirmed_bindings,
+            commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
         )
-        if discovery.get("status") != "READY":
+        if analysis_discovery.status != F10_STATUS_READY:
+            return HTTPStatus.OK, base._blocked_message_page(
+                "La semántica quedó cerrada, pero PymIA no pudo proyectar de forma segura qué análisis son computables."
+            )
+        analysis_menu = project_service_1_dynamic_discovery_menu_v1(analysis_discovery)
+        if analysis_menu.get("status") != "READY":
             return HTTPStatus.OK, base._blocked_message_page(
                 "La semántica quedó cerrada, pero PymIA no pudo proyectar de forma segura qué análisis son computables."
             )
         ingestion = state.ingestion_output if isinstance(state.ingestion_output, Mapping) else {}
-        filename = str(ingestion.get("filename") or ingestion.get("source_file_ref") or "").strip()
+        filename = str((ingestion.get("provenance") or {}).get("filename") if isinstance(ingestion.get("provenance"), Mapping) else None or (ingestion.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion.get("provenance"), Mapping) else None or "").strip()
         available = [
             (str(item[0]), str(item[1]), str(item[2]))
-            for item in discovery.get("analysis_menu_available") or []
+            for item in analysis_menu.get("available") or []
             if isinstance(item, (list, tuple)) and len(item) == 3
         ]
-        available.extend(
-            (
-                str(item.get("launch_ref") or ""),
-                str(item.get("name") or ""),
-                str(item.get("question") or ""),
-            )
-            for item in (discovery.get("available") or [])
-            if isinstance(item, Mapping) and str(item.get("launch_ref") or "").strip()
-        )
         blocked = [
             dict(item)
-            for item in discovery.get("analysis_menu_blocked") or []
+            for item in analysis_menu.get("blocked") or []
             if isinstance(item, Mapping)
         ]
-        blocked.extend(
-            dict(item)
-            for item in (discovery.get("blocked") or [])
-            if isinstance(item, Mapping)
-        )
         return HTTPStatus.OK, base.render_analysis_menu_v1(
             available,
             filename=filename,
@@ -493,36 +344,16 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         state = self.session(session_id)
 
         if selected_launch_review is None and state.ingestion_output:
-            state.semantic_questions = []
-            state.semantic_answers = {}
-            state.semantic_scope_answers = {}
-            state.semantic_assistance_state = None
-            state.semantic_dialogue_responses = {}
-            state.semantic_chat_messages = {}
-            state.semantic_chat_suggestions = {}
-            workbook_logical_model = self._workbook_logical_model_for_semantics(state)
-            if workbook_logical_model.get("status") != WORKBOOK_LOGICAL_MODEL_READY:
-                return HTTPStatus.OK, base._blocked_message_page(
-                    str(
-                        workbook_logical_model.get("blocked_reason")
-                        or "No pudimos construir el modelo lógico del archivo de forma segura."
-                    )
-                )
-            assistance_state = run_service_1_assisted_semantic_initial_v1(
-                ingestion_output=state.ingestion_output,
-                requested_capability=None,
-                provider=self._semantic_provider,
-                compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
-                logical_table_candidates=workbook_logical_model.get("logical_tables"),
-                logical_relationship_graph=workbook_logical_model.get("relationship_graph"),
+            product_packet = (
+                state.last_review_result
+                if isinstance(state.last_review_result, Mapping)
+                else {}
             )
+            assistance_state = product_packet.get("semantic_assistance_state")
+            if not isinstance(assistance_state, Mapping):
+                assistance_state = state.semantic_assistance_state
             assistance_state = dict(assistance_state or {})
-            assistance_state["workbook_logical_model_ref"] = str(
-                (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
-                or ""
-            )
-            state.last_review_result = assistance_state
-            if assistance_state.get("status") == STATUS_OWNER_DIALOGUE_REQUIRED:
+            if product_packet.get("status") == PRODUCT_STATUS_NEEDS_OWNER:
                 state.semantic_assistance_state = assistance_state
                 state.semantic_questions = list(assistance_state.get("owner_questions") or [])
                 sequential = self._render_one_pending_question(session_id=session_id)
@@ -531,13 +362,17 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
                 return HTTPStatus.OK, base._blocked_message_page(
                     "La comprensión semántica requiere intervención del dueño pero no produjo una pregunta válida."
                 )
-            if assistance_state.get("status") == STATUS_CONFIRMED:
+            if (
+                product_packet.get("status") == PRODUCT_STATUS_READY
+                and assistance_state.get("status") == STATUS_CONFIRMED
+            ):
                 state.semantic_assistance_state = assistance_state
                 state.semantic_questions = []
                 return self._post_semantic_analysis_menu_page(session_id=session_id)
             return HTTPStatus.OK, base._blocked_message_page(
                 str(
                     assistance_state.get("detail")
+                    or product_packet.get("blocked_reason")
                     or assistance_state.get("blocked_reason")
                     or "La comprensión semántica no pudo iniciarse de forma segura."
                 )
@@ -546,12 +381,47 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         sequential = self._render_one_pending_question(session_id=session_id)
         return sequential if sequential is not None else (status, page)
 
-    def _workbook_logical_model_for_semantics(self, state: Any) -> dict[str, Any]:
-        model = build_service_1_workbook_logical_model_v1(
-            ingestion_output=state.ingestion_output,
+    def _semantic_reception_packet(
+        self,
+        *,
+        session_id: str,
+        state: Any,
+        requested_capability: str | None,
+        semantic_scope_capabilities: Sequence[str] = (),
+        atomic_confirmation: bool = False,
+    ) -> dict[str, Any]:
+        """Run workbook-first semantic reception through the single Product Root."""
+        previous_state = (
+            state.semantic_assistance_state
+            if isinstance(state.semantic_assistance_state, Mapping)
+            else None
+        )
+        responses = tuple(
+            value
+            for value in (state.semantic_dialogue_responses or {}).values()
+            if isinstance(value, Mapping)
+        )
+        if previous_state:
+            request = WorkbookSemanticContinueRequestV1(
+                ingestion_output=state.ingestion_output,
+                requested_capability=requested_capability,
+                semantic_assistance_state=previous_state,
+                semantic_dialogue_responses=responses,
+            )
+        else:
+            request = WorkbookSemanticStartRequestV1(
+                ingestion_output=state.ingestion_output,
+                requested_capability=requested_capability,
+                semantic_atomic_confirmation=atomic_confirmation,
+            )
+        dependencies = Service1ProductExecutionDependenciesV1(
+            output_dir=self._review_output_dir(session_id=session_id),
+            semantic_provider=self._semantic_provider,
+            compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
+            semantic_scope_capabilities=semantic_scope_capabilities,
             tenant_id=self._tenant_id_for_state(state) or None,
         )
-        return dict(model or {})
+        return run_service_1_product_pipeline_v1(request, dependencies=dependencies)
 
     @staticmethod
     def _tenant_id_for_state(state: Any) -> str:
@@ -671,22 +541,25 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             return HTTPStatus.BAD_REQUEST, base._error_page(
                 "La memoria longitudinal de resultados no está disponible en este entorno."
             )
-        try:
-            raw_record = self._load_result_memory_record(tenant, memory_record_id)
-            if raw_record is None:
+        read_packet = self._result_read_boundary.read_by_result_id(
+            tenant_id=tenant,
+            result_id=memory_record_id,
+        )
+        if read_packet.get("status") != "READY":
+            if read_packet.get("blocked_reason") == "RESULT_NOT_FOUND":
                 return HTTPStatus.NOT_FOUND, base._error_page(
                     "No encontramos ese resultado persistido para este tenant."
                 )
-            record = self._validated_result_memory_record(
-                raw_record,
-                tenant_id=tenant,
-                memory_record_id=memory_record_id,
-            )
-        except Exception:
             return HTTPStatus.BAD_REQUEST, base._error_page(
                 "El resultado persistido no superó la validación de identidad e integridad."
             )
 
+        persisted_payload = read_packet.get("result_memory")
+        if not isinstance(persisted_payload, Mapping):
+            return HTTPStatus.BAD_REQUEST, base._error_page(
+                "El resultado persistido no superó la validación de identidad e integridad."
+            )
+        record = service_1_result_memory_record_from_mapping_v1(persisted_payload)
         packet = {
             "schema_version": "SERVICE_1_F13_RESULT_MEMORY_REENTRY_V1",
             "status": "READY",
@@ -720,13 +593,19 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
         )
         confirmed_run = assistance.get("semantic_run")
         ingestion = state.ingestion_output
-        return run_service_1_governed_analysis_v1(
+        request = WorkbookAnalysisExecuteRequestV1(
             ingestion_output=(ingestion if isinstance(ingestion, Mapping) else {}),
-            confirmed_bindings=(confirmed_run if isinstance(confirmed_run, Mapping) else {}),
+            confirmed_bindings=(
+                confirmed_run if isinstance(confirmed_run, Mapping) else {}
+            ),
             analysis_id=analysis_id,
             tenant_identity_contract=state.tenant_identity_contract,
+        )
+        dependencies = Service1ProductExecutionDependenciesV1(
+            output_dir=self._review_output_dir(session_id=session_id),
             persist_result_memory=self._persist_result_memory,
         )
+        return run_service_1_product_pipeline_v1(request, dependencies=dependencies)
 
     def run_selected_reviews(
         self,
@@ -813,22 +692,36 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             and isinstance(confirmed_run, Mapping)
             and confirmed_run.get("status") == STATUS_CONFIRMED_BINDINGS
         ):
-            discovery = build_service_1_post_semantic_analysis_discovery_v1(
-                confirmed_bindings=confirmed_run
+            analysis_discovery = build_service_1_dynamic_analysis_discovery_v1(
+                confirmed_bindings=confirmed_run,
+                commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
             )
-            available_refs = {
-                str(item.get("launch_ref") or "").strip()
-                for item in (discovery.get("available") or [])
-                if isinstance(item, Mapping)
-            }
-            if discovery.get("status") != "READY" or requested_capability not in available_refs:
+            if requested_capability == "working_capital":
+                cash_decision = build_computability_decision_from_confirmed_bindings_v1(
+                    confirmed_bindings=dict(confirmed_run),
+                    requested_capability=base._WORKING_CAPITAL_COMPONENT_CAPABILITIES[0],
+                )
+                requested_is_computable = cash_decision.status == STATUS_COMPUTABLE
+            else:
+                requested_is_computable = (
+                    build_computability_decision_from_confirmed_bindings_v1(
+                        confirmed_bindings=dict(confirmed_run),
+                        requested_capability=requested_capability,
+                    ).status
+                    == STATUS_COMPUTABLE
+                )
+            if (
+                analysis_discovery.status != F10_STATUS_READY
+                or not requested_is_computable
+            ):
                 return self._post_semantic_analysis_menu_page(session_id=session_id)
 
             state.selected_launch_review = requested_capability
             if requested_capability == "working_capital":
                 return super().run_working_capital(
                     session_id=session_id,
-                    semantic_run_override=confirmed_run,
+                    confirmed_bindings=confirmed_run,
+                    semantic_assistance_state=state.semantic_assistance_state,
                 )
 
             packet = base._run_product_root(
@@ -836,12 +729,12 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
                 requested_capability=requested_capability,
                 output_dir=self._review_output_dir(session_id=session_id),
                 deliver_result=requested_capability in {"sold_vs_collected_gap", "net_margin_real"},
-                semantic_run_override=confirmed_run,
+                semantic_assistance_state=state.semantic_assistance_state,
             )
             state.last_review_result = packet
             case_id = str(
-                state.ingestion_output.get("case_id")
-                or state.ingestion_output.get("source_file_ref")
+                ((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None)
+                or ((state.ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
                 or requested_capability
             ).strip()
             service_name = base._LAUNCH_REVIEW_BY_REF.get(
@@ -900,32 +793,18 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             if requested_capability == "working_capital"
             else ()
         )
-        workbook_logical_model = self._workbook_logical_model_for_semantics(state)
-        if workbook_logical_model.get("status") != WORKBOOK_LOGICAL_MODEL_READY:
-            return HTTPStatus.OK, base._blocked_message_page(
-                str(
-                    workbook_logical_model.get("blocked_reason")
-                    or "No pudimos construir el modelo lógico del archivo de forma segura."
-                )
-            )
-        assistance_state = run_service_1_assisted_semantic_initial_v1(
-            ingestion_output=state.ingestion_output,
+        product_packet = self._semantic_reception_packet(
+            session_id=session_id,
+            state=state,
             requested_capability=requested_capability,
-            provider=self._semantic_provider,
-            compatible_tenant_memory_hints=self._compatible_tenant_memory_hints(state),
             semantic_scope_capabilities=semantic_scope,
             atomic_confirmation=True,
-            logical_table_candidates=workbook_logical_model.get("logical_tables"),
-            logical_relationship_graph=workbook_logical_model.get("relationship_graph"),
         )
+        assistance_state = product_packet.get("semantic_assistance_state")
         assistance_state = dict(assistance_state or {})
-        assistance_state["workbook_logical_model_ref"] = str(
-            (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
-            or ""
-        )
-        state.last_review_result = assistance_state
+        state.last_review_result = product_packet
 
-        if assistance_state.get("status") == STATUS_OWNER_DIALOGUE_REQUIRED:
+        if product_packet.get("status") == PRODUCT_STATUS_NEEDS_OWNER:
             state.semantic_assistance_state = assistance_state
             state.semantic_questions = list(assistance_state.get("owner_questions") or [])
             sequential = self._render_one_pending_question(session_id=session_id)
@@ -1116,7 +995,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             actor_role = "SESSION_OWNER"
 
         ingestion = state.ingestion_output if isinstance(state.ingestion_output, Mapping) else {}
-        file_ref = str(ingestion.get("source_file_ref") or ingestion.get("filename") or "").strip() or None
+        file_ref = str((ingestion.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion.get("provenance"), Mapping) else None or (ingestion.get("provenance") or {}).get("filename") if isinstance(ingestion.get("provenance"), Mapping) else None or "").strip() or None
         reentered = run_service_1_assisted_semantic_reentry_v1(
             previous_state=state.semantic_assistance_state,
             owner_responses=[

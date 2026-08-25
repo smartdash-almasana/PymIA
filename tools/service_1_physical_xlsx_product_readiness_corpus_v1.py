@@ -235,8 +235,7 @@ def evaluate_physical_xlsx_product_readiness_corpus_v1(root: Path | None = None)
         if connector.get("status") != "INGESTION_OUTPUT_READY":
             raise AssertionError(f"{case.case_id}: connector blocked: {connector.get('blocked_reason')}")
         bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
-            ingestion_output=connector["ingestion_output"],
-            sheet_name=case.sheet_name,
+            ingestion_output=connector["ingestion_output"]
         )
         if bridge.get("status") != "SEMANTIC_CANDIDATES_READY":
             raise AssertionError(f"{case.case_id}: semantic bridge blocked: {bridge.get('blocked_reason')}")

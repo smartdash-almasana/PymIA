@@ -35,7 +35,24 @@ def packet():
         "filename": "ventas.xlsx", "runtime_authorized": False, "product_ready": False,
         "delivery_authorized": False,
         "ingestion_output": {
-            "case_id": "C1", "source_file_ref": "ventas.xlsx", "normalized_tables": [table]
+            "case_id": "C1", "source_file_ref": "ventas.xlsx",
+            "workbook_context": {
+                "case_id": "C1",
+                "source_artifact_ref": "artifact:C1",
+                "workbook_ref": "workbook:C1",
+                "ingestion_scope": "first_non_empty_sheet",
+                "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+            },
+            "provenance": {
+                "source_kind": "xlsx",
+                "source_artifact_ref": "artifact:C1",
+                "source_file_ref": "workbook:C1",
+                "workbook_ref": "workbook:C1",
+                "filename": "ventas.xlsx",
+                "sheet_names": ["Ventas"],
+                "sheet_refs": [],
+            },
+            "normalized_tables": [table]
         },
     }
 

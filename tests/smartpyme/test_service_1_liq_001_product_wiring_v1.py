@@ -7,21 +7,10 @@ import openpyxl
 from pymia.cli import service_1_product as cli
 
 
-def _semantic_answers(first: dict) -> dict[str, str]:
-    answers: dict[str, str] = {}
+def _semantic_answers(first: dict) -> dict[str, object]:
+    answers: dict[str, object] = {}
     for question in first["product_pipeline"]["owner_questions"]:
-        if question["column_name"] == "cobrado":
-            answers[question["column_name"]] = next(
-                option["option_id"]
-                for option in question["options"]
-                if option["label"] == "Importe cobrado"
-            )
-        else:
-            answers[question["column_name"]] = next(
-                option_id
-                for option_id in question["allowed_option_ids"]
-                if option_id not in {"OTHER", "IGNORE"}
-            )
+        answers[str(question["decision_id"])] = {"action": "ACCEPT"}
     return answers
 
 
@@ -48,10 +37,11 @@ def test_official_entrypoint_executes_liq_001_from_all_normalized_rows(
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=None,
-        tool_requests=[],
         output_dir=output_dir,
         sheet_name="Ventas",
         requested_capability="sold_vs_collected_gap",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     assert first["status"] == "NEEDS_OWNER_CONFIRMATION"
 
@@ -59,10 +49,11 @@ def test_official_entrypoint_executes_liq_001_from_all_normalized_rows(
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=_semantic_answers(first),
-        tool_requests=[],
         output_dir=output_dir,
         sheet_name="Ventas",
         requested_capability="sold_vs_collected_gap",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     product = final["product_pipeline"]
     result = product["computation_result"]

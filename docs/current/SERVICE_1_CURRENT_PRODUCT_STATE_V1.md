@@ -1,9 +1,36 @@
 # SERVICE_1_CURRENT_PRODUCT_STATE_V1
 
-**Fecha de corte:** 2026-08-19
+**Fecha de corte:** 2026-08-23
 **Estado:** `CURRENT_AUTHORITY`
 
-## 1. Veredicto ejecutivo
+## Override de convergencia integral — 2026-08-23
+
+La arquitectura objetivo quedó **cerrada dialécticamente y documentada como autoridad normativa**. El worktree actual **no está certificado integralmente** porque todavía debe ser reconstruido contra ese contrato final.
+
+```text
+DIALECTICAL_REVIEW_COMPLETE: PASS
+OPEN_ARCHITECTURAL_DECISIONS: 0
+TARGET_ARCHITECTURE_CLOSED: YES
+IMPLEMENTATION_HANDOFF_PACKAGE: COMPLETE
+RECONSTRUCTION_PLAN: AUTHORITATIVE
+COMPLETION_AND_CERTIFICATION_CONTRACT: AUTHORITATIVE
+RECONSTRUCTION_IMPLEMENTATION: IN_PROGRESS
+R0_R1: CLOSED_PASS
+R2: CLOSED_PASS
+R3: CLOSED_PASS
+NEXT_ALLOWED_NODE: R4
+CURRENT_WORKTREE_INTEGRAL_CERTIFICATION: NO
+FULL_SUITE_AFTER_RECONSTRUCTION: NOT_YET_RUN
+REAL_WORKBOOK_E2E_AFTER_RECONSTRUCTION: NOT_YET_RUN
+LAST_AUDIT_FULL_SUITE: 3806 passed / 77 failed / 7 skipped / 3 errors
+COMMIT_PUSH_DEPLOY: NOT_AUTHORIZED
+```
+
+Este checkpoint distingue la arquitectura objetivo cerrada de la reconstrucción en curso, la certificación integral aún no observada y el release todavía no autorizado. R0/R1, R2 y R3 están cerrados en PASS; R4 es el único nodo siguiente autorizado.
+
+Los antiguos Phase 1–4 quedan como evidencia histórica de la convergencia previa y no gobiernan el siguiente plan. La implementación futura debe derivarse del delta físico contra `SERVICE_1_CANONICAL_AXIS.md` y `SERVICE_1_ARCHITECTURE_LOCK.md`, sin nuevos wrappers, fallbacks o compatibilidades no pertenecientes al target final. El gobierno documental permanece en `docs/adr/ADR-007-documentation-governance.md`.
+
+## 1. Veredicto ejecutivo histórico del último corte documentado
 
 ```text
 SERVICE_1_CORE: IMPLEMENTED
@@ -37,54 +64,70 @@ PRODUCTION_TRAFFIC: 100%
 
 `PRODUCTION_APP_SHA` representa el último corte productivo certificado documentado. No afirmar que el RC actual esté desplegado hasta comprobar `DEPLOYED_SHA == COMMITTED_SHA`.
 
-## 3. Cadena canónica actual
+## 3. Cadena canónica objetivo
 
 ```text
 XLSX
-→ ingesta canónica / normalized_tables
-→ WorkbookProfiler
-→ propuesta semántica acotada
-→ validación determinística
-→ confirmación/corrección del dueño
-→ P6
-→ AnalysisPlan
+→ source_artifact_ref (content-addressed)
+→ canonical reader
+→ CanonicalIngestionOutput V2
+→ D1 → D2 → D3 → D4 → D5 → D6 → D7
+→ ProductExecutionRoot / WorkbookSemanticStartRequest
+→ deterministic provider | bounded LLM
+→ deterministic validator
+→ owner dialogue
+→ WorkbookSemanticContinueRequest
+→ shared reinjector / P6
+→ CONFIRMED_BINDINGS
+→ WorkbookAnalysisExecuteRequest
 → P7 RequirementMatch + ResolvedGrain
-→ P8 ComputabilityDecision + GovernedAnalysisInput
-→ F7 Governed Evidence Preparation
-→ F8 deterministic math / FormulaEngineService
+→ P8 ComputabilityDecision + governed relationship provenance
+→ F7 Governed Evidence Preparation / physical join + runtime safety
+→ FormulaEngineService / MathPrimitiveOperation / formula catalog
+→ declarative classification policy
 → F9 Governed ResultSet
 → F13 immutable result memory
-→ UI
 ```
 
-La Web solicita el análisis y renderiza la respuesta. Desde RC1 no coordina productivamente F7/F8/F9.
+Lectura persistida: `Service1ResultQueryV1 → ResultReadBoundary → F13 load → persisted presentation`, sin recalcular ni reejecutar SEM/P7/P8/F7/F8/F9. Web y CLI son superficies; no coordinan una segunda ruta analítica.
 
 ## 4. Autoridades
 
 ```text
+D7           → integra evidencia; no autoriza ejecución
 LLM/provider → propone significado; no calcula ni autoriza
 owner        → confirma/corrige significado; aporta evidencia
 P6           → cierre semántico gobernado
 P7           → requisitos + grain
-P8           → única autoridad de computabilidad
-F7           → prepara evidencia; no calcula
-FormulaEngineService / F8 → única autoridad matemática
+P8           → computability/use + governed provenance
+F7           → única materialización física de joins + runtime safety
+MATH         → formula_contract + FormulaEngineService + MathPrimitiveOperation + formula catalog
+F8           → coordinador matemático F12; no único caller del kernel
+POLICY       → clasificación declarativa sobre valores ya calculados; no hace aritmética
 F9           → proyecta ResultSet/findings factuales
-F13          → conserva snapshots; no recalcula
+F13          → conserva/carga snapshots; no recalcula
 UI           → presenta; no hace matemática empresarial
 ```
 
 Invariantes:
 
 ```text
-ONE_CANONICAL_PRODUCT_ROOT
-NO_SECOND_XLSX_PARSER
-NO_PARALLEL_PRODUCTIVE_PIPELINE
-NO_SECOND_MATH_AUTHORITY
+ONE_PRODUCTIVE_EXECUTION_ROOT
+FOUR_EXPLICIT_EXECUTION_COMMANDS
+RESULT_READ_SEPARATE_FROM_EXECUTION
+ONE_CANONICAL_PRODUCTIVE_XLSX_READER
+ONE_CANONICAL_INGESTION_ENVELOPE
+WORKBOOK_D1_D7_MANDATORY
+ONE_PRODUCTIVE_SEMANTIC_FSM
+P8_IS_COMPUTABILITY_AND_PROVENANCE_AUTHORITY
+F7_IS_ONLY_JOIN_MATERIALIZER
+ONE_COMMON_MATH_KERNEL
+DECLARATIVE_CLASSIFICATION_NO_ARITHMETIC
 NO_LLM_RUNTIME_AUTHORITY
 NO_UI_BUSINESS_MATH
-P8_IS_COMPUTABILITY_AUTHORITY
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
+NO_FILENAME_WORKBOOK_IDENTITY
+NO_SHEET1_FALLBACK
 FAIL_CLOSED
 NO_CAFETERIA_HARDCODE
 NO_RUBRO_HARDCODE

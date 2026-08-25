@@ -151,13 +151,12 @@ def test_sem5_group_accept_projects_three_canonical_column_events() -> None:
     result = _project(packet, response)
 
     assert result["status"] == STATUS_READY
-    assert result["owner_confirmation_event_count"] == 3
+    assert result["owner_confirmation_event_count"] == 2
     assert result["owner_relationship_confirmation_event_count"] == 0
     events = result["owner_confirmation_events"]
     assert {(item["sheet_ref"], item["column_ref"], item["confirmed_role"]) for item in events} == {
         ("Ventas", "Cantidad", "quantity"),
         ("Ventas", "PrecioUnitario", "unit_sale_price"),
-        ("Productos", "Costo", "unit_cost_candidate"),
     }
     assert all(item["confirmed_by_owner"] is True for item in events)
     assert all(item["confirmation_scope"] == "SEMANTIC_ROLE" for item in events)

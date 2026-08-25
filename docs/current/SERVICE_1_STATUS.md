@@ -1,9 +1,41 @@
 # Servicio 1 — estado técnico actual
 
-**Fecha de corte:** 2026-08-19
+**Fecha de corte:** 2026-08-23
 **Autoridad de continuidad:** `docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md`
 
-## Resumen
+## Override de convergencia integral — 2026-08-23
+
+La arquitectura objetivo ya no está bajo discusión: quedó **cerrada dialécticamente y convertida en autoridad normativa**. El worktree actual, sin embargo, todavía contiene generaciones transitorias/legacy y **no está certificado integralmente**.
+
+```text
+DIALECTICAL_REVIEW_COMPLETE: PASS
+OPEN_ARCHITECTURAL_DECISIONS: 0
+TARGET_ARCHITECTURE_CLOSED: YES
+CANONICAL_AXIS_FINAL_ARCHITECTURE: DOCUMENTED
+ARCHITECTURE_LOCK_FINAL_ARCHITECTURE: DOCUMENTED
+IMPLEMENTATION_HANDOFF_PACKAGE: COMPLETE
+RECONSTRUCTION_PLAN: AUTHORITATIVE
+COMPLETION_CONTRACT: AUTHORITATIVE
+RECONSTRUCTION_IMPLEMENTATION: IN_PROGRESS
+R0_R1: CLOSED_PASS
+R2: CLOSED_PASS
+R3: CLOSED_PASS
+NEXT_ALLOWED_NODE: R4
+CURRENT_WORKTREE_INTEGRAL_CERTIFICATION: NO
+FULL_SUITE_AFTER_RECONSTRUCTION: NOT_YET_RUN
+REAL_WORKBOOK_E2E_AFTER_RECONSTRUCTION: NOT_YET_RUN
+LAST_AUDIT_FULL_SUITE: 3806 passed / 77 failed / 7 skipped / 3 errors
+MODULE_REGISTRY_CURRENT_WORKTREE: NOT_RECONCILED
+COMMIT_PUSH_DEPLOY: NOT_AUTHORIZED
+```
+
+Este checkpoint distingue la arquitectura objetivo cerrada de la reconstrucción todavía en curso, la certificación integral aún pendiente y cualquier autorización de release. R0/R1, R2 y R3 están cerrados en PASS; R4 es el único nodo siguiente autorizado.
+
+Los antiguos Phase 1–4 son evidencia histórica de la convergencia previa y ya no definen el plan siguiente. La reconstrucción debe derivarse del delta físico contra `SERVICE_1_CANONICAL_AXIS.md` y `SERVICE_1_ARCHITECTURE_LOCK.md`, en orden de dependencias.
+
+Ninguna decisión que exista sólo en chat, prompt o `_audit/` gobierna implementación.
+
+## Resumen histórico del último corte documentado
 
 ```text
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
@@ -47,24 +79,42 @@ ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 
 La web y la CLI son superficies de entrada; no crean una segunda raíz ni una segunda autoridad matemática.
 
-## Cadena vigente
+## Cadena objetivo normativa
 
 ```text
-canonical XLSX ingestion
-→ WorkbookProfiler
-→ semantic assistance proposal
-→ deterministic validation
-→ owner confirmation/correction
-→ P6
-→ AnalysisPlan
+XLSX
+→ source_artifact_ref (content-addressed)
+→ canonical reader
+→ CanonicalIngestionOutput V2
+→ D1 → D2 → D3 → D4 → D5 → D6 → D7
+→ ProductExecutionRoot / WorkbookSemanticStartRequest
+→ provider determinístico | bounded LLM
+→ deterministic validator
+→ owner dialogue
+→ WorkbookSemanticContinueRequest
+→ shared reinjector / P6
+→ CONFIRMED_BINDINGS
+→ WorkbookAnalysisExecuteRequest
 → P7 RequirementMatch + Grain
-→ P8 ComputabilityDecision + GovernedAnalysisInput
-→ F7 Governed Evidence Preparation
-→ F8 / FormulaEngineService
+→ P8 Computability + governed provenance
+→ F7 physical join/evidence materialization + runtime safety
+→ FormulaEngineService / MathPrimitiveOperation / formula catalog
+→ declarative classification policy
 → F9 Governed ResultSet
-→ F13 durable result memory
-→ UI
+→ F13 persistence
 ```
+
+Lectura persistida:
+
+```text
+Web / CLI
+→ Service1ResultQueryV1
+→ ResultReadBoundary
+→ F13 load
+→ persisted presentation
+```
+
+La ruta de lectura no recalcula ni reejecuta SEM/P7/P8/F7/F8/F9.
 
 ## SEM-1 → SEM-9
 
@@ -206,12 +256,24 @@ No crear F14 ni ampliar el producto por inercia.
 ## Invariantes
 
 ```text
-ONE_CANONICAL_PRODUCT_ROOT
-NO_SECOND_XLSX_PARSER
-NO_PARALLEL_PRODUCTIVE_PIPELINE
-NO_LLM_RUNTIME_AUTHORITY
+ONE_PRODUCTIVE_EXECUTION_ROOT
+FOUR_EXPLICIT_EXECUTION_COMMANDS
+RESULT_READ_SEPARATE_FROM_EXECUTION
+ONE_CANONICAL_PRODUCTIVE_XLSX_READER
+ONE_CANONICAL_INGESTION_ENVELOPE
+WORKBOOK_D1_D7_MANDATORY
+D7_EVIDENCE_ONLY
+ONE_PRODUCTIVE_SEMANTIC_FSM
+TABLE_SCOPE_BUILT_ONCE_IN_D6_D7
+P7_IS_GRAIN_REQUIREMENT_AUTHORITY
+P8_IS_COMPUTABILITY_AND_PROVENANCE_AUTHORITY
+F7_IS_ONLY_JOIN_MATERIALIZER_WITH_RUNTIME_SAFETY
+FORMULA_ENGINE_SERVICE_IS_MATH_KERNEL_AUTHORITY
+CLASSIFICATION_POLICY_DOES_NO_ARITHMETIC
+NO_LLM_RUNTIME_OR_MATH_AUTHORITY
 OWNER_CONFIRMATION_IS_EVIDENCE_NOT_PERMISSION
+NO_FILENAME_WORKBOOK_IDENTITY
+NO_SHEET1_FALLBACK
+NO_INDEFINITE_COMPATIBILITY
 FAIL_CLOSED
-P8_IS_COMPUTABILITY_AUTHORITY
-KERNEL_IS_FORMULA_EXECUTION_AUTHORITY
 ```

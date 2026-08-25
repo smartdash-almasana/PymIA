@@ -38,7 +38,7 @@ def test_product_completion_gate_counts_and_legacy_absence() -> None:
     assert registry["total_modules"] >= historical["total_modules"]
     assert counts.get("PRODUCTIVE", 0) >= historical["PRODUCTIVE"]
     assert counts.get("SUPPORT_NECESSARY", 0) >= historical["SUPPORT_NECESSARY"]
-    assert counts.get("EXPERIMENTAL_FROZEN", 0) == 0
+    assert counts.get("EXPERIMENTAL_FROZEN", 0) == historical["EXPERIMENTAL_FROZEN"]
 
     assert (root / gate["official_entrypoint"]["path"]).exists()
     assert (root / gate["canonical_product_root"]["path"]).exists()
@@ -69,13 +69,6 @@ def test_product_completion_gate_real_cafeteria_acceptance(tmp_path: Path) -> No
         "Descuento": "descuento aplicado a la venta",
         "Empleado": "empleado que registró o realizó la venta",
     }
-    tool_requests = [
-        {
-            "tool_ref": "precio_margen_basico",
-            "inputs": {"precio_venta": 1200, "costo_unitario": 800},
-        }
-    ]
-
     output_dir = tmp_path / "out"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -83,20 +76,18 @@ def test_product_completion_gate_real_cafeteria_acceptance(tmp_path: Path) -> No
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=None,
-        tool_requests=tool_requests,
         output_dir=output_dir,
         sheet_name="Ventas",
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     assert first["status"] == "NEEDS_OWNER_CONFIRMATION"
     assert first["product_pipeline"]["tools_executed"] is False
     assert not list(output_dir.glob("*.xlsx"))
 
     semantic_answers = {
-        question["column_name"]: next(
-            option_id
-            for option_id in question["allowed_option_ids"]
-            if option_id not in {"OTHER", "IGNORE"}
-        )
+        question["decision_id"]: {"action": "ACCEPT"}
         for question in first["product_pipeline"]["owner_questions"]
     }
     assert semantic_answers
@@ -105,16 +96,21 @@ def test_product_completion_gate_real_cafeteria_acceptance(tmp_path: Path) -> No
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=semantic_answers,
-        tool_requests=tool_requests,
         output_dir=output_dir,
         sheet_name="Ventas",
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     product = final["product_pipeline"]
-    assert final["status"] == "PRODUCT_PIPELINE_READY"
+    # sales_total is a discovery analysis, not a P8-governed capability yet.
+    assert final["status"] == "BLOCKED"
+    assert final["blocked_reason"] == "CAPABILITY_NOT_GOVERNED"
     assert product["semantic_bindings_confirmed"] is True
-    assert product["tools_executed"] is True
-    assert product["physical_run"]["executed_tool_refs"] == ["precio_margen_basico"]
-    assert list(output_dir.glob("*.xlsx"))
+    assert product["computation_executed"] is False
+    assert product["tools_executed"] is False
+    assert product["physical_run"] is None
+    assert not list(output_dir.glob("*.xlsx"))
 
 
 def test_product_completion_gate_plan_only_liq_001_acceptance(tmp_path: Path) -> None:
@@ -141,36 +137,28 @@ def test_product_completion_gate_plan_only_liq_001_acceptance(tmp_path: Path) ->
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=None,
-        tool_requests=[],
         requested_capability="sold_vs_collected_gap",
         output_dir=output_dir,
         sheet_name="Ventas",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     assert first["status"] == "NEEDS_OWNER_CONFIRMATION"
 
-    semantic_answers = {}
-    for question in first["product_pipeline"]["owner_questions"]:
-        if question["column_name"] == "cobrado":
-            semantic_answers[question["column_name"]] = next(
-                option["option_id"]
-                for option in question["options"]
-                if option["label"] == "Importe cobrado"
-            )
-        else:
-            semantic_answers[question["column_name"]] = next(
-                option_id
-                for option_id in question["allowed_option_ids"]
-                if option_id not in {"OTHER", "IGNORE"}
-            )
+    semantic_answers = {
+        question["decision_id"]: {"action": "ACCEPT"}
+        for question in first["product_pipeline"]["owner_questions"]
+    }
 
     final = cli.run_service_1_product_entrypoint_v1(
         xlsx_path=xlsx,
         owner_column_answers=owner_answers,
         semantic_owner_answers=semantic_answers,
-        tool_requests=[],
         requested_capability="sold_vs_collected_gap",
         output_dir=output_dir,
         sheet_name="Ventas",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     product = final["product_pipeline"]
     governed = product["governed_computation_input"]

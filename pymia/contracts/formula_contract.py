@@ -23,6 +23,7 @@ class MathPrimitiveOperation(StrEnum):
     SUM_PRODUCT = "SUM_PRODUCT"
     MULTIPLY = "MULTIPLY"
     SUBTRACT = "SUBTRACT"
+    DIVIDE = "DIVIDE"
     PERCENT_OF = "PERCENT_OF"
 
 

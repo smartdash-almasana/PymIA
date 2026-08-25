@@ -96,8 +96,8 @@ def test_vertical_slice_delegates_to_product_root() -> None:
 
     assert "run_service_1_product_pipeline_v1" in module
     assert "service_1_product_pipeline_v1" in module
+    assert "WorkbookSemanticStartRequestV1" in module
     assert "requested_capability" in module
-    assert "owner_answers" in module
     assert "deliver_result" in module
 
 

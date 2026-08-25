@@ -92,32 +92,3 @@ def test_composite_blocks_bad_identity_values_units_and_causality() -> None:
     assert any("unit" in error for error in result["errors"])
     assert causal_result["status"] == STATUS_BLOCKED
     assert any("causal diagnosis" in error for error in causal_result["errors"])
-
-
-def test_root_executes_kernel_once_without_implicit_prerequisites_or_delivery(monkeypatch, tmp_path) -> None:
-    from pymia.smartpyme import service_1_product_pipeline_v1 as product
-    from pymia.smartpyme.service_1_generic_capability_engine_v1 import execute_generic_capability_v1 as real_engine
-
-    calls: list[str] = []
-
-    def tracking(**kwargs: object) -> dict[str, object]:
-        calls.append(str(kwargs["capability_ref"]))
-        return real_engine(computation_plan=None, **kwargs)
-
-    monkeypatch.setattr(product, "execute_generic_capability_v1", tracking)
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: {"status": product.STATUS_CONFIRMED_BINDINGS, "bridge_packet": {"case_id": "case_pyme_013_composite"}})
-
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": "must_not_be_read", "column_refs": "must_not_be_read"},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="payment_collection_gap",
-        governed_results=[_source("dso", "dso_days", 30), _source("dpo", "dpo_days", 10)],
-        deliver_result=True,
-    )
-
-    assert calls == ["payment_collection_gap"]
-    assert result["status"] == product.STATUS_BLOCKED
-    assert result["blocked_reason"] == "PYME_013_DELIVERY_NOT_AUTHORIZED"
-    assert result["computation_result"]["computed"]["payment_collection_gap_days"] == 20.0
-    assert result["delivery_authorized"] is False

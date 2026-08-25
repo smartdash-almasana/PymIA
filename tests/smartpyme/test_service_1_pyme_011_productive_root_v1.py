@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from pymia.smartpyme import service_1_product_pipeline_v1 as product
-from pymia.smartpyme.service_1_computability_v1 import STATUS_COMPUTABLE
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    STATUS_CONFIRMED_BINDINGS,
+from pymia.smartpyme.service_1_computability_v1 import (
+    CONFIRMED_BINDINGS_SCHEMA_VERSION,
+    CONFIRMED_BINDINGS_STATUS,
+    STATUS_COMPUTABLE,
     build_computability_decision_from_confirmed_bindings_v1,
 )
 from pymia.smartpyme.service_1_pyme_011_evaluator_v1 import (
@@ -72,9 +73,9 @@ def _confirmed_packet() -> dict[str, object]:
     )
     requirements = build_service_1_requirement_matches_v1(p6)
     return {
-        "schema_version": "SERVICE_1_DETERMINISTIC_SEMANTIC_PIPELINE_V1",
+        "schema_version": CONFIRMED_BINDINGS_SCHEMA_VERSION,
         "service_name": "SERVICE_1",
-        "status": STATUS_CONFIRMED_BINDINGS,
+        "status": CONFIRMED_BINDINGS_STATUS,
         "bridge_packet": {"case_id": case_id, "column_candidates": candidates},
         "gate_packet": {
             "p6_decisions": [item.to_dict() for item in p6],
@@ -178,23 +179,3 @@ def test_pyme_011_aggregates_confirmed_evidence_and_builds_bounded_outcome() -> 
     assert outcome["bounded_finding_generated"] is True
     assert outcome["causal_diagnosis_generated"] is False
     assert outcome["forbidden_claims"]
-
-
-def test_product_root_executes_only_explicit_pyme_011_and_blocks_delivery(monkeypatch, tmp_path) -> None:
-    tables, refs = _evidence()
-    confirmed = {"status": product.STATUS_CONFIRMED_BINDINGS, "schema_version": "TEST", "service_name": "SERVICE_1"}
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="dso",
-        deliver_result=True,
-    )
-    assert result["status"] == product.STATUS_BLOCKED
-    assert result["blocked_reason"] == "PYME_011_DELIVERY_NOT_AUTHORIZED"
-    assert result["computation_executed"] is True
-    assert result["bounded_finding_generated"] is True
-    assert result["delivery_generated"] is False
-    assert result["diagnosis_generated"] is False

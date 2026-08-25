@@ -89,7 +89,9 @@ def test_cafeteria_case_persists_semantics_and_stays_actionable_when_margin_evid
         assert "FALTA INFORMACIÓN" in page
         assert "Caso guardado" in page
         state = app.session("cafeteria-session")
-        case_id = str(state.ingestion_output.get("case_id") or "")
+        case_id = str(
+            (state.ingestion_output.get("workbook_context") or {}).get("case_id") or ""
+        )
         assert case_id
         owner_rows = store._client.table(OWNER_CONFIRMATIONS_TABLE).select("confirmation_event_ref,tenant_id,case_id,workbook_ref").eq("tenant_id", tenant_id).eq("case_id", case_id).execute().data
         contract_rows = store._client.table(SEMANTIC_CONTRACTS_TABLE).select("contract_id,tenant_id,case_id,workbook_ref").eq("tenant_id", tenant_id).eq("case_id", case_id).execute().data

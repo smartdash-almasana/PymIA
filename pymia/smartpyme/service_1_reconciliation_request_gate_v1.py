@@ -355,8 +355,7 @@ def _project_source_rows(
     if unapproved_columns:
         return {
             "status": STATUS_BLOCKED,
-            "reason": "BOUND_COLUMNS_NOT_P6_APPROVED:"
-            + ",".join(unapproved_columns),
+            "reason": f"BOUND_COLUMNS_NOT_P6_APPROVED:{','.join(unapproved_columns)}",
         }
 
     rows_raw = source_packet.get("rows")

@@ -111,6 +111,8 @@ def test_cycle_053_preserves_explicit_selection_and_no_automatic_capability_choi
     signature = inspect.signature(product.run_service_1_product_pipeline_v1)
     source = inspect.getsource(product.run_service_1_product_pipeline_v1)
 
-    assert signature.parameters["requested_capability"].default is None
+    assert tuple(signature.parameters) == ("request", "dependencies")
+    assert signature.parameters["dependencies"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert "requested_capability" not in signature.parameters
     assert "if requested_capability is not None:" in source
     assert "requested_capability=" not in source.split("def run_service_1_product_pipeline_v1", 1)[0]

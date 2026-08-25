@@ -106,7 +106,6 @@ def _build_ren_001_semantic_chain(*, xlsx_path, expected_roles: dict[str, str]):
     assert connector["status"] == "INGESTION_OUTPUT_READY"
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=connector["ingestion_output"],
-        sheet_name="Resumen",
     )
     assert bridge["status"] == SEMANTIC_CANDIDATES_READY
     candidates = tuple(bridge["column_candidates"])

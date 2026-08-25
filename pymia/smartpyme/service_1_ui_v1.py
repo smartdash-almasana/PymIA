@@ -393,24 +393,6 @@ def _progress(current: str) -> str:
 def _sample_values(ingestion_output: Mapping[str, Any] | None, sheet_ref: str, column_ref: str, limit: int = 8) -> list[str]:
     if not isinstance(ingestion_output, Mapping):
         return []
-    evidence = ingestion_output.get("column_evidence")
-    if isinstance(evidence, Mapping):
-        for item in evidence.values():
-            if not isinstance(item, Mapping):
-                continue
-            if str(item.get("sheet_name") or "").strip() == sheet_ref and str(item.get("column_name") or "").strip() == column_ref:
-                values = item.get("sample_values")
-                if isinstance(values, list):
-                    seen: list[str] = []
-                    for value in values:
-                        if value is None or (isinstance(value, str) and not value.strip()):
-                            continue
-                        text = str(value)
-                        if text not in seen:
-                            seen.append(text)
-                        if len(seen) >= limit:
-                            break
-                    return seen
     tables = ingestion_output.get("normalized_tables")
     if not isinstance(tables, list):
         return []

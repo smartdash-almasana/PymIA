@@ -1,3 +1,4 @@
+import pytest
 from pymia.smartpyme.service_1_consorcios_collection_aging_v1 import evaluate_collection_aging_from_normalized_tables_v1
 from pymia.smartpyme.service_1_consorcios_expense_variance_v1 import evaluate_expense_variance_v1
 from pymia.smartpyme.service_1_consorcios_radar_plug_v1 import (
@@ -64,8 +65,8 @@ def test_expense_variance_projection_uses_both_real_deviation_fields():
     observations = project_expense_variance_to_radar_v1(computation_result=result)
     by_ref = {item.observable.observable_ref: item for item in observations}
     assert by_ref[OBS_EXPENSE_BUDGET_DEVIATION_PCT].entity_ref == "Limpieza"
-    assert by_ref[OBS_EXPENSE_BUDGET_DEVIATION_PCT].observed_value == "30.0"
-    assert by_ref[OBS_EXPENSE_HISTORICAL_DEVIATION_PCT].observed_value == "4.0"
+    assert float(by_ref[OBS_EXPENSE_BUDGET_DEVIATION_PCT].observed_value) == pytest.approx(30.0)
+    assert float(by_ref[OBS_EXPENSE_HISTORICAL_DEVIATION_PCT].observed_value) == pytest.approx(4.0)
 
 
 def test_bank_reconciliation_projection_derives_count_amount_and_boolean_from_real_result():

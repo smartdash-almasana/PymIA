@@ -6,18 +6,51 @@ classification or autonomous approval.
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections.abc import Mapping
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final
+
+from pymia.contracts.formula_contract import (
+    FormulaInput,
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    calculate_formula,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    ClassificationPredicate,
+    ClassificationRule,
+    classify_classification_rules,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_CONSORCIOS_EXPENSE_VARIANCE_V1"
 CAPABILITY_REF: Final[str] = "consorcios_expense_variance"
 STATUS_EVALUATED: Final[str] = "EVALUATED"
 STATUS_BLOCKED: Final[str] = "BLOCKED"
+FORMULA_BUDGET_VARIANCE: Final[str] = "CONSORCIOS_expense_variance_budget_pct"
+FORMULA_HISTORICAL_VARIANCE: Final[str] = "CONSORCIOS_expense_variance_historical_pct"
+CLASSIFICATION_HIGH: Final[str] = "ALTO"
+CLASSIFICATION_MODERATE: Final[str] = "MODERADO"
+CLASSIFICATION_NORMAL: Final[str] = "NORMAL"
+_CLASSIFICATION_RULES: Final[tuple[ClassificationRule, ...]] = (
+    ClassificationRule(
+        CLASSIFICATION_HIGH,
+        predicates=(ClassificationPredicate("result", "GE", literal=Decimal("50")),),
+    ),
+    ClassificationRule(
+        CLASSIFICATION_MODERATE,
+        predicates=(ClassificationPredicate("result", "GE", literal=Decimal("25")),),
+    ),
+    ClassificationRule(
+        CLASSIFICATION_NORMAL,
+        predicates=(ClassificationPredicate("result", "GE", literal=Decimal("0")),),
+    ),
+)
 
 
 def build_expense_variance_product_request_v1(*, request: object) -> dict[str, Any]:
-    if not isinstance(request, dict) or not request:
+    if not isinstance(request, Mapping) or not request:
         return _blocked("EXPENSE_VARIANCE_REQUEST_REQUIRED")
     if request.get("owner_requested") is not True:
         return _blocked("EXPLICIT_OWNER_REQUEST_REQUIRED")
@@ -99,7 +132,8 @@ def evaluate_expense_variance_v1(
     expense_bindings: dict[str, str],
     budget_bindings: dict[str, str],
 ) -> dict[str, Any]:
-    actual_by_rubro: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    actual_values_by_rubro: dict[str, list[Decimal]] = {}
+    engine = FormulaEngineService()
     try:
         for index, row in enumerate(expense_rows, start=1):
             if not isinstance(row, dict):
@@ -110,7 +144,7 @@ def evaluate_expense_variance_v1(
             amount = _number(row.get(expense_bindings["importe"]))
             if amount < 0:
                 raise ValueError(f"expense row {index}: importe must be >= 0")
-            actual_by_rubro[rubro] += amount
+            actual_values_by_rubro.setdefault(rubro, []).append(amount)
 
         results: list[dict[str, Any]] = []
         budget_seen: set[str] = set()
@@ -127,22 +161,66 @@ def evaluate_expense_variance_v1(
             historical = _number(row.get(budget_bindings["promedio_historico"]))
             if budget <= 0 or historical <= 0:
                 raise ValueError(f"budget row {index}: invalid baseline")
-            actual = actual_by_rubro.get(rubro, Decimal("0"))
-            budget_dev = (actual / budget - Decimal("1")) * Decimal("100")
-            historical_dev = (actual / historical - Decimal("1")) * Decimal("100")
-            max_positive = max(Decimal("0"), budget_dev, historical_dev)
-            classification = (
-                "ALTO" if max_positive >= Decimal("50")
-                else "MODERADO" if max_positive >= Decimal("25")
-                else "NORMAL"
+            actual_result = engine.calculate_math_primitive(
+                MathPrimitiveInput(
+                    operation=MathPrimitiveOperation.SUM,
+                    values=actual_values_by_rubro.get(rubro, [Decimal("0")]),
+                    source_refs=[f"expense:{rubro}:importe"],
+                )
             )
+            if actual_result.status != FormulaStatus.OK or actual_result.value is None:
+                raise ValueError(actual_result.blocking_reason or "expense aggregation blocked")
+            actual = actual_result.value
+            budget_result = calculate_formula(
+                FORMULA_BUDGET_VARIANCE,
+                [
+                    FormulaInput(name="actual", value=actual, source_refs=[f"expense:{rubro}:actual"]),
+                    FormulaInput(name="baseline", value=float(budget), source_refs=[f"budget:{rubro}:monthly"]),
+                ],
+            )
+            historical_result = calculate_formula(
+                FORMULA_HISTORICAL_VARIANCE,
+                [
+                    FormulaInput(name="actual", value=actual, source_refs=[f"expense:{rubro}:actual"]),
+                    FormulaInput(name="baseline", value=float(historical), source_refs=[f"budget:{rubro}:historical"]),
+                ],
+            )
+            if (
+                budget_result.status != FormulaStatus.OK
+                or budget_result.value is None
+                or historical_result.status != FormulaStatus.OK
+                or historical_result.value is None
+            ):
+                raise ValueError(
+                    budget_result.blocking_reason
+                    or historical_result.blocking_reason
+                    or "expense variance formula blocked"
+                )
+            max_result = engine.calculate_math_primitive(
+                MathPrimitiveInput(
+                    operation=MathPrimitiveOperation.MAX,
+                    values=[0.0, budget_result.value, historical_result.value],
+                    source_refs=[
+                        f"expense:{rubro}:budget_variance",
+                        f"expense:{rubro}:historical_variance",
+                    ],
+                )
+            )
+            if max_result.status != FormulaStatus.OK or max_result.value is None:
+                raise ValueError(max_result.blocking_reason or "expense deviation maximum blocked")
+            classification = classify_classification_rules(
+                _CLASSIFICATION_RULES,
+                result=max_result.value,
+            )
+            if classification is None:
+                raise ValueError("expense variance classification policy did not match")
             results.append({
                 "rubro": rubro,
                 "gasto_real": float(actual),
                 "presupuesto_mensual": float(budget),
                 "promedio_historico": float(historical),
-                "desvio_presupuesto_pct": float(budget_dev),
-                "desvio_promedio_pct": float(historical_dev),
+                "desvio_presupuesto_pct": float(budget_result.value),
+                "desvio_promedio_pct": float(historical_result.value),
                 "umbral_moderado_pct": 25.0,
                 "umbral_alto_pct": 50.0,
                 "classification": classification,
@@ -151,6 +229,14 @@ def evaluate_expense_variance_v1(
     except (ValueError, InvalidOperation) as exc:
         return {"schema_version": SCHEMA_VERSION, "capability_ref": CAPABILITY_REF, "status": STATUS_BLOCKED, "reason": str(exc), **_safety_flags()}
 
+    summary_counts = {
+        classification: _count_results(results, classification)
+        for classification in (
+            CLASSIFICATION_HIGH,
+            CLASSIFICATION_MODERATE,
+            CLASSIFICATION_NORMAL,
+        )
+    }
     return {
         "schema_version": SCHEMA_VERSION,
         "capability_ref": CAPABILITY_REF,
@@ -158,9 +244,9 @@ def evaluate_expense_variance_v1(
         "rows": results,
         "summary": {
             "total_rubros": len(results),
-            "alto": sum(1 for row in results if row["classification"] == "ALTO"),
-            "moderado": sum(1 for row in results if row["classification"] == "MODERADO"),
-            "normal": sum(1 for row in results if row["classification"] == "NORMAL"),
+            "alto": summary_counts[CLASSIFICATION_HIGH],
+            "moderado": summary_counts[CLASSIFICATION_MODERATE],
+            "normal": summary_counts[CLASSIFICATION_NORMAL],
         },
         "method": "actual_by_rubro_vs_budget_and_confirmed_historical_average",
         "limitations": [
@@ -198,6 +284,19 @@ def _number(value: object) -> Decimal:
     if not number.is_finite():
         raise ValueError("numeric value must be finite")
     return number
+
+
+def _count_results(results: list[dict[str, Any]], classification: str) -> int:
+    count = FormulaEngineService().calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.COUNT,
+            values=[1 for row in results if row.get("classification") == classification],
+            source_refs=[f"expense:classification:{classification}"],
+        )
+    )
+    if count.status != FormulaStatus.OK or count.value is None:
+        raise ValueError(count.blocking_reason or "expense classification count blocked")
+    return int(count.value)
 
 
 def _safety_flags() -> dict[str, bool]:

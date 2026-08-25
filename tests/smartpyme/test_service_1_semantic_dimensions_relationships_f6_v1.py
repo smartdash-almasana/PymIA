@@ -72,6 +72,22 @@ def _branch_ingestion_output() -> dict:
         "case_id": "case-f6-branch",
         "filename": "branches.xlsx",
         "source_file_ref": "branches.xlsx",
+        "workbook_context": {
+            "case_id": "case-f6-branch",
+            "source_artifact_ref": "artifact:case-f6-branch",
+            "workbook_ref": "workbook:case-f6-branch",
+            "ingestion_scope": "all_sheets",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+        },
+        "provenance": {
+            "source_kind": "xlsx",
+            "source_artifact_ref": "artifact:case-f6-branch",
+            "source_file_ref": "workbook:case-f6-branch",
+            "workbook_ref": "workbook:case-f6-branch",
+            "filename": "branches.xlsx",
+            "sheet_names": ["Ventas", "Sucursales"],
+            "sheet_refs": [],
+        },
         "column_refs": [
             {"sheet_name": "Ventas", "column_name": "SucursalID", "normalized_column_name": "sucursalid"},
             {"sheet_name": "Ventas", "column_name": "VentaTotal", "normalized_column_name": "ventatotal"},

@@ -30,6 +30,10 @@ from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
     Service1AnalysisDiscoveryTemplateV1,
     build_service_1_dynamic_analysis_discovery_v1,
 )
+from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
+    STATUS_READY as WORKBOOK_LOGICAL_MODEL_READY,
+    build_service_1_workbook_logical_model_v1,
+)
 import pymia.smartpyme.service_1_analysis_evidence_preparation_v1 as f7
 import pymia.smartpyme.service_1_analysis_math_execution_v1 as f8
 import pymia.smartpyme.service_1_analysis_result_projection_v1 as f9
@@ -108,10 +112,21 @@ def cafeteria_case(tmp_path_factory: pytest.TempPathFactory) -> dict:
     assert semantic_run["status"] == "CONFIRMED_BINDINGS"
     assert state.ingestion_output is not None
 
+    workbook_logical_model = build_service_1_workbook_logical_model_v1(
+        ingestion_output=state.ingestion_output,
+        owner_relationship_confirmation_events=tuple(
+            item
+            for item in semantic_run.get("confirmed_relationships") or ()
+            if isinstance(item, dict)
+        ),
+    )
+    assert workbook_logical_model["status"] == WORKBOOK_LOGICAL_MODEL_READY
+
     discovery = build_service_1_dynamic_analysis_discovery_v1(
         confirmed_bindings=semantic_run,
         commercially_exposed_analysis_ids=F11_ANALYSIS_IDS,
         templates=_f11_templates(),
+        d7_workbook_logical_model=workbook_logical_model,
     )
     assert discovery.status == "DISCOVERY_READY"
     by_id = {item.analysis_id: item for item in discovery.analyses}
@@ -121,6 +136,7 @@ def cafeteria_case(tmp_path_factory: pytest.TempPathFactory) -> dict:
     return {
         "ingestion": state.ingestion_output,
         "semantic_run": semantic_run,
+        "workbook_logical_model": workbook_logical_model,
         "discovery": discovery,
         "by_id": by_id,
         "owner_steps": steps,
@@ -140,6 +156,7 @@ def _run_to_f9(cafeteria_case: dict, analysis_id: str):
         case_id=case_id,
         governed_analysis_input=governed,
         ingestion_output=cafeteria_case["ingestion"],
+        d7_workbook_logical_model=cafeteria_case["workbook_logical_model"],
     )
     assert prepared_decision.status == STATUS_PREPARED, prepared_decision.to_dict()
     prepared = prepared_decision.prepared_evidence

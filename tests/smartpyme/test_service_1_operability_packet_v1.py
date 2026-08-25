@@ -65,20 +65,18 @@ def test_operability_packet_real_cafeteria_example_runs_to_xlsx_output(tmp_path:
         xlsx_path=fixture,
         owner_column_answers=packet["operator_inputs"]["owner_column_answers_json"],
         semantic_owner_answers=None,
-        tool_requests=packet["operator_inputs"]["tool_requests_json"],
         output_dir=output_dir,
         sheet_name=packet["fixture"]["sheet"],
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     assert first["status"] == packet["expected_statuses"]["first_pass_without_semantic_answers"]
     assert first["product_pipeline"]["tools_executed"] is False
     assert not list(output_dir.glob("*.xlsx"))
 
     semantic_answers = {
-        question["column_name"]: next(
-            option_id
-            for option_id in question["allowed_option_ids"]
-            if option_id not in {"OTHER", "IGNORE"}
-        )
+        question["decision_id"]: {"action": "ACCEPT"}
         for question in first["product_pipeline"]["owner_questions"]
     }
     assert semantic_answers
@@ -87,15 +85,20 @@ def test_operability_packet_real_cafeteria_example_runs_to_xlsx_output(tmp_path:
         xlsx_path=fixture,
         owner_column_answers=packet["operator_inputs"]["owner_column_answers_json"],
         semantic_owner_answers=semantic_answers,
-        tool_requests=packet["operator_inputs"]["tool_requests_json"],
         output_dir=output_dir,
         sheet_name=packet["fixture"]["sheet"],
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
-    assert final["status"] == packet["expected_statuses"]["final_pass_with_semantic_answers"]
+    # sales_total is not yet P8-governed; the current root must fail closed.
+    assert final["status"] == "BLOCKED"
+    assert final["blocked_reason"] == "CAPABILITY_NOT_GOVERNED"
     assert final["product_pipeline"]["semantic_bindings_confirmed"] is True
-    assert final["product_pipeline"]["tools_executed"] is True
-    assert final["product_pipeline"]["physical_run"]["executed_tool_refs"] == ["precio_margen_basico"]
-    assert list(output_dir.glob("*.xlsx"))
+    assert final["product_pipeline"]["computation_executed"] is False
+    assert final["product_pipeline"]["tools_executed"] is False
+    assert final["product_pipeline"]["physical_run"] is None
+    assert not list(output_dir.glob("*.xlsx"))
 
 
 def test_operability_packet_blocks_free_text_semantic_answers(tmp_path: Path) -> None:
@@ -109,21 +112,28 @@ def test_operability_packet_blocks_free_text_semantic_answers(tmp_path: Path) ->
         xlsx_path=fixture,
         owner_column_answers=packet["operator_inputs"]["owner_column_answers_json"],
         semantic_owner_answers=None,
-        tool_requests=packet["operator_inputs"]["tool_requests_json"],
         output_dir=output_dir,
         sheet_name=packet["fixture"]["sheet"],
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     invalid = {
-        question["column_name"]: "texto libre no canónico"
+        question["decision_id"]: {
+            "action": "UNSUPPORTED_ACTION",
+            "correction_text": "texto libre no canónico",
+        }
         for question in first["product_pipeline"]["owner_questions"]
     }
     blocked = cli.run_service_1_product_entrypoint_v1(
         xlsx_path=fixture,
         owner_column_answers=packet["operator_inputs"]["owner_column_answers_json"],
         semantic_owner_answers=invalid,
-        tool_requests=packet["operator_inputs"]["tool_requests_json"],
         output_dir=output_dir,
         sheet_name=packet["fixture"]["sheet"],
+        requested_capability="sales_total",
+        semantic_owner_actor_id="owner-cli",
+        semantic_owner_actor_role="owner",
     )
     assert blocked["status"] == packet["expected_statuses"]["invalid_free_text_semantic_reentry"]
-    assert blocked["blocked_reason"] == "INVALID_OWNER_OPTION_ID"
+    assert blocked["blocked_reason"] == "BLOCK_SEM8_OWNER_RESPONSES_INVALID"

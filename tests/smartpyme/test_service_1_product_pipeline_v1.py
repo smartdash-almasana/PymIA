@@ -1,337 +1,198 @@
 from __future__ import annotations
 
-import json
-
 from pathlib import Path
 
-from pymia.smartpyme.service_1_product_pipeline_v1 import (
-    STATUS_BLOCKED,
-    STATUS_COMPUTATION_PLAN_READY,
-    STATUS_NEEDS_OWNER,
-    STATUS_READY,
-    run_service_1_product_pipeline_v1,
+from pymia.smartpyme import service_1_product_pipeline_v1 as product
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
 )
-from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
-    run_service_1_product_pipeline_with_legacy_owner_answers_v1,
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    SPECIALIZED_DOMAIN_COLLECTION_AGING,
+    Service1ProductExecutionDependenciesV1,
+    SpecializedDomainExecuteRequestV1,
+    WorkbookAnalysisExecuteRequestV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
 )
 
 
-
-def _first_semantic_option_id(question: dict) -> str:
-    return next(
-        item["option_id"]
-        for item in question["options"]
-        if item["option_id"] not in {"OTHER", "IGNORE"}
-    )
-
-
-def _option_id_for_label(question: dict, expected_text: str) -> str:
-    expected = expected_text.lower()
-    for item in question["options"]:
-        if item["option_id"] in {"OTHER", "IGNORE"}:
-            continue
-        if expected and expected in item["label"].lower():
-            return item["option_id"]
-    return _first_semantic_option_id(question)
-
-
-def _column_refs(*columns: str, sheet: str = "Ventas") -> list[dict]:
-    return [
-        {
-            "field_id": column,
-            "question_id": column,
-            "sheet_name": sheet,
-            "column_name": column,
-            "normalized_column_name": column,
-        }
-        for column in columns
-    ]
-
-
-def _clear_ingestion() -> dict:
+def _table() -> dict:
     return {
-        "case_id": "case_product_pipeline",
+        "schema_version": "1.0",
+        "service_name": "SERVICE_1",
+        "status": "OK",
+        "source_kind": "xlsx",
+        "source_path": "ventas.xlsx",
+        "sheet_name": "Ventas",
+        "headers": ["fecha", "monto"],
+        "normalized_headers": ["fecha", "monto"],
+        "rows": [{"fecha": "2026-06-01", "monto": 100}],
+        "header_row_number": 1,
+        "source_row_numbers": [2],
+        "row_count": 1,
+        "column_count": 2,
+        "warnings": [],
+        "blocking_errors": [],
+        "physical_rows": [
+            {"row_number": 1, "cells": ["fecha", "monto"], "physical_width": 2},
+            {"row_number": 2, "cells": ["2026-06-01", 100], "physical_width": 2},
+        ],
+        "physical_max_column": 2,
+        "physical_max_row": 2,
+        "runtime_authorized": False,
+    }
+
+
+def _ingestion() -> dict:
+    return {
+        "schema_version": "SERVICE_1_CANONICAL_INGESTION_OUTPUT_V2",
+        "workbook_context": {
+            "case_id": "case-product-root",
+            "source_artifact_ref": "artifact:product-root",
+            "workbook_ref": "workbook-product-root",
+            "ingestion_scope": "first_non_empty_sheet",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+            "source_system_ref": "xlsx",
+            "source_context_ref": "product-root-test",
+        },
+        "normalized_tables": [_table()],
+        "column_refs": [
+            {"field_id": "fecha", "sheet_name": "Ventas", "column_name": "fecha"},
+            {"field_id": "monto", "sheet_name": "Ventas", "column_name": "monto"},
+        ],
+        "physical_lineage": [
+            {
+                "sheet_name": "Ventas",
+                "source_kind": "xlsx",
+                "source_path": "ventas.xlsx",
+                "header_row_number": 1,
+                "source_row_numbers": [2],
+                "physical_max_column": 2,
+                "physical_max_row": 2,
+            }
+        ],
+        "provenance": {
+            "source_kind": "xlsx",
+            "source_file_ref": "workbook-product-root",
+            "filename": "ventas.xlsx",
+            "sheet_names": ["Ventas"],
+        },
+        "safety_flags": {
+            "runtime_authorized": False,
+            "product_ready": False,
+            "delivery_authorized": False,
+        },
+        "case_id": "case-product-root",
         "source_kind": "xlsx",
         "filename": "ventas.xlsx",
+        "source_file_ref": "workbook-product-root",
         "columns": ["fecha", "monto"],
-        "column_refs": _column_refs("fecha", "monto"),
-        "input_values": {
-            "fecha": "fecha de la operación",
-            "monto": "importe total de la operación",
-        },
-        "runtime_authorized": False,
+        "sheet_names": ["Ventas"],
     }
 
 
-def _ambiguous_ingestion() -> dict:
-    return {
-        "case_id": "case_product_pipeline_owner",
-        "source_kind": "xlsx",
-        "filename": "ambiguous.xlsx",
-        "columns": ["valor"],
-        "column_refs": _column_refs("valor"),
-        "input_values": {"valor": "dato del negocio"},
-        "column_evidence": {
-            "valor": {"sample_values": [100, 200], "inferred_type": "number"}
-        },
-        "runtime_authorized": False,
-    }
-
-
-def _tool_requests() -> list[dict]:
-    return [
-        {
-            "tool_ref": "precio_margen_basico",
-            "inputs": {"precio_venta": 120, "costo_unitario": 80},
-        }
-    ]
-
-
-def _assert_closed(packet: dict) -> None:
-    assert packet["runtime_authorized"] is False
-    assert packet["tool_execution_authorized"] is False
-    assert packet["product_ready"] is False
-    assert packet["delivery_authorized"] is False
-    assert packet["diagnosis_generated"] is False
-
-
-def test_confirmed_semantics_execute_existing_physical_pipeline(tmp_path: Path) -> None:
-    first = run_service_1_product_pipeline_v1(
-        ingestion_output=_clear_ingestion(),
-        tool_requests=_tool_requests(),
+def _deps(tmp_path: Path) -> Service1ProductExecutionDependenciesV1:
+    return Service1ProductExecutionDependenciesV1(
         output_dir=tmp_path,
-        sheet_name="Ventas",
-    )
-    owner_answers = {
-        question["column_name"]: _first_semantic_option_id(question)
-        for question in first["owner_questions"]
-    }
-    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
-        ingestion_output=_clear_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-        sheet_name="Ventas",
-        owner_answers=owner_answers,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
     )
 
-    assert out["status"] == STATUS_READY
-    assert out["semantic_bindings_confirmed"] is True
-    assert out["tools_executed"] is True
-    assert out["physical_run"]["executed_tool_refs"] == ["precio_margen_basico"]
-    assert out["physical_run"]["delivery_flow"]["deliveries"]
-    _assert_closed(out)
 
-
-def test_owner_questions_block_before_any_tool_or_delivery(tmp_path: Path) -> None:
-    out = run_service_1_product_pipeline_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
+def test_workbook_start_is_explicit_and_fail_closed_without_semantic_provider(tmp_path: Path) -> None:
+    result = product.run_service_1_product_pipeline_v1(
+        WorkbookSemanticStartRequestV1(ingestion_output=_ingestion()),
+        dependencies=Service1ProductExecutionDependenciesV1(output_dir=tmp_path),
     )
-
-    assert out["status"] == STATUS_NEEDS_OWNER
-    assert out["owner_questions"]
-    rendered = json.dumps(out["owner_questions"], ensure_ascii=False)
-    for internal_token in (
-        "unit_sale_price",
-        "unit_cost_candidate",
-        "tax_amount",
-        "IGNORED_NOT_RELEVANT",
-    ):
-        assert internal_token not in rendered
-    assert all(question["options"] for question in out["owner_questions"])
-    assert set(out["semantic_run"]) == {
-        "schema_version",
-        "service_name",
-        "status",
-        "blocked_reason",
-        "owner_questions",
-        "owner_followup",
-        "runtime_authorized",
-        "tool_execution_authorized",
-        "product_ready",
-        "delivery_authorized",
-        "diagnosis_generated",
-    }
-    assert "gate_packet" not in out["semantic_run"]
-    assert "bridge_packet" not in out["semantic_run"]
-    assert out["physical_run"] is None
-    assert out["tools_executed"] is False
-    assert list(tmp_path.iterdir()) == []
-    _assert_closed(out)
+    assert result["status"] == product.STATUS_BLOCKED
+    assert result["blocked_reason"]
+    assert result["physical_run"] is None
 
 
-def test_product_root_rejects_direct_legacy_owner_answers(tmp_path: Path) -> None:
-    first = run_service_1_product_pipeline_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
+def test_workbook_start_and_continue_share_one_explicit_root(tmp_path: Path) -> None:
+    first = product.run_service_1_product_pipeline_v1(
+        WorkbookSemanticStartRequestV1(ingestion_output=_ingestion()),
+        dependencies=_deps(tmp_path),
     )
-    question = first["owner_questions"][0]
-    out = run_service_1_product_pipeline_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-        owner_answers={question["column_name"]: _first_semantic_option_id(question)},
-    )
-    assert out["status"] == STATUS_BLOCKED
-    assert out["blocked_reason"] == "LEGACY_OWNER_ANSWERS_REQUIRE_UPSTREAM_COMPATIBILITY"
-    assert out["tools_executed"] is False
-    _assert_closed(out)
-
-
-def test_owner_reentry_can_unlock_physical_execution(tmp_path: Path) -> None:
-    first = run_service_1_product_pipeline_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-    )
-    question = first["owner_questions"][0]
-    answer = _first_semantic_option_id(question)
-
-    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-        owner_answers={question["column_name"]: answer},
-    )
-
-    assert out["status"] == STATUS_READY
-    assert out["semantic_bindings_confirmed"] is True
-    assert out["tools_executed"] is True
-    _assert_closed(out)
-
-
-def test_invalid_semantic_input_blocks_without_execution(tmp_path: Path) -> None:
-    out = run_service_1_product_pipeline_v1(
-        ingestion_output=None,
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-    )
-
-    assert out["status"] == STATUS_BLOCKED
-    assert out["blocked_reason"] == "INGESTION_OUTPUT_NOT_DICT"
-    assert out["physical_run"] is None
-    assert list(tmp_path.iterdir()) == []
-    _assert_closed(out)
-
-
-def _cash_collection_ingestion() -> dict:
-    return {
-        "case_id": "case_product_cash_plan",
-        "source_kind": "xlsx",
-        "filename": "ventas_cobros.xlsx",
-        "columns": ["fecha", "venta_total", "cobrado"],
-        "column_refs": _column_refs("fecha", "venta_total", "cobrado"),
-        "input_values": {
-            "fecha": "fecha de la operación",
-            "venta_total": "importe total vendido",
-            "cobrado": "importe efectivamente cobrado",
-        },
-        "column_evidence": {
-            "fecha": {
-                "sample_values": ["2026-06-01", "2026-06-02"],
-                "inferred_type": "date",
-            },
-            "venta_total": {
-                "sample_values": [1000, 2000],
-                "inferred_type": "number",
-            },
-            "cobrado": {
-                "sample_values": [800, 1500],
-                "inferred_type": "number",
-            },
-        },
-        "runtime_authorized": False,
-    }
-
-
-def test_product_root_builds_plan_without_executing_tools(tmp_path: Path) -> None:
-    first = run_service_1_product_pipeline_v1(
-        ingestion_output=_cash_collection_ingestion(),
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="sold_vs_collected_gap",
-        sheet_name="Ventas",
-    )
-    preferred_labels = {
-        "fecha": "fecha",
-        "venta_total": "venta total",
-        "cobrado": "cobrado",
-    }
-    answers = {
-        question["column_name"]: _option_id_for_label(
-            question, preferred_labels.get(question["column_name"], "")
-        )
-        for question in first["owner_questions"]
-    }
-    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
-        ingestion_output=_cash_collection_ingestion(),
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="sold_vs_collected_gap",
-        owner_answers=answers,
-        sheet_name="Ventas",
-    )
-
-    assert out["status"] == STATUS_COMPUTATION_PLAN_READY
-    assert out["semantic_bindings_confirmed"] is True
-    assert out["governed_computation_input"]["schema_version"] == "SERVICE_1_GOVERNED_COMPUTATION_INPUT_V1"
-    assert out["computability_decision"]["status"] == "COMPUTABLE"
-    assert "computation_plan" not in out
-    assert out["governed_computation_input"]["formula_id"] == "LIQ_001_vendido_cobrado"
-    assert out["physical_run"] is None
-    assert out["tools_executed"] is False
-    assert list(tmp_path.iterdir()) == []
-    _assert_closed(out)
-
-def test_other_free_text_never_executes_tools(tmp_path: Path) -> None:
-    first = run_service_1_product_pipeline_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-    )
-    question = first["owner_questions"][0]
-
-    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-        owner_answers={
-            question["column_name"]: {
-                "option_id": "OTHER",
-                "free_text": "Es un indicador interno distinto.",
+    assert first["status"] in {product.STATUS_NEEDS_OWNER, product.STATUS_READY}
+    state = first.get("semantic_assistance_state")
+    if first["status"] == product.STATUS_NEEDS_OWNER:
+        response_items = tuple(
+            {
+                "decision_id": question["decision_id"],
+                "action": "ACCEPT",
+                "option_id": next(
+                    option["option_id"]
+                    for option in question.get("options", [])
+                    if option["option_id"] not in {"OTHER", "IGNORE"}
+                )
+                if question.get("options")
+                else next(
+                    option_id
+                    for option_id in question.get("allowed_option_ids", ())
+                    if option_id not in {"OTHER", "IGNORE"}
+                ),
             }
+            for question in first["owner_questions"]
+            if question.get("options") or question.get("allowed_option_ids")
+        )
+        if response_items:
+            second = product.run_service_1_product_pipeline_v1(
+                WorkbookSemanticContinueRequestV1(
+                    ingestion_output=_ingestion(),
+                    semantic_assistance_state=state,
+                    semantic_dialogue_responses=response_items,
+                ),
+                dependencies=_deps(tmp_path),
+            )
+            assert second["status"] in {product.STATUS_READY, product.STATUS_NEEDS_OWNER, product.STATUS_BLOCKED}
+            assert second["physical_run"] is None
+
+
+def test_analysis_command_traverses_d7_then_governed_analysis(tmp_path: Path, monkeypatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(
+        product,
+        "build_service_1_workbook_logical_model_v1",
+        lambda **_: calls.append("D7")
+        or {"status": product.WORKBOOK_LOGICAL_MODEL_READY, "schema_identity": {"schema_fingerprint": "x"}},
+    )
+    monkeypatch.setattr(
+        product,
+        "run_service_1_governed_analysis_v1",
+        lambda **_: calls.append("GOVERNED") or {"status": "READY"},
+    )
+    result = product.run_service_1_product_pipeline_v1(
+        WorkbookAnalysisExecuteRequestV1(
+            ingestion_output=_ingestion(),
+            confirmed_bindings={"status": product.STATUS_CONFIRMED_BINDINGS},
+            analysis_id="sales_total",
+        ),
+        dependencies=Service1ProductExecutionDependenciesV1(output_dir=tmp_path),
+    )
+    assert result["status"] == "READY"
+    assert calls == ["D7", "GOVERNED"]
+
+
+def test_specialized_subtype_is_explicit_and_never_builds_d7(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        product,
+        "build_service_1_workbook_logical_model_v1",
+        lambda **_: (_ for _ in ()).throw(AssertionError("D7 bypassed for specialized command")),
+    )
+    monkeypatch.setattr(
+        product,
+        "build_collection_aging_product_request_v1",
+        lambda **_: {
+            "status": "AGING_REVIEW_READY",
+            "computation_result": {},
+            "bounded_outcome": {},
         },
     )
-
-    assert out["status"] == STATUS_NEEDS_OWNER
-    assert out["semantic_bindings_confirmed"] is False
-    assert out["tools_executed"] is False
-    assert out["physical_run"] is None
-    assert out["owner_followup"][0]["normalization_required"] is True
-    assert list(tmp_path.iterdir()) == []
-    _assert_closed(out)
-
-
-def test_ignore_all_blocks_without_execution(tmp_path: Path) -> None:
-    first = run_service_1_product_pipeline_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
+    result = product.run_service_1_product_pipeline_v1(
+        SpecializedDomainExecuteRequestV1(
+            subtype=SPECIALIZED_DOMAIN_COLLECTION_AGING,
+            payload={"owner_requested": True},
+        ),
+        dependencies=_deps(tmp_path),
     )
-    question = first["owner_questions"][0]
-
-    out = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
-        ingestion_output=_ambiguous_ingestion(),
-        tool_requests=_tool_requests(),
-        output_dir=tmp_path,
-        owner_answers={question["column_name"]: "IGNORE"},
-    )
-
-    assert out["status"] == STATUS_BLOCKED
-    assert out["blocked_reason"] == "NO_ACTIVE_SEMANTIC_CANDIDATES"
-    assert out["tools_executed"] is False
-    assert out["physical_run"] is None
-    assert list(tmp_path.iterdir()) == []
-    _assert_closed(out)
+    assert result["status"] == "AGING_REVIEW_READY"

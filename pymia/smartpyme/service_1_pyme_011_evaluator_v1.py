@@ -4,6 +4,20 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Final
 
+from pymia.contracts.formula_contract import (
+    FormulaInput,
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    calculate_formula,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    ClassificationPredicate,
+    ClassificationRule,
+    classify_classification_rules,
+)
+
 SCHEMA_VERSION: Final[str] = "SERVICE_1_PYME_011_EVALUATION_V1"
 COMPUTATION_PLAN_SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPUTATION_PLAN_V1"
 PATHOLOGY_CODE: Final[str] = "PYME_011"
@@ -17,6 +31,20 @@ CLASS_WITHIN_PERIOD: Final[str] = "DSO_WITHIN_PERIOD"
 CLASS_EQUALS_PERIOD: Final[str] = "DSO_EQUALS_PERIOD"
 CLASS_EXCEEDS_PERIOD: Final[str] = "DSO_EXCEEDS_PERIOD"
 _REQUIRED_VARIABLES: Final[tuple[str, str, str]] = ("accounts_receivable", "sales", "days")
+_CLASSIFICATION_RULES: Final[tuple[ClassificationRule, ...]] = (
+    ClassificationRule(
+        CLASS_WITHIN_PERIOD,
+        predicates=(ClassificationPredicate("result", "LT", right_ref="days"),),
+    ),
+    ClassificationRule(
+        CLASS_EQUALS_PERIOD,
+        predicates=(ClassificationPredicate("result", "EQ", right_ref="days"),),
+    ),
+    ClassificationRule(
+        CLASS_EXCEEDS_PERIOD,
+        predicates=(ClassificationPredicate("result", "GT", right_ref="days"),),
+    ),
+)
 
 
 def evaluate_pyme_011_from_computation_plan_v1(*, computation_plan: object, inputs: object) -> dict[str, object]:
@@ -47,10 +75,45 @@ def evaluate_pyme_011_v1(*, accounts_receivable: object, sales: object, days: ob
             errors.append(f"{name} must be greater than 0.")
     if errors:
         return _packet(STATUS_INVALID_INPUT, None, normalized, errors)
-    dso = normalized["accounts_receivable"] / normalized["sales"] * normalized["days"]
+    kernel_result = calculate_formula(
+        FORMULA_REF,
+        [
+            FormulaInput(name="accounts_receivable", value=normalized["accounts_receivable"], source_refs=["PYME_011:accounts_receivable"]),
+            FormulaInput(name="sales", value=normalized["sales"], source_refs=["PYME_011:sales"]),
+            FormulaInput(name="days", value=normalized["days"], source_refs=["PYME_011:days"]),
+        ],
+    )
+    if kernel_result.status != FormulaStatus.OK or kernel_result.value is None:
+        return _packet(
+            STATUS_INVALID_INPUT,
+            None,
+            normalized,
+            [kernel_result.blocking_reason or "PYME_011 formula calculation blocked."],
+        )
+    ratio_result = FormulaEngineService().calculate_math_primitive(
+        MathPrimitiveInput(
+            operation=MathPrimitiveOperation.DIVIDE,
+            values=[normalized["accounts_receivable"], normalized["sales"]],
+            source_refs=["PYME_011:accounts_receivable", "PYME_011:sales"],
+        )
+    )
+    if ratio_result.status != FormulaStatus.OK or ratio_result.value is None:
+        return _packet(
+            STATUS_INVALID_INPUT,
+            None,
+            normalized,
+            [ratio_result.blocking_reason or "PYME_011 ratio calculation blocked."],
+        )
+    dso = kernel_result.value
     period = normalized["days"]
-    classification = CLASS_WITHIN_PERIOD if dso < period else CLASS_EQUALS_PERIOD if dso == period else CLASS_EXCEEDS_PERIOD
-    return _packet(STATUS_EVALUATED, classification, normalized, [], computed={"dso_days": dso, "period_days": period, "receivables_to_sales_ratio": normalized["accounts_receivable"] / normalized["sales"]}, mathematical_limits={"accounts_receivable_min_inclusive": 0.0, "sales_min_exclusive": 0.0, "days_min_exclusive": 0.0, "comparison_basis": "same_confirmed_period"})
+    classification = classify_classification_rules(
+        _CLASSIFICATION_RULES,
+        result=dso,
+        inputs={"days": period},
+    )
+    if classification is None:
+        return _packet(STATUS_INVALID_INPUT, None, normalized, ["PYME_011 classification policy did not match."])
+    return _packet(STATUS_EVALUATED, classification, normalized, [], computed={"dso_days": dso, "period_days": period, "receivables_to_sales_ratio": ratio_result.value}, mathematical_limits={"accounts_receivable_min_inclusive": 0.0, "sales_min_exclusive": 0.0, "days_min_exclusive": 0.0, "comparison_basis": "same_confirmed_period"})
 
 
 def _number(value: object) -> tuple[Decimal, str | None]:

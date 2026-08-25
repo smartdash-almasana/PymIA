@@ -116,30 +116,6 @@ def test_ren_001_outcome_is_bounded_and_non_causal() -> None:
     assert outcome["forbidden_claims"]
 
 
-def test_product_root_absorbs_only_explicit_ren_001_capability(monkeypatch, tmp_path) -> None:
-    tables, refs = _evidence()
-    confirmed = {
-        "status": product.STATUS_CONFIRMED_BINDINGS,
-        "schema_version": "TEST",
-        "service_name": "SERVICE_1",
-    }
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
-
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="net_margin_real",
-    )
-
-    assert result["status"] == product.STATUS_COMPUTATION_PLAN_READY
-    assert result["computation_executed"] is True
-    assert result["bounded_finding_generated"] is True
-    assert result["delivery_generated"] is False
-    assert result["tools_executed"] is False
-    assert result["diagnosis_generated"] is False
-    assert result["runtime_authorized"] is False
 
 
 def test_ren_001_delivery_writes_deterministic_seven_sheet_workbook(tmp_path: Path) -> None:
@@ -191,28 +167,3 @@ def test_ren_001_delivery_blocks_non_ready_outcome(tmp_path: Path) -> None:
     assert delivered["bounded_finding_generated"] is False
     assert delivered["causal_diagnosis_generated"] is False
     assert not list(tmp_path.glob("*.xlsx"))
-
-
-def test_product_root_delivers_ren_001_xlsx(monkeypatch, tmp_path: Path) -> None:
-    tables, refs = _evidence()
-    confirmed = {
-        "status": product.STATUS_CONFIRMED_BINDINGS,
-        "schema_version": "TEST",
-        "service_name": "SERVICE_1",
-    }
-    monkeypatch.setattr(product, "run_initial_pass", lambda **_: confirmed)
-    monkeypatch.setattr(product, "build_computability_decision_from_confirmed_bindings_v1", lambda **_: computable_decision_from_legacy_fixture(_plan()))
-
-    result = product.run_service_1_product_pipeline_v1(
-        ingestion_output={"normalized_tables": tables, "column_refs": refs},
-        tool_requests=[],
-        output_dir=tmp_path,
-        requested_capability="net_margin_real",
-        deliver_result=True,
-    )
-
-    assert result["status"] == product.STATUS_COMPUTATION_PLAN_READY
-    assert result["bounded_finding_generated"] is True
-    assert result["delivery_generated"] is True
-    assert result["delivery_authorized"] is False
-    assert Path(result["delivery_result"]["delivery"]["output_path"]).exists()

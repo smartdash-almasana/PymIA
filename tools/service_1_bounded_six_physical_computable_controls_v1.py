@@ -5,11 +5,30 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
+from pymia.smartpyme.service_1_computability_v1 import (
+    build_computability_decision_from_confirmed_bindings_v1,
+)
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
+)
+from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
+    STATUS_CONFIRMED as ASSISTED_SEMANTIC_CONFIRMED,
+    STATUS_OWNER_DIALOGUE_FOLLOWUP as ASSISTED_SEMANTIC_FOLLOWUP,
+    STATUS_OWNER_DIALOGUE_REQUIRED as ASSISTED_SEMANTIC_OWNER_REQUIRED,
+    run_service_1_assisted_semantic_initial_v1,
+    run_service_1_assisted_semantic_reentry_v1,
+)
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import build_service_1_web_column_confirmation_intake_boundary_v1
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import build_service_1_canonical_ingestion_output_from_owner_confirmation_v1
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import run_initial_pass, run_owner_reentry, build_computability_decision_from_confirmed_bindings_v1
-from pymia.smartpyme.service_1_product_pipeline_v1 import run_service_1_product_pipeline_v1
-from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import run_service_1_product_pipeline_with_legacy_owner_answers_v1
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    Service1ProductExecutionDependenciesV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
+)
+from pymia.smartpyme.service_1_product_pipeline_v1 import (
+    STATUS_NEEDS_OWNER,
+    run_service_1_product_pipeline_v1,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_BOUNDED_SIX_PHYSICAL_COMPUTABLE_CONTROLS_V1"
 VERDICT_PASS: Final[str] = "PASS_BOUNDED_SIX_PHYSICAL_COMPUTABLE_CONTROLS_V1"
@@ -44,20 +63,103 @@ NEGATIVES: Final[tuple[tuple[str, str], ...]] = (
 def _answers(boundary: dict) -> dict[str, str]:
     return {str(q["field_id"]): f"La columna {q['column_name']} representa {q['column_name']}" for q in boundary["owner_questions"]}
 
-def _canonical_answers(questions: list[dict]) -> dict[str, str]:
-    answers: dict[str, str] = {}
-    for question in questions:
-        option = next(
-            (
-                item
-                for item in question.get("options", [])
-                if item.get("option_id") not in {"OTHER", "IGNORE"}
-            ),
-            None,
+
+def _run_product_request(
+    *,
+    ingestion: dict,
+    output_dir: Path,
+    requested_capability: str | None,
+    semantic_assistance_state: dict | None = None,
+    semantic_dialogue_responses: tuple[dict, ...] = (),
+) -> dict:
+    dependencies = Service1ProductExecutionDependenciesV1(
+        output_dir=output_dir,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+        semantic_owner_actor_id="service-1-physical-controls-owner",
+        semantic_owner_actor_role="OWNER",
+    )
+    if semantic_assistance_state is None:
+        request = WorkbookSemanticStartRequestV1(
+            ingestion_output=ingestion,
+            requested_capability=requested_capability,
         )
-        if option is not None:
-            answers[str(question["question_id"])] = str(option["option_id"])
-    return answers
+    else:
+        request = WorkbookSemanticContinueRequestV1(
+            ingestion_output=ingestion,
+            requested_capability=(requested_capability or ""),
+            semantic_assistance_state=semantic_assistance_state,
+            semantic_dialogue_responses=semantic_dialogue_responses,
+        )
+    return run_service_1_product_pipeline_v1(request, dependencies=dependencies)
+
+
+def _accept_owner_questions(
+    *,
+    ingestion: dict,
+    output_dir: Path,
+    requested_capability: str | None,
+    initial: dict,
+) -> dict:
+    current = initial
+    for _ in range(20):
+        if current.get("status") != STATUS_NEEDS_OWNER:
+            return current
+        state = current.get("semantic_assistance_state")
+        questions = [
+            item
+            for item in current.get("owner_questions") or []
+            if isinstance(item, dict) and str(item.get("decision_id") or "").strip()
+        ]
+        if not isinstance(state, dict) or not questions:
+            return current
+        responses = tuple(
+            {"decision_id": str(item["decision_id"]), "action": "ACCEPT"}
+            for item in questions
+        )
+        current = _run_product_request(
+            ingestion=ingestion,
+            output_dir=output_dir,
+            requested_capability=requested_capability,
+            semantic_assistance_state=state,
+            semantic_dialogue_responses=responses,
+        )
+    return current
+
+
+def _run_semantic_pass(
+    *,
+    ingestion: dict,
+    requested_capability: str | None = None,
+) -> dict:
+    current = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability=requested_capability,
+        provider=build_service_1_deterministic_semantic_proposal_v1,
+    )
+    for _ in range(20):
+        if current.get("status") not in {
+            ASSISTED_SEMANTIC_OWNER_REQUIRED,
+            ASSISTED_SEMANTIC_FOLLOWUP,
+        }:
+            nested = current.get("semantic_run")
+            return nested if current.get("status") == ASSISTED_SEMANTIC_CONFIRMED and isinstance(nested, dict) else current
+        questions = [
+            item
+            for item in current.get("owner_questions") or []
+            if isinstance(item, dict) and str(item.get("decision_id") or "").strip()
+        ]
+        if not questions:
+            return current
+        current = run_service_1_assisted_semantic_reentry_v1(
+            previous_state=current,
+            owner_responses=tuple(
+                {"decision_id": str(item["decision_id"]), "action": "ACCEPT"}
+                for item in questions
+            ),
+            owner_actor_id="service-1-physical-controls-owner",
+            owner_actor_role="OWNER",
+        )
+    return current
 
 
 def _semantic_state(repo: Path, sheet: str) -> tuple[dict, dict]:
@@ -69,17 +171,7 @@ def _semantic_state(repo: Path, sheet: str) -> tuple[dict, dict]:
     if connector.get("status") != "INGESTION_OUTPUT_READY":
         raise AssertionError(f"{sheet}:CONNECTOR:{connector.get('blocked_reason')}")
     ingestion = connector["ingestion_output"]
-    semantic = run_initial_pass(ingestion_output=ingestion, sheet_name=sheet)
-    if semantic.get("status") == "OWNER_QUESTIONS":
-        answers = {
-            str(question["column_name"]): next(
-                item["option_id"]
-                for item in question["options"]
-                if item["option_id"] not in {"OTHER", "IGNORE"}
-            )
-            for question in semantic["owner_questions"]
-        }
-        semantic = run_owner_reentry(previous_run=semantic, owner_answers=answers)
+    semantic = _run_semantic_pass(ingestion=ingestion)
     return ingestion, semantic
 
 def evaluate_service_1_bounded_six_physical_computable_controls_v1(root: Path | None = None) -> dict:
@@ -94,26 +186,16 @@ def evaluate_service_1_bounded_six_physical_computable_controls_v1(root: Path | 
             failures.append(f"{spec.sheet}:P6:{semantic.get('status')}")
             continue
         decision = build_computability_decision_from_confirmed_bindings_v1(confirmed_bindings=semantic, requested_capability=spec.capability)
-        product = run_service_1_product_pipeline_v1(
-            ingestion_output=ingestion,
-            tool_requests=(),
+        product = _accept_owner_questions(
+            ingestion=ingestion,
             output_dir=repo / ".tmp" / "bounded_six_physical" / spec.sheet,
-            sheet_name=spec.sheet,
             requested_capability=spec.capability,
-            deliver_result=False,
-        )
-        if product.get("status") == "NEEDS_OWNER_CONFIRMATION":
-            product = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
-                ingestion_output=ingestion,
-                tool_requests=(),
+            initial=_run_product_request(
+                ingestion=ingestion,
                 output_dir=repo / ".tmp" / "bounded_six_physical" / spec.sheet,
-                sheet_name=spec.sheet,
                 requested_capability=spec.capability,
-                owner_answers=_canonical_answers(
-                    list(product.get("owner_questions") or [])
-                ),
-                deliver_result=False,
-            ) if decision.status == "COMPUTABLE" else {}
+            ),
+        )
         computation = product.get("computation_result") or {}
         observed = (computation.get("computed") or {}).get(spec.result_key)
         ok = (

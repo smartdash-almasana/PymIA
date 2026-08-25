@@ -530,6 +530,93 @@
         "category": "rentabilidad",
         "family_id": "A"
       }
+    },
+    "CONSORCIOS_expense_variance_budget_pct": {
+      "formula_id": "CONSORCIOS_expense_variance_budget_pct",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "actual",
+        "baseline"
+      ],
+      "expression": "((actual / baseline) - 1) * 100",
+      "output_unit": "percentage",
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [
+        {
+          "field": "baseline",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: baseline"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": null,
+        "priority_robustez": null,
+        "category": "consorcios",
+        "family_id": null
+      }
+    },
+    "CONSORCIOS_expense_variance_historical_pct": {
+      "formula_id": "CONSORCIOS_expense_variance_historical_pct",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "actual",
+        "baseline"
+      ],
+      "expression": "((actual / baseline) - 1) * 100",
+      "output_unit": "percentage",
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [
+        {
+          "field": "baseline",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: baseline"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": null,
+        "priority_robustez": null,
+        "category": "consorcios",
+        "family_id": null
+      }
+    },
+    "CONSORCIOS_collection_aging_periods": {
+      "formula_id": "CONSORCIOS_collection_aging_periods",
+      "formula_version": "1.0",
+      "required_inputs": [
+        "prior_balance",
+        "monthly_charge"
+      ],
+      "expression": "prior_balance / monthly_charge",
+      "output_unit": "ratio",
+      "pathology_code": null,
+      "source_catalog_ref": null,
+      "source_status": "ENGINE_IMPLEMENTED_NOT_IN_JSON_CATALOG",
+      "blocking_rules": [
+        {
+          "field": "monthly_charge",
+          "operator": "eq",
+          "value": 0,
+          "blocking_reason": "DIVISION_BY_ZERO: monthly_charge"
+        }
+      ],
+      "invalid_input_rules": [],
+      "metadata": {
+        "calculation_state": "CALCULABLE",
+        "priority_mvp": null,
+        "priority_robustez": null,
+        "category": "consorcios",
+        "family_id": null
+      }
     }
   }
 }

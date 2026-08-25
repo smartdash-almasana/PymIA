@@ -5,8 +5,10 @@
   "source_registry": "docs/service_1_module_disposition.v1.json",
   "source_architecture_lock": "docs/service_1_architecture_lock.v1.json",
   "service": "SERVICE_1",
-  "frozen_module_count": 0,
-  "decision_counts": {},
+  "frozen_module_count": 1,
+  "decision_counts": {
+    "FROZEN_LABORATORY": 1
+  },
   "method": {
     "token": "exact module name string search across pymia/, tests/, and docs/ for .py/.md/.json files",
     "excluded_files": [
@@ -23,7 +25,56 @@
       "other_doc_refs"
     ]
   },
-  "entries": [],
+  "entries": [
+    {
+      "module": "service_1_pipeline_v1",
+      "path": "pymia/smartpyme/service_1_pipeline_v1.py",
+      "registry_disposition": "EXPERIMENTAL_FROZEN",
+      "canonical_root_reachable": false,
+      "architecture_lock_decision": "FROZEN_LABORATORY",
+      "decision_reason": "Frozen laboratory module; retain or delete by explicit laboratory decision.",
+      "reference_counts": {
+        "official_cli_refs": 0,
+        "legacy_operator_refs": 0,
+        "runtime_bridge_refs": 0,
+        "other_source_refs": 0,
+        "test_refs": 1,
+        "current_doc_refs": 12,
+        "registry_refs": 2,
+        "other_doc_refs": 1
+      },
+      "references": {
+        "official_cli_refs": [],
+        "legacy_operator_refs": [],
+        "runtime_bridge_refs": [],
+        "other_source_refs": [],
+        "test_refs": [
+          "tests/smartpyme/test_service_1_pipeline_v1.py"
+        ],
+        "current_doc_refs": [
+          "docs/current/SERVICE_1_ARCHITECTURE_TO_CODE_DELTA_V1.md",
+          "docs/current/SERVICE_1_CODE_DISPOSITION_FINAL_V1.md",
+          "docs/current/SERVICE_1_RECONSTRUCTION_PLAN_V1.md",
+          "docs/current/evidence/SERVICE_1_R11_MODULE_REGISTRY_RECONCILIATION_EVIDENCE_V1.md",
+          "docs/current/evidence/SERVICE_1_R12_INTEGRATION_CHECKPOINT_EVIDENCE_V1.md",
+          "docs/current/evidence/SERVICE_1_R13C_ROOT_CAUSE_DIAGNOSIS_EVIDENCE_V1.md",
+          "docs/current/evidence/SERVICE_1_R13D4_CHATGPT_AUDIT_V1.md",
+          "docs/current/evidence/SERVICE_1_R13E_CHATGPT_AUDIT_V1.md",
+          "docs/current/evidence/SERVICE_1_R4_5_INTEGRATION_CHECKPOINT_V2.md",
+          "docs/current/evidence/SERVICE_1_R4_VERIFICATION_EVIDENCE_V2.md",
+          "docs/current/prompts/SERVICE_1_CODEX_R4_EXECUTE_AND_VERIFY_V1.md",
+          "docs/current/prompts/SERVICE_1_CODEX_R4_IMPLEMENT_V2.md"
+        ],
+        "registry_refs": [
+          "docs/service_1_architecture_lock.v1.json",
+          "docs/service_1_module_disposition.v1.json"
+        ],
+        "other_doc_refs": [
+          "docs/producto/SERVICE_1_XLSX_DELIVERY_GENERALIZATION_V1.md"
+        ]
+      }
+    }
+  ],
   "resolved_manual_review": {
     "cycle": "CYCLE_021_RESOLVE_MANUAL_REVIEW_FROZEN_MODULES",
     "previous_decision": "NEEDS_MANUAL_REVIEW",

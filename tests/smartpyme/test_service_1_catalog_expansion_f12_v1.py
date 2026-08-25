@@ -35,6 +35,10 @@ from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
     TECHNICALLY_NEEDS_EVIDENCE,
     build_service_1_dynamic_analysis_discovery_v1,
 )
+from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
+    STATUS_READY as WORKBOOK_LOGICAL_MODEL_READY,
+    build_service_1_workbook_logical_model_v1,
+)
 
 
 F12_AVAILABLE_ON_CAFETERIA = {
@@ -142,7 +146,14 @@ def f12_cafeteria(tmp_path_factory: pytest.TempPathFactory) -> dict:
     semantic_run = state.semantic_assistance_state["semantic_run"]
     assert semantic_run["status"] == "CONFIRMED_BINDINGS"
     assert state.ingestion_output is not None
-    discovery = build_service_1_dynamic_analysis_discovery_v1(confirmed_bindings=semantic_run)
+    workbook_logical_model = build_service_1_workbook_logical_model_v1(
+        ingestion_output=state.ingestion_output,
+    )
+    assert workbook_logical_model["status"] == WORKBOOK_LOGICAL_MODEL_READY
+    discovery = build_service_1_dynamic_analysis_discovery_v1(
+        confirmed_bindings=semantic_run,
+        d7_workbook_logical_model=workbook_logical_model,
+    )
     assert discovery.status == "DISCOVERY_READY"
     return {
         "app": app,
@@ -150,6 +161,7 @@ def f12_cafeteria(tmp_path_factory: pytest.TempPathFactory) -> dict:
         "menu_page": menu_page,
         "ingestion": state.ingestion_output,
         "semantic_run": semantic_run,
+        "workbook_logical_model": workbook_logical_model,
         "discovery": discovery,
         "by_id": {item.analysis_id: item for item in discovery.analyses},
         "executions": {},
@@ -168,6 +180,7 @@ def _run_to_f9(context: dict, analysis_id: str):
         case_id=governed.case_id,
         governed_analysis_input=governed,
         ingestion_output=context["ingestion"],
+        d7_workbook_logical_model=context["workbook_logical_model"],
     )
     assert prep.status == STATUS_PREPARED, prep.to_dict()
     assert prep.prepared_evidence is not None
@@ -370,16 +383,19 @@ def test_catalog_price_variance_becomes_computable_only_with_explicit_list_price
     assert all(group.measures["catalog_price_variance_pct"].formula_ref == "precio_catalogo_variacion_pct" for group in math.result.groups)
 
 
-def test_f12_workbook_first_menu_exposes_new_analyses_and_legacy_services(f12_cafeteria: dict) -> None:
+def test_f12_workbook_first_menu_exposes_canonical_analyses_without_legacy_launch_projection(f12_cafeteria: dict) -> None:
     page = f12_cafeteria["menu_page"]
     assert 'name="review_sales_by_category"' in page
     assert 'name="review_sales_by_payment_method"' in page
     assert 'name="review_top_products_by_units"' in page
     assert "Precio observado contra precio de catálogo" in page
     assert 'name="review_catalog_price_variance_by_product"' not in page
-    assert "Ventas y cobranzas" in page
-    assert "Margen real" in page
-    assert "Flujo de caja" in page
+    assert "Ventas y cobranzas" not in page
+    assert "Margen real" not in page
+    assert "Flujo de caja" not in page
+    assert 'name="review_sold_vs_collected_gap"' not in page
+    assert 'name="review_net_margin_real"' not in page
+    assert 'name="review_working_capital"' not in page
 
 
 def test_f12_web_executes_single_analysis_id_through_f7_f8_f9(f12_cafeteria: dict) -> None:
@@ -505,6 +521,7 @@ def test_f12_canonical_product_root_preserves_f9_resultset(
         ingestion_output=f12_cafeteria["ingestion"],
         confirmed_bindings=f12_cafeteria["semantic_run"],
         analysis_id=analysis_id,
+        workbook_logical_model=f12_cafeteria["workbook_logical_model"],
     )
     assert packet["status"] == "READY"
     assert packet["result_set"] == expected_projection.result_set.to_dict()
@@ -520,6 +537,8 @@ def test_f12_web_has_no_direct_productive_f7_f8_f9_imports() -> None:
     assert "execute_service_1_analysis_math_v1" not in source
     assert "service_1_analysis_result_projection_v1" not in source
     assert "build_service_1_analysis_result_projection_v1" not in source
+    assert "run_service_1_governed_analysis_v1" not in source
+    assert "run_service_1_product_pipeline_v1" in source
 
 
 def test_f12_web_cannot_execute_when_canonical_product_root_is_blocked(
@@ -530,12 +549,12 @@ def test_f12_web_cannot_execute_when_canonical_product_root_is_blocked(
     session_id = f12_cafeteria["session_id"]
     calls: list[dict] = []
 
-    def blocked_product_root(**kwargs):
-        calls.append(dict(kwargs))
+    def blocked_product_root(request, *, dependencies):
+        calls.append({"request": request, "dependencies": dependencies})
         return {
             "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
             "status": "BLOCKED",
-            "analysis_id": kwargs["analysis_id"],
+            "analysis_id": request.analysis_id,
             "blocked_reason": "RC1_CANONICAL_ROOT_BLOCKED_TEST",
             "runtime_authorized": False,
             "tool_execution_authorized": False,
@@ -545,7 +564,7 @@ def test_f12_web_cannot_execute_when_canonical_product_root_is_blocked(
 
     monkeypatch.setattr(
         semantic_web,
-        "run_service_1_governed_analysis_v1",
+        "run_service_1_product_pipeline_v1",
         blocked_product_root,
     )
     status, page = app.run_review(
@@ -554,7 +573,7 @@ def test_f12_web_cannot_execute_when_canonical_product_root_is_blocked(
     )
     assert status == 200
     assert len(calls) == 1
-    assert calls[0]["analysis_id"] == "sales_by_category"
+    assert calls[0]["request"].analysis_id == "sales_by_category"
     assert "Resultado listo" not in page
     assert 'name="review_sales_by_category"' in page
 

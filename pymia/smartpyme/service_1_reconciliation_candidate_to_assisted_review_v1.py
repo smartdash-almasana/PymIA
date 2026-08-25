@@ -13,6 +13,13 @@ from __future__ import annotations
 
 from typing import Any, Final, Mapping
 
+from pymia.contracts.formula_contract import (
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
+
 from pymia.smartpyme.service_1_reconciliation_request_gate_v1 import (
     BANK_RECONCILIATION,
     MERCADO_PAGO_BANK_RECONCILIATION,
@@ -387,7 +394,15 @@ def _int(value: object) -> int:
     if isinstance(value, bool):
         return 0
     if isinstance(value, int):
-        return max(value, 0)
+        bounded = FormulaEngineService().calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.MAX,
+                values=[value, 0],
+                source_refs=["reconciliation:review_summary"],
+            )
+        )
+        if bounded.status == FormulaStatus.OK and bounded.value is not None:
+            return int(bounded.value)
     return 0
 
 

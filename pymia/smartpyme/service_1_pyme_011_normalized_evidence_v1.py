@@ -4,6 +4,9 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final
 
+from pymia.contracts.formula_contract import FormulaStatus, MathPrimitiveInput, MathPrimitiveOperation
+from pymia.services.formula_engine_service import FormulaEngineService
+
 from pymia.smartpyme.service_1_pyme_011_evaluator_v1 import evaluate_pyme_011_from_computation_plan_v1
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_PYME_011_NORMALIZED_EVIDENCE_V1"
@@ -67,17 +70,28 @@ def evaluate_pyme_011_from_normalized_tables_v1(*, computation_plan: object, nor
         if not values:
             errors.append(f"{variable} requires at least one confirmed numeric value.")
             continue
-        if variable == "days":
-            unique = set(values)
-            if len(unique) != 1:
+        operation = (
+            MathPrimitiveOperation.SINGLE_VALUE
+            if variable == "days"
+            else MathPrimitiveOperation.SUM
+        )
+        primitive = FormulaEngineService().calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=operation,
+                values=[float(value) for value in values],
+                source_refs=[f"{sheet}.{source_column}"],
+            )
+        )
+        if primitive.status != FormulaStatus.OK or primitive.value is None:
+            if variable == "days":
                 errors.append("days must resolve to one consistent confirmed period value.")
-                continue
-            aggregate = values[0]
-            aggregation = "single_period_value"
-        else:
-            aggregate = sum(values, Decimal("0"))
-            aggregation = "sum"
-        inputs[variable] = float(aggregate)
+            else:
+                errors.append(
+                    f"{variable} aggregation blocked: {primitive.blocking_reason or 'math primitive blocked'}."
+                )
+            continue
+        inputs[variable] = float(primitive.value)
+        aggregation = operation.value
         sources[variable] = {"sheet_name": sheet, "column_name": source_column, "normalized_column_name": normalized_column, "value_count": len(values), "aggregation": aggregation}
 
     if errors:

@@ -69,6 +69,7 @@ ALLOW_PATTERNS = [
     # protocolo; los identificadores arquitectonicos (p.ej.
     # runtime_authorization, authorization_granted) siguen siendo detectados.
     'forbidden',
+    'opaque workflow identity',
     'no incluye',
     'no recibe',
     'no devuelve',

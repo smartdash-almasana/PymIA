@@ -240,6 +240,22 @@ def _profile_with_scopes() -> dict:
         "case_id": "d5-validator",
         "filename": "same.xlsx",
         "source_file_ref": "same.xlsx",
+        "workbook_context": {
+            "case_id": "d5-validator",
+            "source_artifact_ref": "artifact:d5-validator",
+            "workbook_ref": "workbook:d5-validator",
+            "ingestion_scope": "all_sheets",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+        },
+        "provenance": {
+            "source_kind": "xlsx",
+            "source_artifact_ref": "artifact:d5-validator",
+            "source_file_ref": "workbook:d5-validator",
+            "workbook_ref": "workbook:d5-validator",
+            "filename": "same.xlsx",
+            "sheet_names": ["Mixta"],
+            "sheet_refs": [],
+        },
         "column_refs": [
             _column("q-a", "Mixta", "fecha_a"),
             _column("q-b", "Mixta", "fecha_b"),

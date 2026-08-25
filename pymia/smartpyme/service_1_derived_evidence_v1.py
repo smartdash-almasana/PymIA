@@ -159,7 +159,10 @@ def build_service_1_derived_evidence_v1(
     if not isinstance(ingestion_output, dict) or not isinstance(semantic_run, dict):
         return _blocked(BLOCK_INPUT_INVALID)
     capability = str(requested_capability or "").strip()
-    case_id = str(ingestion_output.get("case_id") or "").strip()
+    workbook_context = ingestion_output.get("workbook_context")
+    if not isinstance(workbook_context, dict):
+        return _blocked(BLOCK_INPUT_INVALID)
+    case_id = str(workbook_context.get("case_id") or "").strip()
     if not capability or not case_id:
         return _blocked(BLOCK_INPUT_INVALID, case_id=case_id or None)
     if any(bool(ingestion_output.get(flag)) for flag in _AUTHORITY_FLAGS) or any(

@@ -4,6 +4,9 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final
 
+from pymia.contracts.formula_contract import FormulaStatus, MathPrimitiveInput, MathPrimitiveOperation
+from pymia.services.formula_engine_service import FormulaEngineService
+
 from pymia.smartpyme.service_1_liq_002_evaluator_v1 import (
     evaluate_liq_002_from_computation_plan_v1,
 )
@@ -97,20 +100,38 @@ def evaluate_liq_002_from_normalized_tables_v1(
                 continue
             values.append(value)
 
-        if variable_name == "initial_balance":
-            if len(values) != 1:
+        if not values:
+            errors.append(f"{variable_name} requires at least one confirmed numeric value.")
+            continue
+        if variable_name == "initial_balance" and len(values) != 1:
+            errors.append(
+                "initial_balance must contain exactly one non-empty confirmed numeric value."
+            )
+            continue
+        operation = (
+            MathPrimitiveOperation.SINGLE_VALUE
+            if variable_name == "initial_balance"
+            else MathPrimitiveOperation.SUM
+        )
+        primitive = FormulaEngineService().calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=operation,
+                values=[float(value) for value in values],
+                source_refs=[f"{sheet_name}.{source_column}"],
+            )
+        )
+        if primitive.status != FormulaStatus.OK or primitive.value is None:
+            if operation is MathPrimitiveOperation.SINGLE_VALUE:
                 errors.append(
                     "initial_balance must contain exactly one non-empty confirmed numeric value."
                 )
-                continue
-            aggregated = values[0]
-            aggregation_mode = "SINGLE_VALUE"
-        else:
-            if not values:
-                errors.append(f"{variable_name} requires at least one confirmed numeric value.")
-                continue
-            aggregated = sum(values, Decimal("0"))
-            aggregation_mode = "SUM"
+            else:
+                errors.append(
+                    f"{variable_name} aggregation blocked: {primitive.blocking_reason or 'math primitive blocked'}."
+                )
+            continue
+        aggregated = primitive.value
+        aggregation_mode = operation.value
 
         inputs[variable_name] = float(aggregated)
         aggregation_sources[variable_name] = {

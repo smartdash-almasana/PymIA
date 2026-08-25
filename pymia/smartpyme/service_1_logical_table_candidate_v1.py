@@ -127,6 +127,9 @@ def build_service_1_logical_table_candidates_v1(
     output = canonical_packet.get("ingestion_output")
     if not isinstance(output, Mapping):
         return _blocked("INGESTION_OUTPUT_REQUIRED")
+    workbook_context = output.get("workbook_context")
+    if not isinstance(workbook_context, Mapping) or not str(workbook_context.get("workbook_ref") or "").strip():
+        return _unresolved("WORKBOOK_CONTEXT_REQUIRED")
     tables = output.get("normalized_tables")
     regions = region_evidence.get("regions")
     if not isinstance(tables, list) or not tables or not isinstance(regions, list) or not regions:
@@ -159,7 +162,7 @@ def build_service_1_logical_table_candidates_v1(
             region=region,
             table=table,
             profile_columns=profile_columns,
-            workbook_ref=str(output.get("source_file_ref") or output.get("filename") or "").strip(),
+            workbook_ref=str(((output.get("workbook_context") or {}).get("workbook_ref") if isinstance(output.get("workbook_context"), Mapping) else "") or "").strip(),
         )
         if region_profile_columns is None:
             return _unresolved("REGION_PROFILE_UNAVAILABLE")
@@ -167,7 +170,7 @@ def build_service_1_logical_table_candidates_v1(
             region=region,
             table=table,
             profile_columns=region_profile_columns,
-            workbook_ref=str(output.get("source_file_ref") or output.get("filename") or "").strip(),
+            workbook_ref=str(((output.get("workbook_context") or {}).get("workbook_ref") if isinstance(output.get("workbook_context"), Mapping) else "") or "").strip(),
             region_index=region_index,
         )
         if candidate is None:
@@ -178,7 +181,7 @@ def build_service_1_logical_table_candidates_v1(
         "schema_version": SCHEMA_VERSION,
         "status": STATUS_READY,
         "blocked_reason": None,
-        "workbook_ref": str(output.get("source_file_ref") or output.get("filename") or "").strip(),
+        "workbook_ref": str(((output.get("workbook_context") or {}).get("workbook_ref") if isinstance(output.get("workbook_context"), Mapping) else "") or "").strip(),
         "candidates": [candidate.to_dict() for candidate in candidates],
         "candidate_count": len(candidates),
         "runtime_authorized": False,
@@ -373,6 +376,22 @@ def _build_profile_for_region(
     profile_input = {
         "case_id": "d2-region-profile",
         "source_file_ref": workbook_ref,
+        "workbook_context": {
+            "case_id": "d2-region-profile",
+            "source_artifact_ref": workbook_ref,
+            "workbook_ref": workbook_ref,
+            "ingestion_scope": "physical_region",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+        },
+        "provenance": {
+            "source_kind": "xlsx",
+            "source_artifact_ref": workbook_ref,
+            "source_file_ref": workbook_ref,
+            "workbook_ref": workbook_ref,
+            "filename": workbook_ref,
+            "sheet_names": [sheet],
+            "sheet_refs": [],
+        },
         "normalized_tables": [table_payload],
         "column_refs": [
             {

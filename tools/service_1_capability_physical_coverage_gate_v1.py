@@ -20,6 +20,17 @@ from pymia.smartpyme.service_1_computability_v1 import (
     STATUS_NEEDS_EVIDENCE,
     build_service_1_composite_governed_computation_input_v1,
     build_service_1_computability_decision_v1,
+    build_computability_decision_from_confirmed_bindings_v1,
+)
+from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
+    STATUS_CONFIRMED as ASSISTED_SEMANTIC_CONFIRMED,
+    STATUS_OWNER_DIALOGUE_FOLLOWUP as ASSISTED_SEMANTIC_FOLLOWUP,
+    STATUS_OWNER_DIALOGUE_REQUIRED as ASSISTED_SEMANTIC_OWNER_REQUIRED,
+    run_service_1_assisted_semantic_initial_v1,
+    run_service_1_assisted_semantic_reentry_v1,
+)
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
 )
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
     build_service_1_semantic_bridge_from_canonical_ingestion_output_v1,
@@ -30,17 +41,14 @@ from pymia.smartpyme.service_1_p6_approval_decision_v1 import (
 from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
     build_service_1_requirement_matches_v1,
 )
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    build_computability_decision_from_confirmed_bindings_v1,
-    run_initial_pass,
-    run_owner_reentry,
-)
 from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED,
     execute_generic_capability_v1,
 )
-from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
-    run_service_1_product_pipeline_with_legacy_owner_answers_v1,
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    Service1ProductExecutionDependenciesV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
 )
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1,
@@ -87,6 +95,107 @@ SAFETY_FLAGS: Final[tuple[str, ...]] = (
     "delivery_authorized",
     "diagnosis_generated",
 )
+
+
+def _run_product_request(
+    *,
+    ingestion: dict[str, Any],
+    output_dir: Path,
+    requested_capability: str | None,
+    semantic_assistance_state: dict[str, Any] | None = None,
+    semantic_dialogue_responses: tuple[dict[str, Any], ...] = (),
+) -> dict[str, Any]:
+    dependencies = Service1ProductExecutionDependenciesV1(
+        output_dir=output_dir,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+        semantic_owner_actor_id="service-1-physical-controls-owner",
+        semantic_owner_actor_role="OWNER",
+    )
+    if semantic_assistance_state is None:
+        request = WorkbookSemanticStartRequestV1(
+            ingestion_output=ingestion,
+            requested_capability=requested_capability,
+        )
+    else:
+        request = WorkbookSemanticContinueRequestV1(
+            ingestion_output=ingestion,
+            requested_capability=(requested_capability or ""),
+            semantic_assistance_state=semantic_assistance_state,
+            semantic_dialogue_responses=semantic_dialogue_responses,
+        )
+    return product_root.run_service_1_product_pipeline_v1(
+        request,
+        dependencies=dependencies,
+    )
+
+
+def _accept_owner_questions(
+    *,
+    ingestion: dict[str, Any],
+    output_dir: Path,
+    requested_capability: str | None,
+    initial: dict[str, Any],
+) -> dict[str, Any]:
+    current = initial
+    for _ in range(20):
+        if current.get("status") != product_root.STATUS_NEEDS_OWNER:
+            return current
+        state = current.get("semantic_assistance_state")
+        questions = [
+            item
+            for item in current.get("owner_questions") or []
+            if isinstance(item, dict) and str(item.get("decision_id") or "").strip()
+        ]
+        if not isinstance(state, dict) or not questions:
+            return current
+        responses = tuple(
+            {"decision_id": str(item["decision_id"]), "action": "ACCEPT"}
+            for item in questions
+        )
+        current = _run_product_request(
+            ingestion=ingestion,
+            output_dir=output_dir,
+            requested_capability=requested_capability,
+            semantic_assistance_state=state,
+            semantic_dialogue_responses=responses,
+        )
+    return current
+
+
+def _run_semantic_pass(
+    *,
+    ingestion: dict[str, Any],
+    requested_capability: str | None = None,
+) -> dict[str, Any]:
+    current = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability=requested_capability,
+        provider=build_service_1_deterministic_semantic_proposal_v1,
+    )
+    for _ in range(20):
+        if current.get("status") not in {
+            ASSISTED_SEMANTIC_OWNER_REQUIRED,
+            ASSISTED_SEMANTIC_FOLLOWUP,
+        }:
+            nested = current.get("semantic_run")
+            return nested if current.get("status") == ASSISTED_SEMANTIC_CONFIRMED and isinstance(nested, dict) else current
+        questions = [
+            item
+            for item in current.get("owner_questions") or []
+            if isinstance(item, dict) and str(item.get("decision_id") or "").strip()
+        ]
+        if not questions:
+            return current
+        current = run_service_1_assisted_semantic_reentry_v1(
+            previous_state=current,
+            owner_responses=tuple(
+                {"decision_id": str(item["decision_id"]), "action": "ACCEPT"}
+                for item in questions
+            ),
+            owner_actor_id="service-1-physical-controls-owner",
+            owner_actor_role="OWNER",
+        )
+    return current
 
 
 def write_required_fixtures_v1(root: Path | None = None) -> tuple[str, ...]:
@@ -200,16 +309,19 @@ def _structural_guards_v1() -> dict[str, str]:
         for node in ast.walk(tree)
         if isinstance(node, ast.ImportFrom)
     }
-    chain_source = inspect.getsource(_physical_chain)
+    chain_source = (
+        inspect.getsource(_physical_chain)
+        + inspect.getsource(_run_product_request)
+        + inspect.getsource(_accept_owner_questions)
+    )
     ren_source = (
         inspect.getsource(_ren_001_control)
         + inspect.getsource(_ren_001_semantic_case)
         + inspect.getsource(_run_product_counted_v1)
+        + inspect.getsource(_run_product_request)
+        + inspect.getsource(_accept_owner_questions)
     )
     product_source = inspect.getsource(product_root.run_service_1_product_pipeline_v1)
-    legacy_compat_source = inspect.getsource(
-        run_service_1_product_pipeline_with_legacy_owner_answers_v1
-    )
     ingestion_checks = {
         "boundary_module": build_service_1_web_column_confirmation_intake_boundary_v1.__module__
         == "pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1",
@@ -222,23 +334,15 @@ def _structural_guards_v1() -> dict[str, str]:
         "no_load_workbook_import": "load_workbook" not in imported_modules,
         "no_openpyxl_module_import": "openpyxl" not in imported_modules,
     }
-    compat_calls_root = "run_service_1_product_pipeline_v1(" in legacy_compat_source
     product_checks = {
         "root_module": product_root.run_service_1_product_pipeline_v1.__module__
         == "pymia.smartpyme.service_1_product_pipeline_v1",
-        "chain_calls_root": (
-            "run_service_1_product_pipeline_v1" in chain_source
-            or (
-                "run_service_1_product_pipeline_with_legacy_owner_answers_v1" in chain_source
-                and compat_calls_root
-            )
-        ),
-        "ren_calls_root": (
-            "run_service_1_product_pipeline_v1" in ren_source
-            or (
-                "run_service_1_product_pipeline_with_legacy_owner_answers_v1" in ren_source
-                and compat_calls_root
-            )
+        "chain_calls_root": "run_service_1_product_pipeline_v1" in chain_source,
+        "ren_calls_root": "run_service_1_product_pipeline_v1" in ren_source,
+        "typed_semantic_requests": (
+            "WorkbookSemanticStartRequestV1" in chain_source
+            and "WorkbookSemanticContinueRequestV1" in chain_source
+            and "Service1ProductExecutionDependenciesV1" in chain_source
         ),
         "root_uses_generic_engine": "execute_generic_capability_v1" in product_source,
     }
@@ -258,17 +362,6 @@ def _owner_answers(boundary: dict[str, Any]) -> dict[str, str]:
     return {
         str(question["field_id"]): f"La columna {question['column_name']} representa {question['column_name']}"
         for question in boundary.get("owner_questions") or []
-    }
-
-
-def _semantic_owner_answers(semantic_run: dict[str, Any]) -> dict[str, str]:
-    return {
-        str(question["column_name"]): next(
-            str(option["option_id"])
-            for option in question.get("options") or []
-            if option.get("option_id") not in {"OTHER", "IGNORE"}
-        )
-        for question in semantic_run.get("owner_questions") or []
     }
 
 
@@ -302,13 +395,7 @@ def _physical_chain(repo: Path, filename: str, sheet_name: str, capability: str)
         return {"status": PHYSICAL_PARTIAL, "blocker": f"CONNECTOR:{connector.get('blocked_reason')}"}
     ingestion = dict(connector["ingestion_output"])
     ingestion["normalized_tables"] = boundary.get("normalized_tables")
-    semantic = run_initial_pass(ingestion_output=ingestion, sheet_name=sheet_name)
-    owner_answers = _semantic_owner_answers(semantic)
-    if semantic.get("status") == "OWNER_QUESTIONS":
-        semantic = run_owner_reentry(
-            previous_run=semantic,
-            owner_answers=owner_answers,
-        )
+    semantic = _run_semantic_pass(ingestion=ingestion)
     if semantic.get("status") != "CONFIRMED_BINDINGS":
         return {
             "status": PHYSICAL_PARTIAL,
@@ -329,14 +416,15 @@ def _physical_chain(repo: Path, filename: str, sheet_name: str, capability: str)
             "governed_input": False, "p9": None,
             "safety": {"unsafe": False, "executed_without_governed_input": False},
         }
-    product = run_service_1_product_pipeline_with_legacy_owner_answers_v1(
-        ingestion_output=ingestion,
-        tool_requests=(),
+    product = _accept_owner_questions(
+        ingestion=ingestion,
         output_dir=repo / ".tmp" / "capability_physical_coverage_gate" / capability,
-        sheet_name=sheet_name,
         requested_capability=capability,
-        deliver_result=False,
-        owner_answers=owner_answers,
+        initial=_run_product_request(
+            ingestion=ingestion,
+            output_dir=repo / ".tmp" / "capability_physical_coverage_gate" / capability,
+            requested_capability=capability,
+        ),
     )
     computation = product.get("computation_result") or {}
     executed = product.get("status") == product_root.STATUS_COMPUTATION_PLAN_READY and computation.get("status") == STATUS_EVALUATED
@@ -390,11 +478,8 @@ def _ren_001_semantic_case(path: Path, *, include_taxes: bool) -> dict[str, Any]
     )
     ingestion = dict(connector["ingestion_output"])
     ingestion["normalized_tables"] = boundary.get("normalized_tables")
-    semantic_first = run_initial_pass(ingestion_output=ingestion, sheet_name="Resumen")
-    owner_answers = _semantic_owner_answers(semantic_first)
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=ingestion,
-        sheet_name="Resumen",
     )
     candidates = tuple(bridge["column_candidates"])
     owner_events = tuple(
@@ -430,16 +515,27 @@ def _ren_001_semantic_case(path: Path, *, include_taxes: bool) -> dict[str, Any]
         "ingestion": ingestion,
         "semantic": semantic,
         "decision": decision,
-        "owner_answers": owner_answers,
     }
 
 
-def _run_product_counted_v1(counters: dict[str, int], **kwargs: Any) -> dict[str, Any]:
+def _run_product_counted_v1(
+    counters: dict[str, int],
+    *,
+    ingestion: dict[str, Any],
+    output_dir: Path,
+    requested_capability: str,
+) -> dict[str, Any]:
     counters["product_root_calls"] += 1
-    if "owner_answers" in kwargs:
-        product = run_service_1_product_pipeline_with_legacy_owner_answers_v1(**kwargs)
-    else:
-        product = product_root.run_service_1_product_pipeline_v1(**kwargs)
+    product = _accept_owner_questions(
+        ingestion=ingestion,
+        output_dir=output_dir,
+        requested_capability=requested_capability,
+        initial=_run_product_request(
+            ingestion=ingestion,
+            output_dir=output_dir,
+            requested_capability=requested_capability,
+        ),
+    )
     computation = product.get("computation_result") or {}
     if computation.get("status") == STATUS_EVALUATED:
         counters["p9_calls"] += 1
@@ -455,13 +551,9 @@ def _ren_001_control(repo: Path) -> dict[str, Any]:
         decision = positive_case["decision"]
         product = _run_product_counted_v1(
             positive_counters,
-            ingestion_output=positive_case["ingestion"],
-            tool_requests=(),
+            ingestion=positive_case["ingestion"],
             output_dir=repo / ".tmp" / "capability_physical_coverage_gate" / "net_margin_real",
-            sheet_name="Resumen",
             requested_capability="net_margin_real",
-            deliver_result=False,
-            owner_answers=positive_case["owner_answers"],
         )
     computation = product.get("computation_result") or {}
     executed = product.get("status") == product_root.STATUS_COMPUTATION_PLAN_READY and computation.get("status") == STATUS_EVALUATED

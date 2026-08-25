@@ -62,4 +62,4 @@ def test_current_readme_lists_next_productive_capability_decision() -> None:
     status = (root / "docs" / "current" / "SERVICE_1_STATUS.md").read_text(encoding="utf-8")
     assert "SERVICE_1_NEXT_PRODUCTIVE_CAPABILITY_DECISION.md" in readme
     assert "12/12 PATOLOGÍAS PRODUCTIVAS CONECTADAS" in status
-    assert "KERNEL_IS_FORMULA_EXECUTION_AUTHORITY" in status
+    assert "FORMULA_ENGINE_SERVICE_IS_MATH_KERNEL_AUTHORITY" in status

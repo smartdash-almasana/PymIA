@@ -9,18 +9,18 @@ from pymia.smartpyme import service_1_web_column_confirmation_intake_boundary_v1
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
     build_service_1_semantic_bridge_from_canonical_ingestion_output_v1,
 )
+from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
+    STATUS_CONFIRMED as SEM8_CONFIRMED,
+    STATUS_OWNER_DIALOGUE_REQUIRED as SEM8_OWNER_REQUIRED,
+    run_service_1_assisted_semantic_initial_v1,
+    run_service_1_assisted_semantic_reentry_v1,
+)
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     BLOCK_MISSING_ANSWERS,
     BLOCK_UNKNOWN_COLUMNS,
     STATUS_UNCONFIRMED_READY,
     build_service_1_canonical_ingestion_output_from_owner_confirmation_v1,
     build_service_1_unconfirmed_canonical_ingestion_output_v1,
-)
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    STATUS_CONFIRMED_BINDINGS,
-    STATUS_OWNER_QUESTIONS,
-    run_initial_pass,
-    run_owner_reentry,
 )
 from pymia.smartpyme.service_1_xlsx_to_normalized_table_v1 import (
     read_xlsx_to_normalized_tables_v1,
@@ -115,18 +115,10 @@ def test_multisheet_connector_requires_question_ids_and_preserves_evidence(
     )
     assert unconfirmed["status"] == STATUS_UNCONFIRMED_READY
     unconfirmed_ingestion = unconfirmed["ingestion_output"]
-    assert unconfirmed_ingestion["input_values"] == {}
-    assert unconfirmed_ingestion["column_meaning_confirmations"] == []
-    assert unconfirmed_ingestion["sheet_names"] == ["Ventas", "Cobros"]
+    assert unconfirmed_ingestion["provenance"]["sheet_names"] == ["Ventas", "Cobros"]
     assert unconfirmed_ingestion["column_refs"] == packet["column_refs"]
-    assert all(
-        item["sample_values"]
-        for item in unconfirmed_ingestion["column_evidence"].values()
-    )
-    assert {
-        item["inferred_type"]
-        for item in unconfirmed_ingestion["column_evidence"].values()
-    } >= {"date", "number", "text"}
+    assert unconfirmed_ingestion["normalized_tables"] == packet["normalized_tables"]
+    assert unconfirmed_ingestion["physical_lineage"]
 
     legacy_answers = {column: f"significado de {column}" for column in packet["columns"]}
     blocked = build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
@@ -143,18 +135,14 @@ def test_multisheet_connector_requires_question_ids_and_preserves_evidence(
 
     assert result["status"] == "INGESTION_OUTPUT_READY"
     ingestion = result["ingestion_output"]
-    assert ingestion["sheet_name"] is None
-    assert ingestion["sheet_names"] == ["Ventas", "Cobros"]
+    assert "sheet_name" not in ingestion
+    assert ingestion["provenance"]["sheet_names"] == ["Ventas", "Cobros"]
     assert len(ingestion["column_refs"]) == 6
-    assert ingestion["available_data_fields"] == [
+    assert {ref["field_id"] for ref in ingestion["column_refs"]} == {
         ref["question_id"] for ref in packet["column_refs"]
-    ]
-    assert all(item["sample_values"] for item in ingestion["column_evidence"].values())
-    assert {item["inferred_type"] for item in ingestion["column_evidence"].values()} >= {
-        "date",
-        "number",
-        "text",
     }
+    assert all(ref.get("owner_meaning") for ref in ingestion["column_refs"])
+    assert ingestion["normalized_tables"] == packet["normalized_tables"]
 
 
 def test_semantic_bridge_preserves_sheet_identity_for_duplicate_headers(
@@ -189,7 +177,7 @@ def test_semantic_bridge_preserves_sheet_identity_for_duplicate_headers(
     }
 
 
-def test_explicit_single_sheet_selection_preserves_legacy_answer_keys(
+def test_explicit_single_sheet_selection_preserves_canonical_answer_input(
     tmp_path: Path,
 ) -> None:
     xlsx = tmp_path / "multisheet.xlsx"
@@ -209,8 +197,12 @@ def test_explicit_single_sheet_selection_preserves_legacy_answer_keys(
         owner_answers=answers,
     )
     assert result["status"] == "INGESTION_OUTPUT_READY"
-    assert result["owner_answers"] == answers
-    assert result["ingestion_output"]["sheet_name"] == "Cobros"
+    assert all(
+        ref["owner_meaning"] == answers[ref["field_id"]]
+        for ref in result["ingestion_output"]["column_refs"]
+    )
+    assert "owner_answers" not in result
+    assert result["ingestion_output"]["provenance"]["sheet_names"] == ["Cobros"]
 
 
 def test_default_single_sheet_and_explicit_all_sheets_are_distinct_scopes(
@@ -261,37 +253,67 @@ def test_duplicate_ambiguous_headers_reenter_semantic_loop_by_question_id(
         },
     )
 
-    initial = run_initial_pass(ingestion_output=connector["ingestion_output"])
+    def provider(_payload: dict) -> dict:
+        return {
+            "schema_version": "SERVICE_1_LLM_SEMANTIC_PROPOSAL_V1",
+            "concept_proposals": [
+                {
+                    "proposal_id": "p1",
+                    "target_column_refs": ["Ventas.monto"],
+                    "semantic_role": "sales_amount",
+                    "variable_name": "sold_amount",
+                    "confidence": 0.95,
+                    "rationale": "explicit test proposal",
+                    "evidence_refs": ["ev:column:Ventas.monto:type"],
+                },
+                {
+                    "proposal_id": "p2",
+                    "target_column_refs": ["Cobros.monto"],
+                    "semantic_role": "unit_sale_price",
+                    "variable_name": "sale_price",
+                    "confidence": 0.95,
+                    "rationale": "explicit test proposal",
+                    "evidence_refs": ["ev:column:Cobros.monto:type"],
+                },
+            ],
+            "relationship_proposals": [],
+            "duplicate_semantics": [],
+            "irrelevant_refs": [],
+            "material_ambiguities": [],
+        }
 
-    assert initial["status"] == STATUS_OWNER_QUESTIONS
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=connector["ingestion_output"],
+        requested_capability="sold_vs_collected_gap",
+        provider=provider,
+    )
+
+    assert initial["status"] == SEM8_OWNER_REQUIRED
     questions = initial["owner_questions"]
-    assert [question["column_name"] for question in questions] == ["monto", "monto"]
-    assert {question["sheet_name"] for question in questions} == {"Ventas", "Cobros"}
-    assert len({question["question_id"] for question in questions}) == 2
-    assert initial["gate_packet"]["owner_answer_bindings"] == {}
-    confirmation_candidates = initial["gate_packet"]["owner_confirmation_candidates"]
-    assert len(confirmation_candidates) == 2
-    assert {
-        candidate.metadata["question_id"] for candidate in confirmation_candidates
-    } == {question["question_id"] for question in questions}
-
+    assert questions
+    assert any("Ventas.monto" in question["column_refs"] for question in questions)
+    assert len({question["decision_id"] for question in questions}) == len(questions)
     semantic_answers = {
-        question["question_id"]: next(
-            option_id
-            for option_id in question["allowed_option_ids"]
-            if option_id not in {"OTHER", "IGNORE"}
-        )
-        for question in questions
+        question["decision_id"]: {"action": "ACCEPT"} for question in questions
     }
-    final = run_owner_reentry(previous_run=initial, owner_answers=semantic_answers)
+    final = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=initial,
+        owner_responses=[
+            {"decision_id": decision_id, **response}
+            for decision_id, response in semantic_answers.items()
+        ],
+        owner_actor_id="owner-multisheet",
+        owner_actor_role="OWNER",
+        file_ref=connector["ingestion_output"]["provenance"].get("source_file_ref"),
+    )
 
-    assert final["status"] == STATUS_CONFIRMED_BINDINGS
-    reinjected = final["reentry_packet"]["column_candidates"]
+    assert final["status"] == SEM8_CONFIRMED
+    reinjected = final["sem6_packet"]["reentry_packet"]["column_candidates"]
     assert len(reinjected) == 2
     assert all(candidate.owner_confirmation_required is False for candidate in reinjected)
-    assert {candidate.metadata["column_ref_id"] for candidate in reinjected} == set(
-        semantic_answers
-    )
+    assert {
+        (candidate.sheet_name, candidate.source_column_name) for candidate in reinjected
+    } == {("Ventas", "monto"), ("Cobros", "monto")}
 
 
 def test_uploaded_bytes_support_explicit_all_sheets(tmp_path: Path) -> None:

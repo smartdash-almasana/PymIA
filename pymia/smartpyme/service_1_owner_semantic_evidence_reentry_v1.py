@@ -256,7 +256,7 @@ def _candidate_maps(
             or ""
         ).strip()
         identity = (
-            str(candidate.sheet_name or "sheet1").strip(),
+            str(candidate.sheet_name or "").strip(),
             str(candidate.source_column_name or "").strip(),
         )
         if not ref_id or not all(identity) or ref_id in ref_to_candidate or identity in identity_to_ref:

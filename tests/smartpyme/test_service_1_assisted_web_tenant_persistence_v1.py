@@ -30,11 +30,11 @@ def _xlsx_bytes() -> bytes:
 
 def _answers(page: str) -> dict[str, str]:
     answers: dict[str, str] = {}
-    for question_id, option_id in re.findall(
-        r'name="answer_([^"]+)" value="([^"]+)"', page
+    for decision_id, action in re.findall(
+        r'name="action_([^"]+)" value="([^"]+)"', page
     ):
-        if option_id not in {"OTHER", "IGNORE", "not_sure"}:
-            answers.setdefault(f"answer_{question_id}", option_id)
+        if action == "ACCEPT":
+            answers.setdefault(f"action_{decision_id}", action)
     assert answers
     return answers
 
@@ -67,32 +67,29 @@ def test_assisted_web_persists_canonical_owner_events_after_successful_review(tm
         session_id="session-1",
         filename="ventas.xlsx",
         content=_xlsx_bytes(),
+        selected_launch_review="sold_vs_collected_gap",
     )
     assert status == 200
-    assert "Esto entendí de tu Excel" in page
+    assert "Revisión del archivo" in page
 
     status, page = app.confirm_meanings(
         session_id="session-1",
         fields=_answers(page),
     )
     assert status == 200
-    assert "Elegí qué querés revisar" in page
-
-    status, page = app.run_review(
-        session_id="session-1",
-        requested_capability="sold_vs_collected_gap",
-    )
-    assert status == 200
     assert "Ventas y cobranzas" in page
     assert recorded
+    canonical_workbook_ref = app.session("session-1").ingestion_output[
+        "workbook_context"
+    ]["workbook_ref"]
     for event, contract in recorded:
         assert event.case_id == contract.case_id
-        assert event.file_ref == "ventas.xlsx"
+        assert event.file_ref == canonical_workbook_ref
         assert contract.tenant_id == "tenant-acme"
         assert contract.cliente_id == "cliente-001"
         assert contract.owner_actor_id == "owner-001"
         assert contract.owner_actor_role == "OWNER"
-        assert contract.workbook_ref == "ventas.xlsx"
+        assert contract.workbook_ref == canonical_workbook_ref
         assert contract.confirmation_event_ref
 
 
@@ -108,6 +105,7 @@ def test_owner_confirmation_is_persisted_even_when_requested_control_needs_more_
         session_id="session-1",
         filename="ventas.xlsx",
         content=_xlsx_bytes(),
+        selected_launch_review="sold_vs_collected_gap",
     )
     assert status == 200
     status, page = app.confirm_meanings(
@@ -148,6 +146,7 @@ def test_required_tenant_persistence_fails_closed_when_backend_rejects_write(tmp
         session_id="session-1",
         filename="ventas.xlsx",
         content=_xlsx_bytes(),
+        selected_launch_review="sold_vs_collected_gap",
     )
     assert status == 200
 
@@ -156,14 +155,7 @@ def test_required_tenant_persistence_fails_closed_when_backend_rejects_write(tmp
         fields=_answers(page),
     )
     assert status == 200
-
-    status, page = app.run_review(
-        session_id="session-1",
-        requested_capability="sold_vs_collected_gap",
-    )
-
-    assert status == 200
-    assert "No se registró como memoria del tenant" in page
+    assert "Revisión pendiente" in page
     assert "Ventas y cobranzas" not in page
 
 
@@ -196,6 +188,9 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         boundary = "TenantPersistenceBoundary"
         upload_body = (
             f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="launch_review"\r\n\r\n'
+            "sold_vs_collected_gap\r\n"
+            f"--{boundary}\r\n"
             'Content-Disposition: form-data; name="file"; filename="ventas.xlsx"\r\n'
             "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\r\n\r\n"
         ).encode("utf-8") + _xlsx_bytes() + f"\r\n--{boundary}--\r\n".encode("utf-8")
@@ -214,7 +209,7 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         upload_page = response.read().decode("utf-8")
         cookie = response.getheader("Set-Cookie").split(";", 1)[0]
         assert response.status == 200
-        assert "Esto entendí de tu Excel" in upload_page
+        assert "Revisión del archivo" in upload_page
 
         confirm_body = urlencode(_answers(upload_page)).encode("utf-8")
         connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
@@ -230,24 +225,7 @@ def test_http_server_accepts_trusted_identity_resolver_and_persists(tmp_path: Pa
         )
         response = connection.getresponse()
         assert response.status == 200
-        assert "Elegí qué querés revisar" in response.read().decode("utf-8")
-
-        review_body = urlencode({"review_sold_vs_collected_gap": "1"}).encode("utf-8")
-        connection = HTTPConnection("127.0.0.1", server.server_port, timeout=10)
-        connection.request(
-            "POST",
-            "/run-review",
-            body=review_body,
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Content-Length": str(len(review_body)),
-                "Cookie": cookie,
-            },
-        )
-        response = connection.getresponse()
-        review_page = response.read().decode("utf-8")
-        assert response.status == 200
-        assert "Ventas y cobranzas" in review_page
+        assert "Ventas y cobranzas" in response.read().decode("utf-8")
         assert recorded
         assert all(contract.tenant_id == "tenant-acme" for _, contract in recorded)
     finally:

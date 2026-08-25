@@ -4,7 +4,7 @@ import argparse
 import json
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from pydantic import BaseModel
 
@@ -16,8 +16,13 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_READY,
     run_service_1_product_pipeline_v1,
 )
-from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
-    resolve_service_1_legacy_semantic_run_v1,
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    Service1ProductExecutionDependenciesV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
+)
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
 )
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
@@ -34,28 +39,19 @@ def _load_json_object(path: str | Path, *, label: str) -> dict[str, Any]:
     return payload
 
 
-def _load_tool_requests(path: str | Path) -> list[dict[str, Any]]:
-    resolved = Path(path)
-    if not resolved.exists():
-        raise FileNotFoundError(f"tool requests file not found: {resolved}")
-    payload = json.loads(resolved.read_text(encoding="utf-8-sig"))
-    if not isinstance(payload, list) or not payload:
-        raise ValueError("tool requests must be a non-empty JSON list")
-    return payload
-
-
 def run_service_1_product_entrypoint_v1(
     *,
     xlsx_path: str | Path,
     owner_column_answers: dict[str, Any],
     semantic_owner_answers: dict[str, Any] | None,
-    tool_requests: list[dict[str, Any]],
     output_dir: str | Path,
     sheet_name: str | None = None,
     sheet_names: list[str] | tuple[str, ...] | None = None,
     include_all_sheets: bool = False,
     requested_capability: str | None = None,
     deliver_result: bool = False,
+    semantic_owner_actor_id: str | None = None,
+    semantic_owner_actor_role: str | None = None,
 ) -> dict[str, Any]:
     source = Path(xlsx_path)
     if not source.exists():
@@ -101,27 +97,56 @@ def run_service_1_product_entrypoint_v1(
             "product_pipeline": None,
         }
 
-    ingestion_output = dict(connector["ingestion_output"])
-    normalized_tables = boundary.get("normalized_tables")
-    if isinstance(normalized_tables, list):
-        ingestion_output["normalized_tables"] = normalized_tables
+    ingestion_output = connector["ingestion_output"]
 
-    semantic_run_override = None
-    if semantic_owner_answers is not None:
-        semantic_run_override = resolve_service_1_legacy_semantic_run_v1(
-            ingestion_output=ingestion_output,
-            sheet_name=sheet_name or "sheet1",
-            owner_answers=semantic_owner_answers,
-        )
-    product = run_service_1_product_pipeline_v1(
-        ingestion_output=ingestion_output,
-        tool_requests=tool_requests,
+    dependencies = Service1ProductExecutionDependenciesV1(
         output_dir=output_dir,
-        sheet_name=sheet_name or "sheet1",
-        semantic_run_override=semantic_run_override,
-        requested_capability=requested_capability,
-        deliver_result=deliver_result,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+        semantic_owner_actor_id=semantic_owner_actor_id,
+        semantic_owner_actor_role=semantic_owner_actor_role,
     )
+    if semantic_owner_answers is None:
+        product = run_service_1_product_pipeline_v1(
+            WorkbookSemanticStartRequestV1(
+                ingestion_output=ingestion_output,
+                requested_capability=requested_capability,
+                deliver_result=deliver_result,
+            ),
+            dependencies=dependencies,
+        )
+    else:
+        initial_product = run_service_1_product_pipeline_v1(
+            WorkbookSemanticStartRequestV1(
+                ingestion_output=ingestion_output,
+                requested_capability=requested_capability,
+                deliver_result=deliver_result,
+            ),
+            dependencies=dependencies,
+        )
+        if initial_product.get("status") != "NEEDS_OWNER_CONFIRMATION":
+            product = initial_product
+        else:
+            semantic_state = initial_product.get("semantic_assistance_state")
+            if not isinstance(semantic_state, dict):
+                product = {
+                    "status": "BLOCKED",
+                    "blocked_reason": "SEMANTIC_ASSISTANCE_STATE_REQUIRED",
+                }
+            else:
+                request = WorkbookSemanticContinueRequestV1(
+                    ingestion_output=ingestion_output,
+                    requested_capability=requested_capability,
+                    semantic_assistance_state=semantic_state,
+                    semantic_dialogue_responses=_semantic_dialogue_responses(
+                        initial_product.get("owner_questions") or (),
+                        semantic_owner_answers,
+                    ),
+                    deliver_result=deliver_result,
+                )
+                product = run_service_1_product_pipeline_v1(
+                    request,
+                    dependencies=dependencies,
+                )
     return {
         "schema_version": "SERVICE_1_PRODUCT_ENTRYPOINT_V1",
         "status": product.get("status"),
@@ -130,6 +155,54 @@ def run_service_1_product_entrypoint_v1(
         "connector": connector,
         "product_pipeline": product,
     }
+
+
+def _semantic_dialogue_responses(
+    questions: Any,
+    owner_answers: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
+    """Translate explicit CLI owner answers into SEM-8 dialogue commands."""
+    if not isinstance(owner_answers, Mapping):
+        return ()
+    responses: list[dict[str, Any]] = []
+    for question in questions if isinstance(questions, (list, tuple)) else ():
+        if not isinstance(question, Mapping):
+            continue
+        answer = None
+        found = False
+        for key in (
+            question.get("decision_id"),
+            question.get("question_id"),
+            question.get("field_id"),
+            question.get("column_name"),
+        ):
+            if key is not None and str(key).strip() in owner_answers:
+                answer = owner_answers[str(key).strip()]
+                found = True
+                break
+        if not found:
+            continue
+        option_id = ""
+        correction_text = None
+        action = "ACCEPT"
+        if isinstance(answer, Mapping):
+            option_id = str(answer.get("option_id") or "").strip()
+            correction_text = answer.get("correction_text") or answer.get("free_text")
+            action = str(answer.get("action") or "").strip().upper() or action
+        else:
+            option_id = str(answer or "").strip()
+        if option_id.upper() in {"IGNORE", "IGNORED_NOT_RELEVANT", "SKIP"}:
+            action = "SKIP"
+        response = {
+            "decision_id": str(question.get("decision_id") or "").strip(),
+            "action": action,
+        }
+        if option_id:
+            response["option_id"] = option_id
+        if correction_text is not None:
+            response["correction_text"] = str(correction_text)
+        responses.append(response)
+    return tuple(responses)
 
 
 def _json_default(value: Any) -> Any:
@@ -153,7 +226,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--xlsx", required=True)
     parser.add_argument("--owner-column-answers", required=True)
     parser.add_argument("--semantic-owner-answers", default=None)
-    parser.add_argument("--tool-requests", default=None)
+    parser.add_argument("--semantic-owner-actor-id", default=None)
+    parser.add_argument("--semantic-owner-actor-role", default=None)
     parser.add_argument("--requested-capability", default=None)
     parser.add_argument(
         "--deliver-result",
@@ -184,11 +258,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.semantic_owner_answers
             else None
         )
-        if bool(args.tool_requests) == bool(args.requested_capability):
-            raise ValueError("provide exactly one of --tool-requests or --requested-capability")
+        if not args.requested_capability:
+            raise ValueError("--requested-capability is required")
         if args.deliver_result and not args.requested_capability:
             raise ValueError("--deliver-result requires --requested-capability")
-        tool_requests = _load_tool_requests(args.tool_requests) if args.tool_requests else []
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         selected_sheet_names = tuple(args.sheet_name or ())
@@ -197,13 +270,14 @@ def main(argv: list[str] | None = None) -> int:
             xlsx_path=args.xlsx,
             owner_column_answers=owner_column_answers,
             semantic_owner_answers=semantic_owner_answers,
-            tool_requests=tool_requests,
             output_dir=output_dir,
             sheet_name=selected_sheet_name,
             sheet_names=selected_sheet_names if len(selected_sheet_names) > 1 else None,
             include_all_sheets=bool(args.all_sheets),
             requested_capability=args.requested_capability,
             deliver_result=bool(args.deliver_result),
+            semantic_owner_actor_id=args.semantic_owner_actor_id,
+            semantic_owner_actor_role=args.semantic_owner_actor_role,
         )
     except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "BLOCKED", "blocked_reason": str(exc)}, ensure_ascii=False))

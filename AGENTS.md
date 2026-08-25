@@ -336,3 +336,35 @@ Rules:
 ## Documentation Policy
 
 Antes de leer documentación histórica, leer `docs/current/README.md`.
+
+## Servicio 1 — startup override vigente desde 2026-08-23
+
+Para cualquier tarea destinada a **continuar, reconstruir, cerrar o certificar Servicio 1**, el checkpoint de entrada obligatorio es:
+
+```text
+docs/current/SERVICE_1_IMPLEMENTATION_HANDOFF_V1.md
+```
+
+Luego debe seguir exactamente el orden de lectura definido allí. La arquitectura objetivo de Servicio 1 está cerrada (`OPEN_ARCHITECTURAL_DECISIONS = 0`); un agente de implementación no está autorizado a rediseñarla durante la reconstrucción.
+
+Las instrucciones operativas obligatorias para agentes están en:
+
+```text
+docs/current/SERVICE_1_AGENT_OPERATING_INSTRUCTIONS_V1.md
+```
+
+Los prompts ejecutables del nodo vigente se toman de `docs/current/prompts/`; no deben reconstruirse desde el chat.
+
+El plan operativo vigente es:
+
+```text
+docs/current/SERVICE_1_RECONSTRUCTION_PLAN_V1.md
+```
+
+Y el único criterio válido para declarar finalización es:
+
+```text
+docs/current/SERVICE_1_COMPLETION_AND_CERTIFICATION_CONTRACT_V1.md
+```
+
+Los documentos históricos, auditorías, phases y closeouts anteriores pueden aportar evidencia, pero no sustituyen este handoff ni los documentos normativos `SERVICE_1_CANONICAL_AXIS.md` / `SERVICE_1_ARCHITECTURE_LOCK.md`.

@@ -9,6 +9,7 @@ using genuine fixtures and existing upstream/downstream modules.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -87,9 +88,31 @@ def test_ok_full_chain_semantic_candidates_ready(case_001_ingestion_output: dict
 
     assert out["status"] == STATUS_READY
     assert out["blocked_reason"] is None
-    assert out["case_id"] == case_001_ingestion_output["case_id"]
-    assert out["source_kind"] == case_001_ingestion_output["source_kind"]
-    assert out["filename"] == case_001_ingestion_output["filename"]
+    assert out["case_id"] == case_001_ingestion_output["workbook_context"]["case_id"]
+    assert out["source_kind"] == case_001_ingestion_output["provenance"]["source_kind"]
+    assert out["filename"] == case_001_ingestion_output["provenance"]["filename"]
+
+
+def test_bridge_uses_canonical_refs_tables_and_owner_meaning_without_aliases(
+    case_001_ingestion_output: dict,
+) -> None:
+    canonical_only = deepcopy(case_001_ingestion_output)
+    for alias in (
+        "available_data_fields",
+        "columns",
+        "input_values",
+        "normalized_values",
+        "column_meaning_confirmations",
+        "column_evidence",
+        "declared_data_sources",
+    ):
+        canonical_only.pop(alias, None)
+
+    out = build_bridge(ingestion_output=canonical_only)
+
+    assert out["status"] == STATUS_READY
+    assert out["column_candidate_count"] == len(canonical_only["column_refs"])
+    assert all(candidate.sample_values for candidate in out["column_candidates"])
 
 
 def test_produces_10_semantic_candidates(case_001_ingestion_output: dict) -> None:
@@ -188,13 +211,17 @@ def test_block_ingestion_runtime_authorized_true(case_001_ingestion_output: dict
 
 
 def test_block_no_columns() -> None:
-    out = build_bridge(ingestion_output={"input_values": {"a": 1}})
+    out = build_bridge(ingestion_output={"column_refs": [], "normalized_tables": []})
     assert out["blocked_reason"] == BLOCK_NO_COLUMNS
     _assert_safety_flags_false(out)
 
 
 def test_missing_column_refs_fails_closed_without_sheet_fallback() -> None:
-    out = build_bridge(ingestion_output={"columns": ["a", "b"]})
+    out = build_bridge(
+        ingestion_output={
+            "column_refs": [{"field_id": "a"}, {"field_id": "b"}],
+        }
+    )
 
     assert out["status"] == "BLOCKED"
     assert out["blocked_reason"] == BLOCK_COLUMN_REFS_REQUIRED
@@ -204,8 +231,10 @@ def test_missing_column_refs_fails_closed_without_sheet_fallback() -> None:
 def test_block_duplicate_columns() -> None:
     out = build_bridge(
         ingestion_output={
-            "columns": ["a", "a"],
-            "input_values": {"a": 1},
+            "column_refs": [
+                {"field_id": "a", "question_id": "q1", "sheet_name": "Ventas", "column_name": "a"},
+                {"field_id": "a", "question_id": "q2", "sheet_name": "Ventas", "column_name": "a"},
+            ],
         }
     )
     assert out["blocked_reason"] == BLOCK_DUPLICATE_COLUMNS
@@ -215,8 +244,10 @@ def test_block_duplicate_columns() -> None:
 def test_block_columns_values_mismatch() -> None:
     out = build_bridge(
         ingestion_output={
-            "columns": ["a", "b"],
-            "input_values": {"a": 1},
+            "column_refs": [
+                {"field_id": "a", "question_id": "q1", "sheet_name": "Ventas", "column_name": "a", "owner_meaning": 1},
+                {"field_id": "b", "question_id": "q2", "sheet_name": "Ventas", "column_name": "b"},
+            ],
         }
     )
     assert out["blocked_reason"] == BLOCK_COLUMNS_VALUES_MISMATCH

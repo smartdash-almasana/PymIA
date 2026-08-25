@@ -15,20 +15,187 @@
     "Deletion requires zero productive callers and passing focal plus neighboring regression tests."
   ],
   "counts": {
-    "PRODUCTIVE": 49,
-    "SUPPORT_NECESSARY": 52
+    "EXPERIMENTAL_FROZEN": 1,
+    "PRODUCTIVE": 63,
+    "SUPPORT_NECESSARY": 47
   },
-  "total_modules": 101,
+  "total_modules": 111,
   "modules": [
+    {
+      "module": "service_1_accounting_contracts_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_xlsx_delivery_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_analysis_evidence_preparation_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_plan_v1",
+        "service_1_computability_v1",
+        "service_1_variable_family_bindings_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_analysis_math_execution_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_evidence_preparation_v1",
+        "service_1_analysis_plan_v1",
+        "service_1_computability_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_analysis_plan_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_analysis_result_projection_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_evidence_preparation_v1",
+        "service_1_analysis_math_execution_v1",
+        "service_1_analysis_plan_v1",
+        "service_1_variable_family_bindings_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_assisted_semantic_product_wiring_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_capability_registry_v1",
+        "service_1_computability_v1",
+        "service_1_derived_evidence_v1",
+        "service_1_llm_semantic_contract_v1",
+        "service_1_llm_semantic_interpreter_v1",
+        "service_1_owner_semantic_answer_projection_v1",
+        "service_1_owner_semantic_dialogue_v1",
+        "service_1_owner_semantic_evidence_reentry_v1",
+        "service_1_semantic_proposal_validator_v1",
+        "service_1_table_scoped_semantic_context_v1",
+        "service_1_variable_family_bindings_v1",
+        "service_1_workbook_profiler_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_assisted_web_semantic_reception_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_assisted_semantic_product_wiring_v1",
+        "service_1_assisted_web_v1",
+        "service_1_computability_v1",
+        "service_1_dynamic_analysis_discovery_v1",
+        "service_1_product_execution_contracts_v1",
+        "service_1_product_pipeline_v1",
+        "service_1_pydantic_ai_column_semantic_provider_v1",
+        "service_1_result_memory_v1",
+        "service_1_result_read_boundary_v1",
+        "service_1_ui_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_assisted_web_tenant_wiring_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_tenant_confirmation_persistence_wiring_v1",
+        "service_1_tenant_identity_contract_v1",
+        "service_1_tenant_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_assisted_web_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_assisted_web_tenant_wiring_v1",
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_column_understanding_engine_v1",
+        "service_1_consorcios_radar_owner_policy_wiring_v1",
+        "service_1_consorcios_radar_plug_v1",
+        "service_1_deterministic_semantic_proposal_provider_v1",
+        "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
+        "service_1_owner_unit_confirmation_event_v1",
+        "service_1_product_execution_contracts_v1",
+        "service_1_product_pipeline_v1",
+        "service_1_radar_supabase_persistence_v1",
+        "service_1_reconciliation_human_review_decision_v1",
+        "service_1_reconciliation_request_gate_v1",
+        "service_1_reconciliation_workpaper_xlsx_v1",
+        "service_1_structural_compatibility_v1",
+        "service_1_supabase_identity_resolver_v1",
+        "service_1_supabase_persistence_v1",
+        "service_1_ui_v1",
+        "service_1_web_column_confirmation_intake_boundary_v1",
+        "service_1_workbook_profiler_v1"
+      ],
+      "canonical_root_reachable": false
+    },
     {
       "module": "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
         "service_1_column_understanding_engine_v1",
         "service_1_column_understanding_owner_question_adapter_v1",
+        "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
         "service_1_semantic_evidence_binding_contracts_v1"
       ],
       "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_canonical_ingestion_to_region_evidence_adapter_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_region_evidence_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_capability_contracts_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_capability_registry_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_column_understanding_canonical_gap_audit_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_corpus_evaluation_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_column_understanding_engine_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_corpus_report_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1"
+      ],
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_column_understanding_engine_contract_v1",
@@ -48,51 +215,142 @@
       "module": "service_1_column_understanding_owner_question_adapter_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
-        "service_1_column_understanding_engine_contract_v1"
+        "service_1_column_understanding_engine_contract_v1",
+        "service_1_column_understanding_engine_v1"
       ],
       "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_column_understanding_owner_question_corpus_audit_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1",
+        "service_1_column_understanding_engine_v1",
+        "service_1_column_understanding_owner_question_adapter_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_column_understanding_owner_question_semantic_audit_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_column_understanding_corpus_evaluation_v1",
+        "service_1_column_understanding_engine_v1",
+        "service_1_column_understanding_owner_question_adapter_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_computability_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_plan_v1",
+        "service_1_capability_registry_v1",
+        "service_1_derived_evidence_v1",
+        "service_1_p6_approval_decision_v1",
+        "service_1_semantic_catalog_loader_v1",
+        "service_1_structural_compatibility_v1",
+        "service_1_variable_family_bindings_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_consorcios_collection_aging_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_consorcios_expense_variance_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_consorcios_radar_owner_policy_wiring_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_consorcios_radar_plug_v1",
+        "service_1_radar_engine_v1",
+        "service_1_radar_observation_policy_v1",
+        "service_1_tenant_identity_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_consorcios_radar_plug_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_radar_observable_v1"
+      ],
+      "canonical_root_reachable": false
     },
     {
       "module": "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
+        "service_1_column_understanding_owner_question_adapter_v1",
         "service_1_owner_confirmation_event_v1",
         "service_1_semantic_bridge_to_controlled_execution_gate_v1"
       ],
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_computability_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_semantic_catalog_loader_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_deterministic_semantic_pipeline_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
-        "service_1_computability_v1",
-        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
-        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
-        "service_1_semantic_bridge_to_controlled_execution_gate_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_legacy_semantic_reentry_compat_v1",
+      "module": "service_1_csv_to_normalized_table_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
-        "service_1_deterministic_semantic_pipeline_v1"
+        "service_1_normalized_table_v1"
       ],
       "canonical_root_reachable": false
     },
     {
+      "module": "service_1_derived_evidence_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_owner_unit_confirmation_event_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_deterministic_semantic_proposal_provider_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_derived_evidence_v1",
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_dynamic_analysis_discovery_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_plan_v1",
+        "service_1_computability_v1",
+        "service_1_p6_approval_decision_v1",
+        "service_1_variable_family_bindings_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_generic_capability_engine_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_capability_contracts_v1",
+        "service_1_capability_registry_v1",
+        "service_1_computability_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
       "module": "service_1_liq_001_evaluator_v1",
       "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
+      ],
       "canonical_root_reachable": true
     },
     {
@@ -105,274 +363,11 @@
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_manual_first_aid_delivery_flow_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_owner_confirmation_event_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_p6_approval_decision_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_semantic_evidence_binding_contracts_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
-        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
-        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
-        "service_1_semantic_evidence_binding_contracts_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_pipeline_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_manual_first_aid_delivery_flow_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_product_pipeline_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_analysis_evidence_preparation_v1",
-        "service_1_analysis_math_execution_v1",
-        "service_1_analysis_result_projection_v1",
-        "service_1_assisted_semantic_product_wiring_v1",
-        "service_1_capability_registry_v1",
-        "service_1_computability_v1",
-        "service_1_consorcios_collection_aging_v1",
-        "service_1_consorcios_expense_variance_v1",
-        "service_1_deterministic_semantic_pipeline_v1",
-        "service_1_derived_evidence_v1",
-        "service_1_dynamic_analysis_discovery_v1",
-        "service_1_generic_capability_engine_v1",
-        "service_1_liq_001_evaluator_v1",
-        "service_1_liq_001_outcome_v1",
-        "service_1_pipeline_v1",
-        "service_1_reconciliation_product_request_v1",
-        "service_1_result_memory_v1",
-        "service_1_result_memory_wiring_v1",
-        "service_1_ren_001_evaluator_v1",
-        "service_1_ren_001_normalized_evidence_v1",
-        "service_1_ren_001_outcome_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_semantic_bridge_to_controlled_execution_gate_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_p6_approval_decision_v1",
-        "service_1_semantic_evidence_binding_contracts_v1",
-        "service_1_variable_family_bindings_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_semantic_catalog_loader_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_semantic_evidence_binding_contracts_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_semantic_evidence_binding_engine_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_semantic_catalog_loader_v1",
-        "service_1_semantic_evidence_binding_contracts_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_variable_family_bindings_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_semantic_evidence_binding_contracts_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_xlsx_delivery_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_accounting_contracts_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_understanding_canonical_gap_audit_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_understanding_corpus_evaluation_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_understanding_corpus_report_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_understanding_owner_question_corpus_audit_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_column_understanding_owner_question_semantic_audit_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_csv_to_normalized_table_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_normalized_table_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_reconciliation_candidate_to_assisted_review_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_reconciliation_request_gate_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_reconciliation_product_request_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_reconciliation_candidate_to_assisted_review_v1",
-        "service_1_reconciliation_request_gate_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_reconciliation_request_gate_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_post_tool_owner_delivery_summary_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_ren_001_evaluator_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_semantic_concept_catalog_candidate_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_semantic_concept_catalog_contract_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_semantic_concept_catalog_readiness_gate_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_stock_movement_evidence_packet_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_stock_movement_semantic_contract_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_taskspec_vocabulary_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_web_column_confirmation_intake_boundary_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_xlsx_to_normalized_table_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_ren_001_normalized_evidence_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_ren_001_evaluator_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_ren_001_outcome_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_ren_001_evaluator_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
       "module": "service_1_liq_002_evaluator_v1",
       "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
+      ],
       "canonical_root_reachable": false
     },
     {
@@ -392,9 +387,202 @@
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_pyme_011_evaluator_v1",
+      "module": "service_1_llm_semantic_contract_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_workbook_profiler_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_llm_semantic_interpreter_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_logical_relationship_graph_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_owner_relationship_confirmation_event_v1",
+        "service_1_structural_compatibility_v1",
+        "service_1_workbook_schema_identity_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_logical_table_candidate_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_structural_compatibility_v1",
+        "service_1_workbook_profiler_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_manual_first_aid_delivery_flow_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_normalized_table_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_confirmation_event_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+        "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_web_column_confirmation_intake_boundary_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_relationship_confirmation_event_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_structural_compatibility_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_semantic_answer_projection_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_owner_confirmation_event_v1",
+        "service_1_owner_relationship_confirmation_event_v1",
+        "service_1_owner_semantic_dialogue_v1",
+        "service_1_semantic_proposal_validator_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_semantic_dialogue_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_semantic_proposal_validator_v1",
+        "service_1_table_scoped_semantic_context_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_semantic_evidence_reentry_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
+        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
+        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
+        "service_1_owner_semantic_answer_projection_v1",
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_owner_unit_confirmation_event_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_p6_approval_decision_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_physical_region_detection_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_region_physical_evidence_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_pipeline_v1",
+      "disposition": "EXPERIMENTAL_FROZEN",
+      "imports_service_1": [
+        "service_1_manual_first_aid_delivery_flow_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_post_tool_owner_delivery_summary_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_product_execution_contracts_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_product_pipeline_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_evidence_preparation_v1",
+        "service_1_analysis_math_execution_v1",
+        "service_1_analysis_result_projection_v1",
+        "service_1_assisted_semantic_product_wiring_v1",
+        "service_1_capability_registry_v1",
+        "service_1_computability_v1",
+        "service_1_consorcios_collection_aging_v1",
+        "service_1_consorcios_expense_variance_v1",
+        "service_1_derived_evidence_v1",
+        "service_1_dynamic_analysis_discovery_v1",
+        "service_1_generic_capability_engine_v1",
+        "service_1_liq_001_evaluator_v1",
+        "service_1_liq_001_outcome_v1",
+        "service_1_product_execution_contracts_v1",
+        "service_1_reconciliation_product_request_v1",
+        "service_1_ren_001_evaluator_v1",
+        "service_1_ren_001_normalized_evidence_v1",
+        "service_1_ren_001_outcome_v1",
+        "service_1_result_memory_v1",
+        "service_1_result_memory_wiring_v1",
+        "service_1_workbook_logical_model_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_pydantic_ai_column_semantic_provider_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_deterministic_semantic_proposal_provider_v1",
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_pyme_011_evaluator_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
+      ],
       "canonical_root_reachable": false
     },
     {
@@ -410,120 +598,6 @@
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
         "service_1_pyme_011_evaluator_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_capability_contracts_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_capability_registry_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_capability_contracts_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_generic_capability_engine_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_capability_contracts_v1",
-        "service_1_capability_registry_v1",
-        "service_1_computability_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_reconciliation_human_review_decision_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_reconciliation_workpaper_xlsx_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_reconciliation_request_gate_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_assisted_web_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_deterministic_semantic_proposal_provider_v1",
-        "service_1_owner_confirmation_to_canonical_ingestion_output_v1",
-        "service_1_owner_unit_confirmation_event_v1",
-        "service_1_product_pipeline_v1",
-        "service_1_structural_compatibility_v1",
-        "service_1_reconciliation_human_review_decision_v1",
-        "service_1_reconciliation_workpaper_xlsx_v1",
-        "service_1_web_column_confirmation_intake_boundary_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_region_physical_evidence_contracts_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_canonical_ingestion_to_region_evidence_adapter_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_region_physical_evidence_contracts_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_xlsx_quality_gate_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_assisted_web_tenant_wiring_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_tenant_confirmation_persistence_wiring_v1",
-        "service_1_tenant_identity_contract_v1",
-        "service_1_tenant_semantic_contract_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_consorcios_collection_aging_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_consorcios_expense_variance_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_consorcios_radar_owner_policy_wiring_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_consorcios_radar_plug_v1",
-        "service_1_radar_engine_v1",
-        "service_1_radar_observation_policy_v1",
-        "service_1_tenant_identity_contract_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_consorcios_radar_plug_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_radar_observable_v1"
       ],
       "canonical_root_reachable": false
     },
@@ -560,6 +634,208 @@
       "canonical_root_reachable": false
     },
     {
+      "module": "service_1_reconciliation_candidate_to_assisted_review_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_reconciliation_request_gate_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_reconciliation_human_review_decision_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_reconciliation_product_request_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_reconciliation_candidate_to_assisted_review_v1",
+        "service_1_reconciliation_request_gate_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_reconciliation_request_gate_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_reconciliation_workpaper_xlsx_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_reconciliation_request_gate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_region_evidence_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_physical_region_detection_v1",
+        "service_1_region_physical_evidence_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_region_physical_evidence_contracts_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_ren_001_evaluator_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_capability_contracts_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_ren_001_normalized_evidence_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_derived_evidence_v1",
+        "service_1_ren_001_evaluator_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_ren_001_outcome_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_ren_001_evaluator_v1",
+        "service_1_xlsx_delivery_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_result_memory_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_math_execution_v1",
+        "service_1_analysis_result_projection_v1",
+        "service_1_computability_v1",
+        "service_1_tenant_identity_contract_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_result_memory_wiring_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_analysis_result_projection_v1",
+        "service_1_computability_v1",
+        "service_1_result_memory_v1",
+        "service_1_tenant_identity_contract_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_result_read_boundary_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_result_memory_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_bridge_to_controlled_execution_gate_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_p6_approval_decision_v1",
+        "service_1_semantic_evidence_binding_contracts_v1",
+        "service_1_variable_family_bindings_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_semantic_catalog_loader_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_semantic_concept_catalog_candidate_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_semantic_concept_catalog_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_concept_catalog_contract_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_concept_catalog_readiness_gate_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_semantic_concept_catalog_candidate_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_evidence_binding_contracts_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_semantic_evidence_binding_engine_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_semantic_catalog_loader_v1",
+        "service_1_semantic_evidence_binding_contracts_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_semantic_proposal_validator_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_llm_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_semantic_reception_server_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_assisted_web_semantic_reception_v1",
+        "service_1_radar_supabase_persistence_v1",
+        "service_1_supabase_identity_resolver_v1",
+        "service_1_supabase_persistence_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_stock_movement_evidence_packet_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_stock_movement_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_stock_movement_semantic_contract_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_structural_compatibility_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_workbook_profiler_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
       "module": "service_1_supabase_identity_resolver_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [],
@@ -570,8 +846,23 @@
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
         "service_1_owner_confirmation_event_v1",
+        "service_1_result_memory_v1",
         "service_1_tenant_semantic_contract_v1"
       ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_table_scoped_semantic_context_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_structural_compatibility_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_taskspec_vocabulary_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [],
       "canonical_root_reachable": false
     },
     {
@@ -594,14 +885,41 @@
     },
     {
       "module": "service_1_tenant_identity_contract_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_tenant_memory_artifact_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [],
       "canonical_root_reachable": false
     },
     {
+      "module": "service_1_tenant_schema_family_memory_store_v1",
+      "disposition": "SUPPORT_NECESSARY",
+      "imports_service_1": [
+        "service_1_tenant_memory_artifact_v1",
+        "service_1_tenant_schema_family_memory_v1",
+        "service_1_tenant_semantic_contract_v1"
+      ],
+      "canonical_root_reachable": false
+    },
+    {
+      "module": "service_1_tenant_schema_family_memory_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_structural_compatibility_v1",
+        "service_1_workbook_schema_identity_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
       "module": "service_1_tenant_semantic_contract_store_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
+        "service_1_tenant_memory_artifact_v1",
+        "service_1_tenant_schema_family_memory_v1",
         "service_1_tenant_semantic_contract_v1"
       ],
       "canonical_root_reachable": false
@@ -610,91 +928,46 @@
       "module": "service_1_tenant_semantic_contract_v1",
       "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [
-        "service_1_owner_confirmation_event_v1"
+        "service_1_owner_confirmation_event_v1",
+        "service_1_structural_compatibility_v1"
       ],
       "canonical_root_reachable": false
     },
     {
-      "module": "service_1_assisted_semantic_product_wiring_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
-        "service_1_capability_registry_v1",
-        "service_1_derived_evidence_v1",
-        "service_1_deterministic_semantic_pipeline_v1",
-        "service_1_llm_semantic_contract_v1",
-        "service_1_llm_semantic_interpreter_v1",
-        "service_1_owner_semantic_answer_projection_v1",
-        "service_1_owner_semantic_dialogue_v1",
-        "service_1_owner_semantic_evidence_reentry_v1",
-        "service_1_semantic_proposal_validator_v1",
-        "service_1_variable_family_bindings_v1",
-        "service_1_workbook_profiler_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_derived_evidence_v1",
-      "disposition": "PRODUCTIVE",
+      "module": "service_1_ui_v1",
+      "disposition": "SUPPORT_NECESSARY",
       "imports_service_1": [],
-      "canonical_root_reachable": true
+      "canonical_root_reachable": false
     },
     {
-      "module": "service_1_llm_semantic_contract_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_llm_semantic_interpreter_v1",
+      "module": "service_1_variable_family_bindings_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
-        "service_1_llm_semantic_contract_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_owner_relationship_confirmation_event_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_owner_semantic_answer_projection_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_owner_confirmation_event_v1",
-        "service_1_owner_relationship_confirmation_event_v1",
-        "service_1_owner_semantic_dialogue_v1",
-        "service_1_semantic_proposal_validator_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_owner_semantic_dialogue_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_semantic_proposal_validator_v1"
-      ],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_owner_semantic_evidence_reentry_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [
-        "service_1_canonical_ingestion_output_to_semantic_bridge_v1",
-        "service_1_controlled_execution_candidate_to_owner_confirmation_loop_v1",
-        "service_1_owner_confirmation_reinjection_to_semantic_gate_v1",
-        "service_1_owner_semantic_answer_projection_v1",
+        "service_1_analysis_plan_v1",
+        "service_1_p6_approval_decision_v1",
         "service_1_semantic_evidence_binding_contracts_v1"
       ],
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_semantic_proposal_validator_v1",
+      "module": "service_1_web_column_confirmation_intake_boundary_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
-        "service_1_llm_semantic_contract_v1"
+        "service_1_xlsx_to_normalized_table_v1"
+      ],
+      "canonical_root_reachable": true
+    },
+    {
+      "module": "service_1_workbook_logical_model_v1",
+      "disposition": "PRODUCTIVE",
+      "imports_service_1": [
+        "service_1_logical_relationship_graph_v1",
+        "service_1_logical_table_candidate_v1",
+        "service_1_region_evidence_v1",
+        "service_1_table_scoped_semantic_context_v1",
+        "service_1_tenant_schema_family_memory_v1",
+        "service_1_workbook_profiler_v1",
+        "service_1_workbook_schema_identity_v1"
       ],
       "canonical_root_reachable": true
     },
@@ -705,104 +978,34 @@
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_deterministic_semantic_proposal_provider_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_derived_evidence_v1",
-        "service_1_llm_semantic_contract_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_owner_unit_confirmation_event_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_structural_compatibility_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_workbook_profiler_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_analysis_plan_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_analysis_evidence_preparation_v1",
+      "module": "service_1_workbook_schema_identity_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
-        "service_1_analysis_plan_v1"
+        "service_1_structural_compatibility_v1"
       ],
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_analysis_math_execution_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_analysis_result_projection_v1",
-      "disposition": "PRODUCTIVE",
-      "imports_service_1": [],
-      "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_dynamic_analysis_discovery_v1",
+      "module": "service_1_xlsx_delivery_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
-        "service_1_analysis_plan_v1",
-        "service_1_computability_v1",
-        "service_1_p6_approval_decision_v1",
-        "service_1_variable_family_bindings_v1"
+        "service_1_xlsx_quality_gate_v1"
       ],
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_result_memory_v1",
+      "module": "service_1_xlsx_quality_gate_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [],
       "canonical_root_reachable": true
     },
     {
-      "module": "service_1_result_memory_wiring_v1",
+      "module": "service_1_xlsx_to_normalized_table_v1",
       "disposition": "PRODUCTIVE",
       "imports_service_1": [
-        "service_1_result_memory_v1"
+        "service_1_normalized_table_v1"
       ],
       "canonical_root_reachable": true
-    },
-    {
-      "module": "service_1_assisted_web_semantic_reception_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_pydantic_ai_column_semantic_provider_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [
-        "service_1_llm_semantic_contract_v1"
-      ],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_semantic_reception_server_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
-    },
-    {
-      "module": "service_1_ui_v1",
-      "disposition": "SUPPORT_NECESSARY",
-      "imports_service_1": [],
-      "canonical_root_reachable": false
     }
   ]
 }

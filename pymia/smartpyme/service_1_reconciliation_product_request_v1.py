@@ -55,7 +55,7 @@ _SAFETY_FLAGS: Final[tuple[str, ...]] = (
 
 def build_service_1_reconciliation_product_request_v1(
     *,
-    reconciliation_request: Mapping[str, Any],
+    request: Mapping[str, Any],
     runtime_authorized: bool = False,
     tool_execution_authorized: bool = False,
     product_ready: bool = False,
@@ -73,16 +73,16 @@ def build_service_1_reconciliation_product_request_v1(
         )
     ):
         return _blocked(reason="REQUEST_SAFETY_FLAGS_FORBIDDEN")
-    if not isinstance(reconciliation_request, Mapping) or not reconciliation_request:
+    if not isinstance(request, Mapping) or not request:
         return _blocked(reason="RECONCILIATION_REQUEST_REQUIRED")
-    if any(reconciliation_request.get(flag) is True for flag in _SAFETY_FLAGS):
+    if any(request.get(flag) is True for flag in _SAFETY_FLAGS):
         return _blocked(reason="RECONCILIATION_REQUEST_SAFETY_FLAGS_FORBIDDEN")
 
-    case_id = _text(reconciliation_request.get("case_id"))
+    case_id = _text(request.get("case_id"))
     reconciliation_type = _text(
-        reconciliation_request.get("reconciliation_type")
+        request.get("reconciliation_type")
     )
-    source_packets = reconciliation_request.get("source_packets")
+    source_packets = request.get("source_packets")
     if not isinstance(source_packets, Sequence) or isinstance(
         source_packets, (str, bytes)
     ):
@@ -92,7 +92,7 @@ def build_service_1_reconciliation_product_request_v1(
             reconciliation_type=reconciliation_type,
         )
 
-    options = reconciliation_request.get("options")
+    options = request.get("options")
     if options is not None and not isinstance(options, Mapping):
         return _blocked(
             reason="OPTIONS_MUST_BE_A_MAPPING",
@@ -102,7 +102,7 @@ def build_service_1_reconciliation_product_request_v1(
 
     gate_packet = build_service_1_reconciliation_request_gate_v1(
         case_id=case_id,
-        owner_requested=reconciliation_request.get("owner_requested") is True,
+        owner_requested=request.get("owner_requested") is True,
         reconciliation_type=reconciliation_type,
         source_packets=source_packets,
     )

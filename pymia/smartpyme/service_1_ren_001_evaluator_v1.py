@@ -9,6 +9,11 @@ from decimal import Decimal, InvalidOperation
 from typing import Final
 
 from pymia.contracts.formula_contract import FormulaInput, FormulaStatus, calculate_formula
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    ClassificationPredicate,
+    ClassificationRule,
+    classify_classification_rules,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_REN_001_EVALUATION_V1"
 PATHOLOGY_CODE: Final[str] = "REN_001"
@@ -27,6 +32,20 @@ _REQUIRED_VARIABLES: Final[tuple[str, str, str]] = (
     "sale_price",
     "costs",
     "taxes",
+)
+_CLASSIFICATION_RULES: Final[tuple[ClassificationRule, ...]] = (
+    ClassificationRule(
+        CLASS_POSITIVE_MARGIN,
+        predicates=(ClassificationPredicate("net_margin_amount", "GT", literal=Decimal("0")),),
+    ),
+    ClassificationRule(
+        CLASS_BREAK_EVEN,
+        predicates=(ClassificationPredicate("net_margin_amount", "EQ", literal=Decimal("0")),),
+    ),
+    ClassificationRule(
+        CLASS_NEGATIVE_MARGIN,
+        predicates=(ClassificationPredicate("net_margin_amount", "LT", literal=Decimal("0")),),
+    ),
 )
 
 
@@ -114,12 +133,18 @@ def evaluate_ren_001_v1(
     margin_percentage = float(metadata["net_margin_percentage"])
     total_outflows = float(metadata["total_outflows"])
 
-    if margin_amount > 0:
-        classification = CLASS_POSITIVE_MARGIN
-    elif margin_amount == 0:
-        classification = CLASS_BREAK_EVEN
-    else:
-        classification = CLASS_NEGATIVE_MARGIN
+    classification = classify_classification_rules(
+        _CLASSIFICATION_RULES,
+        result=margin_percentage,
+        derived_values={"net_margin_amount": margin_amount},
+    )
+    if classification is None:
+        return _packet(
+            status=STATUS_INVALID_INPUT,
+            classification=None,
+            inputs=normalized,
+            errors=["REN_001 classification policy did not match."],
+        )
 
     return _packet(
         status=STATUS_EVALUATED,

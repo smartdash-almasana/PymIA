@@ -10,6 +10,10 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
+from pymia.smartpyme.service_1_structural_compatibility_v1 import (
+    build_service_1_structural_digest_v1,
+)
+
 SCHEMA_VERSION = "SERVICE_1_OWNER_RELATIONSHIP_CONFIRMATION_EVENT_V1"
 
 
@@ -92,9 +96,30 @@ class Service1OwnerRelationshipConfirmationEventV1:
             right_column_ref=self.right_column_ref,
         )
 
+    @property
+    def owner_confirmation_event_ref(self) -> str:
+        """Return a deterministic event identity distinct from relationship/question refs."""
+        actor_ref = str(
+            self.provenance.get("owner_actor_ref")
+            or self.provenance.get("actor_ref")
+            or self.provenance.get("owner_actor_id")
+            or ""
+        ).strip()
+        payload = {
+            "contract": SCHEMA_VERSION,
+            "case_id": self.case_id,
+            "relationship_ref": self.relationship_ref,
+            "question_ref": self.question_ref,
+            "timestamp": self.timestamp,
+            "actor_ref": actor_ref,
+            "provenance": dict(self.provenance),
+        }
+        return build_service_1_structural_digest_v1(payload=payload, prefix="oce_")
+
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["relationship_ref"] = self.relationship_ref
+        payload["owner_confirmation_event_ref"] = self.owner_confirmation_event_ref
         payload["provenance"] = dict(self.provenance)
         payload.update(
             {
@@ -109,8 +134,11 @@ class Service1OwnerRelationshipConfirmationEventV1:
 
     def to_relationship_binding(self) -> dict[str, Any]:
         """Project owner-confirmed relationship evidence without granting join authority."""
+        binding_provenance = dict(self.provenance)
+        binding_provenance["owner_confirmation_event_ref"] = self.owner_confirmation_event_ref
         return {
             "relationship_ref": self.relationship_ref,
+            "owner_confirmation_event_ref": self.owner_confirmation_event_ref,
             "left_sheet_ref": self.left_sheet_ref,
             "left_column_ref": self.left_column_ref,
             "right_sheet_ref": self.right_sheet_ref,
@@ -118,7 +146,11 @@ class Service1OwnerRelationshipConfirmationEventV1:
             "relationship_kind": self.relationship_kind,
             "confirmed_by_owner": True,
             "question_ref": self.question_ref,
-            "provenance": dict(self.provenance),
+            "d4_graph_ref": str(self.provenance.get("d4_graph_ref") or "").strip() or None,
+            "schema_fingerprint": str(self.provenance.get("schema_fingerprint") or "").strip() or None,
+            "source_artifact_ref": str(self.provenance.get("source_artifact_ref") or "").strip() or None,
+            "workbook_ref": str(self.provenance.get("workbook_ref") or "").strip() or None,
+            "provenance": binding_provenance,
             "relationship_resolution_authorized": False,
             "join_execution_authorized": False,
             "runtime_authorized": False,
@@ -180,7 +212,22 @@ def build_service_1_owner_relationship_confirmation_event_v1(
     question_ref: str,
     timestamp: str | None = None,
     provenance: Mapping[str, Any] | None = None,
+    d4_graph_ref: str | None = None,
+    schema_fingerprint: str | None = None,
+    source_artifact_ref: str | None = None,
+    workbook_ref: str | None = None,
+    owner_actor_ref: str | None = None,
 ) -> Service1OwnerRelationshipConfirmationEventV1:
+    event_provenance = dict(provenance or {})
+    for key, value in (
+        ("d4_graph_ref", d4_graph_ref),
+        ("schema_fingerprint", schema_fingerprint),
+        ("source_artifact_ref", source_artifact_ref),
+        ("workbook_ref", workbook_ref),
+        ("owner_actor_ref", owner_actor_ref),
+    ):
+        if value is not None and str(value).strip():
+            event_provenance[key] = str(value).strip()
     return Service1OwnerRelationshipConfirmationEventV1(
         case_id=str(case_id or "").strip(),
         file_ref=str(file_ref).strip() if file_ref is not None else None,
@@ -193,7 +240,7 @@ def build_service_1_owner_relationship_confirmation_event_v1(
         confirmed_by_owner=True,
         question_ref=str(question_ref or "").strip(),
         timestamp=timestamp or datetime.now(timezone.utc).isoformat(),
-        provenance=dict(provenance or {}),
+        provenance=event_provenance,
     )
 
 

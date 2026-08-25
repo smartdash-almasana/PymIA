@@ -51,8 +51,12 @@ def build_service_1_region_evidence_from_canonical_ingestion_v1(
     if not isinstance(tables, list) or not tables:
         return _blocked("NORMALIZED_TABLES_REQUIRED")
 
-    case_id = str(output.get("case_id") or canonical_packet.get("case_id") or "").strip()
-    file_ref = str(output.get("source_file_ref") or canonical_packet.get("filename") or "").strip()
+    workbook_context = output.get("workbook_context")
+    provenance = output.get("provenance")
+    if not isinstance(workbook_context, dict) or not isinstance(provenance, dict):
+        return _blocked("CANONICAL_IDENTITY_PROVENANCE_REQUIRED")
+    case_id = str(workbook_context.get("case_id") or "").strip()
+    file_ref = str(provenance.get("source_file_ref") or provenance.get("filename") or "").strip()
     if not case_id or not file_ref:
         return _blocked("CASE_AND_FILE_REF_REQUIRED")
 

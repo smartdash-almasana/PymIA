@@ -245,6 +245,36 @@ def build_service_1_logical_relationship_graph_v1(
         payload=graph_payload,
         prefix="lrg_",
     )
+    schema_fingerprint = _schema_fingerprint(schema_identity)
+    workbook_ref = (
+        _schema_provenance_value(schema_identity, "workbook_ref")
+        or _first_candidate_value(candidates, "workbook_ref")
+    )
+    source_artifact_ref = _schema_provenance_value(schema_identity, "source_artifact_ref")
+    for relation in relationships:
+        event_ref = str(relation.get("owner_confirmation_event_ref") or "").strip() or None
+        relation["d4_graph_ref"] = graph_fingerprint
+        relation["graph_fingerprint"] = graph_fingerprint
+        relation["schema_fingerprint"] = schema_fingerprint
+        relation["source_artifact_ref"] = source_artifact_ref
+        relation["workbook_ref"] = workbook_ref
+        relation["relationship_kind"] = relation.get("cardinality")
+        relation["fanout_evidence"] = {
+            "fanout_risk": relation.get("fanout_risk"),
+            "state": relation.get("state"),
+            "certificate_ref": str(fanout.get("certificate_ref") or "").strip() or None,
+        }
+        relation["owner_confirmation_event_ref"] = event_ref
+        relation["provenance"].update(
+            {
+                "d4_graph_ref": graph_fingerprint,
+                "graph_fingerprint": graph_fingerprint,
+                "schema_fingerprint": schema_fingerprint,
+                "source_artifact_ref": source_artifact_ref,
+                "workbook_ref": workbook_ref,
+                "owner_confirmation_event_ref": event_ref,
+            }
+        )
     graph = Service1LogicalRelationshipGraphV1(
         graph_ref=graph_fingerprint,
         graph_fingerprint=graph_fingerprint,
@@ -255,6 +285,9 @@ def build_service_1_logical_relationship_graph_v1(
         provenance={
             "contract": SCHEMA_VERSION,
             "schema_fingerprint": _schema_fingerprint(schema_identity),
+            "source_artifact_ref": source_artifact_ref,
+            "workbook_ref": workbook_ref,
+            "graph_ref": graph_fingerprint,
             "evidence_only": True,
             "join_execution_authorized": False,
             "computability_authorized": False,
@@ -269,6 +302,9 @@ def build_service_1_logical_relationship_graph_v1(
         "blocked_reason": None,
         "graph_ref": graph.graph_ref,
         "graph_fingerprint": graph.graph_fingerprint,
+        "source_artifact_ref": source_artifact_ref,
+        "workbook_ref": workbook_ref,
+        "schema_fingerprint": schema_fingerprint,
         "nodes": list(graph.logical_table_refs),
         "logical_table_refs": list(graph.logical_table_refs),
         "relationships": list(graph.relationships),
@@ -390,15 +426,27 @@ def _build_relationship(
     right_ref = right_node["node_ref"] if right_node else "unresolved:right"
     left_column = _endpoint_column(left_endpoint)
     right_column = _endpoint_column(right_endpoint)
+    left_sheet, _ = _endpoint_sheet_column(left_endpoint)
+    right_sheet, _ = _endpoint_sheet_column(right_endpoint)
     return {
         "relationship_ref": relationship_ref,
         "left_logical_table_ref": left_ref,
         "right_logical_table_ref": right_ref,
         "left_key_refs": [f"{left_ref}.{left_column}"] if left_column else [],
         "right_key_refs": [f"{right_ref}.{right_column}"] if right_column else [],
+        "left_sheet_ref": left_sheet,
+        "left_column_ref": left_column,
+        "right_sheet_ref": right_sheet,
+        "right_column_ref": right_column,
         "cardinality": cardinality,
+        "relationship_kind": cardinality,
         "evidence_refs": list(dict.fromkeys(evidence_refs)),
         "owner_confirmation_ref": str(owner.get("relationship_ref")) if owner is not None else None,
+        "owner_confirmation_event_ref": (
+            str(owner.get("owner_confirmation_event_ref") or "").strip() or None
+            if owner is not None
+            else None
+        ),
         "state": state,
         "fanout_risk": FANOUT_UNRESOLVED if state != STATE_RESOLVED else (
             FANOUT_RISK if cardinality == CARDINALITY_MANY_TO_MANY else FANOUT_SAFE_LOOKUP
@@ -409,6 +457,11 @@ def _build_relationship(
             "physical_right_endpoint": right_endpoint,
             "blocked_reason": endpoint_error,
             "owner_confirmation_is_evidence_only": owner is not None,
+            "owner_confirmation_event_ref": (
+                str(owner.get("owner_confirmation_event_ref") or "").strip() or None
+                if owner is not None
+                else None
+            ),
             "join_execution_authorized": False,
         },
         "runtime_authorized": False,
@@ -600,6 +653,27 @@ def _schema_fingerprint(value: Mapping[str, Any] | WorkbookSchemaIdentityV1 | No
     if isinstance(value, WorkbookSchemaIdentityV1):
         return value.schema_fingerprint
     return str(value.get("schema_fingerprint") or "") or None
+
+
+def _schema_provenance_value(
+    value: Mapping[str, Any] | WorkbookSchemaIdentityV1 | None,
+    key: str,
+) -> str | None:
+    if value is None:
+        return None
+    provenance = value.provenance if isinstance(value, WorkbookSchemaIdentityV1) else value.get("provenance")
+    if not isinstance(provenance, Mapping):
+        return None
+    return str(provenance.get(key) or "").strip() or None
+
+
+def _first_candidate_value(candidates: Sequence[Mapping[str, Any]], key: str) -> str | None:
+    values = {
+        str(item.get(key) or "").strip()
+        for item in candidates
+        if str(item.get(key) or "").strip()
+    }
+    return next(iter(values)) if len(values) == 1 else None
 
 
 def _normalize_header(value: Any) -> str:

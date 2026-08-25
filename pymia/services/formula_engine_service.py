@@ -76,6 +76,12 @@ class FormulaEngineService:
             if len(values) != 2 or paired:
                 return self._math_blocked(item, refs, "SUBTRACT_REQUIRES_TWO_VALUES")
             return self._math_ok(item, values[0] - values[1], refs, value_count=2)
+        if operation is MathPrimitiveOperation.DIVIDE:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "DIVIDE_REQUIRES_NUMERATOR_AND_DENOMINATOR")
+            if values[1] == 0:
+                return self._math_blocked(item, refs, "DIVISION_BY_ZERO")
+            return self._math_ok(item, values[0] / values[1], refs, value_count=2)
         if operation is MathPrimitiveOperation.PERCENT_OF:
             if len(values) != 2 or paired:
                 return self._math_blocked(item, refs, "PERCENT_OF_REQUIRES_BASE_AND_PERCENT")
@@ -348,6 +354,22 @@ class FormulaEngineService:
                 source_refs,
             )
 
+        if formula_id in {
+            "CONSORCIOS_expense_variance_budget_pct",
+            "CONSORCIOS_expense_variance_historical_pct",
+        }:
+            return self._calculate_consorcios_variance_pct(
+                formula_id,
+                values,
+                source_refs,
+            )
+
+        if formula_id == "CONSORCIOS_collection_aging_periods":
+            return self._calculate_consorcios_collection_aging_periods(
+                values,
+                source_refs,
+            )
+
         return FormulaResult(
             formula_id=formula_id,
             status=FormulaStatus.BLOCKED,
@@ -512,6 +534,44 @@ class FormulaEngineService:
             )
 
         return self._ok(formula_id, ((own_price - market_price) / market_price) * 100, inputs, source_refs)
+
+    def _calculate_consorcios_variance_pct(
+        self,
+        formula_id: str,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        actual = inputs["actual"]
+        baseline = inputs["baseline"]
+        if baseline == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: baseline",
+            )
+        return self._ok(formula_id, ((actual / baseline) - 1) * 100, inputs, source_refs)
+
+    def _calculate_consorcios_collection_aging_periods(
+        self,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        formula_id = "CONSORCIOS_collection_aging_periods"
+        prior_balance = inputs["prior_balance"]
+        monthly_charge = inputs["monthly_charge"]
+        if monthly_charge == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: monthly_charge",
+            )
+        return self._ok(formula_id, prior_balance / monthly_charge, inputs, source_refs)
 
     def _collect_source_refs(self, inputs: list[FormulaInput]) -> list[str]:
         refs: list[str] = []

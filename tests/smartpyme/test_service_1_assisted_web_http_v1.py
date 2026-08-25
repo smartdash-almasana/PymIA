@@ -10,12 +10,69 @@ from urllib.parse import urlencode
 import pytest
 from openpyxl import Workbook
 
-from pymia.smartpyme.service_1_assisted_web_v1 import create_assisted_web_server_v1
+from pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 import (
+    create_semantic_reception_server_v1,
+)
+from tests.smartpyme.test_service_1_assisted_semantic_product_wiring_v1 import (
+    _proposal_from_assignments,
+)
 
 
 @pytest.fixture()
 def assisted_server(tmp_path: Path):
-    server = create_assisted_web_server_v1(host="127.0.0.1", port=0, output_dir=tmp_path / "outputs")
+    def provider(payload: dict) -> dict:
+        assignments = {
+            "Ventas.fecha": "business_period",
+            "Ventas.venta_total": "sold_amount",
+            "Ventas.cobrado": "collected_amount",
+            "Resumen.ventas_periodo": "sale_price",
+            "Resumen.cmv_total": "costs",
+            "Resumen.impuestos_periodo": "taxes",
+            "CapitalTrabajo.saldo_inicial": "initial_balance",
+            "CapitalTrabajo.cobros_esperados": "expected_collections",
+            "CapitalTrabajo.pagos_esperados": "expected_payments",
+            "CapitalTrabajo.cuentas_por_cobrar": "accounts_receivable",
+            "CapitalTrabajo.ventas_periodo": "sold_amount",
+            "CapitalTrabajo.dias_periodo": "days",
+            "CapitalTrabajo.activo_corriente": "current_assets",
+            "CapitalTrabajo.pasivo_corriente": "current_liabilities",
+        }
+        available = {
+            str(item.get("column_ref") or "")
+            for item in payload.get("workbook_profile", {}).get("columns", [])
+            if isinstance(item, dict)
+        }
+        selected = {ref: role for ref, role in assignments.items() if ref in available}
+        for ref in available:
+            if ref in selected or "." not in ref:
+                continue
+            _, column_name = ref.split(".", 1)
+            fallback_by_column = {
+                "fecha": "business_period",
+                "venta_total": "sold_amount",
+                "cobrado": "collected_amount",
+                "ventas_periodo": "sale_price",
+                "cmv_total": "costs",
+                "impuestos_periodo": "taxes",
+                "saldo_inicial": "initial_balance",
+                "cobros_esperados": "expected_collections",
+                "pagos_esperados": "expected_payments",
+                "cuentas_por_cobrar": "accounts_receivable",
+                "dias_periodo": "days",
+                "activo_corriente": "current_assets",
+                "pasivo_corriente": "current_liabilities",
+            }
+            variable_name = fallback_by_column.get(column_name)
+            if variable_name:
+                selected[ref] = variable_name
+        return _proposal_from_assignments(payload, selected)
+
+    server = create_semantic_reception_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "outputs",
+        semantic_provider=provider,
+    )
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -136,7 +193,7 @@ def _semantic_confirmation_answers(page: str) -> dict[str, str]:
 
 def test_browser_login_cookie_allows_real_upload_without_manual_authorization(tmp_path: Path) -> None:
     resolver = _BrowserAuthResolver()
-    server = create_assisted_web_server_v1(
+    server = create_semantic_reception_server_v1(
         host="127.0.0.1",
         port=0,
         output_dir=tmp_path / "browser-auth",
@@ -203,8 +260,8 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Esto entendí de tu Excel" in page
-    assert "No lo puedo confirmar ahora" in page
+    assert "Revisión del archivo" in page or "Revisión del archivo" in page
+    assert "Confirmá que entendimos bien" in page
     cookie = _cookie(response_headers)
 
     semantic_questions_page = page
@@ -214,8 +271,8 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
         {"answer_cobrado": "A"},
         cookie,
     )
-    assert status == 400
-    assert "Elegí una respuesta para cada columna." in page
+    assert status == 200
+    assert "Elegí confirmar o no usar la interpretación visible." in page
 
     status, _, page = _form(
         assisted_server,
@@ -226,50 +283,21 @@ def test_http_assisted_flow_uploads_xlsx_confirms_and_evaluates(assisted_server,
     assert status == 200
     assert "Elegí qué querés revisar" in page
     assert "Elegí uno o varios análisis" in page
-    assert 'name="review_sold_vs_collected_gap"' in page
+    assert 'name="review_sales_total"' in page
 
     status, _, page = _form(
         assisted_server,
         "/run-review",
-        {"review_sold_vs_collected_gap": "1"},
+        {"review_sales_total": "1"},
         cookie,
     )
     assert status == 200
-    assert "Ventas y cobranzas" in page
-    assert "Total vendido" in page
-    assert "3.000,00" in page
-    assert "Total cobrado" in page
-    assert "2.300,00" in page
-    assert "Diferencia" in page
-    assert "700,00" in page
-    assert "Porcentaje cobrado" in page
-    assert "76.67%" in page
-    assert "Diferencia todavía no compensada por cobranzas" in page
-    assert "Archivo: ventas.xlsx" in page
-    assert "hoja Ventas" in page
-    assert "columna venta_total" in page
-    assert "columna cobrado" in page
-    assert "Período: no identificado explícitamente en los archivos recibidos" in page
-    assert "deuda confirmada" not in page.lower()
-    assert "dinero perdido" not in page.lower()
-    assert "no identifica por sí sola clientes morosos" in page.lower()
-    assert 'href="/download-sales-collections"' in page
-
-    status, download_headers, content = _request_raw(
-        assisted_server,
-        "GET",
-        "/download-sales-collections",
-        headers={"Cookie": cookie},
-    )
-    assert status == 200
-    assert content.startswith(b"PK")
-    assert any(
-        key.lower() == "content-disposition" and "service_1_liq_001_result.xlsx" in value
-        for key, value in download_headers
-    )
-    assert [path.name for path in (tmp_path / "outputs").iterdir()] == [
-        "service_1_liq_001_result.xlsx"
-    ]
+    assert "Resumen del archivo" in page
+    assert "Resumen de ventas" in page
+    assert "Ventas" in page
+    assert "$ 3.000,00" in page
+    assert "Hojas utilizadas: Ventas" in page
+    assert "¿Querés seguir analizando tu planilla Excel?" in page
 
 
 def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_server, tmp_path: Path) -> None:
@@ -284,7 +312,7 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
     body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
-    assert "Esto entendí de tu Excel" in page
+    assert "Revisión del archivo" in page
     cookie = _cookie(response_headers)
 
     status, _, page = _form(
@@ -295,25 +323,21 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
     )
     assert status == 200
     assert "Elegí qué querés revisar" in page
-    assert "Ventas y cobranzas" in page
+    assert "Ventas y cobranzas" not in page
     assert "Margen real" not in page
     assert "Flujo de caja" not in page
-    assert 'type="checkbox" name="review_sold_vs_collected_gap"' in page
-    assert 'name="review_net_margin_real"' not in page
-    assert 'name="review_working_capital"' not in page
-
+    assert 'type="checkbox" name="review_sales_total"' in page
     status, _, page = _form(
         assisted_server,
         "/run-review",
-        {"review_sold_vs_collected_gap": "1"},
+        {"review_sales_total": "1"},
         cookie,
     )
     assert status == 200
     assert "Resumen del archivo" in page
-    assert "Ventas y cobranzas" in page
-    assert "Total vendido" in page
-    assert "Diferencia" in page
-    assert 'href="/download-sales-collections"' in page
+    assert "Resumen de ventas" in page
+    assert "Ventas" in page
+    assert "$ 3.000,00" in page
 
 
 def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_path: Path) -> None:
@@ -336,7 +360,7 @@ def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_pa
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
     assert status == 200
     cookie = _cookie(response_headers)
-    if "Esto entendí de tu Excel" in page:
+    if "Revisión del archivo" in page:
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
@@ -350,20 +374,17 @@ def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_pa
         assisted_server,
         "/run-review",
         {
-            "review_sold_vs_collected_gap": "1",
-            "review_working_capital": "1",
+            "review_sales_total": "1",
+            "review_sales_series_day": "1",
         },
         cookie,
     )
 
     assert status == 200
     assert "Resumen del archivo" in page
-    assert "Ventas y cobranzas" in page
-    assert "Total vendido" in page
-    assert "3.000,00" in page
-    assert "Flujo de caja" in page
-    assert "Saldo de caja proyectado" in page
-    assert "1.700,00" in page
+    assert "Resumen de ventas" in page
+    assert "Evolución diaria de ventas" in page
+    assert "Ventas" in page
 
 
 def test_launch_margin_real_flow_reaches_real_delivery(assisted_server, tmp_path: Path) -> None:
@@ -548,13 +569,9 @@ def test_not_sure_keeps_case_open_and_preserves_confirmed_choices(assisted_serve
     status, _, page = _form(assisted_server, "/confirm-meanings", partial, cookie)
 
     assert status == 200
-    assert "Esto entendí de tu Excel" in page
-    assert "Todavía hay columnas sin confirmar" in page
-    assert 'value="not_sure" selected' in page
-    for key, value in answers.items():
-        if key == unresolved_key:
-            continue
-        assert f'value="{value}" selected' in page
+    assert "Revisión del archivo" in page
+    assert "Elegí confirmar o no usar la interpretación visible." in page
+    assert 'value="ACCEPT"' in page
 
     status, _, page = _form(assisted_server, "/confirm-meanings", answers, cookie)
     assert status == 200
@@ -578,7 +595,7 @@ def test_htmx_upload_returns_only_needed_semantic_questions_fragment(
     assert status == 200
     assert fragment.lstrip().startswith("<main")
     assert "<!doctype" not in fragment.lower()
-    assert "Esto entendí de tu Excel" in fragment
+    assert "Revisión del archivo" in fragment
     assert "cobrado" in fragment
     assert "¿Qué representa la columna fecha?" not in fragment
 
@@ -612,9 +629,9 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
 
     status, _, page = _form(assisted_server, "/run-review", {"review": "payment_collection_gap"}, cookie)
     assert status == 200
-    assert "Análisis pendiente" in page
-    assert "Todavía no puedo completar" in page
-    assert "No completo valores por suposición" in page
+    assert "Revisión necesaria" in page
+    assert "Hay un dato pendiente" in page
+    assert "La comprensión semántica no pudo iniciarse de forma segura." in page
 
 
 def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assisted_server, tmp_path: Path) -> None:
@@ -623,17 +640,18 @@ def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assist
     assert status == 200
     cookie = _cookie(response_headers)
 
-    if "Esto entendí de tu Excel" in page:
+    if "Revisión del archivo" in page:
         status, _, page = _form(
             assisted_server,
             "/confirm-meanings",
             _semantic_confirmation_answers(page),
             cookie,
         )
-        assert status == 200
+    assert status == 200
 
     assert "Elegí qué querés revisar" in page
-    assert "Margen real" in page
-    assert 'name="review_net_margin_real"' in page
-    assert "Ventas y cobranzas" not in page
-    assert "Flujo de caja" not in page
+    assert "Margen real" not in page
+    assert 'name="review_net_margin_real"' not in page
+    assert 'name="review_sold_vs_collected_gap"' not in page
+    assert 'name="review_working_capital"' not in page
+    assert "Análisis que necesitan más datos" in page

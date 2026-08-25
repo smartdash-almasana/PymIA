@@ -298,16 +298,33 @@ def test_roles_include_operation_date_in_case_001(case_001_bridge_packet: dict) 
 def test_owner_question_surface_uses_safe_option_ids() -> None:
     bridge = build_bridge(
         ingestion_output={
-            "case_id": "case_safe_surface",
-            "source_kind": "xlsx",
-            "filename": "ambiguous.xlsx",
+            "workbook_context": {"case_id": "case_safe_surface"},
+            "provenance": {"source_kind": "xlsx", "filename": "ambiguous.xlsx"},
             "columns": ["valor"],
             "input_values": {"valor": "dato del negocio"},
+            "column_refs": [
+                {
+                    "field_id": "valor",
+                    "question_id": "valor",
+                    "sheet_name": "Ventas",
+                    "sheet_ref": "Ventas",
+                    "column_name": "valor",
+                    "normalized_column_name": "valor",
+                    "owner_meaning": "dato del negocio",
+                }
+            ],
+            "normalized_tables": [
+                {
+                    "sheet_name": "Ventas",
+                    "headers": ["valor"],
+                    "normalized_headers": ["valor"],
+                    "rows": [{"valor": 100}, {"valor": 200}],
+                }
+            ],
             "column_evidence": {
                 "valor": {"sample_values": [100, 200], "inferred_type": "number"}
             },
         },
-        sheet_name="Ventas",
     )
 
     out = build_gate(semantic_bridge_packet=bridge)

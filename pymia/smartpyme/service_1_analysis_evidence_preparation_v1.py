@@ -17,7 +17,10 @@ from pymia.smartpyme.service_1_analysis_plan_v1 import (
     Service1AnalysisFilterV1,
     Service1AnalysisPlanV1,
 )
-from pymia.smartpyme.service_1_computability_v1 import Service1GovernedAnalysisInputV1
+from pymia.smartpyme.service_1_computability_v1 import (
+    Service1GovernedAnalysisInputV1,
+    Service1GovernedRelationshipBindingV1,
+)
 from pymia.smartpyme.service_1_variable_family_bindings_v1 import Service1GrainV1
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_ANALYSIS_EVIDENCE_PREPARATION_V1"
@@ -309,6 +312,7 @@ def build_service_1_analysis_evidence_preparation_v1(
     case_id: str,
     governed_analysis_input: Service1GovernedAnalysisInputV1,
     ingestion_output: Mapping[str, Any],
+    d7_workbook_logical_model: Mapping[str, Any] | None = None,
 ) -> Service1EvidencePreparationDecisionV1:
     """Prepare row-level evidence for later F8 execution without calculating results."""
     case = str(case_id or "").strip()
@@ -323,7 +327,17 @@ def build_service_1_analysis_evidence_preparation_v1(
         raise TypeError("ingestion_output must be a mapping")
     if any(bool(ingestion_output.get(flag)) for flag in _AUTHORITY_FLAGS):
         return _decision(case, plan.analysis_id, STATUS_BLOCKED, "INGESTION_AUTHORITY_FORBIDDEN")
-    ingestion_case = str(ingestion_output.get("case_id") or "").strip()
+    workbook_context = ingestion_output.get("workbook_context")
+    if (
+        ingestion_output.get("schema_version") == "SERVICE_1_CANONICAL_INGESTION_OUTPUT_V2"
+        and not isinstance(workbook_context, Mapping)
+    ):
+        return _decision(case, plan.analysis_id, STATUS_BLOCKED, "WORKBOOK_CONTEXT_REQUIRED")
+    ingestion_case = (
+        str(workbook_context.get("case_id") or "").strip()
+        if isinstance(workbook_context, Mapping)
+        else ""
+    )
     if ingestion_case and ingestion_case != case:
         return _decision(case, plan.analysis_id, STATUS_BLOCKED, "INGESTION_CASE_MISMATCH")
 
@@ -332,7 +346,12 @@ def build_service_1_analysis_evidence_preparation_v1(
         return _decision(case, plan.analysis_id, STATUS_BLOCKED, table_error)
 
     relationships = dict(governed_analysis_input.relationship_bindings)
-    relation_error = _validate_relationship_bindings(relationships)
+    relation_error = _validate_relationship_bindings(
+        relationships,
+        governed_analysis_input=governed_analysis_input,
+        ingestion_output=ingestion_output,
+        d7_workbook_logical_model=d7_workbook_logical_model,
+    )
     if relation_error is not None:
         return _decision(case, plan.analysis_id, STATUS_BLOCKED, relation_error)
 
@@ -450,6 +469,13 @@ def build_service_1_analysis_evidence_preparation_v1(
             "ranking_performed": False,
             "order_by_deferred": bool(plan.order_by),
             "limit_deferred": plan.limit is not None,
+            "d4_graph_ref": governed_analysis_input.provenance.get("d4_graph_ref"),
+            "schema_fingerprint": governed_analysis_input.provenance.get("schema_fingerprint"),
+            "d4_provenance_validated": bool(relation_error is None and relationships and _d4_context_required(
+                governed_analysis_input=governed_analysis_input,
+                ingestion_output=ingestion_output,
+                d7_workbook_logical_model=d7_workbook_logical_model,
+            )),
         },
     )
     return Service1EvidencePreparationDecisionV1(
@@ -505,7 +531,32 @@ def _table_views(ingestion_output: Mapping[str, Any]) -> tuple[dict[str, _TableV
     return tables, None
 
 
-def _validate_relationship_bindings(relationships: Mapping[str, Mapping[str, Any]]) -> str | None:
+def _validate_relationship_bindings(
+    relationships: Mapping[str, Mapping[str, Any]],
+    *,
+    governed_analysis_input: Service1GovernedAnalysisInputV1 | None = None,
+    ingestion_output: Mapping[str, Any] | None = None,
+    d7_workbook_logical_model: Mapping[str, Any] | None = None,
+) -> str | None:
+    strict = _d4_context_required(
+        governed_analysis_input=governed_analysis_input,
+        ingestion_output=ingestion_output,
+        d7_workbook_logical_model=d7_workbook_logical_model,
+    )
+    graph = (
+        d7_workbook_logical_model.get("relationship_graph")
+        if isinstance(d7_workbook_logical_model, Mapping)
+        and isinstance(d7_workbook_logical_model.get("relationship_graph"), Mapping)
+        else None
+    )
+    if strict and not isinstance(graph, Mapping):
+        return "D4_RELATIONSHIP_PROVENANCE_REQUIRED"
+    current_context = (
+        ingestion_output.get("workbook_context")
+        if isinstance(ingestion_output, Mapping)
+        and isinstance(ingestion_output.get("workbook_context"), Mapping)
+        else {}
+    )
     for ref, binding in relationships.items():
         if not str(ref or "").strip() or not isinstance(binding, Mapping):
             return "RELATIONSHIP_BINDING_INVALID"
@@ -524,7 +575,130 @@ def _validate_relationship_bindings(relationships: Mapping[str, Mapping[str, Any
         ):
             if not str(binding.get(key) or "").strip():
                 return f"RELATIONSHIP_ENDPOINT_EVIDENCE_MISSING:{ref}:{key}"
+        if strict:
+            provenance_error = _validate_d4_binding(
+                ref=str(ref),
+                binding=binding,
+                graph=graph,
+                governed_analysis_input=governed_analysis_input,
+                current_context=current_context,
+            )
+            if provenance_error is not None:
+                return provenance_error
     return None
+
+
+def _d4_context_required(
+    *,
+    governed_analysis_input: Service1GovernedAnalysisInputV1 | None,
+    ingestion_output: Mapping[str, Any] | None,
+    d7_workbook_logical_model: Mapping[str, Any] | None,
+) -> bool:
+    if isinstance(d7_workbook_logical_model, Mapping):
+        return True
+    provenance = governed_analysis_input.provenance if isinstance(governed_analysis_input, Service1GovernedAnalysisInputV1) else {}
+    if isinstance(provenance, Mapping) and provenance.get("p8_relationship_governance") is True:
+        return True
+    if isinstance(ingestion_output, Mapping) and isinstance(ingestion_output.get("workbook_context"), Mapping):
+        return True
+    return False
+
+
+def _validate_d4_binding(
+    *,
+    ref: str,
+    binding: Mapping[str, Any],
+    graph: Mapping[str, Any],
+    governed_analysis_input: Service1GovernedAnalysisInputV1 | None,
+    current_context: Mapping[str, Any],
+) -> str | None:
+    required = (
+        "source_artifact_ref",
+        "workbook_ref",
+        "schema_fingerprint",
+        "d4_graph_ref",
+        "owner_confirmation_event_ref",
+        "integrity_digest",
+    )
+    for key in required:
+        if not str(binding.get(key) or "").strip():
+            return "D4_RELATIONSHIP_PROVENANCE_REQUIRED"
+    if binding.get("p8_governed") is not True:
+        return "P8_RELATIONSHIP_GOVERNANCE_REQUIRED"
+    graph_ref = str(graph.get("graph_ref") or graph.get("graph_fingerprint") or "").strip()
+    graph_provenance = graph.get("provenance") if isinstance(graph.get("provenance"), Mapping) else {}
+    graph_schema = str(graph.get("schema_fingerprint") or graph_provenance.get("schema_fingerprint") or "").strip()
+    if str(binding.get("d4_graph_ref") or "").strip() != graph_ref:
+        return "D4_GRAPH_REF_MISMATCH"
+    if str(binding.get("schema_fingerprint") or "").strip() != graph_schema:
+        return "D4_SCHEMA_FINGERPRINT_MISMATCH"
+    expected_schema = str(
+        (governed_analysis_input.provenance.get("schema_fingerprint") if isinstance(governed_analysis_input, Service1GovernedAnalysisInputV1) else None)
+        or current_context.get("schema_fingerprint")
+        or ""
+    ).strip()
+    if expected_schema and expected_schema != str(binding.get("schema_fingerprint") or "").strip():
+        return "D4_SCHEMA_FINGERPRINT_MISMATCH"
+    for binding_key, context_key in (("workbook_ref", "workbook_ref"), ("source_artifact_ref", "source_artifact_ref")):
+        expected = str(current_context.get(context_key) or "").strip()
+        if expected and str(binding.get(binding_key) or "").strip() != expected:
+            return "D4_RELATIONSHIP_PROVENANCE_REQUIRED"
+    relation = next(
+        (
+            item
+            for item in graph.get("relationships") or ()
+            if isinstance(item, Mapping)
+            and str(item.get("relationship_ref") or "").strip() == ref
+        ),
+        None,
+    )
+    if relation is None:
+        return "D4_RELATIONSHIP_REF_NOT_FOUND"
+    if str(relation.get("state") or "").strip() != "RESOLVED":
+        return "D4_RELATIONSHIP_UNRESOLVED"
+    if str(relation.get("d4_graph_ref") or relation.get("graph_ref") or graph_ref).strip() != graph_ref:
+        return "D4_GRAPH_REF_MISMATCH"
+    if str(relation.get("schema_fingerprint") or graph_schema).strip() != graph_schema:
+        return "D4_SCHEMA_FINGERPRINT_MISMATCH"
+    fanout = str(relation.get("fanout_risk") or "").strip()
+    if fanout != "SAFE_LOOKUP":
+        return "D4_FANOUT_NOT_SAFE"
+    relation_provenance = relation.get("provenance") if isinstance(relation.get("provenance"), Mapping) else {}
+    if (
+        str(binding.get("left_sheet_ref") or "").strip(),
+        str(binding.get("left_column_ref") or "").strip(),
+        str(binding.get("right_sheet_ref") or "").strip(),
+        str(binding.get("right_column_ref") or "").strip(),
+    ) != _endpoint_pair(relation_provenance):
+        return "D4_RELATIONSHIP_ENDPOINT_MISMATCH"
+    relation_kind = str(relation.get("cardinality") or relation.get("relationship_kind") or "").strip()
+    if str(binding.get("relationship_kind") or "").strip() != relation_kind or str(binding.get("cardinality") or relation_kind).strip() != relation_kind:
+        return "D4_RELATIONSHIP_CARDINALITY_MISMATCH"
+    relation_event_ref = str(relation.get("owner_confirmation_event_ref") or "").strip()
+    if relation_event_ref and relation_event_ref != str(binding.get("owner_confirmation_event_ref") or "").strip():
+        return "OWNER_RELATIONSHIP_CONFIRMATION_REQUIRED"
+    try:
+        Service1GovernedRelationshipBindingV1(**{
+            key: binding[key]
+            for key in (
+                "source_artifact_ref", "workbook_ref", "schema_fingerprint", "d4_graph_ref",
+                "relationship_ref", "left_logical_table_ref", "right_logical_table_ref",
+                "left_sheet_ref", "left_column_ref", "right_sheet_ref", "right_column_ref",
+                "relationship_kind", "cardinality", "fanout_evidence",
+                "owner_confirmation_event_ref", "confirmed_by_owner", "integrity_digest", "provenance",
+            )
+        })
+    except (KeyError, TypeError, ValueError):
+        return "D4_RELATIONSHIP_PROVENANCE_REQUIRED"
+    return None
+
+
+def _endpoint_pair(provenance: Mapping[str, Any]) -> tuple[str, str, str, str]:
+    left = str(provenance.get("physical_left_endpoint") or "").strip()
+    right = str(provenance.get("physical_right_endpoint") or "").strip()
+    left_sheet, left_column = left.rsplit(".", 1) if "." in left else ("", "")
+    right_sheet, right_column = right.rsplit(".", 1) if "." in right else ("", "")
+    return left_sheet.strip(), left_column.strip(), right_sheet.strip(), right_column.strip()
 
 
 def _select_base_sheet(

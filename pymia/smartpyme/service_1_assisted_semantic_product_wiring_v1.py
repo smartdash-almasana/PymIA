@@ -30,9 +30,8 @@ from pymia.smartpyme.service_1_derived_evidence_v1 import (
 from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
     VARIABLE_FAMILY_DEFINITIONS,
 )
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    SCHEMA_VERSION as DETERMINISTIC_PIPELINE_SCHEMA_VERSION,
-    STATUS_CONFIRMED_BINDINGS,
+from pymia.smartpyme.service_1_computability_v1 import (
+    CONFIRMED_BINDINGS_SCHEMA_VERSION,
 )
 from pymia.smartpyme.service_1_llm_semantic_contract_v1 import (
     Service1LLMConceptProposalV1,
@@ -73,8 +72,7 @@ from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
     validate_service_1_semantic_proposal_v1,
 )
 from pymia.smartpyme.service_1_table_scoped_semantic_context_v1 import (
-    STATUS_BLOCKED as TABLE_SCOPE_BLOCKED,
-    build_service_1_table_scoped_semantic_context_v1,
+    STATUS_READY as TABLE_SCOPE_READY,
     enrich_service_1_deterministic_hypotheses_with_table_scope_v1,
 )
 from pymia.smartpyme.service_1_workbook_profiler_v1 import (
@@ -134,17 +132,16 @@ def run_service_1_assisted_semantic_initial_v1(
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
     semantic_scope_capabilities: Sequence[str] = (),
     atomic_confirmation: bool = False,
-    logical_table_candidates: Sequence[Mapping[str, Any]] | Mapping[str, Any] | None = None,
-    logical_relationship_graph: Mapping[str, Any] | None = None,
+    table_scoped_semantics: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create one exact assisted semantic state and its minimal owner dialogue."""
     if not isinstance(ingestion_output, dict) or not ingestion_output:
         return _blocked(BLOCK_INGESTION_INVALID)
     capability = None if requested_capability is None else str(requested_capability).strip()
     if capability == "":
-        return _blocked(BLOCK_CAPABILITY_REQUIRED, case_id=ingestion_output.get("case_id"))
+        return _blocked(BLOCK_CAPABILITY_REQUIRED, case_id=(ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(ingestion_output.get("workbook_context"), Mapping) else None)
     if any(bool(ingestion_output.get(flag)) for flag in _AUTHORITY_FLAGS):
-        return _blocked(BLOCK_INGESTION_INVALID, case_id=ingestion_output.get("case_id"))
+        return _blocked(BLOCK_INGESTION_INVALID, case_id=(ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(ingestion_output.get("workbook_context"), Mapping) else None)
 
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=ingestion_output,
@@ -152,7 +149,7 @@ def run_service_1_assisted_semantic_initial_v1(
     if bridge.get("status") != BRIDGE_READY:
         return _blocked(
             BLOCK_BRIDGE_FAILED,
-            case_id=ingestion_output.get("case_id"),
+            case_id=(ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(ingestion_output.get("workbook_context"), Mapping) else None,
             detail=bridge.get("blocked_reason"),
             bridge_packet=bridge,
         )
@@ -168,23 +165,24 @@ def run_service_1_assisted_semantic_initial_v1(
         )
 
     deterministic_hypotheses = _deterministic_hypotheses(bridge)
-    semantic_scope_packet: dict[str, Any] | None = None
-    if logical_table_candidates is not None:
-        semantic_scope_packet = build_service_1_table_scoped_semantic_context_v1(
-            column_refs=tuple(
-                item for item in (bridge.get("column_refs") or ()) if isinstance(item, Mapping)
-            ),
-            logical_table_candidates=logical_table_candidates,
-            logical_relationship_graph=logical_relationship_graph,
-        )
-        if semantic_scope_packet.get("status") == TABLE_SCOPE_BLOCKED:
+    semantic_scope_packet = None
+    if table_scoped_semantics is not None:
+        if (
+            not isinstance(table_scoped_semantics, Mapping)
+            or table_scoped_semantics.get("status") != TABLE_SCOPE_READY
+        ):
             return _blocked(
                 BLOCK_CONTEXT_FAILED,
                 case_id=bridge.get("case_id"),
-                detail=semantic_scope_packet.get("blocked_reason"),
+                detail=(
+                    table_scoped_semantics.get("blocked_reason")
+                    if isinstance(table_scoped_semantics, Mapping)
+                    else "TABLE_SCOPED_SEMANTICS_PACKET_REQUIRED"
+                ),
                 bridge_packet=bridge,
                 workbook_profile=profile,
             )
+        semantic_scope_packet = dict(table_scoped_semantics)
         deterministic_hypotheses = enrich_service_1_deterministic_hypotheses_with_table_scope_v1(
             deterministic_hypotheses=deterministic_hypotheses,
             column_refs=tuple(
@@ -193,10 +191,8 @@ def run_service_1_assisted_semantic_initial_v1(
             semantic_scope_packet=semantic_scope_packet,
         )
         profile = dict(profile)
+        profile["table_scoped_semantics"] = semantic_scope_packet
         profile["logical_table_scopes"] = list(semantic_scope_packet.get("column_scopes") or ())
-        profile["logical_relationship_graph_ref"] = (
-            str((logical_relationship_graph or {}).get("graph_ref") or "").strip() or None
-        )
 
     allowed_roles = _allowed_roles(deterministic_hypotheses)
     if not allowed_roles:
@@ -309,6 +305,7 @@ def run_service_1_assisted_semantic_initial_v1(
         validated_packet=validated,
         dialogue_plan=dialogue,
         owner_questions=owner_questions,
+        table_scoped_semantics=semantic_scope_packet,
         semantic_scope_capabilities=semantic_scope_capabilities,
     )
 
@@ -495,6 +492,7 @@ def revise_service_1_assisted_semantic_decision_v1(
         validated_packet=validated,
         dialogue_plan=dialogue,
         owner_questions=[dict(revised_question)],
+        table_scoped_semantics=previous_state.get("table_scoped_semantics"),
         semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
     )
 
@@ -571,6 +569,7 @@ def run_service_1_assisted_semantic_reentry_v1(
             dialogue_plan=dialogue,
             owner_questions=[decisions[item] for item in missing],
             blocked_reason=BLOCK_OWNER_RESPONSE_MISSING,
+            table_scoped_semantics=previous_state.get("table_scoped_semantics"),
             semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
         )
 
@@ -651,6 +650,7 @@ def run_service_1_assisted_semantic_reentry_v1(
             dialogue_plan=dialogue,
             owner_questions=followup_questions,
             dialogue_responses=dialogue_responses,
+            table_scoped_semantics=previous_state.get("table_scoped_semantics"),
             semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
         )
 
@@ -691,9 +691,9 @@ def run_service_1_assisted_semantic_reentry_v1(
         )
 
     semantic_run = {
-        "schema_version": DETERMINISTIC_PIPELINE_SCHEMA_VERSION,
+        "schema_version": CONFIRMED_BINDINGS_SCHEMA_VERSION,
         "service_name": "SERVICE_1",
-        "status": STATUS_CONFIRMED_BINDINGS,
+        "status": STATUS_CONFIRMED,
         "blocked_reason": None,
         "bridge_packet": previous_state["bridge_packet"],
         "gate_packet": None,
@@ -729,6 +729,7 @@ def run_service_1_assisted_semantic_reentry_v1(
         owner_evidence_packet=evidence_packet,
         sem6_packet=sem6,
         semantic_run=semantic_run,
+        table_scoped_semantics=previous_state.get("table_scoped_semantics"),
         semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
     )
 
@@ -856,6 +857,7 @@ def _packet(
     owner_evidence_packet: dict[str, Any] | None = None,
     sem6_packet: dict[str, Any] | None = None,
     semantic_run: dict[str, Any] | None = None,
+    table_scoped_semantics: Mapping[str, Any] | None = None,
     semantic_scope_capabilities: Sequence[str] = (),
 ) -> dict[str, Any]:
     return {
@@ -881,6 +883,11 @@ def _packet(
         "owner_evidence_packet": owner_evidence_packet,
         "sem6_packet": sem6_packet,
         "semantic_run": semantic_run,
+        "table_scoped_semantics": (
+            dict(table_scoped_semantics)
+            if isinstance(table_scoped_semantics, Mapping)
+            else None
+        ),
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,

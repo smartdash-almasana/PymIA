@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from openpyxl import Workbook
 
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     BLOCK_DUAL_SOURCE,
@@ -68,6 +69,13 @@ def test_local_real_xlsx_produces_owner_question_packet(local_xlsx: Path) -> Non
     assert packet["owner_questions"], "expected owner questions"
     assert packet["question_count"] == len(packet["owner_questions"])
     assert packet["case_id"]
+    assert packet["source_artifact_ref"].startswith("xlsx:sha256:")
+    assert packet["workbook_ref"]
+    assert packet["workbook_ref"] != packet["filename"]
+    assert packet["ingestion_scope"] == "first_non_empty_sheet"
+    assert packet["sheet_ref"].startswith("sheet:sha256:")
+    assert packet["source_system_ref"] == "local_path"
+    assert packet["source_context_ref"] is None
 
 
 # --- 2. uploaded XLSX bytes + filename produce owner question packet ------
@@ -82,6 +90,11 @@ def test_uploaded_bytes_produce_owner_question_packet(local_xlsx: Path) -> None:
     assert packet["status"] == "NEEDS_OWNER_CONFIRMATION"
     assert packet["source_kind"] == "uploaded_bytes"
     assert packet["filename"] == local_xlsx.name
+    assert packet["source_artifact_ref"].startswith("xlsx:sha256:")
+    assert packet["workbook_ref"]
+    assert packet["workbook_ref"] != packet["filename"]
+    assert packet["source_system_ref"] == "uploaded_bytes"
+    assert packet["source_context_ref"] is None
     assert packet["columns"]
     assert packet["question_count"] == len(packet["owner_questions"])
 
@@ -193,3 +206,99 @@ def test_sheet_selection_modes_are_mutually_exclusive(local_xlsx: Path) -> None:
     assert packet["runtime_authorized"] is False
     assert packet["product_ready"] is False
     assert packet["delivery_authorized"] is False
+
+
+def _two_sheet_xlsx_bytes() -> bytes:
+    from io import BytesIO
+
+    workbook = Workbook()
+    first = workbook.active
+    first.title = "Ventas"
+    first.append(["id", "importe"])
+    first.append(["A-1", "10"])
+    second = workbook.create_sheet("Productos")
+    second.append(["sku", "descripcion"])
+    second.append(["P-1", "Producto"])
+    stream = BytesIO()
+    workbook.save(stream)
+    return stream.getvalue()
+
+
+def _one_sheet_xlsx_bytes(value: str) -> bytes:
+    from io import BytesIO
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Ventas"
+    worksheet.append(["id", "importe"])
+    worksheet.append(["A-1", value])
+    stream = BytesIO()
+    workbook.save(stream)
+    return stream.getvalue()
+
+
+def test_source_artifact_identity_uses_bytes_not_basename(tmp_path: Path) -> None:
+    first_dir = tmp_path / "one"
+    second_dir = tmp_path / "two"
+    first_dir.mkdir()
+    second_dir.mkdir()
+    first = first_dir / "same.xlsx"
+    second = second_dir / "same.xlsx"
+    first.write_bytes(_one_sheet_xlsx_bytes("10"))
+    second.write_bytes(_one_sheet_xlsx_bytes("20"))
+
+    first_packet = build_intake(local_xlsx_path=first)
+    second_packet = build_intake(local_xlsx_path=second)
+
+    assert first_packet["source_artifact_ref"] != second_packet["source_artifact_ref"]
+
+
+def test_source_artifact_identity_ignores_filename_for_same_bytes() -> None:
+    content = _two_sheet_xlsx_bytes()
+    first = build_intake(uploaded_xlsx_bytes=content, uploaded_filename="enero.xlsx")
+    second = build_intake(uploaded_xlsx_bytes=content, uploaded_filename="renamed.xlsx")
+
+    assert first["source_artifact_ref"] == second["source_artifact_ref"]
+    assert first["workbook_ref"] == second["workbook_ref"]
+    assert first["sheet_ref"] == second["sheet_ref"]
+    assert first["column_refs"][0]["sheet_ref"] == first["sheet_ref"]
+    assert first["owner_questions"][0]["sheet_ref"] == first["sheet_ref"]
+
+
+def test_local_path_artifact_hash_matches_uploaded_bytes(tmp_path: Path) -> None:
+    content = _two_sheet_xlsx_bytes()
+    source = tmp_path / "local.xlsx"
+    source.write_bytes(content)
+
+    local = build_intake(local_xlsx_path=source)
+    uploaded = build_intake(uploaded_xlsx_bytes=content, uploaded_filename="upload.xlsx")
+
+    assert local["source_artifact_ref"] == uploaded["source_artifact_ref"]
+
+
+def test_workbook_ref_changes_with_ingestion_scope() -> None:
+    content = _two_sheet_xlsx_bytes()
+    one_sheet = build_intake(
+        uploaded_xlsx_bytes=content,
+        uploaded_filename="workbook.xlsx",
+        sheet_name="Ventas",
+    )
+    all_sheets = build_intake(
+        uploaded_xlsx_bytes=content,
+        uploaded_filename="workbook.xlsx",
+        include_all_sheets=True,
+    )
+
+    assert one_sheet["source_artifact_ref"] == all_sheets["source_artifact_ref"]
+    assert one_sheet["workbook_ref"] != all_sheets["workbook_ref"]
+
+
+def test_missing_requested_sheet_fails_closed(tmp_path: Path) -> None:
+    source = tmp_path / "known.xlsx"
+    source.write_bytes(_two_sheet_xlsx_bytes())
+
+    packet = build_intake(local_xlsx_path=source, sheet_name="Missing")
+
+    assert packet["status"] == "BLOCKED"
+    assert packet["blocked_reason"] == BLOCK_READER_FAILED
+    assert packet["sheet_names"] == []

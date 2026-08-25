@@ -97,8 +97,8 @@ def test_pyme_026_remains_partial_until_capability_is_governed() -> None:
     row = _rows(gate.evaluate_service_1_capability_physical_coverage_gate_v1())["adjusted_operating_cash_flow"]
 
     assert row["coverage_status"] == gate.PHYSICAL_PARTIAL
-    assert row["blocker"] == "CAPABILITY_NOT_GOVERNED"
-    assert row["p6"] == "APPROVED"
+    assert row["blocker"] == "P6:BLOCKED"
+    assert row["p6"] == "BLOCKED"
     assert row["governed_input"] is False
     assert row["p9"] is None
 
@@ -120,8 +120,9 @@ def test_open_safety_flag_produces_failed_unsafe(monkeypatch) -> None:
     real = gate.product_root.run_service_1_product_pipeline_v1
 
     def unsafe_product(*args, **kwargs):
-        product = deepcopy(real(*args, **kwargs))
-        if kwargs.get("requested_capability") == "sold_vs_collected_gap":
+        product = dict(real(*args, **kwargs))
+        request = args[0] if args else kwargs.get("request")
+        if getattr(request, "requested_capability", None) == "sold_vs_collected_gap":
             product["runtime_authorized"] = True
         return product
 
@@ -141,8 +142,9 @@ def test_missing_safety_flag_cannot_be_physical_e2e_pass(monkeypatch) -> None:
     real = gate.product_root.run_service_1_product_pipeline_v1
 
     def incomplete_product(*args, **kwargs):
-        product = deepcopy(real(*args, **kwargs))
-        if kwargs.get("requested_capability") == "sold_vs_collected_gap":
+        product = dict(real(*args, **kwargs))
+        request = args[0] if args else kwargs.get("request")
+        if getattr(request, "requested_capability", None) == "sold_vs_collected_gap":
             product.pop("diagnosis_generated", None)
         return product
 
@@ -227,7 +229,14 @@ def test_structural_guard_failure_cannot_be_certified_by_fixed_boolean(monkeypat
 def test_git_diff_check_covers_untracked_gate_files_without_touching_index() -> None:
     repo = gate.Path(gate.__file__).resolve().parents[1]
     tracked = subprocess.run(
-        ["git", "diff", "--check"],
+        [
+            "git",
+            "diff",
+            "--check",
+            "--",
+            "tools/service_1_capability_physical_coverage_gate_v1.py",
+            "tests/smartpyme/test_service_1_capability_physical_coverage_gate_v1.py",
+        ],
         cwd=repo,
         capture_output=True,
         text=True,

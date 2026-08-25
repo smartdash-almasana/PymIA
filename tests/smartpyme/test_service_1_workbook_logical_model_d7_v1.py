@@ -40,9 +40,31 @@ def _ingestion() -> dict:
     }
     return {
         "case_id": "case-d7",
+        "source_artifact_ref": "xlsx:sha256:d7-artifact",
+        "workbook_ref": "workbook:sha256:d7-workbook",
+        "ingestion_scope": "first_non_empty_sheet",
+        "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+        "workbook_context": {
+            "case_id": "case-d7",
+            "source_artifact_ref": "xlsx:sha256:d7-artifact",
+            "workbook_ref": "workbook:sha256:d7-workbook",
+            "ingestion_scope": "first_non_empty_sheet",
+            "canonical_reader_schema_version": "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1",
+            "source_system_ref": "uploaded_bytes",
+            "source_context_ref": None,
+        },
         "source_kind": "uploaded_bytes",
         "filename": "fixture.xlsx",
         "source_file_ref": "sha256:d7-fixture",
+        "provenance": {
+            "source_kind": "uploaded_bytes",
+            "source_artifact_ref": "xlsx:sha256:d7-artifact",
+            "source_file_ref": "workbook:sha256:d7-workbook",
+            "workbook_ref": "workbook:sha256:d7-workbook",
+            "filename": "fixture.xlsx",
+            "sheet_names": ["Datos"],
+            "sheet_refs": [],
+        },
         "normalized_tables": [table],
         "column_refs": [
             {
@@ -94,6 +116,7 @@ def test_d7_projection_is_evidence_only_for_existing_authorities() -> None:
         "product_ready",
         "delivery_authorized",
         "diagnosis_generated",
+        "grain_authorized",
         "join_execution_authorized",
         "computability_authorized",
         "automatic_reuse_authorized",
@@ -133,3 +156,13 @@ def test_d7_projection_separates_owner_evidence_refs_from_historical_hint_object
     assert projection["historical_semantic_hints"][0]["contract_id"] == "contract:importe"
     assert projection["historical_relationship_evidence_refs"] == ["relationship:historical:1"]
     assert projection["historical_evidence_only"] is True
+
+
+def test_d7_does_not_fallback_to_filename_for_workbook_identity() -> None:
+    ingestion = _ingestion()
+    ingestion.pop("workbook_context")
+
+    result = build_service_1_workbook_logical_model_v1(ingestion_output=ingestion)
+
+    assert result["status"] == "BLOCKED"
+    assert result["blocked_reason"] == "WORKBOOK_CONTEXT_REQUIRED"

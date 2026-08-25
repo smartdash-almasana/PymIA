@@ -82,7 +82,7 @@ def _p8_for_spec(source: Path, spec: Spec) -> tuple[str | None, bool, str | None
     if connector.get("status") != "INGESTION_OUTPUT_READY":
         return None, False, f"CONNECTOR:{connector.get('status')}:{connector.get('blocked_reason')}"
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
-        ingestion_output=connector["ingestion_output"], sheet_name=spec.sheet_name
+        ingestion_output=connector["ingestion_output"]
     )
     candidates = tuple(bridge.get("column_candidates") or ())
     events = []

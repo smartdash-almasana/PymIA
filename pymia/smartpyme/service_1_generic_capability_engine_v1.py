@@ -12,7 +12,10 @@ from pymia.contracts.formula_contract import (
     calculate_formula,
 )
 from pymia.services.formula_engine_service import FormulaEngineService
-from pymia.smartpyme.service_1_capability_contracts_v1 import CapabilityDefinitionV1
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    CapabilityDefinitionV1,
+    classify_classification_rules,
+)
 from pymia.smartpyme.service_1_computability_v1 import Service1GovernedComputationInputV1
 from pymia.smartpyme.service_1_capability_registry_v1 import get_capability_definition_v1
 
@@ -360,20 +363,11 @@ def _validate_domains(definition: CapabilityDefinitionV1, inputs: dict[str, Deci
 
 
 def _classify(definition: CapabilityDefinitionV1, result: Decimal, inputs: dict[str, Decimal]) -> str | None:
-    for rule in definition.classifications:
-        reference = inputs.get(rule.reference_variable) if rule.reference_variable else rule.reference_value
-        if reference is None:
-            continue
-        matched = {
-            "LT": result < reference,
-            "LE": result <= reference,
-            "EQ": result == reference,
-            "GE": result >= reference,
-            "GT": result > reference,
-        }[rule.comparison]
-        if matched:
-            return rule.code
-    return None
+    return classify_classification_rules(
+        definition.classifications,
+        result=result,
+        inputs=inputs,
+    )
 
 
 def _number(value: object) -> tuple[Decimal, str | None]:
