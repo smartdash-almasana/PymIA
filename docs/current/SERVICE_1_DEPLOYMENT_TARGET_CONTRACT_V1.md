@@ -73,15 +73,15 @@ Smoke credentials must not be committed or printed.
 
 ## PYTHON PACKAGE REQUIREMENT
 
-Production must install the Supabase optional dependency because the production entrypoint constructs the Supabase identity resolver and persistence adapter.
+Production must install the Supabase runtime dependency because the production entrypoint constructs the Supabase identity resolver and persistence adapter.
 
 Expected install shape:
 
 ```text
-python -m pip install .[supabase]
+python -m pip install .
 ```
 
-or an equivalent deployment-specific package installation that provides the same declared dependency set.
+or an equivalent deployment-specific package installation that provides the same declared runtime dependency set.
 
 ## BOOT CONTRACT
 
