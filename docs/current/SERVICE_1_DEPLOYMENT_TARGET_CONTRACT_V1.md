@@ -13,7 +13,7 @@ RC3_COMMIT: 07f1f9b85591f99dc72d94271b117dfcb6ef6582
 TENANT_REENTRY_HARDENING_COMMIT: c9de7497a9e61cfa575975a4c5f5d9815c4855de
 CURRENT_RC_DEPLOYED_SHA: NOT_PROVEN
 RUNTIME_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
-CURRENT_RC_WEB_ENTRYPOINT: python -m pymia.smartpyme.service_1_semantic_reception_server_v1
+CURRENT_RC_WEB_ENTRYPOINT: python -m pymia.smartpyme.service_1_semantic_reception_server_v1 --host 0.0.0.0 --port 8080
 ```
 
 ## PURPOSE
@@ -89,6 +89,12 @@ For the current release candidate, the process must execute the semantic-recepti
 
 ```text
 python -m pymia.smartpyme.service_1_semantic_reception_server_v1 --host <bind-host> --port <port>
+```
+
+Cloud Run must bind the configured container port explicitly:
+
+```text
+python -m pymia.smartpyme.service_1_semantic_reception_server_v1 --host 0.0.0.0 --port 8080
 ```
 
 This entrypoint still delegates productive analysis to `service_1_product_pipeline_v1.py`. No alternative productive pipeline or web business-computation root is authorized.
