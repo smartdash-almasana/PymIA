@@ -6,7 +6,7 @@ Repositorio canónico del núcleo operativo de PymIA.
 pymia/   paquete productivo único
 tests/   suite canónica
 tools/   ingesta y utilidades gobernadas
-docs/    autoridad documental única
+docs/    biblioteca documental subordinada a NOP-1 / NOP-2 / Service 1 Known State / Gold
 ```
 
 Validación principal:

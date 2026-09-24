@@ -1,0 +1,72 @@
+{
+  "schema_version": "SERVICE_1_C2_SEMANTIC_COORDINATE_TAXONOMY_V2",
+  "status": "SERVICE_1_C2_SEMANTIC_COORDINATE_TAXONOMY_READY",
+  "axes": {
+    "entity": ["customer", "supplier", "employee", "product", "service", "work_order", "project", "branch", "vehicle", "document", "payment", "purchase", "sale"],
+    "object": ["money", "labor", "material", "part", "ingredient", "finished_product", "inventory", "equipment", "subcontract", "tax", "fee", "service", "product"],
+    "process": ["sale", "purchase", "collection", "payment", "service_delivery", "production", "inventory_management", "project_execution", "billing", "budgeting"],
+    "measure": ["quantity", "cost", "price", "revenue", "margin", "duration", "rate", "balance", "discount", "tax_amount", "fee_amount"],
+    "state": ["actual", "budgeted", "expected", "invoiced", "collected", "paid", "pending", "available", "consumed"],
+    "grain": ["unit", "line_item", "sale", "purchase", "payment", "work_order", "project", "product", "service", "employee", "customer", "branch", "day", "period"],
+    "scope": ["unit", "line", "event", "entity", "period", "cumulative", "snapshot"],
+    "time": ["event_date", "posting_date", "due_date", "payment_date", "collection_date", "period_start", "period_end", "snapshot_date"],
+    "identity": ["identifier", "reference", "sequence"],
+    "relation": ["belongs_to", "performed_by", "sold_to", "bought_from", "contains", "uses", "references", "located_at", "paid_by", "collected_from"],
+    "unit": ["currency", "units", "hours", "minutes", "percentage", "ratio", "kilograms", "liters", "days"],
+    "aggregation": ["sum", "average", "min", "max", "count", "last", "ratio_of_sums", "non_additive"]
+  },
+  "labels": {
+    "entity": {"customer":"cliente","supplier":"proveedor","employee":"empleado","product":"producto","service":"servicio","work_order":"orden de trabajo","project":"proyecto","branch":"sucursal","vehicle":"vehículo","document":"comprobante","payment":"pago","purchase":"compra","sale":"venta"},
+    "object": {"money":"dinero","labor":"mano de obra","material":"materiales","part":"repuestos","ingredient":"ingredientes","finished_product":"producto elaborado","inventory":"inventario","equipment":"equipos","subcontract":"subcontratos","tax":"impuestos","fee":"honorarios o comisiones","service":"servicio","product":"producto"},
+    "process": {"sale":"venta","purchase":"compra","collection":"cobranza","payment":"pago","service_delivery":"prestación del servicio","production":"producción","inventory_management":"gestión de inventario","project_execution":"ejecución del proyecto","billing":"facturación","budgeting":"presupuestación"},
+    "measure": {"quantity":"cantidad","cost":"costo","price":"precio","revenue":"ingreso","margin":"margen","duration":"duración","rate":"tasa","balance":"saldo","discount":"descuento","tax_amount":"importe de impuestos","fee_amount":"importe de honorarios o comisiones"},
+    "state": {"actual":"real","budgeted":"presupuestado","expected":"esperado","invoiced":"facturado","collected":"cobrado","paid":"pagado","pending":"pendiente","available":"disponible","consumed":"consumido"},
+    "grain": {"unit":"unidad","line_item":"línea","sale":"venta","purchase":"compra","payment":"pago","work_order":"orden de trabajo","project":"proyecto","product":"producto","service":"servicio","employee":"empleado","customer":"cliente","branch":"sucursal","day":"día","period":"período"},
+    "scope": {"unit":"por unidad","line":"por línea","event":"por evento","entity":"por entidad","period":"del período","cumulative":"acumulado","snapshot":"a una fecha"},
+    "time": {"event_date":"fecha del evento","posting_date":"fecha de registración","due_date":"fecha de vencimiento","payment_date":"fecha de pago","collection_date":"fecha de cobro","period_start":"inicio del período","period_end":"fin del período","snapshot_date":"fecha de corte"},
+    "identity": {"identifier":"identificador","reference":"referencia","sequence":"secuencia"},
+    "relation": {"belongs_to":"pertenece a","performed_by":"realizado por","sold_to":"vendido a","bought_from":"comprado a","contains":"contiene","uses":"usa","references":"referencia a","located_at":"ubicado en","paid_by":"pagado por","collected_from":"cobrado de"},
+    "unit": {"currency":"moneda","units":"unidades","hours":"horas","minutes":"minutos","percentage":"porcentaje","ratio":"ratio","kilograms":"kilogramos","liters":"litros","days":"días"},
+    "aggregation": {"sum":"suma","average":"promedio","min":"mínimo","max":"máximo","count":"conteo","last":"último valor","ratio_of_sums":"ratio de sumas","non_additive":"no aditivo"}
+  },
+  "aliases": {
+    "entity": {
+      "customer": ["cliente", "customer"], "supplier": ["proveedor", "supplier"], "employee": ["empleado", "vendedor", "operario", "mecanico", "tecnico"], "product": ["producto", "sku"], "service": ["servicio"], "work_order": ["orden_trabajo", "ordenes_trabajo", "orden_servicio", "ordenes_servicio", "ot"], "project": ["proyecto", "obra"], "branch": ["sucursal", "local"], "vehicle": ["vehiculo", "patente"], "document": ["comprobante", "factura", "documento"], "payment": ["pago"], "purchase": ["compra"], "sale": ["venta"]
+    },
+    "object": {
+      "money": ["caja", "efectivo", "dinero"], "labor": ["mano_obra", "mano_de_obra", "labor"], "material": ["material", "materiales"], "part": ["repuesto", "repuestos"], "ingredient": ["ingrediente", "ingredientes"], "finished_product": ["producto_elaborado", "elaborado"], "inventory": ["stock", "inventario"], "equipment": ["equipo", "equipos", "maquinaria"], "subcontract": ["subcontrato", "subcontratista"], "tax": ["impuesto", "impuestos", "iva"], "fee": ["honorario", "honorarios", "comision", "comisiones"], "service": ["servicio"], "product": ["producto", "mercaderia"]
+    },
+    "process": {
+      "sale": ["venta", "ventas"], "purchase": ["compra", "compras"], "collection": ["cobro", "cobros", "cobranza", "cobranzas"], "payment": ["pago", "pagos"], "service_delivery": ["servicio", "servicios", "trabajo", "orden_trabajo", "orden_servicio"], "production": ["produccion", "elaboracion"], "inventory_management": ["stock", "inventario"], "project_execution": ["obra", "proyecto", "ejecucion"], "billing": ["factura", "facturacion", "facturado"], "budgeting": ["presupuesto", "presupuestado"]
+    },
+    "measure": {
+      "quantity": ["cantidad", "qty", "unidades"], "cost": ["costo", "coste", "cost"], "price": ["precio", "price", "tarifa", "valor_hora"], "revenue": ["ingreso", "ingresos", "importe_venta", "venta_neta"], "margin": ["margen", "ganancia", "utilidad"], "duration": ["duracion", "horas", "hora", "tiempo"], "rate": ["tasa", "ratio", "porcentaje"], "balance": ["saldo", "balance"], "discount": ["descuento", "bonificacion"], "tax_amount": ["impuesto", "impuestos", "iva"], "fee_amount": ["honorario", "honorarios", "comision", "comisiones"]
+    },
+    "state": {
+      "actual": ["real", "actual"], "budgeted": ["presupuesto", "presupuestado", "presupuestada"], "expected": ["esperado", "esperada", "previsto"], "invoiced": ["facturado", "facturada"], "collected": ["cobrado", "cobrada", "cobranza"], "paid": ["pagado", "pagada"], "pending": ["pendiente"], "available": ["disponible"], "consumed": ["consumido", "consumo"]
+    },
+    "grain": {
+      "unit": ["unitario", "unitaria", "por_unidad"], "line_item": ["linea", "renglon", "item"], "sale": ["venta"], "purchase": ["compra"], "payment": ["pago"], "work_order": ["orden_trabajo", "ordenes_trabajo", "orden_servicio", "ordenes_servicio", "ot"], "project": ["proyecto", "obra"], "product": ["producto", "sku"], "service": ["servicio"], "employee": ["empleado", "vendedor"], "customer": ["cliente"], "branch": ["sucursal"], "day": ["dia", "diario"], "period": ["periodo", "mensual", "mes"]
+    },
+    "scope": {
+      "unit": ["unitario", "unitaria", "por_unidad"], "line": ["linea", "renglon", "item"], "event": ["operacion", "evento", "orden"], "entity": ["entidad", "producto", "cliente", "empleado"], "period": ["periodo", "mensual", "mes"], "cumulative": ["acumulado", "acumulada"], "snapshot": ["stock_actual", "saldo_actual", "corte"]
+    },
+    "time": {
+      "event_date": ["fecha", "fecha_operacion", "fecha_venta"], "posting_date": ["fecha_registro", "registracion"], "due_date": ["vencimiento", "fecha_vencimiento"], "payment_date": ["fecha_pago"], "collection_date": ["fecha_cobro"], "period_start": ["desde", "inicio_periodo"], "period_end": ["hasta", "fin_periodo"], "snapshot_date": ["fecha_corte"]
+    },
+    "identity": {
+      "identifier": ["id", "codigo", "identificador"], "reference": ["ref", "referencia"], "sequence": ["nro", "numero", "secuencia"]
+    },
+    "relation": {
+      "belongs_to": ["pertenece"], "performed_by": ["empleado", "operario", "tecnico"], "sold_to": ["cliente"], "bought_from": ["proveedor"], "contains": ["detalle", "items"], "uses": ["usa", "utiliza"], "references": ["ref", "referencia"], "located_at": ["sucursal", "local"], "paid_by": ["pagado_por"], "collected_from": ["cobrado_de"]
+    },
+    "unit": {
+      "currency": ["importe", "monto", "precio", "costo", "margen", "saldo"], "units": ["cantidad", "unidades"], "hours": ["hora", "horas"], "minutes": ["minuto", "minutos"], "percentage": ["porcentaje", "pct"], "ratio": ["ratio"], "kilograms": ["kg", "kilos", "kilogramos"], "liters": ["litro", "litros"], "days": ["dia", "dias"]
+    },
+    "aggregation": {
+      "sum": ["total", "importe", "monto"], "average": ["promedio", "media"], "min": ["min", "minimo"], "max": ["max", "maximo"], "count": ["conteo", "cantidad_registros"], "last": ["ultimo", "actual"], "ratio_of_sums": ["ratio_total"], "non_additive": ["unitario", "precio", "porcentaje", "ratio"]
+    }
+  },
+  "business_families": ["gastronomy", "commerce", "services", "production", "construction", "professional_services", "third_party_administration"],
+  "operating_archetypes": ["direct_sale", "sale_with_inventory", "service_by_order", "service_with_materials", "technical_service", "production_by_recipe", "production_by_order", "project_based", "recurring_service", "multi_branch_operation"]
+}

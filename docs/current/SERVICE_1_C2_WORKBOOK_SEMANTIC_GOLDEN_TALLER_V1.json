@@ -1,0 +1,56 @@
+{
+  "status": "EVIDENCE_NON_NORMATIVE",
+  "case_id": "SERVICE_1_C2_GOLDEN_TALLER_V1",
+  "workbook": "prueba_excels/taller_mecanico_lubricar_srl.xlsx",
+  "expected_tables": {
+    "ORDENES_TRABAJO": {
+      "meaning": "work_order_service_delivery",
+      "expected_grain": "work_order"
+    },
+    "PRODUCTOS_STOCK": {
+      "meaning": "product_catalog_inventory"
+    },
+    "CLIENTES": {
+      "meaning": "customer_commercial_context"
+    }
+  },
+  "expected_columns": {
+    "ORDENES_TRABAJO.orden_id": {
+      "identity": "identifier",
+      "entity": "work_order",
+      "grain": "work_order"
+    },
+    "ORDENES_TRABAJO.horas_mano_obra": {
+      "measure": "duration",
+      "object": "labor"
+    },
+    "ORDENES_TRABAJO.valor_hora": {
+      "measure": "price",
+      "object": "labor"
+    },
+    "ORDENES_TRABAJO.costo_hora_real": {
+      "measure": "cost",
+      "object": "labor",
+      "state": "actual"
+    },
+    "ORDENES_TRABAJO.costo_mano_obra": {
+      "measure": "cost",
+      "object": "labor"
+    },
+    "ORDENES_TRABAJO.ingreso_mano_obra": {
+      "measure": "revenue",
+      "object": "labor"
+    },
+    "ORDENES_TRABAJO.margen_mano_obra": {
+      "measure": "margin",
+      "object": "labor"
+    }
+  },
+  "forbidden_owner_meanings": [
+    "orden_id -> prestación del servicio por evento",
+    "costo_mano_obra -> costo por unidad",
+    "horas_mano_obra -> hora de la operación",
+    "valor_hora -> hora de la operación",
+    "costo_hora_real -> hora de la operación"
+  ]
+}

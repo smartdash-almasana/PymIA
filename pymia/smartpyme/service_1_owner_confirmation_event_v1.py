@@ -15,8 +15,14 @@ SCHEMA_VERSION = "SERVICE_1_OWNER_CONFIRMATION_EVENT_V1"
 _SCOPE_SEMANTIC_ROLE = "SEMANTIC_ROLE"
 _SCOPE_COLUMN_EXCLUSION = "COLUMN_EXCLUSION"
 _SCOPE_FREE_TEXT_MEANING = "FREE_TEXT_MEANING"
+_SCOPE_COMPOSITIONAL_SEMANTIC = "COMPOSITIONAL_SEMANTIC"
 ALLOWED_CONFIRMATION_SCOPES = frozenset(
-    {_SCOPE_SEMANTIC_ROLE, _SCOPE_COLUMN_EXCLUSION, _SCOPE_FREE_TEXT_MEANING}
+    {
+        _SCOPE_SEMANTIC_ROLE,
+        _SCOPE_COLUMN_EXCLUSION,
+        _SCOPE_FREE_TEXT_MEANING,
+        _SCOPE_COMPOSITIONAL_SEMANTIC,
+    }
 )
 
 
@@ -36,6 +42,7 @@ class Service1OwnerConfirmationEventV1:
     confirmation_scope: str
     confirmed_by_owner: bool
     timestamp: str
+    compositional_semantic: Mapping[str, Any] | None = None
     provenance: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = SCHEMA_VERSION
 
@@ -53,6 +60,11 @@ class Service1OwnerConfirmationEventV1:
             raise ValueError("COLUMN_EXCLUSION cannot confirm a semantic role")
         if self.confirmation_scope == _SCOPE_FREE_TEXT_MEANING and not str(self.corrected_meaning or "").strip():
             raise ValueError("corrected_meaning is required for FREE_TEXT_MEANING")
+        if self.confirmation_scope == _SCOPE_COMPOSITIONAL_SEMANTIC:
+            if self.confirmed_role is not None:
+                raise ValueError("COMPOSITIONAL_SEMANTIC cannot confirm a runtime role")
+            if not isinstance(self.compositional_semantic, Mapping) or not self.compositional_semantic:
+                raise ValueError("compositional_semantic is required for COMPOSITIONAL_SEMANTIC")
         forbidden = {
             "runtime_authorized",
             "tool_execution_authorized",
@@ -93,6 +105,7 @@ def build_service_1_owner_confirmation_event_v1(
     proposed_variable: str | None = None,
     confirmed_role: str | None = None,
     corrected_meaning: str | None = None,
+    compositional_semantic: Mapping[str, Any] | None = None,
     timestamp: str | None = None,
     provenance: Mapping[str, Any] | None = None,
 ) -> Service1OwnerConfirmationEventV1:
@@ -111,6 +124,7 @@ def build_service_1_owner_confirmation_event_v1(
         confirmation_scope=str(confirmation_scope or "").strip(),
         confirmed_by_owner=True,
         timestamp=timestamp or datetime.now(timezone.utc).isoformat(),
+        compositional_semantic=dict(compositional_semantic) if compositional_semantic is not None else None,
         provenance=dict(provenance or {}),
     )
 

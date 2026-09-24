@@ -1,0 +1,107 @@
+{
+  "schema_version": "SERVICE_1_LLM_SEMANTIC_SPIKE_V1",
+  "model": "gemini-2.5-flash",
+  "runtime": "pydantic_ai_vertex",
+  "baseline": {
+    "columns_count": 6,
+    "exact_matches": 6,
+    "safe_questions": 0,
+    "safe_unknowns": 0,
+    "false_confident": 0,
+    "missed_questions": 0,
+    "dangerous_errors": 0,
+    "exact_match_rate": 1.0
+  },
+  "llm_direct": {
+    "columns_count": 6,
+    "exact_matches": 5,
+    "safe_questions": 1,
+    "safe_unknowns": 0,
+    "false_confident": 0,
+    "missed_questions": 0,
+    "dangerous_errors": 0,
+    "exact_match_rate": 0.8333,
+    "rows": [
+      {
+        "case_id": "S1-CUE-003",
+        "sheet_name": "Stock",
+        "column_name": "sku",
+        "expected_semantic_role": "product_identifier",
+        "expected_variable_name": "product_id",
+        "predicted_semantic_role": "product_identifier",
+        "predicted_variable_name": "product_id",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-003",
+        "sheet_name": "Stock",
+        "column_name": "producto",
+        "expected_semantic_role": "product_name",
+        "expected_variable_name": "product",
+        "predicted_semantic_role": "unknown",
+        "predicted_variable_name": "unknown",
+        "needs_owner_confirmation": true,
+        "owner_question": "Given 'sku' is the product identifier, what is the intended business use for 'producto'?",
+        "outcome": "SAFE_QUESTION",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-003",
+        "sheet_name": "Stock",
+        "column_name": "stock_inicial",
+        "expected_semantic_role": "opening_stock",
+        "expected_variable_name": "opening_stock",
+        "predicted_semantic_role": "opening_stock",
+        "predicted_variable_name": "opening_stock",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-003",
+        "sheet_name": "Stock",
+        "column_name": "entradas",
+        "expected_semantic_role": "stock_inflow",
+        "expected_variable_name": "stock_inflow",
+        "predicted_semantic_role": "stock_inflow",
+        "predicted_variable_name": "stock_inflow",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-003",
+        "sheet_name": "Stock",
+        "column_name": "salidas",
+        "expected_semantic_role": "stock_outflow",
+        "expected_variable_name": "stock_outflow",
+        "predicted_semantic_role": "stock_outflow",
+        "predicted_variable_name": "stock_outflow",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-003",
+        "sheet_name": "Stock",
+        "column_name": "stock_final",
+        "expected_semantic_role": "closing_stock",
+        "expected_variable_name": "closing_stock",
+        "predicted_semantic_role": "closing_stock",
+        "predicted_variable_name": "closing_stock",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      }
+    ],
+    "model_output_invalid": []
+  },
+  "decision": "LLM_DIRECT_NOT_GOOD_ENOUGH"
+}

@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import argparse
 
+from pymia.smartpyme.service_1_assisted_web_v1 import (
+    _load_local_service_1_environment_v1,
+)
 from pymia.smartpyme.service_1_assisted_web_semantic_reception_v1 import (
     create_semantic_reception_server_v1,
 )
@@ -23,6 +26,9 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
 
+    # Preserve the canonical local .env.local loader used by Service 1 while
+    # keeping process-provided deployment configuration authoritative.
+    _load_local_service_1_environment_v1()
     tenant_identity_resolver = Service1SupabaseIdentityResolverV1.from_environment()
     tenant_persistence = Service1SupabasePersistenceAdapterV1.from_environment()
     radar_policy_store = Service1RadarSupabasePersistenceAdapterV1.from_environment()
@@ -34,6 +40,9 @@ def main() -> None:
         load_prior_semantic_contract=tenant_persistence.load_current_semantic_contract,
         load_persisted_cases=tenant_persistence.list_persisted_cases,
         load_persisted_case=tenant_persistence.load_persisted_case,
+        persist_result_memory=tenant_persistence.persist_result_memory,
+        load_result_memory=tenant_persistence.list_result_memory,
+        load_result_memory_record=tenant_persistence.load_result_memory_record,
         require_tenant_persistence=True,
         tenant_identity_resolver=tenant_identity_resolver,
         radar_policy_store=radar_policy_store,

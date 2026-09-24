@@ -14,6 +14,9 @@ from pymia.smartpyme.service_1_llm_semantic_interpreter_v1 import (
     STATUS_READY,
     interpret_service_1_semantics_v1,
 )
+from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
+    Service1SemanticProviderResultV1,
+)
 from pymia.smartpyme.service_1_workbook_profiler_v1 import (
     build_service_1_workbook_profile_v1,
 )
@@ -24,6 +27,8 @@ def _profile() -> dict:
         "case_id": "case-sem2",
         "filename": "cafeteria.xlsx",
         "source_file_ref": "cafeteria.xlsx",
+        "workbook_context": {"case_id": "case-sem2"},
+        "provenance": {"source_file_ref": "cafeteria.xlsx"},
         "column_refs": [
             {
                 "question_id": "q1",
@@ -170,6 +175,35 @@ def test_sem2_provider_neutral_adapter_accepts_closed_structured_proposal() -> N
         "delivery_authorized",
         "diagnosis_generated",
     ))
+
+
+def test_sem2_keeps_system_provider_provenance_outside_closed_llm_proposal() -> None:
+    provenance = {
+        "primary_provider": "GEMINI",
+        "final_provider": "NVIDIA_NIM",
+        "fallback_used": True,
+    }
+
+    def provider(_payload):
+        return Service1SemanticProviderResultV1(
+            _valid_payload(),
+            provider_provenance=provenance,
+        )
+
+    result = interpret_service_1_semantics_v1(context=_context(), provider=provider)
+
+    assert result["status"] == STATUS_READY
+    assert result["provider_provenance"] == provenance
+
+
+def test_sem2_still_rejects_model_provenance_as_an_unknown_proposal_field() -> None:
+    payload = _valid_payload()
+    payload["provenance"] = {"spoofed": True}
+
+    result = interpret_service_1_semantics_v1(context=_context(), provider=lambda _ctx: payload)
+
+    assert result["status"] == STATUS_BLOCKED
+    assert result["detail"]["contract_error"] == "UNKNOWN_FIELD"
 
 
 def test_sem2_contract_rejects_forbidden_authority_field_anywhere() -> None:

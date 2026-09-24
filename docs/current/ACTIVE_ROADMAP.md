@@ -7,8 +7,8 @@
 
 ```text
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-PRODUCTION_APP_SHA: d2c9c24
-PRODUCTION_REVISION: pymia-service1-00008-mtf
+PRODUCTION_APP_SHA: 4db43ae
+PRODUCTION_REVISION: pymia-service1-00009-czm
 PRODUCTION_TRAFFIC: 100%
 SERVICE_1_PRODUCTION_SMOKE: PASS
 LIQ_001: PRODUCTION_CERTIFIED
@@ -27,9 +27,22 @@ SERVICE_1_TECHNICAL_CLOSURE: PASS
 ```text
 SERVICE_1_TECHNICAL_CLOSURE: PASS
 CYCLE_053_GLOBAL_12_PATHOLOGY_CLOSURE: COMPLETED
+EXCEL_REALITY_LAB_A4: PASS_ADVERSARIAL_MATRIX_V1
+SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
+PRODUCTION_CERTIFICATION_OF_NEW_CUT: PENDING
 ```
 
-No hay un frente productivo paralelo autorizado.
+Frente activo único:
+
+```text
+DEPLOY_SEMANTIC_RECEPTION_SEQUENTIAL_CUT
+→ PRODUCTION_SMOKE
+→ CONFIRM_RUNTIME_PROVIDER_STATE
+→ UPDATE_CURRENT_AUTHORITY_DOCS
+→ CLOSE_CUT
+```
+
+No abrir A5, nuevas capabilities ni PymiaRadar antes de cerrar este corte.
 
 ## Objetivo
 
@@ -45,7 +58,7 @@ Reducir deuda técnica, arquitectónica y documental; converger journeys y elimi
 5. LEGACY_REENTRY_AND_P8_PROJECTION_SANITATION — CLOSED_PRODUCTION_PASS
 6. NORMALIZE_PERSISTENCE_REENTRY_DELIVERY — CLOSED (durable reentry OWNER_EVIDENCE_ONLY certificado)
 7. DELETE_PROVEN_DEAD_PATHS — CLOSED (3 sandbox slices removidos)
-8. FULL_REGRESSION — CLOSED (full suite 3602 passed / 0 failed / 7 skipped)
+8. FULL_REGRESSION — CLOSED (full suite 3605 passed / 0 failed / 7 skipped)
 9. PRODUCTION_RECERTIFICATION — CLOSED (smoke final PASS, 3 journeys re-certificados)
 ```
 
@@ -117,7 +130,7 @@ NEW_FEATURES: FROZEN
 NEW_CAPABILITIES: FROZEN
 WORKING_CAPITAL_EXPANSION: FROZEN
 DPO_PAYMENT_COLLECTION_GAP: FROZEN
-EXTERNAL_LLM_PROVIDER: FROZEN
+EXTERNAL_LLM_PROVIDER_EXPANSION: FROZEN
 SERVICE_2_EXPANSION: FROZEN
 LANDING_UI: OUT_OF_SCOPE
 ```
@@ -144,4 +157,4 @@ una tarea
 → una decisión
 ```
 
-El próximo corte es reducir o retirar el adapter legacy de reentry desde CLI/harness históricos; `run_owner_reentry` ya no pertenece a la canonical product root closure.
+A0 corpus contract: LOCAL_PASS. A1 structural matrix: LOCAL_PASS (30 casos, 20/20 dimensiones, 0 FAIL_DEFECT). A2 calculation matrix: LOCAL_PASS sobre 5 targets gobernados (LIQ_001, REN_001, projected_closing_cash_balance, dso, current_ratio), sin forzar los casos estructurales a computabilidad. A3 rubro matrix: LOCAL_PASS (8/8 rubros; 1 determinístico, 7 owner-safe, 0 FAIL_DEFECT). A4 adversarial matrix: PASS_ADVERSARIAL_MATRIX_V1 (11 casos; 0 unsafe executions; 0 crashes; A4-D01..D04 resueltos con señales gobernadas, sin auto-fix semántico). A5 real-client shadow runs: NOT_AUTHORIZED_YET. El próximo paso no es A5: primero debe cerrarse en producción `SEMANTIC_RECEPTION_SEQUENTIAL_CUT`.

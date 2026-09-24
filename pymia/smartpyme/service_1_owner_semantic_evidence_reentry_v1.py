@@ -10,7 +10,9 @@ product/delivery authority live here.
 """
 from __future__ import annotations
 
-from typing import Any, Final
+from typing import Any, Final, Mapping
+
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import AXES as SEMANTIC_COORDINATE_AXES
 
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
     STATUS_READY as BRIDGE_READY,
@@ -114,13 +116,24 @@ def build_service_1_owner_semantic_evidence_reentry_v1(
             return _blocked(BLOCK_DUPLICATE_OWNER_EVENT, case_id=case_id, detail=[ref_id])
         confirmed_role = str(event.get("confirmed_role") or "").strip()
         candidate = ref_to_candidate[ref_id]
-        if confirmed_role not in tuple(candidate.candidate_semantic_roles or ()):
-            return _blocked(
-                BLOCK_OWNER_EVENT_ROLE_NOT_AVAILABLE,
-                case_id=case_id,
-                detail=[f"{ref_id}:{confirmed_role}"],
-            )
-        confirmed_answers[ref_id] = confirmed_role
+        scope = str(event.get("confirmation_scope") or "").strip()
+        if scope == "COMPOSITIONAL_SEMANTIC":
+            descriptor = event.get("compositional_semantic")
+            if not _same_compositional_meaning(descriptor, candidate.compositional_semantic):
+                return _blocked(
+                    BLOCK_OWNER_EVENT_ROLE_NOT_AVAILABLE,
+                    case_id=case_id,
+                    detail=[f"{ref_id}:COMPOSITIONAL_SEMANTIC"],
+                )
+            confirmed_answers[ref_id] = "__COMPOSITIONAL_SEMANTIC__"
+        else:
+            if confirmed_role not in tuple(candidate.candidate_semantic_roles or ()):
+                return _blocked(
+                    BLOCK_OWNER_EVENT_ROLE_NOT_AVAILABLE,
+                    case_id=case_id,
+                    detail=[f"{ref_id}:{confirmed_role}"],
+                )
+            confirmed_answers[ref_id] = confirmed_role
 
     exclusions: set[str] = set()
     if not isinstance(suppressed_irrelevant_refs, (list, tuple, set, frozenset)):
@@ -256,7 +269,7 @@ def _candidate_maps(
             or ""
         ).strip()
         identity = (
-            str(candidate.sheet_name or "sheet1").strip(),
+            str(candidate.sheet_name or "").strip(),
             str(candidate.source_column_name or "").strip(),
         )
         if not ref_id or not all(identity) or ref_id in ref_to_candidate or identity in identity_to_ref:
@@ -273,12 +286,18 @@ def _validate_owner_event(event: Any, *, case_id: str) -> list[str] | None:
         return ["event_case_mismatch"]
     if event.get("confirmed_by_owner") is not True:
         return ["event_not_owner_confirmed"]
-    if str(event.get("confirmation_scope") or "").strip() != "SEMANTIC_ROLE":
+    scope = str(event.get("confirmation_scope") or "").strip()
+    if scope not in {"SEMANTIC_ROLE", "COMPOSITIONAL_SEMANTIC"}:
         return ["event_scope_not_semantic_role"]
     if not str(event.get("sheet_ref") or "").strip() or not str(event.get("column_ref") or "").strip():
         return ["event_identity_missing"]
-    if not str(event.get("confirmed_role") or "").strip():
+    if scope == "SEMANTIC_ROLE" and not str(event.get("confirmed_role") or "").strip():
         return ["event_confirmed_role_missing"]
+    if scope == "COMPOSITIONAL_SEMANTIC":
+        if event.get("confirmed_role") is not None:
+            return ["event_compositional_role_forbidden"]
+        if not isinstance(event.get("compositional_semantic"), Mapping):
+            return ["event_compositional_semantic_missing"]
     if any(bool(event.get(flag)) for flag in _AUTHORITY_FLAGS):
         return ["event_authority_forbidden"]
     return None
@@ -315,6 +334,12 @@ def _validate_relationship_event(
     if right not in identity_to_ref:
         return f"endpoint_not_found:{right[0]}.{right[1]}"
     return None
+
+
+def _same_compositional_meaning(left: Any, right: Any) -> bool:
+    if not isinstance(left, Mapping) or not isinstance(right, Mapping):
+        return False
+    return all(left.get(axis) == right.get(axis) for axis in SEMANTIC_COORDINATE_AXES)
 
 
 def _split_qualified_ref(value: Any) -> tuple[str, str] | None:

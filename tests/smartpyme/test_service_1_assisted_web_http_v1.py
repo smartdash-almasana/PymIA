@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import re
+import time
 from http.client import HTTPConnection
 from pathlib import Path
 from threading import Thread
@@ -10,7 +12,14 @@ from urllib.parse import urlencode
 import pytest
 from openpyxl import Workbook
 
-from pymia.smartpyme.service_1_assisted_web_v1 import create_assisted_web_server_v1
+from pymia.smartpyme.service_1_assisted_web_v1 import (
+    _blocked_result_page,
+    create_assisted_web_server_v1,
+)
+import pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 as provider_module
+from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
+    Service1PydanticAIColumnSemanticProviderV1,
+)
 
 
 @pytest.fixture()
@@ -617,6 +626,34 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
     assert "No completo valores por suposición" in page
 
 
+def test_blocked_result_preserves_product_root_reason_detail_and_requirement() -> None:
+    page = _blocked_result_page(
+        {
+            "status": "BLOCKED",
+            "blocked_reason": "P8_REQUIREMENT_STATUS_DRIFT",
+            "detail": {"source": "Product Root", "field": "sales_amount"},
+            "computability_decision": {
+                "reason": "P8_REQUIREMENT_STATUS_DRIFT",
+                "missing_role_groups": [["sales_amount"]],
+            },
+            "derived_evidence": {
+                "blocked_reason": "DERIVED_EVIDENCE_NOT_CONFIRMED",
+                "detail": ["Ventas.Producto -> Productos.Código"],
+                "evidence_requirements": ["product_identifier"],
+            },
+        },
+        "payment_collection_gap",
+    )
+
+    assert "P8_REQUIREMENT_STATUS_DRIFT" in page
+    assert "DERIVED_EVIDENCE_NOT_CONFIRMED" in page
+    assert '&quot;field&quot;: &quot;sales_amount&quot;' in page
+    assert "Ventas.Producto -&gt; Productos.Código" in page
+    assert "product_identifier" in page
+    assert "sales_amount" in page
+    assert "El control necesita evidencia adicional antes de poder calcularse." not in page
+
+
 def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assisted_server, tmp_path: Path) -> None:
     body, headers = _multipart("margen.xlsx", _margin_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
@@ -637,3 +674,46 @@ def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assist
     assert 'name="review_net_margin_real"' in page
     assert "Ventas y cobranzas" not in page
     assert "Flujo de caja" not in page
+
+
+def test_upload_total_semantic_deadline_returns_controlled_fail_closed_response(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _SlowAgent:
+        def __init__(self) -> None:
+            self.cancelled = False
+
+        async def run(self, prompt: str):
+            try:
+                await asyncio.sleep(5)
+            finally:
+                self.cancelled = True
+
+    slow_agent = _SlowAgent()
+    monkeypatch.setattr(provider_module, "SERVICE_1_SEMANTIC_TOTAL_TIMEOUT_SECONDS", 1.0)
+    semantic_provider = Service1PydanticAIColumnSemanticProviderV1(
+        agent=slow_agent,
+        business_understanding_agent=slow_agent,
+    )
+    server = create_assisted_web_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "timeout",
+        semantic_provider=semantic_provider,
+    )
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
+        started = time.monotonic()
+        status, _, page = _request(server, "POST", "/upload", body, headers)
+        elapsed = time.monotonic() - started
+        assert status == 200
+        assert elapsed < 2.0
+        assert page
+        assert slow_agent.cancelled is True
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)

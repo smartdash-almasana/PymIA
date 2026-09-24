@@ -77,14 +77,14 @@ const faqs = [
   gap: 10px;
 }
 .faq-item {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  background: var(--paper-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
   overflow: hidden;
   transition: border-color .2s;
 }
 .faq-item[open] {
-  border-color: rgba(0,230,118,.22);
+  border-color: var(--green-strong);
 }
 .faq-summary {
   cursor: pointer;
@@ -98,17 +98,17 @@ const faqs = [
   transition: background .15s;
 }
 .faq-summary::-webkit-details-marker { display: none; }
-.faq-summary:hover { background: var(--panel-2); }
+.faq-summary:hover { background: var(--green-soft); }
 .faq-q {
   font-weight: 700;
   font-size: .95rem;
   line-height: 1.4;
-  color: var(--text);
+  color: var(--ink-strong);
   flex: 1;
 }
 .faq-arrow {
   font-size: 1.3rem;
-  color: var(--green);
+  color: var(--green-strong);
   flex-shrink: 0;
   transition: transform .25s ease;
   display: block;
@@ -117,11 +117,11 @@ const faqs = [
 details[open] .faq-arrow { transform: rotate(90deg); }
 .faq-answer {
   padding: 0 22px 20px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--rule);
 }
 .faq-answer p {
   margin-top: 16px;
-  color: var(--muted);
+  color: var(--slate);
   font-size: .92rem;
   line-height: 1.75;
 }

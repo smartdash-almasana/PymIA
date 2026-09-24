@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any, Final, Literal
+from typing import Any, Final, Literal, Mapping
 
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_SEMANTIC_EVIDENCE_BINDING_CONTRACTS_V1"
@@ -155,6 +155,7 @@ class Service1ColumnSemanticCandidateV1:
     delivery_authorized: bool = False
     diagnosis_generated: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
+    compositional_semantic: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "source_column_name", _required_text(self.source_column_name, field_name="source_column_name"))
@@ -171,6 +172,10 @@ class Service1ColumnSemanticCandidateV1:
         object.__setattr__(self, "delivery_authorized", _fail_closed_flag(self.delivery_authorized, field_name="delivery_authorized"))
         object.__setattr__(self, "diagnosis_generated", _fail_closed_flag(self.diagnosis_generated, field_name="diagnosis_generated"))
         object.__setattr__(self, "metadata", dict(self.metadata or {}))
+        if self.compositional_semantic is not None:
+            if not isinstance(self.compositional_semantic, Mapping):
+                raise ValueError("compositional_semantic must be a mapping or None")
+            object.__setattr__(self, "compositional_semantic", dict(self.compositional_semantic))
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

@@ -1,7 +1,11 @@
-# Servicio 1 — eje canónico actual
+# Servicio 1 — eje canónico histórico
 
-**Estado:** `ACTIVE`  
-**Reconciliado:** 2026-07-29
+**Estado actual del documento:** `SUPERSEDED_AS_AUTHORITY / HISTORICAL_REFERENCE`  
+**Corte reconciliado:** 2026-07-29
+
+> Este documento conserva decisiones técnicas de ese corte. Ya no constituye autoridad normativa vigente. Toda mención interna a autoridad vigente, normativa, canonical o única autoridad debe interpretarse como referencia histórica.
+>
+> Autoridad vigente: `NOP-1 VIGENTE → NOP-2 VIGENTE → SERVICE 1 — KNOWN STATE → Gold Registry / evidencia física cerrada`.
 
 ## Propósito
 

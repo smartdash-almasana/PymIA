@@ -89,19 +89,20 @@ const plans = [
 }
 .plan-card:hover { transform: translateY(-4px); }
 .plan-card.featured {
-  border-color: rgba(0,230,118,.42);
-  background: linear-gradient(145deg, rgba(0,230,118,.09), var(--panel));
-  box-shadow: 0 0 60px rgba(0,230,118,.1), var(--shadow);
+  border-color: var(--green-strong);
+  background: linear-gradient(145deg, var(--green-soft), var(--paper-2));
+  box-shadow: 0 0 60px rgba(29, 91, 67, .12), var(--shadow);
 }
 .featured-badge {
   position: absolute;
   top: -14px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--green);
-  color: var(--bg);
-  font-size: .68rem;
-  font-weight: 800;
+  background: var(--green-strong);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: .64rem;
+  font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
   padding: .3rem .85rem;
@@ -117,7 +118,7 @@ const plans = [
   font-family: var(--font-display);
   font-size: 1.5rem;
   letter-spacing: -.03em;
-  color: var(--text);
+  color: var(--ink-strong);
 }
 .plan-desc {
   font-size: .88rem;
@@ -134,7 +135,7 @@ const plans = [
   align-items: flex-start;
   gap: 10px;
   font-size: .88rem;
-  color: var(--soft);
+  color: var(--slate);
   line-height: 1.5;
 }
 .check {

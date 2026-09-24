@@ -1,0 +1,2268 @@
+{
+  "file_name": "constructora_nueva_era_srl.xlsx",
+  "document_type": "xlsx_operational_evidence",
+  "raw_tables": [
+    {
+      "sheet_name": "OBRAS",
+      "header_row": 1,
+      "columns": [
+        "obra_id",
+        "nombre_obra",
+        "tipo_obra",
+        "ubicacion",
+        "fecha_inicio",
+        "fecha_estimada_cierre",
+        "fecha_cierre_real",
+        "mes_ejecucion",
+        "presupuesto_materiales",
+        "gasto_real_materiales",
+        "presupuesto_mano_obra",
+        "gasto_real_mano_obra",
+        "presupuesto_equipos",
+        "gasto_real_equipos",
+        "presupuesto_subcontratos",
+        "gasto_real_subcontratos",
+        "presupuesto_imprevistos",
+        "gasto_real_imprevistos",
+        "certificacion_cobrada"
+      ],
+      "records": [
+        {
+          "obra_id": "OBR-001",
+          "nombre_obra": "Los Tilos",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Argüello",
+          "fecha_inicio": "10/03/2025",
+          "fecha_estimada_cierre": "10/10/2025",
+          "fecha_cierre_real": "15/10/2025",
+          "mes_ejecucion": 1,
+          "presupuesto_materiales": 4000000,
+          "gasto_real_materiales": 4200000,
+          "presupuesto_mano_obra": 3000000,
+          "gasto_real_mano_obra": 3100000,
+          "presupuesto_equipos": 500000,
+          "gasto_real_equipos": 550000,
+          "presupuesto_subcontratos": 1000000,
+          "gasto_real_subcontratos": 1000000,
+          "presupuesto_imprevistos": 200000,
+          "gasto_real_imprevistos": 150000,
+          "certificacion_cobrada": 15000000
+        },
+        {
+          "obra_id": "OBR-001",
+          "nombre_obra": "Los Tilos",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Argüello",
+          "fecha_inicio": "10/03/2025",
+          "fecha_estimada_cierre": "10/10/2025",
+          "fecha_cierre_real": "15/10/2025",
+          "mes_ejecucion": 2,
+          "presupuesto_materiales": 4500000,
+          "gasto_real_materiales": 5800000,
+          "presupuesto_mano_obra": 3000000,
+          "gasto_real_mano_obra": 3100000,
+          "presupuesto_equipos": 500000,
+          "gasto_real_equipos": 500000,
+          "presupuesto_subcontratos": 1200000,
+          "gasto_real_subcontratos": 1400000,
+          "presupuesto_imprevistos": 200000,
+          "gasto_real_imprevistos": 800000,
+          "certificacion_cobrada": 0
+        },
+        {
+          "obra_id": "OBR-001",
+          "nombre_obra": "Los Tilos",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Argüello",
+          "fecha_inicio": "10/03/2025",
+          "fecha_estimada_cierre": "10/10/2025",
+          "fecha_cierre_real": "15/10/2025",
+          "mes_ejecucion": 3,
+          "presupuesto_materiales": 5000000,
+          "gasto_real_materiales": 6900000,
+          "presupuesto_mano_obra": 3500000,
+          "gasto_real_mano_obra": 3800000,
+          "presupuesto_equipos": 600000,
+          "gasto_real_equipos": 600000,
+          "presupuesto_subcontratos": 1500000,
+          "gasto_real_subcontratos": 1800000,
+          "presupuesto_imprevistos": 200000,
+          "gasto_real_imprevistos": 1200000,
+          "certificacion_cobrada": 12000000
+        },
+        {
+          "obra_id": "OBR-001",
+          "nombre_obra": "Los Tilos",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Argüello",
+          "fecha_inicio": "10/03/2025",
+          "fecha_estimada_cierre": "10/10/2025",
+          "fecha_cierre_real": "15/10/2025",
+          "mes_ejecucion": 4,
+          "presupuesto_materiales": 3000000,
+          "gasto_real_materiales": 4100000,
+          "presupuesto_mano_obra": 3500000,
+          "gasto_real_mano_obra": 3900000,
+          "presupuesto_equipos": 400000,
+          "gasto_real_equipos": 450000,
+          "presupuesto_subcontratos": 1000000,
+          "gasto_real_subcontratos": 1100000,
+          "presupuesto_imprevistos": 200000,
+          "gasto_real_imprevistos": 300000,
+          "certificacion_cobrada": 0
+        },
+        {
+          "obra_id": "OBR-001",
+          "nombre_obra": "Los Tilos",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Argüello",
+          "fecha_inicio": "10/03/2025",
+          "fecha_estimada_cierre": "10/10/2025",
+          "fecha_cierre_real": "15/10/2025",
+          "mes_ejecucion": 5,
+          "presupuesto_materiales": 2000000,
+          "gasto_real_materiales": 3000000,
+          "presupuesto_mano_obra": 2500000,
+          "gasto_real_mano_obra": 2900000,
+          "presupuesto_equipos": 200000,
+          "gasto_real_equipos": 200000,
+          "presupuesto_subcontratos": 800000,
+          "gasto_real_subcontratos": 950000,
+          "presupuesto_imprevistos": 200000,
+          "gasto_real_imprevistos": 450000,
+          "certificacion_cobrada": 10000000
+        },
+        {
+          "obra_id": "OBR-002",
+          "nombre_obra": "Las Delicias",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Las Delicias",
+          "fecha_inicio": "01/05/2025",
+          "fecha_estimada_cierre": "01/11/2025",
+          "fecha_cierre_real": "30/10/2025",
+          "mes_ejecucion": 1,
+          "presupuesto_materiales": 5000000,
+          "gasto_real_materiales": 4900000,
+          "presupuesto_mano_obra": 4000000,
+          "gasto_real_mano_obra": 4000000,
+          "presupuesto_equipos": 800000,
+          "gasto_real_equipos": 750000,
+          "presupuesto_subcontratos": 2000000,
+          "gasto_real_subcontratos": 1950000,
+          "presupuesto_imprevistos": 400000,
+          "gasto_real_imprevistos": 200000,
+          "certificacion_cobrada": 25000000
+        },
+        {
+          "obra_id": "OBR-002",
+          "nombre_obra": "Las Delicias",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Las Delicias",
+          "fecha_inicio": "01/05/2025",
+          "fecha_estimada_cierre": "01/11/2025",
+          "fecha_cierre_real": "30/10/2025",
+          "mes_ejecucion": 2,
+          "presupuesto_materiales": 6000000,
+          "gasto_real_materiales": 6100000,
+          "presupuesto_mano_obra": 4000000,
+          "gasto_real_mano_obra": 4100000,
+          "presupuesto_equipos": 800000,
+          "gasto_real_equipos": 800000,
+          "presupuesto_subcontratos": 2000000,
+          "gasto_real_subcontratos": 2050000,
+          "presupuesto_imprevistos": 400000,
+          "gasto_real_imprevistos": 350000,
+          "certificacion_cobrada": 0
+        },
+        {
+          "obra_id": "OBR-002",
+          "nombre_obra": "Las Delicias",
+          "tipo_obra": "VIVIENDA_UNIFAMILIAR",
+          "ubicacion": "Las Delicias",
+          "fecha_inicio": "01/05/2025",
+          "fecha_estimada_cierre": "01/11/2025",
+          "fecha_cierre_real": "30/10/2025",
+          "mes_ejecucion": 3,
+          "presupuesto_materiales": 4000000,
+          "gasto_real_materiales": 4150000,
+          "presupuesto_mano_obra": 3000000,
+          "gasto_real_mano_obra": 3000000,
+          "presupuesto_equipos": 500000,
+          "gasto_real_equipos": 500000,
+          "presupuesto_subcontratos": 1500000,
+          "gasto_real_subcontratos": 1500000,
+          "presupuesto_imprevistos": 400000,
+          "gasto_real_imprevistos": 100000,
+          "certificacion_cobrada": 20000000
+        },
+        {
+          "obra_id": "OBR-003",
+          "nombre_obra": "Altos del Cerro",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Cerro de las Rosas",
+          "fecha_inicio": "15/08/2025",
+          "fecha_estimada_cierre": "15/03/2026",
+          "fecha_cierre_real": null,
+          "mes_ejecucion": 1,
+          "presupuesto_materiales": 7000000,
+          "gasto_real_materiales": 7200000,
+          "presupuesto_mano_obra": 5000000,
+          "gasto_real_mano_obra": 5500000,
+          "presupuesto_equipos": 1000000,
+          "gasto_real_equipos": 1200000,
+          "presupuesto_subcontratos": 3000000,
+          "gasto_real_subcontratos": 3000000,
+          "presupuesto_imprevistos": 500000,
+          "gasto_real_imprevistos": 2800000,
+          "certificacion_cobrada": 35000000
+        },
+        {
+          "obra_id": "OBR-003",
+          "nombre_obra": "Altos del Cerro",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Cerro de las Rosas",
+          "fecha_inicio": "15/08/2025",
+          "fecha_estimada_cierre": "15/03/2026",
+          "fecha_cierre_real": null,
+          "mes_ejecucion": 2,
+          "presupuesto_materiales": 8000000,
+          "gasto_real_materiales": 10900000,
+          "presupuesto_mano_obra": 5000000,
+          "gasto_real_mano_obra": 5800000,
+          "presupuesto_equipos": 1000000,
+          "gasto_real_equipos": 1500000,
+          "presupuesto_subcontratos": 3500000,
+          "gasto_real_subcontratos": 3900000,
+          "presupuesto_imprevistos": 500000,
+          "gasto_real_imprevistos": 3400000,
+          "certificacion_cobrada": 0
+        },
+        {
+          "obra_id": "OBR-003",
+          "nombre_obra": "Altos del Cerro",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Cerro de las Rosas",
+          "fecha_inicio": "15/08/2025",
+          "fecha_estimada_cierre": "15/03/2026",
+          "fecha_cierre_real": null,
+          "mes_ejecucion": 3,
+          "presupuesto_materiales": 9000000,
+          "gasto_real_materiales": 12100000,
+          "presupuesto_mano_obra": 6000000,
+          "gasto_real_mano_obra": 7200000,
+          "presupuesto_equipos": 1200000,
+          "gasto_real_equipos": 1800000,
+          "presupuesto_subcontratos": 4000000,
+          "gasto_real_subcontratos": 4800000,
+          "presupuesto_imprevistos": 500000,
+          "gasto_real_imprevistos": 1500000,
+          "certificacion_cobrada": 40000000
+        },
+        {
+          "obra_id": "OBR-003",
+          "nombre_obra": "Altos del Cerro",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Cerro de las Rosas",
+          "fecha_inicio": "15/08/2025",
+          "fecha_estimada_cierre": "15/03/2026",
+          "fecha_cierre_real": null,
+          "mes_ejecucion": 4,
+          "presupuesto_materiales": 6000000,
+          "gasto_real_materiales": 8500000,
+          "presupuesto_mano_obra": 6000000,
+          "gasto_real_mano_obra": 7500000,
+          "presupuesto_equipos": 800000,
+          "gasto_real_equipos": 1200000,
+          "presupuesto_subcontratos": 3000000,
+          "gasto_real_subcontratos": 3600000,
+          "presupuesto_imprevistos": 500000,
+          "gasto_real_imprevistos": 900000,
+          "certificacion_cobrada": 0
+        },
+        {
+          "obra_id": "OBR-003",
+          "nombre_obra": "Altos del Cerro",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Cerro de las Rosas",
+          "fecha_inicio": "15/08/2025",
+          "fecha_estimada_cierre": "15/03/2026",
+          "fecha_cierre_real": null,
+          "mes_ejecucion": 5,
+          "presupuesto_materiales": 5000000,
+          "gasto_real_materiales": 6800000,
+          "presupuesto_mano_obra": 4000000,
+          "gasto_real_mano_obra": 5200000,
+          "presupuesto_equipos": 500000,
+          "gasto_real_equipos": 800000,
+          "presupuesto_subcontratos": 2000000,
+          "gasto_real_subcontratos": 2400000,
+          "presupuesto_imprevistos": 500000,
+          "gasto_real_imprevistos": 400000,
+          "certificacion_cobrada": 30000000
+        },
+        {
+          "obra_id": "OBR-004",
+          "nombre_obra": "Complejo Norte",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Villa Belgrano",
+          "fecha_inicio": "01/01/2025",
+          "fecha_estimada_cierre": "01/10/2025",
+          "fecha_cierre_real": "20/12/2025",
+          "mes_ejecucion": 1,
+          "presupuesto_materiales": 6000000,
+          "gasto_real_materiales": 6500000,
+          "presupuesto_mano_obra": 4500000,
+          "gasto_real_mano_obra": 4700000,
+          "presupuesto_equipos": 900000,
+          "gasto_real_equipos": 1000000,
+          "presupuesto_subcontratos": 2500000,
+          "gasto_real_subcontratos": 2500000,
+          "presupuesto_imprevistos": 300000,
+          "gasto_real_imprevistos": 200000,
+          "certificacion_cobrada": 22000000
+        },
+        {
+          "obra_id": "OBR-004",
+          "nombre_obra": "Complejo Norte",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Villa Belgrano",
+          "fecha_inicio": "01/01/2025",
+          "fecha_estimada_cierre": "01/10/2025",
+          "fecha_cierre_real": "20/12/2025",
+          "mes_ejecucion": 2,
+          "presupuesto_materiales": 7000000,
+          "gasto_real_materiales": 7800000,
+          "presupuesto_mano_obra": 4500000,
+          "gasto_real_mano_obra": 4900000,
+          "presupuesto_equipos": 900000,
+          "gasto_real_equipos": 950000,
+          "presupuesto_subcontratos": 2500000,
+          "gasto_real_subcontratos": 2700000,
+          "presupuesto_imprevistos": 300000,
+          "gasto_real_imprevistos": 450000,
+          "certificacion_cobrada": 0
+        },
+        {
+          "obra_id": "OBR-004",
+          "nombre_obra": "Complejo Norte",
+          "tipo_obra": "DUPLEX",
+          "ubicacion": "Villa Belgrano",
+          "fecha_inicio": "01/01/2025",
+          "fecha_estimada_cierre": "01/10/2025",
+          "fecha_cierre_real": "20/12/2025",
+          "mes_ejecucion": 3,
+          "presupuesto_materiales": 5000000,
+          "gasto_real_materiales": 6200000,
+          "presupuesto_mano_obra": 4000000,
+          "gasto_real_mano_obra": 4500000,
+          "presupuesto_equipos": 600000,
+          "gasto_real_equipos": 700000,
+          "presupuesto_subcontratos": 2000000,
+          "gasto_real_subcontratos": 2200000,
+          "presupuesto_imprevistos": 300000,
+          "gasto_real_imprevistos": 800000,
+          "certificacion_cobrada": 25000000
+        },
+        {
+          "obra_id": "OBR-005",
+          "nombre_obra": "Docta Vivienda",
+          "tipo_obra": "REFACCION_MAYOR",
+          "ubicacion": "Docta",
+          "fecha_inicio": "01/04/2026",
+          "fecha_estimada_cierre": "01/09/2026",
+          "fecha_cierre_real": null,
+          "mes_ejecucion": 1,
+          "presupuesto_materiales": 3000000,
+          "gasto_real_materiales": 3100000,
+          "presupuesto_mano_obra": 2000000,
+          "gasto_real_mano_obra": 2100000,
+          "presupuesto_equipos": 300000,
+          "gasto_real_equipos": 300000,
+          "presupuesto_subcontratos": 1000000,
+          "gasto_real_subcontratos": 1050000,
+          "presupuesto_imprevistos": 150000,
+          "gasto_real_imprevistos": 50000,
+          "certificacion_cobrada": 12000000
+        },
+        {
+          "obra_id": "OBR-005",
+          "nombre_obra": "Docta Vivienda",
+          "tipo_obra": "REFACCION_MAYOR",
+          "ubicacion": "Docta",
+          "fecha_inicio": "01/04/2026",
+          "fecha_estimada_cierre": "01/09/2026",
+          "fecha_cierre_real": null,
+          "mes_ejecucion": 2,
+          "presupuesto_materiales": 3500000,
+          "gasto_real_materiales": 2200000,
+          "presupuesto_mano_obra": 2000000,
+          "gasto_real_mano_obra": 1100000,
+          "presupuesto_equipos": 300000,
+          "gasto_real_equipos": 150000,
+          "presupuesto_subcontratos": 1200000,
+          "gasto_real_subcontratos": 600000,
+          "presupuesto_imprevistos": 150000,
+          "gasto_real_imprevistos": 10000,
+          "certificacion_cobrada": 0
+        }
+      ],
+      "context": "generic"
+    },
+    {
+      "sheet_name": "PROVEEDORES_MATERIALES",
+      "header_row": 1,
+      "columns": [
+        "proveedor",
+        "rubro",
+        "producto",
+        "unidad",
+        "precio_unitario_presupuestado",
+        "precio_unitario_real",
+        "fecha_cotizacion",
+        "obra_id"
+      ],
+      "records": [
+        {
+          "proveedor": "Hierros Córdoba",
+          "rubro": "HIERRO",
+          "producto": "Hierro del 8 liso x 12m",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 12000,
+          "precio_unitario_real": 16200,
+          "fecha_cotizacion": "15/04/2025",
+          "obra_id": "OBR-001"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "rubro": "HIERRO",
+          "producto": "Hierro aletado del 10 x 12m",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 18500,
+          "precio_unitario_real": 24500,
+          "fecha_cotizacion": "22/05/2025",
+          "obra_id": "OBR-001"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "rubro": "HIERRO",
+          "producto": "Malla Sima 15x15 4.2mm",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 28000,
+          "precio_unitario_real": 39000,
+          "fecha_cotizacion": "10/06/2025",
+          "obra_id": "OBR-001"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "rubro": "CEMENTO",
+          "producto": "Cemento Holcim de 50kg",
+          "unidad": "BOLSA",
+          "precio_unitario_presupuestado": 8500,
+          "precio_unitario_real": 11800,
+          "fecha_cotizacion": "12/04/2025",
+          "obra_id": "OBR-001"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "rubro": "CEMENTO",
+          "producto": "Cal Hidratada x 25kg",
+          "unidad": "BOLSA",
+          "precio_unitario_presupuestado": 4200,
+          "precio_unitario_real": 5600,
+          "fecha_cotizacion": "14/04/2025",
+          "obra_id": "OBR-001"
+        },
+        {
+          "proveedor": "Cantera El Sauce",
+          "rubro": "ARIDOS",
+          "producto": "Arena Fina Lavada",
+          "unidad": "M3",
+          "precio_unitario_presupuestado": 15000,
+          "precio_unitario_real": 21000,
+          "fecha_cotizacion": "03/05/2025",
+          "obra_id": "OBR-001"
+        },
+        {
+          "proveedor": "Cantera El Sauce",
+          "rubro": "ARIDOS",
+          "producto": "Piedra Bocha/Granitica",
+          "unidad": "M3",
+          "precio_unitario_presupuestado": 18000,
+          "precio_unitario_real": 24000,
+          "fecha_cotizacion": "04/05/2025",
+          "obra_id": "OBR-001"
+        },
+        {
+          "proveedor": "Aberturas Rossi",
+          "rubro": "CERRAMIENTOS",
+          "producto": "Ventana Alum. Modena 150x120",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 125000,
+          "precio_unitario_real": 130000,
+          "fecha_cotizacion": "12/06/2025",
+          "obra_id": "OBR-002"
+        },
+        {
+          "proveedor": "Aberturas Rossi",
+          "rubro": "CERRAMIENTOS",
+          "producto": "Puerta Oblak Obligao Chapa",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 210000,
+          "precio_unitario_real": 215000,
+          "fecha_cotizacion": "15/06/2025",
+          "obra_id": "OBR-002"
+        },
+        {
+          "proveedor": "Mundo Cerámico",
+          "rubro": "PISOS",
+          "producto": "Porcelanato Ilva 60x60",
+          "unidad": "M2",
+          "precio_unitario_presupuestado": 14500,
+          "precio_unitario_real": 15000,
+          "fecha_cotizacion": "20/07/2025",
+          "obra_id": "OBR-002"
+        },
+        {
+          "proveedor": "Pinturerías Quijote",
+          "rubro": "PINTURERIA",
+          "producto": "Látex Interior Alba 20L",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 82000,
+          "precio_unitario_real": 84000,
+          "fecha_cotizacion": "02/09/2025",
+          "obra_id": "OBR-002"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "rubro": "HIERRO",
+          "producto": "Hierro del 12 estructural",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 24000,
+          "precio_unitario_real": 33600,
+          "fecha_cotizacion": "18/08/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "rubro": "HIERRO",
+          "producto": "Hierro del 6 de obra",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 9500,
+          "precio_unitario_real": 13500,
+          "fecha_cotizacion": "20/08/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "rubro": "CEMENTO",
+          "producto": "Cemento Holcim de 50kg",
+          "unidad": "BOLSA",
+          "precio_unitario_presupuestado": 9200,
+          "precio_unitario_real": 12900,
+          "fecha_cotizacion": "01/09/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "rubro": "CEMENTO",
+          "producto": "Plasticor ligante de 50kg",
+          "unidad": "BOLSA",
+          "precio_unitario_presupuestado": 7800,
+          "precio_unitario_real": 10900,
+          "fecha_cotizacion": "05/09/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Cantera El Sauce",
+          "rubro": "ARIDOS",
+          "producto": "Estabilizado Granulado",
+          "unidad": "M3",
+          "precio_unitario_presupuestado": 16500,
+          "precio_unitario_real": 22500,
+          "fecha_cotizacion": "10/09/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Sanitarios de la Plaza",
+          "rubro": "INSTALACIONES",
+          "producto": "Tubo Fusion Agua 20mm Amanco",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 5800,
+          "precio_unitario_real": 6200,
+          "fecha_cotizacion": "12/10/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Sanitarios de la Plaza",
+          "rubro": "INSTALACIONES",
+          "producto": "Codo 90 Termofusion 20mm",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 450,
+          "precio_unitario_real": 480,
+          "fecha_cotizacion": "12/10/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Electricidad Suquía",
+          "rubro": "INSTALACIONES",
+          "producto": "Cable Corrugado 3/4 x 25m",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 11000,
+          "precio_unitario_real": 12000,
+          "fecha_cotizacion": "25/10/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Ferretería Maipú",
+          "rubro": "FERRETERIA",
+          "producto": "Clavos de punta cajon 2.5",
+          "unidad": "KG",
+          "precio_unitario_presupuestado": 3200,
+          "precio_unitario_real": 4500,
+          "fecha_cotizacion": "15/08/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Ferretería Maipú",
+          "rubro": "FERRETERIA",
+          "producto": "Alambre negro de atar",
+          "unidad": "KG",
+          "precio_unitario_presupuestado": 4100,
+          "precio_unitario_real": 5600,
+          "fecha_cotizacion": "16/08/2025",
+          "obra_id": "OBR-003"
+        },
+        {
+          "proveedor": "Techos del Interior",
+          "rubro": "TECHOS",
+          "producto": "Chapa Sinusoidal Cincalum c25",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 16000,
+          "precio_unitario_real": 17200,
+          "fecha_cotizacion": "05/05/2025",
+          "obra_id": "OBR-004"
+        },
+        {
+          "proveedor": "Techos del Interior",
+          "rubro": "TECHOS",
+          "producto": "Perfil C 100x50x2mm x 12m",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 45000,
+          "precio_unitario_real": 49000,
+          "fecha_cotizacion": "06/05/2025",
+          "obra_id": "OBR-004"
+        },
+        {
+          "proveedor": "Mundo Cerámico",
+          "rubro": "PISOS",
+          "producto": "Cerámico Cerro Negro 38x38",
+          "unidad": "M2",
+          "precio_unitario_presupuestado": 8500,
+          "precio_unitario_real": 9200,
+          "fecha_cotizacion": "14/07/2025",
+          "obra_id": "OBR-004"
+        },
+        {
+          "proveedor": "Aberturas Rossi",
+          "rubro": "CERRAMIENTOS",
+          "producto": "Ventana Corrediza Alum Blanco",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 85000,
+          "precio_unitario_real": 91000,
+          "fecha_cotizacion": "20/04/2025",
+          "obra_id": "OBR-004"
+        },
+        {
+          "proveedor": "Sanitarios de la Plaza",
+          "rubro": "INSTALACIONES",
+          "producto": "Cámara de Inspección PVC",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 34000,
+          "precio_unitario_real": 36000,
+          "fecha_cotizacion": "11/03/2025",
+          "obra_id": "OBR-004"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "rubro": "CEMENTO",
+          "producto": "Cemento Holcim de 50kg",
+          "unidad": "BOLSA",
+          "precio_unitario_presupuestado": 11500,
+          "precio_unitario_real": 12000,
+          "fecha_cotizacion": "02/04/2026",
+          "obra_id": "OBR-005"
+        },
+        {
+          "proveedor": "Ferretería Maipú",
+          "rubro": "FERRETERIA",
+          "producto": "Tornillos Fix para Madera",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 85,
+          "precio_unitario_real": 90,
+          "fecha_cotizacion": "15/04/2026",
+          "obra_id": "OBR-005"
+        },
+        {
+          "proveedor": "Pinturerías Quijote",
+          "rubro": "TERMINACIONES",
+          "producto": "Enduido Plástico Interior 20L",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 64000,
+          "precio_unitario_real": 66000,
+          "fecha_cotizacion": "10/05/2026",
+          "obra_id": "OBR-005"
+        },
+        {
+          "proveedor": "Mundo Cerámico",
+          "rubro": "PISOS",
+          "producto": "Zócalo EPS Blanco 7cm x 2.5m",
+          "unidad": "UNIDAD",
+          "precio_unitario_presupuestado": 9800,
+          "precio_unitario_real": 10200,
+          "fecha_cotizacion": "18/05/2026",
+          "obra_id": "OBR-005"
+        }
+      ],
+      "context": "productos"
+    },
+    {
+      "sheet_name": "IMPREVISTOS",
+      "header_row": 1,
+      "columns": [
+        "obra_id",
+        "fecha",
+        "tipo_imprevisto",
+        "descripcion",
+        "impacto_economico",
+        "impacto_dias",
+        "fue_cubierto_por_seguro"
+      ],
+      "records": [
+        {
+          "obra_id": "OBR-001",
+          "fecha": "12/04/2025",
+          "tipo_imprevisto": "ERROR_PRESUPUESTO",
+          "descripcion": "Omisión de cálculo de vigas de encadenado secundarias",
+          "impacto_economico": 650000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-001",
+          "fecha": "18/05/2025",
+          "tipo_imprevisto": "SUBA_MATERIALES",
+          "descripcion": "Aumento no pactado generalizado en corralón por disparada del dólar",
+          "impacto_economico": 800000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-001",
+          "fecha": "24/06/2025",
+          "tipo_imprevisto": "CLIMA",
+          "descripcion": "Temporal de lluvia interrumpió el techado, arruinó cielorrasos armados",
+          "impacto_economico": 1200000,
+          "impacto_dias": 5,
+          "fue_cubierto_por_seguro": "PARCIAL"
+        },
+        {
+          "obra_id": "OBR-001",
+          "fecha": "10/08/2025",
+          "tipo_imprevisto": "CAMBIO_PEDIDO_CLIENTE",
+          "descripcion": "Modificación en distribución de cocina a pedido de la dueña",
+          "impacto_economico": 450000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-002",
+          "fecha": "14/06/2025",
+          "tipo_imprevisto": "CLIMA",
+          "descripcion": "Heladas fuertes retrasaron el fraguado de la losa de planta alta",
+          "impacto_economico": 200000,
+          "impacto_dias": 2,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-002",
+          "fecha": "03/08/2025",
+          "tipo_imprevisto": "ERROR_PRESUPUESTO",
+          "descripcion": "Diferencia de metros en replanteo de aberturas de aluminio",
+          "impacto_economico": 150000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "18/08/2025",
+          "tipo_imprevisto": "SUELO",
+          "descripcion": "Presencia de napa freática alta no detectada, requirió excavación manual",
+          "impacto_economico": 2500000,
+          "impacto_dias": 8,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "26/08/2025",
+          "tipo_imprevisto": "SUELO",
+          "descripcion": "Desmoronamiento de perfil de zanja, obligó a realizar submuración urgente",
+          "impacto_economico": 3100000,
+          "impacto_dias": 6,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "02/09/2025",
+          "tipo_imprevisto": "SUELO",
+          "descripcion": "Falta de resistencia portante, re-cálculo de bases por ingeniero externo",
+          "impacto_economico": 1800000,
+          "impacto_dias": 14,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "15/09/2025",
+          "tipo_imprevisto": "SUBA_MATERIALES",
+          "descripcion": "Salto brusco del 40% en precio de mallas de acero estructurales",
+          "impacto_economico": 1400000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "22/10/2025",
+          "tipo_imprevisto": "PROBLEMA_ESTRUCTURAL",
+          "descripcion": "Fisura en tabique de contención por empuje lateral de tierra húmeda",
+          "impacto_economico": 2100000,
+          "impacto_dias": 5,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "05/11/2025",
+          "tipo_imprevisto": "CAMBIO_PEDIDO_CLIENTE",
+          "descripcion": "Ampliación de cochera semicubierta no estipulada en plano licitado",
+          "impacto_economico": 1200000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "12/12/2025",
+          "tipo_imprevisto": "REDETERMINACION",
+          "descripcion": "Ajuste paritaria UOCRA con impacto directo retroactivo en mano de obra",
+          "impacto_economico": 1500000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-003",
+          "fecha": "10/01/2026",
+          "tipo_imprevisto": "CLIMA",
+          "descripcion": "Tormenta estival inundó sector de fundaciones mal drenado",
+          "impacto_economico": 400000,
+          "impacto_dias": 3,
+          "fue_cubierto_por_seguro": "SI"
+        },
+        {
+          "obra_id": "OBR-004",
+          "fecha": "15/02/2025",
+          "tipo_imprevisto": "ERROR_PRESUPUESTO",
+          "descripcion": "Error en cómputo métrico de movimiento de suelo inicial",
+          "impacto_economico": 450000,
+          "impacto_dias": 4,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-004",
+          "fecha": "20/04/2025",
+          "tipo_imprevisto": "SUBA_MATERIALES",
+          "descripcion": "Actualización inflacionaria de chapas y perfiles para cubierta",
+          "impacto_economico": 650000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-004",
+          "fecha": "18/06/2025",
+          "tipo_imprevisto": "CLIMA",
+          "descripcion": "Días consecutivos de llovizna paralizaron revoques exteriores",
+          "impacto_economico": 300000,
+          "impacto_dias": 10,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-004",
+          "fecha": "05/09/2025",
+          "tipo_imprevisto": "PROBLEMA_ESTRUCTURAL",
+          "descripcion": "Rotura de caño maestro interno de agua durante perforaciones",
+          "impacto_economico": 820000,
+          "impacto_dias": 2,
+          "fue_cubierto_por_seguro": "PARCIAL"
+        },
+        {
+          "obra_id": "OBR-005",
+          "fecha": "18/04/2026",
+          "tipo_imprevisto": "ERROR_PRESUPUESTO",
+          "descripcion": "Demolición de muro estructural requirió apuntalamiento no previsto",
+          "impacto_economico": 400000,
+          "impacto_dias": 1,
+          "fue_cubierto_por_seguro": "NO"
+        },
+        {
+          "obra_id": "OBR-005",
+          "fecha": "05/05/2026",
+          "tipo_imprevisto": "SUBA_MATERIALES",
+          "descripcion": "Ajuste de precio mensual de bolsas de cemento gris por inflación",
+          "impacto_economico": 150000,
+          "impacto_dias": 0,
+          "fue_cubierto_por_seguro": "NO"
+        }
+      ],
+      "context": "generic"
+    }
+  ],
+  "normalized_tables": [
+    {
+      "sheet_name": "OBRAS",
+      "context": "generic",
+      "header_row": 1,
+      "columns": [
+        "obra_id",
+        "nombre_obra",
+        "tipo_obra",
+        "ubicacion",
+        "fecha_inicio",
+        "fecha_estimada_cierre",
+        "fecha_cierre_real",
+        "mes_ejecucion",
+        "presupuesto_materiales",
+        "gasto_real_materiales",
+        "presupuesto_mano_obra",
+        "gasto_real_mano_obra",
+        "presupuesto_equipos",
+        "gasto_real_equipos",
+        "presupuesto_subcontratos",
+        "gasto_real_subcontratos",
+        "presupuesto_imprevistos",
+        "gasto_real_imprevistos",
+        "certificacion_cobrada"
+      ],
+      "mappings": [
+        {
+          "source_column": "obra_id",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "nombre_obra",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "tipo_obra",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "ubicacion",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "fecha_inicio",
+          "target_field": "fecha",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "fecha_estimada_cierre",
+          "target_field": "fecha",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "fecha_cierre_real",
+          "target_field": "fecha",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "mes_ejecucion",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "presupuesto_materiales",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "gasto_real_materiales",
+          "target_field": "gasto",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "presupuesto_mano_obra",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "gasto_real_mano_obra",
+          "target_field": "gasto",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "presupuesto_equipos",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "gasto_real_equipos",
+          "target_field": "gasto",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "presupuesto_subcontratos",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "gasto_real_subcontratos",
+          "target_field": "gasto",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "presupuesto_imprevistos",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "gasto_real_imprevistos",
+          "target_field": "gasto",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "certificacion_cobrada",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        }
+      ],
+      "records": [
+        {
+          "fecha": "2025-03-10",
+          "gasto": 4200000
+        },
+        {
+          "fecha": "2025-03-10",
+          "gasto": 5800000
+        },
+        {
+          "fecha": "2025-03-10",
+          "gasto": 6900000
+        },
+        {
+          "fecha": "2025-03-10",
+          "gasto": 4100000
+        },
+        {
+          "fecha": "2025-03-10",
+          "gasto": 3000000
+        },
+        {
+          "fecha": "2025-05-01",
+          "gasto": 4900000
+        },
+        {
+          "fecha": "2025-05-01",
+          "gasto": 6100000
+        },
+        {
+          "fecha": "2025-05-01",
+          "gasto": 4150000
+        },
+        {
+          "fecha": "2025-08-15",
+          "gasto": 7200000
+        },
+        {
+          "fecha": "2025-08-15",
+          "gasto": 10900000
+        },
+        {
+          "fecha": "2025-08-15",
+          "gasto": 12100000
+        },
+        {
+          "fecha": "2025-08-15",
+          "gasto": 8500000
+        },
+        {
+          "fecha": "2025-08-15",
+          "gasto": 6800000
+        },
+        {
+          "fecha": "2025-01-01",
+          "gasto": 6500000
+        },
+        {
+          "fecha": "2025-01-01",
+          "gasto": 7800000
+        },
+        {
+          "fecha": "2025-01-01",
+          "gasto": 6200000
+        },
+        {
+          "fecha": "2026-04-01",
+          "gasto": 3100000
+        },
+        {
+          "fecha": "2026-04-01",
+          "gasto": 2200000
+        }
+      ]
+    },
+    {
+      "sheet_name": "PROVEEDORES_MATERIALES",
+      "context": "productos",
+      "header_row": 1,
+      "columns": [
+        "proveedor",
+        "rubro",
+        "producto",
+        "unidad",
+        "precio_unitario_presupuestado",
+        "precio_unitario_real",
+        "fecha_cotizacion",
+        "obra_id"
+      ],
+      "mappings": [
+        {
+          "source_column": "proveedor",
+          "target_field": "proveedor",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "rubro",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "producto",
+          "target_field": "producto",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "unidad",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "precio_unitario_presupuestado",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": "column_name_is_ambiguous"
+        },
+        {
+          "source_column": "precio_unitario_real",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": "column_name_is_ambiguous"
+        },
+        {
+          "source_column": "fecha_cotizacion",
+          "target_field": "fecha",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "obra_id",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        }
+      ],
+      "records": [
+        {
+          "proveedor": "Hierros Córdoba",
+          "producto": "Hierro del 8 liso x 12m",
+          "fecha": "2025-04-15"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "producto": "Hierro aletado del 10 x 12m",
+          "fecha": "2025-05-22"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "producto": "Malla Sima 15x15 4.2mm",
+          "fecha": "2025-06-10"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "producto": "Cemento Holcim de 50kg",
+          "fecha": "2025-04-12"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "producto": "Cal Hidratada x 25kg",
+          "fecha": "2025-04-14"
+        },
+        {
+          "proveedor": "Cantera El Sauce",
+          "producto": "Arena Fina Lavada",
+          "fecha": "2025-05-03"
+        },
+        {
+          "proveedor": "Cantera El Sauce",
+          "producto": "Piedra Bocha/Granitica",
+          "fecha": "2025-05-04"
+        },
+        {
+          "proveedor": "Aberturas Rossi",
+          "producto": "Ventana Alum. Modena 150x120",
+          "fecha": "2025-06-12"
+        },
+        {
+          "proveedor": "Aberturas Rossi",
+          "producto": "Puerta Oblak Obligao Chapa",
+          "fecha": "2025-06-15"
+        },
+        {
+          "proveedor": "Mundo Cerámico",
+          "producto": "Porcelanato Ilva 60x60",
+          "fecha": "2025-07-20"
+        },
+        {
+          "proveedor": "Pinturerías Quijote",
+          "producto": "Látex Interior Alba 20L",
+          "fecha": "2025-09-02"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "producto": "Hierro del 12 estructural",
+          "fecha": "2025-08-18"
+        },
+        {
+          "proveedor": "Hierros Córdoba",
+          "producto": "Hierro del 6 de obra",
+          "fecha": "2025-08-20"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "producto": "Cemento Holcim de 50kg",
+          "fecha": "2025-09-01"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "producto": "Plasticor ligante de 50kg",
+          "fecha": "2025-09-05"
+        },
+        {
+          "proveedor": "Cantera El Sauce",
+          "producto": "Estabilizado Granulado",
+          "fecha": "2025-09-10"
+        },
+        {
+          "proveedor": "Sanitarios de la Plaza",
+          "producto": "Tubo Fusion Agua 20mm Amanco",
+          "fecha": "2025-10-12"
+        },
+        {
+          "proveedor": "Sanitarios de la Plaza",
+          "producto": "Codo 90 Termofusion 20mm",
+          "fecha": "2025-10-12"
+        },
+        {
+          "proveedor": "Electricidad Suquía",
+          "producto": "Cable Corrugado 3/4 x 25m",
+          "fecha": "2025-10-25"
+        },
+        {
+          "proveedor": "Ferretería Maipú",
+          "producto": "Clavos de punta cajon 2.5",
+          "fecha": "2025-08-15"
+        },
+        {
+          "proveedor": "Ferretería Maipú",
+          "producto": "Alambre negro de atar",
+          "fecha": "2025-08-16"
+        },
+        {
+          "proveedor": "Techos del Interior",
+          "producto": "Chapa Sinusoidal Cincalum c25",
+          "fecha": "2025-05-05"
+        },
+        {
+          "proveedor": "Techos del Interior",
+          "producto": "Perfil C 100x50x2mm x 12m",
+          "fecha": "2025-05-06"
+        },
+        {
+          "proveedor": "Mundo Cerámico",
+          "producto": "Cerámico Cerro Negro 38x38",
+          "fecha": "2025-07-14"
+        },
+        {
+          "proveedor": "Aberturas Rossi",
+          "producto": "Ventana Corrediza Alum Blanco",
+          "fecha": "2025-04-20"
+        },
+        {
+          "proveedor": "Sanitarios de la Plaza",
+          "producto": "Cámara de Inspección PVC",
+          "fecha": "2025-03-11"
+        },
+        {
+          "proveedor": "Logística Centro",
+          "producto": "Cemento Holcim de 50kg",
+          "fecha": "2026-04-02"
+        },
+        {
+          "proveedor": "Ferretería Maipú",
+          "producto": "Tornillos Fix para Madera",
+          "fecha": "2026-04-15"
+        },
+        {
+          "proveedor": "Pinturerías Quijote",
+          "producto": "Enduido Plástico Interior 20L",
+          "fecha": "2026-05-10"
+        },
+        {
+          "proveedor": "Mundo Cerámico",
+          "producto": "Zócalo EPS Blanco 7cm x 2.5m",
+          "fecha": "2026-05-18"
+        }
+      ]
+    },
+    {
+      "sheet_name": "IMPREVISTOS",
+      "context": "generic",
+      "header_row": 1,
+      "columns": [
+        "obra_id",
+        "fecha",
+        "tipo_imprevisto",
+        "descripcion",
+        "impacto_economico",
+        "impacto_dias",
+        "fue_cubierto_por_seguro"
+      ],
+      "mappings": [
+        {
+          "source_column": "obra_id",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "fecha",
+          "target_field": "fecha",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "tipo_imprevisto",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "descripcion",
+          "target_field": "producto",
+          "confidence": "mapped",
+          "reason": null
+        },
+        {
+          "source_column": "impacto_economico",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "impacto_dias",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        },
+        {
+          "source_column": "fue_cubierto_por_seguro",
+          "target_field": "unknown",
+          "confidence": "unknown",
+          "reason": null
+        }
+      ],
+      "records": [
+        {
+          "fecha": "2025-04-12",
+          "producto": "Omisión de cálculo de vigas de encadenado secundarias"
+        },
+        {
+          "fecha": "2025-05-18",
+          "producto": "Aumento no pactado generalizado en corralón por disparada del dólar"
+        },
+        {
+          "fecha": "2025-06-24",
+          "producto": "Temporal de lluvia interrumpió el techado, arruinó cielorrasos armados"
+        },
+        {
+          "fecha": "2025-08-10",
+          "producto": "Modificación en distribución de cocina a pedido de la dueña"
+        },
+        {
+          "fecha": "2025-06-14",
+          "producto": "Heladas fuertes retrasaron el fraguado de la losa de planta alta"
+        },
+        {
+          "fecha": "2025-08-03",
+          "producto": "Diferencia de metros en replanteo de aberturas de aluminio"
+        },
+        {
+          "fecha": "2025-08-18",
+          "producto": "Presencia de napa freática alta no detectada, requirió excavación manual"
+        },
+        {
+          "fecha": "2025-08-26",
+          "producto": "Desmoronamiento de perfil de zanja, obligó a realizar submuración urgente"
+        },
+        {
+          "fecha": "2025-09-02",
+          "producto": "Falta de resistencia portante, re-cálculo de bases por ingeniero externo"
+        },
+        {
+          "fecha": "2025-09-15",
+          "producto": "Salto brusco del 40% en precio de mallas de acero estructurales"
+        },
+        {
+          "fecha": "2025-10-22",
+          "producto": "Fisura en tabique de contención por empuje lateral de tierra húmeda"
+        },
+        {
+          "fecha": "2025-11-05",
+          "producto": "Ampliación de cochera semicubierta no estipulada en plano licitado"
+        },
+        {
+          "fecha": "2025-12-12",
+          "producto": "Ajuste paritaria UOCRA con impacto directo retroactivo en mano de obra"
+        },
+        {
+          "fecha": "2026-01-10",
+          "producto": "Tormenta estival inundó sector de fundaciones mal drenado"
+        },
+        {
+          "fecha": "2025-02-15",
+          "producto": "Error en cómputo métrico de movimiento de suelo inicial"
+        },
+        {
+          "fecha": "2025-04-20",
+          "producto": "Actualización inflacionaria de chapas y perfiles para cubierta"
+        },
+        {
+          "fecha": "2025-06-18",
+          "producto": "Días consecutivos de llovizna paralizaron revoques exteriores"
+        },
+        {
+          "fecha": "2025-09-05",
+          "producto": "Rotura de caño maestro interno de agua durante perforaciones"
+        },
+        {
+          "fecha": "2026-04-18",
+          "producto": "Demolición de muro estructural requirió apuntalamiento no previsto"
+        },
+        {
+          "fecha": "2026-05-05",
+          "producto": "Ajuste de precio mensual de bolsas de cemento gris por inflación"
+        }
+      ]
+    }
+  ],
+  "report": {
+    "file_name": "constructora_nueva_era_srl.xlsx",
+    "status": "PARTIAL",
+    "tables_count": 3,
+    "rows_count": 68,
+    "mapped_fields": {
+      "fecha_inicio": "fecha",
+      "fecha_estimada_cierre": "fecha",
+      "fecha_cierre_real": "fecha",
+      "gasto_real_materiales": "gasto",
+      "gasto_real_mano_obra": "gasto",
+      "gasto_real_equipos": "gasto",
+      "gasto_real_subcontratos": "gasto",
+      "gasto_real_imprevistos": "gasto",
+      "proveedor": "proveedor",
+      "producto": "producto",
+      "fecha_cotizacion": "fecha",
+      "fecha": "fecha",
+      "descripcion": "producto"
+    },
+    "unknown_fields": [
+      "certificacion_cobrada",
+      "fue_cubierto_por_seguro",
+      "impacto_dias",
+      "impacto_economico",
+      "mes_ejecucion",
+      "nombre_obra",
+      "obra_id",
+      "precio_unitario_presupuestado",
+      "precio_unitario_real",
+      "presupuesto_equipos",
+      "presupuesto_imprevistos",
+      "presupuesto_mano_obra",
+      "presupuesto_materiales",
+      "presupuesto_subcontratos",
+      "rubro",
+      "tipo_imprevisto",
+      "tipo_obra",
+      "ubicacion",
+      "unidad"
+    ],
+    "ambiguous_fields": [],
+    "sheet_reports": {
+      "OBRAS": "OK",
+      "PROVEEDORES_MATERIALES": "OK",
+      "IMPREVISTOS": "OK"
+    },
+    "validation_issues": [],
+    "column_confirmation_matrix": {
+      "file_name": "constructora_nueva_era_srl.xlsx",
+      "entries": [
+        {
+          "original_column_name": "obra_id",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            "OBR-001",
+            "OBR-001",
+            "OBR-001",
+            "OBR-001",
+            "OBR-001"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"obra_id\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "nombre_obra",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            "Los Tilos",
+            "Los Tilos",
+            "Los Tilos",
+            "Los Tilos",
+            "Los Tilos"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"nombre_obra\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "tipo_obra",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            "VIVIENDA_UNIFAMILIAR",
+            "VIVIENDA_UNIFAMILIAR",
+            "VIVIENDA_UNIFAMILIAR",
+            "VIVIENDA_UNIFAMILIAR",
+            "VIVIENDA_UNIFAMILIAR"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"tipo_obra\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "ubicacion",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            "Argüello",
+            "Argüello",
+            "Argüello",
+            "Argüello",
+            "Argüello"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"ubicacion\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "fecha_inicio",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            "10/03/2025",
+            "10/03/2025",
+            "10/03/2025",
+            "10/03/2025",
+            "10/03/2025"
+          ],
+          "inferred_type": "date",
+          "suggested_semantic_role": "fecha",
+          "suggested_data_type": "date",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"fecha_inicio\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "fecha_estimada_cierre",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            "10/10/2025",
+            "10/10/2025",
+            "10/10/2025",
+            "10/10/2025",
+            "10/10/2025"
+          ],
+          "inferred_type": "date",
+          "suggested_semantic_role": "fecha",
+          "suggested_data_type": "date",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"fecha_estimada_cierre\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "fecha_cierre_real",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            "15/10/2025",
+            "15/10/2025",
+            "15/10/2025",
+            "15/10/2025",
+            "15/10/2025"
+          ],
+          "inferred_type": "date",
+          "suggested_semantic_role": "fecha",
+          "suggested_data_type": "date",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"fecha_cierre_real\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "mes_ejecucion",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"mes_ejecucion\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "presupuesto_materiales",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            4000000,
+            4500000,
+            5000000,
+            3000000,
+            2000000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"presupuesto_materiales\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "gasto_real_materiales",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            4200000,
+            5800000,
+            6900000,
+            4100000,
+            3000000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "gasto",
+          "suggested_data_type": "number",
+          "calculation_relevance": "COSTOS",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"gasto_real_materiales\" representa un costo unitario o un costo total?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "presupuesto_mano_obra",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            3000000,
+            3000000,
+            3500000,
+            3500000,
+            2500000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"presupuesto_mano_obra\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "gasto_real_mano_obra",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            3100000,
+            3100000,
+            3800000,
+            3900000,
+            2900000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "gasto",
+          "suggested_data_type": "number",
+          "calculation_relevance": "COSTOS",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"gasto_real_mano_obra\" representa un costo unitario o un costo total?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "presupuesto_equipos",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            500000,
+            500000,
+            600000,
+            400000,
+            200000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"presupuesto_equipos\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "gasto_real_equipos",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            550000,
+            500000,
+            600000,
+            450000,
+            200000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "gasto",
+          "suggested_data_type": "number",
+          "calculation_relevance": "COSTOS",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"gasto_real_equipos\" representa un costo unitario o un costo total?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "presupuesto_subcontratos",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            1000000,
+            1200000,
+            1500000,
+            1000000,
+            800000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"presupuesto_subcontratos\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "gasto_real_subcontratos",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            1000000,
+            1400000,
+            1800000,
+            1100000,
+            950000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "gasto",
+          "suggested_data_type": "number",
+          "calculation_relevance": "COSTOS",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"gasto_real_subcontratos\" representa un costo unitario o un costo total?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "presupuesto_imprevistos",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            200000,
+            200000,
+            200000,
+            200000,
+            200000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"presupuesto_imprevistos\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "gasto_real_imprevistos",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            150000,
+            800000,
+            1200000,
+            300000,
+            450000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "gasto",
+          "suggested_data_type": "number",
+          "calculation_relevance": "COSTOS",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"gasto_real_imprevistos\" representa un costo unitario o un costo total?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "certificacion_cobrada",
+          "sheet_name": "OBRAS",
+          "sample_values": [
+            15000000,
+            0,
+            12000000,
+            0,
+            10000000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"OBRAS\", ¿la columna \"certificacion_cobrada\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "proveedor",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            "Hierros Córdoba",
+            "Hierros Córdoba",
+            "Hierros Córdoba",
+            "Logística Centro",
+            "Logística Centro"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "proveedor",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"proveedor\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "rubro",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            "HIERRO",
+            "HIERRO",
+            "HIERRO",
+            "CEMENTO",
+            "CEMENTO"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"rubro\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "producto",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            "Hierro del 8 liso x 12m",
+            "Hierro aletado del 10 x 12m",
+            "Malla Sima 15x15 4.2mm",
+            "Cemento Holcim de 50kg",
+            "Cal Hidratada x 25kg"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "producto",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"producto\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "unidad",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            "UNIDAD",
+            "UNIDAD",
+            "UNIDAD",
+            "BOLSA",
+            "BOLSA"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"unidad\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "precio_unitario_presupuestado",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            12000,
+            18500,
+            28000,
+            8500,
+            4200
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"precio_unitario_presupuestado\" es el precio cobrado al cliente? ¿Antes o después de descuento?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "precio_unitario_real",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            16200,
+            24500,
+            39000,
+            11800,
+            5600
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"precio_unitario_real\" es el precio cobrado al cliente? ¿Antes o después de descuento?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "fecha_cotizacion",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            "15/04/2025",
+            "22/05/2025",
+            "10/06/2025",
+            "12/04/2025",
+            "14/04/2025"
+          ],
+          "inferred_type": "date",
+          "suggested_semantic_role": "fecha",
+          "suggested_data_type": "date",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"fecha_cotizacion\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "obra_id",
+          "sheet_name": "PROVEEDORES_MATERIALES",
+          "sample_values": [
+            "OBR-001",
+            "OBR-001",
+            "OBR-001",
+            "OBR-001",
+            "OBR-001"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"PROVEEDORES_MATERIALES\", ¿la columna \"obra_id\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "obra_id",
+          "sheet_name": "IMPREVISTOS",
+          "sample_values": [
+            "OBR-001",
+            "OBR-001",
+            "OBR-001",
+            "OBR-001",
+            "OBR-002"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"IMPREVISTOS\", ¿la columna \"obra_id\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "fecha",
+          "sheet_name": "IMPREVISTOS",
+          "sample_values": [
+            "12/04/2025",
+            "18/05/2025",
+            "24/06/2025",
+            "10/08/2025",
+            "14/06/2025"
+          ],
+          "inferred_type": "date",
+          "suggested_semantic_role": "fecha",
+          "suggested_data_type": "date",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"IMPREVISTOS\", ¿la columna \"fecha\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "tipo_imprevisto",
+          "sheet_name": "IMPREVISTOS",
+          "sample_values": [
+            "ERROR_PRESUPUESTO",
+            "SUBA_MATERIALES",
+            "CLIMA",
+            "CAMBIO_PEDIDO_CLIENTE",
+            "CLIMA"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"IMPREVISTOS\", ¿la columna \"tipo_imprevisto\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "descripcion",
+          "sheet_name": "IMPREVISTOS",
+          "sample_values": [
+            "Omisión de cálculo de vigas de encadenado secundarias",
+            "Aumento no pactado generalizado en corralón por disparada del dólar",
+            "Temporal de lluvia interrumpió el techado, arruinó cielorrasos armados",
+            "Modificación en distribución de cocina a pedido de la dueña",
+            "Heladas fuertes retrasaron el fraguado de la losa de planta alta"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "producto",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "mapped",
+          "owner_question": "En la hoja \"IMPREVISTOS\", ¿la columna \"descripcion\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "impacto_economico",
+          "sheet_name": "IMPREVISTOS",
+          "sample_values": [
+            650000,
+            800000,
+            1200000,
+            450000,
+            200000
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"IMPREVISTOS\", ¿la columna \"impacto_economico\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "impacto_dias",
+          "sheet_name": "IMPREVISTOS",
+          "sample_values": [
+            0,
+            0,
+            5,
+            0,
+            2
+          ],
+          "inferred_type": "number",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "number",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"IMPREVISTOS\", ¿la columna \"impacto_dias\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        },
+        {
+          "original_column_name": "fue_cubierto_por_seguro",
+          "sheet_name": "IMPREVISTOS",
+          "sample_values": [
+            "NO",
+            "NO",
+            "PARCIAL",
+            "NO",
+            "NO"
+          ],
+          "inferred_type": "text",
+          "suggested_semantic_role": "unknown",
+          "suggested_data_type": "text",
+          "calculation_relevance": "INFORMATIONAL",
+          "confidence": "unknown",
+          "owner_question": "En la hoja \"IMPREVISTOS\", ¿la columna \"fue_cubierto_por_seguro\" sólo describe información (ej: nombre, ID, categoría) o se usa para algún cálculo?",
+          "owner_confirmed_role": null,
+          "owner_rectified_function": null,
+          "semantic_rectification_status": "INFERRED_NOT_RECTIFIED",
+          "confirmation_status": "PENDING_OWNER_CONFIRMATION"
+        }
+      ]
+    }
+  }
+}

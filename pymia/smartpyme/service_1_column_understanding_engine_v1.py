@@ -59,6 +59,10 @@ from pymia.smartpyme.service_1_column_understanding_engine_contract_v1 import (
     build_service_1_column_understanding_v1,
     confidence_band_v1,
 )
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import (
+    infer_service_1_semantic_coordinate_v2,
+    render_service_1_semantic_coordinate_owner_proposal_v2,
+)
 
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_COLUMN_UNDERSTANDING_ENGINE_V1"
@@ -194,6 +198,32 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
         owner_label="Fecha de la operacion",
         owner_question_text="¿Esta columna es la fecha en que ocurrio cada operacion?",
         owner_option_description="Indica la fecha de cada venta, compra o movimiento.",
+    ),
+    _RoleRule(
+        semantic_role="operation_time",
+        variable_name="operation_time",
+        header_keywords=("hora", "hora_venta", "hora_operacion", "operation_time", "time"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT, INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_MIXED}),
+        contradicting_data_types=frozenset(),
+        co_column_boosts=frozenset({"fecha", "fecha_venta", "venta_total", "producto", "sucursal", "canal"}),
+        co_column_penalties=frozenset({"stock", "saldo"}),
+        risk_text="La hora de la operación no debe confundirse con una fecha completa ni con una duración.",
+        owner_label="Hora de la operación",
+        owner_question_text="¿Esta columna indica la hora en que ocurrió cada operación?",
+        owner_option_description="Hora del día asociada a cada venta, compra o movimiento.",
+    ),
+    _RoleRule(
+        semantic_role="transaction_identifier",
+        variable_name="transaction_id",
+        header_keywords=("venta_id", "ventaid", "id_venta", "transaction_id", "operacion_id", "id_operacion", "operation_id"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT, INFERRED_DATA_TYPE_NUMBER}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE}),
+        co_column_boosts=frozenset({"fecha", "venta_total", "producto_id", "cantidad", "precio_unitario"}),
+        co_column_penalties=(),
+        risk_text="El identificador de transacción debe distinguir una operación y no confundirse con producto, sucursal o comprobante.",
+        owner_label="Identificador de la operación",
+        owner_question_text="¿Esta columna identifica de forma estable cada venta u operación?",
+        owner_option_description="Código interno de la transacción u operación registrada.",
     ),
     _RoleRule(
         semantic_role="quantity",
@@ -653,7 +683,10 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
     _RoleRule(
         semantic_role="payment_method",
         variable_name="payment_method",
-        header_keywords=("medio_pago", "medio_de_pago", "medio_cobro", "medio_de_cobro", "forma_pago", "payment_method"),
+        header_keywords=(
+            "medio_pago", "medio_de_pago", "medio_cobro", "medio_de_cobro",
+            "forma_pago", "metodo_pago", "metodopago", "payment_method",
+        ),
         expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
         contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE, INFERRED_DATA_TYPE_NUMBER}),
         co_column_boosts=frozenset({"cobrado", "factura", "cliente", "importe_total"}),
@@ -822,20 +855,59 @@ _ROLE_RULES: Final[tuple[_RoleRule, ...]] = (
         owner_option_description="Nombre de la persona asociada a la realización o registro de la operación.",
     ),
     _RoleRule(
+        semantic_role="branch_identifier",
+        variable_name="branch_id",
+        header_keywords=("sucursal_id", "sucursalid", "id_sucursal", "branch_id", "local_id", "tienda_id", "store_id"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT, INFERRED_DATA_TYPE_NUMBER}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE}),
+        co_column_boosts=frozenset({"sucursal", "nombre_sucursal", "ciudad", "venta_total", "fecha"}),
+        co_column_penalties=(),
+        risk_text="El identificador de sucursal no debe confundirse con canal comercial, producto o transacción.",
+        owner_label="Identificador de sucursal",
+        owner_question_text="¿Esta columna es el código o identificador de la sucursal, local o tienda?",
+        owner_option_description="Código estable que identifica una sede física o punto de venta.",
+    ),
+    _RoleRule(
+        semantic_role="branch_name",
+        variable_name="branch_name",
+        header_keywords=("sucursal", "nombre_sucursal", "sucursal_nombre", "branch", "branch_name", "local", "tienda", "store"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_DATE}),
+        co_column_boosts=frozenset({"sucursal_id", "ciudad", "venta_total", "fecha", "canal"}),
+        co_column_penalties=(),
+        risk_text="La sucursal o local es una dimensión física y no debe confundirse con el canal comercial.",
+        owner_label="Sucursal o local",
+        owner_question_text="¿Esta columna indica la sucursal, local, tienda o sede donde ocurrió la operación?",
+        owner_option_description="Nombre de la sede física o punto de venta asociado a la operación.",
+    ),
+    _RoleRule(
+        semantic_role="city",
+        variable_name="city",
+        header_keywords=("ciudad", "localidad", "city", "municipio"),
+        expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
+        contradicting_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_DATE}),
+        co_column_boosts=frozenset({"sucursal", "sucursal_id", "direccion", "provincia"}),
+        co_column_penalties=(),
+        risk_text="La ciudad es una ubicación geográfica y no debe usarse como canal de venta ni como identificador de sucursal.",
+        owner_label="Ciudad o localidad",
+        owner_question_text="¿Esta columna indica la ciudad o localidad de la sucursal u operación?",
+        owner_option_description="Ciudad o localidad geográfica asociada a una sede u operación.",
+    ),
+    _RoleRule(
         semantic_role="sales_channel",
         variable_name="segment",
-        header_keywords=("canal", "canal_venta", "sales_channel", "channel", "sucursal", "local"),
+        header_keywords=("canal", "canal_venta", "sales_channel", "channel", "medio_venta", "origen_venta"),
         expected_data_types=frozenset({INFERRED_DATA_TYPE_TEXT}),
         contradicting_data_types=frozenset({INFERRED_DATA_TYPE_NUMBER, INFERRED_DATA_TYPE_DATE}),
         co_column_boosts=frozenset({"venta_total", "producto", "cliente", "categoria"}),
-        co_column_penalties=(),
+        co_column_penalties=frozenset({"sucursal", "sucursal_id", "local", "tienda"}),
         risk_text=(
             "Si esta columna no representa el canal comercial, las segmentaciones por "
             "canal van a mezclar informacion heterogenea."
         ),
         owner_label="Canal de venta",
-        owner_question_text="¿Esta columna indica el canal comercial o sucursal de la operacion?",
-        owner_option_description="Canal, sucursal o medio por donde se realizo la venta.",
+        owner_question_text="¿Esta columna indica el canal comercial por el que se realizó la venta?",
+        owner_option_description="Canal comercial, por ejemplo mostrador, mayorista, ecommerce o marketplace.",
     ),
     _RoleRule(
         semantic_role="commercial_category",
@@ -1011,6 +1083,22 @@ def _score_role(
     score = 0.0
     evidence: list[str] = []
     counter_evidence: list[str] = []
+
+    if rule.semantic_role in {
+        "operation_time", "transaction_identifier", "branch_identifier", "branch_name", "city",
+    }:
+        # Dimensional roles are high-risk for substring collisions. In particular,
+        # "hora" must not turn valor_hora / costo_hora_real / horas_mano_obra into
+        # clock-time semantics. Require an exact governed header alias here.
+        if normalized_header not in set(rule.header_keywords):
+            return 0.0, (), ("dimensional_role_requires_exact_header_evidence",)
+
+    if rule.semantic_role == "sales_channel" and normalized_header in {
+        "sucursal", "nombre_sucursal", "sucursal_nombre", "sucursal_id", "sucursalid",
+        "id_sucursal", "branch", "branch_name", "branch_id", "local", "local_id",
+        "tienda", "tienda_id", "store", "store_id",
+    }:
+        return 0.0, (), ("branch_header_excluded_from_sales_channel",)
 
     if normalized_header:
         exact_keyword = next(
@@ -1279,9 +1367,24 @@ def build_column_understanding_v1(
         normalized_header=normalized,
         co_columns=co_columns,
     )
+    compositional_semantic = infer_service_1_semantic_coordinate_v2(
+        column_name,
+        normalized_header=normalized,
+        sheet_name=effective_sheet,
+    )
 
     scored: list[tuple[float, _RoleRule, tuple[str, ...], tuple[str, ...]]] = []
     for rule in _ROLE_RULES:
+        if (
+            compositional_semantic is not None
+            and compositional_semantic.scope is not None
+            and compositional_semantic.scope != "unit"
+            and rule.semantic_role == "unit_cost_candidate"
+        ):
+            # Aggregate budget/actual evidence is never a unit-cost role.
+            # The compositional descriptor remains available as semantic
+            # evidence without changing downstream authority.
+            continue
         if (
             period_total_context_sufficient
             and _LEGACY_ROLE_BY_PERIOD_HEADER.get(normalized) == rule.semantic_role
@@ -1412,6 +1515,14 @@ def build_column_understanding_v1(
         question_text = None
         options = ()
 
+    if compositional_semantic is not None:
+        all_evidence.append("semantic_coordinate_model_v2")
+        if owner_question_needed:
+            question_text = render_service_1_semantic_coordinate_owner_proposal_v2(
+                column_name,
+                compositional_semantic,
+            )
+
     if not all_evidence:
         all_evidence.append("no_signal")
     all_evidence.append(f"normalized_header: '{normalized}'")
@@ -1443,6 +1554,7 @@ def build_column_understanding_v1(
         owner_question_text=question_text,
         allowed_owner_answers=options,
         metadata=metadata,
+        compositional_semantic=compositional_semantic,
     )
 
 

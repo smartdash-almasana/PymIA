@@ -19,6 +19,10 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Final, Literal
 
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import (
+    Service1SemanticCoordinateV2,
+)
+
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_COLUMN_UNDERSTANDING_ENGINE_CONTRACT_V1"
 SERVICE_NAME: Final[str] = "SERVICE_1"
@@ -221,6 +225,7 @@ class Service1ColumnUnderstandingV1:
     delivery_authorized: bool = False
     diagnosis_generated: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
+    compositional_semantic: Service1SemanticCoordinateV2 | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -321,6 +326,13 @@ class Service1ColumnUnderstandingV1:
             ),
         )
         object.__setattr__(self, "metadata", dict(self.metadata or {}))
+        if self.compositional_semantic is not None and not isinstance(
+            self.compositional_semantic,
+            Service1SemanticCoordinateV2,
+        ):
+            raise ValueError(
+                "compositional_semantic must be a Service1SemanticCoordinateV2 or None"
+            )
 
         _validate_invariants(self)
 
@@ -420,6 +432,7 @@ def build_service_1_column_understanding_v1(
     | tuple[Service1ColumnOwnerAnswerOptionV1, ...]
     | None = None,
     metadata: dict[str, Any] | None = None,
+    compositional_semantic: Service1SemanticCoordinateV2 | None = None,
 ) -> Service1ColumnUnderstandingV1:
     """Build a column understanding instance with full fail-closed validation.
 
@@ -447,6 +460,7 @@ def build_service_1_column_understanding_v1(
         delivery_authorized=False,
         diagnosis_generated=False,
         metadata=dict(metadata or {}),
+        compositional_semantic=compositional_semantic,
     )
 
 

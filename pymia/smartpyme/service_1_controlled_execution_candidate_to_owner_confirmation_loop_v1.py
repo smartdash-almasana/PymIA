@@ -552,7 +552,11 @@ def _owner_confirmation_events(
         raw = _answer_for(owner_answers, ref_id)
         option_id, free_text = _parse_owner_answer(raw)
         column = str(question.get("column_name") or ref_id).strip()
-        sheet = str(question.get("sheet_name") or "sheet1").strip()
+        sheet = str(question.get("sheet_name") or "").strip()
+        if not sheet:
+            # A physical sheet is part of the owner-evidence identity.  Do
+            # not fabricate one when a legacy question is incomplete.
+            continue
         if ref_id in confirmed:
             canonical_answer = confirmed[ref_id]
             scope = "COLUMN_EXCLUSION" if canonical_answer == "IGNORED_NOT_RELEVANT" else "SEMANTIC_ROLE"

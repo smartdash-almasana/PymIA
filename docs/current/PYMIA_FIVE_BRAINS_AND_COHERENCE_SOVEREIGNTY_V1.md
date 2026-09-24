@@ -181,12 +181,14 @@ No posee soberanía sobre datos, semántica, computabilidad, cálculo ni deliver
 Frontera actual de Servicio 1:
 
 ```text
-EXTERNAL_LLM_PROVIDER: NOT_CONNECTED
-SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: ACTIVE
+LLM_COLUMN_INTERPRETER_V1: MERGED_IN_MAIN
+SEQUENTIAL_OWNER_CORROBORATION_V1: MERGED_IN_MAIN
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_YET_PROVEN
+SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: PRESERVED
 NO_LLM_RUNTIME_AUTHORITY
 ```
 
-La arquitectura ya admite una frontera provider-neutral para asistencia semántica, pero un LLM externo no forma parte hoy de la autoridad productiva certificada.
+La arquitectura ya admite y contiene la frontera provider-neutral para asistencia semántica. El corte con intérprete LLM está integrado en `main`, pero todavía no forma parte de la producción certificada hasta completar deploy + production smoke.
 
 Principio:
 

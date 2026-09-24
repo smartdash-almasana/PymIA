@@ -10,13 +10,6 @@ from pymia.smartpyme.service_1_derived_evidence_v1 import (
     STATUS_READY as DERIVED_EVIDENCE_READY,
     build_service_1_derived_evidence_v1,
 )
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    STATUS_CONFIRMED_BINDINGS,
-    STATUS_OWNER_FOLLOWUP,
-    STATUS_OWNER_QUESTIONS,
-    build_computability_decision_from_confirmed_bindings_v1,
-    run_initial_pass,
-)
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     STATUS_BLOCKED as ASSISTED_SEMANTIC_BLOCKED,
     STATUS_CONFIRMED as ASSISTED_SEMANTIC_CONFIRMED,
@@ -39,9 +32,16 @@ from pymia.smartpyme.service_1_generic_capability_engine_v1 import (
     STATUS_EVALUATED as GENERIC_STATUS_EVALUATED,
     execute_generic_capability_v1 as _execute_generic_capability_v1_raw,
 )
+from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
+    STATUS_OWNER_FOLLOWUP,
+    STATUS_OWNER_QUESTIONS,
+    run_initial_pass,
+)
 from pymia.smartpyme.service_1_computability_v1 import (
+    CONFIRMED_BINDINGS_STATUS,
     STATUS_COMPUTABLE as P8_STATUS_COMPUTABLE,
     build_service_1_composite_governed_computation_input_v1,
+    build_computability_decision_from_confirmed_bindings_v1,
 )
 from pymia.smartpyme.service_1_capability_registry_v1 import (
     get_capability_definition_v1,
@@ -49,6 +49,18 @@ from pymia.smartpyme.service_1_capability_registry_v1 import (
 from pymia.smartpyme.service_1_pipeline_v1 import (
     Service1PipelineToolRequestV1,
     run_service_1_pipeline_v1,
+)
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    SPECIALIZED_DOMAIN_COLLECTION_AGING,
+    SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
+    SPECIALIZED_DOMAIN_RECONCILIATION,
+    SPECIALIZED_DOMAIN_SUBTYPES,
+    ProductExecutionRequestV1,
+    Service1ProductExecutionDependenciesV1,
+    SpecializedDomainExecuteRequestV1,
+    WorkbookAnalysisExecuteRequestV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
 )
 from pymia.smartpyme.service_1_ren_001_evaluator_v1 import (
     CAPABILITY_REF as REN_001_CAPABILITY_REF,
@@ -75,15 +87,375 @@ from pymia.smartpyme.service_1_consorcios_collection_aging_v1 import (
 from pymia.smartpyme.service_1_consorcios_expense_variance_v1 import (
     build_expense_variance_product_request_v1,
 )
+from pymia.smartpyme.service_1_analysis_evidence_preparation_v1 import (
+    STATUS_PREPARED as F7_STATUS_PREPARED,
+    build_service_1_analysis_evidence_preparation_v1,
+)
+from pymia.smartpyme.service_1_analysis_math_execution_v1 import (
+    STATUS_EVALUATED as F8_STATUS_EVALUATED,
+    execute_service_1_analysis_math_v1,
+)
+from pymia.smartpyme.service_1_analysis_result_projection_v1 import (
+    STATUS_READY as F9_STATUS_READY,
+    build_service_1_analysis_result_projection_v1,
+)
+from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
+    F12_COMMERCIAL_ANALYSIS_IDS,
+    STATUS_READY as F10_STATUS_READY,
+    build_service_1_dynamic_analysis_discovery_v1,
+)
+from pymia.smartpyme.service_1_result_memory_v1 import Service1ResultMemoryErrorV1
+from pymia.smartpyme.service_1_workbook_logical_model_v1 import (
+    STATUS_READY as WORKBOOK_LOGICAL_MODEL_READY,
+    build_service_1_workbook_logical_model_v1,
+)
+from pymia.smartpyme.service_1_result_memory_wiring_v1 import (
+    build_service_1_result_memory_from_execution_v1,
+)
 
 SCHEMA_VERSION = "SERVICE_1_PRODUCT_PIPELINE_V1"
 STATUS_READY = "PRODUCT_PIPELINE_READY"
 STATUS_COMPUTATION_PLAN_READY = "COMPUTATION_PLAN_READY"
 STATUS_NEEDS_OWNER = "NEEDS_OWNER_CONFIRMATION"
 STATUS_BLOCKED = "BLOCKED"
+STATUS_CONFIRMED_BINDINGS = CONFIRMED_BINDINGS_STATUS
 STATUS_RECONCILIATION_REVIEW_READY = RECONCILIATION_STATUS_REVIEW_READY
 STATUS_RECONCILIATION_NEEDS_OWNER = RECONCILIATION_STATUS_NEEDS_OWNER
 STATUS_RECONCILIATION_NEEDS_EVIDENCE = RECONCILIATION_STATUS_NEEDS_EVIDENCE
+CANONICAL_INGESTION_SCHEMA_VERSION = "SERVICE_1_CANONICAL_INGESTION_OUTPUT_V2"
+
+
+def _normalize_requested_capability(value: object) -> str | None:
+    """Keep absent capability represented canonically as ``None`` at the root."""
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
+
+
+def _validate_workbook_envelope_v2(ingestion_output: object) -> str | None:
+    if not isinstance(ingestion_output, Mapping):
+        return "WORKBOOK_INGESTION_OUTPUT_REQUIRED"
+    if ingestion_output.get("schema_version") != CANONICAL_INGESTION_SCHEMA_VERSION:
+        return "WORKBOOK_CANONICAL_ENVELOPE_REQUIRED"
+
+    workbook_context = ingestion_output.get("workbook_context")
+    if not isinstance(workbook_context, Mapping):
+        return "WORKBOOK_CONTEXT_REQUIRED"
+    case_id = str(workbook_context.get("case_id") or "").strip()
+    source_artifact_ref = str(
+        workbook_context.get("source_artifact_ref") or ""
+    ).strip()
+    workbook_ref = str(workbook_context.get("workbook_ref") or "").strip()
+    ingestion_scope = str(workbook_context.get("ingestion_scope") or "").strip()
+    canonical_reader_schema_version = str(
+        workbook_context.get("canonical_reader_schema_version") or ""
+    ).strip()
+    if not case_id or not source_artifact_ref or not workbook_ref or not ingestion_scope or not canonical_reader_schema_version:
+        return "WORKBOOK_CONTEXT_IDENTITY_REQUIRED"
+    forbidden_context_keys = {
+        "normalized_tables",
+        "column_refs",
+        "physical_lineage",
+        "semantic_evidence",
+        "workbook_logical_model",
+        "p7",
+        "p8",
+    }
+    if forbidden_context_keys.intersection(workbook_context):
+        return "WORKBOOK_CONTEXT_MUST_BE_IDENTITY_ONLY"
+
+    normalized_tables = ingestion_output.get("normalized_tables")
+    if not isinstance(normalized_tables, list) or not normalized_tables:
+        return "WORKBOOK_NORMALIZED_TABLES_REQUIRED"
+    if any(not isinstance(table, Mapping) for table in normalized_tables):
+        return "WORKBOOK_NORMALIZED_TABLES_INVALID"
+
+    column_refs = ingestion_output.get("column_refs")
+    if not isinstance(column_refs, list) or not column_refs:
+        return "WORKBOOK_COLUMN_REFS_REQUIRED"
+    if any(not isinstance(ref, Mapping) for ref in column_refs):
+        return "WORKBOOK_COLUMN_REFS_INVALID"
+
+    physical_lineage = ingestion_output.get("physical_lineage")
+    if not isinstance(physical_lineage, list) or not physical_lineage:
+        return "WORKBOOK_PHYSICAL_LINEAGE_REQUIRED"
+    lineage_sheets = {
+        str(item.get("sheet_name") or "").strip()
+        for item in physical_lineage
+        if isinstance(item, Mapping) and str(item.get("sheet_name") or "").strip()
+    }
+    table_sheets = {
+        str(table.get("sheet_name") or "").strip()
+        for table in normalized_tables
+        if str(table.get("sheet_name") or "").strip()
+    }
+    if not table_sheets or not table_sheets.issubset(lineage_sheets):
+        return "WORKBOOK_PHYSICAL_LINEAGE_INCOMPLETE"
+
+    safety_flags = ingestion_output.get("safety_flags")
+    if not isinstance(safety_flags, Mapping):
+        return "WORKBOOK_SAFETY_FLAGS_REQUIRED"
+    if any(
+        bool(safety_flags.get(flag))
+        for flag in ("runtime_authorized", "product_ready", "delivery_authorized")
+    ):
+        return "WORKBOOK_SAFETY_FLAGS_FORBIDDEN"
+
+    return None
+
+
+def _persist_governed_analysis_result_memory_v1(
+    *,
+    tenant_identity_contract: Any,
+    persist_result_memory: Any,
+    governed_analysis_input: Any,
+    result_projection: Any,
+    confirmed_bindings: Mapping[str, Any],
+    ingestion_output: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Persist F9 output without making F13 an execution authority."""
+    if tenant_identity_contract is None:
+        return {
+            "status": "NOT_PERSISTED",
+            "reason": "TENANT_IDENTITY_REQUIRED",
+            "persisted": False,
+        }
+    if persist_result_memory is None:
+        return {
+            "status": "NOT_PERSISTED",
+            "reason": "RESULT_MEMORY_ADAPTER_UNAVAILABLE",
+            "persisted": False,
+        }
+    try:
+        record = build_service_1_result_memory_from_execution_v1(
+            identity_contract=tenant_identity_contract,
+            governed_analysis_input=governed_analysis_input,
+            result_projection=result_projection,
+            semantic_run=confirmed_bindings,
+            ingestion_output=ingestion_output,
+        )
+    except (Service1ResultMemoryErrorV1, TypeError, ValueError) as exc:
+        return {
+            "status": "NEEDS_EVIDENCE",
+            "reason": getattr(exc, "code", None) or "RESULT_MEMORY_CONTRACT_BLOCKED",
+            "detail": getattr(exc, "detail", None) or str(exc),
+            "persisted": False,
+        }
+    try:
+        persisted = bool(persist_result_memory(record))
+    except Exception:
+        return {
+            "status": "PERSISTENCE_ERROR",
+            "reason": "RESULT_MEMORY_PERSISTENCE_FAILED",
+            "persisted": False,
+            "memory_record_id": record.memory_record_id,
+        }
+    if not persisted:
+        return {
+            "status": "PERSISTENCE_ERROR",
+            "reason": "RESULT_MEMORY_PERSISTENCE_UNCONFIRMED",
+            "persisted": False,
+            "memory_record_id": record.memory_record_id,
+        }
+    return {
+        "status": "PERSISTED",
+        "reason": None,
+        "persisted": True,
+        "memory_record_id": record.memory_record_id,
+        "period": record.period.to_dict(),
+        "artifact_ref": record.artifact_ref,
+        "result_set_integrity_digest": record.result_set_integrity_digest,
+        "executed_at": record.executed_at,
+    }
+
+
+def run_service_1_governed_analysis_v1(
+    *,
+    ingestion_output: Mapping[str, Any],
+    confirmed_bindings: Mapping[str, Any],
+    analysis_id: str,
+    tenant_identity_contract: Any = None,
+    persist_result_memory: Any = None,
+    workbook_logical_model: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Canonical F12 execution entry: F10/P7/P8 -> F7 -> F8 -> F9 -> F13.
+
+    The caller supplies already-governed canonical ingestion and owner-confirmed
+    semantics. This root re-runs discovery/computability and owns all productive
+    analytical coordination. The web layer may request an ``analysis_id`` and
+    render this packet, but it must not execute F7/F8/F9 itself.
+    """
+    requested_analysis_id = str(analysis_id or "").strip()
+    if not requested_analysis_id:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "ANALYSIS_ID_REQUIRED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+    if (
+        not isinstance(confirmed_bindings, Mapping)
+        or confirmed_bindings.get("status") != STATUS_CONFIRMED_BINDINGS
+    ):
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "CONFIRMED_BINDINGS_REQUIRED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+    if not isinstance(ingestion_output, Mapping):
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "CANONICAL_INGESTION_REQUIRED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    discovery = build_service_1_dynamic_analysis_discovery_v1(
+        confirmed_bindings=confirmed_bindings,
+        commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
+        d7_workbook_logical_model=workbook_logical_model,
+    )
+    if discovery.status != F10_STATUS_READY:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": discovery.blocked_reason or "F12_DISCOVERY_NOT_READY",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    item = next(
+        (value for value in discovery.analyses if value.analysis_id == requested_analysis_id),
+        None,
+    )
+    if item is None or not item.commercially_requested:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "blocked_reason": "ANALYSIS_NOT_COMMERCIALLY_REQUESTED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+    if not item.commercially_exposed or item.governed_analysis_input is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": item.p8_reason or item.p7_reason or "ANALYSIS_NOT_COMPUTABLE",
+            "missing_role_groups": [list(group) for group in item.missing_role_groups],
+            "missing_relationship_evidence": list(item.missing_relationship_evidence),
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    governed = item.governed_analysis_input
+    prepared = build_service_1_analysis_evidence_preparation_v1(
+        case_id=governed.case_id,
+        governed_analysis_input=governed,
+        ingestion_output=dict(ingestion_output),
+        d7_workbook_logical_model=workbook_logical_model,
+    )
+    if prepared.status != F7_STATUS_PREPARED or prepared.prepared_evidence is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": prepared.reason or "F7_PREPARATION_BLOCKED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    math = execute_service_1_analysis_math_v1(
+        case_id=governed.case_id,
+        governed_analysis_input=governed,
+        prepared_evidence=prepared.prepared_evidence,
+    )
+    if math.status != F8_STATUS_EVALUATED or math.result is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": math.reason or "F8_EXECUTION_BLOCKED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    projection = build_service_1_analysis_result_projection_v1(
+        math_result=math.result,
+        prepared_evidence=prepared.prepared_evidence,
+        currency_code=None,
+    )
+    if projection.status != F9_STATUS_READY or projection.projection is None:
+        return {
+            "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+            "status": "BLOCKED",
+            "analysis_id": requested_analysis_id,
+            "title": item.title,
+            "question": item.question,
+            "blocked_reason": projection.reason or "F9_PROJECTION_BLOCKED",
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+            "diagnosis_generated": False,
+        }
+
+    result_projection = projection.projection
+    memory = _persist_governed_analysis_result_memory_v1(
+        tenant_identity_contract=tenant_identity_contract,
+        persist_result_memory=persist_result_memory,
+        governed_analysis_input=governed,
+        result_projection=result_projection,
+        confirmed_bindings=confirmed_bindings,
+        ingestion_output=ingestion_output,
+    )
+    return {
+        "schema_version": "SERVICE_1_F12_ANALYSIS_EXECUTION_V1",
+        "status": "READY",
+        "analysis_id": requested_analysis_id,
+        "title": item.title,
+        "question": item.question,
+        "result_set": result_projection.result_set.to_dict(),
+        "findings": [finding.to_dict() for finding in result_projection.findings],
+        "outcome": result_projection.outcome.to_dict(),
+        "result_memory": memory,
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "diagnosis_generated": False,
+    }
 
 
 def execute_generic_capability_v1(*, capability_ref: str, governed_computation_input: object, normalized_tables: object, column_refs: object, governed_results: object = None) -> dict[str, object]:
@@ -99,10 +471,12 @@ def execute_generic_capability_v1(*, capability_ref: str, governed_computation_i
 
 
 def run_service_1_product_pipeline_v1(
+    request: ProductExecutionRequestV1 | None = None,
     *,
-    ingestion_output: Any,
-    tool_requests: Sequence[Service1PipelineToolRequestV1],
-    output_dir: str | Path,
+    dependencies: Service1ProductExecutionDependenciesV1 | None = None,
+    ingestion_output: Any = None,
+    tool_requests: Sequence[Any] = (),
+    output_dir: str | Path | None = None,
     sheet_name: str = "sheet1",
     owner_answers: Any = None,
     semantic_run_override: Mapping[str, Any] | None = None,
@@ -121,23 +495,267 @@ def run_service_1_product_pipeline_v1(
     owner_unit_confirmation_events: Sequence[Mapping[str, Any]] = (),
     semantic_scope_capabilities: Sequence[str] = (),
     use_assisted_semantics: bool = False,
+    **kwargs: Any,
 ) -> dict[str, Any]:
-    if expense_variance_request is not None:
+    """Execute one explicit product command through the sole productive root."""
+    if request is not None:
+        if not isinstance(
+            request,
+            (
+                WorkbookSemanticStartRequestV1,
+                WorkbookSemanticContinueRequestV1,
+                WorkbookAnalysisExecuteRequestV1,
+                SpecializedDomainExecuteRequestV1,
+            ),
+        ):
+            return _packet(status=STATUS_BLOCKED, blocked_reason="PRODUCT_EXECUTION_REQUEST_INVALID")
+
+        ingestion_output = getattr(request, "ingestion_output", None)
+        requested_capability = _normalize_requested_capability(
+            getattr(request, "requested_capability", None)
+        )
+        deliver_result = bool(getattr(request, "deliver_result", False))
+        if dependencies is not None:
+            output_dir = dependencies.output_dir
+            semantic_provider = dependencies.semantic_provider
+            semantic_owner_actor_id = dependencies.semantic_owner_actor_id
+            semantic_owner_actor_role = dependencies.semantic_owner_actor_role
+            compatible_tenant_memory_hints = dependencies.compatible_tenant_memory_hints
+            owner_unit_confirmation_events = dependencies.owner_unit_confirmation_events
+            semantic_scope_capabilities = dependencies.semantic_scope_capabilities
+            tenant_id = dependencies.tenant_id
+            source_system_ref = dependencies.source_system_ref
+            source_context_ref = dependencies.source_context_ref
+            schema_family_memory_records = dependencies.schema_family_memory_records
+            governed_results = dependencies.governed_results
+            persist_result_memory = dependencies.persist_result_memory
+        else:
+            tenant_id = None
+            source_system_ref = None
+            source_context_ref = None
+            schema_family_memory_records = ()
+            persist_result_memory = False
+
+        semantic_assistance_state = getattr(request, "semantic_assistance_state", None)
+        semantic_dialogue_responses = getattr(request, "semantic_dialogue_responses", None)
+        if not semantic_dialogue_responses:
+            semantic_dialogue_responses = None
+        semantic_atomic_confirmation = bool(
+            getattr(request, "semantic_atomic_confirmation", False)
+        )
+        assisted_semantic_requested = isinstance(
+            request, (WorkbookSemanticStartRequestV1, WorkbookSemanticContinueRequestV1)
+        )
+        specialized_subtype: str | None = None
+        specialized_payload: Mapping[str, Any] | None = None
+
+        if isinstance(request, WorkbookAnalysisExecuteRequestV1):
+            assisted_semantic_requested = False
+        elif isinstance(request, SpecializedDomainExecuteRequestV1):
+            specialized_subtype = str(request.subtype or "").strip().upper()
+            if specialized_subtype not in SPECIALIZED_DOMAIN_SUBTYPES:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="SPECIALIZED_DOMAIN_SUBTYPE_INVALID",
+                )
+            specialized_payload = request.payload
+            ingestion_output = None
+            requested_capability = None
+            deliver_result = False
+            assisted_semantic_requested = False
+
+        workbook_logical_model = None
+        if not isinstance(request, SpecializedDomainExecuteRequestV1):
+            workbook_error = _validate_workbook_envelope_v2(ingestion_output)
+            if workbook_error is not None:
+                return _packet(status=STATUS_BLOCKED, blocked_reason=workbook_error)
+            workbook_context = ingestion_output["workbook_context"]
+            context_source_system_ref = str(
+                workbook_context.get("source_system_ref") or ""
+            ).strip() or None
+            context_source_context_ref = str(
+                workbook_context.get("source_context_ref") or ""
+            ).strip() or None
+            if (
+                source_system_ref is not None
+                and context_source_system_ref is not None
+                and str(source_system_ref).strip() != context_source_system_ref
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="WORKBOOK_SOURCE_SYSTEM_CONTEXT_MISMATCH",
+                )
+            if (
+                source_context_ref is not None
+                and context_source_context_ref is not None
+                and str(source_context_ref).strip() != context_source_context_ref
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="WORKBOOK_SOURCE_CONTEXT_MISMATCH",
+                )
+            workbook_logical_model = build_service_1_workbook_logical_model_v1(
+                ingestion_output=ingestion_output,
+                tenant_id=tenant_id,
+                source_system_ref=context_source_system_ref,
+                source_context_ref=context_source_context_ref,
+                schema_family_memory_records=schema_family_memory_records,
+            )
+            if workbook_logical_model.get("status") != WORKBOOK_LOGICAL_MODEL_READY:
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=str(
+                        workbook_logical_model.get("blocked_reason")
+                        or "WORKBOOK_LOGICAL_MODEL_UNRESOLVED"
+                    ),
+                    workbook_logical_model=workbook_logical_model,
+                )
+
+        if isinstance(request, WorkbookAnalysisExecuteRequestV1):
+            if (
+                requested_capability is not None
+                or deliver_result
+                or governed_results is not None
+                or semantic_provider is not None
+                or semantic_assistance_state is not None
+                or semantic_dialogue_responses is not None
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="ANALYSIS_EXECUTION_REQUEST_MUST_BE_EXCLUSIVE",
+                )
+            return run_service_1_governed_analysis_v1(
+                ingestion_output=(ingestion_output if isinstance(ingestion_output, Mapping) else {}),
+                confirmed_bindings=dict(request.confirmed_bindings),
+                analysis_id=request.analysis_id,
+                tenant_identity_contract=request.tenant_identity_contract,
+                persist_result_memory=persist_result_memory,
+                workbook_logical_model=workbook_logical_model,
+            )
+    else:
+        requested_capability = _normalize_requested_capability(requested_capability)
+        specialized_subtype = None
+        specialized_payload = None
+        workbook_logical_model = None
+
+        if expense_variance_request is not None:
+            if (
+                collection_aging_request is not None
+                or reconciliation_request is not None
+                or requested_capability is not None
+                or bool(tool_requests)
+                or deliver_result
+                or owner_answers is not None
+                or semantic_run_override is not None
+                or governed_results is not None
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="EXPENSE_VARIANCE_REQUEST_MUST_BE_EXCLUSIVE",
+                )
+            variance_run = build_expense_variance_product_request_v1(request=dict(expense_variance_request))
+            if variance_run.get("status") != "EXPENSE_VARIANCE_REVIEW_READY":
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=str(variance_run.get("reason") or variance_run.get("status") or "EXPENSE_VARIANCE_REQUEST_BLOCKED"),
+                    expense_variance_run=variance_run,
+                )
+            return _packet(
+                status="EXPENSE_VARIANCE_REVIEW_READY",
+                computation_result=variance_run.get("computation_result"),
+                bounded_outcome=variance_run.get("bounded_outcome"),
+                expense_variance_run=variance_run,
+            )
+
+        if collection_aging_request is not None:
+            if (
+                reconciliation_request is not None
+                or requested_capability is not None
+                or bool(tool_requests)
+                or deliver_result
+                or owner_answers is not None
+                or semantic_run_override is not None
+                or governed_results is not None
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="COLLECTION_AGING_REQUEST_MUST_BE_EXCLUSIVE",
+                )
+            aging_run = build_collection_aging_product_request_v1(request=dict(collection_aging_request))
+            if aging_run.get("status") != "AGING_REVIEW_READY":
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason=str(aging_run.get("reason") or aging_run.get("status") or "AGING_REQUEST_BLOCKED"),
+                    collection_aging_run=aging_run,
+                )
+            return _packet(
+                status="AGING_REVIEW_READY",
+                computation_result=aging_run.get("computation_result"),
+                bounded_outcome=aging_run.get("bounded_outcome"),
+                collection_aging_run=aging_run,
+            )
+
+        if reconciliation_request is not None:
+            if (
+                requested_capability is not None
+                or bool(tool_requests)
+                or deliver_result
+                or owner_answers is not None
+                or semantic_run_override is not None
+                or governed_results is not None
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="RECONCILIATION_REQUEST_MUST_BE_EXCLUSIVE",
+                )
+            reconciliation_run = build_service_1_reconciliation_product_request_v1(
+                reconciliation_request=reconciliation_request,
+            )
+            reconciliation_status = str(reconciliation_run.get("status") or "")
+            if reconciliation_status == RECONCILIATION_STATUS_REVIEW_READY:
+                product_status = STATUS_RECONCILIATION_REVIEW_READY
+                blocked_reason = None
+            elif reconciliation_status == RECONCILIATION_STATUS_NEEDS_OWNER:
+                product_status = STATUS_RECONCILIATION_NEEDS_OWNER
+                blocked_reason = reconciliation_run.get("reason")
+            elif reconciliation_status == RECONCILIATION_STATUS_NEEDS_EVIDENCE:
+                product_status = STATUS_RECONCILIATION_NEEDS_EVIDENCE
+                blocked_reason = reconciliation_run.get("reason")
+            else:
+                product_status = STATUS_BLOCKED
+                blocked_reason = (
+                    reconciliation_run.get("reason")
+                    or RECONCILIATION_STATUS_BLOCKED
+                )
+            return _packet(
+                status=product_status,
+                blocked_reason=blocked_reason,
+                reconciliation_run=reconciliation_run,
+            )
+
+        assisted_semantic_requested = any(
+            (
+                use_assisted_semantics,
+                semantic_provider is not None,
+                semantic_assistance_state is not None,
+                semantic_dialogue_responses is not None,
+            )
+        )
+        semantic_atomic_confirmation = False
+
+    if specialized_subtype == SPECIALIZED_DOMAIN_EXPENSE_VARIANCE:
         if (
-            collection_aging_request is not None
-            or reconciliation_request is not None
-            or requested_capability is not None
-            or bool(tool_requests)
+            requested_capability is not None
             or deliver_result
-            or owner_answers is not None
-            or semantic_run_override is not None
             or governed_results is not None
         ):
             return _packet(
                 status=STATUS_BLOCKED,
                 blocked_reason="EXPENSE_VARIANCE_REQUEST_MUST_BE_EXCLUSIVE",
             )
-        variance_run = build_expense_variance_product_request_v1(request=dict(expense_variance_request))
+        variance_run = build_expense_variance_product_request_v1(
+            request=specialized_payload,
+        )
         if variance_run.get("status") != "EXPENSE_VARIANCE_REVIEW_READY":
             return _packet(
                 status=STATUS_BLOCKED,
@@ -151,21 +769,19 @@ def run_service_1_product_pipeline_v1(
             expense_variance_run=variance_run,
         )
 
-    if collection_aging_request is not None:
+    if specialized_subtype == SPECIALIZED_DOMAIN_COLLECTION_AGING:
         if (
-            reconciliation_request is not None
-            or requested_capability is not None
-            or bool(tool_requests)
+            requested_capability is not None
             or deliver_result
-            or owner_answers is not None
-            or semantic_run_override is not None
             or governed_results is not None
         ):
             return _packet(
                 status=STATUS_BLOCKED,
                 blocked_reason="COLLECTION_AGING_REQUEST_MUST_BE_EXCLUSIVE",
             )
-        aging_run = build_collection_aging_product_request_v1(request=dict(collection_aging_request))
+        aging_run = build_collection_aging_product_request_v1(
+            request=specialized_payload,
+        )
         if aging_run.get("status") != "AGING_REVIEW_READY":
             return _packet(
                 status=STATUS_BLOCKED,
@@ -179,13 +795,10 @@ def run_service_1_product_pipeline_v1(
             collection_aging_run=aging_run,
         )
 
-    if reconciliation_request is not None:
+    if specialized_subtype == SPECIALIZED_DOMAIN_RECONCILIATION:
         if (
             requested_capability is not None
-            or bool(tool_requests)
             or deliver_result
-            or owner_answers is not None
-            or semantic_run_override is not None
             or governed_results is not None
         ):
             return _packet(
@@ -193,7 +806,7 @@ def run_service_1_product_pipeline_v1(
                 blocked_reason="RECONCILIATION_REQUEST_MUST_BE_EXCLUSIVE",
             )
         reconciliation_run = build_service_1_reconciliation_product_request_v1(
-            reconciliation_request=reconciliation_request,
+            reconciliation_request=specialized_payload,
         )
         reconciliation_status = str(reconciliation_run.get("status") or "")
         if reconciliation_status == RECONCILIATION_STATUS_REVIEW_READY:
@@ -217,22 +830,19 @@ def run_service_1_product_pipeline_v1(
             reconciliation_run=reconciliation_run,
         )
 
-    assisted_semantic_requested = any(
-        (
-            use_assisted_semantics,
-            semantic_provider is not None,
-            semantic_assistance_state is not None,
-            semantic_dialogue_responses is not None,
-        )
-    )
     assisted_state = None
     if assisted_semantic_requested:
+        if request is not None and workbook_logical_model is None:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="WORKBOOK_LOGICAL_MODEL_REQUIRED_FOR_ASSISTED_SEMANTICS",
+            )
         if owner_answers is not None or semantic_run_override is not None:
             return _packet(
                 status=STATUS_BLOCKED,
                 blocked_reason="ASSISTED_SEMANTIC_AND_PRECONFIRMED_SEMANTIC_CONFLICT",
             )
-        if requested_capability is None:
+        if requested_capability is None and request is None:
             return _packet(
                 status=STATUS_BLOCKED,
                 blocked_reason="ASSISTED_SEMANTIC_REQUIRES_REQUESTED_CAPABILITY",
@@ -250,50 +860,120 @@ def run_service_1_product_pipeline_v1(
                 sheet_name=sheet_name,
                 compatible_tenant_memory_hints=compatible_tenant_memory_hints,
                 semantic_scope_capabilities=semantic_scope_capabilities,
+                atomic_confirmation=semantic_atomic_confirmation,
+                table_scoped_semantics=workbook_logical_model.get("table_scoped_semantics") if workbook_logical_model else None,
             )
-        else:
-            current_case_id = str(
-                ingestion_output.get("case_id") if isinstance(ingestion_output, dict) else ""
-            ).strip()
-            state_case_id = str(semantic_assistance_state.get("case_id") or "").strip()
-            state_capability = str(
-                semantic_assistance_state.get("requested_capability") or ""
-            ).strip()
-            state_scope_capabilities = {
-                str(item or "").strip()
-                for item in (semantic_assistance_state.get("semantic_scope_capabilities") or ())
-                if str(item or "").strip()
-            }
-            capability_matches_state = (
-                state_capability == requested_capability
-                or requested_capability in state_scope_capabilities
-            )
-            if (
-                not current_case_id
-                or current_case_id != state_case_id
-                or not capability_matches_state
-            ):
-                return _packet(
-                    status=STATUS_BLOCKED,
-                    blocked_reason="ASSISTED_SEMANTIC_STATE_CONTEXT_MISMATCH",
-                    semantic_assistance_state=dict(semantic_assistance_state),
+            if workbook_logical_model is not None:
+                assisted_state = dict(assisted_state or {})
+                assisted_state["workbook_logical_model_ref"] = str(
+                    (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+                    or ""
                 )
+        else:
+            if workbook_logical_model is not None:
+                current_context = (
+                    ingestion_output.get("workbook_context")
+                    if isinstance(ingestion_output, dict)
+                    else None
+                )
+                current_case_id = str(
+                    current_context.get("case_id") if isinstance(current_context, Mapping) else ""
+                ).strip()
+                state_case_id = str(semantic_assistance_state.get("case_id") or "").strip()
+                state_model_ref = str(
+                    semantic_assistance_state.get("workbook_logical_model_ref") or ""
+                ).strip()
+                current_model_ref = str(
+                    (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+                    or ""
+                ).strip()
+                state_capability = _normalize_requested_capability(
+                    semantic_assistance_state.get("requested_capability")
+                )
+                state_scope_capabilities = {
+                    str(item or "").strip()
+                    for item in (semantic_assistance_state.get("semantic_scope_capabilities") or ())
+                    if str(item or "").strip()
+                }
+                capability_matches_state = (
+                    state_capability == requested_capability
+                    or (
+                        requested_capability is not None
+                        and requested_capability in state_scope_capabilities
+                    )
+                    or semantic_assistance_state.get("status") == ASSISTED_SEMANTIC_CONFIRMED
+                )
+                if (
+                    not current_case_id
+                    or current_case_id != state_case_id
+                    or (state_model_ref and state_model_ref != current_model_ref)
+                    or not capability_matches_state
+                ):
+                    return _packet(
+                        status=STATUS_BLOCKED,
+                        blocked_reason="ASSISTED_SEMANTIC_STATE_CONTEXT_MISMATCH",
+                        semantic_assistance_state=dict(semantic_assistance_state),
+                    )
+            else:
+                current_context = (
+                    ingestion_output.get("workbook_context")
+                    if isinstance(ingestion_output, dict)
+                    else None
+                )
+                current_case_id = str(
+                    (current_context.get("case_id") if isinstance(current_context, Mapping) else None)
+                    or (ingestion_output.get("case_id") if isinstance(ingestion_output, dict) else None)
+                    or ""
+                ).strip()
+                state_case_id = str(semantic_assistance_state.get("case_id") or "").strip()
+                state_capability = str(
+                    semantic_assistance_state.get("requested_capability") or ""
+                ).strip()
+                state_scope_capabilities = {
+                    str(item or "").strip()
+                    for item in (semantic_assistance_state.get("semantic_scope_capabilities") or ())
+                    if str(item or "").strip()
+                }
+                capability_matches_state = (
+                    state_capability == requested_capability
+                    or requested_capability in state_scope_capabilities
+                )
+                if (
+                    not current_case_id
+                    or current_case_id != state_case_id
+                    or not capability_matches_state
+                ):
+                    return _packet(
+                        status=STATUS_BLOCKED,
+                        blocked_reason="ASSISTED_SEMANTIC_STATE_CONTEXT_MISMATCH",
+                        semantic_assistance_state=dict(semantic_assistance_state),
+                    )
+
+            normalized_previous_state = dict(semantic_assistance_state)
+            if workbook_logical_model is not None:
+                normalized_previous_state["requested_capability"] = state_capability
             if semantic_dialogue_responses is None:
-                assisted_state = dict(semantic_assistance_state)
+                assisted_state = normalized_previous_state
             else:
                 assisted_state = run_service_1_assisted_semantic_reentry_v1(
-                    previous_state=dict(semantic_assistance_state),
+                    previous_state=normalized_previous_state,
                     owner_responses=semantic_dialogue_responses,
                     owner_actor_id=str(semantic_owner_actor_id or ""),
                     owner_actor_role=str(semantic_owner_actor_role or ""),
                     file_ref=str(
-                        (ingestion_output or {}).get("source_file_ref")
-                        or (ingestion_output or {}).get("filename")
-                        or ""
+                        ((ingestion_output or {}).get("provenance") or {}).get("source_file_ref")
+                        if isinstance((ingestion_output or {}).get("provenance"), Mapping)
+                        else (ingestion_output or {}).get("source_file_ref") or (ingestion_output or {}).get("filename") or ""
                     ).strip()
                     or None,
                 )
 
+        if workbook_logical_model is not None:
+            assisted_state = dict(assisted_state or {})
+            assisted_state["workbook_logical_model_ref"] = str(
+                (workbook_logical_model.get("schema_identity") or {}).get("schema_fingerprint")
+                or ""
+            )
         assisted_status = str((assisted_state or {}).get("status") or "")
         if assisted_status in {
             ASSISTED_SEMANTIC_OWNER_REQUIRED,
@@ -303,6 +983,7 @@ def run_service_1_product_pipeline_v1(
                 status=STATUS_NEEDS_OWNER,
                 owner_questions=list((assisted_state or {}).get("owner_questions") or []),
                 semantic_assistance_state=assisted_state,
+                workbook_logical_model=workbook_logical_model,
             )
         if assisted_status == ASSISTED_SEMANTIC_BLOCKED:
             return _packet(
@@ -318,7 +999,30 @@ def run_service_1_product_pipeline_v1(
                 semantic_assistance_state=assisted_state,
             )
         semantic_run = (assisted_state or {}).get("semantic_run")
+        if requested_capability is None:
+            if (
+                not isinstance(semantic_run, Mapping)
+                or semantic_run.get("status") != STATUS_CONFIRMED_BINDINGS
+            ):
+                return _packet(
+                    status=STATUS_BLOCKED,
+                    blocked_reason="SEMANTIC_BINDINGS_NOT_CONFIRMED",
+                    semantic_run=semantic_run,
+                    semantic_assistance_state=assisted_state,
+                    workbook_logical_model=workbook_logical_model,
+                )
+            return _packet(
+                status=STATUS_READY,
+                semantic_run=dict(semantic_run),
+                semantic_assistance_state=assisted_state,
+                workbook_logical_model=workbook_logical_model,
+            )
     else:
+        if request is not None:
+            return _packet(
+                status=STATUS_BLOCKED,
+                blocked_reason="PRODUCT_EXECUTION_COMMAND_REQUIRED",
+            )
         if owner_answers is not None:
             return _packet(
                 status=STATUS_BLOCKED,
@@ -331,8 +1035,15 @@ def run_service_1_product_pipeline_v1(
             )
         else:
             semantic_run = dict(semantic_run_override)
+            current_context = (
+                ingestion_output.get("workbook_context")
+                if isinstance(ingestion_output, dict)
+                else None
+            )
             current_case_id = str(
-                ingestion_output.get("case_id") if isinstance(ingestion_output, dict) else ""
+                (current_context.get("case_id") if isinstance(current_context, Mapping) else None)
+                or (ingestion_output.get("case_id") if isinstance(ingestion_output, dict) else None)
+                or ""
             ).strip()
             semantic_case_id = str(
                 ((semantic_run.get("bridge_packet") or {}).get("case_id"))
@@ -365,6 +1076,13 @@ def run_service_1_product_pipeline_v1(
             status=STATUS_BLOCKED,
             blocked_reason=semantic_run.get("blocked_reason") or "SEMANTIC_BINDINGS_NOT_CONFIRMED",
             semantic_run=semantic_run,
+            workbook_logical_model=workbook_logical_model,
+        )
+
+    if workbook_logical_model is not None:
+        semantic_run = dict(semantic_run)
+        semantic_run["workbook_logical_model_evidence"] = dict(
+            workbook_logical_model.get("p7_p8_evidence_projection") or {}
         )
 
     evidence = ingestion_output if isinstance(ingestion_output, dict) else {}
@@ -634,8 +1352,16 @@ def run_service_1_product_pipeline_v1(
             semantic_run=semantic_run,
         )
 
-    physical_run = run_service_1_pipeline_v1(tool_requests=tool_requests, output_dir=output_dir)
-    return _packet(status=STATUS_READY, semantic_run=semantic_run, physical_run=physical_run)
+    physical_run = (
+        run_service_1_pipeline_v1(tool_requests=tool_requests, output_dir=output_dir)
+        if tool_requests and output_dir
+        else None
+    )
+    return _packet(
+        status=STATUS_READY,
+        semantic_run=semantic_run,
+        physical_run=physical_run,
+    )
 
 
 def _delivery_block_reason(capability_definition: Any) -> str:
@@ -664,6 +1390,7 @@ def _packet(
     owner_followup: list[dict[str, Any]] | None = None,
     semantic_assistance_state: Any = None,
     owner_unit_confirmation_events: Sequence[Mapping[str, Any]] | None = None,
+    workbook_logical_model: Any = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -689,6 +1416,7 @@ def _packet(
             for item in (owner_unit_confirmation_events or [])
             if isinstance(item, Mapping)
         ],
+        "workbook_logical_model": workbook_logical_model,
         "semantic_bindings_confirmed": bool(
             isinstance(semantic_run, dict) and semantic_run.get("status") == STATUS_CONFIRMED_BINDINGS
         ),
@@ -742,6 +1470,9 @@ def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
         "delivery_authorized": False,
         "diagnosis_generated": False,
     }
+    logical_model_evidence = semantic_run.get("workbook_logical_model_evidence")
+    if isinstance(logical_model_evidence, Mapping):
+        payload["workbook_logical_model_evidence"] = dict(logical_model_evidence)
     owner_loop = semantic_run.get("owner_loop_packet")
     if isinstance(owner_loop, dict):
         events = owner_loop.get("owner_confirmation_events")
@@ -759,6 +1490,9 @@ def _public_semantic_run(semantic_run: Any) -> dict[str, Any] | None:
 
 __all__ = [
     "SCHEMA_VERSION",
+    "STATUS_CONFIRMED_BINDINGS",
+    "run_initial_pass",
+    "execute_generic_capability_v1",
     "STATUS_READY",
     "STATUS_COMPUTATION_PLAN_READY",
     "STATUS_NEEDS_OWNER",
@@ -766,5 +1500,6 @@ __all__ = [
     "STATUS_RECONCILIATION_REVIEW_READY",
     "STATUS_RECONCILIATION_NEEDS_OWNER",
     "STATUS_RECONCILIATION_NEEDS_EVIDENCE",
+    "run_service_1_governed_analysis_v1",
     "run_service_1_product_pipeline_v1",
 ]

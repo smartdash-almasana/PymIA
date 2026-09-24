@@ -17,9 +17,9 @@ Sólo `service_1_product_pipeline_v1.py` es raíz productiva. CLI y web son adap
 
 ```text
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-APP_SHA: d2c9c24
-CLOUD_RUN_REVISION: pymia-service1-00008-mtf
-TRAFFIC: 100%
+LAST_CERTIFIED_APP_SHA: 4db43ae
+LAST_CERTIFIED_CLOUD_RUN_REVISION: pymia-service1-00009-czm
+TRAFFIC_AT_LAST_CERTIFICATION: 100%
 RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
@@ -147,10 +147,12 @@ upload
 
 ```text
 upload
-→ legacy semantic scoping
+→ SEM-8 composite semantic scope
+→ owner confirmation
 → projected_closing_cash_balance
 → dso
 → current_ratio
+→ governed component execution
 → web composition
 → result page
 ```
@@ -159,8 +161,9 @@ Estado:
 
 ```text
 TECHNICAL_E2E_READY: YES
-SEM8_CONVERGED: NO
-PRODUCTION_CERTIFIED: NO
+SEM8_CONVERGED: YES
+SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
+PRODUCTION_CERTIFIED: YES
 COMPOSITE_XLSX_DELIVERY: NO
 ```
 

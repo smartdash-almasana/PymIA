@@ -48,6 +48,9 @@ from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 im
     build_service_1_column_owner_question_views_v1,
     build_service_1_first_contact_owner_options_v1,
 )
+from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
+    _column_evidence as build_canonical_column_evidence,
+)
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
@@ -64,9 +67,11 @@ BLOCK_REQUEST_FLAGS_FORBIDDEN = "REQUEST_SAFETY_FLAGS_FORBIDDEN"
 BLOCK_INGESTION_NOT_DICT = "INGESTION_OUTPUT_NOT_DICT"
 BLOCK_INGESTION_FLAGS_FORBIDDEN = "INGESTION_SAFETY_FLAGS_FORBIDDEN"
 BLOCK_NO_COLUMNS = "NO_COLUMNS"
+BLOCK_COLUMN_REFS_REQUIRED = "COLUMN_REFS_REQUIRED"
 BLOCK_NO_INPUT_VALUES = "NO_INPUT_VALUES"
 BLOCK_COLUMNS_VALUES_MISMATCH = "COLUMNS_VALUES_MISMATCH"
 BLOCK_DUPLICATE_COLUMNS = "DUPLICATE_COLUMNS"
+BLOCK_IDENTITY_PROVENANCE_REQUIRED = "IDENTITY_PROVENANCE_REQUIRED"
 
 
 def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
@@ -105,36 +110,42 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
     if ingestion_output.get("runtime_authorized"):
         return _blocked(BLOCK_INGESTION_FLAGS_FORBIDDEN)
 
-    case_id = ingestion_output.get("case_id")
-    source_kind = ingestion_output.get("source_kind")
-    filename = ingestion_output.get("filename")
+    workbook_context = ingestion_output.get("workbook_context")
+    provenance = ingestion_output.get("provenance")
+    case_id = (
+        workbook_context.get("case_id")
+        if isinstance(workbook_context, dict)
+        else ingestion_output.get("case_id")
+    )
+    source_kind = (
+        provenance.get("source_kind")
+        if isinstance(provenance, dict)
+        else ingestion_output.get("source_kind")
+    )
+    filename = (
+        (provenance.get("filename") or provenance.get("source_file_ref"))
+        if isinstance(provenance, dict)
+        else ingestion_output.get("filename")
+    )
 
     columns = _extract_columns(ingestion_output)
     input_values = _extract_input_values(ingestion_output)
-    column_refs = _extract_column_refs(
-        ingestion_output,
-        columns=columns,
-        fallback_sheet_name=sheet_name,
-    )
-
-    if not columns or not column_refs:
+    if not columns:
         return _blocked(
             BLOCK_NO_COLUMNS,
             case_id=case_id,
             source_kind=source_kind,
             filename=filename,
         )
+
     duplicates = _duplicates(columns)
-    duplicate_identities = _duplicates(
-        [f"{ref['sheet_name']}\x00{ref['column_name']}" for ref in column_refs]
-    )
-    if duplicates or duplicate_identities:
+    if duplicates:
         return _blocked(
             BLOCK_DUPLICATE_COLUMNS,
             case_id=case_id,
             source_kind=source_kind,
             filename=filename,
-            detail=duplicates or duplicate_identities,
+            detail=duplicates,
         )
 
     # Confirmed ingestion remains all-or-nothing. An empty mapping is the
@@ -149,12 +160,58 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
             filename=filename,
         )
 
-    matrix_owner_values = dict(input_values)
-    matrix_owner_values["__column_evidence__"] = (
-        ingestion_output.get("column_evidence") or {}
+    column_refs = _extract_column_refs(
+        ingestion_output,
+        columns=columns,
+        fallback_sheet_name=sheet_name,
     )
+    if not column_refs:
+        return _blocked(
+            BLOCK_COLUMN_REFS_REQUIRED,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+        )
+
+    duplicate_identities = _duplicates(
+        [f"{ref['sheet_name']}\x00{ref['column_name']}" for ref in column_refs]
+    )
+    if duplicate_identities:
+        return _blocked(
+            BLOCK_DUPLICATE_COLUMNS,
+            case_id=case_id,
+            source_kind=source_kind,
+            filename=filename,
+            detail=duplicate_identities,
+        )
+
+    if isinstance(workbook_context, dict) or isinstance(provenance, dict):
+        if (
+            not isinstance(workbook_context, dict)
+            or not isinstance(provenance, dict)
+            or not str(case_id or "").strip()
+            or not str(source_kind or "").strip()
+            or not str(filename or "").strip()
+        ):
+            return _blocked(BLOCK_IDENTITY_PROVENANCE_REQUIRED)
+
+    matrix_owner_values = dict(input_values)
+    if ingestion_output.get("column_evidence") is not None:
+        matrix_owner_values["__column_evidence__"] = (
+            ingestion_output.get("column_evidence") or {}
+        )
+    elif ingestion_output.get("normalized_tables") is not None:
+        matrix_owner_values["__column_evidence__"] = build_canonical_column_evidence(
+            list(ingestion_output.get("normalized_tables") or []),
+            [
+                {**ref, "sheet_ref": str(ref.get("sheet_ref") or "").strip()}
+                for ref in column_refs
+            ],
+        )
+    else:
+        matrix_owner_values["__column_evidence__"] = {}
     matrix = _build_confirmation_matrix(
-        filename=filename or "uploaded.xlsx",
+        filename=str(filename or "uploaded.xlsx").strip(),
         column_refs=column_refs,
         owner_values=matrix_owner_values,
     )
@@ -231,6 +288,9 @@ def _candidate_from_understanding(
     column_ref: dict[str, str],
 ) -> Service1ColumnSemanticCandidateV1:
     hypotheses = tuple(understanding.candidate_meanings or ())
+    compositional_semantic = understanding.compositional_semantic
+    # V2 coordinates describe business meaning only. Runtime role/variable
+    # candidates remain the responsibility of the deterministic hypotheses.
     roles = tuple(item.semantic_role for item in hypotheses) or ("unknown",)
     variables = tuple(item.variable_name for item in hypotheses) or ("unknown",)
     primary = understanding.primary_hypothesis
@@ -257,6 +317,7 @@ def _candidate_from_understanding(
         tool_execution_authorized=False,
         delivery_authorized=False,
         diagnosis_generated=False,
+        compositional_semantic=(compositional_semantic.to_dict() if compositional_semantic is not None else None),
         metadata={
             "source_engine": "service_1_column_understanding_engine_v1",
             "column_ref_id": column_ref["field_id"],
@@ -279,6 +340,18 @@ def _candidate_from_understanding(
 
 
 def _extract_columns(ingestion_output: dict[str, Any]) -> list[str]:
+    raw_refs = ingestion_output.get("column_refs")
+    if isinstance(raw_refs, list) and raw_refs:
+        columns: list[str] = []
+        for raw in raw_refs:
+            if not isinstance(raw, dict):
+                return []
+            field_id = str(raw.get("field_id") or "").strip()
+            if not field_id:
+                return []
+            columns.append(field_id)
+        if columns:
+            return columns
     for key in ("available_data_fields", "columns", "confirmed_columns"):
         value = ingestion_output.get(key)
         if isinstance(value, (list, tuple)) and value:
@@ -290,7 +363,7 @@ def _extract_column_refs(
     ingestion_output: dict[str, Any],
     *,
     columns: list[str],
-    fallback_sheet_name: str,
+    fallback_sheet_name: str = "sheet1",
 ) -> list[dict[str, str]]:
     raw_refs = ingestion_output.get("column_refs")
     if isinstance(raw_refs, list) and raw_refs:
@@ -302,6 +375,7 @@ def _extract_column_refs(
                 "field_id": str(raw.get("field_id") or "").strip(),
                 "question_id": str(raw.get("question_id") or raw.get("field_id") or "").strip(),
                 "sheet_name": str(raw.get("sheet_name") or "").strip(),
+                "sheet_ref": str(raw.get("sheet_ref") or "").strip(),
                 "column_name": str(raw.get("column_name") or "").strip(),
                 "normalized_column_name": str(
                     raw.get("normalized_column_name") or raw.get("column_name") or ""
@@ -320,6 +394,7 @@ def _extract_column_refs(
             "field_id": column,
             "question_id": column,
             "sheet_name": sheet,
+            "sheet_ref": sheet,
             "column_name": column,
             "normalized_column_name": column,
         }
@@ -328,6 +403,18 @@ def _extract_column_refs(
 
 
 def _extract_input_values(ingestion_output: dict[str, Any]) -> dict[str, Any]:
+    raw_refs = ingestion_output.get("column_refs")
+    if isinstance(raw_refs, list) and raw_refs:
+        values: dict[str, Any] = {}
+        for raw in raw_refs:
+            if not isinstance(raw, dict):
+                return {}
+            field_id = str(raw.get("field_id") or "").strip()
+            owner_meaning = raw.get("owner_meaning")
+            if field_id and owner_meaning is not None and str(owner_meaning).strip():
+                values[field_id] = owner_meaning
+        if values:
+            return values
     for key in ("input_values", "normalized_values", "owner_answers"):
         value = ingestion_output.get(key)
         if isinstance(value, dict) and value:

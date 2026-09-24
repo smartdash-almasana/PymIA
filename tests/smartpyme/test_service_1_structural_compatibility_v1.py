@@ -359,3 +359,84 @@ def test_sem7_store_roundtrip_preserves_structural_signature(tmp_path) -> None:
     )
     assert loaded[0].automatic_reuse_authorized is False
     assert loaded[0].semantic_rebind_authorized is False
+
+
+def test_f9_selector_exposes_compatible_compositional_semantic_as_hint_only() -> None:
+    profile = _profile()
+    signature = _signature(profile).to_dict()
+    semantic = {
+        "field_ref": "Ventas.ProductoID",
+        "entity": "product",
+        "object": None,
+        "process": "sale",
+        "measure": None,
+        "state": None,
+        "grain": "product",
+        "scope": "entity",
+        "time": None,
+        "identity": "identifier",
+        "relation": None,
+        "unit": None,
+        "aggregation": None,
+        "confidence": 0.99,
+        "evidence": ["owner:dialogue:product-id"],
+        "source": "OWNER_CONFIRMED_C2_V2",
+        "runtime_authorized": False,
+        "tool_execution_authorized": False,
+        "product_ready": False,
+        "delivery_authorized": False,
+        "automatic_reuse_authorized": False,
+    }
+    rows = [{
+        "tenant_id": "tenant-a",
+        "source_system_ref": "xlsx_upload",
+        "source_context_ref": "ventas_productos_v1",
+        "sheet_ref": "Ventas",
+        "source_column_name": "ProductoID",
+        "contract_id": "c-f9",
+        "mapping_series_id": "m-f9",
+        "revision": 1,
+        "compositional_semantic": semantic,
+        "structural_signature": signature,
+    }]
+
+    result = select_service_1_compatible_tenant_memory_hints_v1(
+        tenant_id="tenant-a",
+        source_system_ref="xlsx_upload",
+        source_context_ref="ventas_productos_v1",
+        workbook_profile=profile,
+        memory_rows=rows,
+    )
+
+    assert result["compatible_hint_count"] == 1
+    hint = result["compatible_hints"][0]
+    assert hint["compositional_semantic"]["identity"] == "identifier"
+    assert hint["historical_evidence_only"] is True
+    assert hint["automatic_reuse_authorized"] is False
+    assert hint["semantic_rebind_authorized"] is False
+
+
+def test_f9_selector_is_tenant_isolated_for_compositional_memory() -> None:
+    profile = _profile()
+    rows = [{
+        "tenant_id": "tenant-b",
+        "source_system_ref": "xlsx_upload",
+        "source_context_ref": "ventas_productos_v1",
+        "sheet_ref": "Ventas",
+        "source_column_name": "ProductoID",
+        "contract_id": "other-tenant",
+        "mapping_series_id": "other-series",
+        "revision": 1,
+        "compositional_semantic": {"field_ref": "Ventas.ProductoID", "entity": "product"},
+        "structural_signature": _signature(profile).to_dict(),
+    }]
+    result = select_service_1_compatible_tenant_memory_hints_v1(
+        tenant_id="tenant-a",
+        source_system_ref="xlsx_upload",
+        source_context_ref="ventas_productos_v1",
+        workbook_profile=profile,
+        memory_rows=rows,
+    )
+    assert result["compatible_hint_count"] == 0
+    assert result["obsolete_hint_count"] == 0
+    assert result["legacy_unverified_hint_count"] == 0

@@ -1,6 +1,10 @@
-# Servicio 1 — architecture lock
+# Servicio 1 — architecture lock histórico
 
-**Status:** `ACTIVE`  
+**Estado actual del documento:** `SUPERSEDED_AS_AUTHORITY / HISTORICAL_REFERENCE`
+
+> Este documento conserva límites técnicos de un corte anterior. Ya no constituye authority lock vigente. Toda mención interna a reglas vigentes, canonical o autoridad productiva debe interpretarse como referencia histórica.
+>
+> Autoridad vigente: `NOP-1 VIGENTE → NOP-2 VIGENTE → SERVICE 1 — KNOWN STATE → Gold Registry / evidencia física cerrada`.  
 **Reconciled on:** `2026-07-29`  
 **Scope:** product authority, execution boundaries, support-layer boundaries and promotion rules.
 

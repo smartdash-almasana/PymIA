@@ -18,7 +18,11 @@ from pymia.smartpyme.service_1_workbook_profiler_v1 import (
     SCHEMA_VERSION as WORKBOOK_PROFILE_SCHEMA_VERSION,
     STATUS_READY as WORKBOOK_PROFILE_READY,
 )
-
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import (
+    AXES as SEMANTIC_COORDINATE_AXES,
+    Service1SemanticCoordinateV2,
+    load_service_1_semantic_coordinate_taxonomy_v2,
+)
 CONTEXT_SCHEMA_VERSION: Final[str] = "SERVICE_1_LLM_SEMANTIC_CONTEXT_V1"
 PROPOSAL_SCHEMA_VERSION: Final[str] = "SERVICE_1_LLM_SEMANTIC_PROPOSAL_V1"
 SERVICE_NAME: Final[str] = "SERVICE_1"
@@ -50,6 +54,7 @@ _CONTEXT_KEYS: Final[frozenset[str]] = frozenset(
         "capability_relevant_roles",
         "compatible_tenant_memory_hints",
         "evidence_registry",
+        "compositional_semantic_catalogs",
     }
 )
 _PROPOSAL_KEYS: Final[frozenset[str]] = frozenset(
@@ -71,6 +76,7 @@ _CONCEPT_KEYS: Final[frozenset[str]] = frozenset(
         "confidence",
         "rationale",
         "evidence_refs",
+        "compositional_semantic",
     }
 )
 _RELATIONSHIP_KEYS: Final[frozenset[str]] = frozenset(
@@ -167,6 +173,70 @@ def _mapping_tuple(value: Any, *, field_name: str) -> tuple[Mapping[str, Any], .
     return tuple(result)
 
 
+def _catalog_mapping(value: Any, *, field_name: str) -> Mapping[str, tuple[str, ...]]:
+    if value is None:
+        return MappingProxyType({})
+    if not isinstance(value, Mapping):
+        raise _error("INVALID_MAPPING_FIELD", f"{field_name} must be a mapping")
+    result: dict[str, tuple[str, ...]] = {}
+    for key, raw_values in value.items():
+        name = _required_text(key, field_name=f"{field_name} key")
+        if not isinstance(raw_values, (list, tuple)):
+            raise _error("INVALID_LIST_FIELD", f"{field_name}.{name} must be a list")
+        values = tuple(_required_text(item, field_name=f"{field_name}.{name}") for item in raw_values)
+        if len(values) != len(set(values)):
+            raise _error("DUPLICATE_LIST_ITEM", f"{field_name}.{name} contains duplicates")
+        result[name] = values
+    return MappingProxyType(result)
+
+
+def _parse_compositional_semantic(value: Any) -> Mapping[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise _error("INVALID_MAPPING_FIELD", "compositional_semantic must be a mapping")
+    allowed = set(SEMANTIC_COORDINATE_AXES) | {
+        "field_ref",
+        "confidence",
+        "evidence",
+        "source",
+        "runtime_semantic_role",
+        "runtime_variable_name",
+    }
+    unknown = set(value) - allowed
+    if unknown:
+        raise _error(
+            "UNKNOWN_FIELD",
+            "compositional_semantic contains unknown field(s): "
+            + ", ".join(sorted(unknown)),
+        )
+    try:
+        descriptor = Service1SemanticCoordinateV2(
+            field_ref=value.get("field_ref") or "UNBOUND_FIELD",
+            **{axis: value.get(axis) for axis in SEMANTIC_COORDINATE_AXES},
+            confidence=value.get("confidence"),
+            evidence=tuple(value.get("evidence") or ()),
+            source=value.get("source") or "LLM_C2_PROPOSAL",
+        ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())
+    except ValueError as exc:
+        raise _error("INVALID_COMPOSITIONAL_SEMANTIC", str(exc)) from exc
+    projected_role = _optional_text(value.get("runtime_semantic_role"))
+    projected_variable = _optional_text(value.get("runtime_variable_name"))
+    if (projected_role is None) != (projected_variable is None):
+        raise _error(
+            "INVALID_COMPOSITIONAL_SEMANTIC",
+            "runtime semantic role and variable must be provided together",
+        )
+    parsed = descriptor.to_dict()
+    parsed["runtime_semantic_role"] = projected_role
+    parsed["runtime_variable_name"] = projected_variable
+    return parsed
+
+
+def _default_compositional_semantic_catalogs() -> dict[str, tuple[str, ...]]:
+    taxonomy = load_service_1_semantic_coordinate_taxonomy_v2()
+    return {axis: taxonomy.allowed(axis) for axis in SEMANTIC_COORDINATE_AXES}
+
 def _closed_mapping(value: Any, *, field_name: str, allowed_keys: frozenset[str]) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise _error("INVALID_MAPPING_FIELD", f"{field_name} must be a mapping")
@@ -210,13 +280,18 @@ def _reject_true_authority_fields(value: Any, *, field_name: str) -> None:
 @dataclass(frozen=True)
 class Service1LLMSemanticContextV1:
     case_id: str
-    requested_capability: str
+    requested_capability: str | None
     workbook_profile: Mapping[str, Any]
     deterministic_hypotheses: tuple[Mapping[str, Any], ...]
     allowed_semantic_roles: tuple[str, ...]
     capability_relevant_roles: tuple[str, ...]
     compatible_tenant_memory_hints: tuple[Mapping[str, Any], ...]
     evidence_registry: Mapping[str, Any]
+    workbook_semantic_context: Mapping[str, Any] = field(default_factory=dict)
+    semantic_knowledge_context: Mapping[str, Any] = field(default_factory=dict)
+    compositional_semantic_catalogs: Mapping[str, tuple[str, ...]] = field(
+        default_factory=_default_compositional_semantic_catalogs
+    )
     schema_version: str = CONTEXT_SCHEMA_VERSION
     service_name: str = SERVICE_NAME
 
@@ -229,7 +304,14 @@ class Service1LLMSemanticContextV1:
         object.__setattr__(
             self,
             "requested_capability",
-            _required_text(self.requested_capability, field_name="requested_capability"),
+            (
+                None
+                if self.requested_capability is None
+                else _required_text(
+                    self.requested_capability,
+                    field_name="requested_capability",
+                )
+            ),
         )
         if not isinstance(self.workbook_profile, Mapping):
             raise _error("INVALID_WORKBOOK_PROFILE", "workbook_profile must be a mapping")
@@ -248,7 +330,7 @@ class Service1LLMSemanticContextV1:
         object.__setattr__(
             self,
             "allowed_semantic_roles",
-            _text_tuple(self.allowed_semantic_roles, field_name="allowed_semantic_roles", min_items=1),
+            _text_tuple(self.allowed_semantic_roles, field_name="allowed_semantic_roles"),
         )
         object.__setattr__(
             self,
@@ -269,6 +351,49 @@ class Service1LLMSemanticContextV1:
         if registry != dict(profile.get("evidence_registry") or {}):
             raise _error("EVIDENCE_REGISTRY_MISMATCH", "context evidence_registry must equal workbook profile evidence_registry")
         object.__setattr__(self, "evidence_registry", MappingProxyType(registry))
+        semantic_context = dict(self.workbook_semantic_context or {})
+        if semantic_context:
+            _reject_true_authority_fields(semantic_context, field_name="workbook_semantic_context")
+            if semantic_context.get("schema_version") != "SERVICE_1_WORKBOOK_SEMANTIC_CONTEXT_V1":
+                raise _error("INVALID_WORKBOOK_SEMANTIC_CONTEXT", "invalid workbook semantic context schema")
+            if semantic_context.get("status") != "WORKBOOK_SEMANTIC_CONTEXT_READY":
+                raise _error("INVALID_WORKBOOK_SEMANTIC_CONTEXT", "workbook semantic context must be ready")
+            if str(semantic_context.get("case_id") or "").strip() != self.case_id:
+                raise _error("CONTEXT_CASE_MISMATCH", "workbook semantic context case_id differs from context case_id")
+            if not isinstance(semantic_context.get("tables"), list) or not semantic_context.get("tables"):
+                raise _error("INVALID_WORKBOOK_SEMANTIC_CONTEXT", "workbook semantic context requires tables")
+        object.__setattr__(self, "workbook_semantic_context", MappingProxyType(semantic_context))
+        knowledge_context = dict(self.semantic_knowledge_context or {})
+        if knowledge_context:
+            _reject_true_authority_fields(knowledge_context, field_name="semantic_knowledge_context")
+            if knowledge_context.get("schema_version") != "SERVICE_1_SEMANTIC_KNOWLEDGE_CONTEXT_V1":
+                raise _error("INVALID_SEMANTIC_KNOWLEDGE_CONTEXT", "invalid semantic knowledge context schema")
+            if knowledge_context.get("status") != "SEMANTIC_KNOWLEDGE_CONTEXT_READY":
+                raise _error("INVALID_SEMANTIC_KNOWLEDGE_CONTEXT", "semantic knowledge context must be ready")
+            if str(knowledge_context.get("authority") or "").strip() != "CONTEXT_ONLY":
+                raise _error("INVALID_SEMANTIC_KNOWLEDGE_CONTEXT", "semantic knowledge context authority must be CONTEXT_ONLY")
+            if str(knowledge_context.get("case_id") or "").strip() not in {"", self.case_id}:
+                raise _error("CONTEXT_CASE_MISMATCH", "semantic knowledge context case_id differs from context case_id")
+            if not isinstance(knowledge_context.get("retrieved_knowledge"), list):
+                raise _error("INVALID_SEMANTIC_KNOWLEDGE_CONTEXT", "semantic knowledge context requires retrieved_knowledge")
+        object.__setattr__(self, "semantic_knowledge_context", MappingProxyType(knowledge_context))
+        catalogs = _catalog_mapping(
+            self.compositional_semantic_catalogs,
+            field_name="compositional_semantic_catalogs",
+        )
+        taxonomy = load_service_1_semantic_coordinate_taxonomy_v2()
+        if set(catalogs) != set(SEMANTIC_COORDINATE_AXES):
+            raise _error(
+                "INVALID_COMPOSITIONAL_CATALOG",
+                "semantic coordinate catalogs must define exactly the governed V2 axes",
+            )
+        for axis in SEMANTIC_COORDINATE_AXES:
+            if not catalogs[axis] or not set(catalogs[axis]).issubset(set(taxonomy.allowed(axis))):
+                raise _error(
+                    "INVALID_COMPOSITIONAL_CATALOG",
+                    f"catalog {axis} contains values outside the governed V2 taxonomy",
+                )
+        object.__setattr__(self, "compositional_semantic_catalogs", catalogs)
 
     def to_provider_payload(self) -> dict[str, Any]:
         return {
@@ -282,6 +407,11 @@ class Service1LLMSemanticContextV1:
             "capability_relevant_roles": list(self.capability_relevant_roles),
             "compatible_tenant_memory_hints": [dict(item) for item in self.compatible_tenant_memory_hints],
             "evidence_registry": dict(self.evidence_registry),
+            "workbook_semantic_context": dict(self.workbook_semantic_context),
+            "semantic_knowledge_context": dict(self.semantic_knowledge_context),
+            "compositional_semantic_catalogs": {
+                key: list(values) for key, values in self.compositional_semantic_catalogs.items()
+            },
         }
 
 
@@ -289,14 +419,28 @@ class Service1LLMSemanticContextV1:
 class Service1LLMConceptProposalV1:
     proposal_id: str
     target_column_refs: tuple[str, ...]
-    semantic_role: str
-    variable_name: str
+    semantic_role: str | None
+    variable_name: str | None
     confidence: float
     rationale: str | None
     evidence_refs: tuple[str, ...]
+    compositional_semantic: Mapping[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "proposal_id": self.proposal_id,
+            "target_column_refs": list(self.target_column_refs),
+            "semantic_role": self.semantic_role,
+            "variable_name": self.variable_name,
+            "confidence": self.confidence,
+            "rationale": self.rationale,
+            "evidence_refs": list(self.evidence_refs),
+            "compositional_semantic": (
+                None
+                if self.compositional_semantic is None
+                else dict(self.compositional_semantic)
+            ),
+        }
 
 
 @dataclass(frozen=True)
@@ -371,13 +515,21 @@ class Service1LLMSemanticProposalV1:
 def build_service_1_llm_semantic_context_v1(
     *,
     case_id: str,
-    requested_capability: str,
+    requested_capability: str | None,
     workbook_profile: Mapping[str, Any],
     deterministic_hypotheses: Sequence[Mapping[str, Any]],
     allowed_semantic_roles: Sequence[str],
     capability_relevant_roles: Sequence[str] = (),
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
+    workbook_semantic_context: Mapping[str, Any] | None = None,
+    semantic_knowledge_context: Mapping[str, Any] | None = None,
+    compositional_semantic_catalogs: Mapping[str, Sequence[str]] | None = None,
 ) -> Service1LLMSemanticContextV1:
+    catalogs = (
+        _default_compositional_semantic_catalogs()
+        if compositional_semantic_catalogs is None
+        else compositional_semantic_catalogs
+    )
     return Service1LLMSemanticContextV1(
         case_id=case_id,
         requested_capability=requested_capability,
@@ -387,6 +539,12 @@ def build_service_1_llm_semantic_context_v1(
         capability_relevant_roles=tuple(capability_relevant_roles),
         compatible_tenant_memory_hints=tuple(compatible_tenant_memory_hints),
         evidence_registry=dict(workbook_profile.get("evidence_registry") or {}),
+        workbook_semantic_context=dict(workbook_semantic_context or {}),
+        semantic_knowledge_context=dict(semantic_knowledge_context or {}),
+        compositional_semantic_catalogs={
+            key: tuple(values)
+            for key, values in catalogs.items()
+        },
     )
 
 
@@ -427,14 +585,23 @@ def _required_list(mapping: Mapping[str, Any], key: str) -> list[Any]:
 
 def _parse_concept(value: Any, index: int) -> Service1LLMConceptProposalV1:
     item = _closed_mapping(value, field_name=f"concept_proposals[{index}]", allowed_keys=_CONCEPT_KEYS)
+    compositional = _parse_compositional_semantic(item.get("compositional_semantic"))
+    semantic_role = _optional_text(item.get("semantic_role"))
+    variable_name = _optional_text(item.get("variable_name"))
+    if compositional is None and (semantic_role is None or variable_name is None):
+        raise _error(
+            "INVALID_CONCEPT_SEMANTICS",
+            "concept proposal requires semantic_role/variable_name or compositional_semantic",
+        )
     return Service1LLMConceptProposalV1(
         proposal_id=_required_text(item.get("proposal_id"), field_name="proposal_id"),
         target_column_refs=_text_tuple(item.get("target_column_refs"), field_name="target_column_refs", min_items=1),
-        semantic_role=_required_text(item.get("semantic_role"), field_name="semantic_role"),
-        variable_name=_required_text(item.get("variable_name"), field_name="variable_name"),
+        semantic_role=semantic_role,
+        variable_name=variable_name,
         confidence=_confidence(item.get("confidence"), field_name="confidence"),
         rationale=_optional_text(item.get("rationale")),
         evidence_refs=_text_tuple(item.get("evidence_refs"), field_name="evidence_refs"),
+        compositional_semantic=compositional,
     )
 
 

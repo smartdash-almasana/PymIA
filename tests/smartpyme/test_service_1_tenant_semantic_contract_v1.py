@@ -304,3 +304,91 @@ def test_mapping_series_is_deterministic_but_contract_tracks_confirmation_event(
     assert first.mapping_series_id == same.mapping_series_id == later.mapping_series_id
     assert first.contract_id == same.contract_id
     assert first.contract_id != later.contract_id
+
+
+def test_f9_compositional_semantic_owner_confirmation_is_tenant_scoped_memory_only() -> None:
+    event = build_service_1_owner_confirmation_event_v1(
+        case_id="case_1",
+        file_ref="sha256:workbook-safe-ref",
+        region_ref="region_1",
+        sheet_ref="Ventas",
+        column_ref="Importe",
+        question_ref="q_importe",
+        owner_answer="OWNER_CONFIRMED",
+        confirmation_scope="COMPOSITIONAL_SEMANTIC",
+        compositional_semantic={
+            "field_ref": "Ventas.Importe",
+            "entity": "sale",
+            "object": "money",
+            "process": "sale",
+            "measure": "revenue",
+            "state": "actual",
+            "grain": "sale",
+            "scope": "event",
+            "time": None,
+            "identity": None,
+            "relation": None,
+            "unit": "currency",
+            "aggregation": None,
+            "confidence": 0.99,
+            "evidence": ["owner:q_importe"],
+            "source": "OWNER_CONFIRMED_C2_V2",
+        },
+        timestamp="2026-09-02T12:00:00+00:00",
+        provenance={"producer": "f9-test"},
+    )
+    contract = _build(owner_confirmation_event=event)
+
+    assert contract.confirmation_scope == "COMPOSITIONAL_SEMANTIC"
+    assert contract.compositional_semantic is not None
+    assert contract.compositional_semantic["measure"] == "revenue"
+    assert contract.compositional_semantic["field_ref"] == "Ventas.Importe"
+    assert contract.confirmed_role is None
+    assert contract.confirmed_variable is None
+    assert contract.automatic_reuse_authorized is False
+    assert contract.semantic_rebind_authorized is False
+    restored = build_service_1_tenant_semantic_contract_v1(
+        tenant_id="tenant_a",
+        cliente_id="cliente_42",
+        owner_actor_id="owner_7",
+        owner_actor_role="PYME_OWNER",
+        source_system_ref="erp_ventas",
+        source_context_ref="export_ventas_v1",
+        workbook_ref="sha256:workbook-safe-ref",
+        expected_case_id="case_1",
+        expected_sheet_ref="Ventas",
+        expected_question_ref="q_importe",
+        source_column_name="Importe",
+        normalized_column_ref="importe",
+        owner_confirmation_event=event,
+        inferred_data_type="decimal",
+        neighboring_column_refs=("fecha", "cliente"),
+        vertical_ref="DISTRIBUIDORA_MAYORISTA",
+    )
+    assert restored.to_dict()["compositional_semantic"]["process"] == "sale"
+
+
+def test_f9_compositional_semantic_cannot_bind_to_other_column() -> None:
+    event = build_service_1_owner_confirmation_event_v1(
+        case_id="case_1",
+        file_ref="sha256:workbook-safe-ref",
+        region_ref="region_1",
+        sheet_ref="Ventas",
+        column_ref="Importe",
+        question_ref="q_importe",
+        owner_answer="OWNER_CONFIRMED",
+        confirmation_scope="COMPOSITIONAL_SEMANTIC",
+        compositional_semantic={
+            "field_ref": "Ventas.Otra",
+            "entity": "sale",
+            "process": "sale",
+            "measure": "revenue",
+            "confidence": 0.99,
+            "evidence": [],
+            "source": "OWNER_CONFIRMED_C2_V2",
+        },
+        timestamp="2026-09-02T12:00:00+00:00",
+    )
+    with pytest.raises(Service1TenantSemanticContractErrorV1) as exc:
+        _build(owner_confirmation_event=event)
+    _assert_code(exc, "BLOCKED_EVENT_CONTEXT_MISMATCH")

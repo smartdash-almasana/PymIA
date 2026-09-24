@@ -1,7 +1,11 @@
 # SERVICE_1_CURRENT_PRODUCT_STATE_V1
 
 **Fecha de corte:** 2026-08-16
-**Estado:** `CURRENT_AUTHORITY`
+**Estado actual del documento:** `SUPERSEDED_AS_AUTHORITY / HISTORICAL_REFERENCE`
+
+> Este archivo conserva un corte histórico de Servicio 1. Toda mención interna a `CURRENT_AUTHORITY`, `AUTHORITATIVE`, `NEXT_ALLOWED_NODE`, `decisión vigente` o secuencias RC/R0–R14 es histórica y no gobierna el estado actual.
+>
+> Autoridad vigente: `NOP-1 VIGENTE → NOP-2 VIGENTE → SERVICE 1 — KNOWN STATE → Gold Registry / evidencia física cerrada`.
 
 ## 1. Estado ejecutivo
 
@@ -9,10 +13,15 @@
 CANONICAL_PRODUCT_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 SERVICE_1_TECHNICAL_BASELINE: CLOSED
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
+# Variante histórica (Updated upstream):
 MAIN_HEAD: 26ef6c8c57bb201da1a36a1073147c641d1309f4
 PRODUCTION_APP_SHA: d2c9c24
 PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
 PRODUCTION_TRAFFIC: 100%
+# Variante histórica (Stashed changes):
+LAST_CERTIFIED_PRODUCTION_APP_SHA: 4db43ae
+LAST_CERTIFIED_PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00009-czm
+PRODUCTION_TRAFFIC_AT_LAST_CERTIFICATION: 100%
 SERVICE_1_PRODUCTION_SMOKE: PASS
 LIQ_001: PRODUCTION_CERTIFIED
 REN_001: PRODUCTION_CERTIFIED
@@ -149,6 +158,7 @@ SEMANTIC_REBIND: FORBIDDEN
 ## 7. Provider semántico
 
 ```text
+# Variante histórica (Updated upstream):
 PYDANTIC_AI_COLUMN_PROVIDER: IMPLEMENTED_AND_MERGED_IN_MAIN
 EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_PROVEN
 DETERMINISTIC_SAFE_BASELINE_PROVIDER: PRESERVED
@@ -157,6 +167,17 @@ QUESTIONS_VISIBLE_AT_ONCE: 1 (FOCUSED_TEST_AND_LOCAL_SMOKE_PASS)
 ```
 
 La frontera de provider no posee autoridad semántica final, matemática, de runtime, tools, persistencia ni delivery. Si no existe configuración de modelo externo, el diseño preserva el provider determinístico seguro. La activación real del provider externo en producción sólo puede declararse después de deploy y smoke productivo.
+
+# Variante histórica (Stashed changes):
+LLM_COLUMN_INTERPRETER_V1: MERGED_IN_MAIN
+SEQUENTIAL_OWNER_CORROBORATION_V1: MERGED_IN_MAIN
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_YET_PROVEN
+DETERMINISTIC_SAFE_BASELINE_PROVIDER: PRESERVED
+semantic_provider=<callable>
+PRODUCTION_DEPLOYMENT_OF_SEMANTIC_CUT: PENDING
+```
+
+La frontera de provider no posee autoridad semántica final, matemática, de runtime ni de delivery. El LLM interpreta y propone; el owner confirma; P6/P7/P8 y el kernel conservan sus autoridades. No declarar provider externo activo en producción hasta deploy y production smoke del SHA `26ef6c8c57bb201da1a36a1073147c641d1309f4`.
 
 ## 8. Deuda arquitectónica abierta
 
@@ -188,10 +209,25 @@ DERIVED_EVIDENCE_NEVER_INVENTS_MISSING_MATERIAL_INPUTS
 ```text
 SERVICE_1_TECHNICAL_CLOSURE: PASS
 SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
+# Variante histórica (Updated upstream):
 DOCUMENTATION_RECONCILIATION: CLOSED
 PRODUCTION_DEPLOYMENT_OF_SEMANTIC_RECEPTION_CUT: NEXT
 PRODUCTION_SMOKE_OF_SEMANTIC_RECEPTION_CUT: AFTER_DEPLOY
 PYMIARADAR: FUTURE_REFERENCE_ONLY / OUT_OF_CURRENT_SCOPE
+```
+
+Frente único vigente:
+
+```text
+DEPLOY_SEMANTIC_RECEPTION_SEQUENTIAL_CUT
+→ PRODUCTION_SMOKE
+→ CONFIRM_RUNTIME_PROVIDER_STATE
+→ UPDATE_CURRENT_AUTHORITY_DOCS
+→ CLOSE_CUT
+# Variante histórica (Stashed changes):
+SERVICE_1_TECHNICAL_CLOSURE: PASS
+SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
+PRODUCTION_CERTIFICATION_OF_NEW_CUT: PENDING
 ```
 
 No agregar nuevas capabilities ni ampliar alcance. El próximo paso autorizado es desplegar el corte semántico ya integrado y certificarlo en producción. PymiaRadar permanece fuera del camino crítico hasta finalizar Servicio 1.

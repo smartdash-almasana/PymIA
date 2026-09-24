@@ -5,11 +5,14 @@
 ```text
 DEPLOYMENT_TARGET: GOOGLE_CLOUD_RUN
 SERVICE: pymia-service1
-SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-DEPLOYED_GIT_SHA: d2c9c24
-CLOUD_RUN_REVISION: pymia-service1-00008-mtf
-TRAFFIC: 100%
-PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS_FOR_PREVIOUS_CERTIFIED_BASELINE
+LAST_CERTIFIED_DEPLOYED_GIT_SHA: 4db43ae
+LAST_CERTIFIED_CLOUD_RUN_REVISION: pymia-service1-00009-czm
+TRAFFIC_AT_LAST_CERTIFICATION: 100%
+SEMANTIC_RECEPTION_SEQUENTIAL_MAIN_SHA: 26ef6c8c57bb201da1a36a1073147c641d1309f4
+SEMANTIC_RECEPTION_SEQUENTIAL_DEPLOYMENT: PENDING
+SEMANTIC_RECEPTION_SEQUENTIAL_PRODUCTION_SMOKE: PENDING
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_YET_PROVEN
 RUNTIME_ROOT: pymia/smartpyme/service_1_product_pipeline_v1.py
 WEB_ENTRYPOINT: python -m pymia.smartpyme.service_1_assisted_web_v1
 ```
@@ -186,10 +189,10 @@ durable XLSX/result snapshots across restart
 multi-region or multi-instance result-state replication
 zero-downtime deployment
 automatic rollback
-working_capital production certification
+new semantic-reception cut production certification
 ```
 
-`working_capital` has a local SEM-8 composite-scope migration with focal PASS, but remains outside the current production certification boundary until the new cut is committed, deployed, and production-smoked.
+`working_capital` is already production certified on the previous baseline with `SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS`. The pending certification boundary is only the new semantic-reception sequential cut merged at `26ef6c8c57bb201da1a36a1073147c641d1309f4`.
 
 ## SANITATION FRONT
 
@@ -223,6 +226,15 @@ Never return secret values.
 
 ## NEXT GATE
 
-There is no pending release gate for the current LIQ_001/REN_001 cut; it is production certified.
+The previously certified LIQ_001/REN_001/Working Capital baseline remains valid within its certified scope.
 
-The next production gate occurs only after a sanitation/convergence change requires recertification.
+The pending production gate is the semantic reception sequential cut already merged in `main`:
+
+```text
+DEPLOY SHA 26ef6c8c57bb201da1a36a1073147c641d1309f4
+→ PRODUCTION SMOKE
+→ CONFIRM EXTERNAL PROVIDER RUNTIME STATE
+→ RECERTIFY EXACT DEPLOYED REVISION
+```
+
+Until that evidence exists, do not claim the external LLM provider active in production.

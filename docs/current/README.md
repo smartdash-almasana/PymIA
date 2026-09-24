@@ -1,16 +1,17 @@
-# PymIA — autoridad documental actual
+# PymIA — índice documental histórico
 
-**Fecha de reconciliación:** 2026-08-16
+**Fecha del corte histórico:** 2026-08-16
+**Estado actual del documento:** `SUPERSEDED_AS_AUTHORITY / HISTORICAL_REFERENCE`
 
-Esta carpeta contiene documentación vigente, evidencia histórica y documentos de cortes anteriores. **La presencia física en `docs/current/` no concede autoridad.** Sólo gobiernan los documentos enumerados en este índice, subordinados siempre al código físico y a los tests observados.
+> Este archivo ya no es autoridad vigente. Toda mención posterior a `autoridad`, `vigente`, `current`, `frente vigente` o documentos rectores describe un corte histórico y no gobierna el estado actual.
+>
+> Autoridad vigente: `NOP-1 VIGENTE → NOP-2 VIGENTE → SERVICE 1 — KNOWN STATE → Gold Registry / evidencia física cerrada`.
 
-## Jerarquía de verdad
+Esta carpeta conserva documentación técnica e histórica. **La presencia física en `docs/current/` no concede autoridad.**
 
-1. Código físico del checkout y evidencia de tests realmente ejecutados.
-2. `AGENTS.md` y `ARCHITECTURE_GUARDRAILS.md`.
-3. Este índice y los documentos rectores enumerados abajo.
-4. ADR/contratos citados explícitamente por un documento rector.
-5. Evidencia técnica histórica, únicamente dentro del alcance que certificó.
+## Jerarquía histórica de ese corte
+
+La jerarquía enumerada a continuación se conserva sólo como evidencia del régimen documental anterior.
 
 Landing, conversaciones, pilots, closeouts, roadmaps vencidos, TaskSpecs consumados y auditorías históricas no gobiernan implementación por sí mismos.
 
@@ -32,9 +33,9 @@ DETERMINISTIC_SEMANTIC_FALLBACK: PRESERVED
 LLM_AUTHORITY: NONE
 
 SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-PRODUCTION_APP_SHA: d2c9c24
-PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf
-PRODUCTION_TRAFFIC: 100%
+LAST_CERTIFIED_PRODUCTION_APP_SHA: 4db43ae
+LAST_CERTIFIED_PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00009-czm
+PRODUCTION_TRAFFIC_AT_LAST_CERTIFICATION: 100%
 PRODUCTION_SMOKE_RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
 
 LIQ_001: PRODUCTION_CERTIFIED
@@ -45,6 +46,12 @@ WORKING_CAPITAL:
   SEMANTIC_SCOPING: SEM8_COMPOSITE_SCOPE_PRODUCTION_PASS
   PRODUCTION_CERTIFIED: YES
 
+# Variante histórica (Stashed changes):
+LLM_COLUMN_INTERPRETER_V1: MERGED_IN_MAIN
+SEQUENTIAL_OWNER_CORROBORATION_V1: MERGED_IN_MAIN
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_YET_PROVEN
+SAFE_DETERMINISTIC_SEMANTIC_PROVIDER: PRESERVED
+PRODUCTION_DEPLOYMENT_OF_SEMANTIC_CUT: PENDING
 NEW_PRODUCTIVE_CAPABILITY_AUTHORIZED: NO
 SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
 SERVICE_1_FINAL_SANITATION_REGRESSION_AND_CLOSURE_V1: PASS
@@ -75,11 +82,15 @@ Gobierno de presentación únicamente:
 
 Modelo arquitectónico conceptual subordinado:
 
+# Variante histórica (Updated upstream):
 - `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica.
 
 Referencia futura fuera del frente vigente:
 
 - `docs/PYMIARADAR_PRODUCT_ARCHITECTURE_V1.md` — definición conceptual futura. `REFERENCE_ONLY`; no gobierna Servicio 1, no autoriza implementación de Radar y queda fuera del camino crítico hasta finalizar Servicio 1.
+
+# Variante histórica (Stashed changes):
+- `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica; refleja como brecha actual la memoria durable completa de resultados. El intérprete LLM semántico está integrado en `main`, pero su activación externa en producción permanece pendiente de deploy + smoke.
 
 ## Documentos subordinados
 
