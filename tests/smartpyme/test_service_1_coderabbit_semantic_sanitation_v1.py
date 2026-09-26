@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import pymia.smartpyme.service_1_commercial_analytics_v1 as commercial_module
+import pymia.smartpyme.service_1_computability_v1 as computability_module
 import pymia.smartpyme.service_1_workbook_logical_model_v1 as logical_model_module
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     _bridge_packet_with_v2_correction,
@@ -176,3 +180,92 @@ def test_workbook_logical_model_accepts_partial_table_scope(monkeypatch) -> None
             "grain_ref": None,
         }
     ]
+
+
+def test_discount_question_reads_case_id_from_workbook_context() -> None:
+    question = commercial_module._discount_question(
+        {"workbook_context": {"case_id": "case-42"}},
+        {
+            "discount_candidate": [
+                commercial_module.RoleRefV1(
+                    "discount_candidate",
+                    "Ventas",
+                    "Descuento",
+                    "descuento",
+                    0.99,
+                )
+            ]
+        },
+    )
+
+    assert question["case_id"] == "case-42"
+    assert question["question_ref"] == "discount-unit:case-42:Ventas:Descuento"
+
+
+def test_commercial_execution_returns_governed_not_computable_on_row_value_error(monkeypatch) -> None:
+    monkeypatch.setattr(
+        commercial_module,
+        "build_tabular_p8_decision_v1",
+        lambda **_kwargs: {
+            "status": commercial_module.P8_COMPUTABLE,
+            "capability_ref": "sales_summary",
+            "reason": None,
+            "owner_questions": [],
+        },
+    )
+    monkeypatch.setattr(commercial_module, "build_role_inventory_v1", lambda _ingestion: {})
+
+    def _raise(_ctx):
+        raise ValueError("sales evidence is not computable")
+
+    monkeypatch.setattr(commercial_module, "_sales_summary", _raise)
+
+    result = commercial_module.execute_commercial_analysis_v1(
+        ingestion_output={"normalized_tables": []},
+        capability_ref="sales_summary",
+    )
+
+    assert result["status"] == commercial_module.P8_NOT_COMPUTABLE
+    assert result["p8_decision"]["reason"] == "ROW_LEVEL_EVIDENCE_NOT_COMPUTABLE"
+    assert result["limitations"] == ["sales evidence is not computable"]
+    assert result["runtime_authorized"] is False
+
+
+def test_catalog_formula_drift_ignores_unspecified_pathology() -> None:
+    formula = SimpleNamespace(
+        formula_id="formula-1",
+        pathology_code="PATH-1",
+        expression="a-b",
+        required_variables=("a", "b"),
+        metadata={"output_unit": "currency"},
+    )
+    rule = {
+        "formula_id": "formula-1",
+        "pathology_code": None,
+        "expression": "a-b",
+        "required_inputs": ["a", "b"],
+        "output_unit": "currency",
+    }
+
+    assert computability_module._catalog_formula_drift(rule, formula) is None
+
+
+def test_catalog_formula_drift_still_checks_explicit_pathology() -> None:
+    formula = SimpleNamespace(
+        formula_id="formula-1",
+        pathology_code="PATH-A",
+        expression="a-b",
+        required_variables=("a", "b"),
+        metadata={"output_unit": "currency"},
+    )
+    rule = {
+        "formula_id": "formula-1",
+        "pathology_code": "PATH-B",
+        "expression": "a-b",
+        "required_inputs": ["a", "b"],
+        "output_unit": "currency",
+    }
+
+    assert computability_module._catalog_formula_drift(rule, formula) == (
+        "FORMULA_RULES_CATALOG_DRIFT:formula-1:pathology_code"
+    )

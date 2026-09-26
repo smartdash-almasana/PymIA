@@ -1261,7 +1261,6 @@ def _validate_matrix_against_formula_rules(matrix: Mapping[str, Any]) -> str | N
 def _catalog_formula_drift(rule: Mapping[str, Any], formula: Any) -> str | None:
     comparisons = {
         "formula_id": (str(rule.get("formula_id") or ""), str(formula.formula_id or "")),
-        "pathology_code": (str(rule.get("pathology_code") or ""), str(formula.pathology_code or "")),
         "expression": (str(rule.get("expression") or ""), str(formula.expression or "")),
         "required_variables": (
             tuple(str(value) for value in rule.get("required_inputs") or ()),
@@ -1269,6 +1268,11 @@ def _catalog_formula_drift(rule: Mapping[str, Any], formula: Any) -> str | None:
         ),
         "output_unit": (rule.get("output_unit"), formula.metadata.get("output_unit")),
     }
+    if rule.get("pathology_code") is not None:
+        comparisons["pathology_code"] = (
+            str(rule.get("pathology_code") or ""),
+            str(formula.pathology_code or ""),
+        )
     for field_name, (expected, actual) in comparisons.items():
         if expected != actual:
             return f"FORMULA_RULES_CATALOG_DRIFT:{formula.formula_id}:{field_name}"

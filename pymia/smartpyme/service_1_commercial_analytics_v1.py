@@ -237,7 +237,26 @@ def execute_commercial_analysis_v1(
         "demand_by_product_branch": _demand_by_product_branch,
         "commercial_full_report": _commercial_full_report,
     }
-    result = dispatcher[capability_ref](ctx)
+    try:
+        result = dispatcher[capability_ref](ctx)
+    except ValueError as exc:
+        reason = str(exc).strip() or "sales evidence is not computable"
+        blocked_p8 = _p8(
+            P8_NOT_COMPUTABLE,
+            capability_ref,
+            "ROW_LEVEL_EVIDENCE_NOT_COMPUTABLE",
+        )
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": P8_NOT_COMPUTABLE,
+            "capability_ref": capability_ref,
+            "p8_decision": blocked_p8,
+            "owner_questions": [],
+            "limitations": [reason],
+            "runtime_authorized": False,
+            "tool_execution_authorized": False,
+            "delivery_authorized": False,
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "status": EXECUTED,
@@ -277,7 +296,12 @@ def _p8(status: str, capability_ref: str, reason: str | None, *, missing: Iterab
 
 def _discount_question(ingestion: Mapping[str, Any], inventory: Mapping[str, list[RoleRefV1]]) -> dict[str, Any]:
     ref = (inventory.get("discount_candidate") or [RoleRefV1("discount_candidate", "", "", "", 0.0)])[0]
-    case_id = str(ingestion.get("case_id") or "").strip()
+    workbook_context = ingestion.get("workbook_context")
+    case_id = str(
+        (workbook_context.get("case_id") if isinstance(workbook_context, Mapping) else None)
+        or ingestion.get("case_id")
+        or ""
+    ).strip()
     question_ref = f"discount-unit:{case_id}:{ref.sheet_name}:{ref.column_name}"
     return {
         "question_ref": question_ref,
