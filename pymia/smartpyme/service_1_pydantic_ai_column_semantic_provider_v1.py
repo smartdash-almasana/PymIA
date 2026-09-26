@@ -1304,7 +1304,6 @@ class Service1PydanticAIColumnSemanticProviderV1:
         tables = [item for item in workbook_context.get("tables") or () if isinstance(item, Mapping)]
         if not tables:
             raise ValueError("workbook_semantic_context contains no tables")
-        expected_sheets = [str(table.get("sheet_name") or "").strip() for table in tables]
         prompt_payload = {
             "case_id": str(payload.get("case_id") or "").strip(),
             "workbook_semantic_context": dict(workbook_context),
@@ -1331,13 +1330,6 @@ class Service1PydanticAIColumnSemanticProviderV1:
             if isinstance(output, WorkbookBusinessUnderstandingV1)
             else WorkbookBusinessUnderstandingV1.model_validate(output)
         )
-        returned_sheets = [table.sheet_name.strip() for table in understanding.tables]
-        if sorted(returned_sheets) != sorted(expected_sheets) or len(returned_sheets) != len(expected_sheets):
-            raise ValueError(
-                "WORKBOOK_GROUP_COVERAGE_INVALID:"
-                + ",".join(sorted(set(expected_sheets) ^ set(returned_sheets)))
-            )
-
         workbook_summary = "Workbook structural summary: " + ", ".join(
             f"{table.sheet_name} ({table.table_meaning.strip()})" for table in understanding.tables
         )
