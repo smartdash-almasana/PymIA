@@ -64,7 +64,8 @@ def test_production_smoke_unescapes_sem8_relationship_action_names() -> None:
 
 def test_production_smoke_loads_only_smoke_credentials_from_local_dotenv(monkeypatch, tmp_path) -> None:
     for name in (smoke.SMOKE_EMAIL_ENV, smoke.SMOKE_PASSWORD_ENV, smoke.SUPABASE_URL_ENV):
-        monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv(name, "")
+        monkeypatch.delenv(name)
     dotenv_path = tmp_path / ".env.local"
     dotenv_path.write_text(
         "PYMIA_SMOKE_EMAIL=smoke@example.com\n"

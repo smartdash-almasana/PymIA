@@ -218,7 +218,7 @@ def _parse_compositional_semantic(value: Any) -> Mapping[str, Any] | None:
             evidence=tuple(value.get("evidence") or ()),
             source=value.get("source") or "LLM_C2_PROPOSAL",
         ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         raise _error("INVALID_COMPOSITIONAL_SEMANTIC", str(exc)) from exc
     projected_role = _optional_text(value.get("runtime_semantic_role"))
     projected_variable = _optional_text(value.get("runtime_variable_name"))

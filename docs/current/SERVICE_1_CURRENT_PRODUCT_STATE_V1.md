@@ -169,6 +169,8 @@ QUESTIONS_VISIBLE_AT_ONCE: 1 (FOCUSED_TEST_AND_LOCAL_SMOKE_PASS)
 La frontera de provider no posee autoridad semántica final, matemática, de runtime, tools, persistencia ni delivery. Si no existe configuración de modelo externo, el diseño preserva el provider determinístico seguro. La activación real del provider externo en producción sólo puede declararse después de deploy y smoke productivo.
 
 # Variante histórica (Stashed changes):
+
+```text
 LLM_COLUMN_INTERPRETER_V1: MERGED_IN_MAIN
 SEQUENTIAL_OWNER_CORROBORATION_V1: MERGED_IN_MAIN
 EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_YET_PROVEN
@@ -224,7 +226,11 @@ DEPLOY_SEMANTIC_RECEPTION_SEQUENTIAL_CUT
 → CONFIRM_RUNTIME_PROVIDER_STATE
 → UPDATE_CURRENT_AUTHORITY_DOCS
 → CLOSE_CUT
+```
+
 # Variante histórica (Stashed changes):
+
+```text
 SERVICE_1_TECHNICAL_CLOSURE: PASS
 SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
 PRODUCTION_CERTIFICATION_OF_NEW_CUT: PENDING

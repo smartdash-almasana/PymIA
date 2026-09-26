@@ -82,15 +82,11 @@ Gobierno de presentación únicamente:
 
 Modelo arquitectónico conceptual subordinado:
 
-# Variante histórica (Updated upstream):
 - `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica.
 
 Referencia futura fuera del frente vigente:
 
 - `docs/PYMIARADAR_PRODUCT_ARCHITECTURE_V1.md` — definición conceptual futura. `REFERENCE_ONLY`; no gobierna Servicio 1, no autoriza implementación de Radar y queda fuera del camino crítico hasta finalizar Servicio 1.
-
-# Variante histórica (Stashed changes):
-- `PYMIA_FIVE_BRAINS_AND_COHERENCE_SOVEREIGNTY_V1.md` — organiza la arquitectura en cinco cerebros (determinístico, matemático, semántico, memoria y cognitivo) y explicita la soberanía por coherencia del conjunto. No reemplaza P6/P7/P8, kernel ni la raíz productiva canónica; refleja como brecha actual la memoria durable completa de resultados. El intérprete LLM semántico está integrado en `main`, pero su activación externa en producción permanece pendiente de deploy + smoke.
 
 ## Documentos subordinados
 

@@ -226,6 +226,8 @@ PYMIARADAR: FUTURE_REFERENCE_ONLY / OUT_OF_CURRENT_SCOPE
 No agregar nuevas features/capabilities durante este cierre. El siguiente paso es desplegar y certificar el corte ya integrado. PymiaRadar queda fuera del camino crítico hasta finalizar Servicio 1.
 
 # Variante histórica (Stashed changes):
+
+```text
 SERVICE_1_TECHNICAL_CLOSURE: PASS
 SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1: CLOSED_PASS
 SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN

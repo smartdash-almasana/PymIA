@@ -53,8 +53,8 @@ _DEFAULT_MODELS: Final[dict[str, str]] = {
 def _safe_provider_exception_message(exc: Exception) -> str:
     """Keep local diagnostics useful without retaining credentials or payloads."""
     message = str(exc or "").strip()
-    message = re.sub(r"(?i)(authorization\\s*[:=]\\s*bearer\\s+)[^\\s]+", r"\\1[REDACTED]", message)
-    message = re.sub(r"(?i)(\\b(?:access[_ -]?token|api[_ -]?key|token|password)\\s*[:=]\\s*)[^\\s,;]+", r"\\1[REDACTED]", message)
+    message = re.sub(r"(?i)(authorization\s*[:=]\s*bearer\s+)\S+", r"\1[REDACTED]", message)
+    message = re.sub(r"(?i)(\b(?:access[_ -]?token|api[_ -]?key|token|password)\s*[:=]\s*)[^\s,;]+", r"\1[REDACTED]", message)
     return message[:500]
 
 
