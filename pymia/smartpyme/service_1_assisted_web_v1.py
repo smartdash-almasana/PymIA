@@ -3468,9 +3468,19 @@ def _available_launch_review_options_v1(
     )
 
 
+def _provenance_ref(ingestion: Mapping[str, Any], *keys: str, default: str = "") -> str:
+    provenance = ingestion.get("provenance")
+    provenance = provenance if isinstance(provenance, Mapping) else {}
+    for key in keys:
+        value = str(provenance.get(key) or "").strip()
+        if value:
+            return value
+    return default
+
+
 def _analysis_menu_page(state: AssistedWebSessionV1, error: str | None = None) -> str:
     ingestion = state.ingestion_output if isinstance(state.ingestion_output, dict) else {}
-    filename = str((ingestion.get("provenance") or {}).get("filename") if isinstance(ingestion.get("provenance"), Mapping) else None or (ingestion.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion.get("provenance"), Mapping) else None or "").strip()
+    filename = _provenance_ref(ingestion, "filename", "source_file_ref")
     available = _available_launch_review_options_v1(ingestion)
     availability_error = error
     if not available and availability_error is None:
@@ -3521,7 +3531,7 @@ def _analysis_bundle_page(
             ratio_text = f"{float(ratio) * 100:.2f}%" if sold > 0 and isinstance(ratio, (int, float)) else "No calculable"
             aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}
             sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
-            filename = str((ingestion.get("provenance") or {}).get("filename") if isinstance(ingestion.get("provenance"), Mapping) else None or (ingestion.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion.get("provenance"), Mapping) else None or "archivo recibido").strip()
+            filename = _provenance_ref(ingestion, "filename", "source_file_ref", default="archivo recibido")
             explicit_period = ingestion.get("period")
             if explicit_period is None and isinstance(ingestion.get("provenance"), Mapping):
                 explicit_period = ingestion["provenance"].get("period")
@@ -3671,7 +3681,8 @@ def _sales_collections_result_page(
     ratio_text = f"{float(ratio) * 100:.2f}%" if sold > 0 and isinstance(ratio, (int, float)) else "no calculable porque no hay ventas registradas."
     aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}; sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
     source_rows = "".join(f"<li>{_esc(variable)}: hoja <strong>{_esc(details.get('sheet_name'))}</strong>, columna <strong>{_esc(details.get('column_name'))}</strong></li>" for variable, details in sources.items() if isinstance(details, dict))
-    filename = str((ingestion_output.get("provenance") or {}).get("filename") if isinstance(ingestion_output.get("provenance"), Mapping) else None or (ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion_output.get("provenance"), Mapping) else None or "").strip(); explicit_period = ingestion_output.get("period")
+    filename = _provenance_ref(ingestion_output, "filename", "source_file_ref")
+    explicit_period = ingestion_output.get("period")
     if explicit_period is None and isinstance(ingestion_output.get("provenance"), dict): explicit_period = ingestion_output["provenance"].get("period")
     period_text = str(explicit_period).strip() if explicit_period is not None and str(explicit_period).strip() else "no identificado explícitamente en los archivos recibidos."
     limitations = outcome.get("limitations") if isinstance(outcome.get("limitations"), (list, tuple)) else []

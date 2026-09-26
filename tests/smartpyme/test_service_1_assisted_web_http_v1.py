@@ -14,12 +14,21 @@ from openpyxl import Workbook
 
 from pymia.smartpyme.service_1_assisted_web_v1 import (
     _blocked_result_page,
+    _provenance_ref,
     create_assisted_web_server_v1,
 )
 import pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 as provider_module
 from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
     Service1PydanticAIColumnSemanticProviderV1,
 )
+
+
+def test_provenance_ref_uses_first_non_empty_value_without_stringifying_none() -> None:
+    ingestion = {"provenance": {"filename": None, "source_file_ref": " ventas.xlsx "}}
+
+    assert _provenance_ref(ingestion, "filename", "source_file_ref") == "ventas.xlsx"
+    assert _provenance_ref({"provenance": {}}, "source_file_ref", "filename") == ""
+    assert _provenance_ref({"provenance": {}}, "filename", default="archivo recibido") == "archivo recibido"
 
 
 @pytest.fixture()

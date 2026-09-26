@@ -347,7 +347,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
                 "La semántica quedó cerrada, pero PymIA no pudo proyectar de forma segura qué análisis son computables."
             )
         ingestion = state.ingestion_output if isinstance(state.ingestion_output, Mapping) else {}
-        filename = str((ingestion.get("provenance") or {}).get("filename") if isinstance(ingestion.get("provenance"), Mapping) else None or (ingestion.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion.get("provenance"), Mapping) else None or "").strip()
+        filename = base._provenance_ref(ingestion, "filename", "source_file_ref")
         available = [
             (str(item[0]), str(item[1]), str(item[2]))
             for item in analysis_menu.get("available") or []
@@ -1043,7 +1043,7 @@ class Service1SemanticReceptionWebApplicationV1(base.AssistedWebApplicationV1):
             actor_role = "SESSION_OWNER"
 
         ingestion = state.ingestion_output if isinstance(state.ingestion_output, Mapping) else {}
-        file_ref = str((ingestion.get("provenance") or {}).get("source_file_ref") if isinstance(ingestion.get("provenance"), Mapping) else None or (ingestion.get("provenance") or {}).get("filename") if isinstance(ingestion.get("provenance"), Mapping) else None or "").strip() or None
+        file_ref = base._provenance_ref(ingestion, "source_file_ref", "filename") or None
         reentered = run_service_1_assisted_semantic_reentry_v1(
             previous_state=state.semantic_assistance_state,
             owner_responses=[
