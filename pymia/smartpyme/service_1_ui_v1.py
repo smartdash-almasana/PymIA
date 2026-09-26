@@ -367,13 +367,19 @@ def render_analysis_result_sets_v1(results: Sequence[Mapping[str, Any]]) -> str:
         if highlights else ""
     )
     analysis_count = len(packets)
+    nav_block = (
+        '<nav class="result-section-nav" aria-label="Secciones de resultados">'
+        f'{nav_html}</nav>'
+        if nav_html
+        else ""
+    )
     return (
         f'<main id="app" tabindex="-1" class="journey enterprise-results">{_progress("resultado")}'
         '<header class="results-header"><div><p class="kicker">Resultados</p><h1>Resumen del archivo</h1>'
         f'<p>{analysis_count} {"análisis listo" if analysis_count == 1 else "análisis listos"}. Revisá primero lo importante y abrí el detalle cuando lo necesites.</p></div>'
         '<div class="results-header-actions"><a class="secondary" href="/cases">Historial</a><a href="/">Nuevo análisis</a></div></header>'
         f'{overview_html}'
-        f'{f"<nav class=\"result-section-nav\" aria-label=\"Secciones de resultados\">{nav_html}</nav>" if nav_html else ""}'
+        f'{nav_block}'
         f'<div class="results-stack">{"".join(sections)}</div>'
         f'{_continue_analysis_panel_v1()}'
         '<div class="result-actions result-actions--footer"><a class="secondary" href="/">Analizar otro Excel</a><a class="secondary" href="/cases">Ver historial</a></div></main>'
