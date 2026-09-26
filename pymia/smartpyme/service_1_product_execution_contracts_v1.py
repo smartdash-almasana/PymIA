@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Callable, Mapping, Sequence, Union
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,7 +22,7 @@ class Service1ProductExecutionDependenciesV1:
     source_context_ref: str | None = None
     schema_family_memory_records: Sequence[Mapping[str, Any] | Any] = field(default_factory=tuple)
     governed_results: Any = None
-    persist_result_memory: bool = True
+    persist_result_memory: Callable[[Any], bool] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,48 +43,25 @@ class WorkbookSemanticContinueRequestV1:
 
 
 @dataclass(frozen=True, slots=True)
-class WorkbookAnalysisExecuteRequestV1:
+class WorkbookSemanticAtomicRequestV1:
     ingestion_output: Mapping[str, Any]
-    confirmed_bindings: Mapping[str, Any]
-    analysis_id: str
-    tenant_identity_contract: Any = None
-
-
-SPECIALIZED_DOMAIN_COLLECTION_AGING = "COLLECTION_AGING"
-SPECIALIZED_DOMAIN_EXPENSE_VARIANCE = "EXPENSE_VARIANCE"
-SPECIALIZED_DOMAIN_RECONCILIATION = "RECONCILIATION"
-SPECIALIZED_DOMAIN_SUBTYPES = frozenset(
-    {
-        SPECIALIZED_DOMAIN_COLLECTION_AGING,
-        SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
-        SPECIALIZED_DOMAIN_RECONCILIATION,
-    }
-)
+    requested_capability: str | None = None
+    deliver_result: bool = False
+    semantic_atomic_confirmation: bool = True
 
 
 @dataclass(frozen=True, slots=True)
-class SpecializedDomainExecuteRequestV1:
-    subtype: str
-    payload: Mapping[str, Any]
+class TypedAnalysisRequestV1:
+    ingestion_output: Mapping[str, Any]
+    requested_capability: str
+    confirmed_bindings: Mapping[str, Any]
+    deliver_result: bool = False
+    tenant_identity_contract: Any = None
 
 
-ProductExecutionRequestV1 = Union[
+Service1ProductExecutionRequestV1 = Union[
     WorkbookSemanticStartRequestV1,
     WorkbookSemanticContinueRequestV1,
-    WorkbookAnalysisExecuteRequestV1,
-    SpecializedDomainExecuteRequestV1,
-]
-
-
-__all__ = [
-    "ProductExecutionRequestV1",
-    "Service1ProductExecutionDependenciesV1",
-    "WorkbookSemanticStartRequestV1",
-    "WorkbookSemanticContinueRequestV1",
-    "WorkbookAnalysisExecuteRequestV1",
-    "SpecializedDomainExecuteRequestV1",
-    "SPECIALIZED_DOMAIN_COLLECTION_AGING",
-    "SPECIALIZED_DOMAIN_EXPENSE_VARIANCE",
-    "SPECIALIZED_DOMAIN_RECONCILIATION",
-    "SPECIALIZED_DOMAIN_SUBTYPES",
+    WorkbookSemanticAtomicRequestV1,
+    TypedAnalysisRequestV1,
 ]

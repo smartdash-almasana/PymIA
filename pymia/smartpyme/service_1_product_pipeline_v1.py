@@ -221,7 +221,7 @@ def _persist_governed_analysis_result_memory_v1(
             "reason": "TENANT_IDENTITY_REQUIRED",
             "persisted": False,
         }
-    if persist_result_memory is None:
+    if not callable(persist_result_memory):
         return {
             "status": "NOT_PERSISTED",
             "reason": "RESULT_MEMORY_ADAPTER_UNAVAILABLE",
@@ -534,7 +534,7 @@ def run_service_1_product_pipeline_v1(
             source_system_ref = None
             source_context_ref = None
             schema_family_memory_records = ()
-            persist_result_memory = False
+            persist_result_memory = None
 
         semantic_assistance_state = getattr(request, "semantic_assistance_state", None)
         semantic_dialogue_responses = getattr(request, "semantic_dialogue_responses", None)
