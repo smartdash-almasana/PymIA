@@ -668,9 +668,16 @@ def _bridge_packet_with_v2_correction(
             or ""
         ).strip()
         if target in {identity, ref_id}:
+            corrected_semantic = dict(compositional_semantic)
+            current_semantic = candidate.compositional_semantic
+            if isinstance(current_semantic, Mapping):
+                for field in ("runtime_semantic_role", "runtime_variable_name"):
+                    value = current_semantic.get(field)
+                    if value:
+                        corrected_semantic[field] = value
             candidate = replace(
                 candidate,
-                compositional_semantic=dict(compositional_semantic),
+                compositional_semantic=corrected_semantic,
             )
         candidates.append(candidate)
     revised["column_candidates"] = tuple(candidates)

@@ -10,7 +10,7 @@ from typing import Any, Final, Mapping, Sequence
 from pymia.smartpyme.service_1_logical_relationship_graph_v1 import build_service_1_logical_relationship_graph_v1
 from pymia.smartpyme.service_1_logical_table_candidate_v1 import STATUS_READY as LOGICAL_TABLES_READY, build_service_1_logical_table_candidates_v1
 from pymia.smartpyme.service_1_region_evidence_v1 import STATUS_READY as REGION_EVIDENCE_READY, build_service_1_region_evidence_from_canonical_ingestion_v1
-from pymia.smartpyme.service_1_table_scoped_semantic_context_v1 import STATUS_READY as TABLE_SCOPE_READY, build_service_1_table_scoped_semantic_context_v1
+from pymia.smartpyme.service_1_table_scoped_semantic_context_v1 import STATUS_PARTIAL as TABLE_SCOPE_PARTIAL, STATUS_READY as TABLE_SCOPE_READY, build_service_1_table_scoped_semantic_context_v1
 from pymia.smartpyme.service_1_tenant_schema_family_memory_v1 import REVALIDATION_UNKNOWN_FAMILY, plan_service_1_schema_delta_revalidation_v1
 from pymia.smartpyme.service_1_workbook_profiler_v1 import STATUS_READY as WORKBOOK_PROFILE_READY, build_service_1_workbook_profile_v1
 from pymia.smartpyme.service_1_workbook_schema_identity_v1 import STATUS_READY as SCHEMA_IDENTITY_READY, build_service_1_workbook_schema_identity_v1
@@ -116,7 +116,7 @@ def build_service_1_workbook_logical_model_v1(
         logical_table_candidates=logical_tables,
         logical_relationship_graph=relationship_graph,
     )
-    if table_scoped_semantics.get("status") != TABLE_SCOPE_READY:
+    if table_scoped_semantics.get("status") not in {TABLE_SCOPE_READY, TABLE_SCOPE_PARTIAL}:
         return _unresolved(
             "TABLE_SCOPED_SEMANTICS_UNRESOLVED",
             workbook_profile=workbook_profile,

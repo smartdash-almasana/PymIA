@@ -835,6 +835,11 @@ def _p6_decisions(
                     str(raw.get("owner_confirmation_question_ref") or "").strip() or None
                 ),
                 confidence=float(raw["confidence"]) if raw.get("confidence") is not None else None,
+                compositional_semantic=(
+                    dict(raw["compositional_semantic"])
+                    if isinstance(raw.get("compositional_semantic"), Mapping)
+                    else None
+                ),
                 provenance=dict(raw.get("provenance") or {}),
                 schema_version=str(raw.get("schema_version") or P6_SCHEMA_VERSION),
             )

@@ -73,7 +73,8 @@ def detect_service_1_physical_regions_v1(
         previous = nonempty_rows[position - 1]
         gap_has_separator = _has_blank_row_between(rows, previous["row_number"], row["row_number"])
         following = nonempty_rows[position + 1] if position + 1 < len(nonempty_rows) else None
-        previous_width = int(header_rows[-1]["column_end"]) - int(header_rows[-1]["column_start"]) + 1
+        previous_start = int(header_rows[-1]["column_start"])
+        previous_width = int(header_rows[-1]["column_end"]) - previous_start + 1
         shape = _header_shape(row)
         if shape is None:
             continue
@@ -82,6 +83,7 @@ def detect_service_1_physical_regions_v1(
             shape=shape,
             following=following,
             previous_width=previous_width,
+            previous_start=previous_start,
             gap_has_separator=gap_has_separator,
         ):
             header_rows.append({**row, **shape})
@@ -232,12 +234,19 @@ def _looks_like_new_header(
     shape: Mapping[str, Any],
     following: Mapping[str, Any] | None,
     previous_width: int,
+    previous_start: int,
     gap_has_separator: bool,
 ) -> bool:
     values = list(shape["header_values"])
     if any(_parse_number(value) is not None or _parse_date(value) is not None for value in values):
         return False
     width = int(shape["column_end"]) - int(shape["column_start"]) + 1
+    if (
+        not gap_has_separator
+        and int(shape["column_start"]) >= previous_start
+        and int(shape["column_end"]) < previous_start + previous_width
+    ):
+        return False
     width_changed = width != previous_width
     following_has_typed_value = bool(
         following
