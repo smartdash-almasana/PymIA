@@ -13,4 +13,4 @@ def run(args):
 
 run(['config','get-value','project'])
 run(['auth','list','--filter=status:ACTIVE','--format=value(account)'])
-run(['run','services','describe','pymia-service1','--project','pymia-503920','--region','southamerica-east1','--format=json(metadata.name,status.url,status.latestReadyRevisionName,spec.template.spec.containers[0].image,spec.template.spec.containers[0].env)'])
+run(['run','services','describe','pymia-service1','--project','pymia-503920','--region','southamerica-east1','--format=json(metadata.name,status.url,status.latestReadyRevisionName,spec.template.spec.containers[0].image)'])
