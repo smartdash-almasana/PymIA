@@ -456,7 +456,7 @@ class Service1SupabasePersistenceAdapterV1:
             )
             if analysis:
                 query = query.eq("analysis_id", analysis)
-            response = query.order("period_start", desc=False).order("executed_at", desc=False).limit(limit).execute()
+            response = query.order("period_start", desc=True).order("executed_at", desc=True).limit(limit).execute()
         except Exception as exc:
             raise Service1SupabasePersistenceErrorV1(
                 "Supabase result memory lookup failed"
@@ -489,7 +489,7 @@ class Service1SupabasePersistenceAdapterV1:
                     "Supabase result memory payload crossed requested boundary"
                 )
             records.append(record)
-        return tuple(records)
+        return tuple(reversed(records))
 
     def load_result_memory_record(
         self,
