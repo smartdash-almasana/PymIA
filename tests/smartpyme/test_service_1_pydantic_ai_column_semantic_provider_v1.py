@@ -1095,7 +1095,7 @@ def test_c2_fallback_returns_none_for_balance() -> None:
     assert sem["runtime_variable_name"] is None
 
 
-def test_c2_fallback_deterministic_path_still_takes_priority() -> None:
+def test_c2_fallback_deterministic_path_still_takes_priority(monkeypatch) -> None:
     """When a matching deterministic hypothesis exists, the deterministic role wins
     over the C2 fallback table. Regression guard for the existing deterministic path."""
     payload = _c2_payload(
@@ -1157,6 +1157,11 @@ def test_c2_fallback_deterministic_path_still_takes_priority() -> None:
             ]
         )
     )
+
+    def _fallback_must_not_run(_descriptor):
+        pytest.fail("C2 fallback projection ran despite an exact deterministic hypothesis")
+
+    monkeypatch.setattr(provider_module, "_c2_coordinate_fallback_projection", _fallback_must_not_run)
     result = Service1PydanticAIColumnSemanticProviderV1(agent=agent)(payload)
     proposals = result.get("concept_proposals", [])
     assert len(proposals) == 1

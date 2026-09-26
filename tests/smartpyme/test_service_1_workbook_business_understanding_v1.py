@@ -120,7 +120,8 @@ def test_business_understanding_runs_before_column_pass_and_is_injected_into_pro
     assert understanding["tables"][0]["sheet_name"] == "ORDENES_TRABAJO"
     assert "Órdenes de trabajo" in semantic_agent.prompts[0]
     assert business_agent.prompts
-    assert business_agent.prompts[0] in business_agent.prompts
+    business_prompt = json.loads(business_agent.prompts[0])
+    assert business_prompt["workbook_semantic_context"]["tables"][0]["sheet_name"] == "ORDENES_TRABAJO"
     assert business_agent.prompts[0] != semantic_agent.prompts[0]
 
 

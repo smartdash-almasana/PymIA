@@ -256,6 +256,11 @@ def decide(llm: dict[str, Any], baseline: dict[str, Any]) -> str:
     return "LLM_DIRECT_NOT_GOOD_ENOUGH"
 
 
+def _report_path(case_id: str) -> Path:
+    suffix = f"_{case_id}" if case_id else ""
+    return Path(__file__).resolve().parent / f"service_1_llm_semantic_spike_report_v1{suffix}.json"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--case-id", default="")
@@ -304,8 +309,7 @@ def main() -> None:
         "llm_direct": llm,
         "decision": decision,
     }
-    suffix = f"_{args.case_id}" if args.case_id else ""
-    out = Path(f"tools/service_1_llm_semantic_spike_report_v1{suffix}.json")
+    out = _report_path(args.case_id)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nreport written: {out}")
 

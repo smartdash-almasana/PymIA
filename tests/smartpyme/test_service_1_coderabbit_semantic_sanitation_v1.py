@@ -202,6 +202,57 @@ def test_discount_question_reads_case_id_from_workbook_context() -> None:
     assert question["question_ref"] == "discount-unit:case-42:Ventas:Descuento"
 
 
+def test_commercial_context_reuses_product_and_branch_lookup_caches(monkeypatch) -> None:
+    product_calls = 0
+    branch_calls = 0
+    original_product_lookup = commercial_module._Context.product_lookup
+    original_branch_lookup = commercial_module._Context.branch_lookup
+
+    def _counted_product_lookup(self):
+        nonlocal product_calls
+        product_calls += 1
+        return original_product_lookup(self)
+
+    def _counted_branch_lookup(self):
+        nonlocal branch_calls
+        branch_calls += 1
+        return original_branch_lookup(self)
+
+    monkeypatch.setattr(commercial_module._Context, "product_lookup", _counted_product_lookup)
+    monkeypatch.setattr(commercial_module._Context, "branch_lookup", _counted_branch_lookup)
+
+    ingestion = {
+        "normalized_tables": [
+            {"sheet_name": "Ventas", "rows": [{"product_id": "p1", "branch_id": "b1", "sales_amount": 10}]},
+            {"sheet_name": "Productos", "rows": [{"product_id": "p1", "product_name": "Café"}]},
+            {"sheet_name": "Sucursales", "rows": [{"branch_id": "b1", "branch_name": "Centro"}]},
+        ]
+    }
+    inventory = {
+        "sales_amount": [commercial_module.RoleRefV1("sales_amount", "Ventas", "sales_amount", "sales_amount", 1.0)],
+        "product_identifier": [
+            commercial_module.RoleRefV1("product_identifier", "Ventas", "product_id", "product_id", 1.0),
+            commercial_module.RoleRefV1("product_identifier", "Productos", "product_id", "product_id", 1.0),
+        ],
+        "product_name": [commercial_module.RoleRefV1("product_name", "Productos", "product_name", "product_name", 1.0)],
+        "branch_identifier": [
+            commercial_module.RoleRefV1("branch_identifier", "Ventas", "branch_id", "branch_id", 1.0),
+            commercial_module.RoleRefV1("branch_identifier", "Sucursales", "branch_id", "branch_id", 1.0),
+        ],
+        "branch_name": [commercial_module.RoleRefV1("branch_name", "Sucursales", "branch_name", "branch_name", 1.0)],
+    }
+
+    ctx = commercial_module._Context(ingestion, inventory, None)
+    sale = ctx.sales_rows[0]
+
+    assert ctx.product_label(sale) == "Café"
+    assert ctx.product_label(sale) == "Café"
+    assert ctx.branch_label(sale) == "Centro"
+    assert ctx.branch_label(sale) == "Centro"
+    assert product_calls == 1
+    assert branch_calls == 1
+
+
 def test_commercial_execution_returns_governed_not_computable_on_row_value_error(monkeypatch) -> None:
     monkeypatch.setattr(
         commercial_module,

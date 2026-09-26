@@ -367,6 +367,8 @@ class _Context:
         self.product_rows = _rows(self.tables.get(self.product_sheet, {})) if self.product_sheet else []
         self.branch_sheet = self._select_branch_sheet()
         self.branch_rows = _rows(self.tables.get(self.branch_sheet, {})) if self.branch_sheet else []
+        self._product_lookup_cache = self.product_lookup()
+        self._branch_lookup_cache = self.branch_lookup()
 
     def _select_sales_sheet(self) -> str:
         scores: Counter[str] = Counter()
@@ -447,7 +449,7 @@ class _Context:
         return _key(self.value(row, "product_identifier", self.sales_sheet) or self.value(row, "product_name", self.sales_sheet))
 
     def product_record(self, row: Mapping[str, Any]) -> dict[str, Any] | None:
-        return self.product_lookup().get(self.product_key(row))
+        return self._product_lookup_cache.get(self.product_key(row))
 
     def cost_for_sale(self, row: Mapping[str, Any]) -> float | None:
         direct = _num(self.value(row, "unit_cost_candidate", self.sales_sheet))
@@ -469,7 +471,7 @@ class _Context:
 
     def branch_label(self, row: Mapping[str, Any]) -> str:
         raw_key = self.value(row, "branch_identifier", self.sales_sheet) or self.value(row, "branch_name", self.sales_sheet)
-        record = self.branch_lookup().get(_key(raw_key))
+        record = self._branch_lookup_cache.get(_key(raw_key))
         if record is not None and self.branch_sheet:
             value = self.value(record, "branch_name", self.branch_sheet) or raw_key
             return str(value)
