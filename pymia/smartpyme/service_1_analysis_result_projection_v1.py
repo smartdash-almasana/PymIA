@@ -527,6 +527,14 @@ def build_service_1_analysis_result_projection_v1(
             )
         )
 
+    source_sheet_refs = tuple(dict.fromkeys(prepared_evidence.source_sheet_refs))
+    relationship_refs = tuple(
+        dict.fromkeys(
+            item.relationship_ref
+            for item in prepared_evidence.materialized_relationships
+        )
+    )
+
     result_payload = {
         "schema_version": RESULT_SET_SCHEMA_VERSION,
         "case_id": case_id,
@@ -534,8 +542,8 @@ def build_service_1_analysis_result_projection_v1(
         "analysis_kind": plan.kind.value,
         "grain": prepared_evidence.grain.to_dict(),
         "groups": [group.to_dict() for group in result_groups],
-        "source_sheet_refs": list(prepared_evidence.source_sheet_refs),
-        "relationship_refs": [item.relationship_ref for item in prepared_evidence.materialized_relationships],
+        "source_sheet_refs": list(source_sheet_refs),
+        "relationship_refs": list(relationship_refs),
         "applied_filters": [dict(item) for item in prepared_evidence.applied_filters],
         "provenance": {
             "source": "F8_MATH_RESULT_PLUS_F7_PREPARED_EVIDENCE",
@@ -552,8 +560,8 @@ def build_service_1_analysis_result_projection_v1(
         analysis_kind=plan.kind,
         grain=prepared_evidence.grain,
         groups=tuple(result_groups),
-        source_sheet_refs=prepared_evidence.source_sheet_refs,
-        relationship_refs=tuple(item.relationship_ref for item in prepared_evidence.materialized_relationships),
+        source_sheet_refs=source_sheet_refs,
+        relationship_refs=relationship_refs,
         applied_filters=prepared_evidence.applied_filters,
         provenance=result_payload["provenance"],
         integrity=result_integrity,

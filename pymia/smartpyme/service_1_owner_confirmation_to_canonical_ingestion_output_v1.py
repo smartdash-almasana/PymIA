@@ -67,7 +67,7 @@ def _workbook_context(packet: dict[str, Any]) -> dict[str, Any] | None:
 def _physical_lineage(
     normalized_tables: list[dict[str, Any]],
     *,
-    workbook_ref: str,
+    packet: dict[str, Any],
 ) -> list[dict[str, Any]]:
     lineage: list[dict[str, Any]] = []
     for table in normalized_tables:
@@ -77,10 +77,7 @@ def _physical_lineage(
         lineage.append(
             {
                 "sheet_name": sheet_name,
-                "sheet_ref": _packet_sheet_ref(
-                    {"workbook_ref": workbook_ref},
-                    sheet_name,
-                ),
+                "sheet_ref": _packet_sheet_ref(packet, sheet_name),
                 "source_kind": str(table.get("source_kind") or "").strip() or None,
                 "source_path": str(table.get("source_path") or "").strip() or None,
                 "header_row_number": table.get("header_row_number"),
@@ -118,7 +115,7 @@ def _canonical_ingestion_envelope(
         "column_refs": column_refs,
         "physical_lineage": _physical_lineage(
             normalized_tables,
-            workbook_ref=workbook_ref,
+            packet=packet,
         ),
         "provenance": {
             "origin_schema_version": BOUNDARY_SCHEMA_VERSION,

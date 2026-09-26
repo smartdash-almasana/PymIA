@@ -30,6 +30,7 @@ SEMANTIC_REENTRY_ROUTE_V1 = "/semantic/v1/reentry"
 XLSX_INGESTION_ROUTE_V1 = "/ingestion/v1/xlsx"
 XLSX_INGESTION_RESPONSE_SCHEMA_V1 = "SERVICE_1_XLSX_INGESTION_RESPONSE_V1"
 MAX_XLSX_UPLOAD_BYTES_V1 = 25 * 1024 * 1024
+MAX_JSON_BODY_BYTES_V1 = 1 * 1024 * 1024
 
 
 class Service1SemanticBoundaryHandlerV1(BaseHTTPRequestHandler):
@@ -58,6 +59,13 @@ class Service1SemanticBoundaryHandlerV1(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length") or 0)
+            if length > MAX_JSON_BODY_BYTES_V1:
+                self.close_connection = True
+                self._send_json(
+                    HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                    {"status": "BLOCKED", "blocked_reason": "C2_SEMANTIC_BODY_TOO_LARGE"},
+                )
+                return
             payload = json.loads(self.rfile.read(length).decode("utf-8")) if length else None
         except (TypeError, ValueError, UnicodeDecodeError):
             self._send_json(HTTPStatus.BAD_REQUEST, {"status": "BLOCKED", "blocked_reason": "C2_SEMANTIC_BODY_NOT_JSON"})

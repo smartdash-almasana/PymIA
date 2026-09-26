@@ -477,7 +477,11 @@ def revise_service_1_assisted_semantic_decision_v1(
                     axis: (compositional_semantic or {}).get(axis)
                     for axis in SEMANTIC_COORDINATE_AXES
                 },
-                confidence=float((compositional_semantic or {}).get("confidence") or 0.95),
+                confidence=float(
+                    0.95
+                    if (compositional_semantic or {}).get("confidence") is None
+                    else (compositional_semantic or {}).get("confidence")
+                ),
                 evidence=tuple(evidence_refs),
                 source="LLM_C2_OWNER_CORRECTION_PROPOSAL",
             ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())

@@ -10,6 +10,7 @@ from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 impor
 )
 from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
     F12_COMMERCIAL_ANALYSIS_IDS,
+    STATUS_READY as DISCOVERY_STATUS_READY,
     build_service_1_dynamic_analysis_discovery_v1,
 )
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
@@ -234,6 +235,23 @@ def test_sem8_carries_validated_runtime_projection_into_p6_bridge(tmp_path: Path
     assert candidate.compositional_semantic["runtime_semantic_role"] == "quantity"
     assert candidate.compositional_semantic["runtime_variable_name"] == "volume_sold"
 
+    corrected_semantic = dict(candidate.compositional_semantic)
+    corrected_semantic["confidence"] = 0.0
+    revised = revise_service_1_assisted_semantic_decision_v1(
+        previous_state=packet,
+        decision_id=packet["owner_questions"][0]["decision_id"],
+        compositional_semantic=corrected_semantic,
+        owner_correction_text="La confianza debe conservar el valor explícito cero.",
+    )
+    assert revised["status"] == SEM8_OWNER_REQUIRED
+    revised_concept = next(
+        item
+        for item in revised["interpreter_packet"]["proposal"].concept_proposals
+        if "Ventas.Cantidad" in item.target_column_refs
+    )
+    assert revised_concept.confidence == 0.0
+    assert revised_concept.compositional_semantic["confidence"] == 0.0
+
     confirmed = run_service_1_assisted_semantic_reentry_v1(
         previous_state=packet,
         owner_responses=_accept_all(packet),
@@ -331,7 +349,7 @@ def test_real_cafeteria_projects_roles_and_enables_supported_analyses(tmp_path: 
         confirmed_bindings=confirmed["semantic_run"],
         commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
     )
-    assert discovery.status == "READY"
+    assert discovery.status == DISCOVERY_STATUS_READY
     assert discovery.technically_available
 
 

@@ -367,6 +367,11 @@ def test_f9_compositional_semantic_owner_confirmation_is_tenant_scoped_memory_on
     )
     assert restored.to_dict()["compositional_semantic"]["process"] == "sale"
 
+    restored_from_mapping = _build(owner_confirmation_event=event.to_dict())
+    assert restored_from_mapping.compositional_semantic is not None
+    assert restored_from_mapping.compositional_semantic["measure"] == "revenue"
+    assert restored_from_mapping.compositional_semantic["field_ref"] == "Ventas.Importe"
+
 
 def test_f9_compositional_semantic_cannot_bind_to_other_column() -> None:
     event = build_service_1_owner_confirmation_event_v1(

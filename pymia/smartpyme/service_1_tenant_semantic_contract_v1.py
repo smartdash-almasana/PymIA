@@ -104,6 +104,11 @@ def _event_from_mapping(payload: Mapping[str, object]) -> Service1OwnerConfirmat
             confirmation_scope=str(payload.get("confirmation_scope") or "").strip(),
             confirmed_by_owner=payload.get("confirmed_by_owner") is True,
             timestamp=str(payload.get("timestamp") or "").strip(),
+            compositional_semantic=(
+                dict(payload.get("compositional_semantic"))
+                if isinstance(payload.get("compositional_semantic"), Mapping)
+                else None
+            ),
             provenance=dict(payload.get("provenance") or {}),
             schema_version=str(payload.get("schema_version") or ""),
         )

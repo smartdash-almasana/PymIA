@@ -205,7 +205,7 @@ def execute_service_1_semantic_reentry_json_v1(
     if next_ref is None:
         state_store.clear(ref)
     elif packet.get("status") != STATUS_BLOCKED:
-        state_store._states[ref] = previous
+        state_store._states[ref] = packet
     return _project(packet, state_ref=next_ref)
 
 

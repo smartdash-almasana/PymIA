@@ -8,6 +8,7 @@ safety boundaries; it does not declare the LLM hypothesis true.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import math
 from typing import Any, Final
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_WORKBOOK_BUSINESS_UNDERSTANDING_V1"
@@ -44,26 +45,30 @@ def validate_service_1_workbook_business_understanding_v1(
 
     seen: set[str] = set()
     tables: list[dict[str, Any]] = []
-    for raw in raw_tables:
-        if not isinstance(raw, Mapping):
-            return _blocked("BUSINESS_UNDERSTANDING_TABLE_INVALID")
-        sheet_name = str(raw.get("sheet_name") or "").strip()
-        if not sheet_name or sheet_name not in workbook_tables or sheet_name in seen:
-            return _blocked("BUSINESS_UNDERSTANDING_TABLE_REF_INVALID")
-        seen.add(sheet_name)
-        meaning = str(raw.get("table_meaning") or "").strip()
-        grain = str(raw.get("grain") or "").strip()
-        if not meaning:
-            return _blocked("BUSINESS_UNDERSTANDING_MEANING_REQUIRED")
-        tables.append({
-            "sheet_name": sheet_name,
-            "table_meaning": meaning,
-            "grain": grain or None,
-            "business_objects": _text_list(raw.get("business_objects")),
-            "processes": _text_list(raw.get("processes")),
-            "semantic_groups": _text_list(raw.get("semantic_groups")),
-            "confidence": _confidence(raw.get("confidence")),
-        })
+    try:
+        for raw in raw_tables:
+            if not isinstance(raw, Mapping):
+                return _blocked("BUSINESS_UNDERSTANDING_TABLE_INVALID")
+            sheet_name = str(raw.get("sheet_name") or "").strip()
+            if not sheet_name or sheet_name not in workbook_tables or sheet_name in seen:
+                return _blocked("BUSINESS_UNDERSTANDING_TABLE_REF_INVALID")
+            seen.add(sheet_name)
+            meaning = str(raw.get("table_meaning") or "").strip()
+            grain = str(raw.get("grain") or "").strip()
+            if not meaning:
+                return _blocked("BUSINESS_UNDERSTANDING_MEANING_REQUIRED")
+            tables.append({
+                "sheet_name": sheet_name,
+                "table_meaning": meaning,
+                "grain": grain or None,
+                "business_objects": _text_list(raw.get("business_objects")),
+                "processes": _text_list(raw.get("processes")),
+                "semantic_groups": _text_list(raw.get("semantic_groups")),
+                "confidence": _confidence(raw.get("confidence")),
+            })
+        material_ambiguities = _text_list(candidate.get("material_ambiguities"))
+    except (TypeError, ValueError):
+        return _blocked("BUSINESS_UNDERSTANDING_FIELD_INVALID")
 
     if seen != workbook_tables:
         return _blocked("BUSINESS_UNDERSTANDING_MUST_COVER_ALL_TABLES")
@@ -78,7 +83,7 @@ def validate_service_1_workbook_business_understanding_v1(
         "authority": AUTHORITY,
         "workbook_summary": summary,
         "tables": tables,
-        "material_ambiguities": _text_list(candidate.get("material_ambiguities")),
+        "material_ambiguities": material_ambiguities,
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,
@@ -98,7 +103,7 @@ def _text_list(value: Any) -> list[str]:
 
 def _confidence(value: Any) -> float:
     number = float(value)
-    if number < 0.0 or number > 1.0:
+    if not math.isfinite(number) or number < 0.0 or number > 1.0:
         raise ValueError("confidence outside [0,1]")
     return number
 

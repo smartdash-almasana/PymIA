@@ -137,7 +137,14 @@ class Service1SemanticCoordinateTaxonomyV2:
             for value in normalized[axis]:
                 raw_aliases = raw_axis_aliases.get(value, ())
                 aliases = _unique_text_tuple(raw_aliases, field_name=f"aliases {axis}.{value}")
-                normalized_tokens = tuple(alias.casefold().replace(" ", "_") for alias in aliases)
+                normalized_tokens = tuple(dict.fromkeys(
+                    token
+                    for token in (
+                        normalize_service_1_semantic_coordinate_text_v2(alias)
+                        for alias in aliases
+                    )
+                    if token
+                ))
                 if set(normalized_tokens).intersection(seen_aliases):
                     raise ValueError(f"aliases for axis {axis} must be unique across governed values")
                 seen_aliases.update(normalized_tokens)

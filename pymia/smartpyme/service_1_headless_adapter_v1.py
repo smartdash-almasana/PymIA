@@ -26,6 +26,7 @@ from pymia.smartpyme.service_1_headless_contract_v1 import (
 
 HEADLESS_ROUTE_V1 = "/headless/v1/execute"
 CONTENT_TYPE_JSON = "application/json"
+MAX_JSON_BODY_BYTES_V1 = 1 * 1024 * 1024
 
 _PARSE_BLOCK_REASONS = frozenset(
     {
@@ -37,6 +38,7 @@ _PARSE_BLOCK_REASONS = frozenset(
         "HEADLESS_INGESTION_REQUIRED",
         "HEADLESS_CONFIRMED_BINDINGS_REQUIRED",
         "HEADLESS_IDENTITY_INVALID",
+        "HEADLESS_IDENTITY_COERCION_FAILED",
     }
 )
 
@@ -95,6 +97,13 @@ class Service1HeadlessHandlerV1(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length") or 0)
         except (TypeError, ValueError):
             length = 0
+        if length > MAX_JSON_BODY_BYTES_V1:
+            self.close_connection = True
+            self._send_json(
+                HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                _error_body("HEADLESS_BODY_TOO_LARGE"),
+            )
+            return
         try:
             raw = self.rfile.read(length) if length > 0 else b""
             payload = json.loads(raw.decode("utf-8")) if raw.strip() else None
