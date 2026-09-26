@@ -93,6 +93,13 @@ def test_valid_single_sheet_is_ok(tmp_path: Path) -> None:
     assert result["row_count"] == 2
     assert result["rows"][0] == {"fecha": "2026-06-01", "cliente": "Ana", "importe": "1200"}
     assert result["runtime_authorized"] is False
+    for physical_row in result["physical_rows"]:
+        expected = [
+            cell
+            for cell in result["physical_cells"]
+            if cell["row_number"] == physical_row["row_number"]
+        ]
+        assert physical_row["cell_records"] == expected
 
 
 def test_valid_with_sheet_name_is_ok(tmp_path: Path) -> None:

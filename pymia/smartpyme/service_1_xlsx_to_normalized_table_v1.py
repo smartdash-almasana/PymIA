@@ -105,6 +105,7 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any, cached_worksheet: 
     materialized_rows: list[list[Any]] = []
     cached_rows: list[list[Any]] = []
     physical_cells: list[dict[str, Any]] = []
+    cells_by_row: list[list[dict[str, Any]]] = []
     for row_number, (row, cached_row) in enumerate(
         zip(worksheet.iter_rows(), cached_worksheet.iter_rows()), start=1
     ):
@@ -112,10 +113,11 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any, cached_worksheet: 
         cached_cells = list(cached_row)
         materialized_rows.append([_display_value(cell, cached_cells[index] if index < len(cached_cells) else None) for index, cell in enumerate(row_cells)])
         cached_rows.append([cached_cells[index].value if index < len(cached_cells) else None for index in range(len(row_cells))])
+        row_records: list[dict[str, Any]] = []
         for column_number, cell in enumerate(row_cells, start=1):
             cached_cell = cached_cells[column_number - 1] if column_number <= len(cached_cells) else None
             formula = cell.value if cell.data_type == "f" or (isinstance(cell.value, str) and cell.value.startswith("=")) else None
-            physical_cells.append({
+            record = {
                 "coordinate": getattr(cell, "coordinate", None) or f"{get_column_letter(column_number)}{row_number}",
                 "sheet_name": selected_sheet_name,
                 "row_number": row_number,
@@ -125,13 +127,16 @@ def _normalize_worksheet(*, source_path: str, worksheet: Any, cached_worksheet: 
                 "formula": formula,
                 "cached_value": cached_cell.value if cached_cell is not None and formula else None,
                 "data_type": str(cell.data_type or ""),
-            })
+            }
+            physical_cells.append(record)
+            row_records.append(record)
+        cells_by_row.append(row_records)
     physical_rows = [
         {
             "row_number": row_number,
             "cells": [_clean(value) for value in raw_row],
             "physical_width": len(raw_row),
-            "cell_records": [item for item in physical_cells if item["row_number"] == row_number],
+            "cell_records": cells_by_row[row_number - 1],
         }
         for row_number, raw_row in enumerate(materialized_rows, start=1)
     ]
