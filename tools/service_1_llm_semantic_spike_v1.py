@@ -93,7 +93,15 @@ def _build_agent() -> Agent[None, LLMCaseDecisionBatchV1]:
     )
 
 
-AGENT = _build_agent()
+_AGENT: Agent[None, LLMCaseDecisionBatchV1] | None = None
+
+
+def _agent() -> Agent[None, LLMCaseDecisionBatchV1]:
+    global _AGENT
+    if _AGENT is None:
+        _AGENT = _build_agent()
+    return _AGENT
+
 
 ALLOWED_ROLES: tuple[str, ...] = tuple(
     sorted({rule.semantic_role for rule in _ROLE_RULES})
@@ -138,7 +146,7 @@ def run_llm_case_interpretation(
 ) -> tuple[list[dict[str, Any]] | None, str | None]:
     """One typed PydanticAI/Vertex call per corpus case."""
     try:
-        result = AGENT.run_sync(build_llm_prompt(case))
+        result = _agent().run_sync(build_llm_prompt(case))
         batch = result.output
     except Exception as exc:  # noqa: BLE001 - experimental runtime boundary
         return None, f"{type(exc).__name__}: {exc}"

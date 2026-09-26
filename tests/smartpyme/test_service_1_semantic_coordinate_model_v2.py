@@ -257,3 +257,24 @@ def test_taxonomy_is_data_driven_and_json_roundtrippable() -> None:
     payload = json.loads(TAXONOMY_PATH.read_text(encoding="utf-8"))
     assert set(payload["axes"]) == set(AXES)
     assert all(payload["axes"][axis] for axis in AXES)
+
+
+def test_default_taxonomy_load_is_cached() -> None:
+    first = load_service_1_semantic_coordinate_taxonomy_v2()
+    second = load_service_1_semantic_coordinate_taxonomy_v2()
+
+    assert first is second
+
+
+def test_explicit_taxonomy_path_remains_uncached(tmp_path: Path) -> None:
+    payload = json.loads(TAXONOMY_PATH.read_text(encoding="utf-8"))
+    custom_path = tmp_path / "taxonomy.json"
+    custom_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    first = load_service_1_semantic_coordinate_taxonomy_v2(custom_path)
+    payload["aliases"]["measure"]["price"].append("precio_super_especifico")
+    custom_path.write_text(json.dumps(payload), encoding="utf-8")
+    second = load_service_1_semantic_coordinate_taxonomy_v2(custom_path)
+
+    assert first is not second
+    assert "precio_super_especifico" in second.aliases_for("measure", "price")

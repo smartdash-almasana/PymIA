@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import json
+from functools import lru_cache
 from pathlib import Path
 import re
 import unicodedata
@@ -289,10 +290,9 @@ def default_service_1_semantic_coordinate_taxonomy_path_v2() -> Path:
     )
 
 
-def load_service_1_semantic_coordinate_taxonomy_v2(
-    path: str | Path | None = None,
+def _load_service_1_semantic_coordinate_taxonomy_from_path_v2(
+    taxonomy_path: Path,
 ) -> Service1SemanticCoordinateTaxonomyV2:
-    taxonomy_path = Path(path) if path is not None else default_service_1_semantic_coordinate_taxonomy_path_v2()
     try:
         raw = json.loads(taxonomy_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -332,6 +332,21 @@ def load_service_1_semantic_coordinate_taxonomy_v2(
         business_families=tuple(raw.get("business_families") or ()),
         operating_archetypes=tuple(raw.get("operating_archetypes") or ()),
     )
+
+
+@lru_cache(maxsize=1)
+def _load_default_service_1_semantic_coordinate_taxonomy_v2() -> Service1SemanticCoordinateTaxonomyV2:
+    return _load_service_1_semantic_coordinate_taxonomy_from_path_v2(
+        default_service_1_semantic_coordinate_taxonomy_path_v2()
+    )
+
+
+def load_service_1_semantic_coordinate_taxonomy_v2(
+    path: str | Path | None = None,
+) -> Service1SemanticCoordinateTaxonomyV2:
+    if path is None:
+        return _load_default_service_1_semantic_coordinate_taxonomy_v2()
+    return _load_service_1_semantic_coordinate_taxonomy_from_path_v2(Path(path))
 
 
 def _unique_axis_match(
