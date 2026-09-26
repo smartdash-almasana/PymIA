@@ -243,7 +243,9 @@ class Service1TenantSemanticContractV1:
                 descriptor = Service1SemanticCoordinateV2(
                     field_ref=str(payload.get("field_ref") or f"{self.sheet_ref}.{self.source_column_name}"),
                     **{axis: payload.get(axis) for axis in SEMANTIC_COORDINATE_AXES},
-                    confidence=float(payload.get("confidence") or 1.0),
+                    confidence=float(
+                        1.0 if payload.get("confidence") is None else payload.get("confidence")
+                    ),
                     evidence=tuple(payload.get("evidence") or ()),
                     source=str(payload.get("source") or "OWNER_CONFIRMED_TENANT_MEMORY"),
                 ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())

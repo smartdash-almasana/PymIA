@@ -7,6 +7,7 @@ or owner decision logic; those remain in ``service_1_assisted_semantic_product_w
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
+from threading import RLock
 from typing import Any, Mapping
 from uuid import uuid4
 
@@ -37,17 +38,38 @@ class Service1SemanticStateStoreV1:
 
     def __init__(self) -> None:
         self._states: dict[str, dict[str, Any]] = {}
+        self._lock = RLock()
 
     def put(self, state: dict[str, Any]) -> str:
         ref = f"c2-semantic-state:{uuid4().hex}"
-        self._states[ref] = state
+        with self._lock:
+            self._states[ref] = state
         return ref
 
     def get(self, ref: str) -> dict[str, Any] | None:
-        return self._states.get(str(ref or "").strip())
+        with self._lock:
+            return self._states.get(str(ref or "").strip())
 
     def clear(self, ref: str) -> None:
-        self._states.pop(str(ref or "").strip(), None)
+        with self._lock:
+            self._states.pop(str(ref or "").strip(), None)
+
+    def replace_if_current(
+        self,
+        ref: str,
+        *,
+        expected: dict[str, Any],
+        replacement: dict[str, Any] | None,
+    ) -> bool:
+        key = str(ref or "").strip()
+        with self._lock:
+            if self._states.get(key) is not expected:
+                return False
+            if replacement is None:
+                self._states.pop(key, None)
+            else:
+                self._states[key] = replacement
+            return True
 
 
 def _json_safe(value: Any) -> Any:
@@ -202,10 +224,14 @@ def execute_service_1_semantic_reentry_json_v1(
         timestamp=request.get("timestamp"),
     )
     next_ref = ref if packet.get("status") != "CONFIRMED_BINDINGS" else None
-    if next_ref is None:
-        state_store.clear(ref)
-    elif packet.get("status") != STATUS_BLOCKED:
-        state_store._states[ref] = packet
+    if packet.get("status") != STATUS_BLOCKED:
+        replacement = packet if next_ref is not None else None
+        if not state_store.replace_if_current(
+            ref,
+            expected=previous,
+            replacement=replacement,
+        ):
+            return _blocked("C2_SEMANTIC_STATE_STALE")
     return _project(packet, state_ref=next_ref)
 
 

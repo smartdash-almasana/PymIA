@@ -373,6 +373,40 @@ def test_f9_compositional_semantic_owner_confirmation_is_tenant_scoped_memory_on
     assert restored_from_mapping.compositional_semantic["field_ref"] == "Ventas.Importe"
 
 
+def test_f9_compositional_semantic_preserves_explicit_zero_confidence() -> None:
+    event = build_service_1_owner_confirmation_event_v1(
+        case_id="case_1",
+        file_ref="sha256:workbook-safe-ref",
+        region_ref="region_1",
+        sheet_ref="Ventas",
+        column_ref="Importe",
+        question_ref="q_importe",
+        owner_answer="OWNER_CONFIRMED",
+        confirmation_scope="COMPOSITIONAL_SEMANTIC",
+        compositional_semantic={
+            "field_ref": "Ventas.Importe",
+            "entity": "sale",
+            "object": "money",
+            "process": "sale",
+            "measure": "revenue",
+            "state": "actual",
+            "grain": "sale",
+            "scope": "event",
+            "unit": "currency",
+            "confidence": 0.0,
+            "evidence": ["owner:q_importe"],
+            "source": "OWNER_CONFIRMED_C2_V2",
+        },
+        timestamp="2026-09-02T12:00:00+00:00",
+        provenance={"producer": "f9-test"},
+    )
+
+    contract = _build(owner_confirmation_event=event)
+
+    assert contract.compositional_semantic is not None
+    assert contract.compositional_semantic["confidence"] == 0.0
+
+
 def test_f9_compositional_semantic_cannot_bind_to_other_column() -> None:
     event = build_service_1_owner_confirmation_event_v1(
         case_id="case_1",

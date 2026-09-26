@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from http.client import HTTPConnection
-from threading import Thread
+from threading import Event, Thread
 
 import pytest
 
@@ -69,6 +69,17 @@ def _serve(server):
 def _post_raw(server, path: str, body: bytes):
     conn = HTTPConnection("127.0.0.1", server.server_port, timeout=30)
     conn.request("POST", path, body=body, headers={"Content-Type": "application/json"})
+    response = conn.getresponse()
+    data = response.read()
+    return response.status, json.loads(data.decode("utf-8"))
+
+
+def _post_with_content_length(server, path: str, content_length: str):
+    conn = HTTPConnection("127.0.0.1", server.server_port, timeout=30)
+    conn.putrequest("POST", path)
+    conn.putheader("Content-Type", "application/json")
+    conn.putheader("Content-Length", content_length)
+    conn.endheaders()
     response = conn.getresponse()
     data = response.read()
     return response.status, json.loads(data.decode("utf-8"))
@@ -219,6 +230,24 @@ def test_semantic_http_rejects_oversized_json_before_reading_payload() -> None:
     assert body["blocked_reason"] == "C2_SEMANTIC_BODY_TOO_LARGE"
 
 
+def test_semantic_http_rejects_negative_content_length_before_reading_payload() -> None:
+    server = create_service_1_semantic_boundary_server_v1(host="127.0.0.1", port=0)
+    thread = _serve(server)
+    try:
+        status, body = _post_with_content_length(
+            server,
+            SEMANTIC_INITIAL_ROUTE_V1,
+            "-1",
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    assert status == 400
+    assert body["blocked_reason"] == "C2_SEMANTIC_BODY_LENGTH_INVALID"
+
+
 def test_semantic_reentry_persists_followup_packet_not_previous_state(monkeypatch) -> None:
     store = Service1SemanticStateStoreV1()
     previous = {"status": "OWNER_DIALOGUE_REQUIRED", "owner_questions": [{"decision_id": "d1"}]}
@@ -250,6 +279,74 @@ def test_semantic_reentry_persists_followup_packet_not_previous_state(monkeypatc
     assert response["status"] == "OWNER_DIALOGUE_FOLLOWUP"
     assert response["semantic_state_ref"] == ref
     assert store.get(ref) is followup
+
+
+def test_semantic_reentry_stale_concurrent_request_cannot_restore_consumed_state(monkeypatch) -> None:
+    cleared = Event()
+
+    class _ObservedStore(Service1SemanticStateStoreV1):
+        def replace_if_current(self, ref, *, expected, replacement):
+            changed = super().replace_if_current(
+                ref,
+                expected=expected,
+                replacement=replacement,
+            )
+            if changed and replacement is None:
+                cleared.set()
+            return changed
+
+    store = _ObservedStore()
+    previous = {"status": "OWNER_DIALOGUE_REQUIRED", "owner_questions": [{"decision_id": "d1"}]}
+    ref = store.put(previous)
+
+    def _reentry(**kwargs):
+        if kwargs["owner_actor_id"] == "owner-confirm":
+            return {
+                "status": "CONFIRMED_BINDINGS",
+                "case_id": "case-1",
+                "requested_capability": None,
+                "semantic_run": {"status": "CONFIRMED_BINDINGS"},
+            }
+        assert cleared.wait(timeout=5)
+        return {
+            "status": "OWNER_DIALOGUE_FOLLOWUP",
+            "case_id": "case-1",
+            "requested_capability": None,
+            "owner_questions": [{"decision_id": "d2"}],
+            "validated_packet": {"decisions": []},
+        }
+
+    monkeypatch.setattr(
+        semantic_boundary_module,
+        "run_service_1_assisted_semantic_reentry_v1",
+        _reentry,
+    )
+
+    responses = {}
+
+    def _call(name: str, actor: str) -> None:
+        responses[name] = execute_service_1_semantic_reentry_json_v1(
+            {
+                "schema_version": REENTRY_REQUEST_SCHEMA,
+                "semantic_state_ref": ref,
+                "owner_responses": [{"decision_id": "d1", "action": "ACCEPT"}],
+                "owner_actor_id": actor,
+                "owner_actor_role": "OWNER",
+            },
+            state_store=store,
+        )
+
+    stale_thread = Thread(target=_call, args=("stale", "owner-stale"))
+    confirm_thread = Thread(target=_call, args=("confirm", "owner-confirm"))
+    stale_thread.start()
+    confirm_thread.start()
+    stale_thread.join(timeout=10)
+    confirm_thread.join(timeout=10)
+
+    assert responses["confirm"]["status"] == "CONFIRMED_BINDINGS"
+    assert responses["stale"]["status"] == "BLOCKED"
+    assert responses["stale"]["blocked_reason"] == "C2_SEMANTIC_STATE_STALE"
+    assert store.get(ref) is None
 
 
 def test_physical_lineage_reuses_packet_sheet_ref() -> None:

@@ -59,6 +59,13 @@ class Service1SemanticBoundaryHandlerV1(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length") or 0)
+            if length < 0:
+                self.close_connection = True
+                self._send_json(
+                    HTTPStatus.BAD_REQUEST,
+                    {"status": "BLOCKED", "blocked_reason": "C2_SEMANTIC_BODY_LENGTH_INVALID"},
+                )
+                return
             if length > MAX_JSON_BODY_BYTES_V1:
                 self.close_connection = True
                 self._send_json(
