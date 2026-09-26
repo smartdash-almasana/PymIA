@@ -141,7 +141,6 @@ def evaluate_liq_001_from_normalized_tables_v1(
     aggregation_sources: dict[str, dict[str, object]] = {}
     errors: list[str] = []
     expected_row_count: int | None = None
-    math_engine = FormulaEngineService()
 
     for variable_name in _REQUIRED_VARIABLES:
         source_column = str(source_bindings.get(variable_name) or "").strip()
@@ -178,7 +177,7 @@ def evaluate_liq_001_from_normalized_tables_v1(
             errors.append("LIQ_001 source columns must cover the same row count.")
             continue
 
-        values: list[float] = []
+        total = Decimal("0")
         for row_index, row in enumerate(rows, start=1):
             if not isinstance(row, dict):
                 errors.append(f"row {row_index} in {sheet_name} must be an object.")
@@ -190,22 +189,8 @@ def evaluate_liq_001_from_normalized_tables_v1(
                     f"{sheet_name}.{normalized_column} row {row_index}: {value_error}"
                 )
                 continue
-            values.append(float(value))
-        if errors:
-            continue
-        primitive = math_engine.calculate_math_primitive(
-            MathPrimitiveInput(
-                operation=MathPrimitiveOperation.SUM,
-                values=values,
-                source_refs=[f"{sheet_name}.{source_column}"],
-            )
-        )
-        if primitive.status != FormulaStatus.OK or primitive.value is None:
-            errors.append(
-                f"{variable_name} aggregation blocked: {primitive.blocking_reason or 'math primitive blocked'}."
-            )
-            continue
-        totals[variable_name] = float(primitive.value)
+            total += value
+        totals[variable_name] = float(total)
         aggregation_sources[variable_name] = {
             "sheet_name": sheet_name,
             "column_name": source_column,

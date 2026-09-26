@@ -238,6 +238,29 @@ def test_plan_evaluation_rejects_missing_or_unknown_inputs() -> None:
     assert result["plan_validation"]["status"] == PLAN_VALIDATED
 
 
+def test_decimal_aggregation_preserves_exact_no_gap_classification() -> None:
+    tables = [
+        {
+            "sheet_name": "Ventas",
+            "rows": [
+                {"venta_total": "0.1", "cobrado": "0.3"},
+                {"venta_total": "0.2", "cobrado": "0"},
+            ],
+        }
+    ]
+
+    result = evaluate_liq_001_from_normalized_tables_v1(
+        computation_plan=_ready_plan(),
+        normalized_tables=tables,
+        column_refs=_column_refs(),
+    )
+
+    assert result["status"] == STATUS_EVALUATED
+    assert result["inputs"] == {"sold_amount": 0.3, "collected_amount": 0.3}
+    assert result["computed"]["gap_amount"] == 0.0
+    assert result["classification"] == CLASS_NO_GAP
+
+
 def test_normalized_rows_are_fully_aggregated_without_samples() -> None:
     result = evaluate_liq_001_from_normalized_tables_v1(
         computation_plan=_ready_plan(),
