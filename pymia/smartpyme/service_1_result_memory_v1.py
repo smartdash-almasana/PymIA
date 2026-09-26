@@ -397,7 +397,7 @@ def build_service_1_result_memory_record_v1(
     evidence_refs = _compact_evidence_refs(result_projection)
     owner_refs = tuple(owner_evidence_refs)
     grain = result_set.grain.to_dict()
-    memory_id = f"s1rm_{_sha256(_memory_identity_payload_values(
+    memory_identity_payload = _memory_identity_payload_values(
         identity_contract_id=identity_contract.identity_contract_id,
         tenant_id=identity_contract.tenant_id,
         cliente_id=identity_contract.cliente_id,
@@ -410,7 +410,8 @@ def build_service_1_result_memory_record_v1(
         evidence_refs=evidence_refs,
         owner_evidence_refs=owner_refs,
         artifact_ref=artifact_ref,
-    ))}"
+    )
+    memory_id = f"s1rm_{_sha256(memory_identity_payload)}"
     return Service1ResultMemoryRecordV1(
         memory_record_id=memory_id,
         identity_contract_id=identity_contract.identity_contract_id,
