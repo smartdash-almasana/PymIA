@@ -13,6 +13,7 @@ import pytest
 from openpyxl import Workbook
 
 from pymia.smartpyme.service_1_assisted_web_v1 import (
+    AssistedWebApplicationV1,
     _blocked_result_page,
     _provenance_ref,
     create_assisted_web_server_v1,
@@ -32,6 +33,26 @@ def test_provenance_ref_uses_first_non_empty_value_without_stringifying_none() -
     assert _provenance_ref(ingestion, "filename", "source_file_ref") == "ventas.xlsx"
     assert _provenance_ref({"provenance": {}}, "source_file_ref", "filename") == ""
     assert _provenance_ref({"provenance": {}}, "filename", default="archivo recibido") == "archivo recibido"
+
+
+def test_base_assisted_web_does_not_activate_live_provider_from_ambient_credentials(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("NVIDIA_API_KEY", "ambient-test-key")
+    monkeypatch.setenv("NVIDIA_MODEL", "ambient-test-model")
+
+    def _unexpected_environment_provider():
+        raise AssertionError("base Assisted Web must not resolve a live provider from ambient env")
+
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_assisted_web_v1.semantic_provider_from_environment_v1",
+        _unexpected_environment_provider,
+    )
+
+    app = AssistedWebApplicationV1()
+
+    assert app._custom_semantic_provider is False
+    assert app._semantic_provider is build_service_1_deterministic_semantic_proposal_v1
 
 
 @pytest.fixture()

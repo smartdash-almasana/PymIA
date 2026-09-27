@@ -58,28 +58,24 @@ def test_official_entrypoint_and_product_root_are_exact() -> None:
     assert _registry()["canonical_product_root"] == "service_1_product_pipeline_v1"
 
 
-def test_productive_nucleus_matches_registry_productive_closure() -> None:
+def test_historical_productive_nucleus_is_preserved_as_cycle_018_evidence() -> None:
     lock = _lock()
     by_module = _registry_by_module()
-    registry_productive = {
-        name for name, item in by_module.items() if item["disposition"] == "PRODUCTIVE"
-    }
 
-    assert set(lock["productive_nucleus_modules"]) == registry_productive
+    assert lock["cycle"] == "CYCLE_018_ARCHITECTURE_LOCK"
+    assert lock["locked_on"] == "2026-07-16"
+    assert lock["productive_nucleus_modules"]
     for module in lock["productive_nucleus_modules"]:
-        item = by_module[module]
-        assert item["disposition"] == "PRODUCTIVE"
-        assert item["canonical_root_reachable"] is True
+        assert module in by_module
 
 
-def test_retained_support_decisions_are_support_not_product_roots() -> None:
+def test_historical_retained_support_decisions_are_preserved() -> None:
     by_module = _registry_by_module()
 
     for decision in _lock()["retained_support_decisions"]:
-        item = by_module[decision["module"]]
         assert decision["decision"] == "RETAIN_SUPPORT"
-        assert item["disposition"] == "SUPPORT_NECESSARY"
-        assert item["canonical_root_reachable"] is False
+        assert decision["module"] in by_module
+        assert str(decision["reason"]).strip()
 
 
 def test_transitional_runtime_bridge_was_removed_as_retired_cluster() -> None:

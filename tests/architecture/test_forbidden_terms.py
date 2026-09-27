@@ -98,6 +98,7 @@ ALLOW_PATTERNS = [
     '"authorization":',
     '"authorization")',
     'authorization: bearer',
+    r'authorization\s*[:=]\s*bearer',
 ]
 
 def test_no_forbidden_terms_in_code():

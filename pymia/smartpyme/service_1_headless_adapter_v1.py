@@ -98,6 +98,13 @@ class Service1HeadlessHandlerV1(BaseHTTPRequestHandler):
         except (TypeError, ValueError):
             length = 0
         if length > MAX_JSON_BODY_BYTES_V1:
+            # Drain only a bounded prefix before closing. On Windows, replying
+            # while the peer still has a just-over-limit request body in flight
+            # can surface as a TCP RST (WinError 10053) before the client reads
+            # the intended 413. Reading MAX+1 is enough to consume the complete
+            # body for the boundary case while remaining strictly bounded for
+            # arbitrarily large declared Content-Length values.
+            self.rfile.read(min(length, MAX_JSON_BODY_BYTES_V1 + 1))
             self.close_connection = True
             self._send_json(
                 HTTPStatus.REQUEST_ENTITY_TOO_LARGE,

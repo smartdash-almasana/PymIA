@@ -400,24 +400,16 @@ class AssistedWebApplicationV1:
         self._load_persisted_case = load_persisted_case
         self._require_tenant_persistence = require_tenant_persistence
         self._radar_policy_store = radar_policy_store
-        self._custom_semantic_provider = bool(
-            semantic_provider is not None
-            or os.getenv("PYMIA_SEMANTIC_PROVIDER")
-            or os.getenv("PYMIA_SEMANTIC_LLM_MODEL")
-            or os.getenv("NVIDIA_API_KEY")
-            or os.getenv("NVIDIA_MODEL")
+        # The base Assisted Web application is provider-injection driven.
+        # Ambient credentials must not silently turn a deterministic/test surface
+        # into a live semantic-provider caller. Productive semantic reception
+        # resolves the environment explicitly and injects that provider.
+        self._custom_semantic_provider = semantic_provider is not None
+        self._semantic_provider = (
+            semantic_provider
+            if semantic_provider is not None
+            else build_service_1_deterministic_semantic_proposal_v1
         )
-        if semantic_provider is not None:
-            self._semantic_provider = semantic_provider
-        elif (
-            os.getenv("PYMIA_SEMANTIC_PROVIDER")
-            or os.getenv("PYMIA_SEMANTIC_LLM_MODEL")
-            or os.getenv("NVIDIA_API_KEY")
-            or os.getenv("NVIDIA_MODEL")
-        ):
-            self._semantic_provider = semantic_provider_from_environment_v1()
-        else:
-            self._semantic_provider = build_service_1_deterministic_semantic_proposal_v1
         self.output_dir = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="pymia-service-1-web-"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 

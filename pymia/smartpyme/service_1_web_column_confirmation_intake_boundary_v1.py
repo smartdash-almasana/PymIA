@@ -379,7 +379,7 @@ def _case_id(
     *_args: Any,
     **_kwargs: Any,
 ) -> str:
-    """Create an opaque workflow identity, independent of source identity."""
+    """Create an opaque case identity, independent of source identity."""
     return "case_" + uuid.uuid4().hex
 
 
