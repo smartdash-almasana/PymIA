@@ -43,25 +43,48 @@ class WorkbookSemanticContinueRequestV1:
 
 
 @dataclass(frozen=True, slots=True)
-class WorkbookSemanticAtomicRequestV1:
+class WorkbookAnalysisExecuteRequestV1:
     ingestion_output: Mapping[str, Any]
-    requested_capability: str | None = None
-    deliver_result: bool = False
-    semantic_atomic_confirmation: bool = True
-
-
-@dataclass(frozen=True, slots=True)
-class TypedAnalysisRequestV1:
-    ingestion_output: Mapping[str, Any]
-    requested_capability: str
     confirmed_bindings: Mapping[str, Any]
-    deliver_result: bool = False
+    analysis_id: str
     tenant_identity_contract: Any = None
 
 
-Service1ProductExecutionRequestV1 = Union[
+SPECIALIZED_DOMAIN_COLLECTION_AGING = "COLLECTION_AGING"
+SPECIALIZED_DOMAIN_EXPENSE_VARIANCE = "EXPENSE_VARIANCE"
+SPECIALIZED_DOMAIN_RECONCILIATION = "RECONCILIATION"
+SPECIALIZED_DOMAIN_SUBTYPES = frozenset(
+    {
+        SPECIALIZED_DOMAIN_COLLECTION_AGING,
+        SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
+        SPECIALIZED_DOMAIN_RECONCILIATION,
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class SpecializedDomainExecuteRequestV1:
+    subtype: str
+    payload: Mapping[str, Any]
+
+
+ProductExecutionRequestV1 = Union[
     WorkbookSemanticStartRequestV1,
     WorkbookSemanticContinueRequestV1,
-    WorkbookSemanticAtomicRequestV1,
-    TypedAnalysisRequestV1,
+    WorkbookAnalysisExecuteRequestV1,
+    SpecializedDomainExecuteRequestV1,
+]
+
+
+__all__ = [
+    "ProductExecutionRequestV1",
+    "Service1ProductExecutionDependenciesV1",
+    "WorkbookSemanticStartRequestV1",
+    "WorkbookSemanticContinueRequestV1",
+    "WorkbookAnalysisExecuteRequestV1",
+    "SpecializedDomainExecuteRequestV1",
+    "SPECIALIZED_DOMAIN_COLLECTION_AGING",
+    "SPECIALIZED_DOMAIN_EXPENSE_VARIANCE",
+    "SPECIALIZED_DOMAIN_RECONCILIATION",
+    "SPECIALIZED_DOMAIN_SUBTYPES",
 ]
