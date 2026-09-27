@@ -86,19 +86,24 @@ def test_f10_productive_context_never_promotes_legacy_role_variable_output() -> 
     assert "No governed V2 compositional projection" in result["material_ambiguities"][0]["reason"]
 
 
-def test_f10_missing_llm_configuration_fails_closed_instead_of_falling_back(monkeypatch) -> None:
-    monkeypatch.setenv("PYMIA_SEMANTIC_PROVIDER", "VERTEX")
-    monkeypatch.delenv("PYMIA_SEMANTIC_LLM_MODEL", raising=False)
+def test_f10_missing_productive_provider_fails_closed(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1.os.getenv",
+        lambda key, default="": "" if str(key).endswith("_API_KEY") else default,
+    )
     provider = semantic_provider_from_environment_v1()
-    with pytest.raises(RuntimeError, match="PYMIA_SEMANTIC_LLM_MODEL"):
+    with pytest.raises(RuntimeError, match="productive C2 semantics"):
         provider({})
 
 
-def test_f10_assisted_web_default_uses_fail_closed_productive_provider(monkeypatch, tmp_path) -> None:
-    monkeypatch.setenv("PYMIA_SEMANTIC_PROVIDER", "VERTEX")
-    monkeypatch.delenv("PYMIA_SEMANTIC_LLM_MODEL", raising=False)
-    app = AssistedWebApplicationV1(output_dir=tmp_path)
-    with pytest.raises(RuntimeError, match="PYMIA_SEMANTIC_LLM_MODEL"):
+def test_f10_assisted_web_explicit_productive_provider_preserves_fail_closed(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1.os.getenv",
+        lambda key, default="": "" if str(key).endswith("_API_KEY") else default,
+    )
+    provider = semantic_provider_from_environment_v1()
+    app = AssistedWebApplicationV1(output_dir=tmp_path, semantic_provider=provider)
+    with pytest.raises(RuntimeError, match="productive C2 semantics"):
         app._semantic_provider({})
 
 

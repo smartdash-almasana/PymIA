@@ -95,11 +95,18 @@ def test_initial_boundary_can_canonically_ingest_uploaded_xlsx() -> None:
     stream = BytesIO()
     workbook.save(stream)
 
+    intake = build_service_1_web_column_confirmation_intake_boundary_v1(
+        uploaded_xlsx_bytes=stream.getvalue(),
+        uploaded_filename="ventas.xlsx",
+        include_all_sheets=True,
+    )
+    canonical = build_service_1_unconfirmed_canonical_ingestion_output_v1(
+        owner_question_packet=intake,
+    )
     packet = execute_service_1_semantic_initial_json_v1(
         {
             "schema_version": INITIAL_REQUEST_SCHEMA,
-            "uploaded_filename": "ventas.xlsx",
-            "uploaded_xlsx_base64": base64.b64encode(stream.getvalue()).decode("ascii"),
+            "ingestion_output": canonical["ingestion_output"],
         },
         provider=build_service_1_deterministic_semantic_proposal_v1,
         state_store=Service1SemanticStateStoreV1(),

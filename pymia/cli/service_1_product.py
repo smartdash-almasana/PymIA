@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import asdict, is_dataclass
+from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any
 
@@ -143,6 +144,8 @@ def _json_default(value: Any) -> Any:
         return value.dict()
     if is_dataclass(value):
         return asdict(value)
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
     if isinstance(value, Path):
         return str(value)
     raise TypeError(f"Object of type {value.__class__.__name__} is not JSON serializable")

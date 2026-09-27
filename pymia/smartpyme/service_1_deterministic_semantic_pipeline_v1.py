@@ -91,7 +91,7 @@ def run_initial_pass(
 
 
 def run_owner_reentry(
-    *, previous_run: Any, owner_answers: Any
+    *, previous_run: Any, owner_answers: Any, file_ref: Any = None
 ) -> dict[str, Any]:
     if not isinstance(previous_run, dict) or previous_run.get("schema_version") != SCHEMA_VERSION:
         return _packet(status=STATUS_BLOCKED_PIPELINE, blocked_reason="INVALID_PREVIOUS_RUN")
@@ -107,6 +107,7 @@ def run_owner_reentry(
     loop = build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         gate_packet=gate,
         owner_answers=owner_answers,
+        file_ref=file_ref,
     )
     if loop.get("status") == LOOP_STATUS_OWNER_FOLLOWUP_REQUIRED:
         return _packet(
@@ -145,6 +146,7 @@ def run_owner_reentry(
         followup_loop = build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
             gate_packet=reinjected,
             owner_answers=None,
+            file_ref=file_ref,
         )
         if followup_loop.get("status") != "OWNER_CONFIRMATION_REQUIRED":
             return _packet(

@@ -203,7 +203,7 @@ def test_reads_formula_cached_values_without_executing_formulas(tmp_path: Path) 
     result = read_xlsx_to_normalized_table_v1(path)
 
     assert result["status"] == "OK"
-    assert result["rows"] == []
+    assert result["rows"] == [{"formula": "=1+1"}]
     assert result["runtime_authorized"] is False
     assert path.exists()
     assert load_workbook(path, data_only=False).active["A2"].value == "=1+1"

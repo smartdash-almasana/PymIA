@@ -591,6 +591,16 @@ def _packet_sheet_ref(packet: dict[str, Any], sheet_name: str) -> str:
 def _infer_type(values: list[Any]) -> str:
     if not values:
         return "empty"
+    formula_values = [
+        str(value).strip()
+        for value in values
+        if isinstance(value, str) and str(value).strip().startswith("=")
+    ]
+    if len(formula_values) == len(values):
+        # An uncached Excel formula is physical evidence, not business text.
+        # Its evaluated type is unknown at ingestion time, so keep semantic
+        # scoring fail-closed instead of misclassifying the expression as text.
+        return "mixed"
     kinds: set[str] = set()
     for value in values:
         text = str(value).strip()

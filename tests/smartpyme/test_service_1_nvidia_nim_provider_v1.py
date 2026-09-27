@@ -51,7 +51,7 @@ def _chain_provider_names(chain: "provider_module.Service1SemanticProviderChainV
     return [step.provider_name for step in chain._steps]
 
 
-def test_environment_builds_ordered_chain_gemini_nvidia_opencode(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_environment_builds_ordered_chain_from_current_configured_providers(monkeypatch: pytest.MonkeyPatch) -> None:
     sentinels, captured = _patch_provider_builders(monkeypatch)
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-secret")
     monkeypatch.setenv("NVIDIA_API_KEY", "test-nvidia-secret")
@@ -64,19 +64,17 @@ def test_environment_builds_ordered_chain_gemini_nvidia_opencode(monkeypatch: py
     chain = semantic_provider_from_environment_v1()
 
     assert isinstance(chain, provider_module.Service1SemanticProviderChainV1)
-    assert _chain_provider_names(chain) == [GEMINI_PROVIDER, NVIDIA_NIM_PROVIDER, OPENCODE_ZEN_PROVIDER]
-    assert [step.model for step in chain._steps] == [GEMINI_MODEL, NVIDIA_NIM_MODEL, OPENCODE_ZEN_MODEL]
+    assert _chain_provider_names(chain) == [GEMINI_PROVIDER, NVIDIA_NIM_PROVIDER]
+    assert [step.model for step in chain._steps] == [GEMINI_MODEL, NVIDIA_NIM_MODEL]
     assert [step.provider for step in chain._steps] == [
         sentinels["gemini"],
         sentinels["nvidia"],
-        sentinels["opencode"],
     ]
     assert captured["gemini"]["model"] == GEMINI_MODEL
     assert captured["nvidia"]["model"] == NVIDIA_NIM_MODEL
-    assert captured["opencode"]["model"] == OPENCODE_ZEN_MODEL
+    assert "opencode" not in captured
     assert captured["gemini"]["api_key"] == "test-gemini-secret"
     assert captured["nvidia"]["api_key"] == "test-nvidia-secret"
-    assert captured["opencode"]["api_key"] == "test-opencode-secret"
 
 
 def test_environment_keeps_separate_models_per_provider(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -90,13 +88,13 @@ def test_environment_keeps_separate_models_per_provider(monkeypatch: pytest.Monk
 
     chain = semantic_provider_from_environment_v1()
 
-    assert [step.model for step in chain._steps] == ["gemini-custom", "nvidia-custom", OPENCODE_ZEN_MODEL]
+    assert [step.model for step in chain._steps] == ["gemini-custom", "nvidia-custom"]
     assert captured["gemini"]["model"] == "gemini-custom"
     assert captured["nvidia"]["model"] == "nvidia-custom"
-    assert captured["opencode"]["model"] == OPENCODE_ZEN_MODEL
+    assert "opencode" not in captured
 
 
-def test_environment_allows_opencode_specific_model_override(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_environment_does_not_auto_add_opencode_from_model_override(monkeypatch: pytest.MonkeyPatch) -> None:
     _, captured = _patch_provider_builders(monkeypatch)
     monkeypatch.setenv("GEMINI_MODEL", "gemini-custom")
     monkeypatch.setenv("PYMIA_SEMANTIC_LLM_MODEL", "gemini-shared")
@@ -107,9 +105,9 @@ def test_environment_allows_opencode_specific_model_override(monkeypatch: pytest
 
     chain = semantic_provider_from_environment_v1()
 
-    assert [step.model for step in chain._steps] == ["gemini-custom", NVIDIA_NIM_MODEL, "opencode-custom"]
+    assert [step.model for step in chain._steps] == ["gemini-custom", NVIDIA_NIM_MODEL]
     assert captured["gemini"]["model"] == "gemini-custom"
-    assert captured["opencode"]["model"] == "opencode-custom"
+    assert "opencode" not in captured
 
 
 def test_environment_omits_unconfigured_fallback_providers(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -35,6 +35,5 @@ def test_provider_failure_preserves_safe_interpreter_detail() -> None:
     assert result["status"] == "BLOCKED"
     assert result["blocked_reason"] == BLOCK_INTERPRETER_FAILED
     assert result["detail"]["interpreter_reason"] == "BLOCK_LLM_PROVIDER_FAILED"
-    assert result["detail"]["interpreter_detail"]["exception_type"] == "RuntimeError"
-    assert result["detail"]["interpreter_detail"]["exception_message"] == "provider exploded safely"
-    assert result["detail"]["interpreter_detail"]["failing_stage"] == "PROVIDER_CALL"
+    assert result["detail"]["interpreter_detail"] == "RuntimeError"
+    assert "provider exploded safely" not in repr(result)

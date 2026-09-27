@@ -1317,7 +1317,7 @@ class AssistedWebApplicationV1:
             ).strip()
             source_system_ref = str(intake.get("source_kind") or "").strip()
             source_context_ref = str(intake.get("schema_version") or "").strip()
-            workbook_ref = str(intake.get("filename") or filename).strip()
+            workbook_ref = str(intake.get("workbook_ref") or "").strip()
             try:
                 state.tenant_identity_contract = build_service_1_assisted_web_tenant_identity_v1(
                     tenant_id=state.tenant_id,
@@ -1629,6 +1629,7 @@ class AssistedWebApplicationV1:
                     requested_capability=capability_ref,
                     output_dir=self._review_output_dir(session_id=session_id),
                     deliver_result=False,
+                    semantic_provider=self._semantic_provider,
                     semantic_assistance_state=state.semantic_assistance_state,
                     semantic_dialogue_responses=responses,
                     semantic_owner_actor_id=actor_id,
@@ -1707,6 +1708,7 @@ class AssistedWebApplicationV1:
             requested_capability=state.selected_launch_review,
             output_dir=self._review_output_dir(session_id=session_id),
             deliver_result=state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real"},
+            semantic_provider=self._semantic_provider,
             semantic_assistance_state=state.semantic_assistance_state,
             semantic_dialogue_responses=responses,
             semantic_owner_actor_id=actor_id,

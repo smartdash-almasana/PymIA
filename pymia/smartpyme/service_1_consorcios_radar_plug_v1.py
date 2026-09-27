@@ -35,6 +35,15 @@ _METRIC_OPS: Final[tuple[str, ...]] = (OP_GT, OP_GTE, OP_LT, OP_LTE, OP_EQ, OP_N
 _OPERATION_OPS: Final[tuple[str, ...]] = (OP_EQ, OP_NEQ)
 
 
+def _metric_text(value: int | float) -> str:
+    if isinstance(value, int):
+        return str(value)
+    text = format(float(value), ".15g")
+    if "e" not in text.lower() and "." not in text:
+        text += ".0"
+    return text
+
+
 @dataclass(frozen=True)
 class ConsorciosRadarObservationV1:
     observable: RadarObservableV1
@@ -169,13 +178,13 @@ def project_expense_variance_to_radar_v1(
             (
                 ConsorciosRadarObservationV1(
                     observable=catalog[OBS_EXPENSE_BUDGET_DEVIATION_PCT],
-                    observed_value=str(budget_dev),
+                    observed_value=_metric_text(budget_dev),
                     entity_ref=rubro,
                     source_capability_ref="consorcios_expense_variance",
                 ),
                 ConsorciosRadarObservationV1(
                     observable=catalog[OBS_EXPENSE_HISTORICAL_DEVIATION_PCT],
-                    observed_value=str(historical_dev),
+                    observed_value=_metric_text(historical_dev),
                     entity_ref=rubro,
                     source_capability_ref="consorcios_expense_variance",
                 ),
