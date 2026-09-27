@@ -400,10 +400,21 @@ class AssistedWebApplicationV1:
         self._load_persisted_case = load_persisted_case
         self._require_tenant_persistence = require_tenant_persistence
         self._radar_policy_store = radar_policy_store
-        self._custom_semantic_provider = bool(semantic_provider is not None or os.getenv("PYMIA_SEMANTIC_PROVIDER") or os.getenv("PYMIA_SEMANTIC_LLM_MODEL"))
+        self._custom_semantic_provider = bool(
+            semantic_provider is not None
+            or os.getenv("PYMIA_SEMANTIC_PROVIDER")
+            or os.getenv("PYMIA_SEMANTIC_LLM_MODEL")
+            or os.getenv("NVIDIA_API_KEY")
+            or os.getenv("NVIDIA_MODEL")
+        )
         if semantic_provider is not None:
             self._semantic_provider = semantic_provider
-        elif os.getenv("PYMIA_SEMANTIC_PROVIDER") or os.getenv("PYMIA_SEMANTIC_LLM_MODEL"):
+        elif (
+            os.getenv("PYMIA_SEMANTIC_PROVIDER")
+            or os.getenv("PYMIA_SEMANTIC_LLM_MODEL")
+            or os.getenv("NVIDIA_API_KEY")
+            or os.getenv("NVIDIA_MODEL")
+        ):
             self._semantic_provider = semantic_provider_from_environment_v1()
         else:
             self._semantic_provider = build_service_1_deterministic_semantic_proposal_v1
@@ -2061,6 +2072,12 @@ class AssistedWebApplicationV1:
         state = self.session(session_id)
         if not state.ingestion_output:
             return HTTPStatus.BAD_REQUEST, _error_page("Primero subí y confirmá un archivo de Excel.")
+        if confirmed_bindings is None and semantic_assistance_state is None:
+            semantic_assistance_state = (
+                state.semantic_assistance_state
+                if isinstance(state.semantic_assistance_state, dict)
+                else None
+            )
         capability_refs = (
             "projected_closing_cash_balance",
             "dso",
@@ -2135,6 +2152,11 @@ class AssistedWebApplicationV1:
             requested_capability=requested_capability,
             output_dir=review_output_dir,
             deliver_result=requested_capability in {"sold_vs_collected_gap", "net_margin_real"},
+            semantic_assistance_state=(
+                state.semantic_assistance_state
+                if isinstance(state.semantic_assistance_state, dict)
+                else None
+            ),
         )
         if state.consorcio_case_context is not None:
             state.consorcio_case_context.requested_review = requested_capability

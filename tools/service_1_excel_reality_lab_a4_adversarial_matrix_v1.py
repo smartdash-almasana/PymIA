@@ -200,8 +200,8 @@ def evaluate_service_1_excel_reality_lab_a4_adversarial_matrix_v1(root: Path | N
     repo = root or Path(__file__).resolve().parents[1]
     rows: list[dict] = []
     for spec in SPECS:
-        source = _fixture_path(repo, spec.filename)
         try:
+            source = _fixture_path(repo, spec.filename)
             curated = curate_xlsx_document(source, period_ref=spec.period_ref)
             p8_status, governed, p8_error = _p8_for_spec(source, spec)
             terminal, reason = _classify(spec, curated, p8_status, governed, p8_error)

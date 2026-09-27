@@ -178,13 +178,13 @@ def project_expense_variance_to_radar_v1(
             (
                 ConsorciosRadarObservationV1(
                     observable=catalog[OBS_EXPENSE_BUDGET_DEVIATION_PCT],
-                    observed_value=_metric_text(budget_dev),
+                    observed_value=str(budget_dev),
                     entity_ref=rubro,
                     source_capability_ref="consorcios_expense_variance",
                 ),
                 ConsorciosRadarObservationV1(
                     observable=catalog[OBS_EXPENSE_HISTORICAL_DEVIATION_PCT],
-                    observed_value=_metric_text(historical_dev),
+                    observed_value=str(historical_dev),
                     entity_ref=rubro,
                     source_capability_ref="consorcios_expense_variance",
                 ),
