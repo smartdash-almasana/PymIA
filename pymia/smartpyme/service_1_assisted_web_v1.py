@@ -463,6 +463,14 @@ class AssistedWebApplicationV1:
             "ingestion_output": deepcopy(ingestion_output) if isinstance(ingestion_output, dict) else None,
         }
 
+    def analysis_menu(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        if not state.ingestion_output:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero subí y confirmá un archivo de Excel."
+            )
+        return HTTPStatus.OK, _analysis_menu_page(state)
+
     def recent_cases(self, *, session_id: str) -> tuple[int, str]:
         scope = self._case_scope(session_id=session_id)
         snapshots = list(self._case_snapshots.get(scope, {}).values())
@@ -2526,6 +2534,7 @@ def _handler_for(
                     )
                     return
             if parsed.path in {
+                "/analysis-menu",
                 "/cases",
                 "/case",
                 "/review-pending",

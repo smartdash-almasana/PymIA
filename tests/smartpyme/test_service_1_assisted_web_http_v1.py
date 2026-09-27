@@ -17,6 +17,9 @@ from pymia.smartpyme.service_1_assisted_web_v1 import (
     _provenance_ref,
     create_assisted_web_server_v1,
 )
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
+)
 import pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 as provider_module
 from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
     Service1PydanticAIColumnSemanticProviderV1,
@@ -112,6 +115,19 @@ def _form(server, path: str, values: dict[str, str], cookie: str):
         body,
         {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": str(len(body)), "Cookie": cookie},
     )
+
+
+class _MutableTenantResolver:
+    def __init__(self, tenant_id: str = "tenant-a") -> None:
+        self.tenant_id = tenant_id
+
+    def __call__(self, handler) -> dict[str, str]:
+        return {
+            "tenant_id": self.tenant_id,
+            "cliente_id": f"cliente-{self.tenant_id}",
+            "owner_actor_id": f"owner-{self.tenant_id}",
+            "owner_actor_role": "OWNER",
+        }
 
 
 class _BrowserAuthResolver:
@@ -332,6 +348,56 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
     assert "Total vendido" in page
     assert "Diferencia" in page
     assert 'href="/download-sales-collections"' in page
+
+
+def test_analysis_menu_revalidates_tenant_and_fails_closed_on_identity_change(tmp_path: Path) -> None:
+    resolver = _MutableTenantResolver("tenant-a")
+    server = create_assisted_web_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "tenant-analysis-menu",
+        tenant_identity_resolver=resolver,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+    )
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
+        status, response_headers, page = _request(server, "POST", "/upload", body, headers)
+        assert status == 200
+        cookie = _cookie(response_headers)
+
+        if "Esto entendí de tu Excel" in page:
+            status, _, page = _form(
+                server,
+                "/confirm-meanings",
+                _semantic_confirmation_answers(page),
+                cookie,
+            )
+            assert status == 200
+
+        status, _, page = _request(
+            server,
+            "GET",
+            "/analysis-menu",
+            headers={"Cookie": cookie},
+        )
+        assert status == 200
+        assert "¿Qué querés que PymIA te devuelva?" in page
+
+        resolver.tenant_id = "tenant-b"
+        status, _, page = _request(
+            server,
+            "GET",
+            "/analysis-menu",
+            headers={"Cookie": cookie},
+        )
+        assert status == 400
+        assert "Primero subí y confirmá un archivo de Excel." in page
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_path: Path) -> None:
