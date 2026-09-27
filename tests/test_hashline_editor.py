@@ -67,7 +67,8 @@ def test_delete_line_succeeds_when_hash_matches() -> None:
 
 def test_edit_fails_closed_when_hash_does_not_match() -> None:
     text = "alpha\nbeta\n"
-    stale_ref = parse_ref(f"2:{line_hash('old beta\n')}")
+    stale_hash = line_hash("old beta\n")
+    stale_ref = parse_ref(f"2:{stale_hash}")
 
     with pytest.raises(HashlineEditError, match="hash_mismatch"):
         apply_hashline_edit(
@@ -80,12 +81,13 @@ def test_edit_fails_closed_when_hash_does_not_match() -> None:
 
 def test_edit_fails_closed_when_ref_is_out_of_range() -> None:
     text = "alpha\n"
+    missing_hash = line_hash("missing\n")
 
     with pytest.raises(HashlineEditError, match="out_of_range"):
         apply_hashline_edit(
             text=text,
             operation="delete",
-            ref=parse_ref(f"2:{line_hash('missing\n')}"),
+            ref=parse_ref(f"2:{missing_hash}"),
         )
 
 
