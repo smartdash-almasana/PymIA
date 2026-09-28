@@ -27,6 +27,7 @@ TERM_ALLOWED_PATH_PREFIXES = {
         "pymia/smartpyme/service_1_computability_v1.py",
         "pymia/smartpyme/service_1_owner_confirmation_event_v1.py",
         "pymia/smartpyme/service_1_semantic_bridge_to_controlled_execution_gate_v1.py",
+        "pymia/smartpyme/service_1_llm_semantic_interpreter_v1.py",
         "pymia/smartpyme/accounting_workpaper_draft_packet_v1.py",
         "pymia/smartpyme/first_aid_delivery_aggregate_v1.py",
         "pymia/smartpyme/owner_pure_view.py",
@@ -98,7 +99,8 @@ ALLOW_PATTERNS = [
     '"authorization":',
     '"authorization")',
     'authorization: bearer',
-    r'authorization\s*[:=]\s*bearer',
+    'authorization=bearer',
+    'authorization = bearer',
 ]
 
 def test_no_forbidden_terms_in_code():

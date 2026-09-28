@@ -2442,16 +2442,7 @@ def _run_product_root(
                 semantic_provider=(
                     semantic_provider
                     if semantic_provider is not None
-                    else (
-                        semantic_provider_from_environment_v1()
-                        if (
-                            os.getenv("PYMIA_SEMANTIC_PROVIDER")
-                            or os.getenv("PYMIA_SEMANTIC_LLM_MODEL")
-                            or os.getenv("NVIDIA_API_KEY")
-                            or os.getenv("NVIDIA_MODEL")
-                        )
-                        else build_service_1_deterministic_semantic_proposal_v1
-                    )
+                    else build_service_1_deterministic_semantic_proposal_v1
                 ),
                 semantic_owner_actor_id=semantic_owner_actor_id,
                 semantic_owner_actor_role=semantic_owner_actor_role,

@@ -16,6 +16,7 @@ from pymia.smartpyme.service_1_assisted_web_v1 import (
     AssistedWebApplicationV1,
     _blocked_result_page,
     _provenance_ref,
+    _run_product_root,
     create_assisted_web_server_v1,
 )
 from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
@@ -53,6 +54,49 @@ def test_base_assisted_web_does_not_activate_live_provider_from_ambient_credenti
 
     assert app._custom_semantic_provider is False
     assert app._semantic_provider is build_service_1_deterministic_semantic_proposal_v1
+
+
+def test_run_product_root_without_provider_ignores_ambient_environment_config(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("PYMIA_SEMANTIC_PROVIDER", "ambient-test-provider")
+    monkeypatch.setenv("PYMIA_SEMANTIC_LLM_MODEL", "ambient-test-model")
+    monkeypatch.setenv("NVIDIA_API_KEY", "ambient-test-key")
+    monkeypatch.setenv("NVIDIA_MODEL", "ambient-test-model")
+
+    def _unexpected_environment_provider():
+        raise AssertionError(
+            "_run_product_root must not resolve a live provider from ambient env"
+        )
+
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_assisted_web_v1.semantic_provider_from_environment_v1",
+        _unexpected_environment_provider,
+    )
+
+    captured: dict = {}
+
+    def _capture_pipeline(request, *, dependencies):
+        captured["request"] = request
+        captured["dependencies"] = dependencies
+        return {"status": "CAPTURED"}
+
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_assisted_web_v1.run_service_1_product_pipeline_v1",
+        _capture_pipeline,
+    )
+
+    result = _run_product_root(
+        ingestion_output={"provenance": {"filename": "ventas.xlsx"}},
+        semantic_provider=None,
+        use_assisted_semantics=True,
+    )
+
+    assert result == {"status": "CAPTURED"}
+    assert (
+        captured["dependencies"].semantic_provider
+        is build_service_1_deterministic_semantic_proposal_v1
+    )
 
 
 @pytest.fixture()
