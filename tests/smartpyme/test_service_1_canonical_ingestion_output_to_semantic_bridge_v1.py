@@ -86,9 +86,9 @@ def test_ok_full_chain_semantic_candidates_ready(case_001_ingestion_output: dict
 
     assert out["status"] == STATUS_READY
     assert out["blocked_reason"] is None
-    assert out["case_id"] == case_001_ingestion_output["case_id"]
-    assert out["source_kind"] == case_001_ingestion_output["source_kind"]
-    assert out["filename"] == case_001_ingestion_output["filename"]
+    assert out["case_id"] == case_001_ingestion_output["workbook_context"]["case_id"]
+    assert out["source_kind"] == case_001_ingestion_output["provenance"]["source_kind"]
+    assert out["filename"] == case_001_ingestion_output["provenance"]["filename"]
 
 
 def test_produces_10_semantic_candidates(case_001_ingestion_output: dict) -> None:

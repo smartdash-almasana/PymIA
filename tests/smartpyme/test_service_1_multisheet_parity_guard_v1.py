@@ -115,18 +115,11 @@ def test_multisheet_connector_requires_question_ids_and_preserves_evidence(
     )
     assert unconfirmed["status"] == STATUS_UNCONFIRMED_READY
     unconfirmed_ingestion = unconfirmed["ingestion_output"]
-    assert unconfirmed_ingestion["input_values"] == {}
-    assert unconfirmed_ingestion["column_meaning_confirmations"] == []
-    assert unconfirmed_ingestion["sheet_names"] == ["Ventas", "Cobros"]
+    assert unconfirmed_ingestion["schema_version"] == "SERVICE_1_CANONICAL_INGESTION_OUTPUT_V2"
+    assert unconfirmed_ingestion["provenance"]["sheet_names"] == ["Ventas", "Cobros"]
     assert unconfirmed_ingestion["column_refs"] == packet["column_refs"]
-    assert all(
-        item["sample_values"]
-        for item in unconfirmed_ingestion["column_evidence"].values()
-    )
-    assert {
-        item["inferred_type"]
-        for item in unconfirmed_ingestion["column_evidence"].values()
-    } >= {"date", "number", "text"}
+    assert len(unconfirmed_ingestion["normalized_tables"]) == 2
+    assert all(table["status"] == "OK" for table in unconfirmed_ingestion["normalized_tables"])
 
     legacy_answers = {column: f"significado de {column}" for column in packet["columns"]}
     blocked = build_service_1_canonical_ingestion_output_from_owner_confirmation_v1(
@@ -143,18 +136,14 @@ def test_multisheet_connector_requires_question_ids_and_preserves_evidence(
 
     assert result["status"] == "INGESTION_OUTPUT_READY"
     ingestion = result["ingestion_output"]
-    assert ingestion["sheet_name"] is None
-    assert ingestion["sheet_names"] == ["Ventas", "Cobros"]
+    assert ingestion["provenance"]["sheet_names"] == ["Ventas", "Cobros"]
     assert len(ingestion["column_refs"]) == 6
-    assert ingestion["available_data_fields"] == [
-        ref["question_id"] for ref in packet["column_refs"]
-    ]
-    assert all(item["sample_values"] for item in ingestion["column_evidence"].values())
-    assert {item["inferred_type"] for item in ingestion["column_evidence"].values()} >= {
-        "date",
-        "number",
-        "text",
-    }
+    expected_answers = _answers_by_question_id(packet)
+    assert {
+        ref["field_id"]: ref["owner_meaning"]
+        for ref in ingestion["column_refs"]
+    } == expected_answers
+    assert len(ingestion["normalized_tables"]) == 2
 
 
 def test_semantic_bridge_preserves_sheet_identity_for_duplicate_headers(
@@ -209,8 +198,11 @@ def test_explicit_single_sheet_selection_preserves_legacy_answer_keys(
         owner_answers=answers,
     )
     assert result["status"] == "INGESTION_OUTPUT_READY"
-    assert result["owner_answers"] == answers
-    assert result["ingestion_output"]["sheet_name"] == "Cobros"
+    assert {
+        ref["field_id"]: ref["owner_meaning"]
+        for ref in result["ingestion_output"]["column_refs"]
+    } == answers
+    assert result["ingestion_output"]["provenance"]["sheet_names"] == ["Cobros"]
 
 
 def test_default_single_sheet_and_explicit_all_sheets_are_distinct_scopes(

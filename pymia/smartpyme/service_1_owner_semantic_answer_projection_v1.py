@@ -104,8 +104,12 @@ def project_service_1_owner_semantic_answer_v1(
         if source_kind in {"CONCEPT", "DUPLICATE_SEMANTICS"}:
             semantic_role = str(item.get("semantic_role") or "").strip()
             variable_name = str(item.get("variable_name") or "").strip() or None
+            compositional_semantic = item.get("compositional_semantic")
             targets = [str(ref).strip() for ref in item.get("target_refs") or [] if str(ref).strip()]
-            if not semantic_role or not targets:
+            if not targets or (
+                not semantic_role
+                and not isinstance(compositional_semantic, dict)
+            ):
                 return _blocked(
                     BLOCK_ACCEPTED_SEMANTICS_UNRESOLVED,
                     case_id=clean_case_id,
@@ -119,6 +123,11 @@ def project_service_1_owner_semantic_answer_v1(
                         case_id=clean_case_id,
                         detail=target,
                     )
+                confirmation_scope = (
+                    "SEMANTIC_ROLE"
+                    if semantic_role
+                    else "COMPOSITIONAL_SEMANTIC"
+                )
                 event = build_service_1_owner_confirmation_event_v1(
                     case_id=clean_case_id,
                     file_ref=file_ref,
@@ -127,10 +136,15 @@ def project_service_1_owner_semantic_answer_v1(
                     column_ref=column_ref,
                     question_ref=str(dialogue_response.get("decision_id") or proposal_ref),
                     owner_answer=str(owner_answer or ACTION_ACCEPT).strip() or ACTION_ACCEPT,
-                    confirmation_scope="SEMANTIC_ROLE",
-                    proposed_role=semantic_role,
+                    confirmation_scope=confirmation_scope,
+                    proposed_role=semantic_role or None,
                     proposed_variable=variable_name,
-                    confirmed_role=semantic_role,
+                    confirmed_role=semantic_role or None,
+                    compositional_semantic=(
+                        dict(compositional_semantic)
+                        if confirmation_scope == "COMPOSITIONAL_SEMANTIC"
+                        else None
+                    ),
                     timestamp=timestamp,
                     provenance={**provenance_base, "proposal_ref": proposal_ref},
                 )

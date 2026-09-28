@@ -82,6 +82,41 @@ def test_liq_002_executes_sum_and_single_value_without_touching_product_root() -
     assert result["diagnosis_generated"] is False
 
 
+def test_decimal_sum_preserves_exact_zero_classification() -> None:
+    plan = _plan(
+        capability="projected_closing_cash_balance",
+        pathology="LIQ_002",
+        formula="LIQ_002_saldo_final_proyectado",
+        variables=("initial_balance", "expected_collections", "expected_payments"),
+        bindings={
+            "initial_balance": "opening",
+            "expected_collections": "collections",
+            "expected_payments": "payments",
+        },
+    )
+    result = execute_generic_capability_v1(
+        capability_ref="projected_closing_cash_balance",
+        computation_plan=None,
+        governed_computation_input=plan,
+        normalized_tables=[
+            {
+                "sheet_name": "sheet1",
+                "rows": [
+                    {"opening": 0, "collections": "0.1", "payments": "0.3"},
+                    {"opening": None, "collections": "0.2", "payments": None},
+                ],
+            }
+        ],
+        column_refs=_refs(("opening", "collections", "payments")),
+    )
+
+    assert result["status"] == STATUS_EVALUATED
+    assert result["inputs"]["expected_collections"] == 0.3
+    assert result["inputs"]["expected_payments"] == 0.3
+    assert result["computed"]["projected_closing_balance"] == 0.0
+    assert result["classification"] == "ZERO_PROJECTED_BALANCE"
+
+
 def test_pyme_011_executes_dso_with_consistent_single_period() -> None:
     plan = _plan(
         capability="dso",

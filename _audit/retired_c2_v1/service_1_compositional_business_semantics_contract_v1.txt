@@ -1,0 +1,649 @@
+"""C2.1 compositional business-semantics contracts and governed catalog.
+
+The descriptor is evidence-only.  Business vocabulary and token mappings are
+loaded from a governed JSON catalog so adding a concept does not require a
+Python change.  The catalog reuses the canonical semantic-concept contract for
+fail-closed evidence and authorization flags.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any, Final, Mapping, Sequence
+
+from pymia.smartpyme.service_1_semantic_concept_catalog_contract_v1 import (
+    KIND_CLASSIFICATION,
+    KIND_DIMENSION,
+    KIND_IDENTIFIER,
+    KIND_MEASURE,
+    KIND_TEMPORAL,
+    SCHEMA_VERSION as SEMANTIC_CONCEPT_CATALOG_SCHEMA_VERSION,
+    STATUS_READY as SEMANTIC_CONCEPT_CATALOG_READY,
+    Service1SemanticConceptCatalogContractV1,
+    Service1SemanticConceptDefinitionV1,
+)
+
+
+SCHEMA_VERSION: Final[str] = "SERVICE_1_COMPOSITIONAL_BUSINESS_SEMANTICS_CONTRACT_V1"
+SERVICE_NAME: Final[str] = "SERVICE_1"
+COMPOSITIONAL_CATALOG_SCHEMA_VERSION: Final[str] = "SERVICE_1_C2_COMPOSITIONAL_SEMANTIC_CATALOG_V1"
+COMPOSITIONAL_CATALOG_STATUS_READY: Final[str] = "SERVICE_1_C2_COMPOSITIONAL_SEMANTIC_CATALOG_READY"
+
+MEASURE_KIND_BUDGETED_AMOUNT: Final[str] = "budgeted_amount"
+MEASURE_KIND_ACTUAL_AMOUNT: Final[str] = "actual_amount"
+MEASURE_KIND_COLLECTED_AMOUNT: Final[str] = "collected_amount"
+MEASURE_KIND_INVOICED_AMOUNT: Final[str] = "invoiced_amount"
+MEASURE_KIND_PAID_AMOUNT: Final[str] = "paid_amount"
+MEASURE_KIND_EXPECTED_AMOUNT: Final[str] = "expected_amount"
+MEASURE_KIND_UNKNOWN_AMOUNT_KIND: Final[str] = "unknown_amount_kind"
+
+AMOUNT_SCOPE_UNIT: Final[str] = "unit_amount"
+AMOUNT_SCOPE_LINE: Final[str] = "line_amount"
+AMOUNT_SCOPE_PERIOD_TOTAL: Final[str] = "period_total_amount"
+AMOUNT_SCOPE_ENTITY_PERIOD: Final[str] = "entity_period_amount"
+AMOUNT_SCOPE_UNKNOWN: Final[str] = "unknown_amount_scope"
+
+GRAIN_HINT_UNIT: Final[str] = "unit"
+GRAIN_HINT_LINE_ITEM: Final[str] = "line_item"
+GRAIN_HINT_PERIOD_TOTAL: Final[str] = "period_total"
+GRAIN_HINT_ENTITY_PERIOD: Final[str] = "entity_period"
+GRAIN_HINT_UNKNOWN: Final[str] = "unknown"
+
+ALLOWED_MEASURE_KINDS: Final[tuple[str, ...]] = (
+    MEASURE_KIND_BUDGETED_AMOUNT,
+    MEASURE_KIND_ACTUAL_AMOUNT,
+    MEASURE_KIND_COLLECTED_AMOUNT,
+    MEASURE_KIND_INVOICED_AMOUNT,
+    MEASURE_KIND_PAID_AMOUNT,
+    MEASURE_KIND_EXPECTED_AMOUNT,
+    MEASURE_KIND_UNKNOWN_AMOUNT_KIND,
+)
+ALLOWED_AMOUNT_SCOPES: Final[tuple[str, ...]] = (
+    AMOUNT_SCOPE_UNIT,
+    AMOUNT_SCOPE_LINE,
+    AMOUNT_SCOPE_PERIOD_TOTAL,
+    AMOUNT_SCOPE_ENTITY_PERIOD,
+    AMOUNT_SCOPE_UNKNOWN,
+)
+ALLOWED_GRAIN_HINTS: Final[tuple[str, ...]] = (
+    GRAIN_HINT_UNIT,
+    GRAIN_HINT_LINE_ITEM,
+    GRAIN_HINT_PERIOD_TOTAL,
+    GRAIN_HINT_ENTITY_PERIOD,
+    GRAIN_HINT_UNKNOWN,
+)
+
+_CANONICAL_CONCEPT_KINDS: Final[tuple[str, ...]] = (
+    KIND_MEASURE,
+    KIND_DIMENSION,
+    KIND_IDENTIFIER,
+    KIND_CLASSIFICATION,
+    KIND_TEMPORAL,
+)
+
+
+def _text(value: Any, *, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty string")
+    return value.strip()
+
+
+def _optional_text(value: Any, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    return _text(value, field_name=field_name)
+
+
+def _confidence(value: Any) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("confidence must be between 0 and 1") from exc
+    if not 0 <= result <= 1:
+        raise ValueError("confidence must be between 0 and 1")
+    return result
+
+
+def _evidence(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("evidence must be a list or tuple")
+    result: list[str] = []
+    for item in value:
+        text = _text(item, field_name="evidence item")
+        if text not in result:
+            result.append(text)
+    return tuple(result)
+
+
+def _text_tuple(value: Any, *, field_name: str, min_items: int = 0) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise ValueError(f"{field_name} must be a list")
+    result: list[str] = []
+    for item in value:
+        text = _text(item, field_name=f"{field_name} item")
+        if text in result:
+            raise ValueError(f"{field_name} contains duplicate value {text!r}")
+        result.append(text)
+    if len(result) < min_items:
+        raise ValueError(f"{field_name} requires at least {min_items} item(s)")
+    return tuple(result)
+
+
+def _contains_token(normalized: str, token: str) -> bool:
+    return (
+        normalized == token
+        or normalized.startswith(f"{token}_")
+        or normalized.endswith(f"_{token}")
+        or f"_{token}_" in normalized
+    )
+
+
+@dataclass(frozen=True)
+class Service1CompositionalBusinessSemanticV1:
+    """Business meaning evidence, with all downstream authority disabled."""
+
+    measure_kind: str
+    business_concept: str
+    amount_scope: str
+    semantic_grain_hint: str | None
+    confidence: float
+    evidence: tuple[str, ...] = field(default_factory=tuple)
+    runtime_semantic_role: str | None = None
+    runtime_variable_name: str | None = None
+    source: str = "DETERMINISTIC_C2"
+    runtime_authorized: bool = False
+    tool_execution_authorized: bool = False
+    product_ready: bool = False
+    delivery_authorized: bool = False
+    diagnosis_generated: bool = False
+    automatic_reuse_authorized: bool = False
+    semantic_rebind_authorized: bool = False
+
+    def __post_init__(self) -> None:
+        for field_name, allowed in (
+            ("measure_kind", ALLOWED_MEASURE_KINDS),
+            ("amount_scope", ALLOWED_AMOUNT_SCOPES),
+            ("semantic_grain_hint", ALLOWED_GRAIN_HINTS),
+        ):
+            raw_value = getattr(self, field_name)
+            value = (
+                GRAIN_HINT_UNKNOWN
+                if field_name == "semantic_grain_hint" and raw_value is None
+                else _text(raw_value, field_name=field_name)
+            )
+            if value not in allowed:
+                raise ValueError(f"{field_name} must be one of: {', '.join(allowed)}")
+            object.__setattr__(self, field_name, value)
+        object.__setattr__(self, "business_concept", _text(self.business_concept, field_name="business_concept"))
+        object.__setattr__(self, "confidence", _confidence(self.confidence))
+        object.__setattr__(self, "evidence", _evidence(self.evidence))
+        role = _optional_text(self.runtime_semantic_role, field_name="runtime_semantic_role")
+        variable = _optional_text(self.runtime_variable_name, field_name="runtime_variable_name")
+        if (role is None) != (variable is None):
+            raise ValueError("runtime_semantic_role and runtime_variable_name must be provided together")
+        if role == "unit_cost_candidate" and self.amount_scope != AMOUNT_SCOPE_UNIT:
+            raise ValueError("unit_cost_candidate requires unit_amount evidence")
+        object.__setattr__(self, "runtime_semantic_role", role)
+        object.__setattr__(self, "runtime_variable_name", variable)
+        object.__setattr__(self, "source", _text(self.source, field_name="source"))
+        for field_name in (
+            "runtime_authorized",
+            "tool_execution_authorized",
+            "product_ready",
+            "delivery_authorized",
+            "diagnosis_generated",
+            "automatic_reuse_authorized",
+            "semantic_rebind_authorized",
+        ):
+            if getattr(self, field_name) is not False:
+                raise ValueError(f"{field_name} must remain False in C2")
+            object.__setattr__(self, field_name, False)
+
+    @property
+    def has_exact_runtime_projection(self) -> bool:
+        return self.runtime_semantic_role is not None and self.runtime_variable_name is not None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class Service1CompositionalCatalogRuleV1:
+    """One externally governed token rule for an ontology axis."""
+
+    value: str
+    aliases: tuple[str, ...]
+    label: str
+    grain_hint: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "value", _text(self.value, field_name="catalog rule value"))
+        aliases = _text_tuple(self.aliases, field_name="catalog rule aliases", min_items=1)
+        if any(not alias.replace("_", "").isalnum() or alias != alias.casefold() for alias in aliases):
+            raise ValueError("catalog aliases must be normalized lowercase tokens")
+        object.__setattr__(self, "aliases", aliases)
+        object.__setattr__(self, "label", _text(self.label, field_name="catalog rule label"))
+        if self.grain_hint is not None:
+            if self.grain_hint not in ALLOWED_GRAIN_HINTS:
+                raise ValueError("catalog rule grain_hint is outside C2")
+
+    def match(self, normalized: str) -> str | None:
+        for alias in sorted(self.aliases, key=len, reverse=True):
+            if _contains_token(normalized, alias):
+                return alias
+        return None
+
+
+@dataclass(frozen=True)
+class Service1CompositionalRuntimeProjectionV1:
+    """A declarative exact projection, never a nearest-role fallback."""
+
+    semantic_role: str
+    runtime_variable_name: str
+    measure_kinds: tuple[str, ...] = field(default_factory=tuple)
+    business_concepts: tuple[str, ...] = field(default_factory=tuple)
+    amount_scopes: tuple[str, ...] = field(default_factory=tuple)
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        role = _text(self.semantic_role, field_name="semantic_role")
+        variable = _text(self.runtime_variable_name, field_name="runtime_variable_name")
+        measures = _text_tuple(self.measure_kinds, field_name="projection measure_kinds")
+        concepts = _text_tuple(self.business_concepts, field_name="projection business_concepts")
+        scopes = _text_tuple(self.amount_scopes, field_name="projection amount_scopes")
+        aliases = _text_tuple(self.aliases, field_name="projection aliases")
+        if set(measures) - set(ALLOWED_MEASURE_KINDS):
+            raise ValueError("projection measure_kinds contains unsupported values")
+        if set(scopes) - set(ALLOWED_AMOUNT_SCOPES):
+            raise ValueError("projection amount_scopes contains unsupported values")
+        if role == "unit_cost_candidate" and AMOUNT_SCOPE_UNIT not in scopes:
+            raise ValueError("unit_cost_candidate projection requires unit_amount")
+        object.__setattr__(self, "semantic_role", role)
+        object.__setattr__(self, "runtime_variable_name", variable)
+        object.__setattr__(self, "measure_kinds", measures)
+        object.__setattr__(self, "business_concepts", concepts)
+        object.__setattr__(self, "amount_scopes", scopes)
+        object.__setattr__(self, "aliases", aliases)
+
+    def applies(
+        self,
+        *,
+        measure_kind: str,
+        business_concept: str,
+        amount_scope: str,
+        matched_alias: str | None,
+    ) -> bool:
+        return (
+            (not self.measure_kinds or measure_kind in self.measure_kinds)
+            and (not self.business_concepts or business_concept in self.business_concepts)
+            and (not self.amount_scopes or amount_scope in self.amount_scopes)
+            and (not self.aliases or matched_alias in self.aliases)
+        )
+
+
+@dataclass(frozen=True)
+class Service1CompositionalSemanticCatalogV1:
+    """Validated C2 vocabulary and declarative projection catalog."""
+
+    schema_version: str
+    status: str
+    concept_catalog: Service1SemanticConceptCatalogContractV1
+    measure_rules: tuple[Service1CompositionalCatalogRuleV1, ...]
+    concept_rules: tuple[Service1CompositionalCatalogRuleV1, ...]
+    scope_rules: tuple[Service1CompositionalCatalogRuleV1, ...]
+    runtime_projections: tuple[Service1CompositionalRuntimeProjectionV1, ...]
+
+    def __post_init__(self) -> None:
+        if self.schema_version != COMPOSITIONAL_CATALOG_SCHEMA_VERSION:
+            raise ValueError("invalid compositional catalog schema_version")
+        if self.status != COMPOSITIONAL_CATALOG_STATUS_READY:
+            raise ValueError("invalid compositional catalog status")
+        concept_ids = {concept.concept_id for concept in self.concept_catalog.concepts}
+        if not concept_ids:
+            raise ValueError("compositional catalog requires business concepts")
+        if any(rule.value not in ALLOWED_MEASURE_KINDS for rule in self.measure_rules):
+            raise ValueError("measure rule value is outside C2")
+        if any(rule.value not in concept_ids for rule in self.concept_rules):
+            raise ValueError("concept rule references an unknown governed concept")
+        if any(rule.value not in ALLOWED_AMOUNT_SCOPES for rule in self.scope_rules):
+            raise ValueError("scope rule value is outside C2")
+        for rules, name in (
+            (self.measure_rules, "measure"),
+            (self.concept_rules, "business concept"),
+            (self.scope_rules, "scope"),
+        ):
+            aliases = [alias for rule in rules for alias in rule.aliases]
+            if len(aliases) != len(set(aliases)):
+                raise ValueError(f"{name} catalog aliases must be unique")
+        object.__setattr__(self, "measure_rules", tuple(self.measure_rules))
+        object.__setattr__(self, "concept_rules", tuple(self.concept_rules))
+        object.__setattr__(self, "scope_rules", tuple(self.scope_rules))
+        object.__setattr__(self, "runtime_projections", tuple(self.runtime_projections))
+
+    @property
+    def business_concept_ids(self) -> tuple[str, ...]:
+        return tuple(concept.concept_id for concept in self.concept_catalog.concepts)
+
+    def to_llm_catalogs(self) -> dict[str, tuple[str, ...]]:
+        return {
+            "measure_kind": tuple(
+                dict.fromkeys(
+                    [rule.value for rule in self.measure_rules]
+                    + list(ALLOWED_MEASURE_KINDS)
+                )
+            ),
+            "business_concept": self.business_concept_ids,
+            "amount_scope": tuple(ALLOWED_AMOUNT_SCOPES),
+            "semantic_grain_hint": tuple(ALLOWED_GRAIN_HINTS),
+        }
+
+    def measure_for_header(self, normalized: str) -> tuple[str | None, str | None]:
+        for rule in self.measure_rules:
+            alias = rule.match(normalized)
+            if alias is not None:
+                return rule.value, alias
+        return None, None
+
+    def concept_for_header(self, normalized: str) -> tuple[str | None, str | None]:
+        for rule in self.concept_rules:
+            alias = rule.match(normalized)
+            if alias is not None:
+                return rule.value, alias
+        return None, None
+
+    def scope_for_header(self, normalized: str) -> tuple[str, str, str | None]:
+        for rule in self.scope_rules:
+            alias = rule.match(normalized)
+            if alias is not None:
+                return rule.value, rule.grain_hint or GRAIN_HINT_UNKNOWN, alias
+        return AMOUNT_SCOPE_ENTITY_PERIOD, GRAIN_HINT_ENTITY_PERIOD, None
+
+    def label_for_measure(self, value: str) -> str:
+        for rule in self.measure_rules:
+            if rule.value == value:
+                return rule.label
+        return "un importe"
+
+    def label_for_concept(self, value: str) -> str:
+        for rule in self.concept_rules:
+            if rule.value == value:
+                return rule.label
+        return "un dato del negocio"
+
+    def runtime_projection(
+        self,
+        *,
+        measure_kind: str,
+        business_concept: str,
+        amount_scope: str,
+        matched_alias: str | None,
+    ) -> tuple[str | None, str | None]:
+        for projection in self.runtime_projections:
+            if projection.applies(
+                measure_kind=measure_kind,
+                business_concept=business_concept,
+                amount_scope=amount_scope,
+                matched_alias=matched_alias,
+            ):
+                return projection.semantic_role, projection.runtime_variable_name
+        return None, None
+
+
+def default_service_1_compositional_catalog_path_v1() -> Path:
+    return (
+        Path(__file__).resolve().parents[2]
+        / "docs"
+        / "current"
+        / "SERVICE_1_C2_SEMANTIC_CATALOG_V1.json"
+    )
+
+
+def _definition_from_payload(payload: Mapping[str, Any]) -> Service1SemanticConceptDefinitionV1:
+    required = {
+        "concept_id",
+        "concept_kind",
+        "business_definition",
+        "exclusions",
+        "required_data_type",
+        "unit",
+        "temporal_semantics",
+        "formula_policy",
+        "minimum_evidence_fields",
+        "owner_confirmation_required",
+        "risk_if_wrong",
+        "canonical_candidate",
+    }
+    if set(payload) - required - {"aliases", "label"}:
+        raise ValueError("business concept contains unknown catalog field(s)")
+    return Service1SemanticConceptDefinitionV1(
+        concept_id=payload.get("concept_id"),
+        concept_kind=payload.get("concept_kind"),
+        business_definition=payload.get("business_definition"),
+        exclusions=tuple(payload.get("exclusions") or ()),
+        required_data_type=payload.get("required_data_type"),
+        unit=payload.get("unit"),
+        temporal_semantics=payload.get("temporal_semantics"),
+        formula_policy=payload.get("formula_policy"),
+        minimum_evidence_fields=tuple(payload.get("minimum_evidence_fields") or ()),
+        owner_confirmation_required=payload.get("owner_confirmation_required"),
+        risk_if_wrong=payload.get("risk_if_wrong"),
+        canonical_candidate=payload.get("canonical_candidate"),
+    )
+
+
+def _rule_from_payload(payload: Mapping[str, Any], *, field_name: str, allowed_values: Sequence[str], grain: bool = False) -> Service1CompositionalCatalogRuleV1:
+    if set(payload) - {"value", "aliases", "label", "grain_hint"}:
+        raise ValueError(f"{field_name} contains unknown catalog field(s)")
+    rule = Service1CompositionalCatalogRuleV1(
+        value=payload.get("value"),
+        aliases=tuple(payload.get("aliases") or ()),
+        label=payload.get("label"),
+        grain_hint=payload.get("grain_hint") if grain else None,
+    )
+    if rule.value not in allowed_values:
+        raise ValueError(f"{field_name} value is outside C2")
+    return rule
+
+
+def _projection_from_payload(payload: Mapping[str, Any]) -> Service1CompositionalRuntimeProjectionV1:
+    if set(payload) - {
+        "semantic_role",
+        "runtime_variable_name",
+        "measure_kinds",
+        "business_concepts",
+        "amount_scopes",
+        "aliases",
+    }:
+        raise ValueError("runtime projection contains unknown catalog field(s)")
+    return Service1CompositionalRuntimeProjectionV1(
+        semantic_role=payload.get("semantic_role"),
+        runtime_variable_name=payload.get("runtime_variable_name"),
+        measure_kinds=tuple(payload.get("measure_kinds") or ()),
+        business_concepts=tuple(payload.get("business_concepts") or ()),
+        amount_scopes=tuple(payload.get("amount_scopes") or ()),
+        aliases=tuple(payload.get("aliases") or ()),
+    )
+
+
+def load_service_1_compositional_semantic_catalog_v1(
+    path: str | Path | None = None,
+) -> Service1CompositionalSemanticCatalogV1:
+    """Load and validate the one governed C2 catalog; invalid input fails closed."""
+    catalog_path = Path(path) if path is not None else default_service_1_compositional_catalog_path_v1()
+    try:
+        raw = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("C2 semantic catalog could not be read") from exc
+    if not isinstance(raw, Mapping):
+        raise ValueError("C2 semantic catalog root must be a mapping")
+    if set(raw) - {"schema_version", "status", "business_concepts", "measure_rules", "scope_rules", "runtime_projections"}:
+        raise ValueError("C2 semantic catalog contains unknown top-level field(s)")
+    if raw.get("schema_version") != COMPOSITIONAL_CATALOG_SCHEMA_VERSION:
+        raise ValueError("invalid C2 semantic catalog schema_version")
+    if raw.get("status") != COMPOSITIONAL_CATALOG_STATUS_READY:
+        raise ValueError("invalid C2 semantic catalog status")
+    concept_payloads = raw.get("business_concepts")
+    if not isinstance(concept_payloads, list):
+        raise ValueError("business_concepts must be a list")
+    concepts: list[Service1SemanticConceptDefinitionV1] = []
+    concept_rules: list[Service1CompositionalCatalogRuleV1] = []
+    for index, payload in enumerate(concept_payloads):
+        if not isinstance(payload, Mapping):
+            raise ValueError(f"business_concepts[{index}] must be a mapping")
+        definition = _definition_from_payload(payload)
+        aliases = tuple(payload.get("aliases") or ())
+        label = payload.get("label") or definition.concept_id
+        concepts.append(definition)
+        concept_rules.append(
+            Service1CompositionalCatalogRuleV1(
+                value=definition.concept_id,
+                aliases=aliases,
+                label=label,
+            )
+        )
+    concept_catalog = Service1SemanticConceptCatalogContractV1(
+        schema_version=SEMANTIC_CONCEPT_CATALOG_SCHEMA_VERSION,
+        status=SEMANTIC_CONCEPT_CATALOG_READY,
+        concept_kinds=_CANONICAL_CONCEPT_KINDS,
+        concepts=tuple(concepts),
+        formulas_consume_concepts=True,
+        concepts_require_formula_membership=False,
+        identifiers_may_exist_without_formula=True,
+        classifications_may_exist_without_formula=True,
+        dimensions_may_exist_without_formula=True,
+        temporal_concepts_may_exist_without_formula=True,
+        catalog_mutation_authorized=False,
+        variable_catalog_mutation_authorized=False,
+        formula_catalog_mutation_authorized=False,
+        engine_mapping_authorized=False,
+        runtime_authorized=False,
+        frontend_wiring_authorized=False,
+        delivery_authorized=False,
+        metadata={
+            "c2_governed_source": str(catalog_path),
+            "contract_only": True,
+            "business_vocabulary_externalized": True,
+        },
+    )
+    measure_payloads = raw.get("measure_rules")
+    scope_payloads = raw.get("scope_rules")
+    projection_payloads = raw.get("runtime_projections")
+    if not isinstance(measure_payloads, list) or not isinstance(scope_payloads, list) or not isinstance(projection_payloads, list):
+        raise ValueError("measure_rules, scope_rules and runtime_projections must be lists")
+    measure_rules = tuple(
+        _rule_from_payload(item, field_name=f"measure_rules[{index}]", allowed_values=ALLOWED_MEASURE_KINDS)
+        for index, item in enumerate(measure_payloads)
+        if isinstance(item, Mapping)
+    )
+    if len(measure_rules) != len(measure_payloads):
+        raise ValueError("measure_rules entries must be mappings")
+    scope_rules = tuple(
+        _rule_from_payload(item, field_name=f"scope_rules[{index}]", allowed_values=ALLOWED_AMOUNT_SCOPES, grain=True)
+        for index, item in enumerate(scope_payloads)
+        if isinstance(item, Mapping)
+    )
+    if len(scope_rules) != len(scope_payloads):
+        raise ValueError("scope_rules entries must be mappings")
+    projections = tuple(
+        _projection_from_payload(item)
+        for item in projection_payloads
+        if isinstance(item, Mapping)
+    )
+    if len(projections) != len(projection_payloads):
+        raise ValueError("runtime_projections entries must be mappings")
+    concept_ids = {item.concept_id for item in concepts}
+    for projection in projections:
+        if set(projection.business_concepts) - concept_ids:
+            raise ValueError("runtime projection references unknown business concept")
+    return Service1CompositionalSemanticCatalogV1(
+        schema_version=raw["schema_version"],
+        status=raw["status"],
+        concept_catalog=concept_catalog,
+        measure_rules=measure_rules,
+        concept_rules=tuple(concept_rules),
+        scope_rules=scope_rules,
+        runtime_projections=projections,
+    )
+
+
+def build_service_1_compositional_business_semantic_v1(
+    *,
+    measure_kind: str,
+    business_concept: str,
+    amount_scope: str,
+    semantic_grain_hint: str | None = None,
+    confidence: float = 0.0,
+    evidence: list[str] | tuple[str, ...] = (),
+    runtime_semantic_role: str | None = None,
+    runtime_variable_name: str | None = None,
+    source: str = "DETERMINISTIC_C2",
+    allowed_business_concepts: Sequence[str] | None = None,
+) -> Service1CompositionalBusinessSemanticV1:
+    if allowed_business_concepts is not None and business_concept not in set(allowed_business_concepts):
+        raise ValueError("business_concept is not present in the governed C2 catalog")
+    hint = semantic_grain_hint or {
+        AMOUNT_SCOPE_UNIT: GRAIN_HINT_UNIT,
+        AMOUNT_SCOPE_LINE: GRAIN_HINT_LINE_ITEM,
+        AMOUNT_SCOPE_PERIOD_TOTAL: GRAIN_HINT_PERIOD_TOTAL,
+        AMOUNT_SCOPE_ENTITY_PERIOD: GRAIN_HINT_ENTITY_PERIOD,
+    }.get(amount_scope, GRAIN_HINT_UNKNOWN)
+    return Service1CompositionalBusinessSemanticV1(
+        measure_kind=measure_kind,
+        business_concept=business_concept,
+        amount_scope=amount_scope,
+        semantic_grain_hint=hint,
+        confidence=confidence,
+        evidence=tuple(evidence),
+        runtime_semantic_role=runtime_semantic_role,
+        runtime_variable_name=runtime_variable_name,
+        source=source,
+    )
+
+
+# Names used by early C2 notes are retained as type aliases, not parallel
+# contracts.  They all point to the one canonical descriptor above.
+Service1CompositionalSemanticDescriptorV1 = Service1CompositionalBusinessSemanticV1
+Service1CompositionalSemanticV1 = Service1CompositionalBusinessSemanticV1
+build_service_1_compositional_semantic_v1 = build_service_1_compositional_business_semantic_v1
+
+
+__all__ = [
+    "SCHEMA_VERSION",
+    "SERVICE_NAME",
+    "COMPOSITIONAL_CATALOG_SCHEMA_VERSION",
+    "COMPOSITIONAL_CATALOG_STATUS_READY",
+    "ALLOWED_MEASURE_KINDS",
+    "ALLOWED_AMOUNT_SCOPES",
+    "ALLOWED_GRAIN_HINTS",
+    "MEASURE_KIND_BUDGETED_AMOUNT",
+    "MEASURE_KIND_ACTUAL_AMOUNT",
+    "MEASURE_KIND_COLLECTED_AMOUNT",
+    "MEASURE_KIND_INVOICED_AMOUNT",
+    "MEASURE_KIND_PAID_AMOUNT",
+    "MEASURE_KIND_EXPECTED_AMOUNT",
+    "MEASURE_KIND_UNKNOWN_AMOUNT_KIND",
+    "AMOUNT_SCOPE_UNIT",
+    "AMOUNT_SCOPE_LINE",
+    "AMOUNT_SCOPE_PERIOD_TOTAL",
+    "AMOUNT_SCOPE_ENTITY_PERIOD",
+    "AMOUNT_SCOPE_UNKNOWN",
+    "GRAIN_HINT_UNIT",
+    "GRAIN_HINT_LINE_ITEM",
+    "GRAIN_HINT_PERIOD_TOTAL",
+    "GRAIN_HINT_ENTITY_PERIOD",
+    "GRAIN_HINT_UNKNOWN",
+    "Service1CompositionalBusinessSemanticV1",
+    "Service1CompositionalCatalogRuleV1",
+    "Service1CompositionalRuntimeProjectionV1",
+    "Service1CompositionalSemanticCatalogV1",
+    "Service1CompositionalSemanticDescriptorV1",
+    "Service1CompositionalSemanticV1",
+    "default_service_1_compositional_catalog_path_v1",
+    "load_service_1_compositional_semantic_catalog_v1",
+    "build_service_1_compositional_business_semantic_v1",
+    "build_service_1_compositional_semantic_v1",
+]

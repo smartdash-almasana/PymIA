@@ -8,6 +8,11 @@ from openpyxl import Workbook
 from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
     build_service_1_deterministic_semantic_proposal_v1,
 )
+from pymia.smartpyme.service_1_dynamic_analysis_discovery_v1 import (
+    F12_COMMERCIAL_ANALYSIS_IDS,
+    STATUS_READY as DISCOVERY_STATUS_READY,
+    build_service_1_dynamic_analysis_discovery_v1,
+)
 from pymia.smartpyme.service_1_assisted_semantic_product_wiring_v1 import (
     STATUS_CONFIRMED as SEM8_CONFIRMED,
     STATUS_OWNER_DIALOGUE_FOLLOWUP as SEM8_FOLLOWUP,
@@ -26,7 +31,12 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
     STATUS_COMPUTATION_PLAN_READY,
     STATUS_NEEDS_OWNER,
-    run_service_1_product_pipeline_v1,
+    run_service_1_product_pipeline_v1 as _run_product_root,
+)
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    Service1ProductExecutionDependenciesV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
 )
 from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
     build_service_1_web_column_confirmation_intake_boundary_v1,
@@ -63,6 +73,40 @@ def _ingestion(filename: str, content: bytes) -> dict:
     )
     assert canonical["status"] != "BLOCKED"
     return canonical["ingestion_output"]
+
+
+def _run_current_semantic_product_request(
+    *,
+    ingestion_output: dict,
+    output_dir: Path,
+    requested_capability: str | None,
+    semantic_provider=None,
+    semantic_scope_capabilities=(),
+    semantic_assistance_state=None,
+    semantic_dialogue_responses=None,
+    semantic_owner_actor_id: str | None = None,
+    semantic_owner_actor_role: str | None = None,
+) -> dict:
+    dependencies = Service1ProductExecutionDependenciesV1(
+        output_dir=output_dir,
+        semantic_provider=semantic_provider,
+        semantic_scope_capabilities=tuple(semantic_scope_capabilities or ()),
+        semantic_owner_actor_id=semantic_owner_actor_id,
+        semantic_owner_actor_role=semantic_owner_actor_role,
+    )
+    if semantic_assistance_state is None:
+        request = WorkbookSemanticStartRequestV1(
+            ingestion_output=ingestion_output,
+            requested_capability=requested_capability,
+        )
+    else:
+        request = WorkbookSemanticContinueRequestV1(
+            ingestion_output=ingestion_output,
+            requested_capability=requested_capability,
+            semantic_assistance_state=semantic_assistance_state,
+            semantic_dialogue_responses=tuple(semantic_dialogue_responses or ()),
+        )
+    return _run_product_root(request, dependencies=dependencies)
 
 
 def _candidate_for_variable(payload: dict, column_ref: str, variable_name: str) -> dict:
@@ -136,6 +180,179 @@ def _accept_all(initial_packet: dict) -> list[dict[str, str]]:
     ]
 
 
+def test_sem8_carries_validated_runtime_projection_into_p6_bridge(tmp_path: Path) -> None:
+    ingestion = _ingestion(
+        "cafeteria_quantity.xlsx",
+        _xlsx_bytes({"Ventas": (["Cantidad"], [[1], [2]])}),
+    )
+
+    def provider(payload: dict) -> dict:
+        ref = "Ventas.Cantidad"
+        hypothesis = next(
+            item for item in payload["deterministic_hypotheses"]
+            if item["sheet_name"] == "Ventas" and item["column_name"] == "Cantidad"
+        )
+        source = hypothesis["compositional_semantic"]
+        axes = (
+            "entity", "object", "process", "measure", "state", "grain",
+            "scope", "time", "identity", "relation", "unit", "aggregation",
+        )
+        semantic = {axis: source.get(axis) for axis in axes}
+        semantic.update(
+            field_ref=ref,
+            confidence=0.99,
+            evidence=[f"ev:column:{ref}:type"],
+            source="LLM_C2_PROPOSAL",
+            runtime_semantic_role="quantity",
+            runtime_variable_name="volume_sold",
+        )
+        return {
+            "schema_version": "SERVICE_1_LLM_SEMANTIC_PROPOSAL_V1",
+            "concept_proposals": [{
+                "proposal_id": "concept:quantity",
+                "target_column_refs": [ref],
+                "semantic_role": None,
+                "variable_name": None,
+                "confidence": 0.99,
+                "rationale": "Cantidad por operación.",
+                "evidence_refs": [f"ev:column:{ref}:type"],
+                "compositional_semantic": semantic,
+            }],
+            "relationship_proposals": [],
+            "duplicate_semantics": [],
+            "irrelevant_refs": [],
+            "material_ambiguities": [],
+        }
+
+    packet = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability=None,
+        provider=provider,
+    )
+
+    assert packet["status"] == SEM8_OWNER_REQUIRED
+    candidate = packet["bridge_packet"]["column_candidates"][0]
+    assert candidate.compositional_semantic["runtime_semantic_role"] == "quantity"
+    assert candidate.compositional_semantic["runtime_variable_name"] == "volume_sold"
+
+    corrected_semantic = dict(candidate.compositional_semantic)
+    corrected_semantic["confidence"] = 0.0
+    revised = revise_service_1_assisted_semantic_decision_v1(
+        previous_state=packet,
+        decision_id=packet["owner_questions"][0]["decision_id"],
+        compositional_semantic=corrected_semantic,
+        owner_correction_text="La confianza debe conservar el valor explícito cero.",
+    )
+    assert revised["status"] == SEM8_OWNER_REQUIRED
+    revised_concept = next(
+        item
+        for item in revised["interpreter_packet"]["proposal"].concept_proposals
+        if "Ventas.Cantidad" in item.target_column_refs
+    )
+    assert revised_concept.confidence == 0.0
+    assert revised_concept.compositional_semantic["confidence"] == 0.0
+
+    confirmed = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=packet,
+        owner_responses=_accept_all(packet),
+        owner_actor_id="owner-cafeteria",
+        owner_actor_role="OWNER",
+    )
+
+    assert confirmed["status"] == SEM8_CONFIRMED
+    reentry = confirmed["sem6_packet"]["reentry_packet"]
+    decision = next(item for item in reentry["p6_decisions"] if item["approved_role"])
+    assert decision["status"] == "APPROVED"
+    assert decision["approved_role"] == "quantity"
+    assert "quantity" in reentry["candidate_roles"]
+
+
+def test_real_cafeteria_projects_roles_and_enables_supported_analyses(tmp_path: Path) -> None:
+    workbook_path = Path(__file__).resolve().parents[2] / "prueba_excels" / "cafeteria_abc.xlsx"
+    ingestion = _ingestion(workbook_path.name, workbook_path.read_bytes())
+    axes = (
+        "entity", "object", "process", "measure", "state", "grain",
+        "scope", "time", "identity", "relation", "unit", "aggregation",
+    )
+
+    def provider(payload: dict) -> dict:
+        concepts = []
+        mapped_refs = set()
+        for index, hypothesis in enumerate(payload["deterministic_hypotheses"], start=1):
+            semantic_source = hypothesis.get("compositional_semantic")
+            primary = hypothesis.get("primary_hypothesis")
+            if not isinstance(semantic_source, dict) or not isinstance(primary, dict):
+                continue
+            role = str(primary.get("semantic_role") or "")
+            variable = str(primary.get("variable_name") or "")
+            if not role or role == "unknown" or not variable or variable == "unknown":
+                continue
+            ref = f"{hypothesis['sheet_name']}.{hypothesis['column_name']}"
+            semantic = {axis: semantic_source.get(axis) for axis in axes}
+            semantic.update(
+                field_ref=ref,
+                confidence=0.99,
+                evidence=[f"ev:column:{ref}:type"],
+                source="LLM_C2_PROPOSAL",
+                runtime_semantic_role=role,
+                runtime_variable_name=variable,
+            )
+            concepts.append({
+                "proposal_id": f"concept:{index}:{ref}",
+                "target_column_refs": [ref],
+                "semantic_role": None,
+                "variable_name": None,
+                "confidence": 0.99,
+                "rationale": "C2 exacta corroborada por hipótesis determinística.",
+                "evidence_refs": [f"ev:column:{ref}:type"],
+                "compositional_semantic": semantic,
+            })
+            mapped_refs.add(ref)
+        all_refs = {
+            str(item["column_ref"])
+            for item in payload["workbook_profile"]["columns"]
+        }
+        return {
+            "schema_version": "SERVICE_1_LLM_SEMANTIC_PROPOSAL_V1",
+            "concept_proposals": concepts,
+            "relationship_proposals": [],
+            "duplicate_semantics": [],
+            "irrelevant_refs": sorted(all_refs - mapped_refs),
+            "material_ambiguities": [],
+        }
+
+    initial = run_service_1_assisted_semantic_initial_v1(
+        ingestion_output=ingestion,
+        requested_capability=None,
+        provider=provider,
+    )
+    assert initial["status"] == SEM8_OWNER_REQUIRED
+
+    confirmed = run_service_1_assisted_semantic_reentry_v1(
+        previous_state=initial,
+        owner_responses=_accept_all(initial),
+        owner_actor_id="owner-cafeteria",
+        owner_actor_role="OWNER",
+    )
+    assert confirmed["status"] == SEM8_CONFIRMED
+
+    reentry = confirmed["sem6_packet"]["reentry_packet"]
+    roles = {
+        item["approved_role"]
+        for item in reentry["p6_decisions"]
+        if item["status"] == "APPROVED" and item["approved_role"]
+    }
+    assert {"quantity", "unit_sale_price", "unit_cost_candidate"}.issubset(roles)
+    assert reentry["candidate_roles"]
+
+    discovery = build_service_1_dynamic_analysis_discovery_v1(
+        confirmed_bindings=confirmed["semantic_run"],
+        commercially_exposed_analysis_ids=F12_COMMERCIAL_ANALYSIS_IDS,
+    )
+    assert discovery.status == DISCOVERY_STATUS_READY
+    assert discovery.technically_available
+
+
 def test_sem8_explicit_assisted_route_without_provider_fails_closed(tmp_path: Path) -> None:
     ingestion = _ingestion(
         "caja.xlsx",
@@ -149,12 +366,10 @@ def test_sem8_explicit_assisted_route_without_provider_fails_closed(tmp_path: Pa
         ),
     )
 
-    packet = run_service_1_product_pipeline_v1(
+    packet = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="projected_closing_cash_balance",
-        use_assisted_semantics=True,
     )
 
     assert packet["status"] == STATUS_BLOCKED
@@ -197,13 +412,11 @@ def test_sem8_invented_column_is_blocked_before_owner_and_execution(tmp_path: Pa
             "material_ambiguities": [],
         }
 
-    packet = run_service_1_product_pipeline_v1(
+    packet = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="projected_closing_cash_balance",
         semantic_provider=provider,
-        use_assisted_semantics=True,
     )
 
     assert packet["status"] == STATUS_BLOCKED
@@ -241,43 +454,37 @@ def test_sem8_composite_scope_reuses_one_owner_state_only_for_declared_component
         "dso",
         "current_ratio",
     )
-    initial = run_service_1_product_pipeline_v1(
+    initial = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="working_capital",
         semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
         semantic_scope_capabilities=scope,
-        use_assisted_semantics=True,
     )
     assert initial["status"] == STATUS_NEEDS_OWNER
     state = initial["semantic_assistance_state"]
     assert tuple(state["semantic_scope_capabilities"]) == scope
 
-    dso = run_service_1_product_pipeline_v1(
+    dso = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="dso",
         semantic_assistance_state=state,
         semantic_dialogue_responses=_accept_all(initial),
         semantic_owner_actor_id="owner-1",
         semantic_owner_actor_role="OWNER",
-        use_assisted_semantics=True,
     )
     assert dso["status"] == STATUS_COMPUTATION_PLAN_READY
     assert dso["computation_result"]["status"] == "EVALUATED"
 
-    outside_scope = run_service_1_product_pipeline_v1(
+    outside_scope = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="net_margin_real",
         semantic_assistance_state=state,
         semantic_dialogue_responses=_accept_all(initial),
         semantic_owner_actor_id="owner-1",
         semantic_owner_actor_role="OWNER",
-        use_assisted_semantics=True,
     )
     assert outside_scope["status"] == STATUS_BLOCKED
     assert outside_scope["blocked_reason"] == "ASSISTED_SEMANTIC_STATE_CONTEXT_MISMATCH"
@@ -307,29 +514,25 @@ def test_sem8_assisted_route_reuses_exact_state_and_executes_existing_determinis
         }
         return _proposal_from_assignments(payload, assignments)
 
-    initial = run_service_1_product_pipeline_v1(
+    initial = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="projected_closing_cash_balance",
         semantic_provider=provider,
-        use_assisted_semantics=True,
     )
     assert initial["status"] == STATUS_NEEDS_OWNER
     assert provider_calls == 1
     assert len(initial["owner_questions"]) == 1
     state = initial["semantic_assistance_state"]
 
-    confirmed = run_service_1_product_pipeline_v1(
+    confirmed = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="projected_closing_cash_balance",
         semantic_assistance_state=state,
         semantic_dialogue_responses=_accept_all(initial),
         semantic_owner_actor_id="owner-1",
         semantic_owner_actor_role="OWNER",
-        use_assisted_semantics=True,
     )
 
     assert provider_calls == 1, "owner reentry must not recall the LLM"
@@ -395,13 +598,11 @@ def test_sem8_cafeteria_reaches_confirmed_bindings_with_one_relationship_questio
         }
         return _proposal_from_assignments(payload, assignments, include_relation=True)
 
-    initial = run_service_1_product_pipeline_v1(
+    initial = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="net_margin_real",
         semantic_provider=provider,
-        use_assisted_semantics=True,
     )
 
     assert initial["status"] == STATUS_NEEDS_OWNER
@@ -416,16 +617,14 @@ def test_sem8_cafeteria_reaches_confirmed_bindings_with_one_relationship_questio
     assert initial["semantic_assistance_state"]["dialogue_plan"]["zero_duplicate_questions"] is True
     assert initial["semantic_assistance_state"]["dialogue_plan"]["zero_irrelevant_questions"] is True
 
-    confirmed = run_service_1_product_pipeline_v1(
+    confirmed = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="net_margin_real",
         semantic_assistance_state=initial["semantic_assistance_state"],
         semantic_dialogue_responses=_accept_all(initial),
         semantic_owner_actor_id="owner-cafeteria",
         semantic_owner_actor_role="OWNER",
-        use_assisted_semantics=True,
     )
 
     assert provider_calls == 1
@@ -487,27 +686,23 @@ def test_sem8_cafeteria_with_explicit_period_taxes_executes_ren001_through_deriv
         }
         return _proposal_from_assignments(payload, assignments, include_relation=True)
 
-    initial = run_service_1_product_pipeline_v1(
+    initial = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="net_margin_real",
         semantic_provider=provider,
-        use_assisted_semantics=True,
     )
     assert initial["status"] == STATUS_NEEDS_OWNER
     assert provider_calls == 1
 
-    confirmed = run_service_1_product_pipeline_v1(
+    confirmed = _run_current_semantic_product_request(
         ingestion_output=ingestion,
-        tool_requests=[],
         output_dir=tmp_path,
         requested_capability="net_margin_real",
         semantic_assistance_state=initial["semantic_assistance_state"],
         semantic_dialogue_responses=_accept_all(initial),
         semantic_owner_actor_id="owner-cafeteria",
         semantic_owner_actor_role="OWNER",
-        use_assisted_semantics=True,
     )
 
     assert provider_calls == 1

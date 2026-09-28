@@ -30,9 +30,20 @@ def resolve_service_1_legacy_semantic_run_v1(
         return semantic_run
     if not isinstance(owner_answers, dict) or not owner_answers:
         return semantic_run
+    provenance = (
+        ingestion_output.get("provenance")
+        if isinstance(ingestion_output, dict)
+        else None
+    )
+    canonical_file_ref = (
+        provenance.get("source_file_ref")
+        if isinstance(provenance, dict)
+        else None
+    )
     return run_owner_reentry(
         previous_run=semantic_run,
         owner_answers=owner_answers,
+        file_ref=canonical_file_ref,
     )
 
 

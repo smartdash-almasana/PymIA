@@ -25,7 +25,8 @@ def test_sellable_product_contract_is_frozen_and_bounded() -> None:
     assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in state
     assert "PRODUCTION_APP_SHA: d2c9c24" in state
     assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf" in state
-    assert "SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1" in state
+    assert "SUPERSEDED_AS_AUTHORITY / HISTORICAL_REFERENCE" in state
+    assert "SUPERSEDED_AS_AUTHORITY / HISTORICAL_REFERENCE" in readme
     assert "SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS" in readme
-    assert "PRODUCTION_APP_SHA: d2c9c24" in readme
-    assert "PRODUCTION_CLOUD_RUN_REVISION: pymia-service1-00008-mtf" in readme
+    assert "ONE_CANONICAL_PRODUCT_ROOT: ENFORCED" in readme
+    assert "NO_LLM_RUNTIME_AUTHORITY: ENFORCED" in readme

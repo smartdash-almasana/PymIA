@@ -14,6 +14,11 @@ from pymia.smartpyme.service_1_owner_confirmation_event_v1 import (
 from pymia.smartpyme.service_1_structural_compatibility_v1 import (
     service_1_structural_signature_from_mapping_v1,
 )
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import (
+    AXES as SEMANTIC_COORDINATE_AXES,
+    Service1SemanticCoordinateV2,
+    load_service_1_semantic_coordinate_taxonomy_v2,
+)
 
 SCHEMA_VERSION = "SERVICE_1_TENANT_SEMANTIC_CONTRACT_V1"
 STATUS_READY = "TENANT_SEMANTIC_CONTRACT_READY"
@@ -99,6 +104,11 @@ def _event_from_mapping(payload: Mapping[str, object]) -> Service1OwnerConfirmat
             confirmation_scope=str(payload.get("confirmation_scope") or "").strip(),
             confirmed_by_owner=payload.get("confirmed_by_owner") is True,
             timestamp=str(payload.get("timestamp") or "").strip(),
+            compositional_semantic=(
+                dict(payload.get("compositional_semantic"))
+                if isinstance(payload.get("compositional_semantic"), Mapping)
+                else None
+            ),
             provenance=dict(payload.get("provenance") or {}),
             schema_version=str(payload.get("schema_version") or ""),
         )
@@ -144,6 +154,7 @@ class Service1TenantSemanticContractV1:
     confirmed_role: str | None
     confirmed_variable: str | None
     corrected_meaning: str | None
+    compositional_semantic: Mapping[str, Any] | None
     column_excluded: bool
     confirmation_event_ref: str
     question_ref: str
@@ -175,6 +186,7 @@ class Service1TenantSemanticContractV1:
             "SEMANTIC_ROLE",
             "COLUMN_EXCLUSION",
             "FREE_TEXT_MEANING",
+            "COMPOSITIONAL_SEMANTIC",
         }:
             raise _blocked("BLOCKED_EVENT_CONTEXT_MISMATCH", "invalid confirmation scope")
         if any(getattr(self, flag) is not False for flag in _SAFETY_FLAGS):
@@ -214,8 +226,37 @@ class Service1TenantSemanticContractV1:
                 not self.corrected_meaning
                 or self.confirmed_role is not None
                 or self.confirmed_variable is not None
+                or self.compositional_semantic is not None
             ):
                 raise _blocked("BLOCKED_EVENT_CONTEXT_MISMATCH", "invalid free-text meaning")
+        if self.confirmation_scope == "COMPOSITIONAL_SEMANTIC":
+            if (
+                self.confirmed_role is not None
+                or self.confirmed_variable is not None
+                or self.corrected_meaning is not None
+                or not isinstance(self.compositional_semantic, Mapping)
+                or not self.compositional_semantic
+            ):
+                raise _blocked("BLOCKED_EVENT_CONTEXT_MISMATCH", "invalid compositional semantic")
+            try:
+                payload = dict(self.compositional_semantic)
+                descriptor = Service1SemanticCoordinateV2(
+                    field_ref=str(payload.get("field_ref") or f"{self.sheet_ref}.{self.source_column_name}"),
+                    **{axis: payload.get(axis) for axis in SEMANTIC_COORDINATE_AXES},
+                    confidence=float(
+                        1.0 if payload.get("confidence") is None else payload.get("confidence")
+                    ),
+                    evidence=tuple(payload.get("evidence") or ()),
+                    source=str(payload.get("source") or "OWNER_CONFIRMED_TENANT_MEMORY"),
+                ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())
+            except (TypeError, ValueError) as exc:
+                raise _blocked("BLOCKED_EVENT_CONTEXT_MISMATCH", "invalid compositional semantic") from exc
+            expected_ref = f"{self.sheet_ref}.{self.source_column_name}"
+            if descriptor.field_ref != expected_ref:
+                raise _blocked("BLOCKED_EVENT_CONTEXT_MISMATCH", "compositional semantic field_ref mismatch")
+            object.__setattr__(self, "compositional_semantic", MappingProxyType(descriptor.to_dict()))
+        elif self.compositional_semantic is not None:
+            raise _blocked("BLOCKED_EVENT_CONTEXT_MISMATCH", "compositional semantic requires COMPOSITIONAL_SEMANTIC scope")
         if self.structural_signature is not None:
             try:
                 signature = service_1_structural_signature_from_mapping_v1(
@@ -287,6 +328,11 @@ class Service1TenantSemanticContractV1:
             "confirmed_role": self.confirmed_role,
             "confirmed_variable": self.confirmed_variable,
             "corrected_meaning": self.corrected_meaning,
+            "compositional_semantic": (
+                dict(self.compositional_semantic)
+                if self.compositional_semantic is not None
+                else None
+            ),
             "column_excluded": self.column_excluded,
             "confirmation_event_ref": self.confirmation_event_ref,
             "question_ref": self.question_ref,
@@ -425,6 +471,11 @@ def service_1_tenant_semantic_contract_from_mapping_v1(
         confirmed_role=_optional(payload.get("confirmed_role")),
         confirmed_variable=_optional(payload.get("confirmed_variable")),
         corrected_meaning=_optional(payload.get("corrected_meaning")),
+        compositional_semantic=(
+            dict(payload.get("compositional_semantic"))
+            if isinstance(payload.get("compositional_semantic"), Mapping)
+            else None
+        ),
         column_excluded=payload.get("column_excluded") is True,
         confirmation_event_ref=_required(payload.get("confirmation_event_ref"), field="confirmation_event_ref", code="BLOCKED_INVALID_OWNER_CONFIRMATION_EVENT"),
         question_ref=_required(payload.get("question_ref"), field="question_ref", code="BLOCKED_EVENT_CONTEXT_MISMATCH"),
@@ -571,6 +622,11 @@ def build_service_1_tenant_semantic_contract_v1(
         confirmed_role=event.confirmed_role,
         confirmed_variable=event.proposed_variable if scope == "SEMANTIC_ROLE" else None,
         corrected_meaning=event.corrected_meaning,
+        compositional_semantic=(
+            dict(event.compositional_semantic)
+            if scope == "COMPOSITIONAL_SEMANTIC" and event.compositional_semantic is not None
+            else None
+        ),
         column_excluded=column_excluded,
         confirmation_event_ref=confirmation_event_ref,
         question_ref=question_ref,

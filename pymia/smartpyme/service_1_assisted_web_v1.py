@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import argparse
 import html
+from io import StringIO
 import json
 import math
+import os
 import secrets
 import tempfile
 import threading
@@ -19,6 +21,49 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 from urllib.parse import parse_qs, urlsplit
 
+from dotenv import load_dotenv
+
+
+_CANONICAL_LOCAL_ENV_KEYS = frozenset(
+    {
+        "PYMIA_SUPABASE_URL",
+        "PYMIA_SUPABASE_PUBLISHABLE_KEY",
+        "PYMIA_SUPABASE_SERVICE_ROLE_KEY",
+        "PYMIA_SEMANTIC_LLM_MODEL",
+        "PYMIA_SEMANTIC_PROVIDER",
+        "PYMIA_SEMANTIC_LLM_BASE_URL",
+        "OPENCODE_ZEN_MODEL",
+        "GEMINI_API_KEY",
+        "NVIDIA_API_KEY",
+        # VTV-compatible NVIDIA aliases — load model/URL from .env.local when
+        # the canonical Service-1 names (NVIDIA_NIM_MODEL, PYMIA_SEMANTIC_LLM_BASE_URL)
+        # are not set in the environment.
+        "NVIDIA_MODEL",
+        "NVIDIA_BASE_URL",
+        "NVIDIA_NIM_MODEL",
+        "OPENCODE_API_KEY",
+        "GOOGLE_CLOUD_PROJECT",
+        "GOOGLE_CLOUD_LOCATION",
+    }
+)
+
+
+def _load_local_service_1_environment_v1() -> None:
+    """Load canonical Service 1 keys from the ignored local dotenv file."""
+    dotenv_path = Path(__file__).resolve().parents[2] / ".env.local"
+    if not dotenv_path.is_file():
+        return
+    canonical_lines: list[str] = []
+    for line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key = stripped.split("=", 1)[0].strip()
+        if key in _CANONICAL_LOCAL_ENV_KEYS:
+            canonical_lines.append(line)
+    if canonical_lines:
+        load_dotenv(stream=StringIO("\n".join(canonical_lines)), override=False)
+
 from pymia.smartpyme.service_1_column_understanding_engine_v1 import normalize_service_1_column_understanding_header_v1
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
     STATUS_READY as SEMANTIC_BRIDGE_READY,
@@ -26,6 +71,13 @@ from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 
 )
 from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
     build_service_1_deterministic_semantic_proposal_v1,
+)
+from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
+    semantic_provider_from_environment_v1,
+    service_1_semantic_execution_scope_v1,
+)
+from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
+    resolve_service_1_legacy_semantic_run_v1,
 )
 from pymia.smartpyme.service_1_structural_compatibility_v1 import (
     STATUS_READY as STRUCTURAL_MEMORY_READY,
@@ -65,13 +117,21 @@ from pymia.smartpyme.service_1_product_pipeline_v1 import (
     STATUS_BLOCKED,
     STATUS_COMPUTATION_PLAN_READY,
     STATUS_NEEDS_OWNER,
+    STATUS_READY,
     STATUS_RECONCILIATION_NEEDS_EVIDENCE,
     STATUS_RECONCILIATION_NEEDS_OWNER,
     STATUS_RECONCILIATION_REVIEW_READY,
     run_service_1_product_pipeline_v1,
 )
-from pymia.smartpyme.service_1_legacy_semantic_reentry_compat_v1 import (
-    resolve_service_1_legacy_semantic_run_v1,
+from pymia.smartpyme.service_1_product_execution_contracts_v1 import (
+    SPECIALIZED_DOMAIN_COLLECTION_AGING,
+    SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
+    SPECIALIZED_DOMAIN_RECONCILIATION,
+    Service1ProductExecutionDependenciesV1,
+    SpecializedDomainExecuteRequestV1,
+    WorkbookSemanticContinueRequestV1,
+    WorkbookSemanticStartRequestV1,
+    WorkbookAnalysisExecuteRequestV1,
 )
 from pymia.smartpyme.service_1_reconciliation_human_review_decision_v1 import (
     ALLOWED_DECISIONS as ALLOWED_RECONCILIATION_DECISIONS,
@@ -290,7 +350,7 @@ class AssistedWebSessionV1:
     semantic_assistance_state: dict[str, Any] | None = None
     semantic_dialogue_responses: dict[str, dict[str, Any]] = field(default_factory=dict)
     semantic_chat_messages: dict[str, list[dict[str, str]]] = field(default_factory=dict)
-    semantic_chat_suggestions: dict[str, dict[str, str]] = field(default_factory=dict)
+    semantic_chat_suggestions: dict[str, dict[str, Any]] = field(default_factory=dict)
     owner_unit_confirmation_events: list[dict[str, Any]] = field(default_factory=list)
     tenant_id: str | None = None
     cliente_id: str | None = None
@@ -340,7 +400,16 @@ class AssistedWebApplicationV1:
         self._load_persisted_case = load_persisted_case
         self._require_tenant_persistence = require_tenant_persistence
         self._radar_policy_store = radar_policy_store
-        self._semantic_provider = semantic_provider or build_service_1_deterministic_semantic_proposal_v1
+        # The base Assisted Web application is provider-injection driven.
+        # Ambient credentials must not silently turn a deterministic/test surface
+        # into a live semantic-provider caller. Productive semantic reception
+        # resolves the environment explicitly and injects that provider.
+        self._custom_semantic_provider = semantic_provider is not None
+        self._semantic_provider = (
+            semantic_provider
+            if semantic_provider is not None
+            else build_service_1_deterministic_semantic_proposal_v1
+        )
         self.output_dir = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="pymia-service-1-web-"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -382,9 +451,17 @@ class AssistedWebApplicationV1:
             "status": str(status or "LISTO").strip(),
             "kind": str(kind or "review").strip(),
             "updated_at": datetime.now().isoformat(timespec="seconds"),
-            "packet": deepcopy(packet),
+            "packet": dict(packet),
             "ingestion_output": deepcopy(ingestion_output) if isinstance(ingestion_output, dict) else None,
         }
+
+    def analysis_menu(self, *, session_id: str) -> tuple[int, str]:
+        state = self.session(session_id)
+        if not state.ingestion_output:
+            return HTTPStatus.BAD_REQUEST, _error_page(
+                "Primero subí y confirmá un archivo de Excel."
+            )
+        return HTTPStatus.OK, _analysis_menu_page(state)
 
     def recent_cases(self, *, session_id: str) -> tuple[int, str]:
         scope = self._case_scope(session_id=session_id)
@@ -468,20 +545,27 @@ class AssistedWebApplicationV1:
         role = str(owner_actor_role or "").strip()
         if not tenant or not actor or not role:
             raise ValueError("tenant_id, owner_actor_id and owner_actor_role are required")
-        state = self.session(session_id)
         client = str(cliente_id).strip() if cliente_id else None
-        identity_changed = (
-            state.tenant_id != tenant
-            or state.cliente_id != client
-            or state.owner_actor_id != actor
-            or state.owner_actor_role != role
-        )
-        state.tenant_id = tenant
-        state.cliente_id = client
-        state.owner_actor_id = actor
-        state.owner_actor_role = role
-        if identity_changed:
-            state.tenant_identity_contract = None
+        with self._session_locks_guard:
+            state = self._sessions.setdefault(session_id, AssistedWebSessionV1())
+            identity_changed = (
+                state.tenant_id != tenant
+                or state.cliente_id != client
+                or state.owner_actor_id != actor
+                or state.owner_actor_role != role
+            )
+            if identity_changed:
+                self._sessions[session_id] = AssistedWebSessionV1(
+                    tenant_id=tenant,
+                    cliente_id=client,
+                    owner_actor_id=actor,
+                    owner_actor_role=role,
+                )
+                return
+            state.tenant_id = tenant
+            state.cliente_id = client
+            state.owner_actor_id = actor
+            state.owner_actor_role = role
 
     def radar_owner_menu(self, *, session_id: str) -> tuple[int, str]:
         state = self.session(session_id)
@@ -643,10 +727,13 @@ class AssistedWebApplicationV1:
             "governance": _consorcios_owner_governance(approved),
         }
         packet = run_service_1_product_pipeline_v1(
-            ingestion_output=None,
-            tool_requests=[],
-            output_dir=self._review_output_dir(session_id=session_id),
-            collection_aging_request=request,
+            SpecializedDomainExecuteRequestV1(
+                subtype=SPECIALIZED_DOMAIN_COLLECTION_AGING,
+                payload=request,
+            ),
+            dependencies=Service1ProductExecutionDependenciesV1(
+                output_dir=self._review_output_dir(session_id=session_id)
+            ),
         )
         if packet.get("status") == STATUS_BLOCKED:
             return HTTPStatus.OK, _blocked_message_page(
@@ -738,10 +825,13 @@ class AssistedWebApplicationV1:
             "governance": _consorcios_owner_governance(approved),
         }
         packet = run_service_1_product_pipeline_v1(
-            ingestion_output=None,
-            tool_requests=[],
-            output_dir=self._review_output_dir(session_id=session_id),
-            expense_variance_request=request,
+            SpecializedDomainExecuteRequestV1(
+                subtype=SPECIALIZED_DOMAIN_EXPENSE_VARIANCE,
+                payload=request,
+            ),
+            dependencies=Service1ProductExecutionDependenciesV1(
+                output_dir=self._review_output_dir(session_id=session_id)
+            ),
         )
         if packet.get("status") == STATUS_BLOCKED:
             return HTTPStatus.OK, _blocked_message_page(
@@ -998,15 +1088,16 @@ class AssistedWebApplicationV1:
             case_parts.append(str(intake.get("case_id") or source_kind)[-10:])
 
         packet = run_service_1_product_pipeline_v1(
-            ingestion_output=None,
-            tool_requests=[],
-            output_dir=self.output_dir,
-            reconciliation_request={
+            SpecializedDomainExecuteRequestV1(
+                subtype=SPECIALIZED_DOMAIN_RECONCILIATION,
+                payload={
                 "case_id": "web_reconciliation_" + "_".join(case_parts),
                 "owner_requested": True,
                 "reconciliation_type": reconciliation_type,
                 "source_packets": source_packets,
-            },
+                },
+            ),
+            dependencies=Service1ProductExecutionDependenciesV1(output_dir=self.output_dir),
         )
         state.reconciliation_result = packet
         state.reconciliation_decisions = []
@@ -1196,7 +1287,7 @@ class AssistedWebApplicationV1:
             include_all_sheets=True,
         )
         if intake.get("status") == "BLOCKED":
-            return HTTPStatus.BAD_REQUEST, _error_page("No se pudo usar el archivo. Revisá que sea un Excel .xlsx válido.")
+            return HTTPStatus.BAD_REQUEST, _error_page(_xlsx_intake_error_message(intake))
         canonical = build_service_1_unconfirmed_canonical_ingestion_output_v1(
             owner_question_packet=intake,
         )
@@ -1231,13 +1322,13 @@ class AssistedWebApplicationV1:
 
         if state.tenant_id and state.owner_actor_id and state.owner_actor_role:
             case_id = str(
-                state.ingestion_output.get("case_id")
+                ((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None)
                 or intake.get("case_id")
                 or ""
             ).strip()
             source_system_ref = str(intake.get("source_kind") or "").strip()
             source_context_ref = str(intake.get("schema_version") or "").strip()
-            workbook_ref = str(intake.get("filename") or filename).strip()
+            workbook_ref = str(intake.get("workbook_ref") or "").strip()
             try:
                 state.tenant_identity_contract = build_service_1_assisted_web_tenant_identity_v1(
                     tenant_id=state.tenant_id,
@@ -1274,13 +1365,21 @@ class AssistedWebApplicationV1:
                 first_run = _run_product_root(
                     ingestion_output=state.ingestion_output,
                     output_dir=self.output_dir,
+                    semantic_provider=self._semantic_provider if self._custom_semantic_provider else None,
+                    use_assisted_semantics=self._custom_semantic_provider,
                 )
         except ValueError as error:
             if "requires at least one tool request" in str(error):
                 return HTTPStatus.OK, _analysis_menu_page(state)
             raise
+        # Preserve the single Product Root result so workbook-first semantic
+        # reception adapters can render it without invoking the root twice.
+        state.last_review_result = first_run
+        first_assistance_state = first_run.get("semantic_assistance_state")
+        if isinstance(first_assistance_state, dict):
+            state.semantic_assistance_state = first_assistance_state
         if first_run.get("status") == STATUS_NEEDS_OWNER:
-            if assisted_launch:
+            if assisted_launch or self._custom_semantic_provider:
                 assistance_state = first_run.get("semantic_assistance_state")
                 if not isinstance(assistance_state, dict):
                     return HTTPStatus.OK, _blocked_message_page(
@@ -1474,7 +1573,6 @@ class AssistedWebApplicationV1:
         if (
             not isinstance(state.semantic_assistance_state, dict)
             or not isinstance(state.ingestion_output, dict)
-            or not state.selected_launch_review
         ):
             return HTTPStatus.BAD_REQUEST, _error_page(
                 "No hay una interpretación asistida pendiente para confirmar."
@@ -1542,11 +1640,11 @@ class AssistedWebApplicationV1:
                     requested_capability=capability_ref,
                     output_dir=self._review_output_dir(session_id=session_id),
                     deliver_result=False,
+                    semantic_provider=self._semantic_provider,
                     semantic_assistance_state=state.semantic_assistance_state,
                     semantic_dialogue_responses=responses,
                     semantic_owner_actor_id=actor_id,
                     semantic_owner_actor_role=actor_role,
-                    use_assisted_semantics=True,
                 )
                 component_packets[capability_ref] = component_packet
                 if component_packet.get("status") == STATUS_NEEDS_OWNER and followup_packet is None:
@@ -1603,7 +1701,7 @@ class AssistedWebApplicationV1:
             }
             state.last_review_result = service_packet
             state.semantic_questions = []
-            case_id = str(state.ingestion_output.get("case_id") or "").strip()
+            case_id = str(((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None) or "").strip()
             self._remember_case(
                 session_id=session_id,
                 case_id=case_id,
@@ -1621,11 +1719,11 @@ class AssistedWebApplicationV1:
             requested_capability=state.selected_launch_review,
             output_dir=self._review_output_dir(session_id=session_id),
             deliver_result=state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real"},
+            semantic_provider=self._semantic_provider,
             semantic_assistance_state=state.semantic_assistance_state,
             semantic_dialogue_responses=responses,
             semantic_owner_actor_id=actor_id,
             semantic_owner_actor_role=actor_role,
-            use_assisted_semantics=True,
         )
         state.last_review_result = packet
         next_state = packet.get("semantic_assistance_state")
@@ -1640,6 +1738,10 @@ class AssistedWebApplicationV1:
                 return HTTPStatus.OK, _blocked_message_page(
                     "La confirmación fue recibida, pero no pudo guardarse de forma durable."
                 )
+
+        if not state.selected_launch_review and packet.get("status") == STATUS_READY:
+            state.semantic_questions = []
+            return HTTPStatus.OK, _analysis_menu_page(state)
 
         if packet.get("status") == STATUS_NEEDS_OWNER:
             state.semantic_questions = list(packet.get("owner_questions") or [])
@@ -1659,8 +1761,8 @@ class AssistedWebApplicationV1:
         state.semantic_questions = []
         if packet.get("status") == STATUS_BLOCKED:
             case_id = str(
-                state.ingestion_output.get("case_id")
-                or state.ingestion_output.get("source_file_ref")
+                ((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None)
+                or ((state.ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
                 or state.selected_launch_review
             ).strip()
             service_name = _LAUNCH_REVIEW_BY_REF.get(
@@ -1686,7 +1788,7 @@ class AssistedWebApplicationV1:
                 ingestion_output=state.ingestion_output,
             )
 
-        case_id = str(state.ingestion_output.get("case_id") or "").strip()
+        case_id = str(((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None) or "").strip()
         service_name = _LAUNCH_REVIEW_BY_REF.get(
             state.selected_launch_review,
             _REVIEW_BY_REF.get(
@@ -1768,8 +1870,8 @@ class AssistedWebApplicationV1:
                     owner_answer=selected,
                     question_ref=question_id,
                     file_ref=str(
-                        state.ingestion_output.get("source_file_ref")
-                        or state.ingestion_output.get("filename")
+                        ((state.ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
+                        or ((state.ingestion_output.get("provenance") or {}).get("filename") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
                         or ""
                     ).strip()
                     or None,
@@ -1787,8 +1889,8 @@ class AssistedWebApplicationV1:
 
         if deferred:
             case_id = str(
-                state.ingestion_output.get("case_id")
-                or state.ingestion_output.get("source_file_ref")
+                ((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None)
+                or ((state.ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
                 or state.selected_launch_review
             ).strip()
             service_name = _LAUNCH_REVIEW_BY_REF.get(
@@ -1832,7 +1934,6 @@ class AssistedWebApplicationV1:
             deliver_result=state.selected_launch_review in {"sold_vs_collected_gap", "net_margin_real"},
             semantic_assistance_state=state.semantic_assistance_state,
             owner_unit_confirmation_events=tuple(state.owner_unit_confirmation_events),
-            use_assisted_semantics=True,
         )
         state.last_review_result = packet
         state.semantic_questions = []
@@ -1846,8 +1947,8 @@ class AssistedWebApplicationV1:
             )
 
         case_id = str(
-            state.ingestion_output.get("case_id")
-            or state.ingestion_output.get("source_file_ref")
+            ((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None)
+            or ((state.ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
             or state.selected_launch_review
         ).strip()
         service_name = _LAUNCH_REVIEW_BY_REF.get(
@@ -1961,10 +2062,22 @@ class AssistedWebApplicationV1:
             )
         return HTTPStatus.OK, rendered_page
 
-    def run_working_capital(self, *, session_id: str) -> tuple[int, str]:
+    def run_working_capital(
+        self,
+        *,
+        session_id: str,
+        confirmed_bindings: Mapping[str, Any] | None = None,
+        semantic_assistance_state: Mapping[str, Any] | None = None,
+    ) -> tuple[int, str]:
         state = self.session(session_id)
         if not state.ingestion_output:
             return HTTPStatus.BAD_REQUEST, _error_page("Primero subí y confirmá un archivo de Excel.")
+        if confirmed_bindings is None and semantic_assistance_state is None:
+            semantic_assistance_state = (
+                state.semantic_assistance_state
+                if isinstance(state.semantic_assistance_state, dict)
+                else None
+            )
         capability_refs = (
             "projected_closing_cash_balance",
             "dso",
@@ -1975,6 +2088,10 @@ class AssistedWebApplicationV1:
             packets[capability_ref] = _run_product_root(
                 ingestion_output=state.ingestion_output,
                 owner_answers=state.semantic_answers,
+                confirmed_bindings=(
+                    None if semantic_assistance_state is not None else confirmed_bindings
+                ),
+                semantic_assistance_state=semantic_assistance_state,
                 requested_capability=capability_ref,
                 output_dir=self._review_output_dir(session_id=session_id),
                 deliver_result=False,
@@ -2001,7 +2118,8 @@ class AssistedWebApplicationV1:
             "delivery_authorized": False,
             "diagnosis_generated": False,
         }
-        case_id = str(state.ingestion_output.get("case_id") or "").strip()
+        state.last_review_result = service_packet
+        case_id = str(((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None) or "").strip()
         self._remember_case(
             session_id=session_id,
             case_id=case_id,
@@ -2034,6 +2152,11 @@ class AssistedWebApplicationV1:
             requested_capability=requested_capability,
             output_dir=review_output_dir,
             deliver_result=requested_capability in {"sold_vs_collected_gap", "net_margin_real"},
+            semantic_assistance_state=(
+                state.semantic_assistance_state
+                if isinstance(state.semantic_assistance_state, dict)
+                else None
+            ),
         )
         if state.consorcio_case_context is not None:
             state.consorcio_case_context.requested_review = requested_capability
@@ -2059,8 +2182,8 @@ class AssistedWebApplicationV1:
             if state.consorcio_case_context is not None:
                 state.consorcio_case_context.case_status = "IN_REVIEW"
             case_id = str(
-                state.ingestion_output.get("case_id")
-                or state.ingestion_output.get("source_file_ref")
+                ((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None)
+                or ((state.ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
                 or requested_capability
             ).strip()
             service_name = _LAUNCH_REVIEW_BY_REF.get(
@@ -2098,8 +2221,8 @@ class AssistedWebApplicationV1:
             _REVIEW_BY_REF.get(requested_capability, (requested_capability, requested_capability, "")),
         )[1]
         case_id = str(
-            state.ingestion_output.get("case_id")
-            or state.ingestion_output.get("source_file_ref")
+            ((state.ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(state.ingestion_output.get("workbook_context"), Mapping) else None)
+            or ((state.ingestion_output.get("provenance") or {}).get("source_file_ref") if isinstance(state.ingestion_output.get("provenance"), Mapping) else None)
             or requested_capability
         ).strip()
         self._remember_case(
@@ -2133,6 +2256,13 @@ class AssistedWebApplicationV1:
         semantic_run = packet.get("semantic_run")
         semantic = semantic_run if isinstance(semantic_run, dict) else {}
         events = semantic.get("owner_confirmation_events") or []
+        if not events:
+            owner_loop = semantic.get("owner_loop_packet")
+            if isinstance(owner_loop, Mapping):
+                events = owner_loop.get("owner_confirmation_events") or []
+                if events:
+                    semantic = dict(semantic)
+                    semantic["owner_confirmation_events"] = list(events)
         if not events:
             return
 
@@ -2236,6 +2366,7 @@ def _run_product_root(
     requested_capability: str | None = None,
     output_dir: str | Path | None = None,
     deliver_result: bool = False,
+    confirmed_bindings: Mapping[str, Any] | None = None,
     semantic_provider: Any = None,
     semantic_assistance_state: Mapping[str, Any] | None = None,
     semantic_dialogue_responses: Sequence[Mapping[str, Any]] | None = None,
@@ -2246,32 +2377,80 @@ def _run_product_root(
     semantic_scope_capabilities: Sequence[str] = (),
     use_assisted_semantics: bool = False,
 ) -> dict[str, Any]:
-    sheet_name = str(ingestion_output.get("sheet_name") or "sheet1")
-    semantic_run_override = None
-    if owner_answers is not None and not use_assisted_semantics:
-        semantic_run_override = resolve_service_1_legacy_semantic_run_v1(
+    if confirmed_bindings is not None:
+        request = WorkbookAnalysisExecuteRequestV1(
             ingestion_output=ingestion_output,
-            sheet_name=sheet_name,
-            owner_answers=owner_answers,
+            confirmed_bindings=confirmed_bindings,
+            analysis_id=str(requested_capability or "").strip(),
         )
-    return run_service_1_product_pipeline_v1(
-        ingestion_output=ingestion_output,
-        tool_requests=[],
-        output_dir=output_dir or tempfile.gettempdir(),
-        sheet_name=sheet_name,
-        semantic_run_override=semantic_run_override,
-        requested_capability=requested_capability,
-        deliver_result=deliver_result,
-        semantic_provider=semantic_provider,
-        semantic_assistance_state=semantic_assistance_state,
-        semantic_dialogue_responses=semantic_dialogue_responses,
-        semantic_owner_actor_id=semantic_owner_actor_id,
-        semantic_owner_actor_role=semantic_owner_actor_role,
-        compatible_tenant_memory_hints=compatible_tenant_memory_hints,
-        owner_unit_confirmation_events=owner_unit_confirmation_events,
-        semantic_scope_capabilities=semantic_scope_capabilities,
-        use_assisted_semantics=use_assisted_semantics,
-    )
+    elif semantic_assistance_state is not None:
+        request = WorkbookSemanticContinueRequestV1(
+            ingestion_output=ingestion_output,
+            requested_capability=requested_capability,
+            semantic_assistance_state=semantic_assistance_state,
+            semantic_dialogue_responses=semantic_dialogue_responses or (),
+            deliver_result=deliver_result,
+        )
+    elif (
+        use_assisted_semantics
+        or (
+            semantic_provider is not None
+            and (
+                os.getenv("PYMIA_SEMANTIC_PROVIDER")
+                or os.getenv("PYMIA_SEMANTIC_LLM_MODEL")
+            )
+        )
+    ):
+        request = WorkbookSemanticStartRequestV1(
+            ingestion_output=ingestion_output,
+            requested_capability=requested_capability,
+            deliver_result=deliver_result,
+        )
+    else:
+        sheet_name = str(ingestion_output.get("sheet_name") or "sheet1")
+        semantic_run_override = None
+        if owner_answers is not None and not use_assisted_semantics:
+            semantic_run_override = resolve_service_1_legacy_semantic_run_v1(
+                ingestion_output=ingestion_output,
+                sheet_name=sheet_name,
+                owner_answers=owner_answers,
+            )
+        return run_service_1_product_pipeline_v1(
+            ingestion_output=ingestion_output,
+            tool_requests=[],
+            output_dir=output_dir or tempfile.gettempdir(),
+            sheet_name=sheet_name,
+            semantic_run_override=semantic_run_override,
+            requested_capability=requested_capability,
+            deliver_result=deliver_result,
+            semantic_provider=semantic_provider,
+            semantic_assistance_state=semantic_assistance_state,
+            semantic_dialogue_responses=semantic_dialogue_responses,
+            semantic_owner_actor_id=semantic_owner_actor_id,
+            semantic_owner_actor_role=semantic_owner_actor_role,
+            compatible_tenant_memory_hints=compatible_tenant_memory_hints,
+            owner_unit_confirmation_events=owner_unit_confirmation_events,
+            semantic_scope_capabilities=semantic_scope_capabilities,
+            use_assisted_semantics=False,
+        )
+
+    with service_1_semantic_execution_scope_v1():
+        return run_service_1_product_pipeline_v1(
+            request,
+            dependencies=Service1ProductExecutionDependenciesV1(
+                output_dir=output_dir or tempfile.gettempdir(),
+                semantic_provider=(
+                    semantic_provider
+                    if semantic_provider is not None
+                    else build_service_1_deterministic_semantic_proposal_v1
+                ),
+                semantic_owner_actor_id=semantic_owner_actor_id,
+                semantic_owner_actor_role=semantic_owner_actor_role,
+                compatible_tenant_memory_hints=compatible_tenant_memory_hints,
+                owner_unit_confirmation_events=owner_unit_confirmation_events,
+                semantic_scope_capabilities=semantic_scope_capabilities,
+            ),
+        )
 
 
 def create_assisted_web_server_v1(
@@ -2337,21 +2516,26 @@ def _handler_for(
                         session_id=session_id,
                     )
                     return
-            if (
-                parsed.path in {"/cases", "/case"}
-                and tenant_identity_resolver is not None
-                and not str(application.session(session_id).tenant_id or "").strip()
-            ):
+            if parsed.path in {
+                "/analysis-menu",
+                "/cases",
+                "/case",
+                "/review-pending",
+                "/download-sales-collections",
+                "/download-net-margin",
+                "/download-reconciliation-workpaper",
+            } and tenant_identity_resolver is not None:
                 try:
                     identity = tenant_identity_resolver(self)
-                    if identity is not None:
-                        application.bind_tenant_identity(
-                            session_id=session_id,
-                            tenant_id=identity.get("tenant_id", ""),
-                            cliente_id=identity.get("cliente_id") or None,
-                            owner_actor_id=identity.get("owner_actor_id", ""),
-                            owner_actor_role=identity.get("owner_actor_role", ""),
-                        )
+                    if identity is None:
+                        raise ValueError("verified tenant identity is required")
+                    application.bind_tenant_identity(
+                        session_id=session_id,
+                        tenant_id=identity.get("tenant_id", ""),
+                        cliente_id=identity.get("cliente_id") or None,
+                        owner_actor_id=identity.get("owner_actor_id", ""),
+                        owner_actor_role=identity.get("owner_actor_role", ""),
+                    )
                 except ValueError as exc:
                     self._send_html(
                         HTTPStatus.BAD_REQUEST,
@@ -2361,6 +2545,12 @@ def _handler_for(
                     return
             if parsed.path == "/":
                 self._send_html(HTTPStatus.OK, _home_page())
+            elif parsed.path == "/analysis-menu" and callable(getattr(application, "analysis_menu", None)):
+                status, content_html = application.analysis_menu(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
+            elif parsed.path == "/review-pending" and callable(getattr(application, "review_pending", None)):
+                status, content_html = application.review_pending(session_id=session_id)
+                self._send_html(status, content_html, session_id=session_id)
             elif parsed.path == "/cases":
                 status, content_html = application.recent_cases(session_id=session_id)
                 self._send_html(status, content_html, session_id=session_id)
@@ -2583,9 +2773,9 @@ def _handler_for(
                             status, content_html = semantic_revise(session_id=session_id, fields=fields)
                     elif self.path == "/run-review":
                         selected_reviews = [
-                            ref
-                            for ref, _name, _question in _LAUNCH_REVIEW_OPTIONS
-                            if fields.get(f"review_{ref}", "") == "1"
+                            key.removeprefix("review_")
+                            for key, value in fields.items()
+                            if key.startswith("review_") and value == "1" and key.removeprefix("review_")
                         ]
                         if selected_reviews or "review" not in fields:
                             status, content_html = application.run_selected_reviews(
@@ -3142,28 +3332,6 @@ def _unit_column_evidence_preview(
     if not isinstance(ingestion_output, Mapping):
         return [], 0
 
-    evidence = ingestion_output.get("column_evidence")
-    if isinstance(evidence, Mapping):
-        for item in evidence.values():
-            if not isinstance(item, Mapping):
-                continue
-            if (
-                str(item.get("sheet_name") or "").strip() == sheet_ref
-                and str(item.get("column_name") or "").strip() == column_ref
-            ):
-                values = item.get("sample_values")
-                if isinstance(values, list):
-                    samples: list[str] = []
-                    seen: set[str] = set()
-                    for value in values:
-                        if value is None or (isinstance(value, str) and not value.strip()):
-                            continue
-                        text = str(value)
-                        if text not in seen and len(samples) < limit:
-                            seen.add(text)
-                            samples.append(text)
-                    return samples, len([value for value in values if value not in (None, "")])
-
     tables = ingestion_output.get("normalized_tables")
     if not isinstance(tables, list):
         return [], 0
@@ -3316,9 +3484,19 @@ def _available_launch_review_options_v1(
     )
 
 
+def _provenance_ref(ingestion: Mapping[str, Any], *keys: str, default: str = "") -> str:
+    provenance = ingestion.get("provenance")
+    provenance = provenance if isinstance(provenance, Mapping) else {}
+    for key in keys:
+        value = str(provenance.get(key) or "").strip()
+        if value:
+            return value
+    return default
+
+
 def _analysis_menu_page(state: AssistedWebSessionV1, error: str | None = None) -> str:
     ingestion = state.ingestion_output if isinstance(state.ingestion_output, dict) else {}
-    filename = str(ingestion.get("filename") or ingestion.get("source_file_ref") or "").strip()
+    filename = _provenance_ref(ingestion, "filename", "source_file_ref")
     available = _available_launch_review_options_v1(ingestion)
     availability_error = error
     if not available and availability_error is None:
@@ -3369,7 +3547,7 @@ def _analysis_bundle_page(
             ratio_text = f"{float(ratio) * 100:.2f}%" if sold > 0 and isinstance(ratio, (int, float)) else "No calculable"
             aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}
             sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
-            filename = str(ingestion.get("filename") or ingestion.get("source_file_ref") or "archivo recibido").strip()
+            filename = _provenance_ref(ingestion, "filename", "source_file_ref", default="archivo recibido")
             explicit_period = ingestion.get("period")
             if explicit_period is None and isinstance(ingestion.get("provenance"), Mapping):
                 explicit_period = ingestion["provenance"].get("period")
@@ -3519,7 +3697,8 @@ def _sales_collections_result_page(
     ratio_text = f"{float(ratio) * 100:.2f}%" if sold > 0 and isinstance(ratio, (int, float)) else "no calculable porque no hay ventas registradas."
     aggregation = computation.get("aggregation") if isinstance(computation.get("aggregation"), dict) else {}; sources = aggregation.get("sources") if isinstance(aggregation.get("sources"), dict) else {}
     source_rows = "".join(f"<li>{_esc(variable)}: hoja <strong>{_esc(details.get('sheet_name'))}</strong>, columna <strong>{_esc(details.get('column_name'))}</strong></li>" for variable, details in sources.items() if isinstance(details, dict))
-    filename = str(ingestion_output.get("filename") or ingestion_output.get("source_file_ref") or "").strip(); explicit_period = ingestion_output.get("period")
+    filename = _provenance_ref(ingestion_output, "filename", "source_file_ref")
+    explicit_period = ingestion_output.get("period")
     if explicit_period is None and isinstance(ingestion_output.get("provenance"), dict): explicit_period = ingestion_output["provenance"].get("period")
     period_text = str(explicit_period).strip() if explicit_period is not None and str(explicit_period).strip() else "no identificado explícitamente en los archivos recibidos."
     limitations = outcome.get("limitations") if isinstance(outcome.get("limitations"), (list, tuple)) else []
@@ -3565,6 +3744,17 @@ def _capture_confirmed_role_v1(
         return
 
 
+def _xlsx_intake_error_message(intake: Mapping[str, Any]) -> str:
+    reason = str(intake.get("blocked_reason") or "").strip()
+    messages = {
+        "TOO_MANY_COLUMNS": "No se pudo usar el archivo. El archivo se leyó correctamente, pero tiene muchas columnas para revisar de una sola vez.",
+        "HEADER_AMBIGUOUS": "No se pudo usar el archivo. No pude identificar un encabezado único en el archivo. Revisá el título y la fila de encabezados.",
+        "NO_USABLE_TABLES": "No se pudo usar el archivo. No encontré ninguna tabla utilizable en las hojas del archivo.",
+        "CANONICAL_READER_FAILED": "No se pudo usar el archivo. No pude leer la estructura de una hoja del archivo de forma segura.",
+    }
+    return messages.get(reason, "No se pudo usar el archivo. Revisá que sea un Excel .xlsx válido.")
+
+
 def _blocked_result_page(packet: dict[str, Any], requested_capability: str | None = None, *, ingestion_output: dict[str, Any] | None = None, semantic_answers: dict[str, Any] | None = None) -> str:
     title = _REVIEW_BY_REF.get(
         requested_capability or "",
@@ -3574,18 +3764,68 @@ def _blocked_result_page(packet: dict[str, Any], requested_capability: str | Non
     decision = decision if isinstance(decision, dict) else {}
     groups = decision.get("missing_role_groups")
     groups = groups if isinstance(groups, list) else []
-    labels = {
-        "period_sales_total": "ventas totales del período",
-        "period_costs_total": "costos totales del período",
-        "period_taxes_total": "impuestos y comisiones del período",
-        "sales_amount": "importe vendido",
-        "collected_amount": "importe cobrado",
-        "operation_date": "fecha de operación",
-    }
     missing = []
     for group in groups:
         if isinstance(group, list):
-            missing.append(" o ".join(labels.get(str(role), str(role).replace("_", " ")) for role in group))
+            missing.append(" o ".join(str(role).strip() for role in group if str(role).strip()))
+
+    # Product Root already carries the governed blocking evidence.  Keep the
+    # exact backend values at the Web boundary instead of replacing them with
+    # a generic "evidence is missing" explanation.
+    reasons: list[str] = []
+    for source in (
+        packet.get("blocked_reason"),
+        decision.get("reason"),
+        (packet.get("derived_evidence") or {}).get("blocked_reason")
+        if isinstance(packet.get("derived_evidence"), dict)
+        else None,
+        (packet.get("semantic_run") or {}).get("blocked_reason")
+        if isinstance(packet.get("semantic_run"), dict)
+        else None,
+    ):
+        value = str(source or "").strip()
+        if value and value not in reasons:
+            reasons.append(value)
+
+    detail_values: list[Any] = []
+    for source in (
+        packet.get("detail"),
+        (packet.get("derived_evidence") or {}).get("detail")
+        if isinstance(packet.get("derived_evidence"), dict)
+        else None,
+        (packet.get("semantic_run") or {}).get("detail")
+        if isinstance(packet.get("semantic_run"), dict)
+        else None,
+    ):
+        if source in (None, "", [], {}, ()):
+            continue
+        if isinstance(source, (list, tuple)):
+            detail_values.extend(item for item in source if item not in (None, ""))
+        else:
+            detail_values.append(source)
+
+    requirements: list[str] = []
+    derived = packet.get("derived_evidence")
+    if isinstance(derived, dict):
+        requirements.extend(str(item).strip() for item in (derived.get("evidence_requirements") or []) if str(item).strip())
+    requirements.extend(missing)
+    requirements = list(dict.fromkeys(requirements))
+
+    backend_items: list[str] = []
+    backend_items.extend(
+        f"<li><strong>Razón del bloqueo:</strong> {_esc(value)}</li>" for value in reasons
+    )
+    for value in detail_values:
+        rendered = (
+            json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+            if isinstance(value, (dict, list, tuple))
+            else str(value)
+        )
+        backend_items.append(f"<li><strong>Detalle:</strong> {_esc(rendered)}</li>")
+    backend_items.extend(
+        f"<li><strong>Requisito faltante:</strong> {_esc(value)}</li>" for value in requirements
+    )
+    backend_evidence = f"<ul>{''.join(backend_items)}</ul>" if backend_items else ""
 
     if requested_capability == "net_margin_real":
         derived = packet.get("derived_evidence")
@@ -3612,8 +3852,12 @@ def _blocked_result_page(packet: dict[str, Any], requested_capability: str | Non
             next_step = "Agregá el dato que falta y volvé a revisar el archivo."
 
     else:
-        evidence = "<ul>" + "".join(f"<li>{_esc(item)}</li>" for item in missing) + "</ul>" if missing else "<p>El control necesita evidencia adicional antes de poder calcularse.</p>"
-        next_step = "Subí evidencia complementaria o elegí otro control compatible con este archivo."
+        fallback_status = str(packet.get("status") or decision.get("status") or "BLOCKED").strip()
+        evidence = backend_evidence or f"<p>{_esc(fallback_status)}</p>"
+        next_step = reasons[0] if reasons else (requirements[0] if requirements else "BLOCKED")
+
+    if backend_evidence and requested_capability == "net_margin_real":
+        evidence = backend_evidence + evidence
 
     return render_blocked_result_v1(title=title, evidence_html=evidence, next_step=next_step)
 
@@ -4006,8 +4250,15 @@ def _radar_owner_policy_saved_page(policy: object) -> str:
     </main>"""
 
 
-def _blocked_message_page(message: str) -> str:
-    return f'<main id="app" tabindex="-1"><h1>No se puede continuar</h1><p role="alert">{_esc(message)}</p><p>La descarga no está habilitada.</p><div aria-live="polite">Necesita revisión.</div></main>'
+def _blocked_message_page(message: str, *, return_href: str = "/") -> str:
+    raw = str(message or "").strip()
+    technical_markers = ("BLOCK_", "dialogue:", "pydantic-ai:", "SERVICE_1_", "_SEMANTIC_", "ResultSet")
+    public_message = (
+        "Encontramos un dato que necesita revisión antes de seguir. Volvé al archivo y revisá la interpretación pendiente."
+        if any(marker in raw for marker in technical_markers)
+        else raw or "Encontramos un dato que necesita revisión antes de seguir."
+    )
+    return f'<main id="app" tabindex="-1" class="journey journey--narrow"><header class="journey-intro"><p class="kicker">Revisión necesaria</p><h1>Hay un dato pendiente</h1><p role="alert">{_esc(public_message)}</p></header><div class="result-actions"><a href="{_esc(return_href)}">Volver al archivo</a><a class="secondary" href="/cases">Ver historial</a></div><div aria-live="polite">Revisión pendiente.</div></main>'
 
 
 def _error_page(message: str) -> str:
@@ -4027,6 +4278,7 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
+    _load_local_service_1_environment_v1()
     tenant_identity_resolver = Service1SupabaseIdentityResolverV1.from_environment()
     tenant_persistence = Service1SupabasePersistenceAdapterV1.from_environment()
     radar_policy_store = Service1RadarSupabasePersistenceAdapterV1.from_environment()

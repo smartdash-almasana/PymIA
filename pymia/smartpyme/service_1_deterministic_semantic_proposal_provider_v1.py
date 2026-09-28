@@ -8,14 +8,29 @@ no authority. A real LLM provider may be injected at the same boundary later.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Final
+from typing import Any
 
 from pymia.smartpyme.service_1_derived_evidence_v1 import (
     service_1_derived_evidence_relevant_column_refs_v1,
 )
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import (
+    AXES as SEMANTIC_COORDINATE_AXES,
+    Service1SemanticCoordinateV2,
+    load_service_1_semantic_coordinate_taxonomy_v2,
+)
 from pymia.smartpyme.service_1_llm_semantic_contract_v1 import PROPOSAL_SCHEMA_VERSION
 
-_PRODUCT_KEY_ROLES: Final[frozenset[str]] = frozenset({"product_identifier", "product_name"})
+_COMPOSITIONAL_AUTHORITY_FIELDS = frozenset(
+    {
+        "runtime_authorized",
+        "tool_execution_authorized",
+        "product_ready",
+        "delivery_authorized",
+        "diagnosis_generated",
+        "automatic_reuse_authorized",
+        "semantic_rebind_authorized",
+    }
+)
 
 
 def build_service_1_deterministic_semantic_proposal_v1(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -60,6 +75,66 @@ def build_service_1_deterministic_semantic_proposal_v1(payload: Mapping[str, Any
             continue
         if derived_relevant_refs and column_ref not in derived_relevant_refs:
             continue
+
+        raw_compositional = hypothesis.get("compositional_semantic")
+        raw_primary = hypothesis.get("primary_hypothesis")
+        raw_primary = raw_primary if isinstance(raw_primary, Mapping) else None
+        raw_primary_role = str((raw_primary or {}).get("semantic_role") or "").strip()
+        raw_primary_variable = str((raw_primary or {}).get("variable_name") or "").strip()
+        raw_primary_confidence = float(
+            hypothesis.get("confidence")
+            or (raw_primary or {}).get("score")
+            or 0.0
+        )
+        has_runtime_primary = bool(
+            raw_primary_role
+            and raw_primary_variable
+            and raw_primary_confidence >= 0.60
+            and (not relevant_roles or raw_primary_role in relevant_roles)
+        )
+        if isinstance(raw_compositional, Mapping) and not has_runtime_primary:
+            evidence_refs = [f"ev:column:{column_ref}:type"]
+            range_ref = f"ev:column:{column_ref}:range"
+            if range_ref in evidence_registry:
+                evidence_refs.append(range_ref)
+            try:
+                descriptor = Service1SemanticCoordinateV2(
+                    field_ref=column_ref,
+                    **{
+                        axis: raw_compositional.get(axis)
+                        for axis in SEMANTIC_COORDINATE_AXES
+                    },
+                    confidence=float(raw_compositional.get("confidence") or 0.0),
+                    evidence=tuple(evidence_refs),
+                    source="DETERMINISTIC_C2_V2",
+                ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"invalid V2 semantic coordinate evidence for {column_ref}"
+                ) from exc
+
+            descriptor_payload = {
+                key: value
+                for key, value in descriptor.to_dict().items()
+                if key not in _COMPOSITIONAL_AUTHORITY_FIELDS
+            }
+            concepts.append(
+                {
+                    "proposal_id": f"baseline:compositional:{index}:{column_ref}",
+                    "target_column_refs": [column_ref],
+                    "semantic_role": None,
+                    "variable_name": None,
+                    "confidence": descriptor.confidence,
+                    "rationale": (
+                        "Projection of governed V2 semantic coordinates from "
+                        "deterministic column-understanding evidence."
+                    ),
+                    "evidence_refs": evidence_refs,
+                    "compositional_semantic": descriptor_payload,
+                }
+            )
+            continue
+
         candidates = [
             item
             for item in (hypothesis.get("candidate_meanings") or [])
@@ -113,8 +188,10 @@ def build_service_1_deterministic_semantic_proposal_v1(payload: Mapping[str, Any
             not left
             or not right
             or not kind
-            or left_role not in _PRODUCT_KEY_ROLES
-            or right_role not in _PRODUCT_KEY_ROLES
+            or not left_role
+            or not right_role
+            or left_role != right_role
+            or not left_role.endswith("_identifier")
         ):
             continue
         evidence_ref = f"ev:relationship:{left}->{right}:overlap"
@@ -132,7 +209,13 @@ def build_service_1_deterministic_semantic_proposal_v1(payload: Mapping[str, Any
             }
         )
 
-    relevant_refs = set(concept_role_by_ref)
+    relevant_refs = {
+        str(ref).strip()
+        for concept in concepts
+        if isinstance(concept, Mapping)
+        for ref in (concept.get("target_column_refs") or [])
+        if str(ref).strip()
+    }
     irrelevant_refs = sorted(all_column_refs - relevant_refs)
     return {
         "schema_version": PROPOSAL_SCHEMA_VERSION,

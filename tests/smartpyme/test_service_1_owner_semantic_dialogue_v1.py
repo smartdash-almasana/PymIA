@@ -18,6 +18,9 @@ from pymia.smartpyme.service_1_owner_semantic_dialogue_v1 import (
     apply_service_1_owner_dialogue_response_v1,
     build_service_1_owner_dialogue_plan_v1,
 )
+from pymia.smartpyme.service_1_semantic_compression_v1 import (
+    build_service_1_semantic_compression_v1,
+)
 from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
     SCHEMA_VERSION as VALIDATOR_SCHEMA_VERSION,
     STATUS_READY as VALIDATOR_READY,
@@ -44,6 +47,10 @@ def _validated_packet() -> dict:
                 "evidence_refs": ["ev:column:Ventas.Cantidad:type"],
                 "rationale": "numeric quantity",
                 "reason": None,
+                "compositional_semantic": {
+                    "entity": "sale", "object": "product", "process": "sale",
+                    "measure": "quantity", "grain": "line_item", "scope": "line",
+                },
             },
             {
                 "decision_id": "p-price",
@@ -57,6 +64,10 @@ def _validated_packet() -> dict:
                 "evidence_refs": ["ev:column:Ventas.PrecioUnitario:type"],
                 "rationale": "numeric sale price",
                 "reason": None,
+                "compositional_semantic": {
+                    "entity": "sale", "object": "product", "process": "sale",
+                    "measure": "price", "grain": "line_item", "scope": "line",
+                },
             },
             {
                 "decision_id": "p-cost",
@@ -70,6 +81,10 @@ def _validated_packet() -> dict:
                 "evidence_refs": ["ev:column:Productos.Costo:type"],
                 "rationale": "numeric cost",
                 "reason": None,
+                "compositional_semantic": {
+                    "entity": "product", "object": "product", "process": "purchase",
+                    "measure": "cost", "grain": "product", "scope": "entity",
+                },
             },
             {
                 "decision_id": "p-sales-id",
@@ -137,15 +152,20 @@ def test_sem4_groups_material_concepts_and_asks_relationship_once() -> None:
     plan = build_service_1_owner_dialogue_plan_v1(validated_packet=_validated_packet())
 
     assert plan["status"] == STATUS_READY
-    assert plan["question_count"] == 2
+    assert plan["question_count"] == 3
     assert plan["zero_duplicate_questions"] is True
     assert plan["zero_irrelevant_questions"] is True
     assert plan["all_material_ambiguities_surfaced"] is True
     assert plan["suppressed_irrelevant_refs"] == ["Ventas.CanalVenta"]
 
-    by_kind = {item["decision_kind"]: item for item in plan["decisions"]}
-    relationship = by_kind[DECISION_KIND_RELATIONSHIP]
-    group = by_kind[DECISION_KIND_SEMANTIC_GROUP]
+    relationship = next(
+        item for item in plan["decisions"]
+        if item["decision_kind"] == DECISION_KIND_RELATIONSHIP
+    )
+    groups = [
+        item for item in plan["decisions"]
+        if item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP
+    ]
 
     assert relationship["relationship_refs"] == [
         "Ventas.ProductoID->Productos.ProductoID"
@@ -155,13 +175,25 @@ def test_sem4_groups_material_concepts_and_asks_relationship_once() -> None:
         "p-sales-id",
         "p-product-id",
     }
-    assert set(group["proposal_refs"]) == {"p-qty", "p-price", "p-cost"}
-    assert "Ventas.CanalVenta" not in group["column_refs"]
+    assert {frozenset(group["proposal_refs"]) for group in groups} == {
+        frozenset({"p-qty", "p-price"}),
+    }
+    assert all(len(group["proposal_refs"]) >= 2 for group in groups)
+    assert any(
+        item["decision_kind"] == DECISION_KIND_UNIT_MEANING
+        and item["proposal_refs"] == ["p-cost"]
+        for item in plan["decisions"]
+    )
+    assert all("Ventas.CanalVenta" not in group["column_refs"] for group in groups)
 
 
-def test_sem4_group_rejection_decomposes_to_atomic_without_fabricating_rejections() -> None:
+def test_sem4_group_rejection_decomposes_only_the_same_table_scope() -> None:
     plan = build_service_1_owner_dialogue_plan_v1(validated_packet=_validated_packet())
-    group = next(item for item in plan["decisions"] if item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP)
+    group = next(
+        item for item in plan["decisions"]
+        if item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP
+        and "Ventas.Cantidad" in item["column_refs"]
+    )
 
     response = apply_service_1_owner_dialogue_response_v1(
         dialogue_plan=plan,
@@ -173,8 +205,8 @@ def test_sem4_group_rejection_decomposes_to_atomic_without_fabricating_rejection
     assert {item["proposal_ref"] for item in response["atomic_decisions"]} == {
         "p-qty",
         "p-price",
-        "p-cost",
     }
+    assert "p-cost" not in {item["proposal_ref"] for item in response["atomic_decisions"]}
     assert response["confirmed_by_owner"] is False
 
 
@@ -227,9 +259,13 @@ def test_sem4_targeted_correction_stays_proposal_not_confirmation() -> None:
     assert response["confirmed_by_owner"] is False
 
 
-def test_sem4_ambiguous_correction_degrades_to_granular() -> None:
+def test_sem4_ambiguous_correction_degrades_to_granular_within_table_scope() -> None:
     plan = build_service_1_owner_dialogue_plan_v1(validated_packet=_validated_packet())
-    group = next(item for item in plan["decisions"] if item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP)
+    group = next(
+        item for item in plan["decisions"]
+        if item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP
+        and "Ventas.Cantidad" in item["column_refs"]
+    )
 
     response = apply_service_1_owner_dialogue_response_v1(
         dialogue_plan=plan,
@@ -239,7 +275,10 @@ def test_sem4_ambiguous_correction_degrades_to_granular() -> None:
     )
 
     assert response["status"] == RESPONSE_NEEDS_GRANULAR_CONFIRMATION
-    assert len(response["atomic_decisions"]) == 3
+    assert {item["proposal_ref"] for item in response["atomic_decisions"]} == {
+        "p-qty",
+        "p-price",
+    }
 
 
 def test_sem4_surfaces_material_ambiguity_exactly_once() -> None:
@@ -373,3 +412,35 @@ def test_sem4_atomic_column_can_be_explicitly_skipped_by_owner() -> None:
     assert response["targeted_refs"] == atomic["column_refs"]
     assert response["confirmed_by_owner"] is False
     assert response["runtime_authorized"] is False
+
+
+def test_f8_owner_dialogue_consumes_f7_semantic_units_without_losing_traceability() -> None:
+    packet = _validated_packet()
+    compression = build_service_1_semantic_compression_v1(validated_packet=packet)
+    assert compression["status"] == "SEMANTIC_COMPRESSION_READY"
+
+    plan = build_service_1_owner_dialogue_plan_v1(
+        validated_packet=packet,
+        semantic_compression=compression,
+    )
+
+    assert plan["status"] == STATUS_READY
+    unit_group = next(
+        item for item in plan["decisions"]
+        if item["decision_kind"] == DECISION_KIND_SEMANTIC_GROUP
+        and set(item["proposal_refs"]) == {"p-qty", "p-price"}
+    )
+    assert set(unit_group["column_refs"]) == {"Ventas.Cantidad", "Ventas.PrecioUnitario"}
+    assert len(unit_group["atomic_children"]) == 2
+    assert {child["proposal_ref"] for child in unit_group["atomic_children"]} == {"p-qty", "p-price"}
+    assert plan["zero_duplicate_questions"] is True
+    assert plan["all_material_ambiguities_surfaced"] is True
+
+    response = apply_service_1_owner_dialogue_response_v1(
+        dialogue_plan=plan,
+        decision_id=unit_group["decision_id"],
+        action=ACTION_REJECT,
+    )
+    assert response["status"] == RESPONSE_GROUP_REJECTED_REQUIRES_DECOMPOSITION
+    assert {item["proposal_ref"] for item in response["atomic_decisions"]} == {"p-qty", "p-price"}
+    assert response["confirmed_by_owner"] is False

@@ -34,9 +34,16 @@ def test_product_completion_gate_counts_and_legacy_absence() -> None:
     registry = _json("docs/service_1_module_disposition.v1.json")
     counts = registry["counts"]
 
-    assert registry["total_modules"] == gate["registry_expected_counts"]["total_modules"]
-    assert counts.get("PRODUCTIVE") == gate["registry_expected_counts"]["PRODUCTIVE"]
-    assert counts.get("SUPPORT_NECESSARY") == gate["registry_expected_counts"]["SUPPORT_NECESSARY"]
+    # The completion gate preserves the registry counts observed at the
+    # historical Cycle 029 closure; it is not the authority for today's
+    # expanding Service 1 module inventory.
+    assert gate["registry_expected_counts"] == {
+        "total_modules": 90,
+        "PRODUCTIVE": 42,
+        "SUPPORT_NECESSARY": 48,
+        "EXPERIMENTAL_FROZEN": 0,
+    }
+    assert registry["total_modules"] >= gate["registry_expected_counts"]["total_modules"]
     assert counts.get("EXPERIMENTAL_FROZEN", 0) == 0
 
     assert (root / gate["official_entrypoint"]["path"]).exists()

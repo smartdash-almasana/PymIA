@@ -11,7 +11,7 @@ explicit decisions for the later owner-dialogue planner.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Final
+from typing import Any, Final, Mapping
 
 from pymia.smartpyme.service_1_llm_semantic_contract_v1 import (
     Service1LLMConceptProposalV1,
@@ -20,6 +20,11 @@ from pymia.smartpyme.service_1_llm_semantic_contract_v1 import (
     Service1LLMRelationshipProposalV1,
     Service1LLMSemanticContextV1,
     Service1LLMSemanticProposalV1,
+)
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import (
+    AXES as SEMANTIC_COORDINATE_AXES,
+    Service1SemanticCoordinateV2,
+    load_service_1_semantic_coordinate_taxonomy_v2,
 )
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_SEMANTIC_PROPOSAL_VALIDATOR_V1"
@@ -39,6 +44,12 @@ BLOCK_SEMANTIC_ROLE_NOT_ALLOWED: Final[str] = "BLOCKED_SEMANTIC_ROLE_NOT_ALLOWED
 BLOCK_VARIABLE_NAME_INCOMPATIBLE: Final[str] = "BLOCKED_VARIABLE_NAME_INCOMPATIBLE"
 BLOCK_RELATIONSHIP_REF_NOT_FOUND: Final[str] = "BLOCKED_RELATIONSHIP_REF_NOT_FOUND"
 BLOCK_RELATIONSHIP_TYPE_INCOMPATIBLE: Final[str] = "BLOCKED_RELATIONSHIP_TYPE_INCOMPATIBLE"
+BLOCK_LOGICAL_TABLE_SCOPE_UNRESOLVED: Final[str] = "BLOCKED_LOGICAL_TABLE_SCOPE_UNRESOLVED"
+BLOCK_LOGICAL_TABLE_SCOPE_INCOMPATIBLE: Final[str] = "BLOCKED_LOGICAL_TABLE_SCOPE_INCOMPATIBLE"
+BLOCK_COMPOSITIONAL_SEMANTIC_INVALID: Final[str] = "BLOCKED_COMPOSITIONAL_SEMANTIC_INVALID"
+BLOCK_COMPOSITIONAL_FIELD_REF_MISMATCH: Final[str] = "BLOCKED_COMPOSITIONAL_FIELD_REF_MISMATCH"
+BLOCK_COMPOSITIONAL_EVIDENCE_MISMATCH: Final[str] = "BLOCKED_COMPOSITIONAL_EVIDENCE_MISMATCH"
+BLOCK_RELATIONSHIP_EVIDENCE_MISMATCH: Final[str] = "BLOCKED_RELATIONSHIP_EVIDENCE_MISMATCH"
 
 CONFIDENT_THRESHOLD: Final[float] = 0.80
 
@@ -56,6 +67,13 @@ class Service1ValidatedSemanticDecisionV1:
     evidence_refs: tuple[str, ...]
     rationale: str | None
     reason: str | None
+    logical_table_refs: tuple[str, ...] = ()
+    region_refs: tuple[str, ...] = ()
+    grain_refs: tuple[str, ...] = ()
+    grain_states: tuple[str, ...] = ()
+    relationship_context_refs: tuple[str, ...] = ()
+    scope_conflict_reason: str | None = None
+    compositional_semantic: Any = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -91,6 +109,7 @@ def validate_service_1_semantic_proposal_v1(
     allowed_roles = set(context.allowed_semantic_roles)
     relevant_roles = set(context.capability_relevant_roles)
     deterministic_pairs = _deterministic_role_variable_pairs(context)
+    scope_index = _semantic_scope_index(profile)
 
     hard_error = _hard_validate_refs_and_evidence(
         proposal=proposal,
@@ -99,6 +118,8 @@ def validate_service_1_semantic_proposal_v1(
         allowed_roles=allowed_roles,
         deterministic_pairs=deterministic_pairs,
         relationships=relationships,
+        scope_index=scope_index,
+        compositional_semantic_catalogs=context.compositional_semantic_catalogs
     )
     if hard_error is not None:
         return _blocked(hard_error[0], case_id=context.case_id, detail=hard_error[1])
@@ -110,15 +131,16 @@ def validate_service_1_semantic_proposal_v1(
                 item=item,
                 relevant_roles=relevant_roles,
                 deterministic_pairs=deterministic_pairs,
+                scope_index=scope_index,
             )
         )
     for item in proposal.relationship_proposals:
         decisions.append(
-            _relationship_decision(item=item, relationships=relationships)
+            _relationship_decision(item=item, relationships=relationships, scope_index=scope_index)
         )
     for item in proposal.duplicate_semantics:
         decisions.append(
-            _duplicate_decision(item=item, relevant_roles=relevant_roles)
+            _duplicate_decision(item=item, relevant_roles=relevant_roles, scope_index=scope_index)
         )
     for ref in proposal.irrelevant_refs:
         decisions.append(
@@ -137,7 +159,7 @@ def validate_service_1_semantic_proposal_v1(
             )
         )
     for item in proposal.material_ambiguities:
-        decisions.append(_ambiguity_decision(item))
+        decisions.append(_ambiguity_decision(item, scope_index=scope_index))
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -164,6 +186,8 @@ def _hard_validate_refs_and_evidence(
     allowed_roles: set[str],
     deterministic_pairs: set[tuple[str, str]],
     relationships: dict[tuple[str, str], dict[str, Any]],
+    scope_index: dict[str, dict[str, Any]],
+    compositional_semantic_catalogs: Mapping[str, tuple[str, ...]],
 ) -> tuple[str, Any] | None:
     real_refs = set(columns)
 
@@ -174,13 +198,68 @@ def _hard_validate_refs_and_evidence(
         missing_evidence = set(item.evidence_refs) - set(evidence_registry)
         if missing_evidence:
             return BLOCK_EVIDENCE_REF_NOT_FOUND, sorted(missing_evidence)
-        if item.semantic_role not in allowed_roles:
+        if item.compositional_semantic is not None:
+            try:
+                semantic_payload = item.compositional_semantic
+                descriptor = Service1SemanticCoordinateV2(
+                    field_ref=semantic_payload.get("field_ref") or item.target_column_refs[0],
+                    **{
+                        axis: semantic_payload.get(axis)
+                        for axis in SEMANTIC_COORDINATE_AXES
+                    },
+                    confidence=semantic_payload.get("confidence"),
+                    evidence=tuple(semantic_payload.get("evidence") or ()),
+                    source=semantic_payload.get("source") or "LLM_C2_PROPOSAL",
+                ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())
+            except (AttributeError, TypeError, ValueError, IndexError):
+                return BLOCK_COMPOSITIONAL_SEMANTIC_INVALID, item.proposal_id
+            for axis in SEMANTIC_COORDINATE_AXES:
+                value = getattr(descriptor, axis)
+                if value is not None and value not in set(compositional_semantic_catalogs.get(axis, ())):
+                    return BLOCK_COMPOSITIONAL_SEMANTIC_INVALID, item.proposal_id
+            if len(item.target_column_refs) != 1 or descriptor.field_ref != item.target_column_refs[0]:
+                return BLOCK_COMPOSITIONAL_FIELD_REF_MISMATCH, {
+                    "proposal_id": item.proposal_id,
+                    "descriptor_field_ref": descriptor.field_ref,
+                    "target_column_refs": list(item.target_column_refs),
+                }
+            if set(descriptor.evidence) != set(item.evidence_refs):
+                return BLOCK_COMPOSITIONAL_EVIDENCE_MISMATCH, {
+                    "proposal_id": item.proposal_id,
+                    "descriptor_evidence": list(descriptor.evidence),
+                    "proposal_evidence_refs": list(item.evidence_refs),
+                }
+            if item.semantic_role is not None or item.variable_name is not None:
+                return BLOCK_COMPOSITIONAL_SEMANTIC_INVALID, item.proposal_id
+        elif item.semantic_role not in allowed_roles:
             return BLOCK_SEMANTIC_ROLE_NOT_ALLOWED, item.semantic_role
-        if deterministic_pairs and (item.semantic_role, item.variable_name) not in deterministic_pairs:
+        if (
+            item.compositional_semantic is None
+            and item.semantic_role is not None
+            and item.variable_name is not None
+            and deterministic_pairs
+            and (item.semantic_role, item.variable_name) not in deterministic_pairs
+        ):
             return BLOCK_VARIABLE_NAME_INCOMPATIBLE, {
                 "semantic_role": item.semantic_role,
                 "variable_name": item.variable_name,
             }
+        if scope_index:
+            scopes = [scope_index.get(ref) for ref in item.target_column_refs]
+            if any(scope is None or scope.get("scope_state") != "RESOLVED" for scope in scopes):
+                return BLOCK_LOGICAL_TABLE_SCOPE_UNRESOLVED, list(item.target_column_refs)
+            tables = {str(scope.get("logical_table_ref") or "") for scope in scopes if scope is not None}
+            resolved_grains = {
+                str(scope.get("grain_ref") or "")
+                for scope in scopes
+                if scope is not None and scope.get("grain_state") == "RESOLVED" and scope.get("grain_ref")
+            }
+            if len(tables) != 1 or len(resolved_grains) > 1:
+                return BLOCK_LOGICAL_TABLE_SCOPE_INCOMPATIBLE, {
+                    "target_refs": list(item.target_column_refs),
+                    "logical_table_refs": sorted(tables),
+                    "grain_refs": sorted(resolved_grains),
+                }
 
     for item in proposal.relationship_proposals:
         missing = {item.left_column_ref, item.right_column_ref} - real_refs
@@ -196,6 +275,17 @@ def _hard_validate_refs_and_evidence(
                 "right": item.right_column_ref,
             }
         expected = str(structural.get("relationship_kind") or "").strip()
+        structural_ref = str(structural.get("relationship_ref") or "").strip()
+        if structural_ref:
+            expected_prefix = f"ev:relationship:{structural_ref}:"
+            if not item.evidence_refs or any(
+                not str(ref).startswith(expected_prefix) for ref in item.evidence_refs
+            ):
+                return BLOCK_RELATIONSHIP_EVIDENCE_MISMATCH, {
+                    "relationship_id": item.relationship_id,
+                    "relationship_ref": structural_ref,
+                    "evidence_refs": list(item.evidence_refs),
+                }
         if expected and item.relationship_type != expected:
             return BLOCK_RELATIONSHIP_TYPE_INCOMPATIBLE, {
                 "proposed": item.relationship_type,
@@ -235,8 +325,13 @@ def _concept_decision(
     item: Service1LLMConceptProposalV1,
     relevant_roles: set[str],
     deterministic_pairs: set[tuple[str, str]],
+    scope_index: dict[str, dict[str, Any]],
 ) -> Service1ValidatedSemanticDecisionV1:
-    relevant = not relevant_roles or item.semantic_role in relevant_roles
+    relevant = (
+        not relevant_roles
+        or item.semantic_role in relevant_roles
+        or item.compositional_semantic is not None
+    )
     if not relevant:
         status = DECISION_IRRELEVANT_FOR_CAPABILITY
         reason = "Role is valid but not relevant to requested capability."
@@ -246,9 +341,16 @@ def _concept_decision(
     else:
         status = DECISION_MATERIAL_AMBIGUOUS
         reason = "Proposal confidence is below deterministic confidence threshold."
-    if deterministic_pairs and (item.semantic_role, item.variable_name) not in deterministic_pairs:
+    if (
+        item.compositional_semantic is None
+        and item.semantic_role is not None
+        and item.variable_name is not None
+        and deterministic_pairs
+        and (item.semantic_role, item.variable_name) not in deterministic_pairs
+    ):
         status = DECISION_CONFLICTING_EVIDENCE
         reason = "Semantic role and variable pair conflicts with deterministic hypotheses."
+    scope = _decision_scope(tuple(item.target_column_refs), scope_index)
     return Service1ValidatedSemanticDecisionV1(
         decision_id=item.proposal_id,
         source_kind="CONCEPT",
@@ -261,6 +363,13 @@ def _concept_decision(
         evidence_refs=tuple(item.evidence_refs),
         rationale=item.rationale,
         reason=reason,
+        logical_table_refs=scope["logical_table_refs"],
+        region_refs=scope["region_refs"],
+        grain_refs=scope["grain_refs"],
+        grain_states=scope["grain_states"],
+        relationship_context_refs=scope["relationship_context_refs"],
+        scope_conflict_reason=scope["scope_conflict_reason"],
+        compositional_semantic=item.compositional_semantic,
     )
 
 
@@ -268,6 +377,7 @@ def _relationship_decision(
     *,
     item: Service1LLMRelationshipProposalV1,
     relationships: dict[tuple[str, str], dict[str, Any]],
+    scope_index: dict[str, dict[str, Any]],
 ) -> Service1ValidatedSemanticDecisionV1:
     structural = relationships[(item.left_column_ref, item.right_column_ref)]
     structural_kind = str(structural.get("relationship_kind") or "").strip()
@@ -276,6 +386,7 @@ def _relationship_decision(
         if item.confidence >= CONFIDENT_THRESHOLD and item.relationship_type == structural_kind
         else DECISION_MATERIAL_AMBIGUOUS
     )
+    scope = _decision_scope((item.left_column_ref, item.right_column_ref), scope_index)
     return Service1ValidatedSemanticDecisionV1(
         decision_id=item.relationship_id,
         source_kind="RELATIONSHIP",
@@ -288,6 +399,12 @@ def _relationship_decision(
         evidence_refs=tuple(item.evidence_refs),
         rationale=item.rationale,
         reason=None if status == DECISION_MATERIAL_CONFIDENT else "Relationship needs owner confirmation.",
+        logical_table_refs=scope["logical_table_refs"],
+        region_refs=scope["region_refs"],
+        grain_refs=scope["grain_refs"],
+        grain_states=scope["grain_states"],
+        relationship_context_refs=scope["relationship_context_refs"],
+        scope_conflict_reason=scope["scope_conflict_reason"],
     )
 
 
@@ -295,6 +412,7 @@ def _duplicate_decision(
     *,
     item: Service1LLMDuplicateSemanticProposalV1,
     relevant_roles: set[str],
+    scope_index: dict[str, dict[str, Any]],
 ) -> Service1ValidatedSemanticDecisionV1:
     if relevant_roles and item.proposed_shared_role not in relevant_roles:
         status = DECISION_IRRELEVANT_FOR_CAPABILITY
@@ -306,6 +424,10 @@ def _duplicate_decision(
             else DECISION_MATERIAL_AMBIGUOUS
         )
         reason = None if status == DECISION_MATERIAL_CONFIDENT else "Duplicate semantic proposal needs owner confirmation."
+    scope = _decision_scope(tuple(item.column_refs), scope_index)
+    if scope["scope_conflict_reason"] is not None:
+        status = DECISION_CONFLICTING_EVIDENCE
+        reason = scope["scope_conflict_reason"]
     return Service1ValidatedSemanticDecisionV1(
         decision_id=item.duplicate_id,
         source_kind="DUPLICATE_SEMANTICS",
@@ -318,10 +440,21 @@ def _duplicate_decision(
         evidence_refs=tuple(item.evidence_refs),
         rationale=item.rationale,
         reason=reason,
+        logical_table_refs=scope["logical_table_refs"],
+        region_refs=scope["region_refs"],
+        grain_refs=scope["grain_refs"],
+        grain_states=scope["grain_states"],
+        relationship_context_refs=scope["relationship_context_refs"],
+        scope_conflict_reason=scope["scope_conflict_reason"],
     )
 
 
-def _ambiguity_decision(item: Service1LLMMaterialAmbiguityV1) -> Service1ValidatedSemanticDecisionV1:
+def _ambiguity_decision(
+    item: Service1LLMMaterialAmbiguityV1,
+    *,
+    scope_index: dict[str, dict[str, Any]],
+) -> Service1ValidatedSemanticDecisionV1:
+    scope = _decision_scope(tuple(item.target_refs), scope_index)
     return Service1ValidatedSemanticDecisionV1(
         decision_id=item.ambiguity_id,
         source_kind="MATERIAL_AMBIGUITY",
@@ -334,7 +467,105 @@ def _ambiguity_decision(item: Service1LLMMaterialAmbiguityV1) -> Service1Validat
         evidence_refs=tuple(item.evidence_refs),
         rationale=None,
         reason=item.reason,
+        logical_table_refs=scope["logical_table_refs"],
+        region_refs=scope["region_refs"],
+        grain_refs=scope["grain_refs"],
+        grain_states=scope["grain_states"],
+        relationship_context_refs=scope["relationship_context_refs"],
+        scope_conflict_reason=scope["scope_conflict_reason"],
     )
+
+
+def _semantic_scope_index(profile: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    scopes = [
+        dict(item)
+        for item in profile.get("logical_table_scopes") or ()
+        if isinstance(item, dict)
+    ]
+    if not scopes:
+        return {}
+    result: dict[str, dict[str, Any]] = {}
+    by_identity: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for scope in scopes:
+        direct = str(scope.get("column_ref") or "").strip()
+        if direct:
+            result[direct] = scope
+        identity = (
+            str(scope.get("sheet_ref") or "").strip(),
+            _normalize_scope_header(scope.get("normalized_header")),
+        )
+        if all(identity):
+            by_identity.setdefault(identity, []).append(scope)
+    for column in profile.get("columns") or ():
+        if not isinstance(column, dict):
+            continue
+        ref = str(column.get("column_ref") or "").strip()
+        identity = (
+            str(column.get("sheet_name") or column.get("sheet_ref") or "").strip(),
+            _normalize_scope_header(
+                column.get("normalized_header")
+                or column.get("normalized_column_name")
+                or column.get("column_name")
+            ),
+        )
+        matches = by_identity.get(identity, [])
+        if ref and len(matches) == 1:
+            result[ref] = matches[0]
+    return result
+
+
+def _decision_scope(
+    target_refs: tuple[str, ...],
+    scope_index: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    scopes = [scope_index[ref] for ref in target_refs if ref in scope_index]
+    tables = tuple(dict.fromkeys(
+        str(scope.get("logical_table_ref") or "").strip()
+        for scope in scopes
+        if str(scope.get("logical_table_ref") or "").strip()
+    ))
+    regions = tuple(dict.fromkeys(
+        str(ref).strip()
+        for scope in scopes
+        for ref in (scope.get("region_refs") or ())
+        if str(ref).strip()
+    ))
+    grain_refs = tuple(dict.fromkeys(
+        str(scope.get("grain_ref") or "").strip()
+        for scope in scopes
+        if str(scope.get("grain_ref") or "").strip()
+    ))
+    grain_states = tuple(dict.fromkeys(
+        str(scope.get("grain_state") or "UNRESOLVED").strip()
+        for scope in scopes
+    ))
+    relationship_refs = tuple(dict.fromkeys(
+        str(ref).strip()
+        for scope in scopes
+        for ref in (scope.get("relationship_context_refs") or ())
+        if str(ref).strip()
+    ))
+    conflict: str | None = None
+    if scope_index and len(scopes) != len(target_refs):
+        conflict = "LOGICAL_TABLE_SCOPE_UNRESOLVED"
+    elif len(tables) > 1:
+        conflict = "CROSS_TABLE_SCOPE_CONFLICT"
+    elif len(grain_refs) > 1:
+        conflict = "CROSS_GRAIN_SCOPE_CONFLICT"
+    elif any(scope.get("scope_state") != "RESOLVED" for scope in scopes):
+        conflict = "LOGICAL_TABLE_SCOPE_UNRESOLVED"
+    return {
+        "logical_table_refs": tables,
+        "region_refs": regions,
+        "grain_refs": grain_refs,
+        "grain_states": grain_states,
+        "relationship_context_refs": relationship_refs,
+        "scope_conflict_reason": conflict,
+    }
+
+
+def _normalize_scope_header(value: Any) -> str:
+    return " ".join(str(value or "").strip().casefold().split())
 
 
 def _deterministic_role_variable_pairs(context: Service1LLMSemanticContextV1) -> set[tuple[str, str]]:
@@ -399,6 +630,9 @@ __all__ = [
     "BLOCK_VARIABLE_NAME_INCOMPATIBLE",
     "BLOCK_RELATIONSHIP_REF_NOT_FOUND",
     "BLOCK_RELATIONSHIP_TYPE_INCOMPATIBLE",
+    "BLOCK_LOGICAL_TABLE_SCOPE_UNRESOLVED",
+    "BLOCK_LOGICAL_TABLE_SCOPE_INCOMPATIBLE",
+    "BLOCK_COMPOSITIONAL_SEMANTIC_INVALID",
     "CONFIDENT_THRESHOLD",
     "Service1ValidatedSemanticDecisionV1",
     "validate_service_1_semantic_proposal_v1",

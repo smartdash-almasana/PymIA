@@ -344,21 +344,25 @@ def _event_answers_by_candidate_ref(
     candidate_refs = {_candidate_ref_id(candidate) for candidate in candidate_list}
     identity_to_ref = {
         (
-            str(candidate.sheet_name or "sheet1").strip(),
+            str(candidate.sheet_name or "").strip(),
             str(candidate.source_column_name or "").strip(),
         ): _candidate_ref_id(candidate)
         for candidate in candidate_list
+        if str(candidate.sheet_name or "").strip()
+        and str(candidate.source_column_name or "").strip()
     }
     answers: dict[str, str] = {}
     for event in raw_events:
         if not isinstance(event, dict) or event.get("confirmed_by_owner") is not True:
             continue
         scope = str(event.get("confirmation_scope") or "").strip()
-        if scope not in {"SEMANTIC_ROLE", "COLUMN_EXCLUSION"}:
+        if scope not in {"SEMANTIC_ROLE", "COMPOSITIONAL_SEMANTIC", "COLUMN_EXCLUSION"}:
             continue
         answer = (
             "IGNORED_NOT_RELEVANT"
             if scope == "COLUMN_EXCLUSION"
+            else "__COMPOSITIONAL_SEMANTIC__"
+            if scope == "COMPOSITIONAL_SEMANTIC"
             else str(event.get("confirmed_role") or "").strip()
         )
         if not answer:
@@ -412,18 +416,28 @@ def _reinject(
             else:
                 roles = tuple(candidate.candidate_semantic_roles or ())
                 variables = tuple(candidate.candidate_variable_names or ())
-                index = roles.index(answer)
-                variable = variables[index] if index < len(variables) else "unknown"
-                result.append(
-                    replace(
-                        candidate,
-                        candidate_semantic_roles=(answer,),
-                        candidate_variable_names=(variable,),
-                        owner_confirmation_required=False,
-                        ambiguity_reason=None,
-                        metadata=new_metadata,
+                if answer == "__COMPOSITIONAL_SEMANTIC__":
+                    result.append(
+                        replace(
+                            candidate,
+                            owner_confirmation_required=False,
+                            ambiguity_reason=None,
+                            metadata=new_metadata,
+                        )
                     )
-                )
+                else:
+                    index = roles.index(answer)
+                    variable = variables[index] if index < len(variables) else "unknown"
+                    result.append(
+                        replace(
+                            candidate,
+                            candidate_semantic_roles=(answer,),
+                            candidate_variable_names=(variable,),
+                            owner_confirmation_required=False,
+                            ambiguity_reason=None,
+                            metadata=new_metadata,
+                        )
+                    )
         else:
             result.append(candidate)
     return result

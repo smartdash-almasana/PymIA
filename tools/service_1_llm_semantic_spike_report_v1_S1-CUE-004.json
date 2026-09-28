@@ -1,0 +1,107 @@
+{
+  "schema_version": "SERVICE_1_LLM_SEMANTIC_SPIKE_V1",
+  "model": "gemini-2.5-flash",
+  "runtime": "pydantic_ai_vertex",
+  "baseline": {
+    "columns_count": 6,
+    "exact_matches": 6,
+    "safe_questions": 0,
+    "safe_unknowns": 0,
+    "false_confident": 0,
+    "missed_questions": 0,
+    "dangerous_errors": 0,
+    "exact_match_rate": 1.0
+  },
+  "llm_direct": {
+    "columns_count": 6,
+    "exact_matches": 6,
+    "safe_questions": 0,
+    "safe_unknowns": 0,
+    "false_confident": 0,
+    "missed_questions": 0,
+    "dangerous_errors": 0,
+    "exact_match_rate": 1.0,
+    "rows": [
+      {
+        "case_id": "S1-CUE-004",
+        "sheet_name": "Cobros",
+        "column_name": "fecha",
+        "expected_semantic_role": "operation_date",
+        "expected_variable_name": "business_period",
+        "predicted_semantic_role": "operation_date",
+        "predicted_variable_name": "business_period",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-004",
+        "sheet_name": "Cobros",
+        "column_name": "cliente",
+        "expected_semantic_role": "customer_name",
+        "expected_variable_name": "customer",
+        "predicted_semantic_role": "customer_name",
+        "predicted_variable_name": "customer",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-004",
+        "sheet_name": "Cobros",
+        "column_name": "factura",
+        "expected_semantic_role": "document_reference",
+        "expected_variable_name": "document_ref",
+        "predicted_semantic_role": "document_reference",
+        "predicted_variable_name": "document_ref",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-004",
+        "sheet_name": "Cobros",
+        "column_name": "cobrado",
+        "expected_semantic_role": "collected_amount",
+        "expected_variable_name": "collected_amount",
+        "predicted_semantic_role": "collected_amount",
+        "predicted_variable_name": "collected_amount",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": true
+      },
+      {
+        "case_id": "S1-CUE-004",
+        "sheet_name": "Cobros",
+        "column_name": "pendiente",
+        "expected_semantic_role": "accounts_receivable_amount",
+        "expected_variable_name": "accounts_receivable",
+        "predicted_semantic_role": "accounts_receivable_amount",
+        "predicted_variable_name": "accounts_receivable",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": true
+      },
+      {
+        "case_id": "S1-CUE-004",
+        "sheet_name": "Cobros",
+        "column_name": "medio_pago",
+        "expected_semantic_role": "payment_method",
+        "expected_variable_name": "payment_method",
+        "predicted_semantic_role": "payment_method",
+        "predicted_variable_name": "payment_method",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      }
+    ],
+    "model_output_invalid": []
+  },
+  "decision": "LLM_DIRECT_PROMISING"
+}

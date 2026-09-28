@@ -64,7 +64,7 @@ def test_a4_005_out_of_period_dates_require_explicit_period_signal() -> None:
 
 
 def test_a4_005_does_not_infer_period_when_period_ref_is_absent() -> None:
-    source = Path(__file__).resolve().parents[2] / "excel-prueba" / "S1_A4_ADV_005_out_of_period_dates.xlsx"
+    source = Path(__file__).resolve().parents[2] / "excel-prueba" / "03_moneda_y_temporalidad" / "S1_A4_ADV_005_out_of_period_dates.xlsx"
     curated = curate_xlsx_document(source)
 
     assert "__out_of_period_dates__" not in curated.report.ambiguous_fields

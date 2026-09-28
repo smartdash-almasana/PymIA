@@ -4,10 +4,12 @@ from types import SimpleNamespace
 
 import pytest
 
+import pymia.smartpyme.service_1_supabase_persistence_v1 as persistence_module
 from pymia.smartpyme.service_1_owner_confirmation_event_v1 import (
     build_service_1_owner_confirmation_event_v1,
 )
 from pymia.smartpyme.service_1_supabase_persistence_v1 import (
+    ANALYSIS_RESULT_MEMORY_TABLE,
     OWNER_CONFIRMATIONS_TABLE,
     SEMANTIC_CONTRACTS_TABLE,
     SUPABASE_SERVICE_ROLE_KEY_ENV,
@@ -467,3 +469,55 @@ def test_persisted_case_read_model_blocks_cross_tenant_payload():
 
     with pytest.raises(Service1SupabasePersistenceErrorV1, match="crossed tenant/case boundary"):
         adapter.load_persisted_case("tenant-acme", "case_abc")
+
+
+def test_list_result_memory_limits_newest_records_but_returns_chronological_order(monkeypatch):
+    monkeypatch.setattr(
+        persistence_module,
+        "service_1_result_memory_record_from_mapping_v1",
+        lambda payload: SimpleNamespace(
+            tenant_id=payload["tenant_id"],
+            analysis_id=payload["analysis_id"],
+            memory_record_id=payload["memory_record_id"],
+        ),
+    )
+    client = _Client(
+        {
+            ANALYSIS_RESULT_MEMORY_TABLE: [
+                {
+                    "tenant_id": "tenant-acme",
+                    "analysis_id": "analysis-1",
+                    "period_start": "2026-02-01",
+                    "executed_at": "2026-02-02T00:00:00Z",
+                    "memory_record_id": "newer",
+                    "record_payload": {
+                        "tenant_id": "tenant-acme",
+                        "analysis_id": "analysis-1",
+                        "memory_record_id": "newer",
+                    },
+                },
+                {
+                    "tenant_id": "tenant-acme",
+                    "analysis_id": "analysis-1",
+                    "period_start": "2026-01-01",
+                    "executed_at": "2026-01-02T00:00:00Z",
+                    "memory_record_id": "older",
+                    "record_payload": {
+                        "tenant_id": "tenant-acme",
+                        "analysis_id": "analysis-1",
+                        "memory_record_id": "older",
+                    },
+                },
+            ]
+        }
+    )
+    adapter = Service1SupabasePersistenceAdapterV1(client)
+
+    records = adapter.list_result_memory("tenant-acme", "analysis-1", limit=2)
+
+    assert [record.memory_record_id for record in records] == ["older", "newer"]
+    order_calls = [call for call in client.calls if len(call) > 1 and call[1] == "order"]
+    assert order_calls == [
+        (ANALYSIS_RESULT_MEMORY_TABLE, "order", "period_start", {"desc": True}),
+        (ANALYSIS_RESULT_MEMORY_TABLE, "order", "executed_at", {"desc": True}),
+    ]

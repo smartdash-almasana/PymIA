@@ -1,0 +1,436 @@
+{
+  "claims": [
+    {
+      "id": "CL-001",
+      "scope": "architecture_authority",
+      "statement": "Una sola raíz productiva de ejecución: pymia/smartpyme/service_1_product_pipeline_v1.py",
+      "sources": ["HANDOFF§1.3", "ARCH_LOCK_café§2", "ARCH_LOCK_pymia§2", "CANONICAL_AXIS_café§26", "CANONICAL_AXIS_pymia§27", "CURRENT_STATE_café§4", "CURRENT_STATE_pymia§1", "RECONSTRUCTION_R4"]
+    },
+    {
+      "id": "CL-002",
+      "scope": "architecture_authority",
+      "statement": "ResultReadBoundary separado de ejecución (lee F13, no recalcula)",
+      "sources": ["HANDOFF§9#PROBLEMA_2", "ARCH_LOCK_café§13.9,§14.9", "CANONICAL_AXIS_café§A2,§A18", "CURRENT_STATE_café§cadena_canónica", "RECONSTRUCTION_R9"]
+    },
+    {
+      "id": "CL-003",
+      "scope": "architecture_authority",
+      "statement": "4 commands explícitos de ejecución: WorkbookSemanticStartRequest, WorkbookSemanticContinueRequest, WorkbookAnalysisExecuteRequest, SpecializedDomainExecuteRequest",
+      "sources": ["ARCH_LOCK_café§13.4,§14.3", "CANONICAL_AXIS_café§A2,§A9", "CURRENT_STATE_café§cadena_canónica", "RECONSTRUCTION_R4"]
+    },
+    {
+      "id": "CL-004",
+      "scope": "architecture_authority",
+      "statement": "CanonicalIngestionOutput V2 self-contained, inmutable para callers (CLI reinjection debe desaparecer)",
+      "sources": ["ARCH_LOCK_café§13.5,§14.2", "CANONICAL_AXIS_café§A3,§A12", "CURRENT_STATE_café§cadena_canónica", "RECONSTRUCTION_R1"]
+    },
+    {
+      "id": "CL-005",
+      "scope": "architecture_authority",
+      "statement": "D1–D7 obligatorios para WORKBOOK (no saltar, no fabricar sheet1)",
+      "sources": ["ARCH_LOCK_café§13.5", "CANONICAL_AXIS_café§A4", "RECONSTRUCTION_R1→R2"]
+    },
+    {
+      "id": "CL-006",
+      "scope": "architecture_authority",
+      "statement": "D7 = evidence only, no autoridad (runtime/product/delivery/grain/computability/join/rebind/reuse)",
+      "sources": ["ARCH_LOCK_café§13.5,§13.6", "CANONICAL_AXIS_café§A5", "CURRENT_STATE_café§4"]
+    },
+    {
+      "id": "CL-007",
+      "scope": "architecture_authority",
+      "statement": "Una sola FSM semántica productiva, provider-neutral (deterministic provider = provider de misma FSM)",
+      "sources": ["ARCH_LOCK_café§13.6,§14.3", "CANONICAL_AXIS_café§A10", "RECONSTRUCTION_R3", "C2§16"]
+    },
+    {
+      "id": "CL-008",
+      "scope": "architecture_authority",
+      "statement": "Table-scoped semantics construido una vez en D6/D7 (SEM no reconstruye)",
+      "sources": ["ARCH_LOCK_café§13.6,§14.4", "CANONICAL_AXIS_café§A11", "RECONSTRUCTION_R2"]
+    },
+    {
+      "id": "CL-009",
+      "scope": "architecture_authority",
+      "statement": "Identidad content-addressed: source_artifact_ref=xlsx:sha256:<bytes>, workbook_ref=digest(...), sheet_ref=digest(...); filename/sheet_name=provenance/display only",
+      "sources": ["ARCH_LOCK_café§13.5,§14.1", "CANONICAL_AXIS_café§A7,§A13", "CURRENT_STATE_café§2", "RECONSTRUCTION_R1"]
+    },
+    {
+      "id": "CL-010",
+      "scope": "architecture_authority",
+      "statement": "Autoridad matemática única: formula_contract.py + FormulaEngineService + MathPrimitiveOperation + formula_rules_v1.json; no segundo motor",
+      "sources": ["HANDOFF§1.3", "ARCH_LOCK_café§13.6,§14.5", "CANONICAL_AXIS_café§A14", "CURRENT_STATE_café§6", "RECONSTRUCTION_R7"]
+    },
+    {
+      "id": "CL-011",
+      "scope": "architecture_authority",
+      "statement": "Clasificación empresarial declarativa sin aritmética (ClassificationPredicate/ClassificationRule ALL/ANY)",
+      "sources": ["ARCH_LOCK_café§13.6,§14.6", "CANONICAL_AXIS_café§A15", "RECONSTRUCTION_R7"]
+    },
+    {
+      "id": "CL-012",
+      "scope": "architecture_authority",
+      "statement": "SpecializedDomainExecuteRequest criterio cerrado anti-basurero (7 condiciones; LIQ_001/REN_001 NO specialized)",
+      "sources": ["ARCH_LOCK_café§13.6,§14.7", "CANONICAL_AXIS_café§A16", "CURRENT_STATE_café§4", "RECONSTRUCTION_R8"]
+    },
+    {
+      "id": "CL-013",
+      "scope": "architecture_authority",
+      "statement": "D4→P8→F7 provenance gobernada: D4 evidence authority, P8 computability/provenance, F7 sole join materializer + runtime safety",
+      "sources": ["ARCH_LOCK_café§13.6,§14.8", "CANONICAL_AXIS_café§A17", "RECONSTRUCTION_R6"]
+    },
+    {
+      "id": "CL-014",
+      "scope": "architecture_authority",
+      "statement": "Entropía debe reducirse/mantenerse en cero (12 métricas: productive_paths, compatibility_shims, etc.)",
+      "sources": ["ARCH_LOCK_café§14.10", "RECONSTRUCTION_principio"]
+    },
+    {
+      "id": "CL-015",
+      "scope": "llm_authority",
+      "statement": "LLM NO authority: no calcula, no autoriza runtime/tools/persistence/delivery, no diagnostica, no inventa refs/valores",
+      "sources": ["HANDOFF§1.4", "ARCH_LOCK_café§9,§13.6", "CANONICAL_AXIS_café§reglas", "CURRENT_STATE_café§7,§invariantes", "C2§8,§16"]
+    },
+    {
+      "id": "CL-016",
+      "scope": "llm_authority",
+      "statement": "Owner confirmation = evidencia, no permiso (no sustituye P6/P7/P8)",
+      "sources": ["HANDOFF§1.4", "ARCH_LOCK_café§9", "CANONICAL_AXIS_café§reglas", "CURRENT_STATE_café§invariantes", "C2§7"]
+    },
+    {
+      "id": "CL-017",
+      "scope": "llm_authority",
+      "statement": "EXTERNAL_LLM_RUNTIME_ACTIVATION = NOT_PROVEN / NOT_YET_PROVEN",
+      "sources": ["HANDOFF§5", "CURRENT_STATE_pymia§7", "CURRENT_STATE_café§7", "C2§16"]
+    },
+    {
+      "id": "CL-018",
+      "scope": "module_classification",
+      "statement": "Module classification (cafeteria worktree): TOTAL=111, PRODUCTIVE=63, SUPPORT_NECESSARY=47, EXPERIMENTAL_FROZEN=1",
+      "sources": ["ARCH_LOCK_café§3"]
+    },
+    {
+      "id": "CL-019",
+      "scope": "module_classification",
+      "statement": "Module classification (PymIA/main al 2026-07-29): TOTAL=60, PRODUCTIVE=30, SUPPORT_NECESSARY=30",
+      "sources": ["ARCH_LOCK_pymia§3", "CANONICAL_AXIS_pymia§145", "CANONICAL_AXIS_café§147"]
+    },
+    {
+      "id": "CL-020",
+      "scope": "f13_rc_status",
+      "statement": "F13 contrato: content-addressed snapshot inmutable en Supabase append-only; gate remoto 10 checks PASS (RLS, append-only, tenant isolation, idempotent replay)",
+      "sources": ["HANDOFF§4", "CURRENT_STATE_café§8"]
+    },
+    {
+      "id": "CL-021",
+      "scope": "f13_rc_status",
+      "statement": "F13 persiste pero 'Mis análisis' no consume memoria longitudinal (TENANT_RESULTSET_REENTRY_UI = NOT IMPLEMENTED)",
+      "sources": ["HANDOFF§9#PROBLEMA_2", "AUDIT_S1-AUD-006,007"]
+    },
+    {
+      "id": "CL-022",
+      "scope": "f13_rc_status",
+      "statement": "RC1: converger raíz productiva (WEB_DIRECT_F7/F8/F9_CALLS=0, PRODUCT_ROOT_GENERIC_ANALYSIS=PASS) — commit 8a4b6ac",
+      "sources": ["HANDOFF§11", "CURRENT_STATE_café§9#RC1"]
+    },
+    {
+      "id": "CL-023",
+      "scope": "f13_rc_status",
+      "statement": "RC2: limpiar estado stale (READY A → BLOCKED B → last_review_result = None) — commit f57d0ab",
+      "sources": ["HANDOFF§12", "CURRENT_STATE_café§9#RC2"]
+    },
+    {
+      "id": "CL-024",
+      "scope": "f13_rc_status",
+      "statement": "RC3: reentrada ResultSets (/cases → list_result_memory → load exact record → revalidate → render persisted ResultSet; XLSX_RELOAD=0, LLM_CALLS=0, SEMANTIC_REBIND=0, RECALCULATION=0, PRODUCT_ROOT_EXECUTION_ON_REENTRY=0) — commit 07f1f9b CLOSED_COMMITTED_FROZEN",
+      "sources": ["HANDOFF§13", "CURRENT_STATE_café§9#RC3"]
+    },
+    {
+      "id": "CL-025",
+      "scope": "f13_rc_status",
+      "statement": "RC4: sincronización documental — CLOSED_BY_DOCUMENTATION_SYNC",
+      "sources": ["HANDOFF§14", "CURRENT_STATE_café§45"]
+    },
+    {
+      "id": "CL-026",
+      "scope": "f13_rc_status",
+      "statement": "RC5: deploy exact committed SHA + real external LLM proof — PENDING",
+      "sources": ["HANDOFF§15", "CURRENT_STATE_café§11"]
+    },
+    {
+      "id": "CL-027",
+      "scope": "f13_rc_status",
+      "statement": "RC6: acceptance online cafetería — PENDING",
+      "sources": ["HANDOFF§16", "CURRENT_STATE_café§11"]
+    },
+    {
+      "id": "CL-028",
+      "scope": "f13_rc_status",
+      "statement": "RC7: reentry online after restart — PENDING",
+      "sources": ["HANDOFF§17", "CURRENT_STATE_café§11"]
+    },
+    {
+      "id": "CL-029",
+      "scope": "production_certification",
+      "statement": "SERVICE_1_PRODUCTION_CERTIFICATION_V1 = PASS (LIQ_001, REN_001, WORKING_CAPITAL = PRODUCTION_CERTIFIED)",
+      "sources": ["CURRENT_STATE_pymia§1", "CURRENT_STATE_café§10"]
+    },
+    {
+      "id": "CL-030",
+      "scope": "production_certification",
+      "statement": "PRODUCTION_APP_SHA = d2c9c24 (PRODUCTION_CLOUD_RUN_REVISION = pymia-service1-00008-mtf, PRODUCTION_TRAFFIC=100%)",
+      "sources": ["CURRENT_STATE_pymia§1", "CURRENT_STATE_café§2"]
+    },
+    {
+      "id": "CL-031",
+      "scope": "production_certification",
+      "statement": "SERVICE_1_RELEASE_CANDIDATE_ACCEPTED = NO (F0-F13 CLOSED_COMMITTED pero release candidate no aceptado)",
+      "sources": ["HANDOFF§28", "CURRENT_STATE_café§1#VERDICTO"]
+    },
+    {
+      "id": "CL-032",
+      "scope": "production_certification",
+      "statement": "FULL_SUITE_CURRENT_RC = NOT_OBSERVED (MCP 502); LAST_AUDIT_FULL_SUITE = 3806 passed / 77 failed / 7 skipped / 3 errors",
+      "sources": ["HANDOFF§7", "CURRENT_STATE_café§12"]
+    },
+    {
+      "id": "CL-033",
+      "scope": "production_certification",
+      "statement": "COMMIT_PUSH_DEPLOY = NOT_AUTHORIZED",
+      "sources": ["CURRENT_STATE_café§override", "CURRENT_STATE_pymia§10"]
+    },
+    {
+      "id": "CL-034",
+      "scope": "audit_findings",
+      "statement": "21 hallazgos confirmados en auditoría continua: 3 CRÍTICOS (tenant stale, rebind no limpia, descargas GET sin revalidar), 10 ALTOS, 4 MEDIOS/ALTOS, 4 MEDIOS",
+      "sources": ["AUDIT§1.1", "AUDIT§3"]
+    },
+    {
+      "id": "CL-035",
+      "scope": "audit_findings",
+      "statement": "S1-AUD-001 CRÍTICO: /cases y /case pueden usar tenant anterior si cambia token pero se conserva sesión",
+      "sources": ["AUDIT§3#S1-AUD-001"]
+    },
+    {
+      "id": "CL-036",
+      "scope": "audit_findings",
+      "statement": "S1-AUD-002 CRÍTICO: Rebind de identidad no limpia workbook, semántica, chat, resultados ni conciliación del tenant anterior",
+      "sources": ["AUDIT§3#S1-AUD-002"]
+    },
+    {
+      "id": "CL-037",
+      "scope": "audit_findings",
+      "statement": "S1-AUD-009 CRÍTICO: Descargas GET sensibles pueden usar sesión vieja sin revalidar identidad actual",
+      "sources": ["AUDIT§3#S1-AUD-009"]
+    },
+    {
+      "id": "CL-038",
+      "scope": "audit_findings",
+      "statement": "S1-AUD-013 ALTO: Workbook-first confirma 15 columnas con un solo ACCEPT (debilidad evidencia owner)",
+      "sources": ["AUDIT§3#S1-AUD-013"]
+    },
+    {
+      "id": "CL-039",
+      "scope": "audit_findings",
+      "statement": "S1-AUD-019 ALTO: F12 ignora descuento en medida 'sales' (sales_total = 612,649 bruto vs 602,106 neto manual)",
+      "sources": ["AUDIT§3#S1-AUD-019", "CAFETERIA_COVERAGE§4"]
+    },
+    {
+      "id": "CL-040",
+      "scope": "audit_findings",
+      "statement": "S1-AUD-020 MEDIO/ALTO: gross_margin_by_product entrega solo ratio, no margen monetario",
+      "sources": ["AUDIT§3#S1-AUD-020", "CAFETERIA_COVERAGE§5"]
+    },
+    {
+      "id": "CL-041",
+      "scope": "audit_findings",
+      "statement": "S1-AUD-021 MEDIO/ALTO: catalog_price_variance_by_product bloqueado pese a evidencia explícita (Productos.Precio existe)",
+      "sources": ["AUDIT§3#S1-AUD-021", "CAFETERIA_COVERAGE§14"]
+    },
+    {
+      "id": "CL-042",
+      "scope": "cafeteria_coverage",
+      "statement": "Cafetería: 22 Analysis IDs definidos, 21 computables, 1 bloqueado (catalog_price_variance); 424 valores gobernados",
+      "sources": ["HANDOFF§8", "CAFETERIA_COVERAGE§3"]
+    },
+    {
+      "id": "CL-043",
+      "scope": "cafeteria_coverage",
+      "statement": "Cobertura bloques manuales vs PYMIA: 6 CUBIERTO ESTRUCTURAL, 9 PARCIAL, 2 AUSENTE/BLOQUEADO (17 bloques totales)",
+      "sources": ["CAFETERIA_COVERAGE§6"]
+    },
+    {
+      "id": "CL-044",
+      "scope": "cafeteria_coverage",
+      "statement": "Diferencias semánticas críticas: sales = bruto pre-descuento; gross_margin_by_product = ratio no importe; catalog_price_variance bloqueado por falta list_price gobernado",
+      "sources": ["CAFETERIA_COVERAGE§4,§5,§6"]
+    },
+    {
+      "id": "CL-045",
+      "scope": "workbook_logical_model",
+      "statement": "Workbook Logical Model = representación intermedia gobernada (NO motor paralelo) entre ingesta física y fases que necesitan significado empresarial",
+      "sources": ["WLM_ARCH§3", "WLM_PLAN§1", "WLM_MATRIX§1"]
+    },
+    {
+      "id": "CL-046",
+      "scope": "workbook_logical_model",
+      "statement": "Pipeline D1-D7: Physical Regions → Logical Table Identity + Grain/Keys → Schema Identity/Family/Version/Delta → Relationship Graph/Fanout → Table-scoped Semantics → Schema-family Memory/Delta Revalidation → Adapter P7/P8/Product Root",
+      "sources": ["WLM_PLAN§5", "WLM_MATRIX§15"]
+    },
+    {
+      "id": "CL-047",
+      "scope": "workbook_logical_model",
+      "statement": "Gaps primarios WLM: 8 capacidades MISSING (schema family recognition, schema-family memory, delta-only revalidation orchestration) + 17 EXISTS_PARTIAL + 3 EXISTS_WRONG_LAYER (P7 grain, measures/dimensions, semantic context sheet-scoped)",
+      "sources": ["WLM_MATRIX§10", "WLM_MATRIX§12"]
+    },
+    {
+      "id": "CL-048",
+      "scope": "workbook_logical_model",
+      "statement": "D1/D2/D3/D4/D5/D6/D7 = CLOSED LOCAL / FOCAL PASS / NO COMMIT / NO PUSH / NO DEPLOY (según WLM_PLAN cierres)",
+      "sources": ["WLM_PLAN§12,§13,§14,§15,§16,§17,§18"]
+    },
+    {
+      "id": "CL-049",
+      "scope": "general_analytics",
+      "statement": "El workbook de cafetería NO define el producto; prohibido if cafeteria/if mayorista/if consorcio; evolución: catálogo respuestas fijas → capacidades combinables (variables semánticas × medidas × dimensiones × relaciones × grains × operadores × evidencia)",
+      "sources": ["GEN_ANALYTICS§1,§2,§11"]
+    },
+    {
+      "id": "CL-050",
+      "scope": "general_analytics",
+      "statement": "5 cerebros: C1 Matemático (autoridad exclusiva fórmulas), C2 Semántico (mapa columnas→variables canónicas), C3 Cognición (aprende léxico/patrones por tenant), C4 IA Interfaz (dialoga, NO calcula/autoriza), C5 Memoria (conserva evidencia/resultados)",
+      "sources": ["GEN_ANALYTICS§10"]
+    },
+    {
+      "id": "CL-051",
+      "scope": "general_analytics",
+      "statement": "Corpus transversal obligatorio para certificar generalidad: múltiples dominios/estructuras físicas (ventas, compras, gastos, cobranzas, bancos, inventario, proveedores, clientes, consorcios, marketplaces, etc.)",
+      "sources": ["GEN_ANALYTICS§14"]
+    },
+    {
+      "id": "CL-052",
+      "scope": "continuity_22_25_aug",
+      "statement": "22/08: HEAD 8d5708e9, 3814 passed / 61 failed / 7 skipped / 3 errors → ARCHITECTURE_CONVERGENCE_REQUIRED",
+      "sources": ["CONTINUIDAD§1"]
+    },
+    {
+      "id": "CL-053",
+      "scope": "continuity_22_25_aug",
+      "statement": "23/08: Auditoría integral → FAIL_ARCHITECTURE_NOT_CERTIFIED (ONE_CANONICAL_INGESTION FAIL/PARTIAL, ONE_PRODUCTIVE_SEMANTIC_FSM FAIL, NO_SHEET1_FALLBACK FAIL, NO_PRODUCTIVE_LEGACY_SHIMS FAIL, MODULE_REGISTRY_COMPLETE FAIL)",
+      "sources": ["CONTINUIDAD§2"]
+    },
+    {
+      "id": "CL-054",
+      "scope": "continuity_22_25_aug",
+      "statement": "23/08: Red-team + rondas dialécticas → OPEN_ARCHITECTURAL_DECISIONS=0, DIALECTICAL_REVIEW_COMPLETE=PASS, TARGET_ARCHITECTURE_CLOSED=YES",
+      "sources": ["CONTINUIDAD§3,§4,§5,§6"]
+    },
+    {
+      "id": "CL-055",
+      "scope": "continuity_22_25_aug",
+      "statement": "24/08: Reconstrucción física R0-R4 (135/135 focales PASS), R4.5 BLOCKED_ENVIRONMENT (MCP 502)",
+      "sources": ["CONTINUIDAD§11"]
+    },
+    {
+      "id": "CL-056",
+      "scope": "continuity_22_25_aug",
+      "statement": "25/08: Caso constructora → defecto focal C2 (presupuesto_subcontratos → 'costo por unidad'); C2 Contrato: descriptors composicionales (measure_kind, business_concept, amount_scope, semantic_grain_hint), UNDERSTANDABLE != COMPUTABLE",
+      "sources": ["CONTINUIDAD§12,§13,§14"]
+    },
+    {
+      "id": "CL-057",
+      "scope": "continuity_22_25_aug",
+      "statement": "C2.1 reportado PASS (79 tests) pero requiere certificación física independiente (constructora corpus, regression cafetería, semantic_role=null atraviesa SEM-2/3, business_concept no hardcodeado)",
+      "sources": ["CONTINUIDAD§16,§17"]
+    },
+    {
+      "id": "CL-058",
+      "scope": "c2_compositional",
+      "statement": "C2 Target Contract: compositional business semantic descriptor (measure_kind, business_concept, amount_scope, semantic_grain_hint) independiente de runtime roles; frozen perimeter: D1-D7, P7, P8, F7, C1, Product Root, F9, F13",
+      "sources": ["C2§2,§4"]
+    },
+    {
+      "id": "CL-059",
+      "scope": "c2_compositional",
+      "statement": "Legacy/runtime projection rule: business meaning → compositional descriptor → optional exact runtime projection; FORBIDDEN: business meaning → nearest available runtime role",
+      "sources": ["C2§6"]
+    },
+    {
+      "id": "CL-060",
+      "scope": "c2_compositional",
+      "statement": "Acceptance corpus constructora: 11 columnas mínimas distinguidas semánticamente; hard negative gate: ninguna presupuesto_*/gasto_real_* proyecta a unit_cost_candidate",
+      "sources": ["C2§9"]
+    },
+    {
+      "id": "CL-061",
+      "scope": "reconstruction_status",
+      "statement": "Reconstruction Plan: R0/R1/R2/R3 = CLOSED_PASS; NEXT_ALLOWED_NODE = R4; RECONSTRUCTION_IMPLEMENTATION = IN_PROGRESS; CURRENT_WORKTREE_INTEGRAL_CERTIFICATION = NO",
+      "sources": ["RECONSTRUCTION§1", "CURRENT_STATE_café§override"]
+    },
+    {
+      "id": "CL-062",
+      "scope": "reconstruction_status",
+      "statement": "R4 objetivo: ProductExecutionRequest + ProductExecutionRoot + surfaces (4 commands explícitos, migrar CLI/Web/HTTP mismo ciclo, eliminar semantic_reception_only, use_assisted_semantics, semantic_run_override, analysis_execution_request dict, specialized kwargs, tool_requests fifth path)",
+      "sources": ["RECONSTRUCTION§R4"]
+    },
+    {
+      "id": "CL-063",
+      "scope": "reconstruction_status",
+      "statement": "R5: Retiro semantic legacy + sheet1 (confirmar zero callers shim legacy, eliminar shim, confirmar parity SEM-8, eliminar pipeline determinístico histórico, retirar sheet1 fallbacks productivos)",
+      "sources": ["RECONSTRUCTION§R5"]
+    },
+    {
+      "id": "CL-064",
+      "scope": "reconstruction_status",
+      "statement": "R6-R14 pendientes: D4→P8→F7 provenance, kernel matemático común + policy declarativa, specialized convergence, ResultReadBoundary, limpieza aliases, registry reconciliation, integration checkpoint, full suite 0 FAIL/0 ERROR, real XLSX E2E corpus 9 archivos",
+      "sources": ["RECONSTRUCTION§R6-R14"]
+    },
+    {
+      "id": "CL-065",
+      "scope": "reconstruction_status",
+      "statement": "Stop conditions: decisión normativa físicamente imposible sin cambiar arquitectura, test exige conducta prohibida por target, segundo source of truth no contemplado, secret/infra unavailable, requeriría nuevo engine/root/FSM",
+      "sources": ["RECONSTRUCTION§4"]
+    },
+    {
+      "id": "CL-066",
+      "scope": "runtime_historical",
+      "statement": "SmartPyme Interrogation slice: 5 casos validados (DESCUADRE_DINERO, MARGEN_DUDOSO, DATOS_DUPLICADOS+MAESTRO_DESORDENADO, STOCK_INCONSISTENTE, SOBRECARGA_MANUAL)",
+      "sources": ["RUNTIME_INTERROGATION§1"]
+    },
+    {
+      "id": "CL-067",
+      "scope": "runtime_historical",
+      "statement": "SmartPyme Local MVP: sample PASS (costos_fijos_variables, margen_bruto_detalle, ventas_mensuales_2024, duplicados_proveedores BLOCKED esperado)",
+      "sources": ["RUNTIME_LOCAL_MVP§1"]
+    },
+    {
+      "id": "CL-068",
+      "scope": "runtime_historical",
+      "statement": "Knowledge Tanks Contract + Architecture: 2 tanques iniciales (Operational Pathology, Evidence and Formula) definidos documentalmente",
+      "sources": ["RUNTIME_CONTRACT§1", "RUNTIME_ARCH§1"]
+    },
+    {
+      "id": "CL-069",
+      "scope": "runtime_historical",
+      "statement": "Supplier duplicate check: implementado e2c2366 (4 tests PASS, findings: DUPLICATE_CUIT, MISSING_CUIT, MISSING_RAZON_SOCIAL, NORMALIZATION_NEEDED, LEGAL_SUFFIX_VARIATION)",
+      "sources": ["RUNTIME_SUPPLIER§1"]
+    },
+    {
+      "id": "CL-070",
+      "scope": "runtime_historical",
+      "statement": "Tank Selection Slice: implementado 57ef4aa (25 tests PASS, select_tanks API)",
+      "sources": ["RUNTIME_TANK_SELECTION§1"]
+    },
+    {
+      "id": "CL-071",
+      "scope": "canon_repair",
+      "statement": "MEMORY_CONTEXT_MISMATCH resuelto: Git real manda sobre memoria/chat; commits inválidos identificados (a3f8b2c, b4d9f1a, c7e3a1f, 8d2e4b1, f3a9c2d, a1b2c3d)",
+      "sources": ["CANON_REPAIR§1"]
+    },
+    {
+      "id": "CL-072",
+      "scope": "decisiones_vigentes",
+      "statement": "Decisiones vigentes: Telegram directo frontera delgada (no Hermes), PymIA computa kernel soberano, Frontdesk conversa, Documentary Agent intake, Clinical Investigator hipótesis, Anamnesis = taxonomía+hipótesis+evidencia, PYMIA_DYNAMIC_ORCHESTRATION_LAYER frente vigente, LangGraph no se agrega, no Excel microfixes, Pymia-memoria interna/no versionada",
+      "sources": ["DECISIONES_VIGENTES§1-15"]
+    }
+  ]
+}

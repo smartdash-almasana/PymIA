@@ -64,8 +64,47 @@ def test_expense_variance_projection_uses_both_real_deviation_fields():
     observations = project_expense_variance_to_radar_v1(computation_result=result)
     by_ref = {item.observable.observable_ref: item for item in observations}
     assert by_ref[OBS_EXPENSE_BUDGET_DEVIATION_PCT].entity_ref == "Limpieza"
-    assert by_ref[OBS_EXPENSE_BUDGET_DEVIATION_PCT].observed_value == "30.0"
-    assert by_ref[OBS_EXPENSE_HISTORICAL_DEVIATION_PCT].observed_value == "4.0"
+    row = result["rows"][0]
+    assert by_ref[OBS_EXPENSE_BUDGET_DEVIATION_PCT].observed_value == str(row["desvio_presupuesto_pct"])
+    assert by_ref[OBS_EXPENSE_HISTORICAL_DEVIATION_PCT].observed_value == str(row["desvio_promedio_pct"])
+
+
+def test_expense_variance_projection_preserves_precision_for_radar_policy_comparison():
+    result = {
+        "status": "EVALUATED",
+        "capability_ref": "consorcios_expense_variance",
+        "rows": [
+            {
+                "rubro": "Limpieza",
+                "desvio_presupuesto_pct": 1.000000000000001,
+                "desvio_promedio_pct": 0.0,
+            }
+        ],
+    }
+    observation = next(
+        item
+        for item in project_expense_variance_to_radar_v1(computation_result=result)
+        if item.observable.observable_ref == OBS_EXPENSE_BUDGET_DEVIATION_PCT
+    )
+    policy = build_radar_observation_policy_v1(
+        tenant_id="tenant-a",
+        policy_ref="precision-policy",
+        observable=observation.observable,
+        enabled=True,
+        operator=OP_GT,
+        comparison_value="1.0",
+        communication_level=COMM_ALERT,
+        confirmed_by_owner=True,
+    )
+
+    events = evaluate_radar_observation_v1(
+        tenant_id="tenant-a",
+        observable=observation.observable,
+        observed_value=observation.observed_value,
+        policies=(policy,),
+    )
+
+    assert len(events) == 1
 
 
 def test_bank_reconciliation_projection_derives_count_amount_and_boolean_from_real_result():

@@ -102,6 +102,12 @@ def _fixture(*, with_discount: bool = False, relationship: bool = True) -> tuple
         p6.append(_p6("Ventas", "Descuento", "discount_candidate", "discount"))
 
     ingestion = {
+        "workbook_context": {
+            "case_id": "case-derived-ren001",
+            "workbook_ref": "cafeteria.xlsx",
+            "source_artifact_ref": "cafeteria.xlsx",
+            "ingestion_scope": "TEST",
+        },
         "case_id": "case-derived-ren001",
         "source_kind": "XLSX",
         "filename": "cafeteria.xlsx",

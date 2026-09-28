@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from io import BytesIO
+from openpyxl import Workbook
+
 from pymia.smartpyme.service_1_llm_semantic_contract_v1 import (
     build_service_1_llm_semantic_context_v1,
     parse_service_1_llm_semantic_proposal_v1,
@@ -19,78 +22,52 @@ from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
     validate_service_1_semantic_proposal_v1,
 )
 from pymia.smartpyme.service_1_workbook_profiler_v1 import build_service_1_workbook_profile_v1
+from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
+    build_service_1_web_column_confirmation_intake_boundary_v1,
+)
+from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
+    build_service_1_unconfirmed_canonical_ingestion_output_v1,
+)
 
 
 def _profile() -> dict:
-    ingestion = {
-        "case_id": "case-sem3",
-        "filename": "cafeteria.xlsx",
-        "source_file_ref": "cafeteria.xlsx",
-        "column_refs": [
-            {
-                "question_id": "q1",
-                "field_id": "q1",
-                "sheet_name": "Ventas",
-                "column_name": "ProductoID",
-                "normalized_column_name": "productoid",
-            },
-            {
-                "question_id": "q2",
-                "field_id": "q2",
-                "sheet_name": "Ventas",
-                "column_name": "Cantidad",
-                "normalized_column_name": "cantidad",
-            },
-            {
-                "question_id": "q3",
-                "field_id": "q3",
-                "sheet_name": "Productos",
-                "column_name": "ProductoID",
-                "normalized_column_name": "productoid",
-            },
-            {
-                "question_id": "q4",
-                "field_id": "q4",
-                "sheet_name": "Productos",
-                "column_name": "Costo",
-                "normalized_column_name": "costo",
-            },
-        ],
-        "normalized_tables": [
-            {
-                "status": "OK",
-                "sheet_name": "Ventas",
-                "headers": ["ProductoID", "Cantidad"],
-                "normalized_headers": ["productoid", "cantidad"],
-                "rows": [
-                    {"productoid": "P001", "cantidad": "1"},
-                    {"productoid": "P002", "cantidad": "2"},
-                    {"productoid": "P001", "cantidad": "3"},
-                ],
-            },
-            {
-                "status": "OK",
-                "sheet_name": "Productos",
-                "headers": ["ProductoID", "Costo"],
-                "normalized_headers": ["productoid", "costo"],
-                "rows": [
-                    {"productoid": "P001", "costo": "10"},
-                    {"productoid": "P002", "costo": "15"},
-                ],
-            },
-        ],
-        "runtime_authorized": False,
-    }
-    profile = build_service_1_workbook_profile_v1(ingestion_output=ingestion)
-    assert profile["status"] != "BLOCKED"
+    stream = BytesIO()
+    workbook = Workbook()
+    ventas = workbook.active
+    ventas.title = "Ventas"
+    ventas.append(["ProductoID", "Cantidad"])
+    ventas.append(["P001", 1])
+    ventas.append(["P002", 2])
+    ventas.append(["P001", 3])
+    productos = workbook.create_sheet("Productos")
+    productos.append(["ProductoID", "Costo"])
+    productos.append(["P001", 10])
+    productos.append(["P002", 15])
+    workbook.save(stream)
+
+    intake = build_service_1_web_column_confirmation_intake_boundary_v1(
+        uploaded_xlsx_bytes=stream.getvalue(),
+        uploaded_filename="cafeteria.xlsx",
+        include_all_sheets=True,
+    )
+    assert intake["status"] != "BLOCKED", intake
+    canonical = build_service_1_unconfirmed_canonical_ingestion_output_v1(
+        owner_question_packet=intake,
+    )
+    assert canonical["status"] != "BLOCKED", canonical
+    profile = build_service_1_workbook_profile_v1(
+        ingestion_output=canonical["ingestion_output"],
+    )
+    assert profile["status"] != "BLOCKED", profile
     return profile
 
 
 def _context():
+    profile = _profile()
     return build_service_1_llm_semantic_context_v1(
-        case_id="case-sem3",
+        case_id=str(profile.get("case_id") or ""),
         requested_capability="net_margin_real",
-        workbook_profile=_profile(),
+        workbook_profile=profile,
         deterministic_hypotheses=[
             {"semantic_role": "quantity", "variable_name": "volume_sold"},
             {"semantic_role": "unit_cost_candidate", "variable_name": "cost"},
@@ -214,10 +191,11 @@ def test_sem3_blocks_relationship_type_incompatible_with_structural_profile() ->
 
 
 def test_sem3_marks_valid_but_capability_irrelevant_role_without_blocking() -> None:
+    profile = _profile()
     context = build_service_1_llm_semantic_context_v1(
-        case_id="case-sem3",
+        case_id=str(profile.get("case_id") or ""),
         requested_capability="net_margin_real",
-        workbook_profile=_profile(),
+        workbook_profile=profile,
         deterministic_hypotheses=[
             {"semantic_role": "product_name", "variable_name": "product"},
         ],
@@ -253,3 +231,117 @@ def test_sem3_explicit_irrelevant_real_ref_is_preserved_for_sem4() -> None:
     result = validate_service_1_semantic_proposal_v1(context=_context(), proposal=_proposal(payload))
     decisions = {item["decision_id"]: item for item in result["decisions"]}
     assert decisions["irrelevant:Productos.Costo"]["status"] == DECISION_IRRELEVANT_FOR_CAPABILITY
+
+
+def _v2_payload() -> dict:
+    payload = _payload()
+    payload["concept_proposals"] = [
+        {
+            "proposal_id": "p_v2_quantity",
+            "target_column_refs": ["Ventas.Cantidad"],
+            "semantic_role": None,
+            "variable_name": None,
+            "confidence": 0.95,
+            "rationale": "quantity measured on a sales line",
+            "evidence_refs": ["ev:column:Ventas.Cantidad:type"],
+            "compositional_semantic": {
+                "field_ref": "Ventas.Cantidad",
+                "entity": "sale",
+                "object": "product",
+                "process": "sale",
+                "measure": "quantity",
+                "state": None,
+                "grain": "line_item",
+                "scope": "line",
+                "time": None,
+                "identity": None,
+                "relation": None,
+                "unit": "units",
+                "aggregation": "sum",
+                "confidence": 0.95,
+                "evidence": ["ev:column:Ventas.Cantidad:type"],
+                "source": "LLM_C2_PROPOSAL",
+            },
+        }
+    ]
+    payload["relationship_proposals"] = []
+    return payload
+
+
+def test_f6_blocks_v2_descriptor_bound_to_different_real_column() -> None:
+    from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
+        BLOCK_COMPOSITIONAL_FIELD_REF_MISMATCH,
+    )
+
+    payload = _v2_payload()
+    payload["concept_proposals"][0]["compositional_semantic"]["field_ref"] = "Productos.Costo"
+    result = validate_service_1_semantic_proposal_v1(context=_context(), proposal=_proposal(payload))
+
+    assert result["status"] == STATUS_BLOCKED
+    assert result["blocked_reason"] == BLOCK_COMPOSITIONAL_FIELD_REF_MISMATCH
+
+
+def test_f6_blocks_v2_descriptor_whose_internal_evidence_differs_from_proposal_evidence() -> None:
+    from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
+        BLOCK_COMPOSITIONAL_EVIDENCE_MISMATCH,
+    )
+
+    payload = _v2_payload()
+    payload["concept_proposals"][0]["compositional_semantic"]["evidence"] = []
+    result = validate_service_1_semantic_proposal_v1(context=_context(), proposal=_proposal(payload))
+
+    assert result["status"] == STATUS_BLOCKED
+    assert result["blocked_reason"] == BLOCK_COMPOSITIONAL_EVIDENCE_MISMATCH
+
+
+def test_f6_blocks_relationship_supported_by_real_but_unrelated_evidence() -> None:
+    from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
+        BLOCK_RELATIONSHIP_EVIDENCE_MISMATCH,
+    )
+
+    payload = _payload()
+    payload["relationship_proposals"][0]["evidence_refs"] = ["ev:column:Ventas.Cantidad:type"]
+    result = validate_service_1_semantic_proposal_v1(context=_context(), proposal=_proposal(payload))
+
+    assert result["status"] == STATUS_BLOCKED
+    assert result["blocked_reason"] == BLOCK_RELATIONSHIP_EVIDENCE_MISMATCH
+
+
+def test_f6_accepts_v2_descriptor_only_when_ref_and_evidence_are_bound() -> None:
+    result = validate_service_1_semantic_proposal_v1(context=_context(), proposal=_proposal(_v2_payload()))
+
+    assert result["status"] == STATUS_READY, result
+    decision = result["decisions"][0]
+    assert decision["compositional_semantic"]["field_ref"] == "Ventas.Cantidad"
+    assert decision["compositional_semantic"]["evidence"] == ("ev:column:Ventas.Cantidad:type",)
+
+
+def test_semantic_context_allows_zero_legacy_roles_for_v2_governance() -> None:
+    profile = _profile()
+    context = build_service_1_llm_semantic_context_v1(
+        case_id=str(profile.get("case_id") or ""),
+        requested_capability=None,
+        workbook_profile=profile,
+        deterministic_hypotheses=(),
+        allowed_semantic_roles=(),
+        capability_relevant_roles=(),
+    )
+
+    payload = context.to_provider_payload()
+    assert payload["allowed_semantic_roles"] == []
+    assert payload["capability_relevant_roles"] == []
+    assert payload["compositional_semantic_catalogs"]
+    assert set(payload["compositional_semantic_catalogs"]) == {
+        "entity",
+        "object",
+        "process",
+        "measure",
+        "state",
+        "grain",
+        "scope",
+        "time",
+        "identity",
+        "relation",
+        "unit",
+        "aggregation",
+    }

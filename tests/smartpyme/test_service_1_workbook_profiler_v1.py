@@ -23,6 +23,19 @@ from pymia.smartpyme.service_1_workbook_profiler_v1 import (
 
 def _ingestion_output() -> dict:
     return {
+        "workbook_context": {
+            "case_id": "case-cafeteria",
+            "workbook_ref": "cafeteria.xlsx",
+            "source_artifact_ref": "cafeteria.xlsx",
+            "ingestion_scope": "TEST",
+        },
+        "provenance": {
+            "source_kind": "xlsx",
+            "source_file_ref": "cafeteria.xlsx",
+            "workbook_ref": "cafeteria.xlsx",
+            "filename": "cafeteria.xlsx",
+            "sheet_names": ["Ventas", "Productos"],
+        },
         "case_id": "case-cafeteria",
         "filename": "cafeteria.xlsx",
         "source_file_ref": "cafeteria.xlsx",

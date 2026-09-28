@@ -71,7 +71,7 @@ const pains = [
   overflow: hidden;
 }
 .problem-card:hover {
-  border-color: rgba(0,230,118,.2);
+  border-color: var(--green);
   transform: translateY(-3px);
 }
 .problem-icon {
@@ -79,7 +79,7 @@ const pains = [
   line-height: 1;
 }
 .problem-title {
-  color: var(--text);
+  color: var(--ink-strong);
   line-height: 1.25;
 }
 .problem-desc {
@@ -89,8 +89,8 @@ const pains = [
 }
 .problem-bottom-line {
   height: 2px;
-  background: linear-gradient(90deg, rgba(0,230,118,.25), transparent);
-  border-radius: 2px;
+  background: linear-gradient(90deg, var(--green), var(--green-soft));
+  border-radius: 0;
   margin-top: 4px;
 }
 

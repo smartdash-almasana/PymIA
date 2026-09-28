@@ -5,11 +5,13 @@ import json
 import os
 import re
 import sys
-from io import BytesIO
+from io import BytesIO, StringIO
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, build_opener
 
+from dotenv import load_dotenv
 from openpyxl import Workbook
 
 
@@ -18,6 +20,25 @@ SUPABASE_URL_ENV = "PYMIA_SUPABASE_URL"
 SUPABASE_PUBLISHABLE_KEY_ENV = "PYMIA_SUPABASE_PUBLISHABLE_KEY"
 SMOKE_EMAIL_ENV = "PYMIA_SMOKE_EMAIL"
 SMOKE_PASSWORD_ENV = "PYMIA_SMOKE_PASSWORD"
+
+_LOCAL_SMOKE_ENV_KEYS = frozenset({SMOKE_EMAIL_ENV, SMOKE_PASSWORD_ENV})
+
+
+def _load_local_smoke_environment_v1(dotenv_path: Path | None = None) -> None:
+    """Load only smoke credentials from the ignored local dotenv file."""
+    path = dotenv_path or (Path(__file__).resolve().parents[1] / ".env.local")
+    if not path.is_file():
+        return
+    allowed_lines: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key = stripped.split("=", 1)[0].strip()
+        if key in _LOCAL_SMOKE_ENV_KEYS:
+            allowed_lines.append(line)
+    if allowed_lines:
+        load_dotenv(stream=StringIO("\n".join(allowed_lines)), override=False)
 
 
 class SmokeFailure(RuntimeError):
@@ -228,6 +249,7 @@ def _run_ren_001_journey(
 
 
 def run() -> dict[str, object]:
+    _load_local_smoke_environment_v1()
     base_url = _required_env(BASE_URL_ENV).rstrip("/")
     supabase_url = _required_env(SUPABASE_URL_ENV)
     publishable_key = _required_env(SUPABASE_PUBLISHABLE_KEY_ENV)

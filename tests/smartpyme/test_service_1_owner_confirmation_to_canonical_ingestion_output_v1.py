@@ -72,8 +72,11 @@ def test_ok_produces_ingestion_output_ready(case_001_packet: dict, full_answers:
     assert out["source_kind"] == case_001_packet["source_kind"]
     assert out["filename"] == case_001_packet["filename"]
     assert out["confirmed_columns"] == case_001_packet["columns"]
-    assert out["owner_answers"] == full_answers
     assert out["ingestion_output"] is not None
+    assert {
+        ref["field_id"]: ref["owner_meaning"]
+        for ref in out["ingestion_output"]["column_refs"]
+    } == full_answers
 
 
 def test_case_001_lock_is_10(case_001_packet: dict, full_answers: dict) -> None:
@@ -81,8 +84,7 @@ def test_case_001_lock_is_10(case_001_packet: dict, full_answers: dict) -> None:
     assert (
         len(out["columns"])
         == len(out["confirmed_columns"])
-        == len(out["owner_answers"])
-        == len(out["ingestion_output"]["available_data_fields"])
+        == len(out["ingestion_output"]["column_refs"])
         == 10
     )
 
@@ -93,8 +95,10 @@ def test_ingestion_output_is_canonical_and_runtime_independent(case_001_packet: 
     out = build_conn(owner_question_packet=case_001_packet, owner_answers=full_answers)
 
     ingestion_output = out["ingestion_output"]
-    assert len(ingestion_output["available_data_fields"]) == 10
-    assert len(ingestion_output["input_values"]) == 10
+    assert ingestion_output["schema_version"] == "SERVICE_1_CANONICAL_INGESTION_OUTPUT_V2"
+    assert len(ingestion_output["column_refs"]) == 10
+    assert ingestion_output["workbook_context"]["case_id"] == case_001_packet["case_id"]
+    assert isinstance(ingestion_output["normalized_tables"], list)
     assert ingestion_output["runtime_authorized"] is False
 
 

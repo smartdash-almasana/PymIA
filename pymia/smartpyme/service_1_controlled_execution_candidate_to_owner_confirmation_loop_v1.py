@@ -84,6 +84,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
     *,
     gate_packet: Any,
     owner_answers: Any = None,
+    file_ref: Any = None,
     runtime_authorized: bool = False,
     tool_execution_authorized: bool = False,
     product_ready: bool = False,
@@ -334,7 +335,7 @@ def build_service_1_owner_confirmation_loop_from_controlled_execution_gate_v1(
         )
     events = _owner_confirmation_events(
         case_id=case_id,
-        filename=filename,
+        file_ref=file_ref,
         questions_by_ref=questions_by_ref,
         owner_answers=owner_answers,
         confirmed=confirmed,
@@ -534,7 +535,7 @@ def _is_system_scope_exclusion(value: Any) -> bool:
 def _owner_confirmation_events(
     *,
     case_id: Any,
-    filename: Any,
+    file_ref: Any,
     questions_by_ref: dict[str, dict[str, Any]],
     owner_answers: dict[Any, Any],
     confirmed: dict[str, str],
@@ -552,13 +553,17 @@ def _owner_confirmation_events(
         raw = _answer_for(owner_answers, ref_id)
         option_id, free_text = _parse_owner_answer(raw)
         column = str(question.get("column_name") or ref_id).strip()
-        sheet = str(question.get("sheet_name") or "sheet1").strip()
+        sheet = str(question.get("sheet_name") or "").strip()
+        if not sheet:
+            # A physical sheet is part of the owner-evidence identity.  Do
+            # not fabricate one when a legacy question is incomplete.
+            continue
         if ref_id in confirmed:
             canonical_answer = confirmed[ref_id]
             scope = "COLUMN_EXCLUSION" if canonical_answer == "IGNORED_NOT_RELEVANT" else "SEMANTIC_ROLE"
             event = build_service_1_owner_confirmation_event_v1(
                 case_id=str(case_id or "").strip(),
-                file_ref=str(filename).strip() if filename else None,
+                file_ref=str(file_ref).strip() if file_ref else None,
                 region_ref=None,
                 sheet_ref=sheet,
                 column_ref=column,
@@ -575,7 +580,7 @@ def _owner_confirmation_events(
         if followup_item is not None and free_text:
             event = build_service_1_owner_confirmation_event_v1(
                 case_id=str(case_id or "").strip(),
-                file_ref=str(filename).strip() if filename else None,
+                file_ref=str(file_ref).strip() if file_ref else None,
                 region_ref=None,
                 sheet_ref=sheet,
                 column_ref=column,

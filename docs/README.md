@@ -2,13 +2,16 @@
 
 ## Autoridad
 
-La autoridad documental vigente está en:
+La autoridad documental vigente de Servicio 1 es externa a este árbol documental y sigue este orden:
 
 ```text
-docs/current/README.md
+NOP-1 VIGENTE
+→ NOP-2 VIGENTE
+→ SERVICE 1 — KNOWN STATE
+→ Gold Registry / evidencia física cerrada
 ```
 
-Ningún otro índice, auditoría, closeout, roadmap histórico, documento de producto, landing, protocolo Hermes o corpus migrado gobierna implementación salvo referencia explícita desde esa autoridad.
+`docs/current/README.md` es sólo un índice físico subordinado. Ningún README, auditoría, closeout, roadmap, handoff, Architecture Lock, Canonical Axis, documento de producto, landing, protocolo Hermes o corpus migrado puede competir con NOP-1/NOP-2 como autoridad vigente.
 
 ## Jerarquía
 
@@ -37,30 +40,16 @@ GIT_PRESERVES_HISTORY
 
 ## Servicio 1
 
-La continuidad debe empezar en:
+La continuidad vigente debe comenzar fuera de este árbol histórico:
 
 ```text
-docs/current/README.md
-docs/current/SERVICE_1_CURRENT_PRODUCT_STATE_V1.md
-docs/current/SERVICE_1_STATUS.md
-docs/current/ACTIVE_ROADMAP.md
+NOP-1 VIGENTE
+→ NOP-2 VIGENTE
+→ SERVICE 1 — KNOWN STATE
+→ Gold Registry / evidencia física cerrada
 ```
 
-Arquitectura y operación:
-
-```text
-docs/current/SERVICE_1_CANONICAL_AXIS.md
-docs/current/SERVICE_1_ARCHITECTURE_LOCK.md
-docs/current/SERVICE_1_ARCHITECTURE_COMPONENT_MAP_V1.md
-docs/current/SERVICE_1_OPERABILITY_PACKET.md
-docs/current/SERVICE_1_DEPLOYMENT_TARGET_CONTRACT_V1.md
-```
-
-Producto vendible:
-
-```text
-docs/current/SERVICE_1_SELLABLE_PRODUCT_CONTRACT_V1.md
-```
+Los documentos bajo `docs/current/` conservan valor técnico, contractual o histórico según su alcance, pero no constituyen por sí mismos autoridad vigente ni pueden definir el próximo paso.
 
 Raíz física:
 

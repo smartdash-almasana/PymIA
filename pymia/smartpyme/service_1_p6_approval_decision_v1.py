@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable, Mapping
 
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import AXES as SEMANTIC_COORDINATE_AXES
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
 )
@@ -45,6 +46,7 @@ class Service1P6ApprovalDecisionV1:
     reason: str
     owner_confirmation_question_ref: str | None = None
     confidence: float | None = None
+    compositional_semantic: Mapping[str, Any] | None = None
     provenance: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = SCHEMA_VERSION
 
@@ -55,7 +57,10 @@ class Service1P6ApprovalDecisionV1:
         if self.status not in ALLOWED_STATUSES:
             raise ValueError("invalid P6 status")
         if self.status == STATUS_APPROVED and not str(self.approved_role or "").strip():
-            raise ValueError("approved_role is required when P6 status is APPROVED")
+            if not isinstance(self.compositional_semantic, Mapping) or not self.compositional_semantic:
+                raise ValueError(
+                    "approved_role or compositional_semantic is required when P6 status is APPROVED"
+                )
         if self.status != STATUS_APPROVED and (
             self.approved_role is not None or self.approved_variable is not None
         ):
@@ -75,6 +80,10 @@ class Service1P6ApprovalDecisionV1:
         }
         if forbidden.intersection(self.provenance):
             raise ValueError("P6 provenance cannot carry downstream authority")
+        if self.compositional_semantic is not None and not isinstance(
+            self.compositional_semantic, Mapping
+        ):
+            raise ValueError("compositional_semantic must be a mapping or None")
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -104,7 +113,9 @@ def build_service_1_p6_approval_decision_v1(
     case = str(case_id or "").strip()
     if not case:
         raise ValueError("case_id is required")
-    sheet = str(candidate.sheet_name or "sheet1").strip()
+    sheet = str(candidate.sheet_name or "").strip()
+    if not sheet:
+        raise ValueError("candidate.sheet_name is required")
     column = candidate.source_column_name
     ref_id = _candidate_ref_id(candidate)
 
@@ -141,6 +152,34 @@ def build_service_1_p6_approval_decision_v1(
                 candidate=candidate,
                 status=STATUS_AMBIGUOUS,
                 reason="OWNER_FREE_TEXT_REQUIRES_GOVERNED_NORMALIZATION",
+                question_ref=question_ref,
+            )
+        if scope == "COMPOSITIONAL_SEMANTIC":
+            descriptor = event.get("compositional_semantic")
+            if not isinstance(descriptor, Mapping) or not descriptor:
+                return _decision(
+                    case_id=case,
+                    candidate=candidate,
+                    status=STATUS_BLOCKED,
+                    reason="OWNER_COMPOSITIONAL_SEMANTIC_MISSING",
+                    question_ref=question_ref,
+                )
+            if not _same_compositional_meaning(descriptor, candidate.compositional_semantic):
+                return _decision(
+                    case_id=case,
+                    candidate=candidate,
+                    status=STATUS_BLOCKED,
+                    reason="OWNER_COMPOSITIONAL_SEMANTIC_MISMATCH",
+                    question_ref=question_ref,
+                )
+            runtime_role, runtime_variable = _compositional_runtime_projection(candidate)
+            return _decision(
+                case_id=case,
+                candidate=candidate,
+                status=STATUS_APPROVED,
+                reason="OWNER_CONFIRMED_COMPOSITIONAL_SEMANTIC",
+                approved_role=runtime_role,
+                approved_variable=runtime_variable,
                 question_ref=question_ref,
             )
         if scope != _SCOPE_SEMANTIC_ROLE:
@@ -243,7 +282,7 @@ def _decision(
 ) -> Service1P6ApprovalDecisionV1:
     return Service1P6ApprovalDecisionV1(
         case_id=case_id,
-        sheet_ref=str(candidate.sheet_name or "sheet1").strip(),
+        sheet_ref=str(candidate.sheet_name or "").strip(),
         column_ref=candidate.source_column_name,
         status=status,
         approved_role=approved_role,
@@ -251,11 +290,31 @@ def _decision(
         reason=reason,
         owner_confirmation_question_ref=question_ref,
         confidence=candidate.confidence,
+        compositional_semantic=(
+            dict(candidate.compositional_semantic)
+            if candidate.compositional_semantic is not None
+            else None
+        ),
         provenance={
             "source": "semantic_hypothesis_and_owner_evidence",
             "candidate_ref": _candidate_ref_id(candidate),
         },
     )
+
+
+def _compositional_runtime_projection(
+    candidate: Service1ColumnSemanticCandidateV1,
+) -> tuple[str | None, str | None]:
+    descriptor = candidate.compositional_semantic or {}
+    role = str(descriptor.get("runtime_semantic_role") or "").strip() or None
+    variable = str(descriptor.get("runtime_variable_name") or "").strip() or None
+    return role, variable
+
+
+def _same_compositional_meaning(left: Any, right: Any) -> bool:
+    if not isinstance(left, Mapping) or not isinstance(right, Mapping):
+        return False
+    return all(left.get(axis) == right.get(axis) for axis in SEMANTIC_COORDINATE_AXES)
 
 
 def _candidate_ref_id(candidate: Service1ColumnSemanticCandidateV1) -> str:

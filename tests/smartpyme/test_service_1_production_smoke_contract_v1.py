@@ -60,3 +60,22 @@ def test_production_smoke_unescapes_sem8_relationship_action_names() -> None:
     assert smoke._answers(page) == {
         "action_dialogue:relationship:baseline:relationship:1:Productos.ProductoID->Ventas.ProductoID": "ACCEPT"
     }
+
+
+def test_production_smoke_loads_only_smoke_credentials_from_local_dotenv(monkeypatch, tmp_path) -> None:
+    for name in (smoke.SMOKE_EMAIL_ENV, smoke.SMOKE_PASSWORD_ENV, smoke.SUPABASE_URL_ENV):
+        monkeypatch.setenv(name, "")
+        monkeypatch.delenv(name)
+    dotenv_path = tmp_path / ".env.local"
+    dotenv_path.write_text(
+        "PYMIA_SMOKE_EMAIL=smoke@example.com\n"
+        "PYMIA_SMOKE_PASSWORD=top-secret\n"
+        "PYMIA_SUPABASE_URL=https://must-not-be-loaded.example\n",
+        encoding="utf-8",
+    )
+
+    smoke._load_local_smoke_environment_v1(dotenv_path)
+
+    assert smoke.os.environ.get(smoke.SMOKE_EMAIL_ENV) == "smoke@example.com"
+    assert smoke.os.environ.get(smoke.SMOKE_PASSWORD_ENV) == "top-secret"
+    assert smoke.os.environ.get(smoke.SUPABASE_URL_ENV) is None

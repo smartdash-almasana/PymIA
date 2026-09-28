@@ -9,10 +9,12 @@ description = "PymIA — núcleo operativo canónico para Servicio 1"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0",
-    "pydantic-ai>=2.17,<3",
+    "pydantic-ai[google]>=2.17,<3",
     "openpyxl>=3.1",
     "pandas>=2.2",
     "PyYAML>=6.0",
+    "python-dotenv>=1.0",
+    "supabase>=2.0,<3",
 ]
 
 [project.optional-dependencies]
@@ -20,16 +22,17 @@ dev = [
     "pytest>=7.0",
     "build>=1.2"
 ]
-supabase = [
-    "supabase>=2.0,<3"
-]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["pymia*", "tools*"]
+
+[tool.setuptools.package-data]
+"pymia.contracts" = ["formula_rules_v1.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+markers = ["live: requires a configured external LLM provider"]

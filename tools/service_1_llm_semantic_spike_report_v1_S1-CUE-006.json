@@ -1,0 +1,107 @@
+{
+  "schema_version": "SERVICE_1_LLM_SEMANTIC_SPIKE_V1",
+  "model": "gemini-2.5-flash",
+  "runtime": "pydantic_ai_vertex",
+  "baseline": {
+    "columns_count": 6,
+    "exact_matches": 0,
+    "safe_questions": 6,
+    "safe_unknowns": 0,
+    "false_confident": 0,
+    "missed_questions": 0,
+    "dangerous_errors": 0,
+    "exact_match_rate": 0.0
+  },
+  "llm_direct": {
+    "columns_count": 6,
+    "exact_matches": 0,
+    "safe_questions": 0,
+    "safe_unknowns": 5,
+    "false_confident": 0,
+    "missed_questions": 1,
+    "dangerous_errors": 0,
+    "exact_match_rate": 0.0,
+    "rows": [
+      {
+        "case_id": "S1-CUE-006",
+        "sheet_name": "Datos",
+        "column_name": "x1",
+        "expected_semantic_role": "unknown",
+        "expected_variable_name": "unknown",
+        "predicted_semantic_role": "unknown",
+        "predicted_variable_name": "unknown",
+        "needs_owner_confirmation": true,
+        "owner_question": "What does 'x1' represent?",
+        "outcome": "SAFE_UNKNOWN",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-006",
+        "sheet_name": "Datos",
+        "column_name": "monto",
+        "expected_semantic_role": "unknown",
+        "expected_variable_name": "unknown",
+        "predicted_semantic_role": "unknown",
+        "predicted_variable_name": "unknown",
+        "needs_owner_confirmation": true,
+        "owner_question": "What specific type of 'monto' (amount) does this column represent?",
+        "outcome": "SAFE_UNKNOWN",
+        "dangerous_if_wrong": true
+      },
+      {
+        "case_id": "S1-CUE-006",
+        "sheet_name": "Datos",
+        "column_name": "valor",
+        "expected_semantic_role": "unknown",
+        "expected_variable_name": "unknown",
+        "predicted_semantic_role": "unknown",
+        "predicted_variable_name": "unknown",
+        "needs_owner_confirmation": true,
+        "owner_question": "What specific 'valor' (value) does this column represent?",
+        "outcome": "SAFE_UNKNOWN",
+        "dangerous_if_wrong": true
+      },
+      {
+        "case_id": "S1-CUE-006",
+        "sheet_name": "Datos",
+        "column_name": "ref",
+        "expected_semantic_role": "unknown",
+        "expected_variable_name": "unknown",
+        "predicted_semantic_role": "document_reference",
+        "predicted_variable_name": "document_ref",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "MISSED_QUESTION",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-006",
+        "sheet_name": "Datos",
+        "column_name": "concepto",
+        "expected_semantic_role": "unknown",
+        "expected_variable_name": "unknown",
+        "predicted_semantic_role": "unknown",
+        "predicted_variable_name": "unknown",
+        "needs_owner_confirmation": true,
+        "owner_question": "What specific 'concepto' (concept or description) does this column represent?",
+        "outcome": "SAFE_UNKNOWN",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-006",
+        "sheet_name": "Datos",
+        "column_name": "obs",
+        "expected_semantic_role": "unknown",
+        "expected_variable_name": "unknown",
+        "predicted_semantic_role": "unknown",
+        "predicted_variable_name": "unknown",
+        "needs_owner_confirmation": true,
+        "owner_question": "What specific 'obs' (observations or notes) does this column contain?",
+        "outcome": "SAFE_UNKNOWN",
+        "dangerous_if_wrong": false
+      }
+    ],
+    "model_output_invalid": []
+  },
+  "decision": "LLM_DIRECT_NOT_GOOD_ENOUGH"
+}

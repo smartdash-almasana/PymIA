@@ -18,11 +18,13 @@ No crear otra entrada con autoridad productiva equivalente.
 ```text
 TARGET: Google Cloud Run
 SERVICE: pymia-service1
-APP_SHA: 225f2c4
-REVISION: pymia-service1-00006-h45
+LAST_CERTIFIED_APP_SHA: 4db43ae
+LAST_CERTIFIED_REVISION: pymia-service1-00009-czm
 TRAFFIC: 100%
-SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS
-RUNNER_HEAD: e26f7acfaf5c68c1e5aaad1380992d5f4034883c
+SERVICE_1_PRODUCTION_CERTIFICATION_V1: PASS_FOR_PREVIOUS_CERTIFIED_BASELINE
+SEMANTIC_RECEPTION_SEQUENTIAL_MAIN_SHA: 26ef6c8c57bb201da1a36a1073147c641d1309f4
+SEMANTIC_RECEPTION_SEQUENTIAL_DEPLOYMENT: PENDING
+SEMANTIC_RECEPTION_SEQUENTIAL_PRODUCTION_SMOKE: PENDING
 ```
 
 Identidad/persistencia productiva: Supabase.
@@ -155,11 +157,13 @@ No hay auto-confirmación ni semantic rebind por memoria.
 ## 10. Provider semántico
 
 ```text
-EXTERNAL_PROVIDER: NOT_CONNECTED
-SAFE_DETERMINISTIC_BASELINE_PROVIDER: ACTIVE
+LLM_COLUMN_INTERPRETER_V1: MERGED_IN_MAIN
+SEQUENTIAL_OWNER_CORROBORATION_V1: MERGED_IN_MAIN
+EXTERNAL_LLM_RUNTIME_ACTIVATION: NOT_YET_PROVEN
+SAFE_DETERMINISTIC_BASELINE_PROVIDER: PRESERVED
 ```
 
-La dependencia se inyecta por `semantic_provider`. No importar SDK externo dentro de `pymia/` mientras rija la policy actual.
+La dependencia se inyecta por `semantic_provider`. El provider externo no adquiere autoridad de cálculo, runtime ni delivery. Su estado productivo sólo puede cambiar después de deploy + production smoke del corte semántico secuencial.
 
 ## 11. Working Capital
 
@@ -197,23 +201,23 @@ UNUSED_SANDBOX_SLICES: NEEDS_CLASSIFICATION
 
 ## 14. Release gate actual
 
-No hay un release pendiente del corte SEM-1→SEM-9 para LIQ_001/REN_001: ya está certificado.
+La baseline previa de LIQ_001/REN_001/Working Capital ya está certificada. Existe un release pendiente únicamente para el nuevo corte semántico secuencial integrado en `main`.
 
 Frente vigente:
 
 ```text
-SERVICE_1_ARCHITECTURAL_SANITATION_AND_CONVERGENCE_V1
+SEMANTIC_RECEPTION_SEQUENTIAL_CUT: MERGED_IN_MAIN
+PRODUCTION_CERTIFICATION_OF_NEW_CUT: PENDING
 ```
 
 Orden:
 
 ```text
-document authority sync
-→ physical journey map
-→ legacy dependency inventory
-→ convergence cuts
-→ full regression
-→ production recertification
+DEPLOY_SEMANTIC_RECEPTION_SEQUENTIAL_CUT
+→ PRODUCTION_SMOKE
+→ CONFIRM_RUNTIME_PROVIDER_STATE
+→ UPDATE_CURRENT_AUTHORITY_DOCS
+→ CLOSE_CUT
 ```
 
 ## 15. Prohibiciones operativas

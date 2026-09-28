@@ -35,6 +35,15 @@ _METRIC_OPS: Final[tuple[str, ...]] = (OP_GT, OP_GTE, OP_LT, OP_LTE, OP_EQ, OP_N
 _OPERATION_OPS: Final[tuple[str, ...]] = (OP_EQ, OP_NEQ)
 
 
+def _metric_text(value: int | float) -> str:
+    if isinstance(value, int):
+        return str(value)
+    text = format(float(value), ".15g")
+    if "e" not in text.lower() and "." not in text:
+        text += ".0"
+    return text
+
+
 @dataclass(frozen=True)
 class ConsorciosRadarObservationV1:
     observable: RadarObservableV1

@@ -61,6 +61,13 @@ SPECS: Final[tuple[Spec, ...]] = (
 )
 
 
+def _fixture_path(repo: Path, filename: str) -> Path:
+    matches = tuple((repo / ROOT_DIR).rglob(filename))
+    if len(matches) != 1:
+        raise FileNotFoundError(f"Expected exactly one A4 fixture {filename!r}, found {len(matches)}")
+    return matches[0]
+
+
 def _owner_answers(boundary: dict) -> dict[str, str]:
     return {
         str(q["field_id"]): f"La columna {q['column_name']} representa {q['column_name']}"
@@ -193,8 +200,8 @@ def evaluate_service_1_excel_reality_lab_a4_adversarial_matrix_v1(root: Path | N
     repo = root or Path(__file__).resolve().parents[1]
     rows: list[dict] = []
     for spec in SPECS:
-        source = repo / ROOT_DIR / spec.filename
         try:
+            source = _fixture_path(repo, spec.filename)
             curated = curate_xlsx_document(source, period_ref=spec.period_ref)
             p8_status, governed, p8_error = _p8_for_spec(source, spec)
             terminal, reason = _classify(spec, curated, p8_status, governed, p8_error)

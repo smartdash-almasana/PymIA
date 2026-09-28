@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import re
+import time
 from http.client import HTTPConnection
 from pathlib import Path
 from threading import Thread
@@ -10,7 +12,91 @@ from urllib.parse import urlencode
 import pytest
 from openpyxl import Workbook
 
-from pymia.smartpyme.service_1_assisted_web_v1 import create_assisted_web_server_v1
+from pymia.smartpyme.service_1_assisted_web_v1 import (
+    AssistedWebApplicationV1,
+    _blocked_result_page,
+    _provenance_ref,
+    _run_product_root,
+    create_assisted_web_server_v1,
+)
+from pymia.smartpyme.service_1_deterministic_semantic_proposal_provider_v1 import (
+    build_service_1_deterministic_semantic_proposal_v1,
+)
+import pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 as provider_module
+from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
+    Service1PydanticAIColumnSemanticProviderV1,
+)
+
+
+def test_provenance_ref_uses_first_non_empty_value_without_stringifying_none() -> None:
+    ingestion = {"provenance": {"filename": None, "source_file_ref": " ventas.xlsx "}}
+
+    assert _provenance_ref(ingestion, "filename", "source_file_ref") == "ventas.xlsx"
+    assert _provenance_ref({"provenance": {}}, "source_file_ref", "filename") == ""
+    assert _provenance_ref({"provenance": {}}, "filename", default="archivo recibido") == "archivo recibido"
+
+
+def test_base_assisted_web_does_not_activate_live_provider_from_ambient_credentials(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("NVIDIA_API_KEY", "ambient-test-key")
+    monkeypatch.setenv("NVIDIA_MODEL", "ambient-test-model")
+
+    def _unexpected_environment_provider():
+        raise AssertionError("base Assisted Web must not resolve a live provider from ambient env")
+
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_assisted_web_v1.semantic_provider_from_environment_v1",
+        _unexpected_environment_provider,
+    )
+
+    app = AssistedWebApplicationV1()
+
+    assert app._custom_semantic_provider is False
+    assert app._semantic_provider is build_service_1_deterministic_semantic_proposal_v1
+
+
+def test_run_product_root_without_provider_ignores_ambient_environment_config(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("PYMIA_SEMANTIC_PROVIDER", "ambient-test-provider")
+    monkeypatch.setenv("PYMIA_SEMANTIC_LLM_MODEL", "ambient-test-model")
+    monkeypatch.setenv("NVIDIA_API_KEY", "ambient-test-key")
+    monkeypatch.setenv("NVIDIA_MODEL", "ambient-test-model")
+
+    def _unexpected_environment_provider():
+        raise AssertionError(
+            "_run_product_root must not resolve a live provider from ambient env"
+        )
+
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_assisted_web_v1.semantic_provider_from_environment_v1",
+        _unexpected_environment_provider,
+    )
+
+    captured: dict = {}
+
+    def _capture_pipeline(request, *, dependencies):
+        captured["request"] = request
+        captured["dependencies"] = dependencies
+        return {"status": "CAPTURED"}
+
+    monkeypatch.setattr(
+        "pymia.smartpyme.service_1_assisted_web_v1.run_service_1_product_pipeline_v1",
+        _capture_pipeline,
+    )
+
+    result = _run_product_root(
+        ingestion_output={"provenance": {"filename": "ventas.xlsx"}},
+        semantic_provider=None,
+        use_assisted_semantics=True,
+    )
+
+    assert result == {"status": "CAPTURED"}
+    assert (
+        captured["dependencies"].semantic_provider
+        is build_service_1_deterministic_semantic_proposal_v1
+    )
 
 
 @pytest.fixture()
@@ -94,6 +180,19 @@ def _form(server, path: str, values: dict[str, str], cookie: str):
         body,
         {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": str(len(body)), "Cookie": cookie},
     )
+
+
+class _MutableTenantResolver:
+    def __init__(self, tenant_id: str = "tenant-a") -> None:
+        self.tenant_id = tenant_id
+
+    def __call__(self, handler) -> dict[str, str]:
+        return {
+            "tenant_id": self.tenant_id,
+            "cliente_id": f"cliente-{self.tenant_id}",
+            "owner_actor_id": f"owner-{self.tenant_id}",
+            "owner_actor_role": "OWNER",
+        }
 
 
 class _BrowserAuthResolver:
@@ -314,6 +413,56 @@ def test_upload_first_flow_confirms_excel_then_offers_analysis_menu(assisted_ser
     assert "Total vendido" in page
     assert "Diferencia" in page
     assert 'href="/download-sales-collections"' in page
+
+
+def test_analysis_menu_revalidates_tenant_and_fails_closed_on_identity_change(tmp_path: Path) -> None:
+    resolver = _MutableTenantResolver("tenant-a")
+    server = create_assisted_web_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "tenant-analysis-menu",
+        tenant_identity_resolver=resolver,
+        semantic_provider=build_service_1_deterministic_semantic_proposal_v1,
+    )
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
+        status, response_headers, page = _request(server, "POST", "/upload", body, headers)
+        assert status == 200
+        cookie = _cookie(response_headers)
+
+        if "Esto entendí de tu Excel" in page:
+            status, _, page = _form(
+                server,
+                "/confirm-meanings",
+                _semantic_confirmation_answers(page),
+                cookie,
+            )
+            assert status == 200
+
+        status, _, page = _request(
+            server,
+            "GET",
+            "/analysis-menu",
+            headers={"Cookie": cookie},
+        )
+        assert status == 200
+        assert "¿Qué querés que PymIA te devuelva?" in page
+
+        resolver.tenant_id = "tenant-b"
+        status, _, page = _request(
+            server,
+            "GET",
+            "/analysis-menu",
+            headers={"Cookie": cookie},
+        )
+        assert status == 400
+        assert "Primero subí y confirmá un archivo de Excel." in page
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_one_excel_can_return_multiple_selected_analyses(assisted_server, tmp_path: Path) -> None:
@@ -617,6 +766,34 @@ def test_http_assisted_flow_rejects_missing_file_and_surfaces_blocked_result(ass
     assert "No completo valores por suposición" in page
 
 
+def test_blocked_result_preserves_product_root_reason_detail_and_requirement() -> None:
+    page = _blocked_result_page(
+        {
+            "status": "BLOCKED",
+            "blocked_reason": "P8_REQUIREMENT_STATUS_DRIFT",
+            "detail": {"source": "Product Root", "field": "sales_amount"},
+            "computability_decision": {
+                "reason": "P8_REQUIREMENT_STATUS_DRIFT",
+                "missing_role_groups": [["sales_amount"]],
+            },
+            "derived_evidence": {
+                "blocked_reason": "DERIVED_EVIDENCE_NOT_CONFIRMED",
+                "detail": ["Ventas.Producto -> Productos.Código"],
+                "evidence_requirements": ["product_identifier"],
+            },
+        },
+        "payment_collection_gap",
+    )
+
+    assert "P8_REQUIREMENT_STATUS_DRIFT" in page
+    assert "DERIVED_EVIDENCE_NOT_CONFIRMED" in page
+    assert '&quot;field&quot;: &quot;sales_amount&quot;' in page
+    assert "Ventas.Producto -&gt; Productos.Código" in page
+    assert "product_identifier" in page
+    assert "sales_amount" in page
+    assert "El control necesita evidencia adicional antes de poder calcularse." not in page
+
+
 def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assisted_server, tmp_path: Path) -> None:
     body, headers = _multipart("margen.xlsx", _margin_xlsx(tmp_path))
     status, response_headers, page = _request(assisted_server, "POST", "/upload", body, headers)
@@ -637,3 +814,46 @@ def test_upload_first_menu_offers_margin_only_when_preflight_can_close_it(assist
     assert 'name="review_net_margin_real"' in page
     assert "Ventas y cobranzas" not in page
     assert "Flujo de caja" not in page
+
+
+def test_upload_total_semantic_deadline_returns_controlled_fail_closed_response(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _SlowAgent:
+        def __init__(self) -> None:
+            self.cancelled = False
+
+        async def run(self, prompt: str):
+            try:
+                await asyncio.sleep(5)
+            finally:
+                self.cancelled = True
+
+    slow_agent = _SlowAgent()
+    monkeypatch.setattr(provider_module, "SERVICE_1_SEMANTIC_TOTAL_TIMEOUT_SECONDS", 1.0)
+    semantic_provider = Service1PydanticAIColumnSemanticProviderV1(
+        agent=slow_agent,
+        business_understanding_agent=slow_agent,
+    )
+    server = create_assisted_web_server_v1(
+        host="127.0.0.1",
+        port=0,
+        output_dir=tmp_path / "timeout",
+        semantic_provider=semantic_provider,
+    )
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body, headers = _multipart("ventas.xlsx", _sales_xlsx(tmp_path))
+        started = time.monotonic()
+        status, _, page = _request(server, "POST", "/upload", body, headers)
+        elapsed = time.monotonic() - started
+        assert status == 200
+        assert elapsed < 2.0
+        assert page
+        assert slow_agent.cancelled is True
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)

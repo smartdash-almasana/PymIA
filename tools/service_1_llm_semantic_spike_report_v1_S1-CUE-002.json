@@ -1,0 +1,120 @@
+{
+  "schema_version": "SERVICE_1_LLM_SEMANTIC_SPIKE_V1",
+  "model": "gemini-2.5-flash",
+  "runtime": "pydantic_ai_vertex",
+  "baseline": {
+    "columns_count": 7,
+    "exact_matches": 7,
+    "safe_questions": 0,
+    "safe_unknowns": 0,
+    "false_confident": 0,
+    "missed_questions": 0,
+    "dangerous_errors": 0,
+    "exact_match_rate": 1.0
+  },
+  "llm_direct": {
+    "columns_count": 7,
+    "exact_matches": 7,
+    "safe_questions": 0,
+    "safe_unknowns": 0,
+    "false_confident": 0,
+    "missed_questions": 0,
+    "dangerous_errors": 0,
+    "exact_match_rate": 1.0,
+    "rows": [
+      {
+        "case_id": "S1-CUE-002",
+        "sheet_name": "Ventas_Detalle",
+        "column_name": "fecha_emision",
+        "expected_semantic_role": "operation_date",
+        "expected_variable_name": "business_period",
+        "predicted_semantic_role": "operation_date",
+        "predicted_variable_name": "business_period",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-002",
+        "sheet_name": "Ventas_Detalle",
+        "column_name": "codigo",
+        "expected_semantic_role": "product_identifier",
+        "expected_variable_name": "product_id",
+        "predicted_semantic_role": "product_identifier",
+        "predicted_variable_name": "product_id",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-002",
+        "sheet_name": "Ventas_Detalle",
+        "column_name": "descripcion",
+        "expected_semantic_role": "product_name",
+        "expected_variable_name": "product",
+        "predicted_semantic_role": "product_name",
+        "predicted_variable_name": "product",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-002",
+        "sheet_name": "Ventas_Detalle",
+        "column_name": "precio_lista",
+        "expected_semantic_role": "list_price",
+        "expected_variable_name": "list_price",
+        "predicted_semantic_role": "list_price",
+        "predicted_variable_name": "list_price",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": true
+      },
+      {
+        "case_id": "S1-CUE-002",
+        "sheet_name": "Ventas_Detalle",
+        "column_name": "bonif",
+        "expected_semantic_role": "discount_candidate",
+        "expected_variable_name": "discount",
+        "predicted_semantic_role": "discount_candidate",
+        "predicted_variable_name": "discount",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-002",
+        "sheet_name": "Ventas_Detalle",
+        "column_name": "iva",
+        "expected_semantic_role": "tax_amount",
+        "expected_variable_name": "taxes",
+        "predicted_semantic_role": "tax_amount",
+        "predicted_variable_name": "taxes",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": false
+      },
+      {
+        "case_id": "S1-CUE-002",
+        "sheet_name": "Ventas_Detalle",
+        "column_name": "importe_total",
+        "expected_semantic_role": "sales_amount",
+        "expected_variable_name": "sold_amount",
+        "predicted_semantic_role": "sales_amount",
+        "predicted_variable_name": "sold_amount",
+        "needs_owner_confirmation": false,
+        "owner_question": null,
+        "outcome": "EXACT_MATCH",
+        "dangerous_if_wrong": true
+      }
+    ],
+    "model_output_invalid": []
+  },
+  "decision": "LLM_DIRECT_PROMISING"
+}

@@ -87,13 +87,15 @@ def test_assisted_web_persists_canonical_owner_events_after_successful_review(tm
     assert recorded
     for event, contract in recorded:
         assert event.case_id == contract.case_id
-        assert event.file_ref == "ventas.xlsx"
+        assert event.file_ref == contract.workbook_ref
+        assert event.file_ref.startswith("workbook:sha256:")
         assert contract.tenant_id == "tenant-acme"
         assert contract.cliente_id == "cliente-001"
         assert contract.owner_actor_id == "owner-001"
         assert contract.owner_actor_role == "OWNER"
-        assert contract.workbook_ref == "ventas.xlsx"
+        assert contract.workbook_ref.startswith("workbook:sha256:")
         assert contract.confirmation_event_ref
+    assert app.session("session-1").ingestion_output["provenance"]["filename"] == "ventas.xlsx"
 
 
 def test_owner_confirmation_is_persisted_even_when_requested_control_needs_more_evidence(tmp_path: Path) -> None:

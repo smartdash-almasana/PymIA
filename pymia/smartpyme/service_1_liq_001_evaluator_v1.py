@@ -10,6 +10,20 @@ import math
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final
 
+from pymia.contracts.formula_contract import (
+    FormulaInput,
+    FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    calculate_formula,
+)
+from pymia.services.formula_engine_service import FormulaEngineService
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    ClassificationPredicate,
+    ClassificationRule,
+    classify_classification_rules,
+)
+
 SCHEMA_VERSION: Final[str] = "SERVICE_1_LIQ_001_EVALUATION_V1"
 PATHOLOGY_CODE: Final[str] = "LIQ_001"
 FORMULA_REF: Final[str] = "LIQ_001_vendido_cobrado"
@@ -28,6 +42,41 @@ CLASS_COLLECTIONS_EXCEED_PERIOD_SALES: Final[str] = "COLLECTIONS_EXCEED_PERIOD_S
 CLASS_COLLECTIONS_WITHOUT_PERIOD_SALES: Final[str] = "COLLECTIONS_WITHOUT_PERIOD_SALES"
 
 _REQUIRED_VARIABLES: Final[tuple[str, str]] = ("sold_amount", "collected_amount")
+_CLASSIFICATION_RULES: Final[tuple[ClassificationRule, ...]] = (
+    ClassificationRule(
+        CLASS_NO_ACTIVITY,
+        match="ALL",
+        predicates=(
+            ClassificationPredicate("result", "EQ", literal=Decimal("0")),
+            ClassificationPredicate("sold_amount", "EQ", literal=Decimal("0")),
+            ClassificationPredicate("collected_amount", "EQ", literal=Decimal("0")),
+        ),
+    ),
+    ClassificationRule(
+        CLASS_COLLECTIONS_WITHOUT_PERIOD_SALES,
+        match="ALL",
+        predicates=(
+            ClassificationPredicate("sold_amount", "EQ", literal=Decimal("0")),
+            ClassificationPredicate("collected_amount", "GT", literal=Decimal("0")),
+        ),
+    ),
+    ClassificationRule(
+        CLASS_SALES_PENDING_COLLECTION,
+        predicates=(ClassificationPredicate("result", "GT", literal=Decimal("0")),),
+    ),
+    ClassificationRule(
+        CLASS_NO_GAP,
+        match="ALL",
+        predicates=(
+            ClassificationPredicate("result", "EQ", literal=Decimal("0")),
+            ClassificationPredicate("sold_amount", "GT", literal=Decimal("0")),
+        ),
+    ),
+    ClassificationRule(
+        CLASS_COLLECTIONS_EXCEED_PERIOD_SALES,
+        predicates=(ClassificationPredicate("result", "LT", literal=Decimal("0")),),
+    ),
+)
 
 
 def evaluate_liq_001_from_normalized_tables_v1(
@@ -227,7 +276,7 @@ def evaluate_liq_001_v1(*, sold_amount: object, collected_amount: object) -> dic
     Mathematical domain:
     - both inputs must be finite real numbers;
     - both inputs must be greater than or equal to zero;
-    - ``gap = sold_amount - collected_amount``;
+    - the gap is produced by the canonical ``LIQ_001_vendido_cobrado`` formula;
     - ratios are undefined when ``sold_amount == 0``.
     """
     normalized, errors = _normalize_inputs(
@@ -244,24 +293,64 @@ def evaluate_liq_001_v1(*, sold_amount: object, collected_amount: object) -> dic
 
     sold = normalized["sold_amount"]
     collected = normalized["collected_amount"]
-    gap = sold - collected
+    kernel_result = calculate_formula(
+        FORMULA_REF,
+        [
+            FormulaInput(name="sold_amount", value=sold, source_refs=["LIQ_001:sold_amount"]),
+            FormulaInput(name="collected_amount", value=collected, source_refs=["LIQ_001:collected_amount"]),
+        ],
+    )
+    if kernel_result.status != FormulaStatus.OK or kernel_result.value is None:
+        return _packet(
+            status=STATUS_INVALID_INPUT,
+            classification=None,
+            inputs=normalized,
+            errors=[kernel_result.blocking_reason or "LIQ_001 formula calculation blocked."],
+        )
+    gap = kernel_result.value
 
     if sold == 0:
-        if collected == 0:
-            classification = CLASS_NO_ACTIVITY
-        else:
-            classification = CLASS_COLLECTIONS_WITHOUT_PERIOD_SALES
+        classification = classify_classification_rules(
+            _CLASSIFICATION_RULES,
+            result=gap,
+            inputs={"sold_amount": sold, "collected_amount": collected},
+        )
         collection_ratio = None
         gap_ratio = None
     else:
-        collection_ratio = collected / sold
-        gap_ratio = gap / sold
-        if gap > 0:
-            classification = CLASS_SALES_PENDING_COLLECTION
-        elif gap == 0:
-            classification = CLASS_NO_GAP
-        else:
-            classification = CLASS_COLLECTIONS_EXCEED_PERIOD_SALES
+        collection_ratio_result = FormulaEngineService().calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.DIVIDE,
+                values=[collected, sold],
+                source_refs=["LIQ_001:collected_amount", "LIQ_001:sold_amount"],
+            )
+        )
+        gap_ratio_result = FormulaEngineService().calculate_math_primitive(
+            MathPrimitiveInput(
+                operation=MathPrimitiveOperation.DIVIDE,
+                values=[gap, sold],
+                source_refs=["LIQ_001:gap_amount", "LIQ_001:sold_amount"],
+            )
+        )
+        if (
+            collection_ratio_result.status != FormulaStatus.OK
+            or collection_ratio_result.value is None
+            or gap_ratio_result.status != FormulaStatus.OK
+            or gap_ratio_result.value is None
+        ):
+            return _packet(
+                status=STATUS_INVALID_INPUT,
+                classification=None,
+                inputs=normalized,
+                errors=["LIQ_001 ratio calculation blocked."],
+            )
+        collection_ratio = collection_ratio_result.value
+        gap_ratio = gap_ratio_result.value
+        classification = classify_classification_rules(
+            _CLASSIFICATION_RULES,
+            result=gap,
+            inputs={"sold_amount": sold, "collected_amount": collected},
+        )
 
     return _packet(
         status=STATUS_EVALUATED,

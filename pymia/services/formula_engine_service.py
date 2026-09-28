@@ -1,18 +1,122 @@
 from __future__ import annotations
 
+import math
+
 from pymia.contracts.formula_contract import (
     SUPPORTED_FORMULAS,
     FormulaInput,
     FormulaResult,
     FormulaStatus,
+    MathPrimitiveInput,
+    MathPrimitiveOperation,
+    MathPrimitiveResult,
 )
 
 
 class FormulaEngineService:
-    """Motor determinístico mínimo de fórmulas.
+    """Motor determinístico mínimo de fórmulas y primitivas matemáticas.
 
     No interpreta. No conversa. Solo calcula o bloquea con causa explícita.
     """
+
+    def calculate_math_primitive(self, item: MathPrimitiveInput) -> MathPrimitiveResult:
+        """Execute a generic mathematical primitive without business semantics."""
+        if not isinstance(item, MathPrimitiveInput):
+            raise TypeError("item must be MathPrimitiveInput")
+        values = [float(value) for value in item.values]
+        paired = [float(value) for value in item.paired_values]
+        refs = list(dict.fromkeys(str(ref).strip() for ref in item.source_refs if str(ref).strip()))
+        if any(not math.isfinite(value) for value in (*values, *paired)):
+            return MathPrimitiveResult(
+                operation=item.operation,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                source_refs=refs,
+                blocking_reason="NON_FINITE_INPUT",
+            )
+
+        operation = item.operation
+        if operation is not MathPrimitiveOperation.SUM_PRODUCT and paired:
+            return self._math_blocked(item, refs, "UNEXPECTED_PAIRED_VALUES")
+        if operation is MathPrimitiveOperation.SINGLE_VALUE:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            unique = set(values)
+            if len(unique) != 1:
+                return self._math_blocked(item, refs, "MULTIPLE_DISTINCT_VALUES")
+            return self._math_ok(item, values[0], refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.SUM:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, sum(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.COUNT:
+            return self._math_ok(item, len(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.AVG:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, sum(values) / len(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.MIN:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, min(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.MAX:
+            if not values:
+                return self._math_blocked(item, refs, "EMPTY_INPUT")
+            return self._math_ok(item, max(values), refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.SUM_PRODUCT:
+            if not values or len(values) != len(paired):
+                return self._math_blocked(item, refs, "PAIRED_INPUT_LENGTH_MISMATCH")
+            total = sum(left * right for left, right in zip(values, paired))
+            return self._math_ok(item, total, refs, value_count=len(values))
+        if operation is MathPrimitiveOperation.MULTIPLY:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "MULTIPLY_REQUIRES_TWO_VALUES")
+            return self._math_ok(item, values[0] * values[1], refs, value_count=2)
+        if operation is MathPrimitiveOperation.SUBTRACT:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "SUBTRACT_REQUIRES_TWO_VALUES")
+            return self._math_ok(item, values[0] - values[1], refs, value_count=2)
+        if operation is MathPrimitiveOperation.DIVIDE:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "DIVIDE_REQUIRES_NUMERATOR_AND_DENOMINATOR")
+            if values[1] == 0:
+                return self._math_blocked(item, refs, "DIVISION_BY_ZERO")
+            return self._math_ok(item, values[0] / values[1], refs, value_count=2)
+        if operation is MathPrimitiveOperation.PERCENT_OF:
+            if len(values) != 2 or paired:
+                return self._math_blocked(item, refs, "PERCENT_OF_REQUIRES_BASE_AND_PERCENT")
+            return self._math_ok(item, (values[0] * values[1]) / 100.0, refs, value_count=2)
+        return self._math_blocked(item, refs, "MATH_PRIMITIVE_NOT_SUPPORTED")
+
+    def _math_ok(
+        self,
+        item: MathPrimitiveInput,
+        value: float | int,
+        source_refs: list[str],
+        *,
+        value_count: int,
+    ) -> MathPrimitiveResult:
+        return MathPrimitiveResult(
+            operation=item.operation,
+            status=FormulaStatus.OK,
+            value=float(value),
+            source_refs=source_refs,
+            metadata={"value_count": value_count},
+        )
+
+    def _math_blocked(
+        self,
+        item: MathPrimitiveInput,
+        source_refs: list[str],
+        reason: str,
+    ) -> MathPrimitiveResult:
+        return MathPrimitiveResult(
+            operation=item.operation,
+            status=FormulaStatus.BLOCKED,
+            value=None,
+            source_refs=source_refs,
+            blocking_reason=reason,
+        )
 
     def calculate(self, formula_id: str, inputs: list[FormulaInput]) -> FormulaResult:
         values = {input_item.name: input_item.value for input_item in inputs}
@@ -58,6 +162,21 @@ class FormulaEngineService:
             collected_amount = values["collected_amount"]
             return self._ok(formula_id, sold_amount - collected_amount, values, source_refs)
 
+        if formula_id == "PYME_013_PREREQUISITE_dpo":
+            accounts_payable = values["accounts_payable"]
+            purchases = values["purchases"]
+            days = values["days"]
+            if purchases == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: purchases",
+                )
+            return self._ok(formula_id, (accounts_payable / purchases) * days, values, source_refs)
+
         if formula_id == "INV_002_rotacion_stock":
             return self._calculate_inv_002_rotacion_stock(values, source_refs)
 
@@ -93,6 +212,36 @@ class FormulaEngineService:
 
         if formula_id == "PYME_024_liquidez_corriente":
             return self._calculate_pyme_024_liquidez_corriente(values, source_refs)
+
+        if formula_id == "precio_catalogo_variacion_pct":
+            observed_sales = values["observed_sales"]
+            observed_units = values["observed_units"]
+            catalog_price = values["catalog_price"]
+            if observed_units == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: observed_units",
+                )
+            if catalog_price == 0:
+                return FormulaResult(
+                    formula_id=formula_id,
+                    status=FormulaStatus.BLOCKED,
+                    value=None,
+                    inputs=values,
+                    source_refs=source_refs,
+                    blocking_reason="DIVISION_BY_ZERO: catalog_price",
+                )
+            observed_price = observed_sales / observed_units
+            return self._ok(
+                formula_id,
+                ((observed_price - catalog_price) / catalog_price) * 100,
+                values,
+                source_refs,
+            )
 
         if formula_id == "PYME_017_pricing_drift":
             return self._calculate_pyme_017_pricing_drift(values, source_refs)
@@ -201,6 +350,22 @@ class FormulaEngineService:
             return self._ok(
                 formula_id,
                 closing_index / origin_index,
+                values,
+                source_refs,
+            )
+
+        if formula_id in {
+            "CONSORCIOS_expense_variance_budget_pct",
+            "CONSORCIOS_expense_variance_historical_pct",
+        }:
+            return self._calculate_consorcios_variance_pct(
+                formula_id,
+                values,
+                source_refs,
+            )
+
+        if formula_id == "CONSORCIOS_collection_aging_periods":
+            return self._calculate_consorcios_collection_aging_periods(
                 values,
                 source_refs,
             )
@@ -369,6 +534,44 @@ class FormulaEngineService:
             )
 
         return self._ok(formula_id, ((own_price - market_price) / market_price) * 100, inputs, source_refs)
+
+    def _calculate_consorcios_variance_pct(
+        self,
+        formula_id: str,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        actual = inputs["actual"]
+        baseline = inputs["baseline"]
+        if baseline == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: baseline",
+            )
+        return self._ok(formula_id, ((actual / baseline) - 1) * 100, inputs, source_refs)
+
+    def _calculate_consorcios_collection_aging_periods(
+        self,
+        inputs: dict,
+        source_refs: list[str],
+    ) -> FormulaResult:
+        formula_id = "CONSORCIOS_collection_aging_periods"
+        prior_balance = inputs["prior_balance"]
+        monthly_charge = inputs["monthly_charge"]
+        if monthly_charge == 0:
+            return FormulaResult(
+                formula_id=formula_id,
+                status=FormulaStatus.BLOCKED,
+                value=None,
+                inputs=inputs,
+                source_refs=source_refs,
+                blocking_reason="DIVISION_BY_ZERO: monthly_charge",
+            )
+        return self._ok(formula_id, prior_balance / monthly_charge, inputs, source_refs)
 
     def _collect_source_refs(self, inputs: list[FormulaInput]) -> list[str]:
         refs: list[str] = []

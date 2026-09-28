@@ -4,7 +4,15 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any, Final, Mapping
 
-from pymia.smartpyme.service_1_capability_contracts_v1 import CapabilityDefinitionV1, FormulaNodeV1
+from pymia.contracts.formula_contract import (
+    FormulaInput,
+    FormulaStatus,
+    calculate_formula,
+)
+from pymia.smartpyme.service_1_capability_contracts_v1 import (
+    CapabilityDefinitionV1,
+    classify_classification_rules,
+)
 from pymia.smartpyme.service_1_computability_v1 import Service1GovernedComputationInputV1
 from pymia.smartpyme.service_1_capability_registry_v1 import get_capability_definition_v1
 
@@ -36,10 +44,27 @@ def execute_generic_capability_v1(
     domain_errors = _validate_domains(definition, inputs)
     if domain_errors:
         return _blocked(domain_errors, definition=definition, inputs=inputs, aggregation={"sources": sources, "sample_based": False})
-    try:
-        result = _evaluate_formula(definition.formula, inputs)
-    except ZeroDivisionError:
-        return _blocked(["formula denominator must be greater than zero."], definition=definition, inputs=inputs)
+    formula_inputs = [
+        FormulaInput(
+            name=requirement.name,
+            value=float(inputs[requirement.name]),
+            source_refs=[
+                source_ref
+                for source_ref in [str(sources.get(requirement.name, {}).get("column_name") or "")]
+                if source_ref
+            ],
+        )
+        for requirement in definition.variables
+    ]
+    kernel_result = calculate_formula(definition.formula_ref, formula_inputs)
+    if kernel_result.status != FormulaStatus.OK or kernel_result.value is None:
+        return _blocked(
+            [kernel_result.blocking_reason or "formula execution blocked."],
+            definition=definition,
+            inputs=inputs,
+            aggregation={"sources": sources, "sample_based": False},
+        )
+    result = Decimal(str(kernel_result.value))
     classification = _classify(definition, result, inputs)
     if classification is None:
         return _blocked(["no governed classification matched the computed result."], definition=definition, inputs=inputs)
@@ -114,7 +139,12 @@ def _validate_execution_input(definition: CapabilityDefinitionV1, payload: objec
 
 
 def _resolve_inputs(
-    *, definition: CapabilityDefinitionV1, computation_plan: object, normalized_tables: object, column_refs: object, governed_results: object
+    *,
+    definition: CapabilityDefinitionV1,
+    computation_plan: object,
+    normalized_tables: object,
+    column_refs: object,
+    governed_results: object,
 ) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
     if definition.kind == "COMPOSITE":
         return _resolve_composite_inputs(
@@ -131,7 +161,11 @@ def _resolve_inputs(
 
 
 def _resolve_atomic_inputs(
-    *, definition: CapabilityDefinitionV1, computation_plan: object, normalized_tables: object, column_refs: object
+    *,
+    definition: CapabilityDefinitionV1,
+    computation_plan: object,
+    normalized_tables: object,
+    column_refs: object,
 ) -> tuple[dict[str, Decimal], dict[str, dict[str, object]], list[str]]:
     if not isinstance(computation_plan, dict):
         return {}, {}, ["computation_plan must be an object."]
@@ -308,47 +342,12 @@ def _validate_domains(definition: CapabilityDefinitionV1, inputs: dict[str, Deci
     return errors
 
 
-def _evaluate_formula(node: FormulaNodeV1, inputs: dict[str, Decimal]) -> Decimal:
-    if node.operation == "VARIABLE":
-        if not node.variable_name or node.variable_name not in inputs:
-            raise ValueError("formula variable is not available")
-        return inputs[node.variable_name]
-    if node.operation == "VALUE":
-        if node.value is None:
-            raise ValueError("formula literal is missing")
-        return node.value
-    if node.left is None or node.right is None:
-        raise ValueError("binary formula node requires both operands")
-    left = _evaluate_formula(node.left, inputs)
-    right = _evaluate_formula(node.right, inputs)
-    if node.operation == "ADD":
-        return left + right
-    if node.operation == "SUBTRACT":
-        return left - right
-    if node.operation == "MULTIPLY":
-        return left * right
-    if node.operation == "DIVIDE":
-        if right <= 0:
-            raise ZeroDivisionError
-        return left / right
-    raise ValueError(f"unsupported formula operation: {node.operation}")
-
-
 def _classify(definition: CapabilityDefinitionV1, result: Decimal, inputs: dict[str, Decimal]) -> str | None:
-    for rule in definition.classifications:
-        reference = inputs.get(rule.reference_variable) if rule.reference_variable else rule.reference_value
-        if reference is None:
-            continue
-        matched = {
-            "LT": result < reference,
-            "LE": result <= reference,
-            "EQ": result == reference,
-            "GE": result >= reference,
-            "GT": result > reference,
-        }[rule.comparison]
-        if matched:
-            return rule.code
-    return None
+    return classify_classification_rules(
+        definition.classifications,
+        result=result,
+        inputs=inputs,
+    )
 
 
 def _number(value: object) -> tuple[Decimal, str | None]:

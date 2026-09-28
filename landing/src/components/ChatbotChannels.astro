@@ -72,12 +72,14 @@
   gap: 20px;
 }
 .channel-wa {
-  border-color: rgba(0,230,118,.3);
-  background: linear-gradient(145deg, rgba(0,230,118,.06), var(--panel));
+  border-color: var(--green-strong);
+  border-top: 4px solid var(--green-strong);
+  background: linear-gradient(145deg, var(--green-soft), var(--paper-2));
 }
 .channel-tg {
-  border-color: rgba(100,181,246,.25);
-  background: linear-gradient(145deg, rgba(100,181,246,.05), var(--panel));
+  border-color: var(--rule-strong);
+  border-top: 4px solid var(--blue);
+  background: linear-gradient(145deg, rgba(37, 94, 107, .07), var(--paper-2));
 }
 .channel-header {
   display: flex;
@@ -88,14 +90,14 @@
   font-size: 2rem;
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
-.channel-icon-wrap.wa { background: rgba(0,230,118,.12); border: 1px solid rgba(0,230,118,.2); }
-.channel-icon-wrap.tg { background: rgba(100,181,246,.1); border: 1px solid rgba(100,181,246,.2); }
+.channel-icon-wrap.wa { background: var(--green-soft); border: 1px solid var(--rule-strong); }
+.channel-icon-wrap.tg { background: var(--paper-3); border: 1px solid var(--rule-strong); }
 .channel-title {
   font-family: var(--font-display);
   font-size: 1.6rem;
@@ -117,7 +119,7 @@
   align-items: center;
   gap: 10px;
   font-size: .88rem;
-  color: var(--soft);
+  color: var(--slate);
 }
 .feat-dot {
   width: 8px;
@@ -125,19 +127,19 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.wa-dot { background: var(--green); box-shadow: 0 0 8px rgba(0,230,118,.4); }
-.tg-dot { background: var(--blue);  box-shadow: 0 0 8px rgba(100,181,246,.35); }
+.wa-dot { background: var(--green-strong); }
+.tg-dot { background: var(--blue); }
 .channel-btn {
   width: 100%;
   margin-top: 4px;
 }
 .tg-btn {
-  border-color: rgba(100,181,246,.4);
+  border-color: var(--blue);
   color: var(--blue);
 }
 .tg-btn:hover {
   border-color: var(--blue);
-  background: rgba(100,181,246,.08);
+  background: rgba(37, 94, 107, .08);
   color: var(--blue);
 }
 

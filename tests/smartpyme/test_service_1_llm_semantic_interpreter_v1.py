@@ -12,7 +12,11 @@ from pymia.smartpyme.service_1_llm_semantic_interpreter_v1 import (
     BLOCK_PROVIDER_OUTPUT_NOT_MAPPING,
     STATUS_BLOCKED,
     STATUS_READY,
+    _safe_provider_exception_message,
     interpret_service_1_semantics_v1,
+)
+from pymia.smartpyme.service_1_pydantic_ai_column_semantic_provider_v1 import (
+    Service1SemanticProviderResultV1,
 )
 from pymia.smartpyme.service_1_workbook_profiler_v1 import (
     build_service_1_workbook_profile_v1,
@@ -24,6 +28,8 @@ def _profile() -> dict:
         "case_id": "case-sem2",
         "filename": "cafeteria.xlsx",
         "source_file_ref": "cafeteria.xlsx",
+        "workbook_context": {"case_id": "case-sem2"},
+        "provenance": {"source_file_ref": "cafeteria.xlsx"},
         "column_refs": [
             {
                 "question_id": "q1",
@@ -172,6 +178,35 @@ def test_sem2_provider_neutral_adapter_accepts_closed_structured_proposal() -> N
     ))
 
 
+def test_sem2_keeps_system_provider_provenance_outside_closed_llm_proposal() -> None:
+    provenance = {
+        "primary_provider": "GEMINI",
+        "final_provider": "NVIDIA_NIM",
+        "fallback_used": True,
+    }
+
+    def provider(_payload):
+        return Service1SemanticProviderResultV1(
+            _valid_payload(),
+            provider_provenance=provenance,
+        )
+
+    result = interpret_service_1_semantics_v1(context=_context(), provider=provider)
+
+    assert result["status"] == STATUS_READY
+    assert result["provider_provenance"] == provenance
+
+
+def test_sem2_still_rejects_model_provenance_as_an_unknown_proposal_field() -> None:
+    payload = _valid_payload()
+    payload["provenance"] = {"spoofed": True}
+
+    result = interpret_service_1_semantics_v1(context=_context(), provider=lambda _ctx: payload)
+
+    assert result["status"] == STATUS_BLOCKED
+    assert result["detail"]["contract_error"] == "UNKNOWN_FIELD"
+
+
 def test_sem2_contract_rejects_forbidden_authority_field_anywhere() -> None:
     payload = _valid_payload()
     payload["concept_proposals"][0]["runtime_authorized"] = True
@@ -209,6 +244,39 @@ def test_sem2_provider_exception_fails_closed_without_exception_text() -> None:
     assert result["blocked_reason"] == BLOCK_PROVIDER_FAILED
     assert result["detail"] == "RuntimeError"
     assert "secret" not in str(result)
+
+
+def test_sem2_compositional_evidence_type_error_fails_closed_as_contract_error() -> None:
+    payload = _valid_payload()
+    concept = payload["concept_proposals"][0]
+    concept["semantic_role"] = None
+    concept["variable_name"] = None
+    concept["compositional_semantic"] = {
+        "field_ref": "Ventas.Cantidad",
+        "measure": "quantity",
+        "confidence": 0.95,
+        "evidence": 5,
+        "source": "LLM_C2_PROPOSAL",
+    }
+
+    result = interpret_service_1_semantics_v1(context=_context(), provider=lambda _ctx: payload)
+
+    assert result["status"] == STATUS_BLOCKED
+    assert result["blocked_reason"] == BLOCK_PROVIDER_OUTPUT_INVALID
+    assert result["detail"]["contract_error"] == "INVALID_COMPOSITIONAL_SEMANTIC"
+
+
+def test_sem2_provider_diagnostic_redacts_credentials() -> None:
+    message = _safe_provider_exception_message(
+        RuntimeError(
+            "authorization: bearer abc123 api_key=key456 password=pass789"
+        )
+    )
+
+    assert "abc123" not in message
+    assert "key456" not in message
+    assert "pass789" not in message
+    assert message.count("[REDACTED]") == 3
 
 
 def test_sem2_provider_non_mapping_fails_closed() -> None:

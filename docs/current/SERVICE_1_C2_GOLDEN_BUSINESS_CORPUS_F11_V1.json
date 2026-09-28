@@ -1,0 +1,101 @@
+{
+  "schema_version": "SERVICE_1_C2_GOLDEN_BUSINESS_CORPUS_F11_V1",
+  "status": "EVIDENCE_NON_NORMATIVE",
+  "authority": "EVIDENCE_ONLY",
+  "source_basis": "SERVICE_1_PHYSICAL_XLSX_MULTI_SECTOR_PRODUCT_READINESS_CORPUS_V1",
+  "cases": [
+    {
+      "case_id": "F11-SALES",
+      "workbook": "prueba_excels/CASE_001_ventas_junio_2026_margin_leak.xlsx",
+      "sheet": "Ventas_Junio_2026",
+      "expected_columns": {
+        "producto_codigo": {"entity": "product", "identity": "identifier"},
+        "cantidad": {"measure": "quantity"},
+        "precio_unitario": {"measure": "price", "scope": "unit"},
+        "costo_unitario": {"measure": "cost", "scope": "unit"},
+        "venta_total": {"measure": "revenue"}
+      }
+    },
+    {
+      "case_id": "F11-TEXTILE-SALES",
+      "workbook": "prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+      "sheet": "ventas",
+      "expected_columns": {
+        "cliente": {"entity": "customer"},
+        "sku": {"entity": "product"},
+        "cantidad": {"measure": "quantity"},
+        "precio_unitario_vendido": {"measure": "price", "scope": "unit"},
+        "descuento_pct": {"measure": "discount"}
+      }
+    },
+    {
+      "case_id": "F11-TEXTILE-PURCHASES",
+      "workbook": "prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+      "sheet": "compras",
+      "expected_columns": {
+        "proveedor": {"entity": "supplier"},
+        "sku": {"entity": "product"},
+        "cantidad_comprada": {"measure": "quantity"},
+        "costo_unitario": {"measure": "cost", "scope": "unit"},
+        "fecha_pago": {"time": "payment_date"}
+      }
+    },
+    {
+      "case_id": "F11-TEXTILE-STOCK",
+      "workbook": "prueba_excels/la_textil_cosida_srl_mar_abr_may_2026.xlsx",
+      "sheet": "stock",
+      "expected_columns": {
+        "sku": {"entity": "product"},
+        "stock_minimo": {"object": "inventory"},
+        "stock_final_marzo": {"object": "inventory"}
+      }
+    },
+    {
+      "case_id": "F11-COLLECTIONS",
+      "workbook": "prueba_excels/cobros_marzo_2026.xlsx",
+      "sheet": "Cobros_Marzo_2026",
+      "expected_columns": {
+        "cobro_id": {"identity": "identifier"},
+        "importe_cobrado": {"state": "collected"},
+        "medio_de_cobro": {"process": "collection"}
+      }
+    },
+    {
+      "case_id": "F11-WORKSHOP",
+      "workbook": "prueba_excels/taller_mecanico_lubricar_srl.xlsx",
+      "sheet": "ORDENES_TRABAJO",
+      "expected_columns": {
+        "orden_id": {"entity": "work_order", "identity": "identifier", "grain": "work_order"},
+        "horas_mano_obra": {"measure": "duration", "object": "labor"},
+        "valor_hora": {"measure": "price"},
+        "costo_mano_obra": {"measure": "cost", "object": "labor"},
+        "margen_mano_obra": {"measure": "margin", "object": "labor"}
+      }
+    },
+    {
+      "case_id": "F11-CASH-BANK-SAFE-UNKNOWN",
+      "workbook": "prueba_excels/first_aid_pilot_004_cash_bank_reconciliation_demo.xlsx",
+      "sheet": "Caja_Banco",
+      "safe_unknown_columns": [
+        "Importe declarado",
+        "Importe banco",
+        "Importe caja/POS",
+        "Diferencia banco vs caja"
+      ],
+      "forbidden_confident_meanings": [
+        "sales revenue",
+        "purchase cost",
+        "automatic reconciliation result"
+      ]
+    }
+  ],
+  "global_invariants": {
+    "runtime_authorized": false,
+    "tool_execution_authorized": false,
+    "product_ready": false,
+    "delivery_authorized": false,
+    "automatic_reuse_authorized": false,
+    "vertical_hardcodes_forbidden": true,
+    "second_xlsx_parse_forbidden": true
+  }
+}

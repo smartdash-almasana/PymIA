@@ -17,6 +17,7 @@ CONFIRMED_BINDINGS packet shape used by the existing product root.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any, Final
 
 from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
@@ -30,9 +31,8 @@ from pymia.smartpyme.service_1_derived_evidence_v1 import (
 from pymia.smartpyme.service_1_variable_family_bindings_v1 import (
     VARIABLE_FAMILY_DEFINITIONS,
 )
-from pymia.smartpyme.service_1_deterministic_semantic_pipeline_v1 import (
-    SCHEMA_VERSION as DETERMINISTIC_PIPELINE_SCHEMA_VERSION,
-    STATUS_CONFIRMED_BINDINGS,
+from pymia.smartpyme.service_1_computability_v1 import (
+    CONFIRMED_BINDINGS_SCHEMA_VERSION,
 )
 from pymia.smartpyme.service_1_llm_semantic_contract_v1 import (
     Service1LLMConceptProposalV1,
@@ -41,9 +41,22 @@ from pymia.smartpyme.service_1_llm_semantic_contract_v1 import (
     Service1LLMSemanticProposalV1,
     build_service_1_llm_semantic_context_v1,
 )
+from pymia.smartpyme.service_1_workbook_semantic_context_v1 import (
+    STATUS_READY as WORKBOOK_SEMANTIC_CONTEXT_READY,
+    build_service_1_workbook_semantic_context_v1,
+)
+from pymia.smartpyme.service_1_semantic_knowledge_context_v1 import (
+    STATUS_READY as SEMANTIC_KNOWLEDGE_CONTEXT_READY,
+    retrieve_service_1_semantic_knowledge_v1,
+)
 from pymia.smartpyme.service_1_llm_semantic_interpreter_v1 import (
     STATUS_READY as INTERPRETER_READY,
     interpret_service_1_semantics_v1,
+)
+from pymia.smartpyme.service_1_semantic_coordinate_model_v2 import (
+    AXES as SEMANTIC_COORDINATE_AXES,
+    Service1SemanticCoordinateV2,
+    load_service_1_semantic_coordinate_taxonomy_v2,
 )
 from pymia.smartpyme.service_1_owner_semantic_answer_projection_v1 import (
     SCHEMA_VERSION as SEM5_SCHEMA_VERSION,
@@ -71,6 +84,17 @@ from pymia.smartpyme.service_1_owner_semantic_evidence_reentry_v1 import (
 from pymia.smartpyme.service_1_semantic_proposal_validator_v1 import (
     STATUS_READY as VALIDATOR_READY,
     validate_service_1_semantic_proposal_v1,
+)
+from pymia.smartpyme.service_1_semantic_compression_v1 import (
+    STATUS_READY as SEMANTIC_COMPRESSION_READY,
+    build_service_1_semantic_compression_v1,
+)
+from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
+    Service1ColumnSemanticCandidateV1,
+)
+from pymia.smartpyme.service_1_table_scoped_semantic_context_v1 import (
+    STATUS_READY as TABLE_SCOPE_READY,
+    enrich_service_1_deterministic_hypotheses_with_table_scope_v1,
 )
 from pymia.smartpyme.service_1_workbook_profiler_v1 import (
     STATUS_READY as PROFILE_READY,
@@ -124,21 +148,22 @@ _FOLLOWUP_DIALOGUE_STATUSES: Final[frozenset[str]] = frozenset(
 def run_service_1_assisted_semantic_initial_v1(
     *,
     ingestion_output: Any,
-    requested_capability: str,
+    requested_capability: str | None,
     provider: Any,
     sheet_name: str = "sheet1",
     compatible_tenant_memory_hints: Sequence[Mapping[str, Any]] = (),
     semantic_scope_capabilities: Sequence[str] = (),
     atomic_confirmation: bool = False,
+    table_scoped_semantics: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create one exact assisted semantic state and its minimal owner dialogue."""
     if not isinstance(ingestion_output, dict) or not ingestion_output:
         return _blocked(BLOCK_INGESTION_INVALID)
-    capability = str(requested_capability or "").strip()
-    if not capability:
-        return _blocked(BLOCK_CAPABILITY_REQUIRED, case_id=ingestion_output.get("case_id"))
+    capability = None if requested_capability is None else str(requested_capability).strip()
+    if capability == "":
+        return _blocked(BLOCK_CAPABILITY_REQUIRED, case_id=(ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(ingestion_output.get("workbook_context"), Mapping) else None)
     if any(bool(ingestion_output.get(flag)) for flag in _AUTHORITY_FLAGS):
-        return _blocked(BLOCK_INGESTION_INVALID, case_id=ingestion_output.get("case_id"))
+        return _blocked(BLOCK_INGESTION_INVALID, case_id=(ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(ingestion_output.get("workbook_context"), Mapping) else None)
 
     bridge = build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
         ingestion_output=ingestion_output,
@@ -147,7 +172,7 @@ def run_service_1_assisted_semantic_initial_v1(
     if bridge.get("status") != BRIDGE_READY:
         return _blocked(
             BLOCK_BRIDGE_FAILED,
-            case_id=ingestion_output.get("case_id"),
+            case_id=(ingestion_output.get("workbook_context") or {}).get("case_id") if isinstance(ingestion_output.get("workbook_context"), Mapping) else None,
             detail=bridge.get("blocked_reason"),
             bridge_packet=bridge,
         )
@@ -163,20 +188,68 @@ def run_service_1_assisted_semantic_initial_v1(
         )
 
     deterministic_hypotheses = _deterministic_hypotheses(bridge)
+    semantic_scope_packet = None
+    if table_scoped_semantics is not None:
+        if (
+            not isinstance(table_scoped_semantics, Mapping)
+            or table_scoped_semantics.get("status") != TABLE_SCOPE_READY
+        ):
+            return _blocked(
+                BLOCK_CONTEXT_FAILED,
+                case_id=bridge.get("case_id"),
+                detail=(
+                    table_scoped_semantics.get("blocked_reason")
+                    if isinstance(table_scoped_semantics, Mapping)
+                    else "TABLE_SCOPED_SEMANTICS_PACKET_REQUIRED"
+                ),
+                bridge_packet=bridge,
+                workbook_profile=profile,
+            )
+        semantic_scope_packet = dict(table_scoped_semantics)
+        deterministic_hypotheses = enrich_service_1_deterministic_hypotheses_with_table_scope_v1(
+            deterministic_hypotheses=deterministic_hypotheses,
+            column_refs=tuple(
+                item for item in (bridge.get("column_refs") or ()) if isinstance(item, Mapping)
+            ),
+            semantic_scope_packet=semantic_scope_packet,
+        )
+        profile = dict(profile)
+        profile["table_scoped_semantics"] = semantic_scope_packet
+        profile["logical_table_scopes"] = list(semantic_scope_packet.get("column_scopes") or ())
+
     allowed_roles = _allowed_roles(deterministic_hypotheses)
-    if not allowed_roles:
+    relevant_roles = (
+        tuple(allowed_roles)
+        if capability is None
+        else _capability_relevant_roles(
+            requested_capability=capability,
+            deterministic_hypotheses=deterministic_hypotheses,
+            allowed_roles=allowed_roles,
+            semantic_scope_capabilities=semantic_scope_capabilities,
+        )
+    )
+    workbook_semantic_context = build_service_1_workbook_semantic_context_v1(
+        workbook_profile=profile,
+    )
+    if workbook_semantic_context.get("status") != WORKBOOK_SEMANTIC_CONTEXT_READY:
         return _blocked(
-            BLOCK_NO_ALLOWED_ROLES,
+            BLOCK_CONTEXT_FAILED,
             case_id=bridge.get("case_id"),
+            detail=workbook_semantic_context.get("blocked_reason"),
             bridge_packet=bridge,
             workbook_profile=profile,
         )
-    relevant_roles = _capability_relevant_roles(
-        requested_capability=capability,
-        deterministic_hypotheses=deterministic_hypotheses,
-        allowed_roles=allowed_roles,
-        semantic_scope_capabilities=semantic_scope_capabilities,
+    semantic_knowledge_context = retrieve_service_1_semantic_knowledge_v1(
+        workbook_semantic_context=workbook_semantic_context,
     )
+    if semantic_knowledge_context.get("status") != SEMANTIC_KNOWLEDGE_CONTEXT_READY:
+        return _blocked(
+            BLOCK_CONTEXT_FAILED,
+            case_id=bridge.get("case_id"),
+            detail=semantic_knowledge_context.get("blocked_reason"),
+            bridge_packet=bridge,
+            workbook_profile=profile,
+        )
     try:
         context = build_service_1_llm_semantic_context_v1(
             case_id=str(bridge.get("case_id") or "").strip(),
@@ -186,6 +259,8 @@ def run_service_1_assisted_semantic_initial_v1(
             allowed_semantic_roles=allowed_roles,
             capability_relevant_roles=relevant_roles,
             compatible_tenant_memory_hints=compatible_tenant_memory_hints,
+            workbook_semantic_context=workbook_semantic_context,
+            semantic_knowledge_context=semantic_knowledge_context,
         )
     except (Service1LLMSemanticContractErrorV1, TypeError, ValueError) as exc:
         return _blocked(
@@ -201,7 +276,10 @@ def run_service_1_assisted_semantic_initial_v1(
         return _blocked(
             BLOCK_INTERPRETER_FAILED,
             case_id=bridge.get("case_id"),
-            detail=interpreted.get("blocked_reason"),
+            detail={
+                "interpreter_reason": interpreted.get("blocked_reason"),
+                "interpreter_detail": interpreted.get("detail"),
+            },
             bridge_packet=bridge,
             workbook_profile=profile,
             context=context,
@@ -224,15 +302,53 @@ def run_service_1_assisted_semantic_initial_v1(
             validated_packet=validated,
         )
 
+    bridge = _bridge_packet_with_validated_runtime_projections(
+        bridge_packet=bridge,
+        validated_packet=validated,
+    )
+    semantic_compression = build_service_1_semantic_compression_v1(validated_packet=validated)
+    if semantic_compression.get("status") != SEMANTIC_COMPRESSION_READY:
+        return _blocked(
+            BLOCK_VALIDATOR_FAILED,
+            case_id=bridge.get("case_id"),
+            detail=semantic_compression.get("blocked_reason"),
+            bridge_packet=bridge,
+            workbook_profile=profile,
+            context=context,
+            interpreter_packet=interpreted,
+            validated_packet=validated,
+        )
+    validated = dict(validated)
+    validated["semantic_compression"] = semantic_compression
+
     dialogue = build_service_1_owner_dialogue_plan_v1(
         validated_packet=validated,
-        atomic_confirmation=atomic_confirmation,
+        semantic_compression=semantic_compression,
+        # Workbook-first still preserves first-contact owner evidence, but
+        # confident concepts are grouped so the owner is not turned into a
+        # column-by-column parser. Capability-scoped callers keep their
+        # existing confirmation mode.
+        atomic_confirmation=(False if capability is None else atomic_confirmation),
     )
     if dialogue.get("status") != DIALOGUE_READY:
         return _blocked(
             BLOCK_DIALOGUE_FAILED,
             case_id=bridge.get("case_id"),
             detail=dialogue.get("blocked_reason"),
+            bridge_packet=bridge,
+            workbook_profile=profile,
+            context=context,
+            interpreter_packet=interpreted,
+            validated_packet=validated,
+            dialogue_plan=dialogue,
+        )
+
+    owner_questions = list(dialogue.get("decisions") or [])
+    if capability is None and not owner_questions:
+        return _blocked(
+            BLOCK_DIALOGUE_FAILED,
+            case_id=bridge.get("case_id"),
+            detail="workbook-first semantic pass produced no owner-confirmable decisions",
             bridge_packet=bridge,
             workbook_profile=profile,
             context=context,
@@ -251,7 +367,8 @@ def run_service_1_assisted_semantic_initial_v1(
         interpreter_packet=interpreted,
         validated_packet=validated,
         dialogue_plan=dialogue,
-        owner_questions=list(dialogue.get("decisions") or []),
+        owner_questions=owner_questions,
+        table_scoped_semantics=semantic_scope_packet,
         semantic_scope_capabilities=semantic_scope_capabilities,
     )
 
@@ -260,8 +377,9 @@ def revise_service_1_assisted_semantic_decision_v1(
     *,
     previous_state: Any,
     decision_id: str,
-    semantic_role: str,
-    variable_name: str,
+    compositional_semantic: Mapping[str, Any] | None = None,
+    semantic_role: str | None = None,
+    variable_name: str | None = None,
     owner_correction_text: str,
 ) -> dict[str, Any]:
     """Create a validated replacement proposal for one owner-corrected column.
@@ -274,14 +392,16 @@ def revise_service_1_assisted_semantic_decision_v1(
     if not _valid_previous_state(previous_state):
         return _blocked(BLOCK_STATE_INVALID)
     target_decision_id = str(decision_id or "").strip()
+    correction = str(owner_correction_text or "").strip()
     role = str(semantic_role or "").strip()
     variable = str(variable_name or "").strip()
-    correction = str(owner_correction_text or "").strip()
-    if not target_decision_id or not role or not variable or not correction:
+    has_compositional = isinstance(compositional_semantic, Mapping) and bool(compositional_semantic)
+    has_legacy = bool(role and variable)
+    if not target_decision_id or not correction or not (has_compositional or has_legacy):
         return _blocked(
             BLOCK_OWNER_CORRECTION_INVALID,
             case_id=previous_state.get("case_id"),
-            detail="missing correction decision, role, variable or owner text",
+            detail="missing correction decision, V2 semantic coordinates, role/variable or owner text",
         )
 
     context = previous_state.get("context")
@@ -348,18 +468,56 @@ def revise_service_1_assisted_semantic_decision_v1(
         if candidate in context.evidence_registry:
             evidence_refs.append(candidate)
 
-    replacement = Service1LLMConceptProposalV1(
-        proposal_id=proposal_ref,
-        target_column_refs=(target_ref,),
-        semantic_role=role,
-        variable_name=variable,
-        confidence=0.95,
-        rationale=(
-            f"Owner described the column as: {correction}. "
-            "LLM-assisted correction is still pending explicit owner confirmation."
-        ),
-        evidence_refs=tuple(evidence_refs),
-    )
+    coordinate = None
+    if has_compositional:
+        try:
+            coordinate = Service1SemanticCoordinateV2(
+                field_ref=target_ref,
+                **{
+                    axis: (compositional_semantic or {}).get(axis)
+                    for axis in SEMANTIC_COORDINATE_AXES
+                },
+                confidence=float(
+                    0.95
+                    if (compositional_semantic or {}).get("confidence") is None
+                    else (compositional_semantic or {}).get("confidence")
+                ),
+                evidence=tuple(evidence_refs),
+                source="LLM_C2_OWNER_CORRECTION_PROPOSAL",
+            ).validate_against(load_service_1_semantic_coordinate_taxonomy_v2())
+        except (TypeError, ValueError) as exc:
+            return _blocked(
+                BLOCK_OWNER_CORRECTION_INVALID,
+                case_id=previous_state.get("case_id"),
+                detail=f"invalid V2 semantic coordinates: {type(exc).__name__}",
+            )
+
+        replacement = Service1LLMConceptProposalV1(
+            proposal_id=proposal_ref,
+            target_column_refs=(target_ref,),
+            semantic_role=None,
+            variable_name=None,
+            confidence=coordinate.confidence,
+            rationale=(
+                f"Owner described the column as: {correction}. "
+                "LLM-assisted V2 correction is still pending explicit owner confirmation."
+            ),
+            evidence_refs=tuple(evidence_refs),
+            compositional_semantic=coordinate.to_dict(),
+        )
+    else:
+        replacement = Service1LLMConceptProposalV1(
+            proposal_id=proposal_ref,
+            target_column_refs=(target_ref,),
+            semantic_role=role,
+            variable_name=variable,
+            confidence=0.95,
+            rationale=(
+                f"Owner described the column as: {correction}. "
+                "LLM-assisted correction is still pending explicit owner confirmation."
+            ),
+            evidence_refs=tuple(evidence_refs),
+        )
     proposal = Service1LLMSemanticProposalV1(
         concept_proposals=tuple(
             [
@@ -398,6 +556,15 @@ def revise_service_1_assisted_semantic_decision_v1(
                 "validator_detail": validated.get("detail"),
             },
         )
+    semantic_compression = build_service_1_semantic_compression_v1(validated_packet=validated)
+    if semantic_compression.get("status") != SEMANTIC_COMPRESSION_READY:
+        return _blocked(
+            BLOCK_OWNER_CORRECTION_INVALID,
+            case_id=previous_state.get("case_id"),
+            detail=semantic_compression.get("blocked_reason"),
+        )
+    validated = dict(validated)
+    validated["semantic_compression"] = semantic_compression
     dialogue = build_service_1_owner_dialogue_plan_v1(
         validated_packet=validated,
         atomic_confirmation=True,
@@ -413,7 +580,11 @@ def revise_service_1_assisted_semantic_decision_v1(
             item
             for item in (dialogue.get("decisions") or [])
             if isinstance(item, Mapping)
-            and str(item.get("decision_id") or "").strip() == target_decision_id
+            and (
+                str(item.get("decision_id") or "").strip() == target_decision_id
+                or proposal_ref in (item.get("proposal_refs") or [])
+                or target_ref in (item.get("column_refs") or [])
+            )
         ),
         None,
     )
@@ -424,22 +595,97 @@ def revise_service_1_assisted_semantic_decision_v1(
             detail="validated correction is not material to the current dialogue",
         )
 
+    revised_question = dict(revised_question)
+    old_id = str(revised_question.get("decision_id") or "")
+    revised_question["decision_id"] = target_decision_id
+    dialogue_decisions = []
+    for d in (dialogue.get("decisions") or []):
+        if isinstance(d, Mapping):
+            d_dict = dict(d)
+            if str(d_dict.get("decision_id") or "") == old_id or proposal_ref in (d_dict.get("proposal_refs") or []):
+                d_dict["decision_id"] = target_decision_id
+            dialogue_decisions.append(d_dict)
+    dialogue = dict(dialogue)
+    dialogue["decisions"] = dialogue_decisions
+
     revised_interpreter_packet = dict(interpreter_packet)
     revised_interpreter_packet["proposal"] = proposal
     revised_interpreter_packet["proposal_payload"] = proposal.to_dict()
+    if coordinate is not None:
+        revised_bridge_packet = _bridge_packet_with_v2_correction(
+            bridge_packet=previous_state["bridge_packet"],
+            column_ref=target_ref,
+            compositional_semantic=coordinate.to_dict(),
+        )
+    else:
+        revised_bridge_packet = dict(previous_state.get("bridge_packet") or {})
     return _packet(
         status=STATUS_OWNER_DIALOGUE_REQUIRED,
         case_id=str(previous_state.get("case_id") or "").strip(),
-        requested_capability=str(previous_state.get("requested_capability") or "").strip(),
-        bridge_packet=dict(previous_state.get("bridge_packet") or {}),
+        requested_capability=previous_state.get("requested_capability"),
+        bridge_packet=revised_bridge_packet,
         workbook_profile=dict(previous_state.get("workbook_profile") or {}),
         context=context,
         interpreter_packet=revised_interpreter_packet,
         validated_packet=validated,
         dialogue_plan=dialogue,
         owner_questions=[dict(revised_question)],
+        table_scoped_semantics=previous_state.get("table_scoped_semantics"),
         semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
     )
+
+
+def _bridge_packet_with_v2_correction(
+    *,
+    bridge_packet: Mapping[str, Any],
+    column_ref: str,
+    compositional_semantic: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Carry a validated V2 correction into the same bridge used by SEM-6.
+
+    The bridge remains the canonical workbook-derived candidate set; this copy
+    only replaces the one explicitly revised candidate so SEM-6 can compare the
+    owner's later compositional confirmation against the proposal that was
+    actually shown. No authority is granted before that confirmation.
+    """
+    revised = dict(bridge_packet)
+    candidates: list[Any] = []
+    target = str(column_ref or "").strip()
+    for candidate in bridge_packet.get("column_candidates") or ():
+        if not isinstance(candidate, Service1ColumnSemanticCandidateV1):
+            # Preserve malformed canonical input so the existing SEM-6 boundary
+            # rejects it closed instead of silently dropping evidence.
+            candidates.append(candidate)
+            continue
+        identity = ".".join(
+            part
+            for part in (
+                str(candidate.sheet_name or "").strip(),
+                str(candidate.source_column_name or "").strip(),
+            )
+            if part
+        )
+        metadata = dict(candidate.metadata or {})
+        ref_id = str(
+            metadata.get("column_ref_id")
+            or metadata.get("question_id")
+            or ""
+        ).strip()
+        if target in {identity, ref_id}:
+            corrected_semantic = dict(compositional_semantic)
+            current_semantic = candidate.compositional_semantic
+            if isinstance(current_semantic, Mapping):
+                for field in ("runtime_semantic_role", "runtime_variable_name"):
+                    value = current_semantic.get(field)
+                    if value:
+                        corrected_semantic[field] = value
+            candidate = replace(
+                candidate,
+                compositional_semantic=corrected_semantic,
+            )
+        candidates.append(candidate)
+    revised["column_candidates"] = tuple(candidates)
+    return revised
 
 
 def run_service_1_assisted_semantic_reentry_v1(
@@ -514,6 +760,7 @@ def run_service_1_assisted_semantic_reentry_v1(
             dialogue_plan=dialogue,
             owner_questions=[decisions[item] for item in missing],
             blocked_reason=BLOCK_OWNER_RESPONSE_MISSING,
+            table_scoped_semantics=previous_state.get("table_scoped_semantics"),
             semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
         )
 
@@ -594,6 +841,7 @@ def run_service_1_assisted_semantic_reentry_v1(
             dialogue_plan=dialogue,
             owner_questions=followup_questions,
             dialogue_responses=dialogue_responses,
+            table_scoped_semantics=previous_state.get("table_scoped_semantics"),
             semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
         )
 
@@ -634,9 +882,9 @@ def run_service_1_assisted_semantic_reentry_v1(
         )
 
     semantic_run = {
-        "schema_version": DETERMINISTIC_PIPELINE_SCHEMA_VERSION,
+        "schema_version": CONFIRMED_BINDINGS_SCHEMA_VERSION,
         "service_name": "SERVICE_1",
-        "status": STATUS_CONFIRMED_BINDINGS,
+        "status": STATUS_CONFIRMED,
         "blocked_reason": None,
         "bridge_packet": previous_state["bridge_packet"],
         "gate_packet": None,
@@ -672,8 +920,57 @@ def run_service_1_assisted_semantic_reentry_v1(
         owner_evidence_packet=evidence_packet,
         sem6_packet=sem6,
         semantic_run=semantic_run,
+        table_scoped_semantics=previous_state.get("table_scoped_semantics"),
         semantic_scope_capabilities=previous_state.get("semantic_scope_capabilities") or (),
     )
+
+
+def _bridge_packet_with_validated_runtime_projections(
+    *,
+    bridge_packet: Mapping[str, Any],
+    validated_packet: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Carry exact deterministic compatibility projections to the P6 input."""
+
+    projections: dict[str, Mapping[str, Any]] = {}
+    for raw in validated_packet.get("decisions") or ():
+        if not isinstance(raw, Mapping):
+            continue
+        refs = tuple(str(ref or "").strip() for ref in (raw.get("target_refs") or ()))
+        semantic = raw.get("compositional_semantic")
+        if len(refs) != 1 or not refs[0] or not isinstance(semantic, Mapping):
+            continue
+        role = str(semantic.get("runtime_semantic_role") or "").strip()
+        variable = str(semantic.get("runtime_variable_name") or "").strip()
+        if not role or not variable or refs[0] in projections:
+            continue
+        projections[refs[0]] = semantic
+
+    revised = dict(bridge_packet)
+    candidates: list[Any] = []
+    for candidate in bridge_packet.get("column_candidates") or ():
+        if not isinstance(candidate, Service1ColumnSemanticCandidateV1):
+            candidates.append(candidate)
+            continue
+        ref = ".".join(
+            part for part in (
+                str(candidate.sheet_name or "").strip(),
+                str(candidate.source_column_name or "").strip(),
+            ) if part
+        )
+        projected = projections.get(ref)
+        current = candidate.compositional_semantic
+        if projected is not None and isinstance(current, Mapping) and all(
+            current.get(axis) == projected.get(axis)
+            for axis in SEMANTIC_COORDINATE_AXES
+        ):
+            semantic = dict(current)
+            semantic["runtime_semantic_role"] = projected["runtime_semantic_role"]
+            semantic["runtime_variable_name"] = projected["runtime_variable_name"]
+            candidate = replace(candidate, compositional_semantic=semantic)
+        candidates.append(candidate)
+    revised["column_candidates"] = tuple(candidates)
+    return revised
 
 
 def _deterministic_hypotheses(bridge: dict[str, Any]) -> tuple[dict[str, Any], ...]:
@@ -693,6 +990,17 @@ def _deterministic_hypotheses(bridge: dict[str, Any]) -> tuple[dict[str, Any], .
 def _allowed_roles(hypotheses: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
     roles: list[str] = []
     for item in hypotheses:
+        compositional = item.get("compositional_semantic")
+        if isinstance(compositional, Mapping):
+            compositional_role = str(
+                compositional.get("runtime_semantic_role") or ""
+            ).strip()
+            if (
+                compositional_role
+                and compositional_role != "unknown"
+                and compositional_role not in roles
+            ):
+                roles.append(compositional_role)
         candidates = item.get("candidate_meanings")
         if isinstance(candidates, (list, tuple)):
             for candidate in candidates:
@@ -786,7 +1094,7 @@ def _packet(
     *,
     status: str,
     case_id: str,
-    requested_capability: str,
+    requested_capability: str | None,
     bridge_packet: dict[str, Any],
     workbook_profile: dict[str, Any],
     context: Any,
@@ -799,6 +1107,7 @@ def _packet(
     owner_evidence_packet: dict[str, Any] | None = None,
     sem6_packet: dict[str, Any] | None = None,
     semantic_run: dict[str, Any] | None = None,
+    table_scoped_semantics: Mapping[str, Any] | None = None,
     semantic_scope_capabilities: Sequence[str] = (),
 ) -> dict[str, Any]:
     return {
@@ -824,6 +1133,11 @@ def _packet(
         "owner_evidence_packet": owner_evidence_packet,
         "sem6_packet": sem6_packet,
         "semantic_run": semantic_run,
+        "table_scoped_semantics": (
+            dict(table_scoped_semantics)
+            if isinstance(table_scoped_semantics, Mapping)
+            else None
+        ),
         "runtime_authorized": False,
         "tool_execution_authorized": False,
         "product_ready": False,

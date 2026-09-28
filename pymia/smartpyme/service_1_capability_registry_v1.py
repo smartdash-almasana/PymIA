@@ -7,24 +7,11 @@ from typing import Final
 from pymia.smartpyme.service_1_capability_contracts_v1 import (
     CapabilityDefinitionV1,
     ClassificationRuleV1,
-    FormulaNodeV1,
     OutcomePolicyV1,
     VariableRequirementV1,
 )
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_GENERIC_CAPABILITY_REGISTRY_V1"
-
-
-def _var(name: str) -> FormulaNodeV1:
-    return FormulaNodeV1(operation="VARIABLE", variable_name=name)
-
-
-def _op(operation: str, left: FormulaNodeV1, right: FormulaNodeV1) -> FormulaNodeV1:
-    return FormulaNodeV1(operation=operation, left=left, right=right)  # type: ignore[arg-type]
-
-
-def _val(value: str) -> FormulaNodeV1:
-    return FormulaNodeV1(operation="VALUE", value=Decimal(value))
 
 
 LIQ_002 = CapabilityDefinitionV1(
@@ -37,7 +24,6 @@ LIQ_002 = CapabilityDefinitionV1(
         VariableRequirementV1("expected_collections", "SUM", minimum=Decimal("0"), unit="currency"),
         VariableRequirementV1("expected_payments", "SUM", minimum=Decimal("0"), unit="currency"),
     ),
-    formula=_op("SUBTRACT", _op("ADD", _var("initial_balance"), _var("expected_collections")), _var("expected_payments")),
     result_key="projected_closing_balance",
     result_unit="currency",
     classifications=(
@@ -77,11 +63,6 @@ INV_001 = CapabilityDefinitionV1(
             unit="days",
         ),
         VariableRequirementV1("safety_stock", "SINGLE_VALUE", minimum=Decimal("0"), unit="units"),
-    ),
-    formula=_op(
-        "ADD",
-        _op("MULTIPLY", _var("average_sales"), _var("lead_time")),
-        _var("safety_stock"),
     ),
     result_key="reorder_point_units",
     result_unit="units",
@@ -123,7 +104,6 @@ INV_002 = CapabilityDefinitionV1(
             unit="currency",
         ),
     ),
-    formula=_op("DIVIDE", _var("cost_of_goods_sold"), _var("average_stock")),
     result_key="inventory_turnover_ratio",
     result_unit="ratio",
     classifications=(
@@ -160,7 +140,6 @@ DPO = CapabilityDefinitionV1(
         VariableRequirementV1("purchases", "SUM", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
         VariableRequirementV1("days", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="days"),
     ),
-    formula=_op("MULTIPLY", _op("DIVIDE", _var("accounts_payable"), _var("purchases")), _var("days")),
     result_key="dpo_days",
     result_unit="days",
     classifications=(
@@ -192,7 +171,7 @@ PYME_013 = CapabilityDefinitionV1(
     kind="COMPOSITE",
     variables=(
         VariableRequirementV1(
-            "dso_days",
+            "dso",
             "SINGLE_VALUE",
             minimum=Decimal("0"),
             unit="days",
@@ -200,7 +179,7 @@ PYME_013 = CapabilityDefinitionV1(
             source_result_key="dso_days",
         ),
         VariableRequirementV1(
-            "dpo_days",
+            "dpo",
             "SINGLE_VALUE",
             minimum=Decimal("0"),
             unit="days",
@@ -208,7 +187,6 @@ PYME_013 = CapabilityDefinitionV1(
             source_result_key="dpo_days",
         ),
     ),
-    formula=_op("SUBTRACT", _var("dso_days"), _var("dpo_days")),
     result_key="payment_collection_gap_days",
     result_unit="days",
     classifications=(
@@ -242,7 +220,6 @@ PYME_024 = CapabilityDefinitionV1(
         VariableRequirementV1("current_assets", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
         VariableRequirementV1("current_liabilities", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
     ),
-    formula=_op("DIVIDE", _var("current_assets"), _var("current_liabilities")),
     result_key="current_ratio_value",
     result_unit="ratio",
     classifications=(
@@ -278,7 +255,6 @@ PYME_033 = CapabilityDefinitionV1(
         VariableRequirementV1("main_sku_sales", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
         VariableRequirementV1("total_sales", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
     ),
-    formula=_op("MULTIPLY", _op("DIVIDE", _var("main_sku_sales"), _var("total_sales")), _val("100")),
     result_key="sales_concentration_percentage",
     result_unit="percentage",
     classifications=(
@@ -323,7 +299,6 @@ PYME_027 = CapabilityDefinitionV1(
             unit="currency",
         ),
     ),
-    formula=_op("DIVIDE", _var("interest_expense"), _var("ebitda")),
     result_key="interest_burden_ratio_value",
     result_unit="ratio",
     classifications=(
@@ -348,18 +323,13 @@ PYME_027 = CapabilityDefinitionV1(
 PYME_026 = CapabilityDefinitionV1(
     capability_ref="adjusted_operating_cash_flow",
     pathology_code="PYME_026",
-    formula_ref="PYME_026_adjusted_operating_cash_flow",
+    formula_ref="PYME_026_flujo_operativo",
     kind="ATOMIC",
     variables=(
         VariableRequirementV1("net_income", "SINGLE_VALUE", unit="currency"),
         VariableRequirementV1("depreciation", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
         VariableRequirementV1("amortization", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
         VariableRequirementV1("working_capital_change", "SINGLE_VALUE", unit="currency"),
-    ),
-    formula=_op(
-        "SUBTRACT",
-        _op("ADD", _op("ADD", _var("net_income"), _var("depreciation")), _var("amortization")),
-        _var("working_capital_change"),
     ),
     result_key="adjusted_operating_cash_flow_value",
     result_unit="currency",
@@ -399,7 +369,6 @@ REN_002 = CapabilityDefinitionV1(
         VariableRequirementV1("closing_index", "SINGLE_VALUE", minimum=Decimal("0"), unit="currency"),
         VariableRequirementV1("origin_index", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
     ),
-    formula=_op("DIVIDE", _var("closing_index"), _var("origin_index")),
     result_key="index_update_ratio",
     result_unit="ratio",
     classifications=(
@@ -439,7 +408,6 @@ PYME_011 = CapabilityDefinitionV1(
         VariableRequirementV1("sales", "SUM", minimum=Decimal("0"), minimum_inclusive=False, unit="currency"),
         VariableRequirementV1("days", "SINGLE_VALUE", minimum=Decimal("0"), minimum_inclusive=False, unit="days"),
     ),
-    formula=_op("MULTIPLY", _op("DIVIDE", _var("accounts_receivable"), _var("sales")), _var("days")),
     result_key="dso_days",
     result_unit="days",
     classifications=(
