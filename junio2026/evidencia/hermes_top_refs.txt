@@ -1,0 +1,21 @@
+Hermes reference evidence summary
+Generated: 2026-07-01
+
+Observed counts:
+- files with Hermes/hermes/HERMES references: 309
+- total textual references: 2495
+
+Top observed paths:
+- docs/DOCUMENTATION_INDEX.md
+- docs/arquitectura/HERMES_SM1_SM2_ISOLATED_VALIDATION_PLAN.md
+- tests/hermes/test_hermes_adapter.py
+- docs/arquitectura/HERMES_OPERATIONAL_VERIFICATION.md
+- pymia/hermes/adapter.py
+- docs/hermes/*
+- conversa-engine/HERMES_AGENT_OPERATIONS.md
+- ARCHITECTURE_GUARDRAILS.md
+- README.md
+- task.md
+
+Audit interpretation:
+Hermes references are no longer treated as future architecture. They are legacy/debt to remove, migrate to neutral contracts, or isolate as historical documentation.

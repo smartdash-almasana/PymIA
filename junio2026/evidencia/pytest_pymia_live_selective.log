@@ -1,0 +1,14 @@
+Selective pytest evidence summary
+Generated: 2026-07-01
+
+Command intent:
+Run a small smoke/collection check against PymIA-Live instead of treating the full test count as proof of health.
+
+Observed failure:
+- PymIA-Live tests failed during collection.
+- Import error: cannot import name 'load_formula_rules' from 'pymia.contracts.formula_rules_v1'.
+- Affected import path observed in PymIA-Live/pymia/smartpyme/diagnostic_operator_adapter.py.
+- Target module observed: PymIA-Live/pymia/contracts/formula_rules_v1.py.
+
+Audit interpretation:
+The live/migrated nucleus should not receive new feature work until smoke collection/import failures are resolved or explicitly scoped out of the live suite.
