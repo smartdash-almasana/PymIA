@@ -1,10 +1,11 @@
 import json
 
+from pymia.services.runtime_facades import calculate_formula
 from pymia.diagnostic_core import DiagnosticCoreInput, DiagnosticCoreV1
 
 
 def test_calculates_ren001_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-1",
             tenant_id="tenant-1",
@@ -33,7 +34,7 @@ def test_calculates_ren001_formula_without_confirmed_finding():
 
 
 def test_calculates_supported_formula_and_preserves_source_refs():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-2",
             tenant_id="tenant-1",
@@ -52,7 +53,7 @@ def test_calculates_supported_formula_and_preserves_source_refs():
 
 
 def test_does_not_invent_missing_inputs():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-3",
             tenant_id="tenant-1",
@@ -72,7 +73,7 @@ def test_does_not_invent_missing_inputs():
 
 
 def test_result_is_serializable_to_json():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-4",
             tenant_id="tenant-1",
@@ -88,7 +89,7 @@ def test_result_is_serializable_to_json():
 
 
 def test_calculates_liq001_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-5",
             tenant_id="tenant-1",
@@ -115,7 +116,7 @@ def test_calculates_liq001_formula_without_confirmed_finding():
 
 
 def test_calculates_inv002_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-6",
             tenant_id="tenant-1",
@@ -141,7 +142,7 @@ def test_calculates_inv002_formula_without_confirmed_finding():
 
 
 def test_scopes_source_refs_per_formula_when_multiple_formulas_share_input_pool():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-6c",
             tenant_id="tenant-1",
@@ -178,7 +179,7 @@ def test_scopes_source_refs_per_formula_when_multiple_formulas_share_input_pool(
 
 
 def test_calculates_inv001_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-6b",
             tenant_id="tenant-1",
@@ -206,7 +207,7 @@ def test_calculates_inv001_formula_without_confirmed_finding():
 
 
 def test_calculates_pyme011_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-7",
             tenant_id="tenant-1",
@@ -234,7 +235,7 @@ def test_calculates_pyme011_formula_without_confirmed_finding():
 
 
 def test_calculates_pyme013_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-8",
             tenant_id="tenant-1",
@@ -260,7 +261,7 @@ def test_calculates_pyme013_formula_without_confirmed_finding():
 
 
 def test_calculates_liq002_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-9",
             tenant_id="tenant-1",
@@ -292,7 +293,7 @@ def test_calculates_liq002_formula_without_confirmed_finding():
 
 
 def test_calculates_pyme024_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-10",
             tenant_id="tenant-1",
@@ -318,7 +319,7 @@ def test_calculates_pyme024_formula_without_confirmed_finding():
 
 
 def test_calculates_pyme017_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-11",
             tenant_id="tenant-1",
@@ -344,7 +345,7 @@ def test_calculates_pyme017_formula_without_confirmed_finding():
 
 
 def test_calculates_punto_equilibrio_ventas_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-12",
             tenant_id="tenant-1",
@@ -370,7 +371,7 @@ def test_calculates_punto_equilibrio_ventas_without_confirmed_finding():
 
 
 def test_calculates_pyme026_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-13",
             tenant_id="tenant-1",
@@ -405,7 +406,7 @@ def test_calculates_pyme026_formula_without_confirmed_finding():
 
 
 def test_calculates_pyme027_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-14",
             tenant_id="tenant-1",
@@ -434,7 +435,7 @@ def test_calculates_pyme027_formula_without_confirmed_finding():
 
 
 def test_calculates_pyme044_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-15",
             tenant_id="tenant-1",
@@ -466,7 +467,7 @@ def test_calculates_pyme044_formula_without_confirmed_finding():
 
 
 def test_calculates_pyme033_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-16",
             tenant_id="tenant-1",
@@ -495,7 +496,7 @@ def test_calculates_pyme033_formula_without_confirmed_finding():
 
 
 def test_calculates_ren002_formula_without_confirmed_finding():
-    result = DiagnosticCoreV1().run(
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(
         DiagnosticCoreInput(
             case_id="case-17",
             tenant_id="tenant-1",

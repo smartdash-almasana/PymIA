@@ -3,6 +3,7 @@ from pymia.diagnostic_core import (
     DiagnosticCoreV1,
     build_diagnostic_core_input_from_structured_evidence,
 )
+from pymia.services.runtime_facades import calculate_formula
 
 
 def test_binds_ren001_from_structured_evidence() -> None:
@@ -113,7 +114,7 @@ def test_binding_integrates_with_diagnostic_core_v1() -> None:
         formula_ids=["REN_001_margen_neto_real"],
         hypothesis_codes=["REN_001"],
     )
-    result = DiagnosticCoreV1().run(core_input)
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(core_input)
 
     assert result.status == "PARTIAL"
     assert result.formula_results[0].status == "OK"

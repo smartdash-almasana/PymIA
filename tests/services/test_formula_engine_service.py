@@ -1,5 +1,6 @@
-from pymia.contracts.formula_contract import FormulaInput, FormulaStatus, calculate_formula
+from pymia.contracts.formula_contract import FormulaInput, FormulaStatus
 from pymia.services.formula_engine_service import FormulaEngineService
+from pymia.services.runtime_facades import calculate_formula
 
 
 def test_engine_calculates_margen_bruto():

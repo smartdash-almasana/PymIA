@@ -13,12 +13,20 @@ import os
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal, NotRequired, Optional, TypedDict
 
 from pymia.smartpyme.pipeline_registration import calculate_sha256
+from pymia.smartpyme.service_1_normalized_table_v1 import NormalizedTableV1
 from pymia.smartpyme.service_1_xlsx_to_normalized_table_v1 import (
     read_xlsx_to_normalized_table_v1,
     read_xlsx_to_normalized_tables_v1,
+)
+from pymia.observability.runtime_observability_adapter_v1 import (
+    OPERATION_NAME,
+    classify_error,
+    count_bucket,
+    get_runtime_observability_adapter,
+    size_bucket,
 )
 
 SCHEMA_VERSION = "SERVICE_1_WEB_COLUMN_CONFIRMATION_INTAKE_BOUNDARY_V1"
@@ -27,6 +35,76 @@ PACKET_TYPE = "WEB_COLUMN_CONFIRMATION_INTAKE"
 CANONICAL_READER_SCHEMA_VERSION = "SERVICE_1_XLSX_TO_NORMALIZED_TABLE_V1"
 
 SourceKind = Literal["local_path", "uploaded_bytes"]
+IntakeStatus = Literal["NEEDS_OWNER_CONFIRMATION", "BLOCKED"]
+
+
+class Service1ColumnRefV1(TypedDict):
+    field_id: str
+    question_id: str
+    sheet_name: str
+    sheet_ref: NotRequired[str]
+    column_name: str
+    normalized_column_name: str
+
+
+class Service1OwnerQuestionV1(TypedDict):
+    field_id: str
+    question_id: str
+    sheet_name: str
+    sheet_ref: str
+    column_name: str
+    normalized_column_name: str
+    question: str
+    answer_type: Literal["owner_text"]
+    required: Literal[True]
+
+
+class Service1SheetRefV1(TypedDict):
+    sheet_name: str
+    sheet_ref: str
+
+
+class Service1SheetCatalogEntryV1(TypedDict):
+    sheet_name: str | None
+    status: str | None
+    usable: bool
+    blocking_errors: list[str]
+    row_count: int
+    column_count: int
+    header_row_number: int | None
+
+
+class Service1WebColumnConfirmationIntakePacketV1(TypedDict):
+    schema_version: str
+    service_name: str
+    packet_type: str
+    status: IntakeStatus
+    blocked_reason: str | None
+    case_id: str | None
+    source_kind: SourceKind | None
+    filename: str | None
+    sheet_names: list[str]
+    columns: list[str]
+    column_refs: list[Service1ColumnRefV1]
+    question_count: int
+    owner_questions: list[Service1OwnerQuestionV1]
+    normalized_table: NormalizedTableV1 | None
+    normalized_tables: list[NormalizedTableV1]
+    all_normalized_tables: list[NormalizedTableV1]
+    sheet_catalog: list[Service1SheetCatalogEntryV1]
+    runtime_authorized: Literal[False]
+    product_ready: Literal[False]
+    delivery_authorized: Literal[False]
+    reader_blocking_errors: NotRequired[list[str]]
+    reader_warnings: NotRequired[list[str]]
+    source_artifact_ref: NotRequired[str | None]
+    workbook_ref: NotRequired[str | None]
+    ingestion_scope: NotRequired[str | None]
+    canonical_reader_schema_version: NotRequired[str | None]
+    sheet_refs: NotRequired[list[Service1SheetRefV1]]
+    sheet_ref: NotRequired[str | None]
+    source_system_ref: NotRequired[str | None]
+    source_context_ref: NotRequired[None]
 
 BLOCK_NO_SOURCE = "NO_SOURCE"
 BLOCK_DUAL_SOURCE = "DUAL_SOURCE"
@@ -53,7 +131,83 @@ def build_service_1_web_column_confirmation_intake_boundary_v1(
     runtime_authorized: bool = False,
     product_ready: bool = False,
     delivery_authorized: bool = False,
-) -> dict[str, Any]:
+) -> Service1WebColumnConfirmationIntakePacketV1:
+    """Build the intake packet while recording bounded runtime telemetry."""
+    try:
+        adapter = get_runtime_observability_adapter()
+    except BaseException:
+        adapter = None
+    handle = None
+    if adapter is not None:
+        try:
+            handle = adapter.start_operation(
+                OPERATION_NAME,
+                attributes={
+                    "workbook.size_bucket": size_bucket(_safe_input_size_bytes(
+                        local_xlsx_path=local_xlsx_path,
+                        uploaded_xlsx_bytes=uploaded_xlsx_bytes,
+                    )),
+                },
+            )
+        except BaseException:
+            # Telemetry is strictly fail-safe and cannot affect product execution.
+            handle = None
+
+    try:
+        packet = _build_service_1_web_column_confirmation_intake_boundary_v1(
+            local_xlsx_path=local_xlsx_path,
+            uploaded_xlsx_bytes=uploaded_xlsx_bytes,
+            uploaded_filename=uploaded_filename,
+            sheet_name=sheet_name,
+            sheet_names=sheet_names,
+            include_all_sheets=include_all_sheets,
+            runtime_authorized=runtime_authorized,
+            product_ready=product_ready,
+            delivery_authorized=delivery_authorized,
+        )
+    except BaseException as error:
+        if handle is not None:
+            try:
+                handle.end(
+                    status="BLOCKED",
+                    error_classification=classify_error(error),
+                )
+            except BaseException:
+                pass
+        raise
+
+    if handle is not None:
+        try:
+            status = str(packet.get("status") or "BLOCKED")
+            handle.end(
+                status=status,
+                attributes={
+                    "workbook.sheet_count_bucket": count_bucket(
+                        len(packet.get("sheet_names") or [])
+                    ),
+                    "workbook.column_count_bucket": count_bucket(
+                        len(packet.get("columns") or [])
+                    ),
+                },
+                error_classification="BLOCKED_RESULT" if status == "BLOCKED" else None,
+            )
+        except BaseException:
+            pass
+    return packet
+
+
+def _build_service_1_web_column_confirmation_intake_boundary_v1(
+    *,
+    local_xlsx_path: Optional[str | Path] = None,
+    uploaded_xlsx_bytes: Optional[bytes] = None,
+    uploaded_filename: Optional[str] = None,
+    sheet_name: Optional[str] = None,
+    sheet_names: Optional[list[str] | tuple[str, ...]] = None,
+    include_all_sheets: bool = False,
+    runtime_authorized: bool = False,
+    product_ready: bool = False,
+    delivery_authorized: bool = False,
+) -> Service1WebColumnConfirmationIntakePacketV1:
     """Build sheet-qualified owner questions from one canonical XLSX source.
 
     With no sheet selection, the historical first non-empty worksheet is used.
@@ -188,6 +342,22 @@ def build_service_1_web_column_confirmation_intake_boundary_v1(
     }
 
 
+def _safe_input_size_bytes(
+    *,
+    local_xlsx_path: Optional[str | Path],
+    uploaded_xlsx_bytes: Optional[bytes],
+) -> int | None:
+    """Read only a bounded size signal; never expose path or filename."""
+    if isinstance(uploaded_xlsx_bytes, (bytes, bytearray)):
+        return len(uploaded_xlsx_bytes)
+    if local_xlsx_path is not None:
+        try:
+            return Path(local_xlsx_path).stat().st_size
+        except (OSError, TypeError, ValueError):
+            return None
+    return None
+
+
 def _sheet_selection(
     *,
     sheet_name: str | None,
@@ -221,7 +391,7 @@ def _read_local_source(
     *,
     selected_sheets: tuple[str, ...] | None,
     include_all_sheets: bool,
-) -> list[dict[str, Any]]:
+) -> list[NormalizedTableV1]:
     if selected_sheets is not None:
         return read_xlsx_to_normalized_tables_v1(
             xlsx_path, sheet_names=selected_sheets
@@ -236,7 +406,7 @@ def _read_uploaded_bytes_via_canonical_reader(
     *,
     sheet_names: tuple[str, ...] | None,
     include_all_sheets: bool,
-) -> list[dict[str, Any]]:
+) -> list[NormalizedTableV1]:
     tmp_path: Optional[str] = None
     try:
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp_file:
@@ -256,10 +426,10 @@ def _read_uploaded_bytes_via_canonical_reader(
 
 
 def _build_owner_questions(
-    normalized_tables: list[dict[str, Any]],
+    normalized_tables: list[NormalizedTableV1],
     *,
     workbook_ref: str,
-) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
+) -> tuple[list[Service1ColumnRefV1], list[Service1OwnerQuestionV1]]:
     raw_refs: list[dict[str, str]] = []
     counter = 0
     for table in normalized_tables:
@@ -368,7 +538,7 @@ def _sheet_ref(workbook_ref: str, sheet_name: str) -> str:
 def _sheet_identity_records(
     workbook_ref: str,
     sheet_names: list[str],
-) -> list[dict[str, str]]:
+) -> list[Service1SheetRefV1]:
     return [
         {"sheet_name": sheet, "sheet_ref": _sheet_ref(workbook_ref, sheet)}
         for sheet in dict.fromkeys(str(name).strip() for name in sheet_names if str(name).strip())
@@ -386,11 +556,11 @@ def _case_id(
 def _blocked(
     reason: str,
     *,
-    source_kind: Optional[str],
+    source_kind: Optional[SourceKind],
     filename: Optional[str],
     case_id: Optional[str] = None,
     reader_blocking_errors: Optional[list[str]] = None,
-) -> dict[str, Any]:
+) -> Service1WebColumnConfirmationIntakePacketV1:
     return {
         "schema_version": SCHEMA_VERSION,
         "service_name": SERVICE_NAME,
@@ -433,18 +603,25 @@ __all__ = [
     "BLOCK_NO_USABLE_TABLES",
     "BLOCK_HEADER_AMBIGUOUS",
     "BLOCK_SOURCE_ARTIFACT_FAILED",
+    "SourceKind",
+    "IntakeStatus",
+    "Service1ColumnRefV1",
+    "Service1OwnerQuestionV1",
+    "Service1SheetRefV1",
+    "Service1SheetCatalogEntryV1",
+    "Service1WebColumnConfirmationIntakePacketV1",
     "build_service_1_web_column_confirmation_intake_boundary_v1",
 ]
 
 
-def _reader_block_reason(blocked_tables: list[dict[str, Any]]) -> str:
+def _reader_block_reason(blocked_tables: list[NormalizedTableV1]) -> str:
     errors = [str(error) for table in blocked_tables for error in table.get("blocking_errors", [])]
     if any("HEADER_AMBIGUOUS" in error for error in errors):
         return BLOCK_HEADER_AMBIGUOUS
     return BLOCK_READER_FAILED
 
 
-def _sheet_catalog(tables: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _sheet_catalog(tables: list[NormalizedTableV1]) -> list[Service1SheetCatalogEntryV1]:
     return [
         {
             "sheet_name": table.get("sheet_name"),

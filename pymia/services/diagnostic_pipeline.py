@@ -9,9 +9,9 @@ from pymia.contracts.pathology_contract import PathologyEvaluationInput, Patholo
 from pymia.diagnostic_core.evidence_binding import build_diagnostic_core_input_from_structured_evidence
 from pymia.diagnostic_core.evidence_sufficiency import (
     build_evidence_gate_decisions_from_structured_evidence,
-    execute_allowed_formulas_from_gate_decisions,
 )
 from pymia.diagnostic_core.models import DiagnosticCoreInput, EvidenceGateDecision
+from pymia.services.diagnostic_formula_execution import execute_allowed_formulas_from_gate_decisions
 from pymia.services.diagnostic_report_service import DiagnosticReportService
 from pymia.services.pathology_adapters import PathologyAdapterError, pathology_finding_to_finding_record
 from pymia.services.pathology_engine_service import PathologyEngineService

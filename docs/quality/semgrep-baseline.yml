@@ -1,0 +1,15 @@
+rules:
+  - id: pymia-baseline-python-hashlib-sha1
+    languages: [python]
+    severity: WARNING
+    message: "SHA1 usage observed. Classify context before treating as a security defect."
+    patterns:
+      - pattern: hashlib.sha1(...)
+  - id: pymia-baseline-python-hashlib-new-sha1
+    languages: [python]
+    severity: WARNING
+    message: "SHA1 usage observed through hashlib.new. Classify context before treating as a security defect."
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.new("sha1", ...)
+          - pattern: hashlib.new("sha1")

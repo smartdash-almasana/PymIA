@@ -15,9 +15,9 @@ from pymia.contracts.formula_contract import (
     FormulaStatus,
     MathPrimitiveInput,
     MathPrimitiveOperation,
-    calculate_formula,
 )
 from pymia.services.formula_engine_service import FormulaEngineService
+from pymia.services.runtime_facades import calculate_formula
 from pymia.smartpyme.service_1_capability_contracts_v1 import (
     ClassificationPredicate,
     ClassificationRule,

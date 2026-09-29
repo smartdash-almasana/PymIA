@@ -3,10 +3,49 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, Protocol, TypedDict, cast, runtime_checkable
 
 from pymia.smartpyme.intake import IntakeEvidenceRequest, IntakeRecord
 from pymia.smartpyme.reception import ReceptionRecord
+
+
+@runtime_checkable
+class RecordWithToDict(Protocol):
+    def to_dict(self) -> dict[str, Any]:
+        ...
+
+
+RecordLike = RecordWithToDict | dict[str, Any]
+
+
+class TenantStoragePaths(TypedDict):
+    tenant_root: Path
+    evidence_dir: Path
+    reports_dir: Path
+    results_dir: Path
+    receptions_jsonl: Path
+    intakes_jsonl: Path
+    anamnesis_jsonl: Path
+    investigations_jsonl: Path
+    owner_answers_jsonl: Path
+    evidence_requests_jsonl: Path
+    evidences_jsonl: Path
+
+
+TenantStoragePathKey = Literal[
+    "tenant_root",
+    "evidence_dir",
+    "reports_dir",
+    "results_dir",
+    "receptions_jsonl",
+    "intakes_jsonl",
+    "anamnesis_jsonl",
+    "investigations_jsonl",
+    "owner_answers_jsonl",
+    "evidence_requests_jsonl",
+    "evidences_jsonl",
+]
+
 
 
 def _safe_join(base_dir: Path, tenant_id: str) -> Path:
@@ -31,7 +70,7 @@ def resolve_tenant_storage_root(base_dir: str | Path, tenant_id: str) -> Path:
     return _safe_join(Path(base_dir).resolve(), tenant_id)
 
 
-def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> dict[str, Path]:
+def ensure_tenant_storage(base_dir: str | Path, tenant_id: str) -> TenantStoragePaths:
     tenant_root = resolve_tenant_storage_root(base_dir, tenant_id)
     evidence_dir = tenant_root / "evidence"
     reports_dir = tenant_root / "reports"
@@ -78,9 +117,9 @@ def _write_jsonl_line(target: Path, payload: dict[str, Any]) -> Path:
     return target
 
 
-def _record_to_dict(record: Any, *, record_name: str) -> dict[str, Any]:
+def _record_to_dict(record: RecordLike, *, record_name: str) -> dict[str, Any]:
     if hasattr(record, "to_dict") and callable(record.to_dict):
-        return record.to_dict()
+        return cast(dict[str, Any], record.to_dict())
     if isinstance(record, dict):
         return record.copy()
     raise ValueError(f"{record_name} must be a supported record or dict")
@@ -98,10 +137,10 @@ def append_intake_jsonl(base_dir: str | Path, record: IntakeRecord) -> Path:
 
 def _save_record_jsonl(
     tenant_id: str,
-    record: Any,
+    record: RecordLike,
     *,
     base_dir: str | Path | None,
-    target_key: str,
+    target_key: TenantStoragePathKey,
     required_fields: tuple[str, ...],
     list_fields: tuple[str, ...] = (),
     dict_fields: tuple[str, ...] = ("metadata",),
@@ -132,7 +171,7 @@ def _save_record_jsonl(
 
 def save_anamnesis_record(
     tenant_id: str,
-    record: Any,
+    record: RecordLike,
     *,
     base_dir: str | Path | None = None,
 ) -> Path:
@@ -153,7 +192,7 @@ def save_anamnesis_record(
 
 def save_investigation_record(
     tenant_id: str,
-    record: Any,
+    record: RecordLike,
     *,
     base_dir: str | Path | None = None,
 ) -> Path:
@@ -173,7 +212,7 @@ def save_investigation_record(
 
 def save_owner_answer_record(
     tenant_id: str,
-    record: Any,
+    record: RecordLike,
     *,
     base_dir: str | Path | None = None,
 ) -> Path:
@@ -191,7 +230,7 @@ def save_owner_answer_record(
 
 def save_evidence_request_record(
     tenant_id: str,
-    record: Any,
+    record: RecordLike,
     *,
     base_dir: str | Path | None = None,
 ) -> Path:
@@ -216,7 +255,7 @@ def save_evidence_request_record(
 # ---------------------------------------------------------------------------
 def save_intake_record(
     tenant_id: str,
-    record: Any,
+    record: RecordLike,
     *,
     base_dir: str | Path | None = None,
 ) -> Path:
@@ -298,7 +337,7 @@ def load_intake_records(
     tenant_id: str,
     *,
     base_dir: str | Path | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Carga todos los IntakeRecords de un tenant como list[dict].
 
     Contrato aprobado:
@@ -328,7 +367,7 @@ def load_intake_records(
     if not content:
         return []
 
-    records: list[dict] = []
+    records: list[dict[str, Any]] = []
     for line_num, line in enumerate(content.splitlines(), start=1):
         line = line.strip()
         if not line:
@@ -354,7 +393,7 @@ def load_intake_record_by_id(
     intake_id: str,
     *,
     base_dir: str | Path | None = None,
-) -> dict | None:
+) -> dict[str, Any] | None:
     """Busca un IntakeRecord por intake_id dentro de un tenant.
 
     Contrato aprobado:
@@ -386,7 +425,7 @@ def load_intake_record_by_id(
 # ---------------------------------------------------------------------------
 def save_evidence_record(
     tenant_id: str,
-    record: Any,
+    record: RecordLike,
     *,
     base_dir: str | Path | None = None,
 ) -> Path:
@@ -485,7 +524,7 @@ def load_evidence_records(
     tenant_id: str,
     *,
     base_dir: str | Path | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Carga todos los EvidenceRecords de un tenant como list[dict].
 
     Contrato aprobado:
@@ -515,7 +554,7 @@ def load_evidence_records(
     if not content:
         return []
 
-    records: list[dict] = []
+    records: list[dict[str, Any]] = []
     for line_num, line in enumerate(content.splitlines(), start=1):
         line = line.strip()
         if not line:
@@ -541,7 +580,7 @@ def load_evidence_records_by_intake_id(
     intake_id: str,
     *,
     base_dir: str | Path | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Filtra EvidenceRecords de un tenant por intake_id.
 
     Contrato aprobado:
@@ -573,7 +612,7 @@ def load_evidence_record_by_id(
     evidence_id: str,
     *,
     base_dir: str | Path | None = None,
-) -> dict | None:
+) -> dict[str, Any] | None:
     """Busca un EvidenceRecord por evidence_id dentro de un tenant.
 
     Contrato aprobado:

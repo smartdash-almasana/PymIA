@@ -27,6 +27,7 @@ from pymia.diagnostic_core.models import (
     EvidenceGateDecisionStatus,
     FormulaInputGateResult,
 )
+from pymia.services.runtime_facades import calculate_formula
 from pymia.smartpyme.delivery_package import DeliveryPackage, build_delivery_package
 from pymia.smartpyme.execution_result_gate import (
     ExecutionResultGateVerdict,
@@ -322,7 +323,7 @@ def build_core_delivery_bridge_payload_from_structured_evidence(
             formula_ids=executable_formula_ids,
             hypothesis_codes=executable_hypothesis_codes,
         )
-        core_result = (core or DiagnosticCoreV1()).run(core_input)
+        core_result = (core or DiagnosticCoreV1(formula_calculator=calculate_formula)).run(core_input)
     else:
         missing_evidence = _collect_missing_evidence(
             formula_gate_results,
@@ -614,9 +615,9 @@ def project_owner_answers_into_delivery_bundle(
 
 
 def project_bridge_result_to_state(
-    state: PymIAState,
+    state: Any,
     bundle: CoreAuditDeliveryBundle,
-) -> PymIAState:
+) -> Any:
     new_state = deepcopy(state)
     owner_summary = str(bundle.owner_facing_report.get("summary") or "").strip()
     new_state.execution_status = str(bundle.execution_result.get("status") or "")

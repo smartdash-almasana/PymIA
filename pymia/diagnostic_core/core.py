@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from pymia.contracts.formula_contract import SUPPORTED_FORMULAS, FormulaInput, FormulaStatus
-from pymia.services.formula_engine_service import FormulaEngineService
+from collections.abc import Callable
+
+from pymia.contracts.formula_contract import FormulaInput, FormulaResult, FormulaStatus, SUPPORTED_FORMULAS
 
 from .models import (
     CoreDiagnosticResult,
@@ -15,8 +16,11 @@ from .models import (
 
 
 class DiagnosticCoreV1:
-    def __init__(self, formula_engine: FormulaEngineService | None = None) -> None:
-        self._formula_engine = formula_engine or FormulaEngineService()
+    def __init__(
+        self,
+        formula_calculator: Callable[[str, list[FormulaInput]], FormulaResult],
+    ) -> None:
+        self._calculate_formula = formula_calculator
 
     def run(self, core_input: DiagnosticCoreInput) -> DiagnosticCoreResult:
         formula_results: list[CoreFormulaResult] = []
@@ -27,7 +31,7 @@ class DiagnosticCoreV1:
 
         for formula_id in core_input.formula_ids:
             formula_inputs = self._build_formula_inputs(core_input, formula_id)
-            result = self._formula_engine.calculate(formula_id, formula_inputs)
+            result = self._calculate_formula(formula_id, formula_inputs)
             core_formula = CoreFormulaResult(
                 formula_id=result.formula_id,
                 status=str(result.status),

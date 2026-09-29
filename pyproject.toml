@@ -35,4 +35,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-markers = ["live: requires a configured external LLM provider"]
+markers = [
+    "live: requires a configured external LLM provider",
+    "golden: deterministic business corpus regression suite",
+    "performance: reproducible performance baseline benchmarks",
+]

@@ -7,8 +7,8 @@ from typing import Any, Final, Mapping
 from pymia.contracts.formula_contract import (
     FormulaInput,
     FormulaStatus,
-    calculate_formula,
 )
+from pymia.services.runtime_facades import calculate_formula
 from pymia.smartpyme.service_1_capability_contracts_v1 import (
     CapabilityDefinitionV1,
     classify_classification_rules,

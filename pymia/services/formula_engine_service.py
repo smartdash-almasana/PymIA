@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from typing import cast
 
 from pymia.contracts.formula_contract import (
     SUPPORTED_FORMULAS,
@@ -143,6 +144,9 @@ class FormulaEngineService:
                 source_refs=source_refs,
                 blocking_reason=f"MISSING_INPUTS: {','.join(missing)}",
             )
+
+        # Post-gate numeric invariant: required inputs are confirmed non-None
+        values = cast(dict[str, float | int], values)
 
         if formula_id == "margen_bruto":
             ventas = values["ventas"]

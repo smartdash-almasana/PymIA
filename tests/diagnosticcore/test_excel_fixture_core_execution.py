@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from pymia.diagnostic_core import DiagnosticCoreV1, build_diagnostic_core_input_from_structured_evidence
+from pymia.services.runtime_facades import calculate_formula
 from tools.excel_evidence import build_excel_structured_evidence
 
 
@@ -47,7 +48,7 @@ def test_excel_fixture_executes_through_binder_and_core() -> None:
         formula_ids=_FORMULA_IDS,
         hypothesis_codes=["REN_001", "LIQ_001", "INV_002"],
     )
-    result = DiagnosticCoreV1().run(core_input)
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(core_input)
 
     dumped = json.dumps(result.model_dump(mode="json"), sort_keys=True)
     assert "formula_results" in dumped

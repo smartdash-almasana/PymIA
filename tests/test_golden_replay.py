@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from pymia.audit_result.builder import build_operational_audit_result
 from pymia.audit_result.validators import validate_operational_audit_result
 from pymia.narrative.extract_evidence import extract_evidence_pool
@@ -18,6 +20,9 @@ from tools.excel_evidence import build_excel_structured_evidence
 ROOT = Path(__file__).resolve().parents[1]
 XLSX = ROOT / "prueba_excels" / "la_textil_cosida_srl_mar_abr_may_2026.xlsx"
 EXPECTED = ROOT / "tests" / "golden_findings" / "la_textil_expected.json"
+
+
+pytestmark = pytest.mark.golden
 
 
 def _run_pipeline() -> dict:

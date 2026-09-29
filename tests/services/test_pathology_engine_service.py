@@ -2,10 +2,10 @@ from pymia.contracts.formula_contract import FormulaInput
 from pymia.contracts.pathology_contract import (
     PathologyEvaluationInput,
     PathologyStatus,
-    evaluate_pathology,
 )
 from pymia.services.formula_engine_service import FormulaEngineService
 from pymia.services.pathology_engine_service import PathologyEngineService
+from pymia.services.runtime_facades import evaluate_pathology
 
 
 def _margin_result(ventas: float, costos: float):

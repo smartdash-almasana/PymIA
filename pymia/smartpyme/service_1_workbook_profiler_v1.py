@@ -10,12 +10,93 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from math import isfinite
-from typing import Any, Final
+from typing import Any, Final, Literal, NotRequired, Optional, TypedDict
+
+from pymia.observability.runtime_observability_adapter_v1 import (
+    PROFILE_OPERATION_NAME,
+    classify_error,
+    count_bucket,
+    get_runtime_observability_adapter,
+)
+from pymia.smartpyme.service_1_canonical_ingestion_output_to_semantic_bridge_v1 import (
+    CanonicalIngestionOutputV2,
+)
+from pymia.smartpyme.service_1_normalized_table_v1 import NormalizedTableV1
+from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
+    Service1ColumnRefV1,
+)
 
 SCHEMA_VERSION: Final[str] = "SERVICE_1_WORKBOOK_PROFILE_V1"
 SERVICE_NAME: Final[str] = "SERVICE_1"
 STATUS_READY: Final[str] = "WORKBOOK_PROFILE_READY"
 STATUS_BLOCKED: Final[str] = "BLOCKED"
+
+ProfilerStatus = Literal["WORKBOOK_PROFILE_READY", "BLOCKED"]
+
+
+class Service1WorkbookColumnNumericRangeV1(TypedDict):
+    min: float
+    max: float
+
+
+class Service1WorkbookColumnDateRangeV1(TypedDict):
+    min: str
+    max: str
+
+
+class Service1WorkbookColumnProfileV1(TypedDict):
+    column_ref: str
+    sheet_name: str
+    column_name: str
+    normalized_header: str
+    field_id: str
+    question_id: str
+    inferred_type: str
+    row_count: int
+    non_null_count: int
+    null_count: int
+    null_ratio: float
+    cardinality: int
+    unique_ratio: float
+    uniqueness_class: str
+    candidate_primary_key: bool
+    sample_values: list[Any]
+    numeric_range: Service1WorkbookColumnNumericRangeV1 | None
+    date_range: Service1WorkbookColumnDateRangeV1 | None
+
+
+class Service1WorkbookRelationshipV1(TypedDict):
+    relationship_ref: str
+    left_column_ref: str
+    right_column_ref: str
+    relationship_kind: str | None
+    same_normalized_header: bool
+    left_value_coverage: float
+    right_value_coverage: float
+    candidate_foreign_key: bool
+    candidate_primary_key_ref: str | None
+    intersection_cardinality: int
+
+
+class Service1WorkbookProfilePacketV1(TypedDict):
+    schema_version: str
+    service_name: str
+    status: ProfilerStatus
+    blocked_reason: str | None
+    case_id: str | None
+    source_file_ref: str | None
+    sheet_names: list[str]
+    column_count: int
+    relationship_count: int
+    columns: list[Service1WorkbookColumnProfileV1]
+    relationships: list[Service1WorkbookRelationshipV1]
+    evidence_registry: dict[str, dict[str, Any]]
+    runtime_authorized: Literal[False]
+    tool_execution_authorized: Literal[False]
+    product_ready: Literal[False]
+    delivery_authorized: Literal[False]
+    diagnosis_generated: Literal[False]
+    detail: NotRequired[str | None]
 
 BLOCK_INPUT_NOT_DICT: Final[str] = "BLOCK_PROFILE_INPUT_NOT_DICT"
 BLOCK_INPUT_AUTHORITY_FORBIDDEN: Final[str] = "BLOCK_PROFILE_INPUT_AUTHORITY_FORBIDDEN"
@@ -40,7 +121,61 @@ _AUTHORITY_FLAGS: Final[tuple[str, ...]] = (
 )
 
 
-def build_service_1_workbook_profile_v1(*, ingestion_output: Any) -> dict[str, Any]:
+def build_service_1_workbook_profile_v1(
+    *,
+    ingestion_output: CanonicalIngestionOutputV2 | None = None,
+) -> Service1WorkbookProfilePacketV1:
+    """Build a workbook profile while recording bounded runtime telemetry."""
+    try:
+        adapter = get_runtime_observability_adapter()
+    except BaseException:
+        adapter = None
+    handle = None
+    if adapter is not None:
+        try:
+            handle = adapter.start_operation(PROFILE_OPERATION_NAME)
+        except BaseException:
+            handle = None
+
+    try:
+        profile = _build_service_1_workbook_profile_v1(
+            ingestion_output=ingestion_output,
+        )
+    except BaseException as error:
+        if handle is not None:
+            try:
+                handle.end(
+                    status=STATUS_BLOCKED,
+                    error_classification=classify_error(error),
+                )
+            except BaseException:
+                pass
+        raise
+
+    if handle is not None:
+        try:
+            status = str(profile.get("status") or STATUS_BLOCKED)
+            handle.end(
+                status=status,
+                attributes={
+                    "workbook.column_count_bucket": count_bucket(
+                        profile.get("column_count")
+                    ),
+                    "workbook.relationship_count_bucket": count_bucket(
+                        profile.get("relationship_count")
+                    ),
+                },
+                error_classification="BLOCKED_RESULT" if status == STATUS_BLOCKED else None,
+            )
+        except BaseException:
+            pass
+    return profile
+
+
+def _build_service_1_workbook_profile_v1(
+    *,
+    ingestion_output: CanonicalIngestionOutputV2 | None = None,
+) -> Service1WorkbookProfilePacketV1:
     """Build deterministic column and cross-sheet structural evidence.
 
     The function is deliberately pure with respect to its input object. It reads
@@ -56,7 +191,7 @@ def build_service_1_workbook_profile_v1(*, ingestion_output: Any) -> dict[str, A
     if not isinstance(raw_tables, list) or not raw_tables:
         return _blocked(BLOCK_SOURCE_TABLES_MISSING, ingestion_output=ingestion_output)
 
-    tables: dict[str, dict[str, Any]] = {}
+    tables: dict[str, NormalizedTableV1] = {}
     for raw_table in raw_tables:
         if not _valid_table(raw_table):
             return _blocked(BLOCK_SOURCE_TABLE_INVALID, ingestion_output=ingestion_output)
@@ -76,7 +211,7 @@ def build_service_1_workbook_profile_v1(*, ingestion_output: Any) -> dict[str, A
     if not isinstance(provenance, dict):
         return _blocked(BLOCK_PROVENANCE_REQUIRED, ingestion_output=ingestion_output)
 
-    refs: list[dict[str, str]] = []
+    refs: list[Service1ColumnRefV1] = []
     seen_refs: set[str] = set()
     for raw_ref in raw_refs:
         ref = _clean_column_ref(raw_ref)
@@ -92,7 +227,7 @@ def build_service_1_workbook_profile_v1(*, ingestion_output: Any) -> dict[str, A
         refs.append(ref)
 
     evidence_registry: dict[str, dict[str, Any]] = {}
-    column_profiles: list[dict[str, Any]] = []
+    column_profiles: list[Service1WorkbookColumnProfileV1] = []
     values_by_identity: dict[str, tuple[str, ...]] = {}
 
     for ref in refs:
@@ -103,7 +238,7 @@ def build_service_1_workbook_profile_v1(*, ingestion_output: Any) -> dict[str, A
         values_by_identity[profile["column_ref"]] = canonical_values
 
     profiles_by_identity = {profile["column_ref"]: profile for profile in column_profiles}
-    relationships: list[dict[str, Any]] = []
+    relationships: list[Service1WorkbookRelationshipV1] = []
     for left in column_profiles:
         for right in column_profiles:
             if left["sheet_name"] == right["sheet_name"]:
@@ -162,7 +297,7 @@ def _valid_table(raw: Any) -> bool:
     return all(isinstance(row, dict) for row in rows)
 
 
-def _clean_column_ref(raw: Any) -> dict[str, str] | None:
+def _clean_column_ref(raw: Any) -> Service1ColumnRefV1 | None:
     if not isinstance(raw, dict):
         return None
     sheet_name = str(raw.get("sheet_name") or "").strip()
@@ -181,13 +316,13 @@ def _clean_column_ref(raw: Any) -> dict[str, str] | None:
     }
 
 
-def _ref_exists_in_table(ref: dict[str, str], table: dict[str, Any]) -> bool:
+def _ref_exists_in_table(ref: Service1ColumnRefV1, table: NormalizedTableV1) -> bool:
     headers = [str(value).strip() for value in table.get("headers") or []]
     normalized = [str(value).strip() for value in table.get("normalized_headers") or []]
     return ref["column_name"] in headers and ref["normalized_column_name"] in normalized
 
 
-def _profile_column(*, ref: dict[str, str], table: dict[str, Any]) -> tuple[dict[str, Any], dict[str, dict[str, Any]], tuple[str, ...]]:
+def _profile_column(*, ref: Service1ColumnRefV1, table: NormalizedTableV1) -> tuple[Service1WorkbookColumnProfileV1, dict[str, dict[str, Any]], tuple[str, ...]]:
     rows = list(table.get("rows") or [])
     normalized_name = ref["normalized_column_name"]
     raw_values = [row.get(normalized_name) for row in rows]
@@ -251,11 +386,11 @@ def _profile_column(*, ref: dict[str, str], table: dict[str, Any]) -> tuple[dict
 
 def _candidate_relationship(
     *,
-    left: dict[str, Any],
-    right: dict[str, Any],
+    left: Service1WorkbookColumnProfileV1,
+    right: Service1WorkbookColumnProfileV1,
     left_values: tuple[str, ...],
     right_values: tuple[str, ...],
-) -> dict[str, Any] | None:
+) -> Service1WorkbookRelationshipV1 | None:
     if not left_values or not right_values:
         return None
     left_set = set(left_values)
@@ -301,7 +436,7 @@ def _candidate_relationship(
     }
 
 
-def _relationship_evidence(relationship: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _relationship_evidence(relationship: Service1WorkbookRelationshipV1) -> dict[str, dict[str, Any]]:
     ref = relationship["relationship_ref"]
     prefix = f"ev:relationship:{ref}"
     return {
@@ -381,7 +516,7 @@ def _parse_number(value: Any) -> float | None:
     return number if isfinite(number) else None
 
 
-def _numeric_range(values: list[Any]) -> dict[str, float] | None:
+def _numeric_range(values: list[Any]) -> Service1WorkbookColumnNumericRangeV1 | None:
     numbers = [_parse_number(value) for value in values]
     if not numbers or any(value is None for value in numbers):
         return None
@@ -410,7 +545,7 @@ def _parse_date(value: Any) -> date | None:
     return None
 
 
-def _date_range(values: list[Any]) -> dict[str, str] | None:
+def _date_range(values: list[Any]) -> Service1WorkbookColumnDateRangeV1 | None:
     parsed = [_parse_date(value) for value in values]
     if not parsed or any(value is None for value in parsed):
         return None
@@ -418,7 +553,7 @@ def _date_range(values: list[Any]) -> dict[str, str] | None:
     return {"min": min(clean).isoformat(), "max": max(clean).isoformat()}
 
 
-def _blocked(reason: str, *, ingestion_output: dict[str, Any] | None = None, detail: Any = None) -> dict[str, Any]:
+def _blocked(reason: str, *, ingestion_output: CanonicalIngestionOutputV2 | None = None, detail: Any = None) -> Service1WorkbookProfilePacketV1:
     source = ingestion_output or {}
     return {
         "schema_version": SCHEMA_VERSION,
@@ -446,6 +581,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "STATUS_READY",
     "STATUS_BLOCKED",
+    "ProfilerStatus",
     "BLOCK_INPUT_NOT_DICT",
     "BLOCK_INPUT_AUTHORITY_FORBIDDEN",
     "BLOCK_SOURCE_TABLES_MISSING",
@@ -455,5 +591,10 @@ __all__ = [
     "BLOCK_COLUMN_REF_NOT_FOUND",
     "BLOCK_DUPLICATE_COLUMN_REF",
     "RELATIONSHIP_OVERLAP_THRESHOLD",
+    "Service1WorkbookColumnNumericRangeV1",
+    "Service1WorkbookColumnDateRangeV1",
+    "Service1WorkbookColumnProfileV1",
+    "Service1WorkbookRelationshipV1",
+    "Service1WorkbookProfilePacketV1",
     "build_service_1_workbook_profile_v1",
 ]

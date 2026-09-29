@@ -8,7 +8,8 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Final
 
-from pymia.contracts.formula_contract import FormulaInput, FormulaStatus, calculate_formula
+from pymia.contracts.formula_contract import FormulaInput, FormulaStatus
+from pymia.services.runtime_facades import calculate_formula
 from pymia.smartpyme.service_1_capability_contracts_v1 import (
     ClassificationPredicate,
     ClassificationRule,

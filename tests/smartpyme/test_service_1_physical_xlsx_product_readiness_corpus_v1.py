@@ -1,7 +1,12 @@
+import pytest
+
 from tools.service_1_physical_xlsx_product_readiness_corpus_v1 import (
     SCHEMA_VERSION,
     evaluate_physical_xlsx_product_readiness_corpus_v1,
 )
+
+
+pytestmark = pytest.mark.golden
 
 
 def test_physical_xlsx_product_readiness_corpus_is_reproducible_and_fail_closed() -> None:

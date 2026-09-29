@@ -5,10 +5,14 @@ from pymia.contracts.formula_contract import FormulaResult, FormulaStatus
 from pymia.diagnostic_core.evidence_sufficiency import (
     EvidenceGateDecision,
     EvidenceGateDecisionStatus,
-    build_evidence_gate_decisions_for_investigation,
+)
+from pymia.services.diagnostic_formula_execution import (
     execute_allowed_formulas_from_gate_decisions,
 )
 from pymia.diagnostic_core.models import DiagnosticCoreInput
+from pymia.smartpyme.investigation_evidence_gate_adapter import (
+    build_evidence_gate_decisions_for_investigation,
+)
 from pymia.smartpyme.investigation import (
     INVESTIGATION_STATUS_OPEN,
     INVESTIGATION_STATUS_READY_FOR_CONTRAST,

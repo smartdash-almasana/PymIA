@@ -34,25 +34,33 @@ This module DOES NOT:
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Literal, NotRequired, Optional, TypedDict
 
 from pymia.contracts.column_confirmation_v1 import (
     ColumnConfirmationEntry,
     ColumnConfirmationMatrix,
     ConfirmationStatus,
 )
+from pymia.smartpyme.service_1_column_understanding_engine_contract_v1 import (
+    Service1ColumnUnderstandingV1,
+)
 from pymia.smartpyme.service_1_column_understanding_engine_v1 import (
     build_column_understandings_from_matrix_v1,
 )
 from pymia.smartpyme.service_1_column_understanding_owner_question_adapter_v1 import (
+    Service1ColumnOwnerQuestionViewV1,
     build_service_1_column_owner_question_views_v1,
     build_service_1_first_contact_owner_options_v1,
 )
+from pymia.smartpyme.service_1_normalized_table_v1 import NormalizedTableV1
 from pymia.smartpyme.service_1_owner_confirmation_to_canonical_ingestion_output_v1 import (
     _column_evidence as build_canonical_column_evidence,
 )
 from pymia.smartpyme.service_1_semantic_evidence_binding_contracts_v1 import (
     Service1ColumnSemanticCandidateV1,
+)
+from pymia.smartpyme.service_1_web_column_confirmation_intake_boundary_v1 import (
+    Service1ColumnRefV1,
 )
 
 SCHEMA_VERSION = "SERVICE_1_CANONICAL_INGESTION_OUTPUT_TO_SEMANTIC_BRIDGE_V1"
@@ -61,6 +69,82 @@ PACKET_TYPE = "CANONICAL_INGESTION_OUTPUT_TO_SEMANTIC_BRIDGE"
 
 STATUS_READY = "SEMANTIC_CANDIDATES_READY"
 STATUS_BLOCKED = "BLOCKED"
+
+BridgeStatus = Literal["SEMANTIC_CANDIDATES_READY", "BLOCKED"]
+
+
+class CanonicalWorkbookContextV1(TypedDict, total=False):
+    case_id: str
+    source_artifact_ref: str
+    workbook_ref: str
+    ingestion_scope: str
+    canonical_reader_schema_version: str
+    source_system_ref: str | None
+    source_context_ref: str | None
+
+
+class CanonicalProvenanceV1(TypedDict, total=False):
+    origin_schema_version: str
+    source_kind: str | None
+    source_artifact_ref: str | None
+    source_file_ref: str | None
+    workbook_ref: str | None
+    ingestion_scope: str | None
+    canonical_reader_schema_version: str | None
+    filename: str | None
+    sheet_names: list[str]
+    sheet_refs: list[dict[str, str]]
+
+
+class CanonicalIngestionOutputV2(TypedDict, total=False):
+    schema_version: str
+    request_kind: str
+    workbook_context: CanonicalWorkbookContextV1
+    provenance: CanonicalProvenanceV1
+    normalized_tables: list[NormalizedTableV1]
+    column_refs: list[Service1ColumnRefV1]
+    columns: list[str]
+    available_data_fields: list[str]
+    confirmed_columns: list[str]
+    input_values: dict[str, Any]
+    normalized_values: dict[str, Any]
+    owner_answers: dict[str, Any]
+    column_evidence: dict[str, Any]
+    physical_lineage: list[dict[str, Any]]
+    sheet_name: str
+    filename: str
+    source_kind: str
+    case_id: str
+    runtime_authorized: bool
+    tool_execution_authorized: bool
+    product_ready: bool
+    delivery_authorized: bool
+    diagnosis_generated: bool
+
+
+class Service1SemanticBridgeResultPacketV1(TypedDict):
+    schema_version: str
+    service_name: str
+    packet_type: str
+    status: BridgeStatus
+    blocked_reason: str | None
+    case_id: str | None
+    source_kind: str | None
+    filename: str | None
+    columns: list[str]
+    column_refs: list[Service1ColumnRefV1]
+    column_candidate_count: int
+    column_candidates: tuple[Service1ColumnSemanticCandidateV1, ...]
+    variable_family_count: int
+    variable_family_bindings: tuple[Any, ...]
+    ready_variable_family_ids: list[str]
+    confirmation_matrix: ColumnConfirmationMatrix | None
+    column_understandings: tuple[Service1ColumnUnderstandingV1, ...] | list[Service1ColumnUnderstandingV1]
+    owner_question_views: tuple[Service1ColumnOwnerQuestionViewV1, ...] | list[Service1ColumnOwnerQuestionViewV1]
+    runtime_authorized: Literal[False]
+    product_ready: Literal[False]
+    delivery_authorized: Literal[False]
+    detail: NotRequired[list[str]]
 
 # Block reason constants (stable identifiers for tests and callers).
 BLOCK_REQUEST_FLAGS_FORBIDDEN = "REQUEST_SAFETY_FLAGS_FORBIDDEN"
@@ -76,12 +160,12 @@ BLOCK_IDENTITY_PROVENANCE_REQUIRED = "IDENTITY_PROVENANCE_REQUIRED"
 
 def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
     *,
-    ingestion_output: Any,
+    ingestion_output: CanonicalIngestionOutputV2 | None = None,
     sheet_name: str = "sheet1",
     runtime_authorized: bool = False,
     product_ready: bool = False,
     delivery_authorized: bool = False,
-) -> dict[str, Any]:
+) -> Service1SemanticBridgeResultPacketV1:
     """Turn a canonical ingestion_output into semantic column candidates.
 
     Args:
@@ -253,7 +337,7 @@ def build_service_1_semantic_bridge_from_canonical_ingestion_output_v1(
 def _build_confirmation_matrix(
     *,
     filename: str,
-    column_refs: list[dict[str, str]],
+    column_refs: list[Service1ColumnRefV1],
     owner_values: dict[str, Any],
 ) -> ColumnConfirmationMatrix:
     evidence = owner_values.get("__column_evidence__", {})
@@ -283,9 +367,9 @@ def _build_confirmation_matrix(
     return ColumnConfirmationMatrix(file_name=filename, entries=entries)
 
 def _candidate_from_understanding(
-    understanding: Any,
+    understanding: Service1ColumnUnderstandingV1,
     *,
-    column_ref: dict[str, str],
+    column_ref: Service1ColumnRefV1,
 ) -> Service1ColumnSemanticCandidateV1:
     hypotheses = tuple(understanding.candidate_meanings or ())
     compositional_semantic = understanding.compositional_semantic
@@ -339,7 +423,7 @@ def _candidate_from_understanding(
     )
 
 
-def _extract_columns(ingestion_output: dict[str, Any]) -> list[str]:
+def _extract_columns(ingestion_output: CanonicalIngestionOutputV2) -> list[str]:
     raw_refs = ingestion_output.get("column_refs")
     if isinstance(raw_refs, list) and raw_refs:
         columns: list[str] = []
@@ -360,18 +444,18 @@ def _extract_columns(ingestion_output: dict[str, Any]) -> list[str]:
 
 
 def _extract_column_refs(
-    ingestion_output: dict[str, Any],
+    ingestion_output: CanonicalIngestionOutputV2,
     *,
     columns: list[str],
     fallback_sheet_name: str = "sheet1",
-) -> list[dict[str, str]]:
+) -> list[Service1ColumnRefV1]:
     raw_refs = ingestion_output.get("column_refs")
     if isinstance(raw_refs, list) and raw_refs:
-        refs: list[dict[str, str]] = []
+        refs: list[Service1ColumnRefV1] = []
         for raw in raw_refs:
             if not isinstance(raw, dict):
                 return []
-            ref = {
+            ref: Service1ColumnRefV1 = {
                 "field_id": str(raw.get("field_id") or "").strip(),
                 "question_id": str(raw.get("question_id") or raw.get("field_id") or "").strip(),
                 "sheet_name": str(raw.get("sheet_name") or "").strip(),
@@ -402,7 +486,7 @@ def _extract_column_refs(
     ]
 
 
-def _extract_input_values(ingestion_output: dict[str, Any]) -> dict[str, Any]:
+def _extract_input_values(ingestion_output: CanonicalIngestionOutputV2) -> dict[str, Any]:
     raw_refs = ingestion_output.get("column_refs")
     if isinstance(raw_refs, list) and raw_refs:
         values: dict[str, Any] = {}
@@ -439,7 +523,7 @@ def _blocked(
     source_kind: Optional[str] = None,
     filename: Optional[str] = None,
     detail: Optional[list[str]] = None,
-) -> dict[str, Any]:
+) -> Service1SemanticBridgeResultPacketV1:
     return {
         "schema_version": SCHEMA_VERSION,
         "service_name": SERVICE_NAME,
@@ -479,5 +563,10 @@ __all__ = [
     "BLOCK_NO_INPUT_VALUES",
     "BLOCK_COLUMNS_VALUES_MISMATCH",
     "BLOCK_DUPLICATE_COLUMNS",
+    "BridgeStatus",
+    "CanonicalWorkbookContextV1",
+    "CanonicalProvenanceV1",
+    "CanonicalIngestionOutputV2",
+    "Service1SemanticBridgeResultPacketV1",
     "build_service_1_semantic_bridge_from_canonical_ingestion_output_v1",
 ]

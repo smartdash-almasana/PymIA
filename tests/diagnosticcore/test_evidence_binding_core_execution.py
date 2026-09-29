@@ -3,6 +3,7 @@ from pymia.diagnostic_core import (
     DiagnosticCoreV1,
     build_diagnostic_core_input_from_structured_evidence,
 )
+from pymia.services.runtime_facades import calculate_formula
 
 
 def test_executes_three_formulas_from_structured_evidence_fixture() -> None:
@@ -43,7 +44,7 @@ def test_executes_three_formulas_from_structured_evidence_fixture() -> None:
         ],
         hypothesis_codes=["REN_001", "LIQ_001", "INV_002"],
     )
-    result = DiagnosticCoreV1().run(core_input)
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(core_input)
 
     assert result.status == "PARTIAL"
     assert [formula.value for formula in result.formula_results] == [20.0, 350.0, 4.0]
@@ -90,7 +91,7 @@ def test_partial_execution_blocks_only_incomplete_formula() -> None:
         formula_ids=["REN_001_margen_neto_real", "LIQ_001_vendido_cobrado"],
         hypothesis_codes=["REN_001", "LIQ_001"],
     )
-    result = DiagnosticCoreV1().run(core_input)
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(core_input)
 
     assert result.status == "PARTIAL"
     assert result.formula_results[0].status == "BLOCKED"
@@ -135,7 +136,7 @@ def test_executes_supported_aliases_from_parser_like_variables() -> None:
         ],
         hypothesis_codes=["REN_001", "LIQ_001", "INV_002"],
     )
-    result = DiagnosticCoreV1().run(core_input)
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(core_input)
 
     assert result.status == "PARTIAL"
     assert [formula.value for formula in result.formula_results] == [20.0, 350.0, 700 / 3000]
@@ -199,7 +200,7 @@ def test_binding_new_formulas_integrate_with_core() -> None:
         ],
         hypothesis_codes=["PYME_044", "PYME_033", "REN_002"],
     )
-    result = DiagnosticCoreV1().run(core_input)
+    result = DiagnosticCoreV1(formula_calculator=calculate_formula).run(core_input)
 
     assert result.status == "PARTIAL"
     assert [formula.value for formula in result.formula_results] == [250.0, 40.0, 1.5]

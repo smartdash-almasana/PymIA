@@ -95,9 +95,3 @@ def _load_supported_formulas() -> dict[str, FormulaDefinition]:
 
 
 SUPPORTED_FORMULAS: dict[str, FormulaDefinition] = _load_supported_formulas()
-
-
-def calculate_formula(formula_id: str, inputs: list[FormulaInput]) -> FormulaResult:
-    from pymia.services.formula_engine_service import FormulaEngineService
-
-    return FormulaEngineService().calculate(formula_id, inputs)

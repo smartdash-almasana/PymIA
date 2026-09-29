@@ -334,3 +334,18 @@ def test_bridge_reentry_has_no_runtime_imports() -> None:
         if isinstance(node, ast.ImportFrom):
             module = node.module or ""
             assert not module.startswith(forbidden_prefixes)
+
+
+def test_bridge_project_bridge_result_to_state_type_hints_resolved() -> None:
+    import typing
+    from typing import Any
+    from pymia.audit_result.core_delivery_bridge import (
+        CoreAuditDeliveryBundle,
+        project_bridge_result_to_state,
+    )
+
+    hints = typing.get_type_hints(project_bridge_result_to_state)
+    assert hints["state"] is Any
+    assert hints["bundle"] is CoreAuditDeliveryBundle
+    assert hints["return"] is Any
+

@@ -363,7 +363,8 @@ def build_service_1_analysis_evidence_preparation_v1(
     if base_error is not None:
         status = STATUS_NEEDS_EVIDENCE if base_error.startswith("SOURCE_COLUMN_NOT_FOUND") else STATUS_BLOCKED
         return _decision(case, plan.analysis_id, status, base_error)
-    assert base_sheet is not None
+    if base_sheet is None:
+        return _decision(case, plan.analysis_id, STATUS_BLOCKED, "BASE_SHEET_SELECTION_INVALID")
 
     row_states = [
         _RowState(

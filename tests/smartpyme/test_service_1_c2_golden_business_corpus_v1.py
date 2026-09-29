@@ -1,9 +1,14 @@
 from pathlib import Path
 
+import pytest
+
 from pymia.smartpyme.service_1_c2_golden_business_corpus_v1 import (
     STATUS_READY,
     evaluate_service_1_c2_golden_business_corpus_v1,
 )
+
+
+pytestmark = pytest.mark.golden
 
 
 def test_f11_multi_business_golden_corpus_uses_real_xlsx_and_canonical_context() -> None:

@@ -46,9 +46,3 @@ class PathologyFinding(BaseModel):
     source_refs: list[str] = Field(default_factory=list)
     explanation: str
     metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-def evaluate_pathology(pathology_id: str, payload: PathologyEvaluationInput) -> PathologyFinding:
-    from pymia.services.pathology_engine_service import PathologyEngineService
-
-    return PathologyEngineService().evaluate(pathology_id, payload)
